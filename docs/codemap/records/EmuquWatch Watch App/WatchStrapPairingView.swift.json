@@ -9,20 +9,6 @@
   "@EnvironmentObject connector: WatchStrapConnector (injected by WatchApp .environmentObject(strapConnector), EmuquWatch Watch App/WatchApp.swift:29)"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "The screen is reachable in display-only mode when a strap is saved (WatchLiveView.swift:251), and there startScanning runs a discovery scan (auto-reconnect is off) whose rows connect the wrist directly via connect(to:); didConnect then saves it. So the wrist can take a link to the strap the iPhone owns, which the autoReconnectEnabled doc says display-only mode avoids for automatic reconnects only.",
-   "evidence": [
-    "EmuquWatch Watch App/WatchLiveView.swift:251",
-    "EmuquWatch Watch App/WatchStrapPairingView.swift:195",
-    "EmuquWatch Watch App/WatchStrapConnector.swift:517",
-    "EmuquWatch Watch App/WatchStrapConnector.swift:132"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var WatchStrapPairingView.body",
@@ -40,24 +26,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/USERS_MANUAL.md says 'Pair from Watch app → Strap → Scan'; the screen has no Scan button (Refresh), and the Strap entry is hidden in the default display-only mode unless a strap is already saved, so the documented path is not reachable by default.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:1417",
-      "EmuquWatch Watch App/WatchLiveView.swift:251",
-      "EmuquWatch Watch App/WatchStrapPairingView.swift:236"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
     "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.startScanning()": "d864a2733fc9463a",
     "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.stopScanning()": "d0106163df13122f",
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.content": "5356d98c9c3b75fa",
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.stateHeader": "ba952dd44da8ae34"
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.content": "56b5e8fca56d88e4",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.stateHeader": "5b761825b6a35b8c"
    }
   },
   {
@@ -117,13 +90,12 @@
      "effect": "'Ready to scan', no subtitle"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.connectedHeader(name:)": "6a69eed37f6b86dd",
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.connectingHeader(name:)": "653c15c8b43d22be",
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.disconnectedHeader(reason:)": "319d773fcfa44cd1",
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.statusRow(_:_:_:_:)": "25a59a6181ba6e58"
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.connectedHeader(name:)": "faa041104c3ce415",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.connectingHeader(name:)": "870f0953f17705c7",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.disconnectedHeader(reason:)": "8ab2afbc08877528",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.statusRow(_:_:_:_:)": "43e57121527ea04d"
    }
   },
   {
@@ -137,9 +109,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.statusRow(_:_:_:_:)": "25a59a6181ba6e58"
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.statusRow(_:_:_:_:)": "43e57121527ea04d"
    }
   },
   {
@@ -159,9 +130,8 @@
      "effect": "subtitle falls back to 'Tap a strap below to reconnect.'"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.statusRow(_:_:_:_:)": "25a59a6181ba6e58"
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.statusRow(_:_:_:_:)": "43e57121527ea04d"
    }
   },
   {
@@ -175,9 +145,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.simpleStatusRow(icon:tint:title:subtitle:)": "c4298ea06c0281bd"
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.simpleStatusRow(icon:tint:title:subtitle:)": "ee3a10675b287ad1"
    }
   },
   {
@@ -207,12 +176,11 @@
      "effect": "true: also show connectedActions (Forget); false: nothing more"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
     "EmuquWatch Watch App/WatchStrapConnector.swift::var WatchStrapConnector.hasSavedStrap": "89d099d8821999c6",
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.connectedActions": "7d94d2c9934c5edf",
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.discoveredList": "60082d657cbe4374"
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.connectedActions": "31fb34290e22fa4d",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.discoveredList": "077dfa8314a78a06"
    }
   },
   {
@@ -227,10 +195,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.liveReadings": "b57335d50cbfa19e",
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rrIntervals": "b7a382e7420640bb"
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.liveReadings": "3e7aa2a99ec6a228",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rrIntervals": "82eed2cd6e6be7d6"
    }
   },
   {
@@ -256,7 +223,6 @@
      "effect": "true: battery label; false: omitted"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -278,10 +244,9 @@
      "effect": "true: text shown; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
-    "EmuquWatch Watch App/WatchScaledFont.swift::func View.watchScaledFont(size:weight:design:monospacedDigit:relativeTo:)": "3efbee99094eff6c"
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
+    "EmuquWatch Watch App/WatchScaledFont.swift::func View.watchScaledFont(size:weight:design:monospacedDigit:relativeTo:)": "5d93a77fb9ceffdd"
    }
   },
   {
@@ -297,7 +262,6 @@
     "ud:WatchStrapConnector.savedPeripheralIdentifier"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.disconnectAndForget()": "d42282495d5b43b7"
    }
@@ -323,11 +287,10 @@
      "effect": "true: emptyDiscoveryState + rescanButton; false: ForEach deviceRow + rescanButton"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.deviceRow(_:)": "7d59829a5d68fb51",
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.emptyDiscoveryState": "6b66967923292e5c",
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rescanButton": "5924d8fa0bc66585"
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.deviceRow(_:)": "025e26b7ef491240",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.emptyDiscoveryState": "6fef04e40891bd46",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rescanButton": "dcd3769441e01710"
    }
   },
   {
@@ -352,9 +315,8 @@
      "effect": "true: 'Searching…'; false: 'No straps yet'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad"
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245"
    }
   },
   {
@@ -369,10 +331,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.deviceRowLabel(_:)": "9a44e2998f1a114f",
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.select(_:)": "44b335d3f7549f8e"
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.deviceRowLabel(_:)": "55ce308170d829d0",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.select(_:)": "ceec3ccb8da58d16"
    }
   },
   {
@@ -387,9 +348,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.connect(to: DiscoveredDevice)": "72940cdf8b28d1bc"
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.connect(to: DiscoveredDevice)": "00bd2c277fd996dc"
    }
   },
   {
@@ -403,9 +363,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchScaledFont.swift::func View.watchScaledFont(size:weight:design:monospacedDigit:relativeTo:)": "3efbee99094eff6c"
+    "EmuquWatch Watch App/WatchScaledFont.swift::func View.watchScaledFont(size:weight:design:monospacedDigit:relativeTo:)": "5d93a77fb9ceffdd"
    }
   },
   {
@@ -423,22 +382,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Refresh is disabled whenever state is .scanning and a scan never ends on its own (no timeout in WatchStrapConnector), so once scanning the button stays disabled until a device is tapped or the screen is left.",
-     "evidence": [
-      "EmuquWatch Watch App/WatchStrapPairingView.swift:225",
-      "EmuquWatch Watch App/WatchStrapConnector.swift:214"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.rescan()": "4c7dc290ab145577",
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rescanLabel": "a2fe85f027404b7d"
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.rescan()": "41ff22f0a9391545",
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::var WatchStrapPairingView.rescanLabel": "9c4158d6a472b711"
    }
   },
   {
@@ -463,9 +410,8 @@
      "effect": "true: 'Searching…'; false: 'Refresh'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad"
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245"
    }
   },
   {
@@ -479,9 +425,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.statusSubtitle(_:)": "11d257b87fc50f6f"
+    "EmuquWatch Watch App/WatchStrapPairingView.swift::func WatchStrapPairingView.statusSubtitle(_:)": "4ed13a1f79924ac4"
    }
   },
   {
@@ -501,9 +446,8 @@
      "effect": "true: Text shown; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquWatch Watch App/WatchScaledFont.swift::func View.watchScaledFont(size:weight:design:monospacedDigit:relativeTo:)": "3efbee99094eff6c"
+    "EmuquWatch Watch App/WatchScaledFont.swift::func View.watchScaledFont(size:weight:design:monospacedDigit:relativeTo:)": "5d93a77fb9ceffdd"
    }
   }
  ],

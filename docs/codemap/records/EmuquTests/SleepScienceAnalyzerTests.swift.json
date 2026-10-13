@@ -11,7 +11,6 @@
   "baseDate: TestDate.from(2025-01-15 22:00) (default calendar/time zone of TestDate.from)"
  ],
  "toplevel": "baseDate stored-property initializer calls TestDate.from(DateComponents(2025,1,15,22)).",
- "flags": [],
  "units": [
   {
    "key": "func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)",
@@ -24,9 +23,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "f6e5f489bd3b0b44"
    }
   },
   {
@@ -41,10 +39,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "9700ca5a4264152b"
    }
   },
   {
@@ -59,10 +56,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeFragmentation(intervals:totalSleepMinutes:awakeMinutes:)": "84baee8647cf9160",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeFragmentation(intervals:totalSleepMinutes:awakeMinutes:)": "2d354b1c6b164ed3",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "9700ca5a4264152b"
    }
   },
   {
@@ -77,10 +73,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeFragmentation(intervals:totalSleepMinutes:awakeMinutes:)": "84baee8647cf9160",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeFragmentation(intervals:totalSleepMinutes:awakeMinutes:)": "2d354b1c6b164ed3",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "9700ca5a4264152b"
    }
   },
   {
@@ -101,10 +96,9 @@
      "effect": "appends a 20-min core and a 4-min awake interval each iteration"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeFragmentation(intervals:totalSleepMinutes:awakeMinutes:)": "84baee8647cf9160",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeFragmentation(intervals:totalSleepMinutes:awakeMinutes:)": "2d354b1c6b164ed3",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "9700ca5a4264152b"
    }
   },
   {
@@ -118,9 +112,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeFragmentation(intervals:totalSleepMinutes:awakeMinutes:)": "84baee8647cf9160"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeFragmentation(intervals:totalSleepMinutes:awakeMinutes:)": "2d354b1c6b164ed3"
    }
   },
   {
@@ -135,21 +128,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "XCTAssertGreaterThanOrEqual(cycles.count, 2) does not stop the test; if detection returned no cycles, cycles[0] traps with index out of range and aborts the whole test process instead of failing one case.",
-     "evidence": [
-      "EmuquTests/SleepScienceAnalyzerTests.swift:146",
-      "EmuquTests/SleepScienceAnalyzerTests.swift:147"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "b00bc975326f977e",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "bd1c38b549a45fb4",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "9700ca5a4264152b"
    }
   },
   {
@@ -163,9 +144,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "b00bc975326f977e"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "bd1c38b549a45fb4"
    }
   },
   {
@@ -180,10 +160,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "b00bc975326f977e",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "bd1c38b549a45fb4",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "9700ca5a4264152b"
    }
   },
   {
@@ -204,21 +183,9 @@
      "effect": "true: asserts isComplete false and remMinutes 0; false: no assertion runs"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Assertions are inside `if let cycle = cycles.first`; if detectSleepCycles returns no cycles the test passes with zero assertions, so the 'one incomplete cycle' comment is never enforced.",
-     "evidence": [
-      "EmuquTests/SleepScienceAnalyzerTests.swift:173",
-      "EmuquTests/SleepScienceAnalyzerTests.swift:174"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "b00bc975326f977e",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "bd1c38b549a45fb4",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "9700ca5a4264152b"
    }
   },
   {
@@ -233,10 +200,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "b00bc975326f977e",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "bd1c38b549a45fb4",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "9700ca5a4264152b"
    }
   },
   {
@@ -251,10 +217,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "b00bc975326f977e",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.detectSleepCycles(intervals:)": "bd1c38b549a45fb4",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "9700ca5a4264152b"
    }
   },
   {
@@ -268,9 +233,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925"
    }
   },
   {
@@ -284,7 +248,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeEnhancedScore(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)": "422ab5d2e1e37242"
    }
@@ -301,10 +264,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.score(_:)": "c4acc0a7b036ce19",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.stagedNight(deep:rem:)": "291af47ec233f570"
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.score(_:)": "e8af0c53ecb3b94c",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.stagedNight(deep:rem:)": "53230b875ac1477c"
    }
   },
   {
@@ -319,10 +281,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.score(_:)": "c4acc0a7b036ce19",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.stagedNight(deep:rem:)": "291af47ec233f570"
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.score(_:)": "e8af0c53ecb3b94c",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.stagedNight(deep:rem:)": "53230b875ac1477c"
    }
   },
   {
@@ -336,9 +297,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "d57672535b61d472"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "f6a12157e9321e62"
    }
   },
   {
@@ -352,9 +312,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "d57672535b61d472"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "f6a12157e9321e62"
    }
   },
   {
@@ -368,9 +327,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "d57672535b61d472"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "f6a12157e9321e62"
    }
   },
   {
@@ -384,9 +342,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "d57672535b61d472"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "f6a12157e9321e62"
    }
   },
   {
@@ -400,9 +357,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "d57672535b61d472"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "f6a12157e9321e62"
    }
   },
   {
@@ -418,11 +374,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyzeArchitecture(intervals:sleepData:)": "3a991866414069f9",
-    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyzeArchitecture(intervals:sleepData:)": "28ea680cd0311cee",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "9700ca5a4264152b"
    }
   },
   {
@@ -438,11 +393,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyzeArchitecture(intervals:sleepData:)": "3a991866414069f9",
-    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyzeArchitecture(intervals:sleepData:)": "28ea680cd0311cee",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "9700ca5a4264152b"
    }
   },
   {
@@ -457,10 +411,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyzeArchitecture(intervals:sleepData:)": "3a991866414069f9",
-    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyzeArchitecture(intervals:sleepData:)": "28ea680cd0311cee",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925"
    }
   },
   {
@@ -475,11 +428,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeEnhancedScore(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)": "422ab5d2e1e37242",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.makeStandardSleepData()": "df77079112631766",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.score(_:)": "c4acc0a7b036ce19"
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.makeStandardSleepData()": "82715bb060599ff5",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.score(_:)": "e8af0c53ecb3b94c"
    }
   },
   {
@@ -494,11 +446,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeEnhancedScore(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)": "422ab5d2e1e37242",
-    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.score(_:)": "c4acc0a7b036ce19"
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.score(_:)": "e8af0c53ecb3b94c"
    }
   },
   {
@@ -519,20 +470,9 @@
      "effect": "true: runs the field assertions; false: only the earlier XCTAssertNotNil fails"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "XCTAssertGreaterThanOrEqual(analysis.cycleCount, 0) on an Int count is a tautology; cycle detection on the five-cycle fixture is not checked.",
-     "evidence": [
-      "EmuquTests/SleepScienceAnalyzerTests.swift:449"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "caebdd2209a1efbc",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.makeStandardSleepData()": "df77079112631766"
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.makeStandardSleepData()": "82715bb060599ff5"
    }
   },
   {
@@ -547,10 +487,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "caebdd2209a1efbc",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.makeStandardSleepData()": "df77079112631766"
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.makeStandardSleepData()": "82715bb060599ff5"
    }
   },
   {
@@ -565,10 +504,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "caebdd2209a1efbc",
-    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925"
    }
   },
   {
@@ -585,13 +523,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "d57672535b61d472",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "f6a12157e9321e62",
     "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeEnhancedScore(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)": "422ab5d2e1e37242",
-    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.score(_:)": "c4acc0a7b036ce19"
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "9700ca5a4264152b",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.score(_:)": "e8af0c53ecb3b94c"
    }
   },
   {
@@ -608,12 +545,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "d57672535b61d472",
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeAgeNorms(age:deepPercent:remPercent:efficiency:)": "f6a12157e9321e62",
     "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.computeEnhancedScore(sleepData:typicalSleepHours:fragmentationIndex:cycleCount:architecture:ageNorms:)": "422ab5d2e1e37242",
-    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "9700ca5a4264152b"
    }
   },
   {
@@ -635,11 +571,10 @@
      "effect": "true: runs field assertions; false: only XCTAssertNotNil fails"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::func SleepScienceAnalyzer.analyze(sleepData:userAge:typicalSleepHours:)": "caebdd2209a1efbc",
-    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "8d394eda9a31d607"
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.interval(_:startMin:durationMin:)": "9700ca5a4264152b"
    }
   },
   {
@@ -653,9 +588,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925"
    }
   },
   {
@@ -670,10 +604,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "77e23c3d71c4740e",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepDataPlausibilityTests.sleep(start:end:)": "7463fe12358558ee"
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepDataPlausibilityTests.sleep(start:end:)": "91f1aad353963e21"
    }
   },
   {
@@ -688,10 +621,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "77e23c3d71c4740e",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepDataPlausibilityTests.sleep(start:end:)": "7463fe12358558ee"
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepDataPlausibilityTests.sleep(start:end:)": "91f1aad353963e21"
    }
   },
   {
@@ -706,10 +638,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "77e23c3d71c4740e",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepDataPlausibilityTests.sleep(start:end:)": "7463fe12358558ee"
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepDataPlausibilityTests.sleep(start:end:)": "91f1aad353963e21"
    }
   },
   {
@@ -724,10 +655,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "77e23c3d71c4740e",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepDataPlausibilityTests.sleep(start:end:)": "7463fe12358558ee"
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepDataPlausibilityTests.sleep(start:end:)": "91f1aad353963e21"
    }
   },
   {
@@ -742,10 +672,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "77e23c3d71c4740e",
-    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925"
    }
   },
   {
@@ -761,11 +690,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "ec0ed6304aee409d",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.efficiencyNight(_:source:)": "aecafe6d2ee5fb8b",
-    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.score(_:)": "c4acc0a7b036ce19"
+    "Emuqu/Sources/Analysis/SleepScienceAnalyzer.swift::var SleepData.measuredSleepEfficiency": "e7e96550dc32a12b",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.efficiencyNight(_:source:)": "160795b92e8d824f",
+    "EmuquTests/SleepScienceAnalyzerTests.swift::func SleepScienceAnalyzerTests.score(_:)": "e8af0c53ecb3b94c"
    }
   },
   {
@@ -779,9 +707,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925"
    }
   }
  ],

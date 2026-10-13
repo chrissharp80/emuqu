@@ -14,7 +14,6 @@
   "mem:PreScorePromptTelemetry.shownCount/completedCount/skippedCount"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "init PreScorePromptTelemetry(defaults:)",
@@ -29,7 +28,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -45,18 +43,6 @@
     "ud:preScorePrompt.telemetry.shownCount"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Delete All My Data sweeps the preScorePrompt.telemetry.* keys but never calls reset(), so Diagnostics keeps showing the old in-memory counts until the next record call (which now counts on from the swept, zero value). DataPurgeService should call reset() (handed off).",
-     "evidence": [
-      "Emuqu/Sources/Services/DataPurgeService.swift:328",
-      "Emuqu/Sources/Services/DataPurgeService.swift:696"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {}
   },
   {
@@ -72,7 +58,6 @@
     "ud:preScorePrompt.telemetry.completedCount"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -88,7 +73,6 @@
     "ud:preScorePrompt.telemetry.skippedCount"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -106,7 +90,6 @@
      "effect": "returns nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -131,23 +114,8 @@
      "effect": "uses 0 (unreachable here because shownCount > 0)"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "diagnosticsSummary is hard-coded English shown via Text(verbatim:) in Diagnostics, while the sibling ValidationTelemetry.diagnosticsSummary localizes its labels and docs/LOCALIZATION.md requires every user-facing string to go through String(localized:bundle:).",
-     "evidence": [
-      "Emuqu/Sources/Services/PreScorePromptTelemetry.swift:71",
-      "Emuqu/Sources/Services/PreScorePromptTelemetry.swift:75",
-      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:302",
-      "Emuqu/Sources/Services/ValidationTelemetry.swift:99",
-      "docs/LOCALIZATION.md:68"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::var PreScorePromptTelemetry.completionRate": "8a44644805255592"
+    "Emuqu/Sources/Services/PreScorePromptTelemetry.swift::var PreScorePromptTelemetry.completionRate": "50f16b11bb0dd2ce"
    }
   },
   {
@@ -164,7 +132,6 @@
     "ud:preScorePrompt.telemetry.firstSeen"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

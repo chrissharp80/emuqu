@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "Environment reads SettingsManager and LanguageManager. No globals.",
- "flags": [],
  "units": [
   {
    "key": "var TrainingSettingsPage.settingsBinding",
@@ -26,7 +25,6 @@
     "notif:flowRecoverySettingsChanged"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841"
    }
@@ -45,13 +43,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "fde01388fd5e4e8c",
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.goalSection": "1b01f19107fbc615",
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.hideFitnessTabSection": "626d012fe8c82244",
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.trainingLoadSection": "35066b0712dd5c45"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "5af2c037e112ed05",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.goalSection": "c1577a3eca437393",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.hideFitnessTabSection": "5aefa74f482a0044",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.trainingLoadSection": "ab487d355e9a4ec2"
    }
   },
   {
@@ -66,11 +63,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.goalFields": "83902701c9655189",
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.goalFooter": "3544c0846ef683cf"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.goalFields": "004d1bf1c0114197",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.goalFooter": "a5f1b65681c1aa21"
    }
   },
   {
@@ -92,13 +88,12 @@
     "notif:flowRecoverySettingsChanged"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings.swift::var TrainingGoal.displayName": "d27470559d6b71ad",
-    "Emuqu/Sources/Models/UserSettings.swift::var TrainingGoal.localizedBlurb": "272cc42ef871e51e",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.settingsBinding": "2c840f18eafd1ab7"
+    "Emuqu/Sources/Models/UserSettings.swift::var TrainingGoal.displayName": "2ebf96bc32137371",
+    "Emuqu/Sources/Models/UserSettings.swift::var TrainingGoal.localizedBlurb": "da8536ccaea82eea",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.settingsBinding": "36b94cd648ec8dc2"
    }
   },
   {
@@ -110,9 +105,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -127,11 +121,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.trainingLoadFields": "b35d4135464bb0a6",
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.trainingLoadFooter": "37d433a9bfe661e4"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.trainingLoadFields": "89c59da0e6b2293e",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.trainingLoadFooter": "fc60fd9d9831bfb1"
    }
   },
   {
@@ -152,22 +145,10 @@
     "notif:flowRecoverySettingsChanged"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The same settings.enableTrainingLoadIntegration toggle is also on PerformanceSettingsPage with a different description ('dashboard skips all training surfaces'); two UIs write one field.",
-     "evidence": [
-      "Emuqu/Sources/Views/TrainingSettingsPage.swift:74",
-      "Emuqu/Sources/Views/AdvancedDataControlsPage.swift:231"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.settingsBinding": "2c840f18eafd1ab7",
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.trainingLoadDetailFields": "8f3fb9318cf93a29"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.settingsBinding": "36b94cd648ec8dc2",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.trainingLoadDetailFields": "8debcf3e156e44ee"
    }
   },
   {
@@ -189,9 +170,8 @@
      "effect": "renders trainingBreakFields; else nothing (an existing break stays stored but hidden)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.trainingBreakFields": "07d231452971b37d"
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.trainingBreakFields": "2f518fb4d175a616"
    }
   },
   {
@@ -214,10 +194,9 @@
      "effect": "onBreakCard; nil → startBreakButton"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.onBreakCard": "0ca53cdc5ca1e993",
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.startBreakButton": "d0f49fd3f83de1ef"
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.onBreakCard": "cb836a4bf1db90a0",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.startBreakButton": "459106975a02afb0"
    }
   },
   {
@@ -237,10 +216,9 @@
     "notif:flowRecoverySettingsChanged"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -258,13 +236,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.breakEndPicker": "193047eacfc7e172",
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.breakHeaderRow": "4827c3f06efb3150",
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.breakReasonField": "c4a608fffc02b50f",
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.breakStartPicker": "37b2280ad4d39ceb",
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.clearBreakButton": "195c911ed42d2ac6"
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.breakEndPicker": "e0e267a6dea9bb62",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.breakHeaderRow": "79a3dbc64fbe8f5a",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.breakReasonField": "4779c34cf2ec45bd",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.breakStartPicker": "e61d8f93d70f96b5",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.clearBreakButton": "42f24a2aede3036a"
    }
   },
   {
@@ -286,21 +263,9 @@
      "effect": "'On Break'; false → 'Break Scheduled' (also shown for a break whose end date has passed)"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "isOnTrainingBreak is false both before the start and after the end, so a break that ended in the past is labelled 'Break Scheduled' indefinitely until the user clears it.",
-     "evidence": [
-      "Emuqu/Sources/Views/TrainingSettingsPage.swift:127",
-      "Emuqu/Sources/Models/UserSettings+Model.swift:745"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isOnTrainingBreak": "4d09b6e877f250f8",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isOnTrainingBreak": "4fdc3002bba9b633",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -326,10 +291,9 @@
      "effect": "shows today (unreachable in practice: card only shown when start is non-nil)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::func TrainingSettingsPage.setBreakStart(_:)": "b5539448b74ef67a"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::func TrainingSettingsPage.setBreakStart(_:)": "6e1776866f0c6e3d"
    }
   },
   {
@@ -360,10 +324,9 @@
      "effect": "range lower bound is now"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -389,7 +352,6 @@
      "effect": "end set to start; else end untouched"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841"
    }
@@ -422,10 +384,9 @@
      "effect": "stores nil; else stores text"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -445,10 +406,9 @@
     "notif:flowRecoverySettingsChanged"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -460,9 +420,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -477,11 +436,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.hideFitnessTabFields": "2ddf7dfe0e487ad5",
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.hideFitnessTabFooter": "b2e0bad2bf8304a3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.hideFitnessTabFields": "c3d59c4906d4a0d6",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.hideFitnessTabFooter": "61f9c068e307b7c1"
    }
   },
   {
@@ -507,25 +465,11 @@
      "effect": "caption 'Workout recording is removed from the tab bar.'; false → hint to hide if only using HRV/overnight"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "hideFitnessTab is also toggled on PerformanceSettingsPage, contradicting this page's own comment that settings must not be mirrored on two UIs (the 'single source of truth' rule at lines 219-223); docs list both locations.",
-     "evidence": [
-      "Emuqu/Sources/Views/TrainingSettingsPage.swift:217",
-      "Emuqu/Sources/Views/TrainingSettingsPage.swift:221",
-      "Emuqu/Sources/Views/AdvancedDataControlsPage.swift:240",
-      "docs/USERS_MANUAL.md:39"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.body": "d682cf1396e78539",
-    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.settingsBinding": "2c840f18eafd1ab7"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.body": "cfd59f3a5995d405",
+    "Emuqu/Sources/Views/TrainingSettingsPage.swift::var TrainingSettingsPage.settingsBinding": "36b94cd648ec8dc2"
    }
   },
   {
@@ -537,9 +481,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   }
  ],

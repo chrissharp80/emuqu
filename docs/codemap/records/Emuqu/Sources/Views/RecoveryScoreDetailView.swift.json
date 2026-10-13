@@ -24,7 +24,6 @@
   "mem:RecoveryScoreDetailView.rmssdChartSeries / hrChartSeries (@State cached chart series)"
  ],
  "toplevel": "Reads @Environment(\\.dependencies) (settingsManager via dependencies.app) and @Environment(RRCollector.self). The header doc lists the section order (1-12) but omits the trend comparison card that mainSections inserts between Key Findings and What To Do. File-scope fileprivate helpers sleepHRVitals and mergedVitals build the display vitals. RecoveryVitalsBackfill (declared after the view) holds the vitals merge persistMergedVitals uses, outside the view type.",
- "flags": [],
  "units": [
   {
    "key": "var RecoveryScoreDetailView.settingsManager",
@@ -37,9 +36,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b"
    }
   },
   {
@@ -51,7 +49,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -71,10 +68,9 @@
      "effect": "frozen ×10; otherwise breakdown.compositeScore"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.breakdown": "897060435fb36112"
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.breakdown": "abc252d885458419"
    }
   },
   {
@@ -89,10 +85,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.compositeScore": "4a8f255fd29dc101"
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "44c36cfa15477f52",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.compositeScore": "05198be37ec08008"
    }
   },
   {
@@ -114,11 +109,10 @@
      "effect": "refreshed frozen breakdown; otherwise liveBreakdown"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.breakdownRefreshingVitalsFactor(_:freshVitals:baselineStats:)": "ba25024ea2d734f2",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveVitals": "550dba4166eca919",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.liveBreakdown": "b117021bca910a35"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.breakdownRefreshingVitalsFactor(_:freshVitals:baselineStats:)": "25adc2920277ef23",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveVitals": "1732c73027c6678c",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.liveBreakdown": "6bb3388af8370df9"
    }
   },
   {
@@ -138,16 +132,15 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "6ba2b8b8a5adb0f2",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoringConfiguration(from:)": "5bd1e51efadaa4a7",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.ansBalance": "fed737bd4c136629",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveVitals": "550dba4166eca919",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.settingsManager": "717f9f22d32b4601"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "eb3b9be07070a091",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoringConfiguration(from:)": "1326be06ec8f3825",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.ansBalance": "fea9457ef412e87d",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveVitals": "1732c73027c6678c",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.settingsManager": "0a2f4a7983e6dda8"
    }
   },
   {
@@ -165,9 +158,8 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f"
    }
   },
   {
@@ -194,37 +186,11 @@
      "effect": "sleepHRVitals(sleepHR) (nil when sleepHR nil); otherwise mergedVitals"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Display merge prefers FRESH values over stored (mergedVitals) while the persisted merge keeps STORED values (mergeVitals); the explanations and refreshed Vitals factor can therefore describe vitals that differ from the ones the frozen score used and from what is written back to the archive.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:542",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:385"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The fresh-over-stored vitals merge with strap-HR override is implemented three times: here (mergedVitals/sleepHRVitals), VitalsDetailV2View.effectiveVitals and SleepDetailV2View.effectiveVitals (+heartRateOnlyVitals). They already differ: this copy requires meanHR > 0, the other two take analysisResult?.timeDomain.meanHR as-is, so a 0 meanHR becomes the displayed sleep HR there but not here.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:221",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:536",
-      "Emuqu/Sources/Views/VitalsDetailV2View.swift:46",
-      "Emuqu/Sources/Views/VitalsDetailV2View.swift:52",
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:83",
-      "Emuqu/Sources/Views/SleepDetailV2View.swift:86"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func mergedVitals(stored:fresh:sleepHR:)": "de26e12267170640",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func sleepHRVitals(_:)": "56f0be635be51d1e",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.strapSleepHR": "6837a19e507e6e00"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func mergedVitals(stored:fresh:sleepHR:)": "f5c14338005570f1",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func sleepHRVitals(_:)": "66d67d5117fa1c0f",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.strapSleepHR": "a8de3fdf492692aa"
    }
   },
   {
@@ -242,7 +208,6 @@
      "effect": "meanHR; else nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -267,10 +232,9 @@
      "effect": "'+' prefix"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.hrvPercentVsBaseline": "1d1f00bed9cd856c"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.hrvPercentVsBaseline": "726c6643de73046b"
    }
   },
   {
@@ -282,9 +246,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -316,13 +279,12 @@
      "effect": "value falls back to effectiveVitals SpO2"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
     "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isSpO2Concerning": "63f83ca65f69f1c7",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.breakdown": "897060435fb36112",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveVitals": "550dba4166eca919"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.breakdown": "abc252d885458419",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveVitals": "1732c73027c6678c"
    }
   },
   {
@@ -348,15 +310,14 @@
      "effect": "Task refreshVitals(referenceDate: end ?? start)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.engineRoomSection": "6b3d639c2793e9bc",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitals(referenceDate:)": "37f8d586cf6a6d71",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitalsAndCharts()": "615e67620c957aae",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.bannerAndSections": "87993f25d60ce727",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.detailToolbar": "ee54c319c4bc1ba9",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.engineRoomSection": "aea997cc54905113",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitals(referenceDate:)": "4cd280f6d60dd2cd",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitalsAndCharts()": "799ddd3de5c965b2",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.bannerAndSections": "b47c1fc3398145d8",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.detailToolbar": "8f0e5f4e87126c6d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
    }
   },
   {
@@ -383,11 +344,10 @@
      "effect": "ConfidencePip shown; else empty principal item"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)": "1a88ccd14afefff8",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.isBuildingBaseline": "f014e5701c2cc0e6",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.shareButton": "af0291b2aaace469"
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func ScoreAppearancePolicy.showsScore(baselineNights:)": "aa4f435a9c7efe49",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.isBuildingBaseline": "3461823e476c9f4b",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.shareButton": "0ec80f4e3e926d55"
    }
   },
   {
@@ -409,11 +369,10 @@
      "effect": "banner shown above sections; else omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.insufficientBanner": "ef6f6e65934ffd9c",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.isInsufficient": "42fcda2c8d01312f",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.mainSections": "747f842ae1349daa"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.insufficientBanner": "b8334c511ca39675",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.isInsufficient": "a6142e632e917640",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.mainSections": "132be19b54b0e009"
    }
   },
   {
@@ -456,22 +415,21 @@
      "effect": "analysis window picker shown; else hidden"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecoveryScoreCharts.swift::var RecoveryScoreDetailView.heartRateOvernightChart": "6da681de4a63b7f9",
-    "Emuqu/Sources/Views/RecoveryScoreCharts.swift::var RecoveryScoreDetailView.hrvOvernightChart": "e3a787d5992e9626",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.analysisWindowPicker": "7d795975c647f461",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.buildingBaselineBlock": "83422dc21d2b62d4",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.isBuildingBaseline": "f014e5701c2cc0e6",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.heroSection": "6d6a9f8d88128648",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.keyFindingsSection": "9896d9c4fff90f88",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.mostLikelyExplanationsSection": "65cb776b05e833c0",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoreBreakdownSection": "1500017e867443bf",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.spo2PenaltyBadge": "d975b780b19cccc4",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.trendComparisonSection": "516be74fd6b130b4",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.whatThisMeansSection": "687d48af81b657db",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.whatToDoSection": "bcc38b41f139ffff",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.spo2Penalty": "1fe10b86bf416ee7"
+    "Emuqu/Sources/Views/RecoveryScoreCharts.swift::var RecoveryScoreDetailView.heartRateOvernightChart": "ea73bb63c0dbdf8c",
+    "Emuqu/Sources/Views/RecoveryScoreCharts.swift::var RecoveryScoreDetailView.hrvOvernightChart": "4df4dc5f79008606",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.analysisWindowPicker": "d59b041a08eb36cf",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.buildingBaselineBlock": "d9c650d92276c07f",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.isBuildingBaseline": "3461823e476c9f4b",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.heroSection": "ccb109247f5d11d6",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.keyFindingsSection": "d0945c3852f66d59",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.mostLikelyExplanationsSection": "dd2e351ac997b0c8",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.scoreBreakdownSection": "189bb830109b4c9c",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.spo2PenaltyBadge": "1f16d4259c85b7f1",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.trendComparisonSection": "f421443a02cfa5a8",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.whatThisMeansSection": "97bc5a4bb4e97ccd",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::var RecoveryScoreDetailView.whatToDoSection": "3e2bf324beca1b32",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.spo2Penalty": "a254ed6dc7d51105"
    }
   },
   {
@@ -496,12 +454,11 @@
      "effect": "referenceDate = startDate"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.loadFallbackHRSamples(referenceDate:)": "b5f0c5bebf80cec3",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.loadOrganizedZones()": "0fd27fa667576596",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitals(referenceDate:)": "37f8d586cf6a6d71",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.reloadFullSeries()": "a5eadc66d0f7dcc4"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.loadFallbackHRSamples(referenceDate:)": "8c2beb3bbde54192",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.loadOrganizedZones()": "71ab51b86ec47a21",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitals(referenceDate:)": "4cd280f6d60dd2cd",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.reloadFullSeries()": "10a747a302a40c8c"
    }
   },
   {
@@ -526,10 +483,9 @@
      "effect": "fullRRSeries set; otherwise left nil (retrieve errors are logged by retrieveOrLog and swallowed)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)": "0f232a98a915f52c",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.rebuildChartSeries()": "240d02c996453e13"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)": "151db517594e3b0d",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.rebuildChartSeries()": "e7c9947703c6019f"
    }
   },
   {
@@ -560,14 +516,13 @@
      "effect": "return without storing or persisting"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchRecoveryVitals(relativeTo:)": "075679cbd0c44195",
-    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "689968153e58848a",
-    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "b04c6e75ce5a48c2",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.persistMergedVitals(_:)": "b158a32487259ce8",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.strapSleepHR": "6837a19e507e6e00"
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchRecoveryVitals(relativeTo:)": "af7cbc8f5a445eda",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "5fa896ef88ba9fda",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "cf6f3e738d761a42",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.persistMergedVitals(_:)": "d63c7977d1dc38e7",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.strapSleepHR": "a8de3fdf492692aa"
    }
   },
   {
@@ -589,12 +544,11 @@
      "effect": "no write; otherwise detached archive update"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.fieldCount(_:)": "58f15ddba013b0e9",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.merge(fresh:into:)": "ebf7098a9440cb49",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.store(_:id:archive:)": "a81a0a80fe6daca1"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.fieldCount(_:)": "df80a5715e30015e",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.merge(fresh:into:)": "f2c543c507f6f19c",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.store(_:id:archive:)": "1f6fe067107e1103"
    }
   },
   {
@@ -615,10 +569,9 @@
      "effect": "rebuild series; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.fetchFallbackHRSamples(referenceDate:)": "d05bddb282b6f192",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.rebuildChartSeries()": "240d02c996453e13"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.fetchFallbackHRSamples(referenceDate:)": "0058c831318b13a8",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.rebuildChartSeries()": "e7c9947703c6019f"
    }
   },
   {
@@ -663,12 +616,11 @@
      "effect": "logged at warning; no samples"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchHeartRateSamples(from:to:)": "8b56d29a274d3209",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.fetchHeartRateSamples(from:to:)": "ababe979d0000127",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5"
    }
   },
   {
@@ -704,11 +656,10 @@
      "effect": "[] / 0 / last RR t_ms else 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.backfillZonesToArchive(sessionId:zones:)": "7d4ed26ed2451c01",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeOrganizedZonesOnDemand(sessionId:series:flags:sleepStartMs:sleepEndMs:)": "a479f6778a4811b5",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries": "030a0006a67b001d"
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.backfillZonesToArchive(sessionId:zones:)": "58f2bda03b464ed0",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeOrganizedZonesOnDemand(sessionId:series:flags:sleepStartMs:sleepEndMs:)": "9a1fc5687eba155a",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries": "8f81b97fc77e806a"
    }
   },
   {
@@ -727,11 +678,10 @@
     "mem:RecoveryScoreDetailView.hrChartSeries"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecoveryScoreCharts.swift::func RecoveryScoreDetailView.buildHRSeries(series:flags:sessionStartDate:fallbackHRSamples:)": "f4d1c46c575532f6",
-    "Emuqu/Sources/Views/RecoveryScoreCharts.swift::func RecoveryScoreDetailView.buildRMSSDSeries(series:flags:sessionStartDate:)": "b80f4bc09d563225",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries": "030a0006a67b001d"
+    "Emuqu/Sources/Views/RecoveryScoreCharts.swift::func RecoveryScoreDetailView.buildHRSeries(series:flags:sessionStartDate:fallbackHRSamples:)": "d99367e39dfd75d7",
+    "Emuqu/Sources/Views/RecoveryScoreCharts.swift::func RecoveryScoreDetailView.buildRMSSDSeries(series:flags:sessionStartDate:)": "e739f2a26c807e5d",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries": "8f81b97fc77e806a"
    }
   },
   {
@@ -749,7 +699,6 @@
      "effect": "session.rrSeries (nil for lightweight sessions)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -774,11 +723,10 @@
      "effect": "error logged at warning level and dropped; display still uses refreshedVitals"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.fill(_:in:)": "8cc27a4aa0a911e7"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.fill(_:in:)": "4d440ba187b5159a"
    }
   },
   {
@@ -801,11 +749,10 @@
      "effect": "return unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.fieldCount(_:)": "58f15ddba013b0e9",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.merge(fresh:into:)": "ebf7098a9440cb49"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.fieldCount(_:)": "df80a5715e30015e",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.merge(fresh:into:)": "f2c543c507f6f19c"
    }
   },
   {
@@ -823,22 +770,9 @@
      "effect": "false: SpO2 fields stay as stored"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "FLOWCHART.md 13.2 says this detail-view refresh is the same merge as the dashboard path, where strap-derived RHR always wins over HK daytime RHR; the persisted merge keeps stored restingHeartRate first (by design: a stored value is what the frozen score used), so the doc needs updating (handoff).",
-     "evidence": [
-      "docs/FLOWCHART.md:803",
-      "docs/FLOWCHART.md:804",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView.swift:408"
-     ],
-     "found": "fix batch b24"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69"
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696"
    }
   },
   {
@@ -856,7 +790,6 @@
      "effect": "0"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -868,7 +801,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -911,7 +843,6 @@
      "effect": "stored"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

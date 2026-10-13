@@ -13,7 +13,6 @@
   "AmbientLocationService._isRunning/_startRequested"
  ],
  "toplevel": "Manager configured in init: kCLLocationAccuracyHundredMeters, distanceFilter 50, activityType .other, pausesLocationUpdatesAutomatically true.",
- "flags": [],
  "units": [
   {
    "key": "init AmbientLocationService()",
@@ -26,7 +25,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -47,10 +45,9 @@
      "effect": "begin updates; otherwise return (prompt raised for .notDetermined, nothing for denied)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.authorizedOrPrompting()": "90bebe76db6a8376",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.beginUpdates()": "2b0a1060c404b782"
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.authorizedOrPrompting()": "ea71bc4f0a1f9598",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.beginUpdates()": "85f5ab5e229e164a"
    }
   },
   {
@@ -76,9 +73,8 @@
      "effect": "return"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.beginUpdates()": "2b0a1060c404b782"
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.beginUpdates()": "85f5ab5e229e164a"
    }
   },
   {
@@ -99,9 +95,8 @@
      "effect": "start updates; otherwise return"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.onMainThread(_:)": "3b96e1fb2f1ebf06"
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.onMainThread(_:)": "14d12cba41af9278"
    }
   },
   {
@@ -132,9 +127,8 @@
      "effect": "false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.onMainThread(_:)": "3b96e1fb2f1ebf06"
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.onMainThread(_:)": "14d12cba41af9278"
    }
   },
   {
@@ -152,9 +146,8 @@
      "effect": "run inline; otherwise DispatchQueue.main.async"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d"
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a"
    }
   },
   {
@@ -179,9 +172,8 @@
      "effect": "stop inline; otherwise async to main"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d"
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a"
    }
   },
   {
@@ -197,9 +189,8 @@
     "mem:AmbientLocationService._latestLocation"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.store(_:)": "496561a72d96140e"
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.store(_:)": "33afa27045744504"
    }
   },
   {
@@ -226,7 +217,6 @@
      "effect": "false; otherwise store and true"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -241,7 +231,6 @@
     "mem:AmbientLocationService._latestRoadContext"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -260,12 +249,11 @@
     "net:Apple CLGeocoder (via RoadGeocodingService)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.refreshIfNeeded(for:enrichCrossStreet:)": "1a287da0ce5ea4b6",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService": "ee10887ea28ab419"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService": "a0b74e1dad19f7ab"
    }
   },
   {
@@ -290,7 +278,6 @@
      "effect": "return it; otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -304,7 +291,6 @@
     "mem:AmbientLocationService._latestRoadContext"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -329,7 +315,6 @@
      "effect": "return it; otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -365,10 +350,9 @@
      "effect": "stop() (clears _startRequested)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.beginUpdates()": "2b0a1060c404b782",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.stop()": "c484c284ad06ca32"
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.beginUpdates()": "85f5ab5e229e164a",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.stop()": "f05d1ea73499775a"
    }
   },
   {
@@ -401,10 +385,9 @@
      "effect": "refresh road context; otherwise skip"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.refreshRoadContext(for:)": "d306e313a123f5dd",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.store(_:)": "496561a72d96140e"
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.refreshRoadContext(for:)": "3142053ded331672",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.store(_:)": "33afa27045744504"
    }
   },
   {
@@ -416,7 +399,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

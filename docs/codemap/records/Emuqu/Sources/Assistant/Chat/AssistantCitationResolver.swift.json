@@ -15,7 +15,6 @@
   "mem:AssistantCitationResolver.timeOnlyPattern (NSRegularExpression via attempt)"
  ],
  "toplevel": "dateDetector = try? NSDataDetector(.date) (nil disables annotation); timeOnlyPattern built via attempt() matching 'h(:mm) am/pm', 'hh:mm', noon, midnight, 'at' (nil disables time-only filtering).",
- "flags": [],
  "units": [
   {
    "key": "let AssistantCitationResolver.dayKeyFormatter",
@@ -26,7 +25,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -72,15 +70,14 @@
      "effect": "rewrite as Markdown link; else continue to next match"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
-    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.isAlreadyInsideLink(_:range:)": "2bedaaca19b85ac3",
-    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.isTimeOnly(_:)": "fd79c9989af62edc",
-    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.sessionsByDay(_:)": "49c1aea3b0010c54",
-    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::let AssistantCitationResolver.dayKeyFormatter": "d05e01c077abaca4",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "c266e7f0809752d4",
+    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.isAlreadyInsideLink(_:range:)": "0b6693ad0c7f2c4b",
+    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.isTimeOnly(_:)": "6c876aa22a765919",
+    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.sessionsByDay(_:)": "737e0dc276525df9",
+    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::let AssistantCitationResolver.dayKeyFormatter": "514a590ea71f90a9",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c"
    }
   },
   {
@@ -106,10 +103,9 @@
      "effect": "return cached map; else rebuild and cache"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.dayMap(_:)": "63c6ac7f461da1f9",
-    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.entrySignature(_:)": "d798a16a126feec3"
+    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.dayMap(_:)": "fd5682bcc90cec70",
+    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.entrySignature(_:)": "f751b349be50ad39"
    }
   },
   {
@@ -129,10 +125,9 @@
      "effect": "combine id+displayDate"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()": "dd0ee2d1995fab40",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "b7a08a3bb6301f41"
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()": "617bf2c6974d2d39",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "754c8c3bf69f57cc"
    }
   },
   {
@@ -155,10 +150,9 @@
      "effect": "store this entry's id; else skip (older session that day)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::let AssistantCitationResolver.dayKeyFormatter": "d05e01c077abaca4",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "b7a08a3bb6301f41"
+    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::let AssistantCitationResolver.dayKeyFormatter": "514a590ea71f90a9",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "754c8c3bf69f57cc"
    }
   },
   {
@@ -176,7 +170,6 @@
      "effect": "return false (time-only matches are linked to today)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -194,7 +187,6 @@
      "effect": "return nil; else UUID(uuidString: lastPathComponent)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -215,10 +207,9 @@
      "effect": "true when either holds"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.isInsideLinkTarget(_:range:)": "b23f84e4bc5fbbf0",
-    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.isInsideLinkText(_:range:)": "1c90bc833b11e94a"
+    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.isInsideLinkTarget(_:range:)": "9a4e8df3f4960f89",
+    "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.isInsideLinkText(_:range:)": "bb8a3c30b7c11986"
    }
   },
   {
@@ -251,7 +242,6 @@
      "effect": "false; else true"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -279,7 +269,6 @@
      "effect": "false; else true"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

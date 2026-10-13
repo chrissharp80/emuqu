@@ -5,7 +5,6 @@
  "types": [],
  "state": [],
  "toplevel": "Two heading sections only; no text outside them.",
- "flags": [],
  "units": [
   {
    "key": "§ Working in this repository",
@@ -16,13 +15,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
    "key": "§ Working in this repository > The code map is part of every change",
-   "hash": "aee3b12ae119830c",
-   "does": "States that docs/codemap/records holds a record per unit, that a call graph is built from the records and the code, and that CI (gates.yml, ci.yml, make ci) and the pre-commit hook fail while any record is missing or older than its code, and list the records older than a change in what one of their callees does. Before a change: run codemap.py impact <path::key> (or make codemap-impact) and read the record, callers, triggers, tests, shared state and open findings. During: make codemap-guard; sync for added/removed units; rewrite each listed record against the code (removing fixed flags, adding found problems); re-read each re-check caller the change adds (codemap.py status lists them) against its callee's new behaviour and fix the caller or its record; then stamp, callees before callers; guard clean before committing. High- and medium-severity findings only go down: a fix deletes the flag and lowers .ci/codemap_open_high.txt or .ci/codemap_open_med.txt in the same change; a new one is fixed, not recorded. Forbids stamping a record or a re-check that was not re-read, and rewording a record whose behaviour did not change (it sends every caller back). Points to docs/codemap/README.md for the full procedure and, in its first section, how the map and its fixes were made and what is unverified (no compiled build, the re-check backlog). Every command named exists.",
+   "hash": "48b95c7ab4544e91",
+   "does": "States that docs/codemap/records holds a record per unit, that a call graph is built from the records and the code, and that CI (gates.yml, ci.yml, make ci) and the pre-commit hook fail while any record is missing or older than its code, and list the records older than a change in what one of their callees does. Says findings (flags) and the open-findings budgets live in the local, untracked overlay do_not_ship/codemap/ (flags/<path>.json, codemap_open_high.txt, codemap_open_med.txt), that codemap.py merges it when present and writes flags only there, and that the ratchet runs only where the overlay exists (pre-commit hook, local make ci). Before a change: run codemap.py impact <path::key> (or make codemap-impact) and read the record, callers, triggers, tests, shared state and, with the overlay, open findings. During: make codemap-guard; sync for added/removed units; rewrite each listed record against the code (with the overlay, removing fixed flags and adding found problems; public records describe behaviour only); re-read each re-check caller the change adds (codemap.py status lists them) against its callee's new behaviour and fix the caller or its record; then stamp, callees before callers; guard clean before committing. High- and medium-severity findings only go down: a fix deletes the flag and lowers the overlay's codemap_open_high.txt or codemap_open_med.txt; a new one is fixed, not recorded. Forbids stamping a record or a re-check that was not re-read, and rewording a record whose behaviour did not change (it sends every caller back). Points to docs/codemap/README.md for the full procedure. Every command named exists.",
    "entry": null,
    "calls": [
     "Makefile::target codemap-guard",
@@ -37,15 +35,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Makefile::target codemap-guard": "86407f3ed9c5a020",
-    "Makefile::target codemap-impact": "2e8cdb2f0b3335c1",
-    "scripts/codemap/codemap.py::def budget_problems": "edde7e6d4fc73ffb",
-    "scripts/codemap/codemap.py::def cmd_impact": "c2b034f3fdf0ef75",
-    "scripts/codemap/codemap.py::def cmd_stamp": "7132e97c28406a90",
-    "scripts/codemap/codemap.py::def cmd_sync": "74a108b4c1742e10",
-    "scripts/codemap/codemap.py::def dependency_problems": "f13419fde0ca3d91"
+    "Makefile::target codemap-guard": "31a759d3fd34483c",
+    "Makefile::target codemap-impact": "03eba22ded671ba7",
+    "scripts/codemap/codemap.py::def budget_problems": "4b5252320a3020b3",
+    "scripts/codemap/codemap.py::def cmd_impact": "192de9074058712d",
+    "scripts/codemap/codemap.py::def cmd_stamp": "02a2425e48ed73af",
+    "scripts/codemap/codemap.py::def cmd_sync": "c5c852fbd64f8441",
+    "scripts/codemap/codemap.py::def dependency_problems": "df4bf0f691649e50"
    }
   }
  ],

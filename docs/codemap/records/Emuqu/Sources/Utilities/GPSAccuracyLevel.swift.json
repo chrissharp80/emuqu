@@ -9,7 +9,6 @@
   "static unusableAboveMetres = 100"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func GPSAccuracyLevel.classify(horizontalAccuracyMetres:)",
@@ -46,7 +45,6 @@
      "effect": "waiting"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -64,7 +62,6 @@
      "effect": "nil (caller shows waiting text); negative values pass through as negative Int"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -76,19 +73,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "showsDirection has no production caller; only GPSAccuracyLevelTests uses it (GetMeBackView.showsArrow re-tests `accuracyState != .waiting`). Kept because removing it broke the test build.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/GPSAccuracyLevel.swift:57",
-      "EmuquTests/GPSAccuracyLevelTests.swift:73",
-      "Emuqu/Sources/Views/GetMeBackView.swift:174"
-     ],
-     "found": "h_src2 handoff pass"
-    }
-   ],
    "deps": {}
   }
  ],

@@ -44,18 +44,6 @@
   "mem:MedicalTermLexicon.all"
  ],
  "toplevel": "All content is static let Concept constants and [Concept] groups; refuseAsSymptom/refuseBeforeSending are unions read by MedicalQueryGuardTests and refuseBeforeSending/neverInStaticCopy are parsed by Tools/copy_linter/lint.py; scrubFromOutput is consumed by CoachVoiceGuard; all by tests and the perimeter sync gate. Apostrophes in the alternatives are written ['’] so model output and typed input with a typographic ’ match (can't breathe, m'inquiéter, d'une maladie, you're definitely, d'important); syncope matches 'faint' only as a verb form (fainted/faints/fainting/faintness) or after a feeling verb ('feel/felt/going to ... faint'), not the adjective ('a faint trace'). Every spelling the build-time prohibited_terms.json rules expand to is covered at runtime (check_perimeter_sync.sh): diagnosis includes 'undiagnosed', cure 'cur(e|es|ed|ing)' and 'curative', prescription 'prescrib(e|es|ed|ing)', pathology 'patholog(y|ies|ical|ically)', named cardiac conditions 'isch(a?e)mi[ac]' (ischemic/ischaemic/ischaemia), and physiological certainty allows a space before the apostrophe ('you 're definitely').",
- "flags": [
-  {
-   "kind": "broken",
-   "sev": "low",
-   "text": "DebugLogger.compiledPattern, which regex(for:) routes through, logs a compile failure as 'REDACTION PATTERN FAILED TO COMPILE — redaction is degraded', so a malformed medical-lexicon concept (silently dropped from the guard by compactMap) is reported as a redaction problem, misdirecting diagnosis.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift:999",
-    "Emuqu/Sources/Utilities/DebugLog.swift:415"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "init MedicalTermLexicon.Concept(id:latin:unbounded:)",
@@ -66,7 +54,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -89,7 +76,6 @@
      "effect": "true: add the bare substring branch; false: omitted (empty both gives \"(?:)\" which matches everything)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -109,10 +95,9 @@
     "mem:DebugLogger.compiledPatterns"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::var MedicalTermLexicon.Concept.pattern": "06c951bd29a3be8b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)": "3350ce6123d0accf"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::var MedicalTermLexicon.Concept.pattern": "188ff61f282a977e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)": "368d0627695b64ef"
    }
   }
  ],

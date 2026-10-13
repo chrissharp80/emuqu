@@ -20,7 +20,6 @@
   "mem:BeatConsistency.Features.zero (static let)"
  ],
  "toplevel": "Config stored-property defaults: windowLengthMs 30000 (also the window stride), span tolerance 2000 (minimum span = length − tolerance), minValidRRPerWindow 20, minScoringWindowsPerNight 20, minNightsForLowConfidence 14, minNightsForNormal 28, center window 28, scale window 56, winsorize 0.10/0.90, kLowConfidence 4.0, kNormal 3.0, weights pNN50 0.5 / cvRR 0.1 / ratio 0.4, scale floors 2.0 / 0.01 / 0.03, band cutoffs 80 / 60.",
- "flags": [],
  "units": [
   {
    "key": "func BeatConsistency.Baseline.threshold(feature:k:)",
@@ -31,7 +30,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -59,13 +57,12 @@
      "effect": "returns .insufficientData (no score, does not feed baseline); else scored(...)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.insufficientData()": "11ced4f212a2ca65",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.enumerateWindows(rr:cleanMask:sleepStartMs:sleepEndMs:config:)": "dfbfd35fd4ce6b8e",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.medianFeatures(of:)": "c30c3859c902f7fd",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.scored(counts:baseline:config:)": "2cb14402de3e1078",
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.features(for:)": "3e4c6773d72896ca"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.insufficientData()": "9f284ba000ca8236",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.enumerateWindows(rr:cleanMask:sleepStartMs:sleepEndMs:config:)": "06d8716f59eff84f",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.medianFeatures(of:)": "769bad0000cd3808",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.scored(counts:baseline:config:)": "761b3565b85eb0f9",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.features(for:)": "c905bceea1190e17"
    }
   },
   {
@@ -79,9 +76,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.result(score:band:state:fracHigh:)": "07b97e3423b0af9a"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.result(score:band:state:fracHigh:)": "e73264a00e03aeb7"
    }
   },
   {
@@ -95,9 +91,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.result(score:band:state:fracHigh:)": "07b97e3423b0af9a"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.result(score:band:state:fracHigh:)": "e73264a00e03aeb7"
    }
   },
   {
@@ -109,10 +104,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.band(for:config:)": "f4f354ee379a9303",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "2fe65de6c9756717"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.band(for:config:)": "221429091b038084",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "094983fccfea6c40"
    }
   },
   {
@@ -145,15 +139,14 @@
      "effect": "k = 3.0; else k = 4.0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.calibrating(nightsCollected:config:)": "5843f07fb6bddd9d",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.result(score:band:state:fracHigh:)": "07b97e3423b0af9a",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.band(for:config:)": "f4f354ee379a9303",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.compositeScore(fracHigh:config:)": "26173577d35abf9b",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFracHigh(windows:baseline:k:)": "7adc7b02fdd173c1",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "2fe65de6c9756717",
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.features(for:)": "3e4c6773d72896ca"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.calibrating(nightsCollected:config:)": "7cf01cb78795e4e6",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.WindowCounts.result(score:band:state:fracHigh:)": "e73264a00e03aeb7",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.band(for:config:)": "221429091b038084",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.compositeScore(fracHigh:config:)": "5faad380c0a95b76",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFracHigh(windows:baseline:k:)": "3daa4eb1b70541cd",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "094983fccfea6c40",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.features(for:)": "c905bceea1190e17"
    }
   },
   {
@@ -165,9 +158,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "c6fee4fb51a67647"
    }
   },
   {
@@ -190,9 +182,8 @@
      "effect": "somewhatVariable; else notablyVariable"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "2fe65de6c9756717"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "094983fccfea6c40"
    }
   },
   {
@@ -213,11 +204,10 @@
      "effect": "returns nil (scorer reports calibrating)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.baselineScale(_:config:)": "fa64213cb4ea4bcf",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.median(_:)": "3753aa9273b2c0c8",
-    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.baselineScale(_:config:)": "89e7073534fd27d0",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.median(_:)": "b01286d215c47060",
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "c6fee4fb51a67647"
    }
   },
   {
@@ -231,10 +221,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.mad(_:floor:)": "9905654b885f907b",
-    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.mad(_:floor:)": "3fa4fa9fdd0867ee",
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "c6fee4fb51a67647"
    }
   },
   {
@@ -248,9 +237,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.winsorizedMAD(_:low:high:)": "781b59bbe24ee82b"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.winsorizedMAD(_:low:high:)": "de38965ce9e88d59"
    }
   },
   {
@@ -275,9 +263,8 @@
      "effect": "append a window and advance by windowLengthMs"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.window(rr:cleanMask:startMs:sleepEndMs:config:)": "be4d73e3d8159b1b"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.window(rr:cleanMask:startMs:sleepEndMs:config:)": "5f5c77d140df9386"
    }
   },
   {
@@ -299,12 +286,11 @@
      "effect": "features computed; else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:)": "b4565415f7d09047",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.inWindow(rr:cleanMask:startMs:endMs:)": "d8d875417564351f",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.validateWindow(rrInWindow:expectedLengthMs:toleranceMs:minN:)": "3afdad56e45c144d",
-    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:)": "66cba4f967d27e17",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.inWindow(rr:cleanMask:startMs:endMs:)": "2db6a00a40e4d36f",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.validateWindow(rrInWindow:expectedLengthMs:toleranceMs:minN:)": "742ca65ea8857a22",
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "ad1cbf78f6431b31"
    }
   },
   {
@@ -344,9 +330,8 @@
      "effect": "span = lastT − firstT; else 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.firstIndex(in:atOrAfter:)": "a7f600f63b5d7c65"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.firstIndex(in:atOrAfter:)": "da46a25e700da402"
    }
   },
   {
@@ -369,7 +354,6 @@
      "effect": "lo = mid+1; else hi = mid"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -387,9 +371,8 @@
      "effect": "false; else span >= 28 s"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88"
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "ad1cbf78f6431b31"
    }
   },
   {
@@ -420,10 +403,9 @@
      "effect": "cvRR = sd/mean; else 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.poincareRatio(_:variance:)": "aed54ccf0c4fa654",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.populationVariance(_:mean:)": "4286a96f53b29130"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.poincareRatio(_:variance:)": "9800cb60a3e8ec12",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.populationVariance(_:mean:)": "18f1cfc4d60fc225"
    }
   },
   {
@@ -435,7 +417,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -460,9 +441,8 @@
      "effect": "ratio sd1/sd2; else 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.populationVariance(_:mean:)": "4286a96f53b29130"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.populationVariance(_:mean:)": "18f1cfc4d60fc225"
    }
   },
   {
@@ -482,10 +462,9 @@
      "effect": "Features.zero"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.median(_:)": "3753aa9273b2c0c8",
-    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.median(_:)": "b01286d215c47060",
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "c6fee4fb51a67647"
    }
   },
   {
@@ -505,10 +484,9 @@
      "effect": "Features.zero"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.Baseline.threshold(feature:k:)": "b5dba6ad6a73b2b9",
-    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "080b99961f098c17"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.Baseline.threshold(feature:k:)": "92f4a0953bbd2622",
+    "EmuquTests/EvalUtterances.swift::func RouterEvalTests.ratio(_:)": "c6fee4fb51a67647"
    }
   },
   {
@@ -531,7 +509,6 @@
      "effect": "mean of two middle values; else middle value"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -551,9 +528,8 @@
      "effect": "returns 0 (caller floors)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.median(_:)": "3753aa9273b2c0c8"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.median(_:)": "b01286d215c47060"
    }
   },
   {
@@ -576,7 +552,6 @@
      "effect": "true"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

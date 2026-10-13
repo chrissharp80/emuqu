@@ -564,7 +564,7 @@ Each gate's ability to fail is itself checked (Section 3.4). The counts below ar
 | Targeted test mutations parsed by the leak detector | 125 of 125 parsed; no leaked mutation |
 | Integer budgets changed across the 28 public commits | Every change in its tightening direction; no `budget-raise-ok:` trailer used |
 
-The analysis methods that the register classifies were also checked by a separate reimplementation in Python, built from the Swift source at e028039 and run against the app's unit-test expectations and PhysioNet recordings; the results are in the cross-implementation report (`Tools/validation/RESULTS.md`) [31].
+The analysis methods that the register classifies were also checked by a separate reimplementation in Python, built from the Swift source at e028039 and run against the app's unit-test expectations and PhysioNet recordings; the scripts are in `Tools/validation/` [31].
 
 ---
 
@@ -669,7 +669,7 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 28. Preston-Werner T. Semantic Versioning 2.0.0 [Internet]. https://semver.org (accessed 2026-10-08).
 29. Sculley D, Holt G, Golovin D, et al. Hidden technical debt in machine learning systems. In: Advances in Neural Information Processing Systems 28 (NeurIPS 2015). 2015.
 30. Breck E, Cai S, Nielsen E, Salib M, Sculley D. The ML test score: a rubric for ML production readiness and technical debt reduction. In: 2017 IEEE International Conference on Big Data. IEEE; 2017. p. 1123–1132.
-31. Sharp C. Cross-implementation report: Emuqu beat-interval methods re-implemented in Python and run against PhysioNet recordings. Emuqu repository, Tools/validation/RESULTS.md; run 2026-10-08. PhysioNet data: slpdb 1.0.0, capslpdb 1.0.0, mitdb 1.0.0, nsr2db 1.0.0.
+31. Sharp C. Cross-implementation report: Emuqu beat-interval methods re-implemented in Python and run against PhysioNet recordings. Emuqu repository, Tools/validation/ (scripts); run 2026-10-08. PhysioNet data: slpdb 1.0.0, capslpdb 1.0.0, mitdb 1.0.0, nsr2db 1.0.0.
 
 ---
 

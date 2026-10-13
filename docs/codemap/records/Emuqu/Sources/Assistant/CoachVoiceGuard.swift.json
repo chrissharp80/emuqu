@@ -26,7 +26,6 @@
   "mem:OffensiveTermLexicon.minimumWordsToDetect = 3"
  ],
  "toplevel": "Static lets are lazily initialised on first access: rules maps MedicalTermLexicon.scrubFromOutput to Rule(reason 'Coach output: <id>.') — one rule per scrubbed concept, and a concept without a specific deflection falls back to observationFallback (the comment on rules says so); medicalEntries/offensiveEntry/englishOnlyOffensiveEntry compile each rule via entry(for:), which logs an error naming any rule whose pattern fails to compile before compactMap drops it. everyReplyEntries = medical entries then the offensive entry. Callers: AssistantViewModel+Context.swift (stream flush), AssistantViewModel+Routing.swift (post-stream whole message), VoiceConversationController+Speech.swift (every spoken utterance), VoiceConversationController+Control.swift (interjection text).",
- "flags": [],
  "units": [
   {
    "key": "var CoachVoiceGuard.Rule.id",
@@ -37,7 +36,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -51,9 +49,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31"
    }
   },
   {
@@ -80,11 +77,10 @@
      "effect": "fallback observationFallback ('Emuqu's readings can't establish or rule out a cause or condition...') used for any concept with no specific/shared line"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.deflections": "a9eae079b93fc230",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.observationFallback": "182e24614fbc4efc",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.offensiveDeflection": "500db96133097ac2"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.deflections": "032607a2f8f307dd",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.observationFallback": "a384b2b1d3f95d93",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.offensiveDeflection": "b62948e6a6bbffea"
    }
   },
   {
@@ -100,9 +96,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -118,9 +113,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -135,10 +129,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.sharedDeflections": "195bb4b62ac3c0cb",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.specificDeflections": "cd1683b1e6cf74bd"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.sharedDeflections": "0602f428a21bf89d",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.specificDeflections": "bb17ada00b09e689"
    }
   },
   {
@@ -155,10 +148,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.verdictDeflections": "1f459cc7e5b8608a",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.verdictDeflections": "3933f8975715f2f3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -174,9 +166,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -193,12 +184,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.loadDeflection": "a43a9d093a873191",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.observationFallback": "182e24614fbc4efc",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.outOfScopeDeflection": "757bf093884f04ce",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.rhythmDeflection": "c0e0b990239a3907",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.loadDeflection": "b76fa36b0ffbabde",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.observationFallback": "a384b2b1d3f95d93",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.outOfScopeDeflection": "504d598149e67606",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.rhythmDeflection": "2dda7c8507b15a6e",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.ids(_:in:)": "0ff226626301e4bc"
    }
   },
@@ -215,9 +205,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -233,9 +222,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -251,9 +239,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -274,10 +261,9 @@
      "effect": "log error, return nil; else (rule, regex)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -301,11 +287,10 @@
      "effect": "true: return everyReplyEntries + [englishOnly]; any condition false: return everyReplyEntries only (the language recognizer is never run when the English-only term does not appear)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func OffensiveTermLexicon.appliesToReply(_:appLanguage:)": "bda40bfbb1f536fe",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func OffensiveTermLexicon.appliesToReply(_:appLanguage:)": "7613642a16016ea5",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -317,7 +302,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -357,14 +341,13 @@
      "effect": "true: return deflectStraddlingMatch(...); false: return rebuilt with triggers"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflectStraddlingMatch(_:segments:entry:among:)": "5aa09298379bbd07",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "bb1c7d4e0192b2ed",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "fb4c85248fb8794a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "73bfe65b48b481c2"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflectStraddlingMatch(_:segments:entry:among:)": "d124fe9413d15941",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.rewrite(_:among:triggers:)": "80d757cd16e2c7ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.sentenceSegments(of:)": "41cd4d9830767753",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.tidy(_:)": "7584b7ffd114cbdc"
    }
   },
   {
@@ -387,15 +370,14 @@
      "effect": "true: Result(rebuilt, trigger = matched substring); false: fail closed — Result(scrubbed: entire reply replaced by the rule's deflection, trigger = whole output)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "1f1571698d506b97",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entry(for:)": "0a544b102bd6f8f2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.replacing(_:spanning:with:)": "7ff5aa40668aa3e7",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection": "6d7cf9301a98b32c",
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "c266e7f0809752d4",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entry(for:)": "4e7a07b4b762e96a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.replacing(_:spanning:with:)": "e28b7b1aaa84329c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection": "03aae03bb24b1cbb",
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -428,9 +410,8 @@
      "effect": "true: return rebuilt; false: return nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "6e1e038ffe20928d"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.deflection(for:)": "74a93640be485c31"
    }
   },
   {
@@ -445,10 +426,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "f82b6e6fb826e41e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entries(for:)": "66b6b8d109d67e4b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea"
    }
   },
   {
@@ -479,10 +459,9 @@
      "effect": "true: return nil (no emphasis to remove); false: return firstMatch on stripped text (nil if none)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "5b1c66a7484bdc46"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.withoutInlineEmphasis(_:)": "e1591fa001bb9420"
    }
   },
   {
@@ -496,9 +475,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "17789f6b8a625750"
+    "Emuqu/Sources/Assistant/MedicalTermLexicon.swift::func MedicalTermLexicon.regex(for:)": "1c2b797f7acae310"
    }
   },
   {
@@ -510,7 +488,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -522,7 +499,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -558,11 +534,10 @@
      "effect": "true: return segment unchanged; false: record trigger and return deflected segment"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entry(for:)": "0a544b102bd6f8f2",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "48edd9683168baca",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection": "6d7cf9301a98b32c"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.entry(for:)": "4e7a07b4b762e96a",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatchingEntry(in:among:)": "07a93a63a527d2ea",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.Rule.deflection": "03aae03bb24b1cbb"
    }
   },
   {
@@ -593,10 +568,9 @@
      "effect": "true: append it as last segment; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "cbece2f596be720a",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.endOfSegment(in:terminatorAt:)": "1ce78984c4faf30c",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5"
    }
   },
   {
@@ -621,9 +595,8 @@
      "effect": "advance past it"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5"
    }
   },
   {
@@ -651,7 +624,6 @@
      "effect": "true: terminator; false (digit follows or text ends): not a terminator"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -671,9 +643,8 @@
      "effect": "return ('', text) — everything held back as tail; else cut there"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.lastSafeCut(in:)": "16ad6c94c43e7b6d"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.lastSafeCut(in:)": "dcf7afcc4150feca"
    }
   },
   {
@@ -713,9 +684,8 @@
      "effect": "cut after the last terminator before the run, nil when none"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "b324b3f284396325"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.isSentenceTerminator(in:at:)": "c96630d8135028e5"
    }
   },
   {
@@ -735,9 +705,8 @@
      "effect": "true: return detected == .english; false: return appLanguage == .english"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func OffensiveTermLexicon.confidentLanguage(of:)": "37fa5c686e9e6982"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func OffensiveTermLexicon.confidentLanguage(of:)": "4022330337731041"
    }
   },
   {
@@ -763,7 +732,6 @@
      "effect": "return nil; else return top language"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

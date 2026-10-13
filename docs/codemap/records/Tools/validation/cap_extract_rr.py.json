@@ -11,7 +11,6 @@
   "file:<DATA_ROOT>=/tmp/claude-0/-home-user/62b78298-79d2-549a-9361-61e9b461286b/scratchpad/physionet/capslpdb/derived/<rec>.json|.skip.json (written)"
  ],
  "toplevel": "Inserts the script directory into sys.path (needed under python -I), imports numpy/scipy/wfdb; runs main() as a script.",
- "flags": [],
  "units": [
   {
    "key": "def hms",
@@ -22,7 +21,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -69,9 +67,8 @@
      "effect": "assign label/token; else dropped"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/cap_extract_rr.py::def hms": "7f52e7aed0181189"
+    "Tools/validation/cap_extract_rr.py::def hms": "5418281c9d45262e"
    }
   },
   {
@@ -113,7 +110,6 @@
      "effect": "refine to local band-pass maximum"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -157,28 +153,16 @@
      "effect": "writes skip JSON and continues (n16 in the run)"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "Any ValueError from edf_read_channel (including a malformed header int()/float() parse, not only a missing label) is swallowed as 'no ECG channel; skipped', so a corrupt EDF is reported as a record without ECG.",
-     "evidence": [
-      "Tools/validation/cap_extract_rr.py:112",
-      "Tools/validation/validation_common.py:94"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Tools/validation/cap_extract_rr.py::def detect": "945691c31ed21042",
-    "Tools/validation/cap_extract_rr.py::def hms": "7f52e7aed0181189",
-    "Tools/validation/cap_extract_rr.py::def parse_hypnogram": "2788e20e153fb96f",
-    "Tools/validation/validation_common.py::def edf_read_channel": "03981954872b82ae"
+    "Tools/validation/cap_extract_rr.py::def detect": "0f37c2ae14d540bd",
+    "Tools/validation/cap_extract_rr.py::def hms": "5418281c9d45262e",
+    "Tools/validation/cap_extract_rr.py::def parse_hypnogram": "2f3b087019aaef8a",
+    "Tools/validation/validation_common.py::def edf_read_channel": "487bf5b27939bafb"
    }
   }
  ],
  "deps": {
-  "Tools/validation/cap_extract_rr.py::def main": "5b73e05953c63328",
-  "Tools/validation/validation_common.py::def edf_read_channel": "03981954872b82ae"
+  "Tools/validation/cap_extract_rr.py::def main": "3b81e18dbe20b6d3",
+  "Tools/validation/validation_common.py::def edf_read_channel": "487bf5b27939bafb"
  }
 }

@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func ImportedWorkoutBuilderTests.track(minutes:points:heartRates:cadence:sport:start:)",
@@ -18,7 +17,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -38,15 +36,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.Source.appleHealth(sourceName:)": "74cd641bfb04ab1e",
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.blankSession(startDate:source:existingID:)": "e6e14430dcf9fe3d",
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)": "4e9e6cb48f33445e",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "cb81614d89bb9b09",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "134787195f5faa97",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "0b05308ede465bfe",
-    "EmuquTests/ImportedWorkoutBuilderTests.swift::func ImportedWorkoutBuilderTests.track(minutes:points:heartRates:cadence:sport:start:)": "ae64f600b7fe5647"
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "b484ea3981bf0b48",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "fc9a6bbffaece3fd",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "07ffebce6a868a6a",
+    "EmuquTests/ImportedWorkoutBuilderTests.swift::func ImportedWorkoutBuilderTests.track(minutes:points:heartRates:cadence:sport:start:)": "d0035b687317f98e"
    }
   },
   {
@@ -66,15 +63,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.blankSession(startDate:source:existingID:)": "e6e14430dcf9fe3d",
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)": "4e9e6cb48f33445e",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "cb81614d89bb9b09",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "134787195f5faa97",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::var ImportedWorkoutBuilder.Source.gpxFile": "6eb417f9747fbbdb",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "0b05308ede465bfe",
-    "EmuquTests/ImportedWorkoutBuilderTests.swift::func ImportedWorkoutBuilderTests.track(minutes:points:heartRates:cadence:sport:start:)": "ae64f600b7fe5647"
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "b484ea3981bf0b48",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "fc9a6bbffaece3fd",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::var ImportedWorkoutBuilder.Source.gpxFile": "1934e1b5fbcc9365",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "07ffebce6a868a6a",
+    "EmuquTests/ImportedWorkoutBuilderTests.swift::func ImportedWorkoutBuilderTests.track(minutes:points:heartRates:cadence:sport:start:)": "d0035b687317f98e"
    }
   },
   {
@@ -88,18 +84,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Compares against an English literal while the label is String(localized:bundle: LanguageManager.appBundle) (ImportedWorkoutBuilder.swift:85) and the test does not call pinEnglishLanguage(), so it fails on a host set to another app language.",
-     "evidence": [
-      "EmuquTests/ImportedWorkoutBuilderTests.swift:64",
-      "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift:85"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.Source.appleHealth(sourceName:)": "74cd641bfb04ab1e"
    }
@@ -115,18 +99,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "English literal compared to a localized label without pinEnglishLanguage(); language-dependent.",
-     "evidence": [
-      "EmuquTests/ImportedWorkoutBuilderTests.swift:69",
-      "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift:84"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.Source.appleHealth(sourceName:)": "74cd641bfb04ab1e"
    }
@@ -148,27 +120,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Asserts deviceModel == the English literal 'Apple Health — Apple Watch', but deviceModel is source.label, built with String(localized:bundle: LanguageManager.appBundle); the test does not call pinEnglishLanguage(), so it fails on a host whose app language is not English (same defect as the two label tests above).",
-     "evidence": [
-      "EmuquTests/ImportedWorkoutBuilderTests.swift:79",
-      "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift:85",
-      "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift:214"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.Source.appleHealth(sourceName:)": "74cd641bfb04ab1e",
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.blankSession(startDate:source:existingID:)": "e6e14430dcf9fe3d",
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)": "4e9e6cb48f33445e",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "cb81614d89bb9b09",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "134787195f5faa97",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "0b05308ede465bfe",
-    "EmuquTests/ImportedWorkoutBuilderTests.swift::func ImportedWorkoutBuilderTests.track(minutes:points:heartRates:cadence:sport:start:)": "ae64f600b7fe5647"
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "b484ea3981bf0b48",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "fc9a6bbffaece3fd",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "07ffebce6a868a6a",
+    "EmuquTests/ImportedWorkoutBuilderTests.swift::func ImportedWorkoutBuilderTests.track(minutes:points:heartRates:cadence:sport:start:)": "d0035b687317f98e"
    }
   },
   {
@@ -189,17 +148,16 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.Source.appleHealth(sourceName:)": "74cd641bfb04ab1e",
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.blankSession(startDate:source:existingID:)": "e6e14430dcf9fe3d",
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)": "4e9e6cb48f33445e",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "cb81614d89bb9b09",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.secondKeyedSamples(from:)": "2178c82a6719bf6a",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "134787195f5faa97",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "0b05308ede465bfe",
-    "EmuquTests/ImportedWorkoutBuilderTests.swift::func ImportedWorkoutBuilderTests.track(minutes:points:heartRates:cadence:sport:start:)": "ae64f600b7fe5647"
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "b484ea3981bf0b48",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.secondKeyedSamples(from:)": "87979d196aa3a9bf",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "fc9a6bbffaece3fd",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "07ffebce6a868a6a",
+    "EmuquTests/ImportedWorkoutBuilderTests.swift::func ImportedWorkoutBuilderTests.track(minutes:points:heartRates:cadence:sport:start:)": "d0035b687317f98e"
    }
   },
   {
@@ -219,16 +177,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.blankSession(startDate:source:existingID:)": "e6e14430dcf9fe3d",
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)": "4e9e6cb48f33445e",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "cb81614d89bb9b09",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "134787195f5faa97",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::var ImportedWorkoutBuilder.Source.gpxFile": "6eb417f9747fbbdb",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "0b05308ede465bfe",
-    "EmuquTests/ImportedWorkoutBuilderTests.swift::func ImportedWorkoutBuilderTests.track(minutes:points:heartRates:cadence:sport:start:)": "ae64f600b7fe5647"
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "b484ea3981bf0b48",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "fc9a6bbffaece3fd",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::var ImportedWorkoutBuilder.Source.gpxFile": "1934e1b5fbcc9365",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "07ffebce6a868a6a",
+    "EmuquTests/ImportedWorkoutBuilderTests.swift::func ImportedWorkoutBuilderTests.track(minutes:points:heartRates:cadence:sport:start:)": "d0035b687317f98e"
    }
   },
   {
@@ -248,15 +205,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.blankSession(startDate:source:existingID:)": "e6e14430dcf9fe3d",
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)": "4e9e6cb48f33445e",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "cb81614d89bb9b09",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "134787195f5faa97",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::var ImportedWorkoutBuilder.Source.gpxFile": "6eb417f9747fbbdb",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "0b05308ede465bfe",
-    "EmuquTests/ImportedWorkoutBuilderTests.swift::func ImportedWorkoutBuilderTests.track(minutes:points:heartRates:cadence:sport:start:)": "ae64f600b7fe5647"
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "b484ea3981bf0b48",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "fc9a6bbffaece3fd",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::var ImportedWorkoutBuilder.Source.gpxFile": "1934e1b5fbcc9365",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "07ffebce6a868a6a",
+    "EmuquTests/ImportedWorkoutBuilderTests.swift::func ImportedWorkoutBuilderTests.track(minutes:points:heartRates:cadence:sport:start:)": "d0035b687317f98e"
    }
   },
   {
@@ -277,16 +233,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.blankSession(startDate:source:existingID:)": "e6e14430dcf9fe3d",
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)": "4e9e6cb48f33445e",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "cb81614d89bb9b09",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.secondKeyedSamples(from:)": "2178c82a6719bf6a",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "134787195f5faa97",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::var ImportedWorkoutBuilder.Source.gpxFile": "6eb417f9747fbbdb",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "0b05308ede465bfe",
-    "EmuquTests/ImportedWorkoutBuilderTests.swift::func ImportedWorkoutBuilderTests.track(minutes:points:heartRates:cadence:sport:start:)": "ae64f600b7fe5647"
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "b484ea3981bf0b48",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.secondKeyedSamples(from:)": "87979d196aa3a9bf",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "fc9a6bbffaece3fd",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::var ImportedWorkoutBuilder.Source.gpxFile": "1934e1b5fbcc9365",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "07ffebce6a868a6a",
+    "EmuquTests/ImportedWorkoutBuilderTests.swift::func ImportedWorkoutBuilderTests.track(minutes:points:heartRates:cadence:sport:start:)": "d0035b687317f98e"
    }
   },
   {
@@ -305,26 +260,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Checks only the sample count; session(from:) still sets endDate = track.endDate (ImportedWorkoutBuilder.swift:205), so the session claims a 400 h duration while its samples stop at 48 h, and the test does not catch it.",
-     "evidence": [
-      "EmuquTests/ImportedWorkoutBuilderTests.swift:137",
-      "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift:205",
-      "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift:107"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.blankSession(startDate:source:existingID:)": "e6e14430dcf9fe3d",
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)": "4e9e6cb48f33445e",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "cb81614d89bb9b09",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "134787195f5faa97",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::var ImportedWorkoutBuilder.Source.gpxFile": "6eb417f9747fbbdb",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "0b05308ede465bfe"
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "b484ea3981bf0b48",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "fc9a6bbffaece3fd",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::var ImportedWorkoutBuilder.Source.gpxFile": "1934e1b5fbcc9365",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "07ffebce6a868a6a"
    }
   },
   {
@@ -343,25 +285,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Does not assert endDate; the builder keeps endDate = track.endDate (before startDate), leaving a negative-duration session unchecked.",
-     "evidence": [
-      "EmuquTests/ImportedWorkoutBuilderTests.swift:149",
-      "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift:205"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.blankSession(startDate:source:existingID:)": "e6e14430dcf9fe3d",
     "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)": "4e9e6cb48f33445e",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "cb81614d89bb9b09",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "134787195f5faa97",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::var ImportedWorkoutBuilder.Source.gpxFile": "6eb417f9747fbbdb",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "0b05308ede465bfe"
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "b484ea3981bf0b48",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "fc9a6bbffaece3fd",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::var ImportedWorkoutBuilder.Source.gpxFile": "1934e1b5fbcc9365",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "07ffebce6a868a6a"
    }
   }
  ],

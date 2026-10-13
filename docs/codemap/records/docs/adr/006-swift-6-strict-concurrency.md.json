@@ -5,7 +5,6 @@
  "types": [],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "§ ADR 006 — Swift 6 language mode is the concurrency gate",
@@ -21,25 +20,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The ADR's enumeration of what remains omits three of the 14 escapes the gate counts: BreadcrumbStore (@unchecked Sendable), WorkoutStartCue.announceSynthesizer (nonisolated(unsafe)) and WCReplyBox (@unchecked Sendable).",
-     "evidence": [
-      "docs/adr/006-swift-6-strict-concurrency.md:37",
-      "Emuqu/Sources/Services/BreadcrumbStore.swift:142",
-      "Emuqu/Sources/Collection/WorkoutStartCue.swift:47",
-      "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift:439"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard": "da0366fd78467749",
-    ".github/workflows/ci.yml::step strict-concurrency/Strict concurrency is switched on": "7dd78ff65eb72412",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "599269848673b93a",
-    "scripts/check_strict_concurrency_enabled.sh::fn fail": "a02e4dd485c8c8e2"
+    ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard": "a26d5aca611355ca",
+    ".github/workflows/ci.yml::step strict-concurrency/Strict concurrency is switched on": "ce44a5cbbe2657c3",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settingsSnapshot": "a1abab14c1ff8f17",
+    "scripts/check_strict_concurrency_enabled.sh::fn fail": "8d5dfcf6ca16c0ba"
    }
   }
  ],

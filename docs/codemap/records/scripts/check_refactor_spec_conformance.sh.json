@@ -14,29 +14,6 @@
   "file:.ci/spec_watch_budget.txt"
  ],
  "toplevel": "cd to repo root. SCAN_DIR=Emuqu (missing -> 2). Every budget is read with `$(read_budget ...) || exit $?`, so a missing or non-integer budget file exits 2. MEASURED=measure_spec Emuqu (empty -> 2); first line parsed into 9 counts; prints report; over() for each axis (empty catches and malformed waivers against 0); any over -> worst offenders + exit 1; below-budget hints. Watch: budget file missing -> 2, non-integer -> 2; measure_spec on watch dir; total of 4 axes vs .ci/spec_watch_budget.txt (0); over -> exit 1. Else clean.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Header says the waiver budgets start at zero and 'The budget is zero'; .ci/spec_justified_long_budget.txt is 7.",
-   "evidence": [
-    "scripts/check_refactor_spec_conformance.sh:33",
-    "scripts/check_refactor_spec_conformance.sh:42",
-    ".ci/spec_justified_long_budget.txt:1"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "silent-failure",
-   "sev": "low",
-   "text": "For the watch target only the four size/nesting axes are summed; empty catches, commented-out code and malformed waivers in watch files are measured and discarded. If the watch measurement fails, the empty fields evaluate to 0 and the gate passes.",
-   "evidence": [
-    "scripts/check_refactor_spec_conformance.sh:532",
-    "scripts/check_refactor_spec_conformance.sh:534"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "fn read_budget",
@@ -60,7 +37,6 @@
      "effect": "stderr, exit 2; else print value"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -75,20 +51,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "find_body_brace does not stop at the end of a body-less protocol requirement unless a ';' or blank line follows, so it takes the next depth-0 `{`. FootPodManager.swift:61 `func stopScanning()` is measured as the body of `extension BLEPeripheralConnecting {` at :64. The jump `i = max(j, i+1)` then skips that extension, so `connect(deviceId:)` is never measured on its own. Docstring says <> depth is tracked; only () and [] are.",
-     "evidence": [
-      "scripts/check_refactor_spec_conformance.sh:322",
-      "scripts/check_refactor_spec_conformance.sh:348",
-      "scripts/check_refactor_spec_conformance.sh:437",
-      "Emuqu/Sources/Collection/FootPodManager.swift:61"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {}
   },
   {
@@ -100,13 +62,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],
  "deps": {
-  "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "509182b8a7724c89",
-  "scripts/check_refactor_spec_conformance.sh::fn over": "a8abf10c9c4d580f",
-  "scripts/check_refactor_spec_conformance.sh::fn read_budget": "0bb5b672bbc299cf"
+  "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "56d6204c2017cb66",
+  "scripts/check_refactor_spec_conformance.sh::fn over": "341bf1022cffa220",
+  "scripts/check_refactor_spec_conformance.sh::fn read_budget": "86fc96319d6851a0"
  }
 }

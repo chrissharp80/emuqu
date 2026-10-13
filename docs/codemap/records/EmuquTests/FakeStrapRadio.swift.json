@@ -14,40 +14,6 @@
   "mem:FakeStrapRadio.refusalError (NOT lock-guarded)"
  ],
  "toplevel": "Imports PolarBleSdk unconditionally (the production protocol is inside #if canImport(PolarBleSdk)); State defaults: no calls, no recording, empty queues.",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "Doc comment says every stored property is behind one lock, but refusalError (line 123) is written in refuse() and read inside refusalIfDue's locked closure without its own protection, so a refuse() racing with a strap call is an unsynchronised access in an @unchecked Sendable type.",
-   "evidence": [
-    "EmuquTests/FakeStrapRadio.swift:13",
-    "EmuquTests/FakeStrapRadio.swift:120",
-    "EmuquTests/FakeStrapRadio.swift:123"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Doc says the fake answers 'the sixteen calls' while StrapRadio's doc says seventeen calls; searchForDevice is implemented but never recorded in Call, so a test cannot assert a scan happened.",
-   "evidence": [
-    "EmuquTests/FakeStrapRadio.swift:7",
-    "Emuqu/Sources/Collection/StrapRadio.swift:18",
-    "EmuquTests/FakeStrapRadio.swift:151"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "State.ppiSamples is never filled by any scripting method, so startPpiStreaming always yields an open, empty stream; Verity live-PPI streaming cannot be exercised with this fake.",
-   "evidence": [
-    "EmuquTests/FakeStrapRadio.swift:55",
-    "EmuquTests/FakeStrapRadio.swift:174"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func FakeStrapRadio.withState(_:)",
@@ -58,7 +24,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -72,9 +37,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -88,9 +52,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -104,9 +67,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -120,9 +82,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -136,9 +97,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -152,19 +112,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "setOfflineRecordingOngoing has no caller: grep -rn setOfflineRecordingOngoing over the repo finds only its declaration; no test scripts an already-running Verity offline recording.",
-     "evidence": [
-      "EmuquTests/FakeStrapRadio.swift:106"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -178,9 +127,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -194,9 +142,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -210,9 +157,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -232,19 +178,8 @@
      "effect": "true: never returns; false: returns immediately"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "A hanging call never resumes even on task cancellation, leaking the continuation and task for the rest of the test process; intended to model a stale link but any test that does not time out leaves a suspended task behind.",
-     "evidence": [
-      "EmuquTests/FakeStrapRadio.swift:133"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -264,9 +199,8 @@
      "effect": "true: decrements and returns refusalError; false: nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -280,10 +214,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0",
-    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "4da066d93ac45dca"
    }
   },
   {
@@ -297,9 +230,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "960ee706e50bbf87"
    }
   },
   {
@@ -313,9 +245,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "960ee706e50bbf87"
    }
   },
   {
@@ -327,7 +258,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -349,12 +279,11 @@
      "effect": "true: stream finishes throwing the error; false: yields queued samples, never finishes"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0",
-    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.hrPeripheralIds": "3db0d8d5284df068"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "960ee706e50bbf87",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "f5d48b96f23a0766",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.hrPeripheralIds": "9b2805d6cf52c1a8"
    }
   },
   {
@@ -376,11 +305,10 @@
      "effect": "true: finishes throwing; false: yields ppiSamples and never finishes"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "960ee706e50bbf87",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "f5d48b96f23a0766",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -407,11 +335,10 @@
      "effect": "throws PolarErrors.deviceError; false: starts recording"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "960ee706e50bbf87",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "f5d48b96f23a0766",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -434,12 +361,11 @@
      "effect": "throws; false: recording stopped"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.hangIfDue(_:)": "6d46ec3e2a72ab98",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.hangIfDue(_:)": "dedc66f9f1dbb723",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "960ee706e50bbf87",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "f5d48b96f23a0766",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -462,12 +388,11 @@
      "effect": "throws; false: returns status"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.hangIfDue(_:)": "6d46ec3e2a72ab98",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.hangIfDue(_:)": "dedc66f9f1dbb723",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "960ee706e50bbf87",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "f5d48b96f23a0766",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -489,11 +414,10 @@
      "effect": "stream finishes throwing; false: yields filtered entries and finishes"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "960ee706e50bbf87",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "f5d48b96f23a0766",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -521,12 +445,11 @@
      "effect": "false: throws deviceError; true: returns data"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.hangIfDue(_:)": "6d46ec3e2a72ab98",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.hangIfDue(_:)": "dedc66f9f1dbb723",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "960ee706e50bbf87",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "f5d48b96f23a0766",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -541,10 +464,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "960ee706e50bbf87",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -566,11 +488,10 @@
      "effect": "throws; false: feature ongoing = true"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "960ee706e50bbf87",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "f5d48b96f23a0766",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -592,11 +513,10 @@
      "effect": "throws; false: feature ongoing = false"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "960ee706e50bbf87",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "f5d48b96f23a0766",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -618,11 +538,10 @@
      "effect": "throws; false: returns map"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "960ee706e50bbf87",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "f5d48b96f23a0766",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -649,11 +568,10 @@
      "effect": "yields an entry"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "960ee706e50bbf87",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "f5d48b96f23a0766",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -680,11 +598,10 @@
      "effect": "false: throws deviceError; true: returns data"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "8bfb61e0d66b1620",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "960ee706e50bbf87",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refusalIfDue(_:)": "f5d48b96f23a0766",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   },
   {
@@ -712,11 +629,10 @@
      "effect": "false: throws PolarErrors.deviceError(description: \"no such recording\"); true: returns"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.recordingKey(forPath:)": "452a39a1b30c2224",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "7dbc7ca6c0606cf2",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "cbed67270ff19af0"
+    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.recordingKey(forPath:)": "1f1596caf9473f18",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.record(_:)": "960ee706e50bbf87",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.withState(_:)": "3a46042e70b60f59"
    }
   }
  ],

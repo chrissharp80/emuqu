@@ -15,7 +15,6 @@
   "PedometerSample.maximumPlausibleMeters = 1_000_000"
  ],
  "toplevel": "isAvailable initialiser evaluates CMPedometer.isDistanceAvailable() && isStepCountingAvailable() at construction (line 21). Instance is WorkoutRecorder.pedometer.",
- "flags": [],
  "units": [
   {
    "key": "func WorkoutPedometer.start()",
@@ -43,9 +42,8 @@
      "effect": "?? Date() fallback; unreachable since sessionStart was just assigned on line 30"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.subscribeToUpdates(from:)": "4cde2ec2c770e992",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.subscribeToUpdates(from:)": "522e228a17caff61",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "6c00c4d3ab2ac3d3"
    }
   },
@@ -68,11 +66,10 @@
      "effect": "drops the update silently; otherwise builds sample and schedules apply"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.apply(_:)": "4760fe0d3c3215c7",
-    "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.start()": "b2d6e575543b2590",
-    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(_:)": "4bb4ed1cffd9a675"
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.apply(_:)": "95ebd02ffc9fc915",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.start()": "f12d2f3464e3565f",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(_:)": "a78ff07800f36f91"
    }
   },
   {
@@ -102,9 +99,8 @@
      "effect": "updates cadence; else keeps last value"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableCadenceStepsPerMin": "14344690bf964b04",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableCadenceStepsPerMin": "517972374908277a",
     "Emuqu/Sources/Collection/WorkoutPedometer.swift::var PedometerSample.publishableDistanceMeters": "901274fe6a13e980",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "6c00c4d3ab2ac3d3"
    }
@@ -120,7 +116,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -136,7 +131,6 @@
     "mem:WorkoutPedometer.cadenceStepsPerMin"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "6c00c4d3ab2ac3d3"
    }
@@ -150,7 +144,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -168,7 +161,6 @@
      "effect": "returns nil; else the value"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -186,7 +178,6 @@
      "effect": "returns nil; else cadence*60"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -200,10 +191,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.RequestBody.ToolDecl.AnyKey.intValue": "5b3e3e88bcb958f6",
-    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)": "b059e9948e45875e"
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.RequestBody.ToolDecl.AnyKey.intValue": "23293795c6e81a26",
+    "Emuqu/Sources/Collection/WorkoutPedometer.swift::init PedometerSample(distanceMeters:steps:cadenceStepsPerSecond:)": "86222d755c1ff893"
    }
   }
  ],

@@ -10,7 +10,6 @@
   "mem:RecoveryVitals.concerningSpO2Below (static let 95.0) — nightly SpO2 % below which the recovery-score SpO2 penalty applies; read by every screen and report that flags low SpO2"
  ],
  "toplevel": "Struct declaration; synthesized Codable; static let concerningSpO2Below = 95.0.",
- "flags": [],
  "units": [
   {
    "key": "var RecoveryVitals.isEmpty",
@@ -21,7 +20,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -39,7 +37,6 @@
      "effect": "returns nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -59,9 +56,8 @@
      "effect": "false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation": "a41bd06056c51819"
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation": "6c7d5be6d9400201"
    }
   },
   {
@@ -86,7 +82,6 @@
      "effect": "true; otherwise false"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -104,7 +99,6 @@
      "effect": "returns nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -124,9 +118,8 @@
      "effect": "false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.wristTemperatureDeviation": "34436198eb68624e"
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.wristTemperatureDeviation": "42464c66774b99f3"
    }
   },
   {
@@ -153,22 +146,10 @@
      "effect": ".elevated; otherwise .normal"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Low SpO2 alone yields .elevated, which RecoveryScoreDetailView+Sections explains as 'Vitals above baseline … above your usual range' — wrong wording for a below-95 % SpO2 reading.",
-     "evidence": [
-      "Emuqu/Sources/Models/RecoveryVitals.swift:86",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:194"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isRespiratoryElevated": "cddbe4f7df16f20a",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isRespiratoryElevated": "cddb60494ab5aee7",
     "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isSpO2Concerning": "63f83ca65f69f1c7",
-    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isTemperatureElevated": "336841edea75a7be"
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isTemperatureElevated": "4876cc3490b59f2c"
    }
   },
   {
@@ -186,7 +167,6 @@
      "effect": "returns self unchanged"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

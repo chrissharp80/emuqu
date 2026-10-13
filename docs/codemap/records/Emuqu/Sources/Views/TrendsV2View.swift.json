@@ -25,22 +25,6 @@
   "@Environment dependencies, accessibilityReduceTransparency, RRCollector, ArchiveSignal"
  ],
  "toplevel": "Stored-property initializers: selectedRange .thirty, selectedMetric .recoveryScore, derived .empty, allSessions []; ScaledMetric defaults 11..24 bound to text styles. Environment reads RRCollector and ArchiveSignal (crash if not injected). No #if blocks. @State reloadRequested false.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "ARCHITECTURE.md Trend cap contract names period values twoWeeks/month/threeMonths/all and promises a 'need more overnight sessions' state when <2 data points; the code has 7/14/30/90/all chips and shows the empty state only at 0 points (1 point renders a chart), insights need >=3, the band needs >=4. ARCHITECTURE.md:659 filter also omits the isReliableForHRVAggregates gate the code applies (FLOWCHART.md:726 includes it).",
-   "evidence": [
-    "docs/ARCHITECTURE.md:662",
-    "docs/ARCHITECTURE.md:659",
-    "Emuqu/Sources/Views/TrendsV2View.swift:82",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift:23",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift:494",
-    "Emuqu/Sources/Views/TrendsV2View.swift:171"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var TrendsV2View.TimeRange.id",
@@ -51,7 +35,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -91,9 +74,8 @@
      "effect": "localized 'All'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -120,12 +102,11 @@
      "effect": "?? label"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.dayCount": "c5eebb286e05c80f",
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.label": "a46b297fc9cb464d",
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.calendar": "e2433f1fce5579f2"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.dayCount": "23f7f34eae32fc58",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.label": "f96d305423e067ff",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.calendar": "5534dc3eab28716b"
    }
   },
   {
@@ -163,7 +144,6 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -213,9 +193,8 @@
      "effect": "'Stress'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -258,7 +237,6 @@
      "effect": "''"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -297,9 +275,8 @@
      "effect": "keep every session; else keep only sessions whose tags contain that id"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f"
    }
   },
@@ -317,10 +294,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.allTags": "f7e94e6fb3a9db3b"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.allTags": "bf24d9f0be7b980e"
    }
   },
   {
@@ -337,12 +313,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.withRefreshHooks(_:)": "5d0de8f3fd52ec09",
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.stack": "c691ac83f5e0cb9a"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.withRefreshHooks(_:)": "d093ad21ec1a5481",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.stack": "b2c1e272c16f0ae3"
    }
   },
   {
@@ -362,15 +337,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::var TrendsV2View.insightsSection": "47a0504d07c282e4",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::var TrendsV2View.metricChartCard": "d7a885ddea2d3cc4",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::var TrendsV2View.statsGrid": "32682e081f5fdc97",
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.calendar": "e2433f1fce5579f2",
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.overallTrendCard": "d40bbf5cc262b1d9",
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.rangeChips": "7e46f9496d702deb",
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.tagFilterChips": "c802004c96b24753"
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::var TrendsV2View.insightsSection": "acfd9cf714259c89",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::var TrendsV2View.metricChartCard": "0e7cb35a276e3888",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::var TrendsV2View.statsGrid": "c1e6e321b3cbba42",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.calendar": "5534dc3eab28716b",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.overallTrendCard": "4fd8df9323a23f72",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.rangeChips": "bb74869e9d13f561",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.tagFilterChips": "3d4e8826ae75ebc6"
    }
   },
   {
@@ -386,9 +360,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.deleteSession(_:)": "49e7b546c720a4bf"
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.deleteSession(_:)": "c3475259938b8652"
    }
   },
   {
@@ -412,12 +385,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "b2c1f986e338fb12",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.loadSessions()": "67fc1e7ba60f6f16",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()": "f00778205f2a3823"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "71598a6e60000bb7",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.loadSessions()": "b460c785d65cb9b3",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()": "83e84e37195e7c19"
    }
   },
   {
@@ -453,10 +425,9 @@
      "effect": "load again"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)": "b016442b3cd5698d",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()": "f00778205f2a3823"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)": "d0b0b578fa7f7968",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()": "83e84e37195e7c19"
    }
   },
   {
@@ -491,13 +462,12 @@
      "effect": "catch: debugLog, return false (calendar keeps the session); no user-visible error from this unit"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "b2c1f986e338fb12",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/HistoryView.swift::func SessionTrash.move(_:collector:cloudKit:)": "5a5b9af14dcd988b",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()": "f00778205f2a3823"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "71598a6e60000bb7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/HistoryView.swift::func SessionTrash.move(_:collector:cloudKit:)": "b2656c4803bdf3c8",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rebuildDerived()": "83e84e37195e7c19"
    }
   },
   {
@@ -532,17 +502,16 @@
      "effect": "?? .empty (unreachable: dictionary built from Metric.allCases)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.rmssdReadings(_:)": "7ed66740114a7cfd",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.buildInsights(metric:points:days:totalDays:)": "67c2ef33bf6efe6b",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.buildMetricPoints(from:metric:)": "e08af1fdb22d6e53",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.computeStats(_:baselines:)": "e11ca7c5f218b291",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.rollingBaseline(_:window:)": "a13a24688a968113",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.computeDirection(_:scale:)": "51cec13b934c1292",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.sixtyDayBaselines()": "3c7a3f0d541d2c9f",
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.rangeDays": "9786d7db97b61620",
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.sessions": "67ba650506b9a999"
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.rmssdReadings(_:)": "8467fec4366d2470",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.buildInsights(metric:points:days:totalDays:)": "ff7981e3780ee84f",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.buildMetricPoints(from:metric:)": "f2b3f9ea72ed8dfd",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.computeStats(_:baselines:)": "f5619742b7807bd5",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.rollingBaseline(_:window:)": "981734ae0e6d05b5",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.computeDirection(_:scale:)": "75e39cb2f9e58a07",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.sixtyDayBaselines()": "49688083c2ff469a",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.rangeDays": "81a6f47e3e5bfb7b",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.sessions": "4acb50e6fcb7895c"
    }
   },
   {
@@ -561,12 +530,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.buildMetricPoints(from:metric:)": "e08af1fdb22d6e53",
-    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.isLogNormal(_:)": "72f54b5a4e75d16b",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.from(_:logScale:)": "e5414e9ae39cf5f8",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.baselineWindow(_:days:)": "b298d6ef866f42bb"
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.buildMetricPoints(from:metric:)": "f2b3f9ea72ed8dfd",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.isLogNormal(_:)": "bac03a301a0e6906",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.from(_:logScale:)": "031938866f511908",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.baselineWindow(_:days:)": "89825b6262483587"
    }
   },
   {
@@ -578,7 +546,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -609,11 +576,10 @@
      "effect": "low/high = mean ∓ sd"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.low(_:)": "0dbc3b9bab439012",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.logEdges(_:)": "3330faf9e2a0d337",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.standardDeviation(_:mean:)": "f63184d7d33898ed"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.low(_:)": "f2395087493b8656",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.logEdges(_:)": "322b560767be53b6",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.standardDeviation(_:mean:)": "d3861e965339453b"
    }
   },
   {
@@ -625,7 +591,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -645,9 +610,8 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.standardDeviation(_:mean:)": "f63184d7d33898ed"
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.BaselineStats.standardDeviation(_:mean:)": "d3861e965339453b"
    }
   },
   {
@@ -667,9 +631,8 @@
      "effect": "return nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.BaselineStats.hasData": "58b3b540d9784f0e"
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.BaselineStats.hasData": "745128b24479ceaf"
    }
   },
   {
@@ -689,9 +652,8 @@
      "effect": "?? .distantPast (no cutoff)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f"
    }
   },
@@ -706,9 +668,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.chipRow": "f4c7b13da62d0351"
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.chipRow": "512788ac93edb38b"
    }
   },
   {
@@ -724,11 +685,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.filterChip(_:)": "c6bd78dceb991662",
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.allTagsChip": "6da502bca3a0ea6a",
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.filterTags": "93fe9b8698d6b91a"
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.filterChip(_:)": "e277493275ec00bc",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.allTagsChip": "b56f237bfe5727bb",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.filterTags": "a1e3eb16876656fe"
    }
   },
   {
@@ -748,11 +708,10 @@
     "mem:TrendsV2View.selectedTagId"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.tagChip(label:color:isSelected:action:)": "3217b3b02730faa1"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.tagChip(label:color:isSelected:action:)": "dd61295fa52693d1"
    }
   },
   {
@@ -784,12 +743,11 @@
      "effect": "true: clear filter (nil); false: select this tag id"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/HRVSession.swift::init Color(hex:)": "5b9b15b21afeb7e9",
-    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName": "7731151a254946c1",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.tagChip(label:color:isSelected:action:)": "3217b3b02730faa1"
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName": "c9c2903729a36884",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.tagChip(label:color:isSelected:action:)": "dd61295fa52693d1"
    }
   },
   {
@@ -826,13 +784,12 @@
      "effect": "[.isButton,.isSelected] vs .isButton"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.label": "a46b297fc9cb464d",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.label": "f96d305423e067ff",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -846,9 +803,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rangeChip(_:)": "c2bc4d5ab83072dd"
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rangeChip(_:)": "f284b88f5249fbaa"
    }
   },
   {
@@ -873,11 +829,10 @@
      "effect": "adds .isSelected trait; else none"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rangeChipLabel(_:)": "bbb6bb874229bfab",
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.label": "a46b297fc9cb464d",
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.spokenLabel": "05343537b0dd74f4"
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.rangeChipLabel(_:)": "11cc8d7e0f43797c",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.label": "f96d305423e067ff",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.spokenLabel": "c9b9a6ec82de13c8"
    }
   },
   {
@@ -907,13 +862,12 @@
      "effect": "primary text vs textSecondary"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.label": "a46b297fc9cb464d",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.TimeRange.label": "f96d305423e067ff",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -932,13 +886,12 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.readingCountLine(_:)": "e5a21bc8ced6afb6",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.readingCountLine(_:)": "8d1e0fc9de4272db",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -976,12 +929,11 @@
      "effect": "stableDirection()"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "61c752e205f41dc0",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.stableDirection()": "45314c9693d05ef0"
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(_:scale:)": "1d57bf09ca641b2f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.stableDirection()": "ca464485fee13b48"
    }
   },
   {
@@ -995,9 +947,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1017,7 +968,6 @@
      "effect": "nil; else rawValue"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1038,10 +988,9 @@
      "effect": "all-time sentence; else last-D-days sentence"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.rangeDays": "9786d7db97b61620"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.rangeDays": "81a6f47e3e5bfb7b"
    }
   }
  ],

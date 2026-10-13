@@ -11,7 +11,6 @@
   "mem:HealthWorkoutImporter.metersPerFlightClimbed (static 3.048)"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func HealthWorkoutImporter.interruptedSessions(archive:days:now:)",
@@ -40,14 +39,13 @@
      "effect": "log text shows 'no end' instead of the captured seconds"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.workout(withID:)": "fab8fd632a71b48c",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.workouts(matching:limit:sortDescriptors:reading:)": "824f51d54645bda5",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.stub(from:archive:)": "eee6554209b57590",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entries(from:to:)": "c85ce67badfb610a",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.workout(withID:)": "1836825adf55a091",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.workouts(matching:limit:sortDescriptors:reading:)": "d1593c4194701bb6",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.stub(from:archive:)": "defae9a1e6553373",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entries(from:to:)": "4fcbd00ac4e40650",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -87,13 +85,12 @@
      "effect": "return InterruptedSession with the stub's tags/notes; otherwise noteUnrebuildable logs (unreadable vs no sport) and nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.noteUnrebuildable(_:captured:readable:)": "54b9a958bc0fda24",
-    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "ea7d8ada44a71fa0",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.noteUnrebuildable(_:captured:readable:)": "262978c30f38a81b",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "f96eb588bdca229c",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "0bbfc03c60fb225a",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -113,9 +110,8 @@
      "effect": "reason 'it records no sport'; otherwise 'its file could not be read'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -133,7 +129,6 @@
      "effect": ".noSamplesAtAll; otherwise .noActivityAfterStart"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -153,11 +148,10 @@
      "effect": "Result.map copies stub.tags/notes onto the session; a failure passes through unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "c3f6621e4cf76e10",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.rebuild(startingAt:sport:replacing:)": "edd6cd517cecacda",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.stub(from:archive:)": "eee6554209b57590"
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "bf943a0309a38471",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.rebuild(startingAt:sport:replacing:)": "2228574434db363e",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.stub(from:archive:)": "defae9a1e6553373"
    }
   },
   {
@@ -199,33 +193,18 @@
      "effect": "log shows 0 m (?? 0)"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "The failure kind is chosen from `steps`, which is [] not only when Health has no step samples but also when the step query times out or errors (runBoundedQuery ?? [] and the ignored error argument), so a slow or failed read is reported as .noSamplesAtAll and the user is told to check the Steps permission.",
-     "evidence": [
-      "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift:159",
-      "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift:130",
-      "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift:191",
-      "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift:194",
-      "Emuqu/Sources/Views/HealthWorkoutImportSheet.swift:301"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "c3f6621e4cf76e10",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.stepWindows(from:to:)": "f4e216ac03db5ba9",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.applyRebuiltDistance(from:to:sport:to:)": "d29bb1b24c6a7b7d",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.applyRebuiltSignals(from:to:sport:to:)": "52644c50332cee06",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.boutEnd(from:to:steps:)": "0d7fa82d592d561d",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.failure(whenBoutNotFoundWith:)": "024555b660039acb",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.rebuiltTrack(startDate:sport:end:steps:)": "454397712c8a505e",
-    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "ea7d8ada44a71fa0",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)": "f1a4266e2463267c",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "EmuquTests/OverpassClientTests.swift::var Result.failure": "0476d3f57d94bf98"
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "bf943a0309a38471",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.stepWindows(from:to:)": "d4baf35d3804197c",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.applyRebuiltDistance(from:to:sport:to:)": "0dc8e64606acf280",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.applyRebuiltSignals(from:to:sport:to:)": "8456660677be90ce",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.boutEnd(from:to:steps:)": "ce31325a7a9c5808",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.failure(whenBoutNotFoundWith:)": "3071e50881245758",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.rebuiltTrack(startDate:sport:end:steps:)": "e6622188f1da9fff",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "f96eb588bdca229c",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.buildSession(from:source:replacing:)": "ea103f8703967ccd",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6"
    }
   },
   {
@@ -248,10 +227,9 @@
      "effect": "return it; otherwise resolve from steps (may be nil)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)": "2a4e5e60482a8f2f",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.quantityWindows(_:unit:from:to:)": "8226cd347b01ac2a"
+    "Emuqu/Sources/Import/ActivityBoutResolver.swift::func ActivityBoutResolver.end(ofBoutStartingAt:activity:maxGap:maxDuration:)": "da5d0816b345f457",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.quantityWindows(_:unit:from:to:)": "e48b7b2452a18956"
    }
   },
   {
@@ -274,15 +252,14 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "c3f6621e4cf76e10",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.applyElevation(flights:to:)": "40345cd3665f8b59",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.applySpeedAndEffort(speed:effort:start:to:)": "dc0ef1bf5dc32fe2",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.cumulativeSum(_:unit:from:to:)": "cccd6750c89a9fdd",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.physicalEffortWindows(from:to:)": "7aecbed1729513e3",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.speedWindows(for:from:to:)": "b27c52e1fae31882",
-    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "ea7d8ada44a71fa0"
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "bf943a0309a38471",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.applyElevation(flights:to:)": "63caff81d60533bf",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.applySpeedAndEffort(speed:effort:start:to:)": "3a3a3fb74da57625",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.cumulativeSum(_:unit:from:to:)": "499081418a666b8c",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.physicalEffortWindows(from:to:)": "a37617945230351a",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.speedWindows(for:from:to:)": "3471fc1ee88ee1ff",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "f96eb588bdca229c"
    }
   },
   {
@@ -315,10 +292,9 @@
      "effect": "return [] (no passive speed)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.quantityWindows(_:unit:from:to:)": "8226cd347b01ac2a",
-    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "ea7d8ada44a71fa0"
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.quantityWindows(_:unit:from:to:)": "e48b7b2452a18956",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "f96eb588bdca229c"
    }
   },
   {
@@ -340,12 +316,11 @@
      "effect": "fill; otherwise return unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "c3f6621e4cf76e10",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.bySecond(_:start:seconds:transform:)": "2e0afd3034948ba7",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.filled(_:pace:mets:)": "bf950557813e4bd5",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.pace(fromMetersPerSecond:)": "a97b5f3bae7fcc48"
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "bf943a0309a38471",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.bySecond(_:start:seconds:transform:)": "b622e0f90e7391c1",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.filled(_:pace:mets:)": "24fe5e09c37e1e40",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.pace(fromMetersPerSecond:)": "1383b0f932d2eb13"
    }
   },
   {
@@ -363,7 +338,6 @@
      "effect": "return 1000/speed; otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -388,13 +362,12 @@
      "effect": "?? use the rebuilt METs"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.pace(fromMetersPerSecond:)": "a97b5f3bae7fcc48",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "e648cee50dd6ae97",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "63e53468c2833bde",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "c866386c95432c3f",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.pace(fromMetersPerSecond:)": "1383b0f932d2eb13",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b"
    }
   },
   {
@@ -429,10 +402,9 @@
      "effect": "write the value (a later, finer window overwrites)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.windows(_:unit:)": "9fd4c54cd4d3feeb",
-    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.finestLast(_:)": "4f3257d471dc1475"
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.windows(_:unit:)": "7232d84147894d0b",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.finestLast(_:)": "e2b5e1d081bf2304"
    }
   },
   {
@@ -450,10 +422,9 @@
      "effect": "set elevation gain; otherwise leave nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "c3f6621e4cf76e10"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "bf943a0309a38471"
    }
   },
   {
@@ -470,11 +441,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.heartRateSamples(from:to:)": "fa5649482a1577d2",
-    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:coveringFrom:to:)": "472d150727a93d69",
-    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "ea7d8ada44a71fa0"
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.heartRateSamples(from:to:)": "059c8f9f47d9f4d7",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.cadenceSamples(from:coveringFrom:to:)": "9c3cb4c176e858da",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "f96eb588bdca229c"
    }
   },
   {
@@ -497,11 +467,10 @@
      "effect": "overwrite distance; otherwise leave the builder's 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "c3f6621e4cf76e10",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.totalDistance(from:to:sport:)": "c944b5480fdb06b7",
-    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "ea7d8ada44a71fa0"
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Queries.swift::func HealthWorkoutImporter.session(for:)": "bf943a0309a38471",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.totalDistance(from:to:sport:)": "046ca16abdf25593",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "f96eb588bdca229c"
    }
   },
   {
@@ -530,12 +499,11 @@
      "effect": "?? [] — empty; query error ignored"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "00a18740404fa9ba",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.windows(_:unit:)": "9fd4c54cd4d3feeb"
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "f7af4aa92aec9061",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "7229bd19595282d2",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "2f3f27aa0cd39f4d",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.windows(_:unit:)": "7232d84147894d0b"
    }
   },
   {
@@ -551,9 +519,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.quantityWindows(_:unit:from:to:)": "8226cd347b01ac2a"
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.quantityWindows(_:unit:from:to:)": "e48b7b2452a18956"
    }
   },
   {
@@ -573,10 +540,9 @@
      "effect": "?? [] — empty"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
-    "Emuqu/Sources/Import/HealthSampleWindow.swift::init HealthSampleWindow(start:end:value:)": "05ac573cbf4001d6"
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "f7af4aa92aec9061",
+    "Emuqu/Sources/Import/HealthSampleWindow.swift::init HealthSampleWindow(start:end:value:)": "2b4e4b627b5bc193"
    }
   },
   {
@@ -604,9 +570,8 @@
      "effect": "nil — rebuild gets no distance"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "ea7d8ada44a71fa0"
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "f96eb588bdca229c"
    }
   },
   {
@@ -630,11 +595,10 @@
      "effect": "sum it; otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.cumulativeSum(_:unit:from:to:)": "cccd6750c89a9fdd",
-    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.passiveDistanceType(for:)": "a78228706cd84c95",
-    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "ea7d8ada44a71fa0"
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.cumulativeSum(_:unit:from:to:)": "499081418a666b8c",
+    "Emuqu/Sources/Import/HealthWorkoutImporter+Rebuild.swift::func HealthWorkoutImporter.passiveDistanceType(for:)": "67df3f89996db45f",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.sport(for:isIndoor:)": "f96eb588bdca229c"
    }
   },
   {
@@ -657,11 +621,10 @@
      "effect": "continue; otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "9d978ad8215553c9",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "52219c5df437cf7d",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "00a18740404fa9ba"
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "f7af4aa92aec9061",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "7229bd19595282d2",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "2f3f27aa0cd39f4d"
    }
   }
  ],

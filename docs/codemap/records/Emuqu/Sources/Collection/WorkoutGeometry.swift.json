@@ -8,7 +8,6 @@
  ],
  "state": [],
  "toplevel": "No state; only type declarations.",
- "flags": [],
  "units": [
   {
    "key": "func WorkoutGeometry.trackLengthMeters(_:)",
@@ -32,7 +31,6 @@
      "effect": "adds distance from previous fix to total"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -57,7 +55,6 @@
      "effect": "records new closest index/distance; otherwise keeps previous"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -82,7 +79,6 @@
      "effect": "returns duration/(km); otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -100,7 +96,6 @@
      "effect": "returns nil; otherwise searches dists[startIdx+1...] with firstIndex"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -112,21 +107,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same initial-bearing formula is implemented separately in GetMeBackView.bearing, SavedRouteStepBuilder.bearing, RoadGeocodingSupport bearingDegrees and RoadAwarenessEngine.bearingDegrees.",
-     "evidence": [
-      "Emuqu/Sources/Collection/WorkoutGeometry.swift:74",
-      "Emuqu/Sources/Views/GetMeBackView.swift:688",
-      "Emuqu/Sources/Services/SavedRouteStepBuilder.swift:365",
-      "Emuqu/Sources/Services/RoadGeocodingSupport.swift:84",
-      "Emuqu/Sources/Services/RoadAwarenessEngine.swift:709"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -149,7 +129,6 @@
      "effect": "adds 360 repeatedly; otherwise d returned unchanged"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -182,7 +161,6 @@
      "effect": "returns \"<side>\"; otherwise falls through to \"soft <side>\""
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -220,7 +198,6 @@
      "effect": "zone 4; otherwise zone 5"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -256,9 +233,8 @@
      "effect": "skips; otherwise appends BreadcrumbFix and makes it the new reference"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbFix(from:)": "bfaeb7475391b53c"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbFix(from:)": "e502a6d117cc0430"
    }
   },
   {
@@ -281,7 +257,6 @@
      "effect": "skips; otherwise closes a chunk and starts the next at this sample"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -311,7 +286,6 @@
      "effect": "sets startIdx=i-1 and stops; otherwise continues to start (startIdx stays 0)"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

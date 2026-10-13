@@ -12,7 +12,6 @@
   "mem:OvernightChartsView.cachedOvernightStats (@State, view-local)"
  ],
  "toplevel": "OvernightChartsView stored properties: session, result, healthKitSleep, onReanalyzeAt (non-nil only in manual-window mode from MorningResultsView.swift:390), isManualWindowMode=false, manualResult, hideSleepRow=false, interChartContent. Convenience inits live in OvernightChartsView+Init.swift. OvernightChartDrawing.fullRecordingWindowFraction (nonisolated static let 0.8) is the share of the viewport above which an analysis window counts as the whole recording.",
- "flags": [],
  "units": [
   {
    "key": "var OvernightChartFormatters.clockTimeFormatter",
@@ -25,9 +24,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)": "ca42a77cea56606e"
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)": "cfa5f10145ca4bf2"
    }
   },
   {
@@ -39,10 +37,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.x(forMs:)": "c73ccb9a756833ab",
-    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)": "415dfce002fe02c2"
+    "Emuqu/Sources/Views/OvernightChartsView+Charts.swift::func OvernightHRChartCanvas.HRChartGeometry.x(forMs:)": "a6988b412f21fff2",
+    "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::func OvernightHRVChartCanvas.ChartGeometry.x(forMs:)": "e473d78a3d17fa67"
    }
   },
   {
@@ -58,11 +55,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.axisLabel(_:anchor:)": "9971f724209c8d8c",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.clockTimeLabels(session:stats:width:)": "7e586addbfe7fa6f",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.labelAnchor(index:count:)": "62ec6e4b02e0e6bb"
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.axisLabel(_:anchor:)": "e96c72755006ce1d",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.clockTimeLabels(session:stats:width:)": "be9b03c7859e3d2a",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.labelAnchor(index:count:)": "3c65bb04928bae8e"
    }
   },
   {
@@ -74,9 +70,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -99,7 +94,6 @@
      "effect": "1; else 0.5"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -111,9 +105,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView.swift::requirement OvernightChartViewport.x(forMs:)": "5821424cd726dd1d"
+    "Emuqu/Sources/Views/OvernightChartsView.swift::requirement OvernightChartViewport.x(forMs:)": "7e686b0972cbcdfb"
    }
   },
   {
@@ -139,24 +132,9 @@
      "effect": "[]"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/FLOWCHART.md says x-axis labels use series.startDate and series.actualEndDate; code spaces labels linearly from session.startDate + stats.chartStartMs over chartEndMs-chartStartMs (t_ms offsets, possibly widened by HealthKit).",
-     "evidence": [
-      "docs/FLOWCHART.md:440",
-      "docs/FLOWCHART.md:441",
-      "Emuqu/Sources/Views/OvernightChartsView.swift:76",
-      "Emuqu/Sources/Views/OvernightChartsView.swift:78",
-      "Emuqu/Sources/Views/OvernightChartsView.swift:84"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.axisTime(forTMs:series:)": "94b54f0a26cd6bcf",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartFormatters.clockTimeFormatter": "74dd30b7b246e519"
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartDrawing.axisTime(forTMs:series:)": "5bf3eadf3b1a663e",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartFormatters.clockTimeFormatter": "394ea47b09866958"
    }
   },
   {
@@ -176,9 +154,8 @@
      "effect": "clamped to the edge, then offset"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8f9579b405dd05f1"
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8bb45fe780498d77"
    }
   },
   {
@@ -201,9 +178,8 @@
      "effect": "width-50; else x"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView.swift::requirement OvernightChartViewport.x(forMs:)": "5821424cd726dd1d"
+    "Emuqu/Sources/Views/OvernightChartsView.swift::requirement OvernightChartViewport.x(forMs:)": "7e686b0972cbcdfb"
    }
   },
   {
@@ -233,9 +209,8 @@
      "effect": "skip segment"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417"
    }
   },
   {
@@ -253,7 +228,6 @@
      "effect": "one line each"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -278,12 +252,11 @@
      "effect": "placeholder spinner; else chart sections"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.loadOvernightStats()": "58fdeb87f56762e4",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.chartSections": "5de6ae36e81ec41a",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.chartsPlaceholder": "c368ffc713e47047",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.statsTaskKey": "8f53938b368392b8"
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.loadOvernightStats()": "c561575e84848bc7",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.chartSections": "17d188dcbb5f5f61",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.chartsPlaceholder": "62dccf01d598846b",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.statsTaskKey": "5ef7097c06268f57"
    }
   },
   {
@@ -316,9 +289,8 @@
      "effect": "beats 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.effectiveSegments": "b7408c3ce326d05f"
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.effectiveSegments": "474586cf18129a57"
    }
   },
   {
@@ -330,12 +302,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -351,11 +322,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightHRSection": "09d1af30550d026f",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightHRVSection": "7a676297aa030ea2",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStatsSection": "93ba5c997481ccca"
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightHRSection": "ed70a9413ba0e6ba",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightHRVSection": "5779924af69a83fa",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStatsSection": "eaff8ac028bbe017"
    }
   },
   {
@@ -393,12 +363,11 @@
      "effect": "return without assigning"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.backfillZonesToArchive(sessionId:zones:)": "7d4ed26ed2451c01",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeOvernightStats()": "449c921ad5a92469",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.willScanOrganizedZones()": "e43453dbd729bf23",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.withHealthKitGapFill(_:)": "a250624efd78f503"
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.backfillZonesToArchive(sessionId:zones:)": "58f2bda03b464ed0",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.computeOvernightStats()": "3b54e0657cc32e32",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightStatsComputer.willScanOrganizedZones()": "c0a40351bf78a3d9",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.withHealthKitGapFill(_:)": "37619943999a6854"
    }
   },
   {
@@ -440,14 +409,13 @@
      "effect": "recordingEndMs 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.effectiveSegments": "b7408c3ce326d05f",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.fetchHealthKitHRForUncoveredSegments(segments:recordingStartMs:recordingEndMs:)": "4c54bcd07e241047",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.extendedStats(_:hkHR:hkSleep:session:)": "1ffd3292fc3f6383",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.needsGapFill(_:)": "3bfb7c9c839e4c79"
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.effectiveSegments": "474586cf18129a57",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/OvernightChartsView+Stats.swift::func OvernightChartsView.fetchHealthKitHRForUncoveredSegments(segments:recordingStartMs:recordingEndMs:)": "ca4af090b3abc985",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.extendedStats(_:hkHR:hkSleep:session:)": "c2843b6f706e9d7a",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.needsGapFill(_:)": "9ab3bc50cf2e974c"
    }
   },
   {
@@ -487,14 +455,13 @@
      "effect": "logs 'nil' else 'yes'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a"
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43"
    }
   },
   {
@@ -521,11 +488,10 @@
      "effect": "withHealthKitHR with new bounds; else unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/OvernightChartsView+Init.swift::func OvernightStats.withHealthKitHR(_:sessionStart:chartStartMs:chartEndMs:)": "52556bfd7dde4c00",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.viewportBounds(_:hkSleep:session:dataStartMs:)": "77bc90313ee9ae1e"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/OvernightChartsView+Init.swift::func OvernightStats.withHealthKitHR(_:sessionStart:chartStartMs:chartEndMs:)": "965e864f644d9a23",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.viewportBounds(_:hkSleep:session:dataStartMs:)": "ae3c077fab9e670e"
    }
   },
   {
@@ -537,9 +503,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417"
    }
   },
   {
@@ -566,11 +531,10 @@
      "effect": "extend start; else log skip"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.segmentBounds(_:)": "7a5751198a461c24"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.segmentBounds(_:)": "53c3f1a09aca37aa"
    }
   },
   {
@@ -590,7 +554,6 @@
      "effect": "?? .empty"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -607,12 +570,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.coreMetricsRow": "dbb1bd51e4497969",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightSummaryHeader": "663e9f8763932bf5",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.sleepMetricsRow": "9f4ed7be64fc911e",
-    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb"
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.coreMetricsRow": "60aff1140fd22535",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightSummaryHeader": "f3cdee2207901a19",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.sleepMetricsRow": "d88905d790cba082",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "e4d2d4a7dacc0d53"
    }
   },
   {
@@ -630,11 +592,10 @@
      "effect": "'Overnight Summary'; else 'Session Summary'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -650,11 +611,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.avgHRCard": "70bc41733ad2d767",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrNadirCard": "8c8a8ea44bd78ee1",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.peakHRVCard": "68c3e1d5b69d2d28"
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.avgHRCard": "70398c65aef4bcdf",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrNadirCard": "31d433a203ff11ea",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.peakHRVCard": "6ed8bdb66d8aae48"
    }
   },
   {
@@ -668,11 +628,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "4e86b8eeac43ffe3"
    }
   },
   {
@@ -686,11 +645,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "4e86b8eeac43ffe3"
    }
   },
   {
@@ -704,11 +662,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "4e86b8eeac43ffe3"
    }
   },
   {
@@ -729,12 +686,11 @@
      "effect": "show; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.sleepQualityNote": "05d7191f49ca7ab9",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.sleepStatCards": "ee06aeae5c433d8b",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "4e86b8eeac43ffe3",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.sleepQualityNote": "713c4b412a17491d",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.sleepStatCards": "867725da6b970184",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -762,12 +718,11 @@
      "effect": "show awakenings card"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.awakeningsCard(_:)": "6d828b20b09da007",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.deepSleepCard(_:)": "f792c7ad5e1fc44e",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.timeAsleepCard": "b10c56ae10675a9d"
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.awakeningsCard(_:)": "2950d545f60b81bf",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.deepSleepCard(_:)": "3dd0696598b78354",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "4e86b8eeac43ffe3",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.timeAsleepCard": "5b0fc4f32d903d18"
    }
   },
   {
@@ -785,9 +740,8 @@
      "effect": "terracotta; else sage"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -801,10 +755,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
    }
   },
   {
@@ -829,11 +782,10 @@
      "effect": "'from Apple Health'; else 'from recording length'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "4e86b8eeac43ffe3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -856,14 +808,13 @@
      "effect": "return fixed estimate sentence"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.awakeningNotes(_:)": "f67937cfaf50c636",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.deepSleepNotes(_:)": "9fd6375f9bd65a16",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.durationNotes(_:)": "488a4e885540c098",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.awakeningNotes(_:)": "67fb15c6daee0c51",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.deepSleepNotes(_:)": "136e679383264167",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.durationNotes(_:)": "03511aca44b243fa",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "4e86b8eeac43ffe3"
    }
   },
   {
@@ -886,9 +837,8 @@
      "effect": "good note; else none"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -916,9 +866,8 @@
      "effect": "'excellent deep sleep'; else none"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -946,9 +895,8 @@
      "effect": "'uninterrupted sleep'; else none"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -965,13 +913,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrChartLegend": "123dd961d805f45b",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrSectionHeader": "2257e055540f2cd9",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67",
-    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrChartLegend": "5638e16fc91b2767",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrSectionHeader": "7986dcaa1f2248f3",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "4e86b8eeac43ffe3",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "e4d2d4a7dacc0d53"
    }
   },
   {
@@ -985,13 +932,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.appleWatchLegendItem": "ea482a28dd176e05",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.appleWatchLegendItem": "140dcfba7041f9dd",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -1011,12 +957,11 @@
      "effect": "show item; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "4e86b8eeac43ffe3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -1036,12 +981,11 @@
      "effect": "'Heart Rate Overnight'; else 'Heart Rate'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "4e86b8eeac43ffe3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "a97b4b25212e5466",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -1062,10 +1006,9 @@
      "effect": "offer action; else none"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "4e86b8eeac43ffe3"
    }
   },
   {
@@ -1082,12 +1025,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrvChartCanvas": "2f0c98ce945763bc",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrvChartLegend": "b7983624f25bf75f",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrvSectionHeader": "7a0243f069257353",
-    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb"
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrvChartCanvas": "4f28ee7b3f5d79cb",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrvChartLegend": "cc8c36dbe3346aa7",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrvSectionHeader": "47be770b0c9acf9f",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "e4d2d4a7dacc0d53"
    }
   },
   {
@@ -1102,11 +1044,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.analyzeAtPeakAction": "e7b9a79f00f5af75",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.analyzeAtPeakAction": "72f19fa419e2bf85",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "4e86b8eeac43ffe3"
    }
   },
   {
@@ -1118,12 +1059,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -1143,12 +1083,11 @@
      "effect": "'HRV Overnight (Rolling RMSSD)'; else 'HRV (Rolling RMSSD)'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "09f2ff0837617f67",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "4e86b8eeac43ffe3",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "b4125545ddd3d313",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   }
  ],

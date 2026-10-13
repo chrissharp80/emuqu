@@ -14,18 +14,6 @@
   "mem:AudioSessionCoordinator.applyLock (NSRecursiveLock serialising resolve+apply)"
  ],
  "toplevel": "static let shared; private lock-protected claims; applyLock recursive lock.",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No test in EmuquTests references AudioSessionCoordinator; the superset/duck resolution and skip-if-same logic are unverified.",
-   "evidence": [
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift:125",
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift:158"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "init AudioSessionCoordinator()",
@@ -36,7 +24,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -53,21 +40,8 @@
     "ext:AVAudioSession category"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/API_REFERENCE.md lists Claimant cases \"voice, workoutCue, dictation, workoutCoach, breathingGuide\" and says the workout coach claims separately; the enum has no workoutCoach case (coach lines go through BackgroundAudioManager as .workoutCue).",
-     "evidence": [
-      "docs/API_REFERENCE.md:1842",
-      "Emuqu/Sources/Services/AudioSessionCoordinator.swift:38",
-      "Emuqu/Sources/Collection/BackgroundAudioManager.swift:239"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.applyResolvedCategory()": "668cf40157b2030b"
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.applyResolvedCategory()": "fc76594513b65a4e"
    }
   },
   {
@@ -84,9 +58,8 @@
     "ext:AVAudioSession category"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.applyResolvedCategory()": "668cf40157b2030b"
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.applyResolvedCategory()": "fc76594513b65a4e"
    }
   },
   {
@@ -100,7 +73,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -114,9 +86,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.applyCurrentClaims(isRetry:)": "aa2fe47afb74f432"
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.applyCurrentClaims(isRetry:)": "ef36b78300ca3db5"
    }
   },
   {
@@ -157,11 +128,10 @@
      "effect": "mode .measurement; else .default"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.apply(category:mode:options:isRetry:)": "8feed31707cbb635",
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.categoryOptions(needsRecord:ducks:)": "27d5d99cef0dccb0"
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "f58c07f55431753c",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.apply(category:mode:options:isRetry:)": "9013cb2dbca6b264",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.categoryOptions(needsRecord:ducks:)": "ce7b0557535c9a46"
    }
   },
   {
@@ -184,7 +154,6 @@
      "effect": "adds .duckOthers; else mixWithOthers only"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -213,10 +182,9 @@
      "effect": "return; else schedule one re-resolve in 1 s"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.scheduleRetry()": "4d762c20b72107f8",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.scheduleRetry()": "3f2cf198c0b8dd4c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -231,9 +199,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.applyCurrentClaims(isRetry:)": "aa2fe47afb74f432"
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.applyCurrentClaims(isRetry:)": "ef36b78300ca3db5"
    }
   }
  ],

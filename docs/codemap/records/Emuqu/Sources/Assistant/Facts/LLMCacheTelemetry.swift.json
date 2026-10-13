@@ -14,7 +14,6 @@
   "mem:LLMCacheTelemetry.recentCap = 50"
  ],
  "toplevel": "Singleton `shared`; stored totals = .init(), recent = [], recentCap 50. Not persisted; reset by DataPurgeService.purgeHealthCaches and the diagnostics Reset button.",
- "flags": [],
  "units": [
   {
    "key": "var LLMCacheTelemetry.totalInputTokens",
@@ -27,7 +26,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -41,7 +39,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -55,7 +52,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -69,7 +65,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -81,7 +76,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -104,18 +98,6 @@
      "effect": "drops oldest entries to keep 50; otherwise no trim"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "record() runs once per provider REQUEST (now documented here), but the cache-health card labels totalTurns and the per-provider counts 'Total turns' / 'Turns:', so a turn with 3 tool rounds shows as 3 turns. The card's labels (SettingsPages+Diagnostics) need to say requests, or AssistantViewModel needs to record once per turn (handoff).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift:67",
-      "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:233"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {}
   },
   {
@@ -134,12 +116,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.hitRatio(input:cachedRead:cacheCreate:)": "437b3cb374d69aff",
-    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalCacheCreateTokens": "060d3ea0c0e0a32c",
-    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalCachedReadTokens": "92a0a2ca961b6aeb",
-    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalInputTokens": "5ab0ae44dfa8191b"
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.hitRatio(input:cachedRead:cacheCreate:)": "0ebf1ef685adbb9b",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalCacheCreateTokens": "0f0f2c2eace2aa8d",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalCachedReadTokens": "369acfaa356e1113",
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::var LLMCacheTelemetry.totalInputTokens": "1453601bc018bd66"
    }
   },
   {
@@ -157,7 +138,6 @@
      "effect": "returns 0"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -173,9 +153,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.hitRatio(of:)": "6a60406e784d215c"
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.hitRatio(of:)": "24898c0f6ce3747b"
    }
   },
   {
@@ -191,9 +170,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.hitRatio(of:)": "6a60406e784d215c"
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.hitRatio(of:)": "24898c0f6ce3747b"
    }
   },
   {
@@ -207,9 +185,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.hitRatio(input:cachedRead:cacheCreate:)": "437b3cb374d69aff"
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::func LLMCacheTelemetry.hitRatio(input:cachedRead:cacheCreate:)": "0ebf1ef685adbb9b"
    }
   },
   {
@@ -224,9 +201,8 @@
     "mem:LLMCacheTelemetry.recent"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::init LLMCacheTelemetry()": "01157b15b0699441"
+    "Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift::init LLMCacheTelemetry()": "e1472d40fbdf3d16"
    }
   }
  ],

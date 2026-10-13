@@ -10,7 +10,6 @@
   "file:Tools/validation/results/artifacts_mitdb.json (written)"
  ],
  "toplevel": "Adds script dir to sys.path; runs main() as a script.",
- "flags": [],
  "units": [
   {
    "key": "def cls",
@@ -32,7 +31,6 @@
      "effect": "'E'; else 'U'"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -44,7 +42,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -56,7 +53,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -68,7 +64,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -80,7 +75,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -228,31 +222,19 @@
      "effect": "print RMSSD"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "lc.clean_rr_for_dfa(rr) is called and both results discarded (`_, _ = ...`); the mask actually scored is recomputed with lc.artifact_mask on the next line, so the call only costs time.",
-     "evidence": [
-      "Tools/validation/validate_artifacts.py:105",
-      "Tools/validation/validate_artifacts.py:106"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ca1c3bc11407ae35",
-    "Tools/validation/port_live_dfa_clean.py::def artifact_mask": "580d6907059f0bb1",
-    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "af9d285354a874c1",
-    "Tools/validation/port_time_domain.py::def compute_time_domain": "6df2bb04536d9ad5",
-    "Tools/validation/port_time_domain.py::def ectopic_keep_mask": "7beda608f313d894",
-    "Tools/validation/validate_artifacts.py::def add": "8514375ba310e210",
-    "Tools/validation/validate_artifacts.py::def cls": "9cd8a2ce3c1c232d",
-    "Tools/validation/validate_artifacts.py::def counts": "309298e73b210c9c",
-    "Tools/validation/validate_artifacts.py::def main.ratio_ba": "78324ce0c3a8aa3b",
-    "Tools/validation/validate_artifacts.py::def rates": "3550c5921e4283b7",
-    "Tools/validation/validate_artifacts.py::def rhythm_at": "18db3805ff74baa7",
-    "Tools/validation/validation_common.py::def bland_altman": "428c8a855dcf6fa2"
+    "Tools/validation/port_artifact_detection.py::def detect_artifacts": "ad5d9c94313ba260",
+    "Tools/validation/port_live_dfa_clean.py::def artifact_mask": "44524cb22922ba2a",
+    "Tools/validation/port_live_dfa_clean.py::def clean_rr_for_dfa": "399fe400d009b631",
+    "Tools/validation/port_time_domain.py::def compute_time_domain": "f92dbbe8ceca887a",
+    "Tools/validation/port_time_domain.py::def ectopic_keep_mask": "b3f74109a79b5da9",
+    "Tools/validation/validate_artifacts.py::def add": "783ef032e01ec734",
+    "Tools/validation/validate_artifacts.py::def cls": "f599f719251bf8a7",
+    "Tools/validation/validate_artifacts.py::def counts": "f8cae06358c8766d",
+    "Tools/validation/validate_artifacts.py::def main.ratio_ba": "f3934ed947d1365c",
+    "Tools/validation/validate_artifacts.py::def rates": "39738c75d1e61b4b",
+    "Tools/validation/validate_artifacts.py::def rhythm_at": "781212d7739748e8",
+    "Tools/validation/validation_common.py::def bland_altman": "72d4145d71b80fa5"
    }
   },
   {
@@ -270,12 +252,11 @@
      "effect": "None"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],
  "deps": {
-  "Tools/validation/validate_artifacts.py::def main": "1732b11ba39e8615",
-  "Tools/validation/validation_common.py::def bland_altman": "428c8a855dcf6fa2"
+  "Tools/validation/validate_artifacts.py::def main": "bb9c262cfbb5a32d",
+  "Tools/validation/validation_common.py::def bland_altman": "72d4145d71b80fa5"
  }
 }

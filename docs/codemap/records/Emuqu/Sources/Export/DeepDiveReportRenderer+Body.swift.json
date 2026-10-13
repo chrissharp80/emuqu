@@ -7,20 +7,6 @@
  ],
  "state": [],
  "toplevel": "File-scope private row builders (lines 368-558) produce DeepDiveMetric rows; no stored state.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "SpO2 copy hardcodes '−10 points' in two strings instead of reading RecoveryScoreConstants.Vitals.spo2Penalty as RecoveryScoreDetailView and ScoreBreakdownCopy do; a constant change would leave the PDF wrong.",
-   "evidence": [
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift:510",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift:512",
-    "Emuqu/Sources/Utilities/Constants+RecoveryScore.swift:263",
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift:19"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func DeepDiveReportRenderer.drawDeepSleepAnalysis(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)",
@@ -37,13 +23,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawSleepArchitectureSection(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)": "9fa1cc7f9960b977",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawSleepDurationSection(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)": "31605197484e1c42",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawSleepTrendsSection(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)": "5b9ee4fc0f763698",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawDeepDiveSectionTitle(_:yPosition:pageRect:)": "49aee2b6394809cc",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawSleepArchitectureSection(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)": "735cdc9d6213d8c3",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawSleepDurationSection(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)": "122fc5137a74e24c",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawSleepTrendsSection(sleep:sleepTrend:pageNumber:yPosition:in:pageRect:)": "c97da4b1dbd2b158",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawDeepDiveSectionTitle(_:yPosition:pageRect:)": "f070be900ee36a8c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -66,13 +51,12 @@
      "effect": "draws each row"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func sleepDurationRows(sleep:bundle:)": "48b8a160bc05f4a3",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "66c8176e95b924cb",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "44b64bb0ee8a94da",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func sleepDurationRows(sleep:bundle:)": "894f5c89b2601468",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "24d8416bc2fd35ca",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "86098ab908ed91b7",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "dfb2ebfd915add7e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -102,15 +86,14 @@
      "effect": "draws each"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.sleepArchitectureRows(sleep:bundle:)": "69c871f5052f466f",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "66c8176e95b924cb",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "44b64bb0ee8a94da",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)": "491eb379bc9a571e",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)": "79c97b709effdb63",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.sleepArchitectureRows(sleep:bundle:)": "1d0ef9b2cdf353f4",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "24d8416bc2fd35ca",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "86098ab908ed91b7",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)": "0793c2be2ee7ce29",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)": "9b83bcf253c5c9cd",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "dfb2ebfd915add7e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -126,11 +109,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.deepSleepRow(sleep:bundle:)": "8c6b14b87f98a917",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.remSleepRow(sleep:bundle:)": "a3b1bb6be874b0f5",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func lightSleepRow(sleep:bundle:)": "ee4c73e737599d1f"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.deepSleepRow(sleep:bundle:)": "2c9f3e6d8fcef0e0",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.remSleepRow(sleep:bundle:)": "c3bb25556b70b730",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func lightSleepRow(sleep:bundle:)": "d2561f2c4a189155"
    }
   },
   {
@@ -158,13 +140,12 @@
      "effect": "% computed; else 0%"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretDeepSleep(deepPct:deepMinutes:)": "3de85f815b5c87b2",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "1540d443b9ef0dc7",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretDeepSleep(deepPct:deepMinutes:)": "45bd1fae9ffee851",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "6ca79957ea77362e",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "3ee647f5405ce8e0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -192,13 +173,12 @@
      "effect": "% computed; else 0%"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretREMSleep(remPct:remMinutes:)": "5473ea5641cb4630",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "1540d443b9ef0dc7",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretREMSleep(remPct:remMinutes:)": "53ecd7ac477db830",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "6ca79957ea77362e",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "3ee647f5405ce8e0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -228,15 +208,14 @@
      "effect": "returns after summary; else adds the average-deep line"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func sleepTrendSummary(_:bundle:)": "2a6734d90058a954",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "44b64bb0ee8a94da",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)": "491eb379bc9a571e",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)": "79c97b709effdb63",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func sleepTrendSummary(_:bundle:)": "7edf0fb38f1aa8ee",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "86098ab908ed91b7",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)": "0793c2be2ee7ce29",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)": "9b83bcf253c5c9cd",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "dfb2ebfd915add7e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -255,14 +234,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawACWRSection(training:pageNumber:yPosition:in:pageRect:)": "a36a68d68c6574eb",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawPMCMetricsSection(training:pageNumber:yPosition:in:pageRect:)": "6fe61eefa45ea6c9",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawVO2MaxSection(training:pageNumber:yPosition:in:pageRect:)": "c2e0aaa40e294b3d",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawYesterdayTrainingSection(training:pageNumber:yPosition:in:pageRect:)": "e7f3828058737ac0",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawDeepDiveSectionTitle(_:yPosition:pageRect:)": "49aee2b6394809cc",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawACWRSection(training:pageNumber:yPosition:in:pageRect:)": "89b857c8eb4aca80",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawPMCMetricsSection(training:pageNumber:yPosition:in:pageRect:)": "56ed8a5d3c1c88d3",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawVO2MaxSection(training:pageNumber:yPosition:in:pageRect:)": "0a8e609d24d68430",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawYesterdayTrainingSection(training:pageNumber:yPosition:in:pageRect:)": "1a15f1461489aada",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawDeepDiveSectionTitle(_:yPosition:pageRect:)": "f070be900ee36a8c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -286,14 +264,13 @@
      "effect": "draws each"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.pmcRows(training:bundle:)": "e2c750e41b7bc4cd",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "66c8176e95b924cb",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "44b64bb0ee8a94da",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)": "491eb379bc9a571e",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.pmcRows(training:bundle:)": "c8b8d64b920311ee",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "24d8416bc2fd35ca",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "86098ab908ed91b7",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)": "0793c2be2ee7ce29",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "dfb2ebfd915add7e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -309,11 +286,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.atlRow(training:bundle:)": "cd5e1dd35a6e59b2",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.ctlRow(training:bundle:)": "7ef0041d4a05c235",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.tsbRow(training:bundle:)": "4d90d4bc76718abb"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.atlRow(training:bundle:)": "b47f83d37610d8ad",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.ctlRow(training:bundle:)": "9314b2eaec5a2972",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.tsbRow(training:bundle:)": "63bb93b7fc547f0a"
    }
   },
   {
@@ -329,11 +305,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretCTL(_:)": "a7817ad38a18cf7b",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretCTL(_:)": "d94820bf0654e577",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -349,12 +324,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretATL(_:ctl:)": "52247f73859a3c89",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretATL(_:ctl:)": "774a72fef91b69e0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -370,11 +344,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretTSB(_:)": "f3bce31a8ecfc230",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretTSB(_:)": "c08cc5e056a15056",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -400,16 +373,15 @@
      "effect": "nothing drawn; else section"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "66c8176e95b924cb",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "44b64bb0ee8a94da",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretACWR(_:)": "b1b7873dbab900b6",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)": "79c97b709effdb63",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
-    "Emuqu/Sources/Models/RRModels.swift::var TrainingContext.acuteChronicRatio": "bab331587abdd3ff",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "24d8416bc2fd35ca",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "86098ab908ed91b7",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretACWR(_:)": "ac3274ad8398f90c",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)": "9b83bcf253c5c9cd",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "dfb2ebfd915add7e",
+    "Emuqu/Sources/Models/RRModels.swift::var TrainingContext.acuteChronicRatio": "65aaab02153bb768",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -433,14 +405,13 @@
      "effect": "returns yPosition (skipped)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func yesterdayTrimpRow(training:bundle:)": "c01c9cf024770fd4",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "66c8176e95b924cb",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "44b64bb0ee8a94da",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)": "79c97b709effdb63",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func yesterdayTrimpRow(training:bundle:)": "dbc720af2b3b5482",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "24d8416bc2fd35ca",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "86098ab908ed91b7",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)": "9b83bcf253c5c9cd",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "dfb2ebfd915add7e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -463,13 +434,12 @@
      "effect": "nothing drawn"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "66c8176e95b924cb",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretVO2Max(_:)": "76094623b549fc33",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "24d8416bc2fd35ca",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretVO2Max(_:)": "561503b8d5026c45",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "dfb2ebfd915add7e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -494,15 +464,14 @@
      "effect": "draws each"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawCombinedVitalsPattern(vitals:pageNumber:yPosition:in:pageRect:)": "b0b3d096903b0d45",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.vitalsRows(vitals:bundle:)": "e39928c7f5cf5520",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawDeepDiveSectionTitle(_:yPosition:pageRect:)": "49aee2b6394809cc",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "66c8176e95b924cb",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)": "491eb379bc9a571e",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.drawCombinedVitalsPattern(vitals:pageNumber:yPosition:in:pageRect:)": "4f9263bd1b28c21c",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.vitalsRows(vitals:bundle:)": "125a08b7cb1d293a",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawDeepDiveSectionTitle(_:yPosition:pageRect:)": "f070be900ee36a8c",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "24d8416bc2fd35ca",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)": "0793c2be2ee7ce29",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "dfb2ebfd915add7e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -526,14 +495,13 @@
      "effect": "returns y (after ensureSpace); else draws"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.assessVitalsPattern(_:)": "a3ae8c83bf46c309",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "44b64bb0ee8a94da",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)": "491eb379bc9a571e",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)": "79c97b709effdb63",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.assessVitalsPattern(_:)": "893e91e0bf9ea5b0",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "86098ab908ed91b7",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)": "0793c2be2ee7ce29",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)": "9b83bcf253c5c9cd",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "dfb2ebfd915add7e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -551,13 +519,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.respiratoryRateRow(vitals:bundle:)": "450db63254e886ff",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.respiratoryRateRow(vitals:bundle:)": "309bb66e01f3aa1d",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func oxygenSaturationRow(vitals:bundle:)": "0d5d9673a5899851",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func restingHeartRateRow(vitals:bundle:)": "e104827551286539",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func wristTemperatureRow(vitals:valueLabel:bundle:)": "5f237d708801c081",
-    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.wristTemperatureDeviationLabel(_:fractionDigits:)": "389c04c0930b114f"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func restingHeartRateRow(vitals:bundle:)": "3eeb4481ce0fd192",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func wristTemperatureRow(vitals:valueLabel:bundle:)": "940a72b978cddc9a",
+    "Emuqu/Sources/Export/PDFReportGenerator+Sections.swift::func PDFReportGenerator.wristTemperatureDeviationLabel(_:fractionDigits:)": "b93f85b125394c8d"
    }
   },
   {
@@ -580,12 +547,11 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.respiratoryRateInterpretation(rr:vitals:bundle:)": "55e0b6ee2ec80f21",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func respiratoryRateExplanation(rr:vitals:bundle:)": "d6af3800034d33c6",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportBreathsPerMinute(_:)": "d02107676f421479",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func DeepDiveReportRenderer.respiratoryRateInterpretation(rr:vitals:bundle:)": "30c46bb4b41e191d",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func respiratoryRateExplanation(rr:vitals:bundle:)": "e51756530c7904a4",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportBreathsPerMinute(_:)": "a96c9a9feebb924a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -630,9 +596,8 @@
      "effect": "slightly above; else at/below baseline"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -649,12 +614,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func sleepEfficiencyRow(sleep:bundle:)": "dbf17f841e9050b1",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func timeAwakeRow(sleep:bundle:)": "4e7a21ece6f9a261",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func timeInBedRow(sleep:bundle:)": "74bf85c5f3449f08",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func totalSleepTimeRow(sleep:bundle:)": "15d18856b610663f"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func sleepEfficiencyRow(sleep:bundle:)": "643bc324ef7171ae",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func timeAwakeRow(sleep:bundle:)": "c4bba891cf6d3390",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func timeInBedRow(sleep:bundle:)": "77c889ce703ef40f",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func totalSleepTimeRow(sleep:bundle:)": "40b9846a2cc3e1cc"
    }
   },
   {
@@ -680,11 +644,10 @@
      "effect": "'Slightly below' else 'Below 6 hours'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.SleepData.totalSleepFormatted": "ff982209d1b68851",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::var PDFReportGenerator.SleepData.totalSleepFormatted": "cf761fc6bf63e927",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "3ee647f5405ce8e0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -720,10 +683,9 @@
      "effect": "Fair; else 'Below 80%'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -738,10 +700,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "1540d443b9ef0dc7",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "6ca79957ea77362e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -772,11 +733,10 @@
      "effect": "some disruption; else significant"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "5814b8c071cb8591",
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "1540d443b9ef0dc7",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "c487e09379888380",
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "6ca79957ea77362e",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -808,12 +768,11 @@
      "effect": "% computed; else 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "1540d443b9ef0dc7",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func reportHoursMinutes(_:)": "6ca79957ea77362e",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "3ee647f5405ce8e0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -860,11 +819,10 @@
      "effect": "insufficient-data sentence"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
    }
   },
   {
@@ -895,10 +853,9 @@
      "effect": "hard; else very hard"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -919,21 +876,9 @@
      "effect": "baseline/deviation text; else population caveat"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Explanation states the normal adult sleep range is 12-20 breaths/min, while recovery scoring uses 12-18 br/min as its population normal (respiratoryRatePopulationMaxBPM = 18).",
-     "evidence": [
-      "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift:491",
-      "Emuqu/Sources/Utilities/Constants.swift:499"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -966,11 +911,10 @@
      "effect": "'Below 95% — flat -10 score penalty applied'; else 'Within typical range'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func average(_:)": "fdae4edac95e51e3",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func average(_:)": "7ea5065b3ceba069",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -1001,10 +945,9 @@
      "effect": "'No baseline yet' interpretation; else banded interpretation"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func wristTemperatureInterpretation(_:bundle:)": "61905b6efdb133a0",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Body.swift::func wristTemperatureInterpretation(_:bundle:)": "5eef37bcab05b67a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1039,9 +982,8 @@
      "effect": "below baseline; else typical"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1082,10 +1024,9 @@
      "effect": "upper-normal; else high"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   }
  ],

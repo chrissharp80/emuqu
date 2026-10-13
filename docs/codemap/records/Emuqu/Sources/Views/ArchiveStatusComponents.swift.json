@@ -11,29 +11,6 @@
   "mem:ArchiveStatusLine.showingDetails (@State Bool)"
  ],
  "toplevel": "File-scope private func formatDate. No global state. Header comment (3-5) states both views are unused in the app and kept only for snapshot tests; the ArchiveStatusLine comment says it re-renders on archive writes (via archiveSignal.version) and on sync-state changes.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "ArchiveStatusLine and ArchiveStatusDetailSheet are not referenced by any production view; the only references are EmuquTests/UncoveredScreenSnapshotTests.swift:135 and :145. The whole file (and its localized strings) is test-only code.",
-   "evidence": [
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift:3",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift:133"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "docs/FLOWCHART.md places an ArchiveStatusLine pill inside the dashboard Recovery card, but no production view instantiates ArchiveStatusLine; the file's own header says neither view is on any screen and only UncoveredScreenSnapshotTests renders them.",
-   "evidence": [
-    "docs/FLOWCHART.md:921",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift:3",
-    "EmuquTests/UncoveredScreenSnapshotTests.swift:135"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "var ArchiveStatusLine.isArchived",
@@ -49,9 +26,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "129adb95a00b9a83"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2"
    }
   },
   {
@@ -67,9 +43,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isUploaded(_:)": "42b502804961767c"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isUploaded(_:)": "aef18eb8e1790981"
    }
   },
   {
@@ -85,9 +60,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPendingRetry(_:)": "160aa90bfaecee28"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPendingRetry(_:)": "927cf8e1e9c31fe5"
    }
   },
   {
@@ -101,7 +75,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -117,9 +90,8 @@
     "mem:ArchiveStatusLine.showingDetails"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.savedStatusRow": "efb987458dc4ada8"
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.savedStatusRow": "6440a12812bace2b"
    }
   },
   {
@@ -135,12 +107,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.archiveStatusSection": "fda551fb0ed19f19",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.icloudStatusSection": "c107fd93543fd31a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.archiveStatusSection": "2134065de5799195",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.icloudStatusSection": "c32cd88044cb9c65",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -161,11 +132,10 @@
      "effect": "true: green checkmark.circle.fill + 'Saved'; false: scaled ProgressView + 'Saving…' (also shown forever for a session that will never be archived)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.isArchived": "13c75c249a61c29a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.isArchived": "07173e627ff2133c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -198,15 +168,14 @@
      "effect": "true: spinner + 'Syncing…'; false: icloud.slash + 'Local only'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.isPendingRetry": "19ddb7b7d066ba67",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.isSyncing": "abe342de518419de",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.isUploaded": "9d02097fb43503f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.isPendingRetry": "28cf0ea188a212b7",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.isSyncing": "2f27dc56eef25bc3",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusLine.isUploaded": "669b7b6de0fa139d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -223,9 +192,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6"
    }
   },
   {
@@ -241,11 +209,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.doneToolbar": "6387bbf4435816b6",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.storageForm": "82a785a5aca2c62d"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.doneToolbar": "9a3007cb4faae518",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.storageForm": "901932845217ca5f"
    }
   },
   {
@@ -261,11 +228,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.forceIcloudSyncSection": "8c91db8f14d99ebe",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.icloudSection": "3b11965ed7d19fc0",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.localArchiveSection": "4fd9bdf49af11726"
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.forceIcloudSyncSection": "c3d4aae7b2d157a1",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.icloudSection": "3e72bce1353efe29",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.localArchiveSection": "548eabb2bbf62892"
    }
   },
   {
@@ -279,9 +245,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -299,10 +264,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.isCloudKitAvailable": "e1378ec97a10e33d",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.forceIcloudSyncButton": "2f4e1a59e2610a15"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.isCloudKitAvailable": "86911c7b7584c20f",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.forceIcloudSyncButton": "f03e44006a588403"
    }
   },
   {
@@ -319,9 +283,8 @@
     "ck:private DB sessions (via performFullSync)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "e1168fc765a065fb"
    }
   },
@@ -347,12 +310,11 @@
      "effect": "true: four rows with entry.date/fileHash/filePath; false: single 'Not archived yet' row"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::func formatDate(_:)": "22350b5c63fa445d",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::init LabeledRow(_:value:)": "294d1be0e1a046c5",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.archiveEntry": "964c64837c9c9093"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::func formatDate(_:)": "63735dfab0a12ad4",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::init LabeledRow(_:value:)": "87dd2b1801dbcae1",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.archiveEntry": "9bce313dc0ef5398"
    }
   },
   {
@@ -371,12 +333,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pendingUploadCount": "bdb518106fa1fc30",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::init LabeledRow(_:value:)": "294d1be0e1a046c5",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.icloudStatusRows": "19dc3ffed9b45b65"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pendingUploadCount": "260c2627137a1f5f",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::init LabeledRow(_:value:)": "87dd2b1801dbcae1",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::var ArchiveStatusDetailSheet.icloudStatusRows": "75a7dbd55bbf3327"
    }
   },
   {
@@ -421,15 +382,14 @@
      "effect": "true: 'Upload failed — queued for retry'; false: 'Not uploaded'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPendingRetry(_:)": "160aa90bfaecee28",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isUploaded(_:)": "42b502804961767c",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.isCloudKitAvailable": "e1378ec97a10e33d",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "286a8e7037609f5f",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::func formatDate(_:)": "22350b5c63fa445d",
-    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::init LabeledRow(_:value:)": "294d1be0e1a046c5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPendingRetry(_:)": "927cf8e1e9c31fe5",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isUploaded(_:)": "aef18eb8e1790981",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.isCloudKitAvailable": "86911c7b7584c20f",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "2d613940641c274b",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::func formatDate(_:)": "63735dfab0a12ad4",
+    "Emuqu/Sources/Views/ArchiveStatusComponents.swift::init LabeledRow(_:value:)": "87dd2b1801dbcae1"
    }
   },
   {
@@ -441,7 +401,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -455,10 +414,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -472,10 +430,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   }
  ],

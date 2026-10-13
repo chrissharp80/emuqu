@@ -7,7 +7,8 @@
 # what calls it, what it calls, what state it reads and writes, what each branch does. Each record
 # stores a hash of the code it describes and of what each certain callee's record said. This gate
 # fails when a unit or file has no record, a record says nothing, a record is older than its code,
-# or the open high/medium findings differ from their budgets in .ci/. It also counts, without
+# or, where the local findings overlay (do_not_ship/codemap) exists, the open high/medium findings
+# differ from its budgets. It also counts, without
 # failing, the records to re-check: a callee now describes different behaviour than when the
 # caller was checked, or a record names a callee that no longer exists (`codemap.py status`
 # lists them). It cannot tell whether a description is right; it proves only that someone wrote

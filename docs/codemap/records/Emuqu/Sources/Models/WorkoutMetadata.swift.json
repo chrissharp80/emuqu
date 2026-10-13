@@ -23,33 +23,6 @@
   "hk:HKMetadataKeyWeatherTemperature / HKMetadataKeyWeatherHumidity (read by WorkoutWeatherSnapshot init)"
  ],
  "toplevel": "Split, Lap, LiveMarker, HRRSample, WorkoutWeatherSnapshot, PartialDataReason and TrainingLoadSource use synthesized conformances. WorkoutSample.CodingKeys lists all 9 fields. WorkoutMetadata.CodingKeys (722-738) covers every stored property except unrecognizedSportRawValue (written back under the sport key) plus schemaVersion; the split encoder writes every key (hrTSS is written by encodePowerMetrics, not encodeLoadMetrics as its doc comment groups it). WorkoutMetadata.unrecognizedSportRawValue (private(set), nil by default) holds a sport string this build does not know. WorkoutPauseSpan uses synthesized Codable; WorkoutMetadata.pauseSpans is coded under key pauseSpans (tolerant decode).",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "LiveMarker is never constructed and WorkoutMetadata.liveMarkers is never assigned or read in production (only round-tripped by Codable and copied by carryForward); Lap is constructed only by CloudKitSyncSupport's HR-stripping copy and tests, so laps is never produced. The doc comments describing interval/hill/strap/auto-pause markers and user/interval laps describe nothing the app records.",
-   "evidence": [
-    "Emuqu/Sources/Models/WorkoutMetadata.swift:113",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift:125",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift:314",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift:315",
-    "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift:65",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift:647"
-   ],
-   "found": "second read"
-  },
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Unknown values in the nested enums (LiveMarker.Kind, HRRSample.Provenance, PartialDataReason) from a newer build no longer fail the decode, but the whole liveMarkers/hrrSamples array or partialDataReason decodes as nil (logged), and a re-save on this build drops them from the stored copy; only the sport string is preserved for write-back.",
-   "evidence": [
-    "Emuqu/Sources/Models/WorkoutMetadata.swift:806",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift:809",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift:827"
-   ],
-   "found": "fix batch b15"
-  }
- ],
  "units": [
   {
    "key": "func WorkoutSample.withAlpha1(_:)",
@@ -62,9 +35,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b"
    }
   },
   {
@@ -78,9 +50,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b"
    }
   },
   {
@@ -92,7 +63,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -106,7 +76,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -124,7 +93,6 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -152,9 +120,8 @@
      "effect": "return atElapsed"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.wallClockSeconds(forActiveOffset:)": "529feacf74cbee54"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.wallClockSeconds(forActiveOffset:)": "6b320e30aeb20b67"
    }
   },
   {
@@ -174,9 +141,8 @@
      "effect": "its seconds added; else not"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.activeOffset(forWallClockSeconds:)": "bcdd2b66dec0008d"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.activeOffset(forWallClockSeconds:)": "275752e584c9eee3"
    }
   },
   {
@@ -203,9 +169,8 @@
      "effect": "localized 'TRIMP'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -226,10 +191,9 @@
      "effect": "falls back to bucketMETLoad(); nil when both are nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.bucketMETLoad()": "576af85a86bf3732",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.perSampleMETLoad()": "345072b931a5fbb3"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.bucketMETLoad()": "4936975d803aa41c",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.perSampleMETLoad()": "74aa4f2a1dc7450a"
    }
   },
   {
@@ -265,11 +229,10 @@
      "effect": "returns nil (stream too sparse); otherwise returns loadFromMETHours"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.loadFromMETHours(_:)": "d320dde6b82ddb52",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.sampleSeconds(_:at:)": "fb4666dc9c40816c"
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "e648cee50dd6ae97",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.loadFromMETHours(_:)": "9818e41ea3ad0f01",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.sampleSeconds(_:at:)": "a9f1bc0261831314"
    }
   },
   {
@@ -287,7 +250,6 @@
      "effect": "returns 1.0; otherwise clamped gap"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -310,12 +272,11 @@
      "effect": "returns nil; otherwise returns the bucket load"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.averageKmh()": "cd57df7fdff8bd45",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.loadFromMETHours(_:)": "d320dde6b82ddb52",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.totalDurationSec()": "51f6d9354ba84472"
+    "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "e648cee50dd6ae97",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.averageKmh()": "43a49b1a4099c221",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.loadFromMETHours(_:)": "9818e41ea3ad0f01",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.totalDurationSec()": "2446318f031a105f"
    }
   },
   {
@@ -340,9 +301,8 @@
      "effect": "nil (treated as GPS noise / no motion); else kmh"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.totalDurationSec()": "51f6d9354ba84472"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.totalDurationSec()": "2446318f031a105f"
    }
   },
   {
@@ -360,7 +320,6 @@
      "effect": "returns Double(max offsetSec); else nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -383,7 +342,6 @@
      "effect": "returns load; else nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -412,15 +370,14 @@
      "effect": "returns it; otherwise derives read-time TSS (nil without NP/FTP/>60 s samples)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.current(_:)": "8fe8124d422c3999",
-    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "6498081b30f85858",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.FTPAnchors.current(_:)": "eda5fb18d226da89",
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "654be340768a34db",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "bf76d29c4aaa4ebd",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "76ca57d4e4884777",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a"
    }
   },
   {
@@ -445,9 +402,8 @@
      "effect": "nil; else stored powerTSS"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.totalDurationSec()": "51f6d9354ba84472"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.totalDurationSec()": "2446318f031a105f"
    }
   },
   {
@@ -470,7 +426,6 @@
      "effect": "treated as 0, so the estimate replaces the HR load"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -486,9 +441,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "4072cd48894182bc"
+    "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "557250b35e2ea826"
    }
   },
   {
@@ -500,7 +454,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -519,11 +472,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.optionalValue(_:_:)": "c6609aba964cb801",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.decodedSport(from:)": "30d5c2198e89579c",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.unrecognizedSport(in:)": "536f08164f81aada"
+    "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.optionalValue(_:_:)": "0cf3e1c2452dfd34",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.decodedSport(from:)": "6e286a9d4dd7f619",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.unrecognizedSport(in:)": "fc3e0d8487a1c379"
    }
   },
   {
@@ -544,9 +496,8 @@
      "effect": "log warning, return .run"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -571,9 +522,8 @@
      "effect": "nil; else the raw string"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.optionalValue(_:_:)": "c6609aba964cb801"
+    "Emuqu/Sources/Models/TolerantDecoding.swift::func KeyedDecodingContainer.optionalValue(_:_:)": "0cf3e1c2452dfd34"
    }
   },
   {
@@ -592,11 +542,10 @@
     "archive:HRVSession.workoutMetadata"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.encodeContext(into:)": "37d3681dc526b93e",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.encodeLoadMetrics(into:)": "01c3bf8f4c0bd381",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.encodePowerMetrics(into:)": "267dd35ad915d269",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.encodeContext(into:)": "f62e64c3d2ce16ac",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.encodeLoadMetrics(into:)": "0492548289852d28",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.encodePowerMetrics(into:)": "263299ef2cd39a30",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.encodeRouteAndSamples(into:)": "420a0164c9ced6d5"
    }
   },
@@ -617,7 +566,6 @@
      "effect": "writes sport.rawValue"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -631,7 +579,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -645,7 +592,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -659,7 +605,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -682,7 +627,6 @@
      "effect": "returns nil; else builds the snapshot"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -714,9 +658,8 @@
      "effect": "'Saved as partial — interrupted'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -730,9 +673,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func [HRRSample].best(near:tolerance:)": "b207d37720a66950"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func [HRRSample].best(near:tolerance:)": "678ac0cd989b401c"
    }
   },
   {
@@ -746,9 +688,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func [HRRSample].best(near:tolerance:)": "b207d37720a66950"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func [HRRSample].best(near:tolerance:)": "678ac0cd989b401c"
    }
   },
   {
@@ -760,7 +701,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

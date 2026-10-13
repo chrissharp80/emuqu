@@ -11,7 +11,6 @@
   "psdMaxSamples = 2048 (file-private global let, ~8.5 min at 4 Hz)"
  ],
  "toplevel": "File-private global lets psdResampleHz (4 Hz) and psdMaxSamples (2048) configure the chart periodogram.",
- "flags": [],
  "units": [
   {
    "key": "func ReportSectionRenderer.drawPoincarePlot(series:flags:result:yPosition:in:pageRect:)",
@@ -41,19 +40,18 @@
      "effect": "returns y+plotSize+20 leaving an empty framed box with no stats; else draws contents"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPoincareDots(_:scale:in:)": "ebe5c90ae1ef35a0",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPoincareEllipse(result:scale:in:context:)": "a2e64fe6d91a5d23",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPoincareLabels(in:)": "fda21a6c429b2b0e",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPoincareDots(_:scale:in:)": "f6c0fb09e743111c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPoincareEllipse(result:scale:in:context:)": "bdddb72f90816750",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPoincareLabels(in:)": "ea0dde60af9fafef",
     "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPoincareStats(result:pointCount:x:y:)": "1cbc53cc83712dbc",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.poincarePairs(series:flags:result:)": "af28db906e88f8cd",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func drawPoincareFrame(_:)": "5d15670328a1f7ad",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func drawPoincareIdentityLine(in:)": "27309849da784c3e",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::init ReportSectionRenderer.PoincareScale(pairs:plotSize:)": "816e5e21d5351827",
-    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)": "26b21142858fa5f4",
-    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.poincarePairs(series:flags:result:)": "b014c78abfba8ffa",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func drawPoincareFrame(_:)": "3fcada094e64c60e",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func drawPoincareIdentityLine(in:)": "70dea73be503ee8c",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::init ReportSectionRenderer.PoincareScale(pairs:plotSize:)": "72c70f9ed2d7baeb",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)": "4fc7567a5c643814",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "613fc1ee098a7dd3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -78,20 +76,8 @@
      "effect": "pair dropped (nil in compactMap); else included"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same pair selection as PoincarePlotView.beatPairs (MorningResultsCharts.swift), now with the same missing-flag policy, but two copies kept in step by hand.",
-     "evidence": [
-      "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift:43",
-      "Emuqu/Sources/Views/MorningResultsCharts.swift:66"
-     ],
-     "found": "fix batch b13"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.isCleanPair(at:flags:)": "12e5cc9e2da0b1e0"
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.isCleanPair(at:flags:)": "c025db359b295b89"
    }
   },
   {
@@ -103,7 +89,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -131,7 +116,6 @@
      "effect": "fallback 1200 ms — unreachable after the empty guard"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -143,7 +127,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -155,7 +138,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -170,12 +152,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.PoincareScale.scaled(_:)": "86082e2e1aa09795",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::var ReportSectionRenderer.PoincareScale.pixelsPerMs": "5ec3deb992ef3d09",
-    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth": "2d14bae4bbb8fc1d"
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.PoincareScale.scaled(_:)": "6bbac5ea0870d8e2",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::var ReportSectionRenderer.PoincareScale.pixelsPerMs": "fc3614de31d0c1e8",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "613fc1ee098a7dd3",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth": "119d9c17d64c8b25"
    }
   },
   {
@@ -195,10 +176,9 @@
      "effect": "one dot per sampled pair; an empty array draws nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.PoincareScale.scaled(_:)": "86082e2e1aa09795",
-    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.PoincareScale.scaled(_:)": "6bbac5ea0870d8e2",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "613fc1ee098a7dd3"
    }
   },
   {
@@ -215,11 +195,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
-    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "57b90c873f844ba7",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "613fc1ee098a7dd3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -245,13 +224,12 @@
      "effect": "draws name and value"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
-    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
-    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "57b90c873f844ba7",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "613fc1ee098a7dd3",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "c516da654be58b2a",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -281,13 +259,12 @@
      "effect": "returns y+120 with an empty box and no LF/HF stats; else draws contents"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDContents(_:fd:in:y:)": "5077d9acc334c9c6",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func chartPeriodogram(series:flags:window:)": "e22cf13be7ffe84b",
-    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)": "26b21142858fa5f4",
-    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDContents(_:fd:in:y:)": "5f9a9b6ee9166c88",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func chartPeriodogram(series:flags:window:)": "708cebac59737a21",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)": "4fc7567a5c643814",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "613fc1ee098a7dd3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -305,13 +282,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDBands(freqToX:in:)": "c958080835878d2c",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDCurve(_:freqToX:in:)": "97aa024190448c13",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDFrequencyAxis(freqToX:in:)": "a8fdbcace2bbefed",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDStats(_:x:y:)": "fa1eafbdd1e2bfba",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func drawPSDBandLabels(freqToX:in:)": "70a74e9616aa5967"
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDBands(freqToX:in:)": "383f58b10fa8afba",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDCurve(_:freqToX:in:)": "cbdc16d9de1032dc",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDFrequencyAxis(freqToX:in:)": "7598da9316759b7b",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawPSDStats(_:x:y:)": "236dac0659ca5187",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func drawPSDBandLabels(freqToX:in:)": "2c8a358e23eb27ee"
    }
   },
   {
@@ -325,10 +301,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func drawPSDBand(from:to:colour:freqToX:in:)": "cf4ae245511fe276",
-    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d"
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func drawPSDBand(from:to:colour:freqToX:in:)": "f96cf9ffcea0d527",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "613fc1ee098a7dd3"
    }
   },
   {
@@ -342,11 +317,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func psdCurvePath(_:freqToX:in:)": "1e07c0e68d0a2863",
-    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth": "2d14bae4bbb8fc1d"
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func psdCurvePath(_:freqToX:in:)": "164abc51c951a27b",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "613fc1ee098a7dd3",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth": "119d9c17d64c8b25"
    }
   },
   {
@@ -371,12 +345,11 @@
      "effect": "draws its label"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
-    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "57b90c873f844ba7",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "613fc1ee098a7dd3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -406,12 +379,11 @@
      "effect": "draws name/value row"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
-    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "57b90c873f844ba7",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "613fc1ee098a7dd3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -447,14 +419,13 @@
      "effect": "fallback 1200 — unreachable (≥2 values)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawTachogramAxisLabels(minRR:maxRR:in:)": "17235626ab4a94d8",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawTachogramTrace(_:minRR:range:in:)": "f3782f2538205c13",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func tachogramValues(series:flags:result:)": "77482103b89fff8f",
-    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)": "26b21142858fa5f4",
-    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawTachogramAxisLabels(minRR:maxRR:in:)": "c44818cfd7fdb2e2",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.drawTachogramTrace(_:minRR:range:in:)": "beb13711bc13077a",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func tachogramValues(series:flags:result:)": "48b1e86702c11486",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)": "4fc7567a5c643814",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "613fc1ee098a7dd3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -468,11 +439,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.tachogramPath(_:minRR:range:in:)": "183cbb0b92c352d9",
-    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth": "2d14bae4bbb8fc1d"
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.tachogramPath(_:minRR:range:in:)": "a2db6bb08b809f34",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "613fc1ee098a7dd3",
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth": "119d9c17d64c8b25"
    }
   },
   {
@@ -502,9 +472,8 @@
      "effect": "draws a 4pt accent-colour dot; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.markTachogramArtifact(x:y:)": "0cea93673be667a3"
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func ReportSectionRenderer.markTachogramArtifact(x:y:)": "6b29e94d8c3f4753"
    }
   },
   {
@@ -516,10 +485,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
-    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7"
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "613fc1ee098a7dd3",
+    "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "4e2f95ef405541d6"
    }
   },
   {
@@ -536,11 +504,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
-    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "57b90c873f844ba7",
+    "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "613fc1ee098a7dd3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -552,7 +519,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -564,9 +530,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth": "2d14bae4bbb8fc1d"
+    "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth": "119d9c17d64c8b25"
    }
   },
   {
@@ -578,7 +543,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -606,7 +570,6 @@
      "effect": "move(to:); else addLine(to:)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -620,9 +583,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e"
+    "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "57b90c873f844ba7"
    }
   },
   {
@@ -650,9 +612,8 @@
      "effect": "uses flags[i].isArtifact; beyond flags → treated as not an artifact"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "dbe151bb9e688f54"
    }
   },
   {
@@ -684,11 +645,10 @@
      "effect": "returns []; else maps bins"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func cleanBeatTimes(series:flags:window:)": "694b6bccf32eafe9",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func dftPower(_:bin:)": "e6df841ca52b0abe",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func interpolatedGrid(_:)": "86392c899121286b"
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func cleanBeatTimes(series:flags:window:)": "3f5ab8acdc651ff9",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func dftPower(_:bin:)": "7c356ca6c455fa20",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func interpolatedGrid(_:)": "941ed8da41cec51d"
    }
   },
   {
@@ -711,7 +671,6 @@
      "effect": "kept; flagged artifact → dropped"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -741,9 +700,8 @@
      "effect": "advances cursor j (bounded at beats.count-2)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func interpolate(_:_:at:)": "900df393d244e8b5"
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func interpolate(_:_:at:)": "4a12256ccb7b5404"
    }
   },
   {
@@ -761,7 +719,6 @@
      "effect": "returns a's RR; else interpolates"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -779,7 +736,6 @@
      "effect": "accumulates cos/sin terms"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

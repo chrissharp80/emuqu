@@ -16,7 +16,6 @@
  ],
  "state": [],
  "toplevel": "TrendDataPoint has synthesized Codable; ChartMetric raw values are English display strings.",
- "flags": [],
  "units": [
   {
    "key": "init TrendAnalyzer.TrendDataPoint.Metrics(_:)",
@@ -35,12 +34,11 @@
      "effect": "false → defaults (zeros, artifact 100%)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
-    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "6a822d05adef4c73",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "d883c6e73179cc5c",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "1fac8fed8eddf554",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423"
    }
   },
   {
@@ -54,11 +52,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::init TrendAnalyzer.TrendDataPoint.Metrics(_:)": "8db9c8eb2b280d33",
-    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "05bf2449594f0935",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "80da80e90960eab3",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423"
    }
   },
   {
@@ -96,7 +93,6 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -134,17 +130,6 @@
      "effect": "'All Time'"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "TimePeriod.displayName is only referenced by EmuquTests/TrendAnalysisTests.swift:392-394; no production caller.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TrendAnalysis.swift:151"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -171,11 +156,10 @@
      "effect": "false → nil (unreachable after count check)"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeAllStatistics(dataPoints:)": "8d32ccbe4d42711c",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.filteredDataPoints(sessions:period:)": "e2db247ed1223673",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.generateInsights(dataPoints:rmssd:sdnn:hr:stress:readiness:)": "06a3645ab6a575bd"
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.filteredDataPoints(sessions:period:)": "f42a4ef002b9cc1c",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.generateInsights(dataPoints:rmssd:sdnn:hr:stress:readiness:)": "25712a8fc99de708"
    }
   },
   {
@@ -203,13 +187,12 @@
      "effect": "false → debugLog and []"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.withinPeriod(_:period:)": "80e0cb434cd1c59b",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::init TrendAnalyzer.TrendDataPoint(session:)": "c1d69059100f781f",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.withinPeriod(_:period:)": "49ca16e7d76d47cc",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::init TrendAnalyzer.TrendDataPoint(session:)": "a8baa3ec66382e2e",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -234,10 +217,9 @@
      "effect": "true → debugLog"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::var TrendAnalyzer.TimePeriod.days": "36f2819ab6740ce8",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::var TrendAnalyzer.TimePeriod.days": "9f7856b70a0d5cbc",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -252,11 +234,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeOptionalStatistics(metric:dataPoints:extract:rule:)": "ad91096243908ced",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "cd8263f3b13d1d5c",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeOptionalStatistics(metric:dataPoints:extract:rule:)": "e441ec3505052d84",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "880bc5237e58e20b",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423"
    }
   },
   {
@@ -276,9 +257,8 @@
      "effect": "false → nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "cd8263f3b13d1d5c"
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.computeStatistics(metric:values:dates:rule:)": "880bc5237e58e20b"
    }
   },
   {
@@ -303,20 +283,8 @@
      "effect": "fallback to values[i]"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "No production caller: baselineDeviation now reads the latest reading's prior-window mean directly (priorWindowMean) so it never falls back to the value itself; computeRollingBaseline is only called by EmuquTests/TrendAnalysisTests.swift:293/310.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TrendAnalysis.swift:272",
-      "EmuquTests/TrendAnalysisTests.swift:293"
-     ],
-     "found": "fix pass b04"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.priorWindowMean(values:dates:index:windowDays:)": "10ae86dbbad561fd"
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.priorWindowMean(values:dates:index:windowDays:)": "117398ed3a237a14"
    }
   },
   {
@@ -339,7 +307,6 @@
      "effect": "false → nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -373,14 +340,13 @@
      "effect": "always true for n ≥ 2; the else returns insufficientStatistics only to avoid a force-unwrap"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(values:dates:scale:)": "336025d22ce6dde9",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.baselineDeviation(values:dates:)": "4c37c981f6b40baf",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.direction(of:rule:)": "ea239b2a5bfa10e4",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.insufficientStatistics(metric:values:)": "9422f1f3a728c638",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.linearRegressionSlope(values:dates:)": "275a434bcd54f1d5",
-    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.scale(_:)": "bc287f5cdfc2a532"
+    "Emuqu/Sources/Analysis/TrendAnalysis+Verdict.swift::func TrendVerdict.evaluate(values:dates:scale:)": "90131cc7c0c0c1e2",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.baselineDeviation(values:dates:)": "a4c4e65f38fc8a51",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.direction(of:rule:)": "1de1b9c091e85cc9",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.insufficientStatistics(metric:values:)": "500ed4d112bcccfd",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.linearRegressionSlope(values:dates:)": "cbcc4e7165c62de0",
+    "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincareGeometry.scale(_:)": "4caaf479994c1c63"
    }
   },
   {
@@ -400,9 +366,8 @@
      "effect": "(nil, nil); else (baseline, % deviation)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.priorWindowMean(values:dates:index:windowDays:)": "10ae86dbbad561fd"
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.priorWindowMean(values:dates:index:windowDays:)": "117398ed3a237a14"
    }
   },
   {
@@ -440,7 +405,6 @@
      "effect": "p75 0"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -478,7 +442,6 @@
      "effect": "true → .improving; false → .declining"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -511,7 +474,6 @@
      "effect": "false → 0"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -553,11 +515,10 @@
      "effect": "variability sentence"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.baselineDeviationInsights(_:latestReading:)": "a239a187738d8390",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.coefficientOfVariation(_:)": "94ce03fd602b388d"
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.baselineDeviationInsights(_:latestReading:)": "5b6ad857693e9d80",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.coefficientOfVariation(_:)": "e4ba15b7de26ecb6"
    }
   },
   {
@@ -590,10 +551,9 @@
      "effect": "above-baseline line; else []"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },
   {
@@ -638,9 +598,8 @@
      "effect": "below-optimal line"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -665,10 +624,9 @@
      "effect": "contact line"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "05bf2449594f0935",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "80da80e90960eab3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -684,11 +642,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.autonomicInsights(stress:readiness:)": "6d2edb1c807fa0f3",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.heartRateAndQualityInsights(hr:dataPoints:)": "127505ddfa6a5471",
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.rmssdInsights(_:latestReading:)": "fe151cd66b457bb4"
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.autonomicInsights(stress:readiness:)": "74f2aa1b95dfa174",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.heartRateAndQualityInsights(hr:dataPoints:)": "93c9f4c55dc733f6",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.rmssdInsights(_:latestReading:)": "522e6d3256ed02c1"
    }
   },
   {
@@ -708,19 +665,8 @@
      "effect": "false → skipped"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "chartData(from:metric:) is only called by EmuquTests/TrendAnalysisTests.swift:359-376; no production caller (grep 'chartData(from').",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TrendAnalysis.swift:508"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.value(of:in:)": "b700a4ea4f4e4ea9"
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.value(of:in:)": "2a3b71a5257dbb89"
    }
   },
   {
@@ -783,21 +729,8 @@
      "effect": "returns that field (nil for missing optional)"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "value(of:in:) is only called by chartData(from:metric:), whose only callers are EmuquTests/TrendAnalysisTests.swift:359-376; ChartMetric likewise has no production use (grep 'ChartMetric' outside TrendAnalysis.swift: none).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/TrendAnalysis.swift:513",
-      "Emuqu/Sources/Analysis/TrendAnalysis.swift:518",
-      "Emuqu/Sources/Analysis/TrendAnalysis.swift:533"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423"
    }
   }
  ],

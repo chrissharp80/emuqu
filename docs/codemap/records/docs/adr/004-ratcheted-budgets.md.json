@@ -5,7 +5,6 @@
  "types": [],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "§ 004 — Debt is ratcheted, never waived",
@@ -16,7 +15,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -35,26 +33,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "ADR says every quality rule is a numeric ceiling in .ci/*.txt 'rather than a pass/fail assertion', but the no-unowned gate and the strict-concurrency gate are hard pass/fail checks with no .ci budget file.",
-     "evidence": [
-      "docs/adr/004-ratcheted-budgets.md:5",
-      "scripts/check_no_unowned.sh:26",
-      "scripts/check_strict_concurrency_enabled.sh:41"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Aggregate type size": "5ccee4bede8d012d",
-    ".github/workflows/ci.yml::step lint-and-budgets/Fixed-point font budget": "18d6f712cefb641b",
-    ".github/workflows/ci.yml::step lint-and-budgets/SwiftLint warning budget": "47bc283c67a4a75a",
-    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets": "f3135eea64dc479b",
-    ".github/workflows/ci.yml::step lint-and-budgets/Test skip budget": "bc4ac45b82d98f44",
-    "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "8384d98e4d124966"
+    ".github/workflows/ci.yml::step lint-and-budgets/Aggregate type size": "620c84ee17554303",
+    ".github/workflows/ci.yml::step lint-and-budgets/Fixed-point font budget": "ee48af43f9befa6f",
+    ".github/workflows/ci.yml::step lint-and-budgets/SwiftLint warning budget": "515c1929a594e7dd",
+    ".github/workflows/ci.yml::step lint-and-budgets/Tech-debt budgets": "939a88eb13b12ec8",
+    ".github/workflows/ci.yml::step lint-and-budgets/Test skip budget": "e2899f479b5fc041",
+    "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "f16c6c713183c00b"
    }
   },
   {
@@ -78,30 +63,18 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "ADR says the trailer must name 'the file and the reason'; the trailer parser extracts only the first token (the path) and accepts a trailer with no reason.",
-     "evidence": [
-      "docs/adr/004-ratcheted-budgets.md:16",
-      "scripts/check_budget_monotonicity.sh:114"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "73c8ded96a9405ae",
-    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "6e090e3051ab2682",
-    "scripts/check_budget_monotonicity.sh::fn budget_files": "c70ca1ffaca60b15",
-    "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
-    "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
-    "scripts/check_budget_monotonicity.sh::fn loosens": "9da7cc84bf21dbde",
-    "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
-    "scripts/check_budget_monotonicity.sh::fn read_number": "d8d0aa6b0f8126bc",
-    "scripts/check_budget_monotonicity.sh::fn report_loosened": "005070da3ab1465d",
-    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "509182b8a7724c89",
-    "scripts/check_refactor_spec_conformance.sh::fn read_budget": "0bb5b672bbc299cf"
+    ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "336e7a9de9707672",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "197c125d8c622cd8",
+    "scripts/check_budget_monotonicity.sh::fn budget_files": "79b550d9544b839d",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed": "76309c9411982f50",
+    "scripts/check_budget_monotonicity.sh::fn is_floor": "e077302680bcc6ab",
+    "scripts/check_budget_monotonicity.sh::fn loosens": "6e4cf57505a00a2b",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline": "fc658970d2a0e744",
+    "scripts/check_budget_monotonicity.sh::fn read_number": "80dfd43a50d50f4a",
+    "scripts/check_budget_monotonicity.sh::fn report_loosened": "1556eb46bf71f4cf",
+    "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "56d6204c2017cb66",
+    "scripts/check_refactor_spec_conformance.sh::fn read_budget": "86fc96319d6851a0"
    }
   },
   {
@@ -115,9 +88,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/ci.yml::step tests/Run tests with coverage": "7b5b9eee68d4d299"
+    ".github/workflows/ci.yml::step tests/Run tests with coverage": "cb5ae02e2af749f1"
    }
   },
   {
@@ -132,10 +104,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Aggregate type size": "5ccee4bede8d012d",
-    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "af95c53388fa63e4"
+    ".github/workflows/ci.yml::step lint-and-budgets/Aggregate type size": "620c84ee17554303",
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "f618f94a3a7cb84c"
    }
   }
  ],

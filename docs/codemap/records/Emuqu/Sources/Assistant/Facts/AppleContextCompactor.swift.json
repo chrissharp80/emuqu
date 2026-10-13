@@ -21,7 +21,6 @@
   "mem:ToolOutputAllowance.spentNote (rateLimited missing envelope JSON)"
  ],
  "toplevel": "Imports FoundationModels under #if canImport. ToolOutputAllowance.spentNote static initializer renders FactValue.missing(.rateLimited, 'no room left...') via toToolResultJSON (FactValue.swift:294). Callers: AppleFoundationProvider.swift (plan/lease/ledger), AppleToolDispatcher.swift:53,104 (allowance.admit), AppleFoundationToolAdapter.swift:114, tests AppleContextBudgetTests.",
- "flags": [],
  "units": [
   {
    "key": "func AppleContextCompactor.estimateTokens(_:)",
@@ -41,19 +40,6 @@
      "at": "+4",
      "cond": "scalar.isASCII",
      "effect": "ascii += 1; else nonASCII += 1"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/API_REFERENCE.md documents estimateTokens as 'chars / 4 x 1.05', but the code charges every non-ASCII scalar a whole token (only ASCII uses /4 x 1.05).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift:56",
-      "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift:65",
-      "docs/API_REFERENCE.md:2435"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {}
@@ -82,11 +68,10 @@
      "effect": "debugLogs dropped count; didCompact true; else false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.droppingOrphanReply(_:from:)": "525345c4146c6072",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.newestTurnsFitting(_:budget:)": "4b9e1af59e6896de",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.droppingOrphanReply(_:from:)": "e05ed69e037df5b0",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.newestTurnsFitting(_:budget:)": "f399576898d5101e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -111,9 +96,8 @@
      "effect": "break; otherwise insert at front and add cost"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "ae30d335bc9f248c"
    }
   },
   {
@@ -131,7 +115,6 @@
      "effect": "returns keep unchanged; else keep without its first turn"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -145,21 +128,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/FLOWCHART.md says systemPromptTokens = estimateTokens(instructions); the only production caller passes instructions + tool-description tokens (fixedTokens), so the documented budget formula is stale.",
-     "evidence": [
-      "docs/FLOWCHART.md:1545",
-      "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:373",
-      "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift:375"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)": "e4fee05924b00edd"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)": "dd6ae7872b57f262"
    }
   },
   {
@@ -177,7 +147,6 @@
      "effect": "1024; otherwise 512"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -195,7 +164,6 @@
      "effect": "600; otherwise 250"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -213,7 +181,6 @@
      "effect": "Int.max; otherwise 1800"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -225,7 +192,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -243,7 +209,6 @@
      "effect": ".trimmed; otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -257,9 +222,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "ae30d335bc9f248c"
    }
   },
   {
@@ -271,9 +235,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.transcriptTokens(_:)": "5e73c6b8d113c2ac"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.transcriptTokens(_:)": "c20b747b25d7fa32"
    }
   },
   {
@@ -294,10 +257,9 @@
      "effect": "returns text unchanged; else truncates and appends note (result can exceed maxTokens when the note alone is larger than maxTokens, since room floors at 0)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.prefix(of:fittingTokens:)": "766d795c38400ca4"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "ae30d335bc9f248c",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.prefix(of:fittingTokens:)": "1a465d4a246a649d"
    }
   },
   {
@@ -325,7 +287,6 @@
      "effect": "adds 1.05/4 for ASCII scalars, 1.0 for non-ASCII"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -337,7 +298,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -360,12 +320,11 @@
      "effect": "charges spentNote (+8 overhead) and returns it in place of the result; else truncated result"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.charge(_:)": "38fbbdbd95349b2c",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.spend(_:)": "19e6c049d65cfc90",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.truncate(_:toTokens:note:)": "08f3948a67f128ed"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.charge(_:)": "60e838044614935f",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.spend(_:)": "2cc653423fbdc4b2",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "ae30d335bc9f248c",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.truncate(_:toTokens:note:)": "a1fd0137e71dcb2f"
    }
   },
   {
@@ -380,10 +339,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.spend(_:)": "19e6c049d65cfc90",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "beb08099bb36f9f4"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.spend(_:)": "2cc653423fbdc4b2",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "ae30d335bc9f248c"
    }
   },
   {
@@ -395,7 +353,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -407,7 +364,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -419,7 +375,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -437,7 +392,6 @@
      "effect": "returns left; otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

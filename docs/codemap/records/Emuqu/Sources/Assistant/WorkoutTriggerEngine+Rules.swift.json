@@ -19,22 +19,6 @@
   "static let racePaceMaxCreditSec = 5 (longest tick gap credited as time at race pace)"
  ],
  "toplevel": "Header comment: conditions may only track per-reading streak state keyed on the reading (idempotent per snapshot); state spent by firing goes in didFire.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "med",
-   "text": "Only user.threshold.breach is .spoken. The other 14 rules are .silent (11) or .haptic (3: hr.spikeNoPace, equipment.strapDown, cadence.consistencyDrop) and WorkoutVoiceCoach.dispatch drops both tiers, so their messages, including the long 'Speak ONE short sentence…' LLM prompts for decoupling, readiness, race pace, periodic and load rules, are never spoken or sent to any model. The prompt text implies an AI path that does not exist. Deleting the silent rules, surfacing their history, or sending the prompts to a model is a product decision (see WorkoutTriggerEngine.swift's history flag).",
-   "evidence": [
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:636",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:672",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:721",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:832",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift:875",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:255"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func WorkoutTriggerEngine.effortRules()",
@@ -50,12 +34,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1AboveVT2Rule()": "8e2dfbf58ab62742",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1BelowAeTRule()": "bf5d80642ed17071",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrDriftHighRule()": "7f6269eb0c7fecad",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeNoPaceRule()": "a48e89a20700d5ae"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1AboveVT2Rule()": "82a470ef9c2ac052",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1BelowAeTRule()": "e11b63f88df7da62",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrDriftHighRule()": "62dcd50f60cb4b9b",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeNoPaceRule()": "9d4cd5977157adfe"
    }
   },
   {
@@ -73,7 +56,6 @@
      "effect": "nil: returns true (gate passes when quality unknown); else returns r2 >= 0.85"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -89,11 +71,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1BelowAeTCondition(_:)": "3704e72a15543992",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1BelowAeTMessage(_:)": "1a4f1971f2b86396",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "edb96164c1f6d835"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1BelowAeTCondition(_:)": "00583d7b08572c27",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1BelowAeTMessage(_:)": "f265191bd8b6faad",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "09b6f76261f356b0"
    }
   },
   {
@@ -118,9 +99,8 @@
      "effect": "nil: false; else returns 0.60 <= α1 < 0.75"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1FitOK(_:)": "a311b896d25adc35"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1FitOK(_:)": "6c1c9da80a24399b"
    }
   },
   {
@@ -140,9 +120,8 @@
      "effect": "would print 0.75; unreachable because the condition requires α1 non-nil on the same ctx"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -159,12 +138,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1AboveVT2Condition(_:state:)": "754a2e43232a663f",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1AboveVT2Message(_:state:)": "d0de2e3d5311a731",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1AboveVT2ResetWorkoutState(state:)": "b630e778840f39da",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "edb96164c1f6d835"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1AboveVT2Condition(_:state:)": "18066ea4c1480ba1",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1AboveVT2Message(_:state:)": "c3a2badc5905b3c7",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1AboveVT2ResetWorkoutState(state:)": "bd69b3afb57a575d",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "09b6f76261f356b0"
    }
   },
   {
@@ -194,9 +172,8 @@
      "effect": "consecutiveBelow + 1; else 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1FitOK(_:)": "a311b896d25adc35"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1FitOK(_:)": "6c1c9da80a24399b"
    }
   },
   {
@@ -216,9 +193,8 @@
      "effect": "prints 0.00; unreachable since the condition requires α1"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -230,7 +206,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -246,11 +221,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrDriftHighCondition(_:)": "9d22fa2ff95a6b2d",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrDriftHighMessage(_:)": "0f11b517d45a8f0b",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "edb96164c1f6d835"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrDriftHighCondition(_:)": "ec7ef82064d1787e",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrDriftHighMessage(_:)": "46d9846f8e31d8d9",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "09b6f76261f356b0"
    }
   },
   {
@@ -293,10 +267,9 @@
      "effect": "true: false (HR falling); else returns true"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentHRSlopeBpm(samples:)": "1a2acd292c92e3fd",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentHRSlopeBpm(samples:)": "41e113751acf5510",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2"
    }
   },
   {
@@ -336,9 +309,8 @@
      "effect": "drift only; unreachable: condition requires grade"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -355,12 +327,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeNoPaceCondition(_:state:)": "738205e62a3f3bab",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeNoPaceMessage(_:state:)": "71893b9961534560",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeNoPaceResetWorkoutState(state:)": "48f9735492650661",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "edb96164c1f6d835"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeNoPaceCondition(_:state:)": "c016cea77bfbf43b",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeNoPaceMessage(_:state:)": "e7f70e28b045207f",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeNoPaceResetWorkoutState(state:)": "61eee0183504c57d",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "09b6f76261f356b0"
    }
   },
   {
@@ -385,10 +356,9 @@
      "effect": "streak + 1; else 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeSampleQualifies(_:)": "3dfeddee85ec54cc",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeSampleQualifies(_:)": "01541f36f204ed68",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2"
    }
   },
   {
@@ -413,11 +383,10 @@
      "effect": "true; else false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentPaceSecPerKm": "f8ad7952229f7b8e",
-    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS": "e1e254fffc25bef1",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentPaceSecPerKm": "d4b9223cfe3622c0",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS": "17652f56f6054d5a",
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "34d6c746a0425f31"
    }
   },
   {
@@ -452,9 +421,8 @@
      "effect": "unreachable"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -466,7 +434,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -482,11 +449,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.routeClimbAheadRule()": "55a5eaef46fbb053",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedHighRule()": "50cba58de930ebe3",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedLowRule()": "aa793f8cb1a153d4"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.routeClimbAheadRule()": "982015f43fad83ed",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedHighRule()": "77df88775d52ee7e",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedLowRule()": "3a55d4a0a1efd86f"
    }
   },
   {
@@ -502,11 +468,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedHighCondition(_:)": "771d665319bdb23b",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedHighMessage(_:)": "0cfd20dad9f8e96f",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "edb96164c1f6d835"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedHighCondition(_:)": "2c5a3fb40bad07fa",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.zoneDriftedHighMessage(_:)": "4b5ba48b022cfd16",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "09b6f76261f356b0"
    }
   },
   {
@@ -539,11 +504,10 @@
      "effect": "true: false (climbing); else true (descents not suppressed)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "ad7f41a3d1b733bb",
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "34d6c746a0425f31"
    }
   },
   {
@@ -568,10 +532,9 @@
      "effect": "HR 0; unreachable"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "ad7f41a3d1b733bb",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -602,13 +565,12 @@
      "effect": "unreachable"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "edb96164c1f6d835",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "49805330e3ae7d57"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "09b6f76261f356b0",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "ad7f41a3d1b733bb",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "34d6c746a0425f31"
    }
   },
   {
@@ -624,11 +586,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.routeClimbAheadCondition(_:)": "ead48ec93ad0c4cd",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.routeClimbAheadMessage(_:)": "a4c43ad78185acfc",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "edb96164c1f6d835"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.routeClimbAheadCondition(_:)": "ca002a13c14ec6eb",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.routeClimbAheadMessage(_:)": "6430f6cf97eaf2d6",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "09b6f76261f356b0"
    }
   },
   {
@@ -646,7 +607,6 @@
      "effect": "nil: false; else 0 < distance < 500"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -679,14 +639,13 @@
      "effect": "climbCount 0 → no 'First of' clause"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.climbLengthLabel(_:imperial:)": "94cfb82887d75c56",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.routeClimbSentence(distance:length:grade:climbCount:)": "336571d8387955ea",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.climbsAhead(on:pastDistance:)": "656cb588c2399785",
-    "Emuqu/Sources/Models/Route.swift::var Route.Climb.lengthMeters": "9201abd22a88cf21",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.climbLengthLabel(_:imperial:)": "aa334ffc7149e167",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.routeClimbSentence(distance:length:grade:climbCount:)": "d4b410e3aa69bfc6",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.climbsAhead(on:pastDistance:)": "ad511f4965059d52",
+    "Emuqu/Sources/Models/Route.swift::var Route.Climb.lengthMeters": "34987bd2c329631c",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -721,9 +680,8 @@
      "effect": "grade only"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -758,9 +716,8 @@
      "effect": "false: '<m> meters'; true: '<x.x> kilometers'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -776,11 +733,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.cadenceConsistencyDropRule()": "89e86b325dd15729",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.equipmentStrapDownRule()": "cf3de251e34950a8",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.userThresholdBreachRule()": "d0e3c4b935dd4c11"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.cadenceConsistencyDropRule()": "37b3eb9dc42bbd2e",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.equipmentStrapDownRule()": "65a8a0e8edf955f5",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.userThresholdBreachRule()": "8fb5dbb458e3135a"
    }
   },
   {
@@ -797,12 +753,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.StrapLinkState.reset()": "b12b5405ea8994a7",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.strapDroppedCondition(_:state:)": "cbc16cf8a36bcd43",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "edb96164c1f6d835",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.StrapLinkState.reset()": "deec8d7be5a26d67",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.strapDroppedCondition(_:state:)": "a4d3b2fe9b90deed",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "09b6f76261f356b0",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -814,7 +769,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -832,9 +786,8 @@
      "effect": "true: shift the link history; false: unchanged (same snapshot)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2"
    }
   },
   {
@@ -851,12 +804,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.dueThresholds(_:state:)": "2e537396fabdd980",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.startThresholdCooldown(_:state:)": "3d9eceef524b9913",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.userThresholdBreachMessage(_:state:)": "3eacedbe342997ef",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "edb96164c1f6d835"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.dueThresholds(_:state:)": "8713c61001a838dc",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.startThresholdCooldown(_:state:)": "e2ac456043f06650",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.userThresholdBreachMessage(_:state:)": "f00b3cda99317ee8",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "09b6f76261f356b0"
    }
   },
   {
@@ -889,9 +841,8 @@
      "effect": "treated as 0 for ordering"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2"
    }
   },
   {
@@ -919,12 +870,11 @@
      "effect": "returns user cue verbatim; else defaultCue(currentValue:)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.dueThresholds(_:state:)": "2e537396fabdd980",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.observedValue(of:in:)": "4f3473cc174eaf77",
-    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.defaultCue(currentValue:)": "41a82986b765de44",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.dueThresholds(_:state:)": "8713c61001a838dc",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.observedValue(of:in:)": "3915364e926355d4",
+    "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.defaultCue(currentValue:)": "3815cde37cae54ee",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -944,10 +894,9 @@
      "effect": "none: nothing stamped"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.dueThresholds(_:state:)": "2e537396fabdd980",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.dueThresholds(_:state:)": "8713c61001a838dc",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2"
    }
   },
   {
@@ -990,11 +939,10 @@
      "effect": "returns threshold.value"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentPaceSecPerKm": "f8ad7952229f7b8e",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "63e53468c2833bde",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentPaceSecPerKm": "d4b9223cfe3622c0",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "c866386c95432c3f"
    }
   },
   {
@@ -1020,12 +968,11 @@
      "effect": "0; unreachable"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)": "b891e0e81acc3de0",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "edb96164c1f6d835",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)": "cdb5a0cea6c4097b",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "09b6f76261f356b0",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1043,13 +990,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.aerobicDecouplingMaterialRule()": "97113ffaeff4b7b0",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.coachPeriodicUpdateRule(settings:)": "cdb0e6d6fd5927e0",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.racePaceModeDetectedRule()": "ce30831f3191fa18",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.readinessOpeningRecommendationRule()": "58a1a65e4273808d",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.trainingRecentLoadAboveUsualRangeRule()": "029bc578d087402b"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.aerobicDecouplingMaterialRule()": "c7f03c6216dd3706",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.coachPeriodicUpdateRule(settings:)": "9668056d78b9db38",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.racePaceModeDetectedRule()": "6fb3e4992eb716bd",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.readinessOpeningRecommendationRule()": "7e703c63c1558c98",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.trainingRecentLoadAboveUsualRangeRule()": "c38316d880357e5d"
    }
   },
   {
@@ -1084,11 +1030,10 @@
      "effect": "0; unreachable"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)": "e7ec08ce51dda9ea",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "edb96164c1f6d835",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)": "37f4cb69898f6e4d",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "09b6f76261f356b0",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2"
    }
   },
   {
@@ -1103,10 +1048,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.readinessOpeningRecommendationCondition(_:state:)": "b5aa891466510dc2",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "edb96164c1f6d835"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.readinessOpeningRecommendationCondition(_:state:)": "3a85c9bb2f9f557f",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "09b6f76261f356b0"
    }
   },
   {
@@ -1134,9 +1078,8 @@
      "effect": "true; else false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2"
    }
   },
   {
@@ -1152,11 +1095,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.racePaceModeDetectedCondition(_:state:)": "50a462c165109818",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.racePaceModeDetectedResetWorkoutState(state:)": "d74bab6e7f80b8b7",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "edb96164c1f6d835"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.racePaceModeDetectedCondition(_:state:)": "ac5b8eb12803ca40",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.racePaceModeDetectedResetWorkoutState(state:)": "59f9ed9b48dbe109",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "09b6f76261f356b0"
    }
   },
   {
@@ -1191,11 +1133,10 @@
      "effect": "true; else false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.restartRacePaceWindow(_:at:)": "f4b91f84832374bb",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentPaceSecPerKm": "f8ad7952229f7b8e",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.restartRacePaceWindow(_:at:)": "4c6bb7d4ebe8c9b3",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentPaceSecPerKm": "d4b9223cfe3622c0",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2"
    }
   },
   {
@@ -1207,7 +1148,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1219,7 +1159,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1235,12 +1174,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.coachPeriodicUpdateCondition(_:state:settings:)": "38dd9e8004a23c20",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.coachPeriodicUpdateMessage(_:)": "b753331becb5b746",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "edb96164c1f6d835",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.coachPeriodicUpdateCondition(_:state:settings:)": "56ce031a444a9032",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.coachPeriodicUpdateMessage(_:)": "b2f1df5ead9ba7f3",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "09b6f76261f356b0",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2"
    }
   },
   {
@@ -1278,10 +1216,9 @@
      "effect": "returns it"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hasLiveSignal(_:)": "8ac51e36d60fdd75",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hasLiveSignal(_:)": "ba26c5ef68e2845b",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2"
    }
   },
   {
@@ -1293,11 +1230,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)": "e7ec08ce51dda9ea",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)": "b891e0e81acc3de0",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)": "d3babc3e12405319"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)": "37f4cb69898f6e4d",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)": "cdb5a0cea6c4097b",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)": "a14332360ad925a3"
    }
   },
   {
@@ -1309,9 +1245,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "09f485c4829689dc"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2"
    }
   },
   {
@@ -1327,11 +1262,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.trainingRecentLoadAboveUsualRangeCondition(_:state:)": "34e61e127e84f969",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.trainingRecentLoadAboveUsualRangeMessage(_:)": "62bf44517867e4ec",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "edb96164c1f6d835"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.trainingRecentLoadAboveUsualRangeCondition(_:state:)": "3bf7678d9ca51f05",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.trainingRecentLoadAboveUsualRangeMessage(_:)": "a3af4ff3c62d1a19",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "09b6f76261f356b0"
    }
   },
   {
@@ -1359,7 +1293,6 @@
      "effect": "returns it"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1387,7 +1320,6 @@
      "effect": "'noticeably above…'; else 'above…'"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

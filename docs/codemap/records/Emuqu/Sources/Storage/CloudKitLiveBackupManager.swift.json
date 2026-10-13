@@ -14,7 +14,6 @@
   "mem:CloudKitLiveBackupManager.recoveryLimit=10 / listingLimit=200"
  ],
  "toplevel": "container = CKContainer(identifier: AppConfig.iCloudContainerIdentifier); recordType 'RawBackup'; zoneID HRVSessions; uploadInterval 300 s. Instance created lazily by CloudKitSyncManager.liveBackup with ensureZone = the manager's zone-creation step.",
- "flags": [],
  "units": [
   {
    "key": "var CloudKitLiveBackupManager.privateDB",
@@ -27,7 +26,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -49,7 +47,6 @@
      "effect": "?? → empty set"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -61,7 +58,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -75,7 +71,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841"
    }
@@ -116,16 +111,15 @@
      "effect": "handleUploadFailure: schema error pauses for launch, else logged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.compressedPoints(_:)": "45ad750339c8d94c",
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.handleUploadFailure(_:)": "8deafcac4db2a0be",
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.isUploadDue(pointCount:force:)": "f57e39b71356a93a",
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.liveBackupRecord(sessionId:)": "73caac112f6ec920",
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.saveWithAsset(_:compressedData:sessionId:)": "b40d772f81295a7d",
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.setPlainFields(of:)": "09630dabc905f62b",
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.backedUpIds": "f2f0bb0db9a454a3",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.compressedPoints(_:)": "dadea6a1cf27fdb2",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.handleUploadFailure(_:)": "1fa043f45efccfb3",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.isUploadDue(pointCount:force:)": "7c6cb26ea429c177",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.liveBackupRecord(sessionId:)": "21b8e821452fe6c8",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.saveWithAsset(_:compressedData:sessionId:)": "88183003e6161f7e",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.setPlainFields(of:)": "3e801b4d3f79c586",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.backedUpIds": "c2b715a038756d12",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -147,7 +141,6 @@
      "effect": "sets it to Date(); else keeps the first upload's time"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -180,9 +173,8 @@
      "effect": "false; otherwise true"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.settings": "592167b110d714c2"
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.settings": "3cf8669f9238d696"
    }
   },
   {
@@ -211,11 +203,10 @@
      "effect": "logs 'first upload', falls through to a fresh RawBackup record with sessionId; other errors propagate"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.privateDB": "5380c06ba0832fd8",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.privateDB": "5dedadc9a4d5ae80",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -239,11 +230,10 @@
      "effect": "throws CloudSyncError.encryptionUnavailable (no plaintext fallback)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "8c3ad22f8d15e4b6",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::var CloudPayloadCodec.hasUsableKey": "955a9721f4e44da3",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "7fbdc59b451d0912"
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "fe1f3772ccd7e6b5",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::var CloudPayloadCodec.hasUsableKey": "b689df1a23a0f576",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "b4d5293d92fd3be4"
    }
   },
   {
@@ -264,11 +254,10 @@
     "ck:RawBackup.rrData"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.privateDB": "5380c06ba0832fd8",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.privateDB": "5dedadc9a4d5ae80",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
@@ -291,10 +280,9 @@
      "effect": "pauses live backup for the launch; else info log only"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "087e62a749fe1de1",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "74297ef5c534df6c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -333,13 +321,12 @@
      "effect": "logged, return (id kept)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.backedUpIds": "f2f0bb0db9a454a3",
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.privateDB": "5380c06ba0832fd8",
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.settings": "592167b110d714c2",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.backedUpIds": "c2b715a038756d12",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.privateDB": "5dedadc9a4d5ae80",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.settings": "3cf8669f9238d696",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -377,13 +364,12 @@
      "effect": "logs and returns [] (recovery sees nothing)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.liveBackupSummary(from:)": "8598a4f1727bd63e",
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.newestBackupIDs()": "70fd30ebaae843ff",
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.privateDB": "5380c06ba0832fd8",
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.settings": "592167b110d714c2",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.liveBackupSummary(from:)": "948b19823735b124",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.newestBackupIDs()": "7f28d0e603723690",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.privateDB": "5dedadc9a4d5ae80",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.settings": "3cf8669f9238d696",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -407,19 +393,9 @@
      "effect": "skipped"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The date-only listing is capped at 200 records; beyond that (only if hundreds of stale backups piled up) the newest backup could still be missed.",
-     "evidence": [
-      "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift"
-     ]
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.privateDB": "5380c06ba0832fd8",
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.recoveryQuery": "c1d51c1c7c9a59a8"
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.privateDB": "5dedadc9a4d5ae80",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.recoveryQuery": "8cbafe8eb060beb5"
    }
   },
   {
@@ -431,7 +407,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -464,10 +439,9 @@
      "effect": "logs error, returns nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.decodePoints(at:)": "2592f41f72110483",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.decodePoints(at:)": "9412ad5c51a8df16",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -485,10 +459,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "1a7fce42d836162f"
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "07a8c15768d32cfc",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.decompress(_:)": "0fb6cb687624ba7f"
    }
   }
  ],

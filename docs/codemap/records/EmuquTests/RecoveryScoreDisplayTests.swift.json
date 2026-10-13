@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func RecoveryScoreDisplayTests.testRoundsRatherThanTruncates()",
@@ -20,9 +19,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "df038a321f56f948"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "06446c022d140f55"
    }
   },
   {
@@ -49,23 +47,10 @@
      "effect": "asserts agreement for each 0–10 stored score scaled by 10"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "displayScore and ScoreVerdict.safeDisplayScore are two implementations of the same clamp-and-round, each documented as 'the ONE place the raw→display clamp lives'; the test pins their parity instead of the code having one function.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift:59",
-      "Emuqu/Sources/Models/ScoreVerdict.swift:178",
-      "Emuqu/Sources/Models/ScoreVerdict.swift:169"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "df038a321f56f948",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.clampedDisplayScore(_:)": "0e3e974933bc5204",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "503106affd4064c8"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "06446c022d140f55",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.clampedDisplayScore(_:)": "e804c8fde9ba6657",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "0296267ddd882a15"
    }
   },
   {
@@ -79,20 +64,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Pins +infinity → 0, while ScoreVerdict's comment says an over-range score reads 'Excellent'; a +inf score therefore shows 0 with whatever verdict clampedDisplayScore gives (also 0 → veryLow), and the test locks that in without stating the choice.",
-     "evidence": [
-      "EmuquTests/RecoveryScoreDisplayTests.swift:55",
-      "Emuqu/Sources/Models/ScoreVerdict.swift:28"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "df038a321f56f948"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "06446c022d140f55"
    }
   },
   {
@@ -106,9 +79,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "df038a321f56f948"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "06446c022d140f55"
    }
   },
   {
@@ -128,9 +100,8 @@
      "effect": "asserts 0 <= value <= 100 for each input"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "df038a321f56f948"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "06446c022d140f55"
    }
   },
   {
@@ -146,11 +117,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.scoreSentence(_:score:verdict:bundle:)": "05917d7a648872c6",
-    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ScoreRing.swift::func ScoreRing.scoreSentence(_:score:verdict:bundle:)": "d90353bde9f376d8",
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "53b148fe7d5c46b7"
    }
   }
  ],

@@ -10,7 +10,6 @@
   "file:Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
  ],
  "toplevel": "cd to repo root. Python: ALLOWED host set; over every line (comments included) of every Swift file under Emuqu (whole app target) and the watch app (a missing root -> exit 2) collects hosts from `http(s)://host` literals and from bare host strings `.host = \"x\"` / `host: \"x\"`; unknown hosts -> exit 1. Hosts a user types at runtime are out of scope by design (header). Then grep BANNED SDK names in project.pbxproj and Package.resolved (count != 0 -> exit 1). Then grep `^import Zip$` / Zip.unzipFile etc. (hit -> exit 1) and updateFirmware/firmwareUpdate/PolarFirmwareUpdate (hit -> exit 1). Wired: gates.yml (no-phone-home), ci.yml, Makefile.",
- "flags": [],
  "units": [
   {
    "key": "fn print",
@@ -21,11 +20,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],
  "deps": {
-  "scripts/check_no_developer_endpoint.sh::fn print": "334d02a4a5842dfa"
+  "scripts/check_no_developer_endpoint.sh::fn print": "3e7d67a0a1e37463"
  }
 }

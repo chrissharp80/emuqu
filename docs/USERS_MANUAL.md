@@ -162,7 +162,7 @@ With no readings yet, a **Get started** checklist (Pair device, Connect Apple He
 - **Sleep Duration Card**: Hours slept vs your typical sleep goal
 - **Sleep Window Card**: Wall-clock start and end of the sleep window, with the span between them shown in the middle in hours and minutes. Time in bed and awake time are reported separately in the header cards — the Sleep Window card is specifically the bookend times and how long that interval was. For split nights the card shows segment count.
 - **Adjust Sleep Button**: Opens a dedicated adjustment screen (see below)
-- **Sleep Stages Card**: Visual bar showing deep/light/REM/awake breakdown with percentages. Stages come from Apple Watch via HealthKit when available, or from HRV-based classification of chest strap RR data when no Watch sleep exists.
+- **Sleep Stages Card**: Visual bar showing deep/light/REM/awake breakdown with percentages. Stages come from Apple Watch via HealthKit when available, or are estimated from chest strap RR data when no Watch sleep exists.
 - **Key Metrics Grid**: Efficiency, awake time, sleep time, time in bed, sleep latency
 - **Recovery Vitals**: 2x2 grid showing overnight vitals from Apple Watch:
   - **Respiratory Rate**: Breaths per minute with 7-day baseline comparison
@@ -1484,9 +1484,9 @@ sync is on (same as the rest of your settings); never auto-populated.
 
 **Sleep** — expected bedtime, typical sleep hours, "Use Apple Health Sleep
 Data" (enable/disable sleep in recovery scoring), "HRV-Enhanced Watch Stages"
-(refines Apple Watch sleep stages using chest strap HRV; catches deep sleep
-the Watch misclassifies as core, REM twitches misidentified as awake, etc.
-Applies retroactively. Without a Watch, HRV classification always runs.),
+(refines Apple Watch sleep stages using chest strap HRV, overriding deep vs
+core and REM vs awake where the HRV evidence strongly disagrees; the result is
+an estimate. Applies retroactively. Without a Watch, HRV classification always runs.),
 "Lower Score Without Sleep" (−10 penalty when sleep integration is enabled
 but no HealthKit data is available), Combine Segments (Split Sleep) merge
 window (default 4.5 hrs, 1–12 hrs in 0.5h steps), and session merge mode.
@@ -1725,7 +1725,7 @@ Recover sessions that have raw backups but aren't in the main archive.
 ### HealthKit Data Not Showing
 - Grant HealthKit permissions when prompted
 - Check Settings → Privacy & Security → Health → Emuqu
-- Sleep stages from HealthKit require Apple Watch or compatible sleep tracker. Without a Watch, the app classifies sleep stages directly from chest strap HRV data during overnight recordings.
+- Sleep stages from HealthKit require Apple Watch or compatible sleep tracker. Without a Watch, the app estimates sleep stages from chest strap HRV data during overnight recordings.
 
 ---
 

@@ -13,7 +13,6 @@
   "mem:ProviderRegistry.activeProvider / activeModel / activeProviderAvailable"
  ],
  "toplevel": "Stored lets apple/anthropic/openai/gemini/grok/deepseek are created once in init; retiredDisplayNames maps nine retired API ids to names.",
- "flags": [],
  "units": [
   {
    "key": "var ProviderRegistry.allProviders",
@@ -24,7 +23,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -52,9 +50,8 @@
      "effect": "retired name; ?? raw apiID otherwise."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "ac9ddbe514f8e580"
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "d6c953953bdfc507"
    }
   },
   {
@@ -76,10 +73,9 @@
     "mem:ProviderRegistry.activeModel"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "a522a84243a7a3fb",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.restoreSelection(from:fallback:)": "1adee3e309c0338b"
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "6b3fc66f2b218808",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.restoreSelection(from:fallback:)": "e0e427c3f44c5347"
    }
   },
   {
@@ -107,11 +103,10 @@
      "effect": "returns it; otherwise Apple fallback (UI gates sending)."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.defaultModel(of:)": "5f383b6c9e34857e",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "4d1d71f3bef78e55",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.savedSelection(from:)": "8489302fe78b7837"
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.defaultModel(of:)": "de34a291b515ef64",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "016373538fb3a9ab",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.savedSelection(from:)": "04f8013f39c77074"
    }
   },
   {
@@ -142,10 +137,9 @@
      "effect": "saved model; ?? defaultModel; nil if both missing."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.defaultModel(of:)": "5f383b6c9e34857e",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "4d1d71f3bef78e55"
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.defaultModel(of:)": "de34a291b515ef64",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "016373538fb3a9ab"
    }
   },
   {
@@ -163,7 +157,6 @@
      "effect": "returns it; ?? first model (nil if catalog empty)."
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -188,11 +181,10 @@
      "effect": "writes new value; otherwise untouched."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "17747315684bc090"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "066d90ca11e8f12b"
    }
   },
   {
@@ -216,13 +208,12 @@
      "effect": "kept if enabled; otherwise excluded."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)": "227ac15ee3157ece",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "4d1d71f3bef78e55",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "ac9ddbe514f8e580",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc"
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)": "5d589653df6e990b",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "016373538fb3a9ab",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "d6c953953bdfc507",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015"
    }
   },
   {
@@ -269,11 +260,10 @@
      "effect": "flag providerDeepSeekEnabled."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)": "a2781a86fccf2cac"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)": "5026cc5eddd06cce"
    }
   },
   {
@@ -305,10 +295,9 @@
      "effect": "default model ?? availableModels[0] (traps on an empty catalog; none of the six is empty)."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.persist()": "1ffdde36f05cb51b",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "a522a84243a7a3fb"
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.persist()": "523799e757641eb7",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "6b3fc66f2b218808"
    }
   },
   {
@@ -335,11 +324,10 @@
      "effect": "switches; otherwise returns without change."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.persist()": "1ffdde36f05cb51b",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "a522a84243a7a3fb",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "ac9ddbe514f8e580"
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.persist()": "523799e757641eb7",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "6b3fc66f2b218808",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "d6c953953bdfc507"
    }
   },
   {
@@ -363,12 +351,11 @@
      "effect": "setActive(provider: fallback) with default model; otherwise keeps the current (possibly unusable) selection."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "4d1d71f3bef78e55",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "a522a84243a7a3fb",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.setActive(provider:model:)": "7017aa5ebcacdde3",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.visibleProviders": "14b8c52d4b300460"
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "016373538fb3a9ab",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.refreshAvailabilityCache()": "6b3fc66f2b218808",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.setActive(provider:model:)": "7e94801a91b5710a",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.visibleProviders": "6bc56ccb2a666bf0"
    }
   },
   {
@@ -383,7 +370,6 @@
     "ud:assistant.activeModelID"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

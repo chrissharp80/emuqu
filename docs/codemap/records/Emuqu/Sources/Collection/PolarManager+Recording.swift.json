@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "SDK-dependent members are inside `#if canImport(PolarBleSdk)` blocks; without the SDK startRecording/checkRecordingStatus/stopOfflinePpiRecording/discardStoredExercises throw sdkNotAvailable and clear/check are no-ops.",
- "flags": [],
  "units": [
   {
    "key": "func StrapRecordingCoordinator.startRecording(while:)",
@@ -50,16 +49,15 @@
      "effect": "await startH10Recording(while:)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startH10Recording(while:)": "eec290f56fa486d6",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startVeritySenseRecording(while:)": "4068c7ec9b0e5086",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "d58789403bf724ad",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)": "cc46efce58872485"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startH10Recording(while:)": "6e3b7f395f10e563",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startVeritySenseRecording(while:)": "59f106799f57fbb4",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "18cc22720cb25011",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "912200aadd216e98",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startDecision(hasAPI:hasDeviceId:connectionState:recordingState:isRecordingOnDevice:deviceType:)": "070d70a5a3cda2fb"
    }
   },
   {
@@ -87,12 +85,11 @@
      "effect": "true → setAsideRunningRecording(), whose errors propagate and abort arming; false → straight to startRecording"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.deviceIsRecording()": "7fad25aed3840f53",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.requireArmingAllowed(_:)": "6b890a6caaaa138a",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.setAsideRunningRecording()": "953c1fd06a71f20c",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startRecording(while:)": "ffd15a39296cbea9"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.deviceIsRecording()": "2f47be38d1efae66",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.requireArmingAllowed(_:)": "b654c6504ceb0f16",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.setAsideRunningRecording()": "8c18fa6c1e15b58f",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startRecording(while:)": "5f66555472030a1c"
    }
   },
   {
@@ -140,16 +137,15 @@
      "effect": "error propagates and aborts arming; otherwise sleep 500 ms and return"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopWithinBudget(api:deviceId:)": "7c80b02fd97316d4",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.rescueToBackup(_:)": "bf3121af6384f56d",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.beginTransfer()": "e9daeea8a265471e",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)": "4137f7f6f0a5ee91",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)": "51fb21accda9b30b",
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopWithinBudget(api:deviceId:)": "4e22c51f15a1b246",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.rescueToBackup(_:)": "5f4c9b1f9510f962",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "18cc22720cb25011",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.beginTransfer()": "1917898fc071825f",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(recordedSince:budget:)": "7793d8b3a63760b5",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)": "c08b307347bf7c10",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4"
    }
   },
   {
@@ -171,9 +167,8 @@
      "effect": "true → return; false → log 'Arming withdrawn' and throw CancellationError"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -196,11 +191,10 @@
      "effect": "error logged and swallowed; returns manager.isRecordingOnDevice, which after a relaunch is false (comment :42-46), so a running recording is then not rescued before startRecording"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.checkRecordingStatus(deviceId:)": "8e73f9473236c7de",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.checkRecordingStatus(deviceId:)": "d20ca8e5a813f277",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -224,13 +218,12 @@
      "effect": "throw featureNotReady before touching recordingState"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.runVeritySenseStartSteps(while:)": "8a8116137fd76874",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.settlingAbortedStart(_:)": "a076d2a986109134",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requireUsable(_:)": "d0e5ebb2017c6d6b"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.runVeritySenseStartSteps(while:)": "a219d3ce3dc05d34",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.settlingAbortedStart(_:)": "c67b79fc26b58787",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "912200aadd216e98",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requireUsable(_:)": "0dbec6f788e1499a"
    }
   },
   {
@@ -276,13 +269,12 @@
      "effect": "try startOfflinePpiRecording()"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearExistingTolerantly(label:)": "2bfae4a309856faa",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.requireArmingAllowed(_:)": "6b890a6caaaa138a",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.rescueUnrecoveredOfflineRecordings()": "8dc26cb81c24d0f8",
-    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.startOfflinePpiRecording()": "5bb1d6244f4b89f0",
-    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearExistingTolerantly(label:)": "2a45a011bb987a3b",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.requireArmingAllowed(_:)": "b654c6504ceb0f16",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.rescueUnrecoveredOfflineRecordings()": "38f43ffa8791f05c",
+    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.startOfflinePpiRecording()": "eecbd0862b1f89de",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "8cd684877dfeadf8"
    }
   },
   {
@@ -306,9 +298,8 @@
      "effect": "if recordingState == .starting set .idle; rethrow"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930"
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "912200aadd216e98"
    }
   },
   {
@@ -329,11 +320,10 @@
      "effect": "warning logged, error swallowed; for an H10 the subsequent start then fails with error 106 (comment :233)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearAnyExistingExercises()": "f318a9f9f819be32",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::var StrapRecordingCoordinator.deviceLabel": "58f6b558451d4e72",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearAnyExistingExercises()": "a680a02feac19acd",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::var StrapRecordingCoordinator.deviceLabel": "aa0ea3b3e2961c5a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -372,12 +362,11 @@
      "effect": "log warning, return false — caller leaves recordings on the strap"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::var StrapRecordingCoordinator.deviceLabel": "58f6b558451d4e72",
-    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.fetchUnsavedOfflinePpiRecordings()": "c35bd53f92ab3439",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.rescueToBackup(_:)": "bf3121af6384f56d",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::var StrapRecordingCoordinator.deviceLabel": "aa0ea3b3e2961c5a",
+    "Emuqu/Sources/Collection/PolarManager+VeritySense.swift::func StrapRecordingCoordinator.fetchUnsavedOfflinePpiRecordings()": "715f332af4d3e349",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.rescueToBackup(_:)": "5f4c9b1f9510f962",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -401,14 +390,13 @@
      "effect": "requireArmingAllowed before each; a throw propagates after settlingAbortedStart resets .starting to .idle"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.requireArmingAllowed(_:)": "6b890a6caaaa138a",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.runH10StartStep(_:)": "4efd878a15828ddd",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.settlingAbortedStart(_:)": "a076d2a986109134",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requireUsable(_:)": "d0e5ebb2017c6d6b",
-    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "9b9d45939c985f0e"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.requireArmingAllowed(_:)": "b654c6504ceb0f16",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.runH10StartStep(_:)": "5990130f738ddfc4",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.settlingAbortedStart(_:)": "c67b79fc26b58787",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requireUsable(_:)": "0dbec6f788e1499a",
+    "Emuqu/Sources/Collection/StrapStartSequence.swift::func StrapStartSequence.steps(for:)": "8cd684877dfeadf8"
    }
   },
   {
@@ -442,12 +430,11 @@
      "effect": "beginH10RecordingSurfacingFailure()"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.beginH10RecordingSurfacingFailure()": "32a40b0de7578e87",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearExistingTolerantly(label:)": "2bfae4a309856faa",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.rescueUndownloadedH10Recordings()": "948d0c8dcf7cc743",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.beginH10RecordingSurfacingFailure()": "36705184957697b3",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearExistingTolerantly(label:)": "2a45a011bb987a3b",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.rescueUndownloadedH10Recordings()": "b75cfc956f763bb2",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "912200aadd216e98"
    }
   },
   {
@@ -494,15 +481,14 @@
      "effect": "log external error and throw strapHoldsUndownloadedRecording"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.unsavedExerciseIds(api:deviceId:)": "633ab7b20353f39a",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.rescueToBackup(_:)": "bf3121af6384f56d",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.beginTransfer()": "e9daeea8a265471e",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(exerciseId:budget:)": "7854c4cd6d2a0ee8",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)": "51fb21accda9b30b"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.unsavedExerciseIds(api:deviceId:)": "693634f274883baa",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.rescueToBackup(_:)": "5f4c9b1f9510f962",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "18cc22720cb25011",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.beginTransfer()": "1917898fc071825f",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.fetchRecording(exerciseId:budget:)": "bfef24b35caf4c74",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)": "c08b307347bf7c10"
    }
   },
   {
@@ -524,10 +510,9 @@
      "effect": "drop the id (nil); otherwise (undecodable or not saved) keep it for rescue"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listStoredExercises(api:deviceId:)": "3d51e593ecf92c95",
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.isRecordingSaved(startedAt:)": "1c2df9319bd22274",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listStoredExercises(api:deviceId:)": "256f2264a9380fec",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.isRecordingSaved(startedAt:)": "ab7f963ac8b3ce75",
     "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)": "b201147d756569c3"
    }
   },
@@ -549,10 +534,9 @@
      "effect": "throw surfaceStartFailure(error) (strapBatteryTooLow or the original error)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.beginH10ExerciseRecording()": "e52f4ce73d41cb4d",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.surfaceStartFailure(_:)": "305408f73aa9b5b5"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.beginH10ExerciseRecording()": "2d8d29ca2945cffa",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.surfaceStartFailure(_:)": "99a082142cee3bf3"
    }
   },
   {
@@ -578,14 +562,13 @@
      "effect": "throw PolarError.notConnected (then surfaced as a recordingFailed lastError)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::var StrapRecordingCoordinator.deviceLabel": "58f6b558451d4e72",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::var StrapRecordingCoordinator.deviceLabel": "aa0ea3b3e2961c5a",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "18cc22720cb25011",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "912200aadd216e98",
     "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)": "bde2f9a59f6c5745",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -612,14 +595,13 @@
      "effect": "false → lastError = recordingFailed(humanized), return original error; true → lastError and return value = strapBatteryTooLow(percent:)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanizeStartFailure(_:)": "1fa47d375eaaa0e7",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.isBatteryTooLow(_:)": "254db8cb9b0e033f",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "ddfd0bc6b3d69f3b",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PolarErrorMessages.swift::func PolarErrorMessages.humanizeStartFailure(_:)": "23ef5da3c124d18e",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.isBatteryTooLow(_:)": "ad509452391da2f4",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "269f485132940e8b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "912200aadd216e98",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -640,7 +622,6 @@
      "effect": "false → return false; true → compare code with .batteryTooLow"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -662,10 +643,9 @@
      "effect": "'device'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName": "1931ae101de31569",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.displayName": "b3637bf31f4792be",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4"
    }
   },
   {
@@ -694,11 +674,10 @@
      "effect": "true → clearOfflinePpiRecordings; false (H10 or nil type) → clearStoredExercises"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearOfflinePpiRecordings()": "f64ea72af7068a01",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearStoredExercises()": "2db4191cbed6471c",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearOfflinePpiRecordings()": "9de52fef49113568",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearStoredExercises()": "3d1fdaf8c34c06f5",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4"
    }
   },
   {
@@ -732,13 +711,12 @@
      "effect": "log 'No offline PPI recordings to clear' and return; else log count"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.removeOfflinePpiRecordings(api:deviceId:)": "4bacb0cccb8308e6",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requireUsable(_:)": "d0e5ebb2017c6d6b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.removeOfflinePpiRecordings(api:deviceId:)": "cf69741bca078d29",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "18cc22720cb25011",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requireUsable(_:)": "0dbec6f788e1499a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -772,11 +750,10 @@
      "effect": "removeExercise; first failure throws and leaves the rest"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listStoredExercises(api:deviceId:)": "3d51e593ecf92c95",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listStoredExercises(api:deviceId:)": "256f2264a9380fec",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "18cc22720cb25011",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -799,9 +776,8 @@
      "effect": "appended; a stream error propagates"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.onePerRecording(_:path:)": "ad14f2f73d638fb0"
+    "Emuqu/Sources/Collection/StrapOfflineRecordingEntries.swift::func StrapOfflineRecordingEntries.onePerRecording(_:path:)": "9fc3b968ca5ae7bd"
    }
   },
   {
@@ -825,10 +801,9 @@
      "effect": "remove; first failure throws"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listPpiEntries(api:deviceId:)": "fc7c574ff9a9b9bb",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listPpiEntries(api:deviceId:)": "889ac09f82e1f996",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -850,7 +825,6 @@
      "effect": "appended; stream error propagates"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -889,14 +863,13 @@
      "effect": "true → veritySenseRecordingStatus; false → H10 status + applyStatus"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.applyStatus(ongoing:)": "5442a60411277606",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.h10RecordingStatus(api:deviceId:)": "00910fb076991bfb",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.veritySenseRecordingStatus(api:deviceId:)": "29af75722a0dcf81",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.applyStatus(ongoing:)": "c02b06847552125c",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.h10RecordingStatus(api:deviceId:)": "1f312152e6e8f3ff",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.veritySenseRecordingStatus(api:deviceId:)": "f21e7866842bc8a7",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "18cc22720cb25011",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -922,12 +895,11 @@
      "effect": "false (not recording)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.applyStatus(ongoing:)": "5442a60411277606",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requireUsable(_:)": "d0e5ebb2017c6d6b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.applyStatus(ongoing:)": "c02b06847552125c",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requireUsable(_:)": "0dbec6f788e1499a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -952,11 +924,10 @@
      "effect": "assign it; nil (transitional states starting/stopping/fetching, or idle) → leave recordingState unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
-    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.statusOutcome(ongoing:current:)": "a5be9584cb9f737d"
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "912200aadd216e98",
+    "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.statusOutcome(ongoing:current:)": "84129ecb0b95ee12"
    }
   },
   {
@@ -994,13 +965,12 @@
      "effect": "Verity check; else H10 check"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.checkStoredH10Exercises(api:deviceId:)": "cdd10ddc8ff7cb6e",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.checkStoredOfflineRecordings(api:deviceId:)": "0d9feb5a0aa02f42",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.checkStoredH10Exercises(api:deviceId:)": "113af519c303381b",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.checkStoredOfflineRecordings(api:deviceId:)": "fbaa179f0ee231ff",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "18cc22720cb25011",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -1035,13 +1005,12 @@
      "effect": "log; hasStoredExercise and storedExerciseDate keep their last values (an error is not read as an empty strap)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listPpiEntries(api:deviceId:)": "fc7c574ff9a9b9bb",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "dbd1bab5a9194403",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.isUsable(_:)": "b2f3b44958720987",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listPpiEntries(api:deviceId:)": "889ac09f82e1f996",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "614d193cfe0e5d19",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.isUsable(_:)": "0b1693c797f384fb",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -1072,13 +1041,12 @@
      "effect": "log; hasStoredExercise and storedExerciseDate keep their last values"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listStoredExercises(api:deviceId:)": "3d51e593ecf92c95",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "dbd1bab5a9194403",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.listStoredExercises(api:deviceId:)": "256f2264a9380fec",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "614d193cfe0e5d19",
     "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.newestRecording(_:exerciseId:notBefore:timeZone:)": "a9344f4e4b4ab7f1",
     "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)": "b201147d756569c3",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -1104,14 +1072,13 @@
      "effect": "throw PolarError.notConnected"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "34578c85458fe930",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requireUsable(_:)": "d0e5ebb2017c6d6b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "18cc22720cb25011",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "912200aadd216e98",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.requireUsable(_:)": "0dbec6f788e1499a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -1127,7 +1094,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1163,14 +1129,13 @@
      "effect": "error propagates to RecordView (sessionState.lastError); hasStoredExercise/storedExerciseDate untouched"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearAnyExistingExercises()": "f318a9f9f819be32",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopBeforeDiscarding(api:deviceId:)": "b22d77862823949a",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "dbd1bab5a9194403",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.clearAnyExistingExercises()": "a680a02feac19acd",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopBeforeDiscarding(api:deviceId:)": "860c12feaf03f527",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "18cc22720cb25011",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "614d193cfe0e5d19",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -1194,10 +1159,9 @@
      "effect": "return without stopping"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.deviceIsRecording()": "7fad25aed3840f53",
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopWithinBudget(api:deviceId:)": "7c80b02fd97316d4"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.deviceIsRecording()": "2f47be38d1efae66",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopWithinBudget(api:deviceId:)": "4e22c51f15a1b246"
    }
   },
   {
@@ -1212,10 +1176,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopOnStrap(api:deviceId:)": "af724f581a8b200e",
-    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapDeadline.race(seconds:timeout:operation:)": "4354517274b97049"
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopOnStrap(api:deviceId:)": "ac0291c27e36f540",
+    "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapDeadline.race(seconds:timeout:operation:)": "8d202b4b5ef89477"
    }
   },
   {
@@ -1239,10 +1202,9 @@
      "effect": "Verity stop; else H10 stop"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopOfflinePpiRecording()": "f601189cc624e75d",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.stopOfflinePpiRecording()": "f1720396d50a70c6",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopH10Recording(api:deviceId:awaitFinalize:showsProgress:cancellable:streamHoldsIt:)": "cb5b7ff1b25d69b8"
    }
   }

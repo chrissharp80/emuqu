@@ -10,19 +10,6 @@
   "CompactToolRouter.registry (stored let FactResolverRegistry)"
  ],
  "toplevel": "allowedActionNames static set initializer (lines 420-439) lists 19 action tool names: assistant_artifacts_add/update_status, routes_library_rename/save_workout/engage, assistant_contacts_add/remove, assistant_email_compose, assistant_memory_add/remove/clear/restore, web_search, location_current, location_current_detailed, location_situation, location_set_address, directions_routeTo, directions_clear. The catalog also declares action location.roads_ahead (AppFactResolver+LiveNavigation) which is NOT in this list, so it never appears in the compact schema.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Action-tool count is stated inconsistently: AssistantViewModel says 'up to 16 action tools' while allowedActionNames holds 19 (the header comment says up to 19); docs/FLO_ARCHITECTURE.md:216 lists the allowed actions but omits assistant_artifacts_add / assistant_artifacts_update_status.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:166",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift:420",
-    "docs/FLO_ARCHITECTURE.md:216"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "func CompactToolRouter.schema(registry:)",
@@ -39,11 +26,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.actionTools(registry:)": "2ca04b95b7f6356a",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.deduped(_:)": "eee1e34e94bcafe3",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools()": "bcdfe76edb3db08e"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.actionTools(registry:)": "12c285c552028037",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.deduped(_:)": "af9c5363c90b9fda",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools()": "38222fdfbe00c8b7"
    }
   },
   {
@@ -68,10 +54,9 @@
      "effect": "logs a '[CompactToolRouter] dropping duplicate tool spec' warning and skips the spec; otherwise appends it"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "a7ea67282406ff00",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "7a6da6372d1026af",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -100,11 +85,10 @@
      "effect": "returns missing(invalidParameter, 'unknown tool'); else registry.resolveTool"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveReadTool(name:argsJSON:)": "5b445ae929800bf5",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.gatedReadResult(toolName:argsJSON:value:elapsed:)": "e215c6a75e5ffda3",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveTool(name:argsJSON:)": "41058973459b65bf"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveReadTool(name:argsJSON:)": "33957c486d7e81f3",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.gatedReadResult(toolName:argsJSON:value:elapsed:)": "f7b8d4e3e0a4b887",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveTool(name:argsJSON:)": "2bf558b2e56f8b39"
    }
   },
   {
@@ -129,10 +113,9 @@
      "effect": "truncates to 170 chars and appends '…'; otherwise uses it whole"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools()": "bcdfe76edb3db08e",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "a7ea67282406ff00"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools()": "38222fdfbe00c8b7",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "7a6da6372d1026af"
    }
   },
   {
@@ -160,23 +143,22 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools1()": "449c3f41863de85c",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools1b()": "17468d3286e7240c",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools2()": "fc5df27d121de1b2",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools2b()": "ad13f73287ddfba9",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools3()": "a7a7d932e98c26a8",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools3a()": "c8520c9c7656b49e",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools3b()": "c09bedf8904a0e29",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools4()": "c9471f0e78ee67dc",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools4b()": "49cb402c9fd36adf",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools5()": "514f829cbf4c4195",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools5b()": "99e988caa8064dbe",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools6()": "c69484f1647af960",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools6b()": "fe2fc06b9541478a",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools7()": "d44706ee4f0b2560",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools8()": "0821af53fefee566"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools1()": "6586f8878652b2d9",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools1b()": "28dbfae00f3e7933",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools2()": "9f24dca29181e9af",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools2b()": "05e5657cbf9bbe87",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools3()": "cbf5e764b4f9231c",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools3a()": "de8df62221900486",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools3b()": "93c4d12282ce473d",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools4()": "7f9f761e7b374076",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools4b()": "a961cb711f764c15",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools5()": "8f52bacc5d68f9a2",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools5b()": "90b27c73d377f92d",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools6()": "3007d2facc5a2979",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools6b()": "8bcd7dcffbff9a7c",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools7()": "e6a03fb35256d583",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools8()": "ea44233453913aeb"
    }
   },
   {
@@ -190,9 +172,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ToolSpec.InputSchema(properties:required:)": "cce3baef73cb82a3"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ToolSpec.InputSchema(properties:required:)": "2f37b513688205a5"
    }
   },
   {
@@ -206,9 +187,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "a7ea67282406ff00"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "7a6da6372d1026af"
    }
   },
   {
@@ -222,9 +202,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "a7ea67282406ff00"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "7a6da6372d1026af"
    }
   },
   {
@@ -238,9 +217,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "a7ea67282406ff00"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "7a6da6372d1026af"
    }
   },
   {
@@ -254,9 +232,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "a7ea67282406ff00"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "7a6da6372d1026af"
    }
   },
   {
@@ -270,9 +247,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "a7ea67282406ff00"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "7a6da6372d1026af"
    }
   },
   {
@@ -286,9 +262,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "a7ea67282406ff00"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "7a6da6372d1026af"
    }
   },
   {
@@ -302,9 +277,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "a7ea67282406ff00"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "7a6da6372d1026af"
    }
   },
   {
@@ -318,9 +292,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "a7ea67282406ff00"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "7a6da6372d1026af"
    }
   },
   {
@@ -334,9 +307,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "a7ea67282406ff00"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "7a6da6372d1026af"
    }
   },
   {
@@ -350,9 +322,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "a7ea67282406ff00"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "7a6da6372d1026af"
    }
   },
   {
@@ -366,9 +337,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "a7ea67282406ff00"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "7a6da6372d1026af"
    }
   },
   {
@@ -382,9 +352,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "a7ea67282406ff00"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "7a6da6372d1026af"
    }
   },
   {
@@ -398,9 +367,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "a7ea67282406ff00"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "7a6da6372d1026af"
    }
   },
   {
@@ -414,9 +382,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "a7ea67282406ff00"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "7a6da6372d1026af"
    }
   },
   {
@@ -430,9 +397,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "a7ea67282406ff00"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "7a6da6372d1026af"
    }
   },
   {
@@ -448,9 +414,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()": "c3f73b10a7c61e34"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()": "6ca770cebbe02fbd"
    }
   },
   {
@@ -480,25 +445,24 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveAppState(args:)": "cf3c33adc46c6405",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveAssistantState(args:)": "c6e3c0bbd2427df1",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveBaseline(args:)": "7c95961fe1e51344",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveBreadcrumbs(args:)": "5d66c972a5a46138",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveHRV(args:)": "d208947d66521335",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveListWorkouts(args:)": "fafc12d6f4ba3588",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveRecovery(args:)": "0890ffb754af61ff",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveRoutes(args:)": "3bcfa69e1a776bad",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveScoreMeta(args:)": "95e9d4be0ec09755",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveSession(args:)": "209e7a910e455bc0",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveSleep(args:)": "28a7766574c0b962",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveTags(args:)": "e772e61c460d4a55",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveTrainingLoad(args:)": "d2f70200c46b2eb2",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveUser(args:)": "c7ca59c46ba7ecc5",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveWalks(args:)": "898ef38c29f43277",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveWorkout(args:)": "1cc121fe168b6eec",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveWorkoutLive(args:)": "a52c5326d0e9f5be"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveAppState(args:)": "7642a3a48a54e84d",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveAssistantState(args:)": "fcd094ae4feb19ab",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveBaseline(args:)": "eeeb7f30dc0ae847",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveBreadcrumbs(args:)": "ae2f5c38fa78955b",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveHRV(args:)": "e5e1ac150e62be10",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveListWorkouts(args:)": "6cc578fd3d5715e0",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveRecovery(args:)": "c1d6c2de94c330f1",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveRoutes(args:)": "4d64551d6dac6b23",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveScoreMeta(args:)": "fa9be5ce1476ce2e",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveSession(args:)": "9fd6aa61d9b82fe6",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveSleep(args:)": "2c176c579f1ea9da",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveTags(args:)": "83a4cde4c5052d09",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveTrainingLoad(args:)": "fb14e8de7537f37b",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveUser(args:)": "0793afc724748c92",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveWalks(args:)": "82ee63e1e9b24601",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveWorkout(args:)": "9659735f44ef044b",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.resolveWorkoutLive(args:)": "62ee10d5f5e1de89"
    }
   },
   {
@@ -561,12 +525,11 @@
      "effect": "returns nil so resolveTool checks the action allow-list"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveHealthKitTool(field:)": "c1a7759ff97f1f43",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::var CompactToolRouter.uniformReadResolvers": "cc72d58eaa885627",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.stringArgs(fromJSON:)": "9b7e976c5e59c057"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveHealthKitTool(field:)": "efbec9bda72c2f8a",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::var CompactToolRouter.uniformReadResolvers": "d89e36f5ae8b8de4",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "464ff862a8437f61",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.stringArgs(fromJSON:)": "b4226d4ecd536c5f"
    }
   },
   {
@@ -596,9 +559,8 @@
      "effect": "returns .missing(.invalidParameter,'get_healthkit field must be ...')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "67e3ca45fab7d9e6"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.resolveAsync(_:)": "464ff862a8437f61"
    }
   }
  ],

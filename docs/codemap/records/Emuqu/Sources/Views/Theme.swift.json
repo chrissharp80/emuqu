@@ -17,18 +17,6 @@
   "mem:AppTheme.cornerRadius 16/smallCornerRadius 10/padding 16/cardShadowRadius 12 (static let)"
  ],
  "toplevel": "Static let colour constants listed in state; line 681 note says Color hex extension lives in HRVSession.swift. All theme-aware computed colours read AppDependencies.current.app.settingsManager.settings (colorTheme, appearanceTheme) at call time; SwiftUI re-renders only when an observing view re-evaluates.",
- "flags": [
-  {
-   "kind": "coupling",
-   "sev": "low",
-   "text": "Every theme-aware colour reaches into the global AppDependencies.current.app.settingsManager singleton instead of the SwiftUI environment, so colour depends on hidden global state and views re-colour only when something else triggers a re-render.",
-   "evidence": [
-    "Emuqu/Sources/Views/Theme.swift:10",
-    "Emuqu/Sources/Views/Theme.swift:250"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var AppTheme.currentColorTheme",
@@ -45,12 +33,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a"
    }
   },
   {
@@ -130,11 +117,10 @@
      "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForDarkAppearance": "535a0074fd3ef161",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForLightAppearance": "627a2a147ca73c89"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForDarkAppearance": "57619190525d5a05",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForLightAppearance": "520aaf614215480c"
    }
   },
   {
@@ -156,9 +142,8 @@
      "effect": "one RGB per theme"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "44bb6778d825fb3a"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "bbe2c1dcd8fe4139"
    }
   },
   {
@@ -180,9 +165,8 @@
      "effect": "one RGB per theme"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "44bb6778d825fb3a"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "bbe2c1dcd8fe4139"
    }
   },
   {
@@ -261,24 +245,9 @@
      "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc says each value is `primary` darkened until white clears 4.6:1, but indigo-light (0.35,0.34,0.84) and purple-light (0.58,0.30,0.82) are identical to `primary`'s light values, i.e. not darkened (the doc table claims they already pass).",
-     "evidence": [
-      "Emuqu/Sources/Views/Theme.swift:36",
-      "Emuqu/Sources/Views/Theme.swift:58",
-      "Emuqu/Sources/Views/Theme.swift:59",
-      "Emuqu/Sources/Views/Theme.swift:19",
-      "Emuqu/Sources/Views/Theme.swift:20"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "44bb6778d825fb3a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "bbe2c1dcd8fe4139",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
    }
   },
   {
@@ -333,11 +302,10 @@
      "effect": "dark orange accent"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForDarkAppearance": "535a0074fd3ef161"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryForDarkAppearance": "57619190525d5a05"
    }
   },
   {
@@ -416,10 +384,9 @@
      "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "44bb6778d825fb3a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "bbe2c1dcd8fe4139",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
    }
   },
   {
@@ -498,10 +465,9 @@
      "effect": "dark-appearance RGB; otherwise the light RGB (dim uses the light value)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "44bb6778d825fb3a",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentColorTheme": "bbe2c1dcd8fe4139",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
    }
   },
   {
@@ -523,9 +489,8 @@
      "effect": "darkened #007F5C-ish green (0,0.496,0.36); else wongOptimal"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
    }
   },
   {
@@ -547,9 +512,8 @@
      "effect": "wongGood; else lightened blue (0.19,0.554,0.757)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
    }
   },
   {
@@ -571,9 +535,8 @@
      "effect": "darkened amber (0.576,0.397,0); else wongCaution"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
    }
   },
   {
@@ -595,9 +558,8 @@
      "effect": "darkened orange (0.714,0.314,0); else slightly lightened orange (0.846,0.395,0.04)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
    }
   },
   {
@@ -619,9 +581,8 @@
      "effect": "darkened green (0.126,0.491,0.302); else sage"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
    }
   },
   {
@@ -643,9 +604,8 @@
      "effect": "darkened gold (0.539,0.418,0.121); else softGold"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
    }
   },
   {
@@ -667,9 +627,8 @@
      "effect": "darkened coral (0.733,0.281,0.265); else terracotta"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
    }
   },
   {
@@ -691,9 +650,8 @@
      "effect": "darkened violet (0.513,0.363,0.711); else dustyRose"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
    }
   },
   {
@@ -715,9 +673,8 @@
      "effect": "darkened cyan (0.18,0.468,0.54); else mist"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
    }
   },
   {
@@ -734,9 +691,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -754,12 +710,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a"
    }
   },
   {
@@ -791,9 +746,8 @@
      "effect": "#111114"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
    }
   },
   {
@@ -825,9 +779,8 @@
      "effect": "#1C1C22"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
    }
   },
   {
@@ -859,9 +812,8 @@
      "effect": "#26262B"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
    }
   },
   {
@@ -893,9 +845,8 @@
      "effect": "#17171B"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
    }
   },
   {
@@ -927,9 +878,8 @@
      "effect": "#F0F0F5"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
    }
   },
   {
@@ -961,9 +911,8 @@
      "effect": "#9E9EB3"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
    }
   },
   {
@@ -995,9 +944,8 @@
      "effect": "#8D8DA3"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
    }
   },
   {
@@ -1015,10 +963,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight": "834bd116ec7451d0"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryLight": "ec0aeab80e909cde"
    }
   },
   {
@@ -1036,10 +983,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark": "f0f931939f03a4f6"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark": "140811f9fa591035"
    }
   },
   {
@@ -1066,9 +1012,8 @@
      "effect": "#AD8AF0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
    }
   },
   {
@@ -1103,9 +1048,8 @@
      "effect": "dustyRose"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)": "855c8b68d2abcbc7"
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)": "ce864bb2c19d8f10"
    }
   },
   {
@@ -1120,10 +1064,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
-    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "dc2f3b06b79e333d"
+    "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "44c36cfa15477f52",
+    "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.color": "a0f14cd5e49b9046"
    }
   },
   {
@@ -1153,16 +1096,15 @@
      "effect": "sex passed; other/nil → nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalCategory(ratio:)": "dc4d1279a4428011",
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.interpret(rmssd:age:sex:)": "2e243dc56ab312b2",
-    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "315f6413360002af",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.age": "1087428d4318dc8f",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.personalCategory(ratio:)": "24e59ec10781caad",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.interpret(rmssd:age:sex:)": "91e3cd0cbeee9702",
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.category(_:caller:file:line:)": "f58c07f55431753c",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.age": "caf342fdad38031b",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "95791358c97c8afc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -1177,10 +1119,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedLabel": "34fa7b333dfcae74",
-    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)": "48bf4341199366c9"
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedLabel": "4400fe81fd8f4785",
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)": "3cd4aa76dcac5807"
    }
   },
   {
@@ -1200,9 +1141,8 @@
      "effect": "one colour per tier"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)": "48bf4341199366c9"
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)": "3cd4aa76dcac5807"
    }
   },
   {
@@ -1228,13 +1168,12 @@
      "effect": "one text shade per tier"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)": "48bf4341199366c9",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.dustyRoseText": "42a7b75ca4dc32cd",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.softGoldText": "12fb8e2fb33c18ef",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850"
+    "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)": "3cd4aa76dcac5807",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.dustyRoseText": "37b90c32116807c8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "b4125545ddd3d313",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.softGoldText": "9e2a35c994be8066",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "a97b4b25212e5466"
    }
   },
   {
@@ -1273,10 +1212,9 @@
      "effect": "textSecondary"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -1311,9 +1249,8 @@
      "effect": "source.capitalized (raw key shown, not localized)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1343,9 +1280,8 @@
      "effect": "Mixed; else LF-dominant"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1368,10 +1304,9 @@
      "effect": "textTertiary; else textPrimary"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -1385,23 +1320,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Pass-through alias of LocalizedDuration.hoursMinutes; the repo has three more hours/minutes formatters (DurationFormatter.hoursMinutes, NarrativeLanguage.hoursMinutes, SleepData.hoursMinutes).",
-     "evidence": [
-      "Emuqu/Sources/Views/Theme.swift:511",
-      "Emuqu/Sources/Views/NavigationHeader.swift:13",
-      "Emuqu/Sources/Utilities/Extensions.swift:12",
-      "Emuqu/Sources/Services/NarrativeLanguage.swift:47",
-      "Emuqu/Sources/Models/SleepData.swift:83"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03"
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
    }
   },
   {
@@ -1433,9 +1353,8 @@
      "effect": "black 30%"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "a06d8ed9907ae35c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.currentTheme": "7deb7e9130a78eba"
    }
   },
   {
@@ -1452,10 +1371,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardShadow": "32095e3a90467f83"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardShadow": "d90942c73dc9068c"
    }
   },
   {
@@ -1473,10 +1391,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.heroGradient": "d005c32e2a9fb187",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.heroGradient": "c5ad97e6e33facdd",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -1492,9 +1409,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
    }
   },
   {
@@ -1510,9 +1426,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
    }
   },
   {
@@ -1550,11 +1465,10 @@
      "effect": "scale 0.97; else 1"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe",
-    "Emuqu/Sources/Views/Theme.swift::var ZenButtonStyle.labelColor": "ae9fddd6502fa456",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107",
+    "Emuqu/Sources/Views/Theme.swift::var ZenButtonStyle.labelColor": "4dfb0749df5591bf",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -1575,9 +1489,8 @@
      "effect": ".white; else .black"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::func ZenButtonStyle.whiteClearsContrast(on:)": "2a66a3302aafff5d"
+    "Emuqu/Sources/Views/Theme.swift::func ZenButtonStyle.whiteClearsContrast(on:)": "9cd0eab382de0bab"
    }
   },
   {
@@ -1591,9 +1504,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::func ZenButtonStyle.linearized(_:)": "928af3fb6bea3fc7"
+    "Emuqu/Sources/Views/Theme.swift::func ZenButtonStyle.linearized(_:)": "b786f618b5d9c8eb"
    }
   },
   {
@@ -1611,7 +1523,6 @@
      "effect": "linear segment; else power curve"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1651,11 +1562,10 @@
      "effect": "scale 0.97; else 1"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -1678,9 +1588,8 @@
      "effect": "explicit colour when passed; AppTheme.primary when nil — reached by HistoryView.swift:430 `.zen()`"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryFilled": "2f1e670aa8894ea8"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryFilled": "aa5d37d4074a1e06"
    }
   },
   {
@@ -1692,7 +1601,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

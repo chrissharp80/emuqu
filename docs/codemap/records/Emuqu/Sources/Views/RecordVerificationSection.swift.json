@@ -7,19 +7,6 @@
  ],
  "state": [],
  "toplevel": "Three file-private free functions (analysisWindowDurationRow, analysisWindowQualityRow, verificationNote) build rows. Stored input limits: Verification.Config = .default.",
- "flags": [
-  {
-   "kind": "hack",
-   "sev": "low",
-   "text": "The row ticks follow the limits passed in (default Verification.Config.default: warn above 5% artifacts, 300 beats). Quick readings are verified with RRCollector.streamingVerification (warn 10%, 120 beats), whose config is private, and the call site passes the default, so a quick reading at 5-10% artifacts or 120-299 clean beats shows an orange tick with no matching warning. Needs Verification.Config.quickReading and the call site to pass it (handoff).",
-   "evidence": [
-    "Emuqu/Sources/Views/RecordVerificationSection.swift:19",
-    "Emuqu/Sources/Collection/RRCollector.swift:252",
-    "Emuqu/Sources/Views/RecordView+Sections.swift:254"
-   ],
-   "found": "fix batch b24"
-  }
- ],
  "units": [
   {
    "key": "var RecordVerificationSection.body",
@@ -37,11 +24,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordVerificationSection.swift::var RecordVerificationSection.header": "312853e3c1d89484",
-    "Emuqu/Sources/Views/RecordVerificationSection.swift::var RecordVerificationSection.metricRows": "488b919a1425f1be",
-    "Emuqu/Sources/Views/RecordVerificationSection.swift::var RecordVerificationSection.windowRows": "4f0552e6324be4fd"
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::var RecordVerificationSection.header": "afbbfaa2a3a9a97e",
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::var RecordVerificationSection.metricRows": "f26eb371524d5d08",
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::var RecordVerificationSection.windowRows": "ba4330fa7f60eb4d"
    }
   },
   {
@@ -56,10 +42,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordVerificationSection.swift::func RecordVerificationSection.qualityBadge(_:)": "8847e191cde68f7e"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::func RecordVerificationSection.qualityBadge(_:)": "b374a5ba046101c2"
    }
   },
   {
@@ -81,12 +66,11 @@
      "effect": "true: two rows + caption; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecordVerificationSection.swift::func analysisWindowDurationRow(_:)": "2617ca88a00bb413",
-    "Emuqu/Sources/Views/RecordVerificationSection.swift::func analysisWindowQualityRow(_:)": "9788ca70eced8ad1",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::func analysisWindowDurationRow(_:)": "66f1056ebc276b21",
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::func analysisWindowQualityRow(_:)": "925b5d5fd9e899ec",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -103,25 +87,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "hack",
-     "sev": "low",
-     "text": "The row ticks follow the limits passed in (default Verification.Config.default: warn above 5% artifacts, 300 beats). Quick readings are verified with RRCollector.streamingVerification (warn 10%, 120 beats), whose config is private, and the call site passes the default, so a quick reading at 5-10% artifacts or 120-299 clean beats shows an orange tick with no matching warning. Needs Verification.Config.quickReading and the call site to pass it (handoff).",
-     "evidence": [
-      "Emuqu/Sources/Views/RecordVerificationSection.swift:19",
-      "Emuqu/Sources/Collection/RRCollector.swift:252",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:254"
-     ],
-     "found": "fix batch b24"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "05bf2449594f0935",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/RecordVerificationSection.swift::func RecordVerificationSection.qualityRow(_:value:isGood:)": "0862c52519389e57",
-    "Emuqu/Sources/Views/RecordVerificationSection.swift::func verificationNote(_:icon:tint:)": "b0d62d06b6fc09eb"
+    "Emuqu/Sources/Import/ImportSleepWindow.swift::func ImportSleepWindow.artifactPercent(artifactCount:totalBeats:)": "80da80e90960eab3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::func RecordVerificationSection.qualityRow(_:value:isGood:)": "4aa0d11b97bd125a",
+    "Emuqu/Sources/Views/RecordVerificationSection.swift::func verificationNote(_:icon:tint:)": "dad158cc0bb267cf"
    }
   },
   {
@@ -151,9 +122,8 @@
      "effect": "green vs orange foreground"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -176,9 +146,8 @@
      "effect": "green vs orange"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -192,11 +161,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -210,10 +178,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -225,7 +192,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

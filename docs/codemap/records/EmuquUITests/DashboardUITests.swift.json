@@ -7,29 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
-   "evidence": [
-    "EmuquUITests/DashboardUITests.swift:27",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Class doc claims score-related UI elements are asserted reachable for VoiceOver; no test in the class checks a score element",
-   "evidence": [
-    "EmuquUITests/DashboardUITests.swift:13",
-    "EmuquUITests/DashboardUITests.swift:52"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func DashboardUITests.setUp()",
@@ -44,11 +21,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd"
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "27176c4bfdf71136",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "3b88145026dfe70b",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "41bb3923e9a887c8"
    }
   },
   {
@@ -60,7 +36,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -80,22 +55,9 @@
      "effect": "tap it; else do nothing"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Hand-rolled label-only Dashboard tap duplicating UITestNav.selectTab (identifier first, hittability poll, content confirmation), which the harness says exists to replace per-suite copies",
-     "evidence": [
-      "EmuquUITests/DashboardUITests.swift:38",
-      "EmuquUITests/EmuquUITests.swift:400",
-      "EmuquUITests/EmuquUITests.swift:377"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
   {
@@ -111,12 +73,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquUITests/DashboardUITests.swift::func DashboardUITests.assertOnDashboard()": "adfa00adc6e67b7a",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "EmuquUITests/DashboardUITests.swift::func DashboardUITests.assertOnDashboard()": "575c98dfbdd4ac50",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "a044cbc5d334763f",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
   {
@@ -131,11 +92,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquUITests/DashboardUITests.swift::func DashboardUITests.assertOnDashboard()": "adfa00adc6e67b7a",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "EmuquUITests/DashboardUITests.swift::func DashboardUITests.assertOnDashboard()": "575c98dfbdd4ac50",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
   {
@@ -157,12 +117,11 @@
      "effect": "return (assertion above already failed)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquUITests/DashboardUITests.swift::func DashboardUITests.assertOnDashboard()": "adfa00adc6e67b7a",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "EmuquUITests/DashboardUITests.swift::func DashboardUITests.assertOnDashboard()": "575c98dfbdd4ac50",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "a044cbc5d334763f",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
   {
@@ -178,23 +137,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The post-refresh check is tabBar.waitForExistence; if the app crashed, XCUITest's query would fail, but a hung refresh or an error state passes. scrollViews.firstMatch is also not confirmed to be the Dashboard's",
-     "evidence": [
-      "EmuquUITests/DashboardUITests.swift:134"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.coordinate": "8a89764e663efe14",
-    "EmuquUITests/DashboardUITests.swift::func DashboardUITests.assertOnDashboard()": "adfa00adc6e67b7a",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.coordinate": "5e3b153088f74923",
+    "EmuquUITests/DashboardUITests.swift::func DashboardUITests.assertOnDashboard()": "575c98dfbdd4ac50",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "a044cbc5d334763f",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
   {
@@ -220,27 +168,16 @@
      "effect": "tap it then return to Dashboard and assert"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Never asserts the other tab actually opened (tapSafely result ignored, no content check), so a dead tab button still counts as a round trip",
-     "evidence": [
-      "EmuquUITests/DashboardUITests.swift:160"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardRoot": "1f05f416ecad4647",
-    "EmuquUITests/DashboardUITests.swift::func DashboardUITests.assertOnDashboard()": "adfa00adc6e67b7a",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.acceptAssistantDisclaimer(_:timeout:)": "0751b626998c0b36",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "7c7096c59b35ed60",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)": "5ba2bf71286c792e",
-    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "22e67274e9187b00",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.dashboardRoot": "2da048db91bd45a6",
+    "EmuquUITests/DashboardUITests.swift::func DashboardUITests.assertOnDashboard()": "575c98dfbdd4ac50",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.acceptAssistantDisclaimer(_:timeout:)": "688723c8679bd6e8",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "3afc95d3936f4933",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "a044cbc5d334763f",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)": "efab8f8cde2d1594",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "20fdac3cec598901",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   }
  ],

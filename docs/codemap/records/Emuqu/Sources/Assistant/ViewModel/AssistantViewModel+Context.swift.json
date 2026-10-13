@@ -17,7 +17,6 @@
   "uses ud:assistant.priorSummary via AssistantViewModel.summaryKey (declared AssistantViewModel.swift:104)"
  ],
  "toplevel": "Static let initializers hold prompt text and phrase lists. StreamTextBuffer stored-property initializers: pendingChunks='', lastPublishAt=.distantPast, publishIntervalMs=33. The MARK block at lines 306-314 is a comment only (prompt-audit encoders section header placed before the announce detector).",
- "flags": [],
  "units": [
   {
    "key": "func AssistantViewModel.updateSummaryWith(droppedTurns:provider:model:contextRendered:)",
@@ -47,13 +46,12 @@
      "effect": "return without touching the marker or the summary (a partial summary of a stopped or wiped conversation is discarded)."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func AIProvider.send(messages:model:contextRendered:systemPrompt:)": "7f15c82710f7136b",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.collect(_:timeoutSec:)": "84f1b5febec47c50",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.storeSummary(_:droppedCount:)": "03a954cef4fe3a08",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.summarizationPrompt(_:)": "73ef5abc02f722d9"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func AIProvider.send(messages:model:contextRendered:systemPrompt:)": "653a27bc681d0691",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "9a474c3f1ee99094",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.collect(_:timeoutSec:)": "bf1088b06f58af5e",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.storeSummary(_:droppedCount:)": "60faa702082db88f",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.summarizationPrompt(_:)": "19c19ae004938a07"
    }
   },
   {
@@ -77,9 +75,8 @@
      "effect": "log warning and return; else store and persist."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -99,7 +96,6 @@
      "effect": "return turns after the marker index; else return all of dropped"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -124,7 +120,6 @@
      "effect": "prefix \"User: \" for user turns, \"Assistant: \" otherwise"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -152,7 +147,6 @@
      "effect": "80000"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -189,11 +183,10 @@
      "effect": "dropped = oldest droppedCount turns, else []"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)": "1cb4410742ea9aad",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.estimateTokens(_:)": "9d410088c4361723",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.isEmptyAssistantTurn(_:)": "0fa0cbb8f8659442"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)": "e3b46c70fc101f71",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.estimateTokens(_:)": "7cc0913bb85c3f93",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.isEmptyAssistantTurn(_:)": "c75ff2d872f46944"
    }
   },
   {
@@ -205,7 +198,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -217,7 +209,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -266,29 +257,17 @@
      "effect": "return silently (no facts stored); else store facts"
     }
    ],
-   "flags": [
-    {
-     "kind": "untested",
-     "sev": "low",
-     "text": "No test exercises runAutoFactExtraction, its prompt, parseExtractedFacts or the store filter path.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:167",
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:250"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func AIProvider.send(messages:model:contextRendered:systemPrompt:)": "7f15c82710f7136b",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.collect(_:timeoutSec:)": "84f1b5febec47c50",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.extractionPrompt(userText:assistantText:)": "21216e695f84e750",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.parseExtractedFacts(_:)": "5d887ee175f1d1af",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.store(extractedFacts:)": "7b61f24ad830fc87",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "6cc9d2a50a137c6c",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func AIProvider.send(messages:model:contextRendered:systemPrompt:)": "653a27bc681d0691",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "9a474c3f1ee99094",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.collect(_:timeoutSec:)": "bf1088b06f58af5e",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.extractionPrompt(userText:assistantText:)": "a710835444f4e0f0",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.parseExtractedFacts(_:)": "effcafa030f2d10b",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.store(extractedFacts:)": "d6551226cbf3089d",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -316,10 +295,9 @@
      "effect": "continue (skip); else add"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.factPassesAutoExtractFilter(_:)": "c64fa6405f574f22"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "ad454a3decd772f0",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.factPassesAutoExtractFilter(_:)": "759e14d0af20d1af"
    }
   },
   {
@@ -339,7 +317,6 @@
      "effect": "\"(none)\" else the bullet list"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -360,10 +337,9 @@
      "effect": "log warning, return nil."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.drainRacingTimeout(_:timeoutSec:)": "3c6e02bd512aad92",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.drainRacingTimeout(_:timeoutSec:)": "8a774370bd54a428",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -379,11 +355,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.drainTextDeltas(_:)": "b54597a397aff75b",
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.cancelAll()": "be8542994382987c",
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.drainTextDeltas(_:)": "2a394ea62ed1a0c2",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.cancelAll()": "3d86e748ee6bd177",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
    }
   },
   {
@@ -406,7 +381,6 @@
      "effect": "append chunk; other events ignored"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -439,7 +413,6 @@
      "effect": "return nil; else return facts array (nil if key missing or wrong type)"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197"
    }
@@ -462,17 +435,6 @@
      "at": "+3",
      "cond": "starts with a question prefix",
      "effect": "return false; else return !contains any appStateMarker"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "untested",
-     "sev": "low",
-     "text": "No test covers factPassesAutoExtractFilter (grep of EmuquTests finds no reference).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:279"
-     ],
-     "found": "first read, upheld on second"
     }
    ],
    "deps": {}
@@ -502,18 +464,6 @@
      "effect": "return false; else weak-prefix match"
     }
    ],
-   "flags": [
-    {
-     "kind": "untested",
-     "sev": "low",
-     "text": "looksLikeAnnounceButDidntCall drives Grok rewinds and the canned \"Sorry — I didn't finish\" substitution but has no test.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift:324",
-      "Emuqu/Sources/Assistant/ViewModel/GrokQuirkPolicy.swift:103"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -536,7 +486,6 @@
      "effect": "true; else false."
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -561,11 +510,10 @@
      "effect": "return \"[encode failed]\"; else JSON string"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolName(for:)": "a3145c3c1018bc27",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resultJSON(for:overBudget:factRegistry:)": "d6eeefeccca04aee",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolName(for:)": "3fc31f8cb07fe622",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resultJSON(for:overBudget:factRegistry:)": "d7b1be0c3dfd3ecb",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -590,10 +538,9 @@
      "effect": "return JSON; else \"[encode failed]\""
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "e99be7c41ae4f3b8",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "4418043899d6c1da",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -609,9 +556,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "6e4f33c12dde9066"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "46c518f41fe08672"
    }
   },
   {
@@ -633,9 +579,8 @@
      "effect": "roundStartTextLen = its text count; else 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "6e4f33c12dde9066"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "46c518f41fe08672"
    }
   },
   {
@@ -649,9 +594,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.flush(force:thisRoundIsEmpty:)": "d08461b5890797a2"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.flush(force:thisRoundIsEmpty:)": "5e406daab2830413"
    }
   },
   {
@@ -698,11 +642,10 @@
      "effect": "set speakableTextCursor[turnID] = full text length; else leave cursor"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.takePublishableText(force:)": "27894c8b2c499766",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::var StreamTextBuffer.currentIndex": "baa14f905dcfb177"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.takePublishableText(force:)": "99b34f943a09d328",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::var StreamTextBuffer.currentIndex": "99f8297f3d164d42"
    }
   },
   {
@@ -733,11 +676,10 @@
      "effect": "return nil, keep pendingChunks"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.splitAtLastSentenceBoundary(_:)": "de325b016047ec5c",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.scrubbing(_:)": "51b989e66b13a8d1",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "7b5a1795f426677a"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.scrubbing(_:)": "51877cb3f8179dd6",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "9ab2aeb75102c673"
    }
   },
   {
@@ -764,12 +706,11 @@
      "effect": "log interception reason"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "957f71294fdad0d7",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.containsProhibitedLanguage(_:)": "2705db70286ba67c",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "b9254c0b8e1b4c88",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.recordCoachVoiceInterception(reason:)": "8a9c62158c2614b7",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "535021bb1dd58814"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.recordCoachVoiceInterception(reason:)": "f89574ba57070270",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4"
    }
   },
   {
@@ -791,9 +732,8 @@
      "effect": "return"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::var StreamTextBuffer.currentIndex": "baa14f905dcfb177"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::var StreamTextBuffer.currentIndex": "99f8297f3d164d42"
    }
   },
   {
@@ -829,10 +769,9 @@
      "effect": "truncate and save; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::var StreamTextBuffer.currentIndex": "baa14f905dcfb177"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::var StreamTextBuffer.currentIndex": "99f8297f3d164d42"
    }
   }
  ],

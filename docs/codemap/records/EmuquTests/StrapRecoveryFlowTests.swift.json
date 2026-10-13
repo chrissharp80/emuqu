@@ -14,20 +14,6 @@
   "const hostDismissedInterruptionsKey = \"RRCollector.dismissedInterruptedSessionIds\" (mirrors the private PersistedRecordingState.dismissedKey)"
  ],
  "toplevel": "Lazy stored properties create a per-test temp directory and SessionArchive.",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "Private exerciseId(_:) wrapper around StrapExerciseDecoder.exerciseId(at:) is copy-pasted in four test classes.",
-   "evidence": [
-    "EmuquTests/StrapRecoveryFlowTests.swift:38",
-    "EmuquTests/StrapArmingTests.swift:59",
-    "EmuquTests/StrapNightTests.swift:37",
-    "EmuquTests/StrapTransferTests.swift:27"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func StrapRecoveryFlowTests.setUp()",
@@ -45,9 +31,8 @@
     "mem:AppDependencies.current"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/StrapRecoveryFlowTests.swift::func XCTestCase.isolateFromHostRecordingState()": "013346ab5f875bd3"
+    "EmuquTests/StrapRecoveryFlowTests.swift::func XCTestCase.isolateFromHostRecordingState()": "19a75a8617e2e0b0"
    }
   },
   {
@@ -69,7 +54,6 @@
      "effect": "error swallowed by design (no directory when nothing was archived)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -96,26 +80,13 @@
      "effect": "fallback to UserDefaults.standard only if the suite cannot be created (then the ledger writes the host's strapDownloadLedgerSince)"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Every makeCollector call creates a new persistent UserDefaults suite \"StrapRecoveryFlowTests-<UUID>\" (StrapDownloadLedger.init writes strapDownloadLedgerSince into it, StrapRecording.swift:57) and neither the helper nor tearDown removes it with removePersistentDomain, so each run leaves suite plists behind in the host container.",
-     "evidence": [
-      "EmuquTests/StrapRecoveryFlowTests.swift:33",
-      "EmuquTests/StrapRecoveryFlowTests.swift:16",
-      "Emuqu/Sources/Collection/StrapRecording.swift:57"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "119fb2afbb3f1150",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "f32f3e5777f67ce6",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "e36111b9f64a69b7",
-    "Emuqu/Sources/Collection/StrapRecording.swift::init StrapDownloadLedger(defaults:)": "53b6693e0e3e79d1",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func RRCollector.withoutCloudAcceptance(polarManager:archive:)": "a520a299975a4cde"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.setConnectedDeviceForTesting(id:type:)": "e9aef050bba1faab",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "34f839cb7108e6e5",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "0f292fcd0854ad9c",
+    "Emuqu/Sources/Collection/StrapRecording.swift::init StrapDownloadLedger(defaults:)": "9cb9ba5d8e0feee5",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func RRCollector.withoutCloudAcceptance(polarManager:archive:)": "4fe7c17cd279048e"
    }
   },
   {
@@ -129,9 +100,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)": "1387ceb33e2da778"
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)": "ccdaa223a51d1cad"
    }
   },
   {
@@ -149,9 +119,8 @@
      "effect": "true for a fetchExercise call, false otherwise"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1"
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "4da066d93ac45dca"
    }
   },
   {
@@ -179,16 +148,15 @@
      "effect": "true: passes; false: XCTFail with the actual error and return"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)": "90485455818ed9f4",
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.retryFetchRecording()": "d19aadfb389a61dc",
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.retryFetchRecording()": "6a035806d3377bc2",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "48b8f10b47b1b316",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.fetched(_:)": "676c3051865da852",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "9691cb4696e00d05"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)": "819342ac0cbfaaea",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.retryFetchRecording()": "5a8eab0fb69148ff",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.retryFetchRecording()": "38eb2a533e09e694",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "0fa4565bfc7dfaf3",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "3fb4d4e80b6b8d32",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.fetched(_:)": "adb0819deb357507",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "5e851ed84205d2e6"
    }
   },
   {
@@ -208,13 +176,12 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapHoldsOrphanedRecording": "ef19a875cb340fce",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData": "861c00516a06461f",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.offersStrapRecovery": "10003bf4e1cf9b6e",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "9691cb4696e00d05"
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapHoldsOrphanedRecording": "0b7318f439d614dc",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData": "4fc7b99ece2053c6",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.offersStrapRecovery": "e9e1edb25befcc38",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "5e851ed84205d2e6"
    }
   },
   {
@@ -239,17 +206,16 @@
      "effect": "asserts the error is CollectorError.alreadyRecording (a non-throw hits XCTFail)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "fae635a5d47df935",
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.recoverFromDevice()": "1d8007b8ba38339c",
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromDevice()": "004ea007882e33c0",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.offersStrapRecovery": "10003bf4e1cf9b6e",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)": "257ff9ed6a32ea4c",
-    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "48b8f10b47b1b316",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "9691cb4696e00d05"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "f52c78dcfaca1b83",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.recoverFromDevice()": "59a01025fa3f0ae5",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromDevice()": "f7e32f2aaf93c909",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.offersStrapRecovery": "e9e1edb25befcc38",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)": "df0c4f54a96e038c",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "4da066d93ac45dca",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "3fb4d4e80b6b8d32",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "5e851ed84205d2e6"
    }
   },
   {
@@ -282,18 +248,17 @@
      "effect": "asserts CollectorError.strapRecordingAlreadySaved (a non-throw hits XCTFail)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.recoverFromDevice()": "1d8007b8ba38339c",
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromDevice()": "004ea007882e33c0",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "dbd1bab5a9194403",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData": "861c00516a06461f",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.offersStrapRecovery": "10003bf4e1cf9b6e",
-    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.markDownloaded(recordingStartedAt:)": "f7777736bca46a35",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.completeNight(startingAt:)": "29d16737a19c4e33",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.fetched(_:)": "676c3051865da852",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "9691cb4696e00d05"
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.recoverFromDevice()": "59a01025fa3f0ae5",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromDevice()": "f7e32f2aaf93c909",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "614d193cfe0e5d19",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData": "4fc7b99ece2053c6",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.offersStrapRecovery": "e9e1edb25befcc38",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.markDownloaded(recordingStartedAt:)": "317a2b3db49e257b",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.completeNight(startingAt:)": "9d24dab38d41daf0",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.fetched(_:)": "adb0819deb357507",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "5e851ed84205d2e6"
    }
   },
   {
@@ -317,29 +282,15 @@
     "ck:session deletion via host CloudKitSyncManager (only when iCloudSyncEnabled)"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "med",
-     "text": "Still reaches host-global services the test cannot inject: discardReviewArchivedSession uploads a deletion for the random session id through collector.cloudSyncManager, which can only be the host's CloudKitSyncManager.shared (private init; RRCollector.swift:724, RRCollector+MorningProcessing.swift:196), so on a host with iCloud sync on the test sends a CloudKit deletion; and RRCollector.withoutCloudAcceptance builds RawRRBackup() over the host App Group backup directory (no directory seam). The persisted recording state, the recorder box and the acceptance service's cloud calls are isolated (isolateFromHostRecordingState, withoutCloudAcceptance). Needs source seams (handoff).",
-     "evidence": [
-      "EmuquTests/StrapRecoveryFlowTests.swift:143",
-      "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift:196",
-      "Emuqu/Sources/Collection/RRCollector.swift:724",
-      "Emuqu/Sources/Storage/RawRRBackup.swift:219"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.rejectSession()": "067fbe1a2055febe",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761",
-    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.rejectSession()": "a559e2a578c0ee66",
-    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "74bd9499d7e73a42",
-    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.archiveForReview(_:)": "2b52d934645eed08",
-    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.discardReviewArchivedSession()": "15bc3b04bdb72182",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.rejectSession()": "8d2bca97fd5f2a0d",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "b611e0c61d35d899",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.rejectSession()": "5c2ddbec0504c7dd",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "644c59c1a94a5b1f",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.archiveForReview(_:)": "add4c9091bbdfd56",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.discardReviewArchivedSession()": "36bc8f78c4f245d3",
     "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.completeNight(startingAt:)": "dc8f352f46c431da",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "9691cb4696e00d05"
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "5e851ed84205d2e6"
    }
   },
   {
@@ -358,13 +309,12 @@
     "archive:SessionArchive.archive (temp dir)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "74bd9499d7e73a42",
-    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.archiveForReview(_:)": "2b52d934645eed08",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::var RRCollector.morning": "644c59c1a94a5b1f",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.archiveForReview(_:)": "add4c9091bbdfd56",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
     "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.completeNight(startingAt:)": "dc8f352f46c431da",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "9691cb4696e00d05"
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "5e851ed84205d2e6"
    }
   },
   {
@@ -384,18 +334,17 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)": "097b6e035533da83",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "1de92bef61865565",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)": "257ff9ed6a32ea4c",
-    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "f3f360684b4dcac1",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "48b8f10b47b1b316",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.fetched(_:)": "676c3051865da852",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "9691cb4696e00d05"
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)": "04a37de5fc61168b",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "0f40f13f892158e2",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "0fa4565bfc7dfaf3",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)": "df0c4f54a96e038c",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "4da066d93ac45dca",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "3fb4d4e80b6b8d32",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.fetched(_:)": "adb0819deb357507",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "5e851ed84205d2e6"
    }
   },
   {
@@ -417,20 +366,19 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "9f997d8c7612d204",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)": "097b6e035533da83",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "1de92bef61865565",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData": "861c00516a06461f",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "922c29ced26bff57",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refuse(_:times:with:)": "975d3292e9e4e597",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)": "257ff9ed6a32ea4c",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "48b8f10b47b1b316",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "9691cb4696e00d05",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.streamWithGap(minutes:)": "161bea0c1f6a1fa5"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)": "04a37de5fc61168b",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "0f40f13f892158e2",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData": "4fc7b99ece2053c6",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "0fa4565bfc7dfaf3",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.refuse(_:times:with:)": "fffd182a52041bd3",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)": "df0c4f54a96e038c",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "3fb4d4e80b6b8d32",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "5e851ed84205d2e6",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.streamWithGap(minutes:)": "5da55a646e4ae792"
    }
   },
   {
@@ -451,29 +399,17 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Timing-dependent: the link only comes up via an unstructured Task after sleepQuietly(200 ms); it passes because reconnectForTransfer waits up to the 60 s window, but the test relies on the main actor scheduling that Task during the await.",
-     "evidence": [
-      "EmuquTests/StrapRecoveryFlowTests.swift:213",
-      "EmuquTests/StrapRecoveryFlowTests.swift:214"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.reconnectForTransfer()": "08afe3f2096d3c8b",
-    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "b9f281895be22d44",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "de045b193f014cc0",
-    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "e36111b9f64a69b7",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.reconnectForTransfer()": "9b315a2095aa9510",
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)": "257ff9ed6a32ea4c",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "48b8f10b47b1b316"
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.reconnectForTransfer()": "95932245f074f12c",
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.apply(_:)": "6566f2445be6087b",
+    "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "0f292fcd0854ad9c",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.reconnectForTransfer()": "8d2bc865c08e161a",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.setRecording(ongoing:entryId:)": "df0c4f54a96e038c",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "3fb4d4e80b6b8d32"
    }
   },
   {
@@ -494,10 +430,9 @@
      "effect": "990 ms on even indexes, 1010 ms on odd"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161"
    }
   },
   {
@@ -517,9 +452,8 @@
      "effect": "true: wall = t; false: wall = t + minutes*60000"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "34068fa905e7636c"
    }
   },
   {
@@ -555,15 +489,14 @@
      "effect": "PersistedRecordingState.save(savedState); else the state stays cleared"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clear()": "40d48ad743b2b737",
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()": "369ba575c47e4e85",
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.save(_:)": "3fd1e07aa3e68060",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()": "9923e6c35385c5ed",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::init AppDependencies()": "92c65c092a79595e",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.recorderBox": "bd497bb2cc2ba260",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clear()": "33e94c72eef0b465",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()": "286e8ca1bed4c447",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.save(_:)": "dcd8c1803354ac04",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()": "e39e2f3e3a5e3aca",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::init AppDependencies()": "bea568cee298d114",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.recorderBox": "73dac10592c57d93",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -581,13 +514,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "cabf0f241718fe50",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)": "b07f454e4747c40b",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ab46982b96b81c2c",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::init SessionAcceptanceService(archive:healthKit:baselineTracker:rawBackup:onCloudSync:onCloudDelete:)": "aba25f71775f0d83",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "fc8431a6601465db"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "a5f6a55fc002c5dc",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)": "75377b33a56513c7",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "21e351483eeaaa15",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::init SessionAcceptanceService(archive:healthKit:baselineTracker:rawBackup:onCloudSync:onCloudDelete:)": "955073b942718ab5",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "28134c325b02f133"
    }
   }
  ],

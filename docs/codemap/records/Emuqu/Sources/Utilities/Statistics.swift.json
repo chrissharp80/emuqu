@@ -10,7 +10,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func Statistics.mean(_:)",
@@ -29,7 +28,6 @@
      "effect": "returns 0; otherwise computes vDSP mean"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -43,9 +41,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleVariance(_:)": "6a15510ee2f719bf"
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleVariance(_:)": "d85dc9d487cc44ae"
    }
   },
   {
@@ -67,9 +64,8 @@
      "effect": "returns 0; otherwise computes sum of squared deviations / (n-1)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)": "e3bce1ab6c17b7e1"
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)": "9253edd1b85f1ce3"
    }
   },
   {
@@ -89,7 +85,6 @@
      "effect": "returns 0; otherwise RMS"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -110,10 +105,9 @@
      "effect": "returns nil; otherwise SD/mean (negative when mean is negative)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)": "e3bce1ab6c17b7e1",
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)": "6a1a9d5b3116a177"
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)": "9253edd1b85f1ce3",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)": "d50c103ae5862c0c"
    }
   },
   {
@@ -139,21 +133,9 @@
      "effect": "returns nil (degenerate x); otherwise computes slope/intercept/R²"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "TrendAnalysis.linearRegressionSlope reimplements the OLS slope by hand (mean-centred form) instead of using Statistics.linearRegression, so the two can diverge on degenerate inputs (it returns 0, this returns nil).",
-     "evidence": [
-      "Emuqu/Sources/Utilities/Statistics.swift:92",
-      "Emuqu/Sources/Analysis/TrendAnalysis.swift:393"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.coefficientOfDetermination(x:y:slope:intercept:sums:)": "95cffdc8192b5626",
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.regressionSums(x:y:)": "5d907619560afe62"
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.coefficientOfDetermination(x:y:slope:intercept:sums:)": "6782bac7d4b427a0",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.regressionSums(x:y:)": "5674d635d5d6f789"
    }
   },
   {
@@ -171,7 +153,6 @@
      "effect": "adds x[i], y[i] products to the running sums; empty range leaves all sums 0"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -194,7 +175,6 @@
      "effect": "adds squared residual y − (intercept + slope·x)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -208,9 +188,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)": "e3bce1ab6c17b7e1"
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.mean(_:)": "9253edd1b85f1ce3"
    }
   },
   {
@@ -224,9 +203,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)": "6a1a9d5b3116a177"
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)": "d50c103ae5862c0c"
    }
   }
  ],

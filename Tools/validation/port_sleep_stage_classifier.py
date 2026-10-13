@@ -19,8 +19,7 @@ has no wall clock); alpha1 and LF/HF run on the window's longest break-free
 stretch, alpha1 with invalid beats linearly interpolated
 (port_live_dfa_clean._interpolate) and withheld above 6 % interpolated; LF/HF
 beats are timed on the beat-sum clock from the stretch start, as the Swift code
-has done since before this sync (the e028039 port used the input t_ms). The
-RESULTS.md numbers were produced before this sync and have not been re-run.
+has done since before this sync (the e028039 port used the input t_ms).
 
 Input: rr_points = list of (t_ms, rr_ms) ints, t_ms monotonic, ms since recording start.
 Times are kept in ms since recording start instead of Date objects.

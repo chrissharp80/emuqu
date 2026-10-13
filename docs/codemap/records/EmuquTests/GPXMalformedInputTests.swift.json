@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func GPXMalformedInputTests.gpx(lat:lon:ele:)",
@@ -18,7 +17,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -43,9 +41,8 @@
      "effect": "nil parse also yields nil (passes); parsed value must fail validation"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidElevation(_:)": "7da1afba5649d309"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidElevation(_:)": "f2e0bab561757ee8"
    }
   },
   {
@@ -71,10 +68,9 @@
      "effect": "false: XCTFail and continue"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLatitude(_:)": "116f46f68c371b1c",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLongitude(_:)": "408dacc86ee033eb"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLatitude(_:)": "efda1706c72d2778",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLongitude(_:)": "be5975399c55a45e"
    }
   },
   {
@@ -89,10 +85,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLatitude(_:)": "116f46f68c371b1c",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLongitude(_:)": "408dacc86ee033eb"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLatitude(_:)": "efda1706c72d2778",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLongitude(_:)": "be5975399c55a45e"
    }
   },
   {
@@ -108,11 +103,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidElevation(_:)": "7da1afba5649d309",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLatitude(_:)": "116f46f68c371b1c",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLongitude(_:)": "408dacc86ee033eb"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidElevation(_:)": "f2e0bab561757ee8",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLatitude(_:)": "efda1706c72d2778",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.isValidLongitude(_:)": "be5975399c55a45e"
    }
   },
   {
@@ -130,13 +124,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(altitudes:)": "ae5d06ec36600f9f",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(coordinates:)": "4ea5deebee96fecb",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(value:)": "4718fd027f110005",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "f42191bee7fea21e",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.scaledInt(_:by:)": "58bdaa506462c0d7"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(altitudes:)": "53fe101c35f9b351",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(coordinates:)": "270a49bc0f29ae45",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(value:)": "6265f3bc2d063b67",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "e29f39e4c0cb178c",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.scaledInt(_:by:)": "777eacd17a45dc20"
    }
   },
   {
@@ -156,9 +149,8 @@
      "effect": "encodes one-point track"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "f42191bee7fea21e"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "e29f39e4c0cb178c"
    }
   },
   {
@@ -172,20 +164,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Doc says valid tracks must 'encode to the same thing they always did' but only non-emptiness is asserted; no golden polyline string.",
-     "evidence": [
-      "EmuquTests/GPXMalformedInputTests.swift:97",
-      "EmuquTests/GPXMalformedInputTests.swift:106"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "f42191bee7fea21e"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "e29f39e4c0cb178c"
    }
   },
   {
@@ -207,11 +187,10 @@
      "effect": "parse + assertions"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "daaa00e7282262cc",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "f42191bee7fea21e",
-    "EmuquTests/GPXMalformedInputTests.swift::func GPXMalformedInputTests.gpx(lat:lon:ele:)": "338cd29ece511912"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "931c0dda5401ddc8",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "e29f39e4c0cb178c",
+    "EmuquTests/GPXMalformedInputTests.swift::func GPXMalformedInputTests.gpx(lat:lon:ele:)": "3c59e09c353ddba5"
    }
   },
   {
@@ -227,11 +206,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "daaa00e7282262cc",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "f42191bee7fea21e",
-    "EmuquTests/GPXMalformedInputTests.swift::func GPXMalformedInputTests.gpx(lat:lon:ele:)": "338cd29ece511912"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parse(data:defaultSport:)": "931c0dda5401ddc8",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "e29f39e4c0cb178c",
+    "EmuquTests/GPXMalformedInputTests.swift::func GPXMalformedInputTests.gpx(lat:lon:ele:)": "3c59e09c353ddba5"
    }
   }
  ],

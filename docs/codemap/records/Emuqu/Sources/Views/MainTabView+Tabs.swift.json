@@ -8,19 +8,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No test references reloadDashboardSessions, buildDashboardSnapshot, mostRecentDailyPair or the send-report flow; the in-flight/pending/deferred/debounce state machine has no coverage.",
-   "evidence": [
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift:45",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift:169",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift:249"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var MainTabView.moreTab",
@@ -43,13 +30,12 @@
      "effect": "filled icon; else outline"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.Tab.localizedName(bundle:)": "456928cca920f69e",
-    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.icon": "2a1fe85ad434d78c",
-    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.iconFilled": "dbfbdba03a68cf31",
-    "Emuqu/Sources/Views/Utilities/LazyView.swift::init LazyView(_:)": "2e0c755eae0e07db"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.Tab.localizedName(bundle:)": "7ba4c84a74362bba",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.icon": "76c9cd289531ffdb",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.Tab.iconFilled": "374d1817c3291aaf",
+    "Emuqu/Sources/Views/Utilities/LazyView.swift::init LazyView(_:)": "be44e20bfcda28ab"
    }
   },
   {
@@ -82,12 +68,11 @@
      "effect": "scheduleDebouncedDashboardReload() and return; passes: startDashboardLoad()"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.dashboardReloadIsWanted()": "eac7a3ba099d7f36",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.dashboardReloadPassesDebounce()": "7a6ae6cf86410529",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.scheduleDebouncedDashboardReload()": "1449895ee5a4ee09",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.startDashboardLoad()": "e606c117f96ee6a0"
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.dashboardReloadIsWanted()": "3c6f4a570538d5ab",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.dashboardReloadPassesDebounce()": "6d7c9e1c6b4d3542",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.scheduleDebouncedDashboardReload()": "0afbb3140f333a29",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.startDashboardLoad()": "3a75cb3e91994b3f"
    }
   },
   {
@@ -108,10 +93,9 @@
      "effect": "return (request rides on it); else set the flag and spawn the delayed task"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reloadDashboardSessions()": "5559f9c812394b41"
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reloadDashboardSessions()": "954470e0a722865c"
    }
   },
   {
@@ -129,7 +113,6 @@
      "effect": "dashboardReloadDeferred = true, return false; else true"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -147,7 +130,6 @@
      "effect": "false; else stamp now and true"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -166,11 +148,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)": "b016442b3cd5698d",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.applyDashboardLoad(_:count:timing:)": "975b7c9af137a3cb",
-    "Emuqu/Sources/Views/MainTabView.swift::init DashboardLoadTiming(requestedAt:)": "c30974acc7d69f26"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)": "d0b0b578fa7f7968",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.applyDashboardLoad(_:count:timing:)": "da2a4a5d03a09b5a",
+    "Emuqu/Sources/Views/MainTabView.swift::init DashboardLoadTiming(requestedAt:)": "b1adc892e930c83f"
    }
   },
   {
@@ -201,17 +182,16 @@
      "effect": "clear it and startDashboardLoad() directly (bypasses the tab check and debounce); else done"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.setDashboard(_:)": "bbcce0d1f5c609e5",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.uiStateCache": "2fa54266c0d06af1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.launchCoordinator": "2257379aa8cbc059",
-    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.signalDashboardReady()": "1fbdfe54306c062a",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.buildDashboardSnapshot(from:)": "047ac3a9bd6ea93a",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.logDashboardTiming(_:timing:)": "a95251b86ea0017f",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.startDashboardLoad()": "e606c117f96ee6a0"
+    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.setDashboard(_:)": "0b9725c2babe06dd",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.uiStateCache": "1734474b85a93236",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.launchCoordinator": "04778df48b6e9a44",
+    "Emuqu/Sources/Views/LaunchCoordinator.swift::func LaunchCoordinator.signalDashboardReady()": "290a13c88aa08d02",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.buildDashboardSnapshot(from:)": "c6fa126e9c2b9582",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.logDashboardTiming(_:timing:)": "bd31f8933002a573",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.startDashboardLoad()": "3a75cb3e91994b3f"
    }
   },
   {
@@ -234,10 +214,9 @@
      "effect": "one-line log and return; else phased SLOW log"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/MainTabView.swift::func DashboardLoadTiming.milliseconds(from:to:)": "37ba23790b60613c"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/MainTabView.swift::func DashboardLoadTiming.milliseconds(from:to:)": "642e7fa7934ae79a"
    }
   },
   {
@@ -267,17 +246,16 @@
      "effect": "store sleep minutes; nil or 0: nil (no sleep shown)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)": "75d7e979eb62914e",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestWithSleep(in:)": "99cc59183360c507",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestWithVitals(in:)": "567cefcff6b6ced1",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.recentDays(from:today:calendar:)": "a8d9a72705e8946f",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)": "10c2d5811df41ad4",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestWithSleep(in:)": "25f489a0b3f6784c",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestWithVitals(in:)": "f6421674557240f3",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.recentDays(from:today:calendar:)": "6b030a7ece11d3c5",
     "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "a4a2d3868396b45f"
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.totalSleepIncludingNapMinutes": "b70c38d229828097"
    }
   },
   {
@@ -289,7 +267,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -313,11 +290,10 @@
      "effect": "pendingDraft = nil (just open); else the question"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AssistantInbox.swift::func AssistantInbox.requestOpen()": "40b37a16b89fae33",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantInbox": "47f501e735e2bb93"
+    "Emuqu/Sources/Assistant/Chat/AssistantInbox.swift::func AssistantInbox.requestOpen()": "6f0bbfe0076abce6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantInbox": "c78b117fecb591cc"
    }
   },
   {
@@ -333,9 +309,8 @@
     "archive:reanalyzeSession (via ReanalysisService)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeSession(_:method:)": "4fa12f1dba8fbc1e"
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeSession(_:method:)": "e351483fb9f399fe"
    }
   },
   {
@@ -349,9 +324,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)": "75d7e979eb62914e"
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightComplete(in:calendar:)": "10c2d5811df41ad4"
    }
   },
   {
@@ -363,9 +337,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def"
    }
   },
   {
@@ -390,9 +363,8 @@
      "effect": "return the pair; else continue; none: nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f"
    }
   },
@@ -417,12 +389,11 @@
      "effect": "return (already preparing); else proceed"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.liveRefreshed()": "f6fdc835bab57f33",
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.liveRefreshed()": "50874a244335011f",
     "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderReport(kind:inputs:liveLoadSnapshot:)": "de41f5576d55031d",
     "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.withFullSessions(_:kind:)": "3287bab5f513bbe6",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.finishReportPreparation(_:)": "f1ffb3f46500d0f1",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.finishReportPreparation(_:)": "f09b10b10bd795c9",
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.sendReportInputs(for:)": "8d4c260cd093cbd1"
    }
   },
@@ -459,23 +430,22 @@
      "effect": "baseline for the pair's overnight; else for the recovery night"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "15319afa7ff717d9",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "d8f21d4214c3f50a",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.sleepSchedule": "8de4d6a741ac1366",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.mostRecentDailyPair()": "2358ab79f93dc47e",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reportBaselineStats(night:settings:)": "98cca752611d1642",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::var MainTabView.mostRecentOvernight": "0c11fceac50c25be",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::var MainTabView.mostRecentWorkout": "5f2f6d7fd8736046",
-    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "1f169ca3f7045de3",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8ad8fec17a5ea41b",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "e5203c48a278e778",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.sleepSchedule": "7f2420b682faf9cb",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.mostRecentDailyPair()": "dfe10f2253860f94",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reportBaselineStats(night:settings:)": "24e3a5e6118f919b",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::var MainTabView.mostRecentOvernight": "48b0ad249678e9fd",
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::var MainTabView.mostRecentWorkout": "3909941674ff95b6",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "793b7401620a8337"
    }
   },
   {
@@ -499,10 +469,9 @@
      "effect": "current baseline"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)": "7bf3e795972555e6",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "9916669422d3e401"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)": "5502e8cc0b7a6e8b",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "c1bc954c0a47797e"
    }
   },
   {
@@ -530,7 +499,6 @@
      "effect": "reportPrepError = message"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

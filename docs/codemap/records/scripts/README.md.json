@@ -5,20 +5,6 @@
  "types": [],
  "state": [],
  "toplevel": "Markdown only; no executable content. Sections are recorded as doc-section units.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "README lists add_swift_file.py supported folders without Emuqu/Sources/Views/MorningResults and Views/Utilities (the script docstring lists them; they resolve via the basename regex fallback, not the explicit map), and its Troubleshooting says paths must start with Emuqu/Sources/ although EmuquTests paths are supported.",
-   "evidence": [
-    "scripts/README.md:167",
-    "scripts/README.md:207",
-    "scripts/add_swift_file.py:28",
-    "scripts/add_swift_file.py:83"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "§ Scripts",
@@ -29,7 +15,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -41,7 +26,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -53,7 +37,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -67,9 +50,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/run_tests_with_coverage.sh::fn run_tests": "8c6a5ab43a9ab7d3"
+    "scripts/run_tests_with_coverage.sh::fn run_tests": "a81fa800842b2ce2"
    }
   },
   {
@@ -81,7 +63,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -101,15 +82,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/check_budget_monotonicity.sh::fn budget_files": "c70ca1ffaca60b15",
-    "scripts/check_budget_monotonicity.sh::fn is_allowed": "a002d0e35987ee73",
-    "scripts/check_budget_monotonicity.sh::fn is_floor": "313191d94c7788a1",
-    "scripts/check_budget_monotonicity.sh::fn loosens": "9da7cc84bf21dbde",
-    "scripts/check_budget_monotonicity.sh::fn no_baseline": "4d98f6bae9009dcc",
-    "scripts/check_budget_monotonicity.sh::fn read_number": "d8d0aa6b0f8126bc",
-    "scripts/check_budget_monotonicity.sh::fn report_loosened": "005070da3ab1465d"
+    "scripts/check_budget_monotonicity.sh::fn budget_files": "79b550d9544b839d",
+    "scripts/check_budget_monotonicity.sh::fn is_allowed": "76309c9411982f50",
+    "scripts/check_budget_monotonicity.sh::fn is_floor": "e077302680bcc6ab",
+    "scripts/check_budget_monotonicity.sh::fn loosens": "6e4cf57505a00a2b",
+    "scripts/check_budget_monotonicity.sh::fn no_baseline": "fc658970d2a0e744",
+    "scripts/check_budget_monotonicity.sh::fn read_number": "80dfd43a50d50f4a",
+    "scripts/check_budget_monotonicity.sh::fn report_loosened": "1556eb46bf71f4cf"
    }
   },
   {
@@ -121,7 +101,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -135,9 +114,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/check_test_skip_budget.sh::fn read_budget": "7dd19adee99bb3e4"
+    "scripts/check_test_skip_budget.sh::fn read_budget": "0dd868e375681599"
    }
   },
   {
@@ -149,7 +127,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -163,20 +140,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "README says the gate counts raw .font(.system(size:)) 'in the view layer'; the script scans all of Emuqu/ (SOURCE_ROOT default 'Emuqu', including EmuquApp.swift) plus a separate watch budget, and counts only numeric-literal sizes.",
-     "evidence": [
-      "scripts/README.md:85",
-      "scripts/check_fixed_font_budget.sh:34",
-      "scripts/check_fixed_font_budget.sh:46",
-      "scripts/check_fixed_font_budget.sh:84"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
     "scripts/check_fixed_font_budget.sh::fn measure": "4d1a1fa1b937bd36"
    }
@@ -192,9 +155,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/check_strict_concurrency_enabled.sh::fn fail": "a02e4dd485c8c8e2"
+    "scripts/check_strict_concurrency_enabled.sh::fn fail": "8d5dfcf6ca16c0ba"
    }
   },
   {
@@ -206,7 +168,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -221,10 +182,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/remove_swift_file.py::def main": "2c24f98a8082aa60",
-    "scripts/remove_swift_file.py::def remove_file": "4e2dbdd7ddd1390c"
+    "scripts/remove_swift_file.py::def main": "c170f11433247931",
+    "scripts/remove_swift_file.py::def remove_file": "5702a9f39b8e35f3"
    }
   },
   {
@@ -236,7 +196,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -250,9 +209,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/add_swift_file.py::def main": "68ed0ee07cc4700e"
+    "scripts/add_swift_file.py::def main": "8b1c554080275ad7"
    }
   },
   {
@@ -266,9 +224,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/add_swift_file.py::def add_file_to_project": "1d453d51211a2439"
+    "scripts/add_swift_file.py::def add_file_to_project": "4f532efc9488af7e"
    }
   },
   {
@@ -282,9 +239,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/add_swift_file.py::def main": "68ed0ee07cc4700e"
+    "scripts/add_swift_file.py::def main": "8b1c554080275ad7"
    }
   },
   {
@@ -298,9 +254,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/add_swift_file.py::def find_group_id_for_path": "2ac3b579f0ee7e28"
+    "scripts/add_swift_file.py::def find_group_id_for_path": "8a8cd2944f4302bc"
    }
   },
   {
@@ -315,22 +270,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Folder list differs from the script's docstring (which adds Views/MorningResults and Views/Utilities) and from the explicit path_to_group map.",
-     "evidence": [
-      "scripts/README.md:174",
-      "scripts/add_swift_file.py:28",
-      "scripts/add_swift_file.py:83"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "scripts/add_swift_file.py::def find_group_id_for_path": "2ac3b579f0ee7e28",
-    "scripts/add_swift_file.py::def target_for_path": "d3ad8bed0732fc26"
+    "scripts/add_swift_file.py::def find_group_id_for_path": "8a8cd2944f4302bc",
+    "scripts/add_swift_file.py::def target_for_path": "0960cca0e39d39d6"
    }
   },
   {
@@ -349,26 +291,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "README (and the docstring) says generated IDs are 'unique hexadecimal IDs'; generate_unique_id builds them from prefixes A1/EF/UC/P2/CK/RF/OB, so most contain non-hex letters (U, P, K, R, O).",
-     "evidence": [
-      "scripts/README.md:187",
-      "scripts/add_swift_file.py:60",
-      "scripts/add_swift_file.py:63"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "scripts/add_swift_file.py::def add_file_to_project": "1d453d51211a2439",
-    "scripts/add_swift_file.py::def extract_all_ids": "b99bbb150d460717",
-    "scripts/add_swift_file.py::def find_group_id_for_path": "2ac3b579f0ee7e28",
-    "scripts/add_swift_file.py::def find_sources_build_phase_id": "cc3150dfd21b1519",
-    "scripts/add_swift_file.py::def generate_unique_id": "4ece1b9e975d9603",
-    "scripts/add_swift_file.py::def target_for_path": "d3ad8bed0732fc26"
+    "scripts/add_swift_file.py::def add_file_to_project": "4f532efc9488af7e",
+    "scripts/add_swift_file.py::def extract_all_ids": "8a45e5f7a10109e4",
+    "scripts/add_swift_file.py::def find_group_id_for_path": "8a8cd2944f4302bc",
+    "scripts/add_swift_file.py::def find_sources_build_phase_id": "467015547318abcf",
+    "scripts/add_swift_file.py::def generate_unique_id": "a4b959ff9c02b250",
+    "scripts/add_swift_file.py::def target_for_path": "0960cca0e39d39d6"
    }
   },
   {
@@ -382,9 +311,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/add_swift_file.py::def main": "68ed0ee07cc4700e"
+    "scripts/add_swift_file.py::def main": "8b1c554080275ad7"
    }
   },
   {
@@ -399,10 +327,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/add_swift_file.py::def add_file_to_project": "1d453d51211a2439",
-    "scripts/add_swift_file.py::def main": "68ed0ee07cc4700e"
+    "scripts/add_swift_file.py::def add_file_to_project": "4f532efc9488af7e",
+    "scripts/add_swift_file.py::def main": "8b1c554080275ad7"
    }
   },
   {
@@ -416,20 +343,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "'Can be safely re-run' is false: add_file_to_project never checks whether the file is already registered, so a re-run inserts duplicate PBXFileReference/PBXBuildFile/Sources rows ('Multiple commands produce').",
-     "evidence": [
-      "scripts/README.md:224",
-      "scripts/add_swift_file.py:180"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "scripts/add_swift_file.py::def add_file_to_project": "1d453d51211a2439"
+    "scripts/add_swift_file.py::def add_file_to_project": "4f532efc9488af7e"
    }
   }
  ],

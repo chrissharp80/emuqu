@@ -12,18 +12,6 @@
   "@State lastStopWroteNoTrace: Bool (local) — the last Stop on this screen wrote no trace"
  ],
  "toplevel": "Pushed from SettingsPages+Diagnostics.swift:90 and ExportAndArchiveViews.swift:943. Capture state lives in KeyboardPerfSignpost.shared (mem), not in the view, so leaving the screen does not stop it.",
- "flags": [
-  {
-   "kind": "broken",
-   "sev": "low",
-   "text": "The 'Last trace' date still comes from perf.captureStartedAt (the most recent capture's start); the view now hides it while a newer capture runs and after a Stop that wrote nothing, but after leaving and re-entering the screen following such a Stop (lastStopWroteNoTrace is view state) it shows the failed capture's start beside the older trace. KeyboardPerfSignpost should publish the trace's own start (handoff from fix batch b22).",
-   "evidence": [
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift:136",
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift:177"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var KeyboardCaptureView.perf",
@@ -36,10 +24,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost": "a1807dd53a6f5ed4"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost": "307d74d767ff8c77"
    }
   },
   {
@@ -68,16 +55,15 @@
      "effect": "true: installElapsedTimer(since: nil) restarts the counter from captureStartedAt; false: nothing (Start button shown)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.installElapsedTimer(since:)": "5019bb4e21ddc95b",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.captureControlsSection": "1f8e484f8aa030c7",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.howToCaptureSection": "41397ed3fd753f60",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.lastTraceSection": "be6300f7138e5396",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.traceSectionBody": "1e02629f563c4b5a",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.traceShareSheet": "fba1eca55f285c92"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.installElapsedTimer(since:)": "ce506336fd93d098",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.captureControlsSection": "1f74b51d860c695f",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.howToCaptureSection": "3b0748d5777df0a4",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.lastTraceSection": "7f7a9d0e61ee05b8",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "71c0b3097852a0d8",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.traceSectionBody": "c1143365bbb4f9b8",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.traceShareSheet": "0cdf831f5104279f"
    }
   },
   {
@@ -101,10 +87,9 @@
      "effect": "true: ShareSheet with the URL; false: empty view (sheet opens blank; unreachable in practice because the Share button is only shown when lastTraceURL is set)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07",
-    "Emuqu/Sources/Views/Utilities/ShareSheet.swift::func ShareSheet.makeUIViewController(context:)": "5ac15667ff37e889"
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "71c0b3097852a0d8",
+    "Emuqu/Sources/Views/Utilities/ShareSheet.swift::func ShareSheet.makeUIViewController(context:)": "41d9e235356ca444"
    }
   },
   {
@@ -118,10 +103,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -147,13 +131,12 @@
      "effect": "true: capturingRow + Stop button; false: Start capture button"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.capturingRow": "1000929166c42f4a",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.noTraceNote": "a5cfc1cd8d3665c3",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.startCaptureButton": "acfbc59a57d377a7",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.traceSectionRows": "848b88323bd37fa8"
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.capturingRow": "3c09c6147c908451",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.noTraceNote": "2f5bbd3564e4f00c",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "71c0b3097852a0d8",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.startCaptureButton": "8957b4e59dec68cd",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.traceSectionRows": "33197fdaa6a4d251"
    }
   },
   {
@@ -175,10 +158,9 @@
      "effect": "true: caption; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -197,14 +179,13 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.currentEventCount()": "35440227b33f6e89",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.eventsText(_:)": "2d2bd0a8021a6c57",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.formattedElapsed(_:)": "a3c9d9af1ffe44dd",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.body": "865426dc734f968b",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.currentEventCount()": "9420ccd34e286338",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.eventsText(_:)": "40c7f3af85be70d0",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.formattedElapsed(_:)": "040d169d5b071603",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.body": "3b19aef9ad690c30",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "71c0b3097852a0d8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -219,10 +200,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.stopCapture()": "1d766a50ea06e1db"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.stopCapture()": "613ae9676665b390"
    }
   },
   {
@@ -245,10 +225,9 @@
      "effect": "true: lastTraceBody(url); false: section omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.lastTraceBody(_:)": "2c760d8eae935c07",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07"
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.lastTraceBody(_:)": "bad5382bbb33af91",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "71c0b3097852a0d8"
    }
   },
   {
@@ -268,14 +247,13 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.eventsText(_:)": "2d2bd0a8021a6c57",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.capturedAtLabel": "65486cf223b8f7b9",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.shareTraceButton": "f31c850be66973f8",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.eventsText(_:)": "40c7f3af85be70d0",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.capturedAtLabel": "bbab0486d4c7d7f7",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "71c0b3097852a0d8",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.shareTraceButton": "e7092e731407f27e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -301,24 +279,12 @@
      "effect": "true: shows the date; false: nothing"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "captureStartedAt is the start of the most recent capture, not of the trace whose URL is shown; the label is hidden in the cases the view can tell are wrong, but view state does not survive leaving the screen, so after a Stop that wrote nothing and a re-entry it can describe the wrong trace (needs KeyboardPerfSignpost to publish the trace's start; handoff from fix batch b22).",
-     "evidence": [
-      "Emuqu/Sources/Views/KeyboardCaptureView.swift:136",
-      "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift:177"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "71c0b3097852a0d8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -333,10 +299,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.stepRow(_:_:)": "f915fb63d527c331"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.stepRow(_:_:)": "37ea6a552d29a9f0"
    }
   },
   {
@@ -350,9 +315,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -367,10 +331,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.startCapture()": "93202a10b6f8a292"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.startCapture()": "3dc93c6c4bebf0d2"
    }
   },
   {
@@ -396,11 +359,10 @@
      "effect": "return without touching the timer; true: clear the note and installElapsedTimer(since: start)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.startCapture()": "59f5e4d80507e51f",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.installElapsedTimer(since:)": "5019bb4e21ddc95b",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.startCapture()": "be3abe48eb764c04",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.installElapsedTimer(since:)": "ce506336fd93d098",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "71c0b3097852a0d8"
    }
   },
   {
@@ -421,21 +383,9 @@
     "file:tmp/keyboard-perf-<ISO stamp>.jsonl"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "A Stop that writes no trace now shows noTraceNote, but its text ('No trace was saved: …') has no Localizable.xcstrings entry yet (catalog handoff from fix batch b22), so it is English in every language.",
-     "evidence": [
-      "Emuqu/Sources/Views/KeyboardCaptureView.swift:86",
-      "Emuqu/Localizable.xcstrings"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.stopCaptureAndExportTrace()": "aced2f9b418ba80a",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.stopCaptureAndExportTrace()": "b223e95bdbfa8a4d",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "71c0b3097852a0d8"
    }
   },
   {
@@ -461,10 +411,9 @@
      "effect": "fall back to the published captureStartedAt, then now"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.tickElapsed(since:)": "1868b518d1dcf141",
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07"
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::func KeyboardCaptureView.tickElapsed(since:)": "d17f7783cc6ad5d0",
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "71c0b3097852a0d8"
    }
   },
   {
@@ -486,9 +435,8 @@
      "effect": "true: return (keep ticking); false: invalidate timer, nil it, elapsed = 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "d13e001da8075e07"
+    "Emuqu/Sources/Views/KeyboardCaptureView.swift::var KeyboardCaptureView.perf": "71c0b3097852a0d8"
    }
   },
   {
@@ -503,11 +451,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },
   {
@@ -521,9 +468,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -538,10 +484,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907"
    }
   }
  ],

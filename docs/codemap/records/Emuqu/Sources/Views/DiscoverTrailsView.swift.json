@@ -29,37 +29,6 @@
   "static lengthStepperMaxKm = 100 (max-length stepper top = no max), ascentSliderMaxMeters = 2000 (max-ascent slider edge = no max)"
  ],
  "toplevel": "Header (8-24) describes a two-phase UX whose results list shows 'name + length + ascent + difficulty + distance' and says picking saves to SavedRouteStore. @preconcurrency import CoreLocation. Presented only by WorkoutPreflightView.withRouteImporters as a sheet (WorkoutPreflightView.swift:569-572, onTrailPicked sets plan.selectedRoute) and hosted by RemainingScreenSnapshotTests.swift:66; FitnessTabView does not present it.",
- "flags": [
-  {
-   "kind": "broken",
-   "sev": "med",
-   "text": "Trails picked from Find new are saved with totalAscentMeters 0 and climbCount 0 (track built from CLLocation(latitude:longitude:) whose altitude is 0), so the saved row shows '↑0 m · 0 climbs', any min-ascent filter hides them, and the climb coaching/road-name enrichment never runs for them.",
-   "evidence": [
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift:539",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift:542",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift:563",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift:565",
-    "Emuqu/Sources/Models/Route.swift:139",
-    "Emuqu/Sources/Models/SavedRoute.swift:227",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift:262"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "med",
-   "text": "FEATURES.md and USERS_MANUAL.md promise that picking a discovered trail makes road-name enrichment fire and gives the coach the full topography (climbs, ascent remaining). The saved trail has altitude-0 trackpoints, so it has 0 climbs and enrichWithRoadNames returns at once on the empty climbs guard.",
-   "evidence": [
-    "docs/FEATURES.md:51",
-    "docs/USERS_MANUAL.md:1061",
-    "docs/USERS_MANUAL.md:1068",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift:539",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift:549",
-    "Emuqu/Sources/Models/SavedRoute.swift:228"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "var DiscoverTrailsView.savedRouteStore",
@@ -74,9 +43,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.savedRouteStore": "984316b98ce9cac9"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.savedRouteStore": "058b3dca3f8937e8"
    }
   },
   {
@@ -88,7 +56,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -113,9 +80,8 @@
      "effect": "'Find new'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -129,9 +95,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.trailsScroll": "ef7e823fddbb8331"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.trailsScroll": "6c7ecfd8863d9b9d"
    }
   },
   {
@@ -149,14 +114,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func SearchLocationProbe.start()": "8becdcac9664e3cc",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func SearchLocationProbe.stop()": "e59be5cf64fc36ed",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.trailsStack": "0037de750cd1f1a8",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.trailsToolbar": "3169d021e4e266d3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "053cc91a5a90d115"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func SearchLocationProbe.start()": "d01836e6a4e7c1f7",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func SearchLocationProbe.stop()": "fc53285b038bc64b",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.trailsStack": "3c6c0ae4d50d81ab",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.trailsToolbar": "a998eeef2e3d0514",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
    }
   },
   {
@@ -170,9 +134,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -192,15 +155,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::var DiscoverTrailsView.filtersCard": "9f2c0182fcad06c5",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.discoverResults": "5c08f8ec5968853c",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.errorNotice": "5b207ac14aa777c2",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.locationPrompt": "d6c8ce4cc7cd58b9",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.osmAttribution": "ae37f72505ac2dcb",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.searchButton": "80c6be3844a5353d",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.sourcePicker": "9186a554608ddeb6"
+    "Emuqu/Sources/Views/DiscoverTrailsView+Filters.swift::var DiscoverTrailsView.filtersCard": "5c2fbff0c2863511",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.discoverResults": "dac78faf33451fa1",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.errorNotice": "f0819ee8962ec7eb",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.locationPrompt": "912bb68124161979",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.osmAttribution": "c795e6aca9517cbe",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.searchButton": "73d6cc3cd2ab24d2",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.sourcePicker": "004065d042eb2380"
    }
   },
   {
@@ -228,12 +190,11 @@
      "effect": "'Trails saved from Find new: © OpenStreetMap contributors' (shown even if no route came from OSM); otherwise nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.savedRouteStore": "cbe8373898f4e79d",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var OpenStreetMapAttribution.body": "8fdc79eb6ebc6c15"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.savedRouteStore": "c68759664e361dd0",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var OpenStreetMapAttribution.body": "4f5dda450bd08941"
    }
   },
   {
@@ -254,10 +215,9 @@
      "effect": "discoverIntro; otherwise savedIntro"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.discoverIntro": "39e83f82c38faad9",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.savedIntro": "7804da251726aea7"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.discoverIntro": "a6f8246b4244df3d",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.savedIntro": "552eab207eef0012"
    }
   },
   {
@@ -280,10 +240,9 @@
      "effect": "button shown; otherwise nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.runSearch()": "e96ccf704e3bbbcc",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.bodyLabel": "577118eab7f0775d"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.runSearch()": "92c70fad81f4e6ce",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.bodyLabel": "54abbb39bbe62021"
    }
   },
   {
@@ -303,9 +262,8 @@
      "effect": "banner shown; otherwise nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.errorBanner(_:)": "a7478eb6437ecbdb"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.errorBanner(_:)": "9f880c9eace52084"
    }
   },
   {
@@ -332,11 +290,10 @@
      "effect": "shows locationHint"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.discoverResultRows": "41cd4ca69b2a7a02",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.locationHint": "1b60b412a26c88c3",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.savedRoutesList": "34530bfc252d4d43"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.discoverResultRows": "2fe7cf520dc1d496",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.locationHint": "a5c538f004872c7b",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.savedRoutesList": "0c047a1c03bc12e0"
    }
   },
   {
@@ -358,12 +315,11 @@
      "effect": "header + rows (rows may be zero if steppers changed after search, with header still shown); otherwise nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.discoverRow(_:)": "2519a20dc4292132",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.filteredDiscoverResults": "8bec79331a89683c",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.discoverRow(_:)": "dc18918971b537db",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.filteredDiscoverResults": "06c783d025e5fd4d",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -379,9 +335,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.pickTrail(_:)": "fa79d81fe531abfa"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.pickTrail(_:)": "98176cb9ff8f18eb"
    }
   },
   {
@@ -398,10 +353,9 @@
     "mem:DiscoverTrailsView.tab (@State)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.Tab.title": "ab26241a498ff46f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.Tab.title": "b69efab9a8c30ad9"
    }
   },
   {
@@ -421,10 +375,9 @@
      "effect": "progress label; otherwise search label"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -438,11 +391,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -456,11 +408,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -484,14 +435,13 @@
      "effect": "name not checked; otherwise case-insensitive contains"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.contains(_:_:)": "c9fc10df46263bd4",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.ascentBounds": "4688ffa7873fd68f",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.lengthBounds": "e1810731ac1fc74d",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.savedRouteStore": "cbe8373898f4e79d"
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "f68b16a3c34549ea",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.contains(_:_:)": "f7fe50307cb4379c",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.ascentBounds": "fc659cca27a1c754",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.lengthBounds": "fb688a400c0a994a",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.savedRouteStore": "c68759664e361dd0"
    }
   },
   {
@@ -508,11 +458,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/Route.swift::var Route.Climb.lengthMeters": "9201abd22a88cf21",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.contains(_:_:)": "c9fc10df46263bd4",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.lengthBounds": "e1810731ac1fc74d"
+    "Emuqu/Sources/Models/Route.swift::var Route.Climb.lengthMeters": "34987bd2c329631c",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.contains(_:_:)": "f7fe50307cb4379c",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.lengthBounds": "fb688a400c0a994a"
    }
   },
   {
@@ -530,7 +479,6 @@
      "effect": "hi nil (no max)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -548,7 +496,6 @@
      "effect": "hi nil (no max)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -566,7 +513,6 @@
      "effect": "no upper bound"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -580,9 +526,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.savedRoutesStack": "09fe7d1a2e8abaa7"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.savedRoutesStack": "acc4a0e172579959"
    }
   },
   {
@@ -597,10 +542,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.savedRouteRows": "676ac590728097b6",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.savedRouteSearchField": "a3823a86a0f4ae04"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.savedRouteRows": "9eeb991855b6c601",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.savedRouteSearchField": "17dfb2828a898e58"
    }
   },
   {
@@ -616,12 +560,11 @@
     "mem:DiscoverTrailsView.savedSearchText (@State)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -636,10 +579,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.pickSavedRoute(_:)": "cacf9591c5e5c2cf",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var SavedRouteRow.body": "3156f2a8fc4cdb45"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.pickSavedRoute(_:)": "26a24962ed607398",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var SavedRouteRow.body": "5ea2c869c15ddb93"
    }
   },
   {
@@ -661,11 +603,10 @@
      "effect": "emptySavedRoutesNote; otherwise rows"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.savedRouteRow(_:)": "38d03b2ee5582eef",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.emptySavedRoutesNote": "c995aac6bded7d26",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.filteredSavedRoutes": "e7ab7798af4f03d7"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.savedRouteRow(_:)": "b396786dce230106",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.emptySavedRoutesNote": "62f28d09c0c30163",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.filteredSavedRoutes": "c9fed17bd13d62d7"
    }
   },
   {
@@ -687,13 +628,12 @@
      "effect": "'Nothing saved yet…' card; otherwise 'No saved routes match the current filters' (does not mention the activity picker or the 100 km stepper cap)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.savedRouteStore": "cbe8373898f4e79d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.savedRouteStore": "c68759664e361dd0",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -708,9 +648,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()": "539ccc30635f66ec"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()": "f9797bf1cd911e58"
    }
   },
   {
@@ -744,9 +683,8 @@
      "effect": "max = d (also shrinks the range when d is inside it); otherwise min = d"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.<(lhs:rhs:)": "3f6d0f1794ed6b9d"
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.Difficulty.<(lhs:rhs:)": "2c3058292aaa7ed3"
    }
   },
   {
@@ -784,9 +722,8 @@
      "effect": "textTertiary"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -810,11 +747,10 @@
      "effect": "feet; else meters"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.rangeLabel(_:from:to:)": "6e95f07f03e4552b",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.ascentBounds": "4688ffa7873fd68f",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.unitsAreImperial": "5b823efe69e99520"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.rangeLabel(_:from:to:)": "9954a41b186a2533",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.ascentBounds": "fc659cca27a1c754",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.unitsAreImperial": "e9ade35d74c34289"
    }
   },
   {
@@ -836,11 +772,10 @@
      "effect": "'lo unit–no max'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.lengthText(_:_:)": "7bd1c907ea284ae2",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.wholeNumber(_:)": "dd45b13ad39243bd"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.lengthText(_:_:)": "47568008188ed944",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.wholeNumber(_:)": "e916fe57b8956fee"
    }
   },
   {
@@ -854,10 +789,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },
   {
@@ -871,10 +805,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },
   {
@@ -886,10 +819,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -919,14 +851,13 @@
      "effect": "shows Try again button"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func SearchLocationProbe.isDenied(_:)": "d32ecef34e642ca1",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.locationHintText": "ad07bab4d6d928c9",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.openLocationSettingsButton": "d28b886a761bfa65",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.retryLocationButton": "f4c783f0fbf9d8d0",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func SearchLocationProbe.isDenied(_:)": "758ee125cfb97f05",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.locationHintText": "7bf1f02bda61d86f",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.openLocationSettingsButton": "dcafca8f7a33ff32",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.retryLocationButton": "89ee6ab3a293589b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -954,10 +885,9 @@
      "effect": "retry message; otherwise waiting message"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func SearchLocationProbe.isDenied(_:)": "d32ecef34e642ca1"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func SearchLocationProbe.isDenied(_:)": "758ee125cfb97f05"
    }
   },
   {
@@ -972,10 +902,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func SearchLocationProbe.start()": "8becdcac9664e3cc"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func SearchLocationProbe.start()": "d01836e6a4e7c1f7"
    }
   },
   {
@@ -996,9 +925,8 @@
      "effect": "opens it; otherwise nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1015,10 +943,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47"
    }
   },
   {
@@ -1042,11 +969,10 @@
      "effect": "miles; otherwise km"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.rangeLabel(_:from:to:)": "6e95f07f03e4552b",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.lengthBounds": "e1810731ac1fc74d",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.unitsAreImperial": "5b823efe69e99520"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.rangeLabel(_:from:to:)": "9954a41b186a2533",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.lengthBounds": "fb688a400c0a994a",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.unitsAreImperial": "e9ade35d74c34289"
    }
   },
   {
@@ -1069,10 +995,9 @@
      "effect": "miles; otherwise km"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.lengthText(_:_:)": "7bd1c907ea284ae2",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.unitsAreImperial": "5b823efe69e99520"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.lengthText(_:_:)": "47568008188ed944",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.unitsAreImperial": "e9ade35d74c34289"
    }
   },
   {
@@ -1093,10 +1018,9 @@
      "effect": "'no max'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.stepperLengthLabel(_:)": "6426085749ea7554"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.stepperLengthLabel(_:)": "819c49ab07abde65"
    }
   },
   {
@@ -1124,11 +1048,10 @@
      "effect": "errorText = 'Need a GPS fix to search.' and returns (button is disabled in this state, so effectively unreachable)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.searchAndPublish(near:filters:)": "5a3f23b377db174c",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.serviceFilters()": "ed180428a4b6a819"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.searchAndPublish(near:filters:)": "a4dcd27b8db69be2",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.serviceFilters()": "712e7ba044027b54"
    }
   },
   {
@@ -1158,12 +1081,11 @@
      "effect": "?? error.localizedDescription (e.g. CancellationError's generic text)"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.search(near:filters:)": "35266d7cbd6d4547",
     "Emuqu/Sources/Services/TrailDiscoveryService.swift::var TrailDiscoveryService.SearchError.errorDescription": "2ee98853de64c6ca",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.trailDiscoveryService": "87bc90c759c7f1f8",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.finishSearch(trails:error:)": "f87c3cf548c3f8af"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.trailDiscoveryService": "1b044d57dedd2c76",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.finishSearch(trails:error:)": "ba3e7052b2f4792c"
    }
   },
   {
@@ -1185,7 +1107,6 @@
      "effect": "results = trails; otherwise results stay as cleared by runSearch"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1199,9 +1120,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.lengthBounds": "e1810731ac1fc74d"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.lengthBounds": "fb688a400c0a994a"
    }
   },
   {
@@ -1220,11 +1140,10 @@
     "file:saved_routes.json (App Group)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "a784bf4553e314a2",
-    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)": "f86b9993b7802976",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.saveToLibrary(_:track:route:)": "65046757ce4a05ee"
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "f037f4bc54a92314",
+    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)": "e226df4b619cd0ca",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.saveToLibrary(_:track:route:)": "6667f6f67213a8a7"
    }
   },
   {
@@ -1253,27 +1172,15 @@
      "effect": "returns without saving (no message)"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "If encodePolyline returns nil the trail is used but not saved, with no message, although the sheet text promises it 'saves to your library'.",
-     "evidence": [
-      "Emuqu/Sources/Views/DiscoverTrailsView.swift:546",
-      "Emuqu/Sources/Views/DiscoverTrailsView.swift:228"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.activity(_:)": "c846ec7c0f8921fb",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "f42191bee7fea21e",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.add(_:)": "43b72f91d8b00638",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.enrichWithRoadNames(routeID:)": "d6e812f8164b0019",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "d183aa1e85ebbd65",
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::var TrailDiscoveryService.Activity.workoutSport": "bd57da25e8701858",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.makeSavedRoute(name:sport:polyline:route:)": "4d17e220188d03ac",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.savedRouteStore": "cbe8373898f4e79d"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.activity(_:)": "6f6ce547af89acf6",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "e29f39e4c0cb178c",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.add(_:)": "661da9c38d8c720b",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.enrichWithRoadNames(routeID:)": "f91e54d315319ac0",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d",
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::var TrailDiscoveryService.Activity.workoutSport": "742a0f4fcb6e4060",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.makeSavedRoute(name:sport:polyline:route:)": "402e29d1e8cb051f",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var DiscoverTrailsView.savedRouteStore": "c68759664e361dd0"
    }
   },
   {
@@ -1285,9 +1192,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c"
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "f68b16a3c34549ea"
    }
   },
   {
@@ -1305,9 +1211,8 @@
      "effect": "shows link; otherwise nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "b4125545ddd3d313"
    }
   },
   {
@@ -1322,9 +1227,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var SavedRouteRow.savedRouteCard": "ad1dfc9321f0bfe7"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var SavedRouteRow.savedRouteCard": "6f412b22a7d9ec24"
    }
   },
   {
@@ -1341,14 +1245,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var SavedRouteRow.relativeSavedAt": "d80ca64da0db0c90",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var SavedRouteRow.savedRouteStatsRow": "feda8270a4e108d0",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var SavedRouteRow.savedRouteTitleRow": "efe5ce29b2afaa69",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var SavedRouteRow.relativeSavedAt": "4b649c84a4ddab9e",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var SavedRouteRow.savedRouteStatsRow": "54d28296d5216f83",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var SavedRouteRow.savedRouteTitleRow": "c665988676dd4acc",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -1363,12 +1266,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName": "dbe667c792d47f39",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var SavedRouteRow.namedClimbsBadge": "78dd4eb0c4f37dac",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName": "7ee167777e5501ae",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var SavedRouteRow.namedClimbsBadge": "c0cf1139fd170118",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -1391,7 +1293,6 @@
      "effect": "?? false, no icon"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1407,12 +1308,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var SavedRouteRow.ascentLabel": "384feda1c7849d4f",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var SavedRouteRow.distanceLabel": "c96e75575cfe5a3d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var SavedRouteRow.ascentLabel": "f5034290a209da56",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var SavedRouteRow.distanceLabel": "1c51bddef1accd52",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -1430,12 +1330,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "ed55e0f71de4cd6c",
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.totalDistanceMeters(of:)": "f68b16a3c34549ea",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "12d2b7be83b2918b",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47"
    }
   },
   {
@@ -1459,11 +1358,10 @@
      "effect": "feet; otherwise metres"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.lengthText(_:_:)": "7bd1c907ea284ae2"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.lengthText(_:_:)": "47568008188ed944"
    }
   },
   {
@@ -1477,9 +1375,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -1496,13 +1393,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var TrailRow.mapPreview": "35577631ff7ae23f",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var TrailRow.trailStatsRow": "3457e9b75aaea2c2",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var TrailRow.trailTitleRow": "0ecd57c7502d81a7",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var TrailRow.useThisTrailButton": "c68721d3751e732e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var TrailRow.mapPreview": "cc2f98aa65a04b42",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var TrailRow.trailStatsRow": "e33f5722171b4a98",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var TrailRow.trailTitleRow": "689ad689efbbec83",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var TrailRow.useThisTrailButton": "6fd14bfb160db2a6",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835"
    }
   },
   {
@@ -1517,11 +1413,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var TrailRow.difficultyBadge": "d2f86dfda2e9a5cb",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var TrailRow.trailDescriptor": "923c9623e970e221",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var TrailRow.difficultyBadge": "f3d8b3013b70b204",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var TrailRow.trailDescriptor": "16042546de3adbfd",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -1539,10 +1434,9 @@
      "effect": "shown; otherwise nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.descriptor(from:)": "583fd506d6240f4b",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.descriptor(from:)": "470a886caec6589b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -1557,11 +1451,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var TrailRow.distanceFromUserLabel": "722ca734a42af9b0",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var TrailRow.lengthLabel": "9d1745e9deb72531",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var TrailRow.distanceFromUserLabel": "83db5617dff65313",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::var TrailRow.lengthLabel": "7a14e4d7e919ca4f",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -1581,9 +1474,8 @@
      "effect": "shown; otherwise nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func TrailRow.distanceLabel(from:)": "bf220a127e69baca"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func TrailRow.distanceLabel(from:)": "da43e169402989c8"
    }
   },
   {
@@ -1598,9 +1490,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1618,12 +1509,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/Route.swift::var Route.Climb.lengthMeters": "9201abd22a88cf21",
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+    "Emuqu/Sources/Models/Route.swift::var Route.Climb.lengthMeters": "34987bd2c329631c",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "12d2b7be83b2918b",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47"
    }
   },
   {
@@ -1643,12 +1533,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "12d2b7be83b2918b",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Services/TrailDiscoveryService.swift::func TrailDiscoveryService.DiscoveredTrail.distanceFrom(_:)": "87128253e4dae84a"
    }
   },
@@ -1664,10 +1553,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/TrailDiscoveryService.swift::var TrailDiscoveryService.Difficulty.displayName": "39edfeaf971e100a",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.difficultyColor(_:)": "0fc9ef85e386cb3a"
+    "Emuqu/Sources/Services/TrailDiscoveryService.swift::var TrailDiscoveryService.Difficulty.displayName": "e623587a07bbac86",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func DiscoverTrailsView.difficultyColor(_:)": "4327003860abc364"
    }
   },
   {
@@ -1682,10 +1570,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "a784bf4553e314a2",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func TrailRow.mapRegion()": "d43ccc810913f97a"
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "f037f4bc54a92314",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func TrailRow.mapRegion()": "b0a65e2deb031429"
    }
   },
   {
@@ -1703,9 +1590,8 @@
      "effect": "fitted region; otherwise centroid fallback (never hit: trails need >= 4 points)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "a784bf4553e314a2"
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "f037f4bc54a92314"
    }
   },
   {
@@ -1719,7 +1605,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1744,10 +1629,9 @@
      "effect": "asks for permission (and still calls requestLocation immediately); otherwise only requestLocation"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func SearchLocationProbe.isDenied(_:)": "d32ecef34e642ca1",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::let SearchLocationProbe.manager": "0d114c6a49675276"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func SearchLocationProbe.isDenied(_:)": "758ee125cfb97f05",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::let SearchLocationProbe.manager": "c3641211d5f0da56"
    }
   },
   {
@@ -1759,7 +1643,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1793,11 +1676,10 @@
      "effect": "returns without requesting; otherwise requestLocation"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func SearchLocationProbe.isDenied(_:)": "d32ecef34e642ca1",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::let SearchLocationProbe.manager": "0d114c6a49675276"
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func SearchLocationProbe.isDenied(_:)": "758ee125cfb97f05",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::let SearchLocationProbe.manager": "c3641211d5f0da56"
    }
   },
   {
@@ -1811,9 +1693,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::let SearchLocationProbe.manager": "0d114c6a49675276"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::let SearchLocationProbe.manager": "c3641211d5f0da56"
    }
   },
   {
@@ -1833,7 +1714,6 @@
      "effect": "stores last; otherwise ignores"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1847,10 +1727,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func SearchLocationProbe.handleFailure(denied:)": "cdc90cfdb84b3b57"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func SearchLocationProbe.handleFailure(denied:)": "26578904703d0fae"
    }
   },
   {
@@ -1873,10 +1752,9 @@
      "effect": "requestLocation (duplicates the request start() already made); otherwise nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func SearchLocationProbe.isDenied(_:)": "d32ecef34e642ca1",
-    "Emuqu/Sources/Views/DiscoverTrailsView.swift::let SearchLocationProbe.manager": "0d114c6a49675276"
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::func SearchLocationProbe.isDenied(_:)": "758ee125cfb97f05",
+    "Emuqu/Sources/Views/DiscoverTrailsView.swift::let SearchLocationProbe.manager": "c3641211d5f0da56"
    }
   }
  ],

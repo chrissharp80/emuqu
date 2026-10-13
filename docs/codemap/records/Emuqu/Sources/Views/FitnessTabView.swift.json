@@ -15,7 +15,6 @@
   "@State FitnessTabView: startError, planModel (WorkoutPlanModel), showImporter, importMessage, exportMessage, showHealthImport, interruptedRecordings, gpxShareURL (set only while a share is pending or shown), gpxSharePresented, gpxPreviewPayload, passiveSteps, todayWorkoutElevationMeters, weekWorkoutElevationMeters, dailyActivity, todayWorkoutAttributedSteps/DistanceMeters/Flights, meanHRR1m7d, dailyActivityFromPedometer, lastCompletedSession, selectedHistorySession, showGetMeBackSheet, showGetMeBackDisclaimer, latestWorkoutSession, latestWorkoutLoadFailed, recentWorkoutLoadFailed"
  ],
  "toplevel": "Stored @State initialisers: planModel = WorkoutPlanModel(), all others empty/false/nil/0. Environment: dependencies, RRCollector, ArchiveSignal, VoiceConversationController, SettingsManager. RecorderBox.shared is a static singleton constructed lazily; the header and PhaseObservingStateBody comments say the recorder lives in that app-wide box and that both WorkoutRecorder and WorkoutLifecycle are @Observable.",
- "flags": [],
  "units": [
   {
    "key": "var WorkoutSummaryItem.id",
@@ -26,7 +25,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -40,9 +38,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b"
    }
   },
   {
@@ -56,7 +53,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -70,7 +66,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -86,9 +81,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47"
    }
   },
   {
@@ -122,19 +116,18 @@
      "effect": "?? -1 as onChange key, so the key changes when samples appear"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.finishedSession": "877321d8f1364805",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "d0bce80edccaa2fe",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.captureFinishedSession(phase:)": "54e410389679ec99",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.listenForWatchAcknowledge()": "3fcfa5f8e8d2486b",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.refreshOpenSummaryWithHRR()": "cb49a58cd4329d2f",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withWorkoutSummarySheet(_:)": "ddaa13ba484b3df7",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderGatedBody": "f81efa4844f8e70a",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.startErrorBinding": "e7e056ae0026bc20",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.finishedSession": "fc196babd06023bb",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "1594d0dd9fa6bbb7",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.captureFinishedSession(phase:)": "04f21066453b3ebf",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.listenForWatchAcknowledge()": "edab952f8ae126eb",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.refreshOpenSummaryWithHRR()": "fa0be2c6c8340ba7",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withWorkoutSummarySheet(_:)": "cc7053fc1d3fdbe3",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "e21307e5349b7d9b",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderGatedBody": "ce88dd1247765a03",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.startErrorBinding": "583960fb3003e68e",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
    }
   },
   {
@@ -158,13 +151,12 @@
      "effect": "true → stateBody(for:); false → defaultStateBody + onAppear bindRecorderOffTabSwap"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.bindRecorderOffTabSwap()": "fdaa81b64b1ca31e",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.stateBody(for:)": "2bd4baa88375a07f",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.defaultStateBody": "30bcadbc5b9e7e8b",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.bindRecorderOffTabSwap()": "c698ba98b37194b6",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.stateBody(for:)": "de95a03133c36a17",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.defaultStateBody": "47fdab6009aede55",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "e21307e5349b7d9b",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
    }
   },
   {
@@ -180,10 +172,9 @@
     "mem:RecorderBox.recorder"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView.swift::func RecorderBox.bind(core:conversation:)": "3ad83ae7597a6bdb",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1"
+    "Emuqu/Sources/Views/FitnessTabView.swift::func RecorderBox.bind(core:conversation:)": "4c7780153d87644f",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "e21307e5349b7d9b"
    }
   },
   {
@@ -198,10 +189,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.workoutSummarySheet(_:)": "f448434a866d694d",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.workoutSummaryBinding": "278c24102cd7df94"
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.workoutSummarySheet(_:)": "6dd277755c9a9434",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.workoutSummaryBinding": "ae1bf5845cfbccab"
    }
   },
   {
@@ -241,11 +231,10 @@
      "effect": "true → recorder.acknowledgeFinished()"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()": "941b16a208b7f311",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()": "72c2dde3f0758689",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "e21307e5349b7d9b",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
    }
   },
   {
@@ -260,11 +249,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::init FitnessPostSummaryView(session:onDone:onDelete:)": "0e4426ac20a743c7",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteFromSummary(_:)": "ff7500d2c6aca713",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.dismissSummary(_:)": "8bc08d1aec0b1bb2"
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::init FitnessPostSummaryView(session:onDone:onDelete:)": "e09ba5b8b6a1747e",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteFromSummary(_:)": "99955e771958e16a",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.dismissSummary(_:)": "92a5834cf8a75cd6"
    }
   },
   {
@@ -287,11 +275,10 @@
      "effect": "true → acknowledgeFinished(); false → nothing more"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()": "941b16a208b7f311",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()": "72c2dde3f0758689",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "e21307e5349b7d9b",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
    }
   },
   {
@@ -314,12 +301,11 @@
      "effect": "true → acknowledgeFinished(); false → nothing more"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()": "941b16a208b7f311",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteWorkout(_:)": "fe53ab4cb2afcb15",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+    "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()": "72c2dde3f0758689",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteWorkout(_:)": "d7b76e3bbdc7bc24",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "e21307e5349b7d9b",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
    }
   },
   {
@@ -337,7 +323,6 @@
      "effect": "true path → startError = nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -357,11 +342,10 @@
      "effect": "true → lastCompletedSession = session; false → no-op"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.finishedSession": "877321d8f1364805",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.finishedSession": "fc196babd06023bb",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "e21307e5349b7d9b",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
    }
   },
   {
@@ -381,11 +365,10 @@
      "effect": "false → return; true → replace lastCompletedSession"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.finishedSession": "877321d8f1364805",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.finishedSession": "fc196babd06023bb",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "e21307e5349b7d9b",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
    }
   },
   {
@@ -401,12 +384,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessRecordingView.swift::init FitnessRecordingView(recorder:onStop:)": "761d0c6e6caa3737",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.stopAction(for:)": "cc8745c7138f74a7",
-    "Emuqu/Sources/Views/FitnessTabView.swift::init PhaseObservingStateBody(recorder:recordingBody:defaultBody:)": "bf18e4bb5978dfd8",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.defaultStateBody": "30bcadbc5b9e7e8b"
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::init FitnessRecordingView(recorder:onStop:)": "650a6d6d105bacba",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.stopAction(for:)": "fe129d6b7440c6d8",
+    "Emuqu/Sources/Views/FitnessTabView.swift::init PhaseObservingStateBody(recorder:recordingBody:defaultBody:)": "a69de254a316fba4",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.defaultStateBody": "47fdab6009aede55"
    }
   },
   {
@@ -420,9 +402,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.stop()": "b716c7af6bb5b527"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.stop()": "e19df1a73e9f486c"
    }
   },
   {
@@ -439,12 +420,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withFitnessChrome(_:)": "fbc6cf6107a5e69f",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withFitnessImports(_:)": "fac7bec613c75bc6",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withGPXSheets(_:)": "ca0066497aafcef5",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.fitnessHomeScroll": "2e967037646f7b98"
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withFitnessChrome(_:)": "f0b1041acc3c21e9",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withFitnessImports(_:)": "31a6b87b98c8abe8",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.withGPXSheets(_:)": "ce5e70f20dcbc9ac",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.fitnessHomeScroll": "d2b3fbe6ff051039"
    }
   },
   {
@@ -459,10 +439,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.fitnessHomeCards": "35e9814f8c0ad91a",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.preflightSurface": "e2334dcf2e6615f8"
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.fitnessHomeCards": "902ca15d9e66bec0",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.preflightSurface": "d17dc8bb45cb3811"
    }
   },
   {
@@ -484,11 +463,10 @@
      "effect": "false → nothing rendered (no Start UI until the recorder binds)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.startWorkout(sport:targetZone:source:plan:thresholds:route:)": "d49802b34261eb68",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.startWorkout(sport:targetZone:source:plan:thresholds:route:)": "1f235d17bc736fd6",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "e21307e5349b7d9b",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
    }
   },
   {
@@ -511,30 +489,15 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "USERS_MANUAL's Fitness dashboard section lists hero → 7/30-day count tiles → passive activity card → Get Me Back → recent list; the code also renders the interrupted-recording card above the hero, the Load & Trajectory card, Weekly LOAD and Mean HRR@1m tiles and the heat-acclimatization card, none of which the section mentions.",
-     "evidence": [
-      "docs/USERS_MANUAL.md:983",
-      "Emuqu/Sources/Views/FitnessTabView.swift:350",
-      "Emuqu/Sources/Views/FitnessTabView.swift:352",
-      "Emuqu/Sources/Views/FitnessTabView.swift:354",
-      "Emuqu/Sources/Views/FitnessTabView+Strap.swift:510"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/FitnessStrapSection.swift::func FitnessTabView.heroCard(latest:)": "09f13445a17aceb0",
-    "Emuqu/Sources/Views/FitnessStrapSection.swift::func FitnessTabView.recentWorkoutsList(entries:)": "e10c6ec2d1aded91",
-    "Emuqu/Sources/Views/FitnessStrapSection.swift::func FitnessTabView.summaryTileGrid(entries:)": "282d4cc9eb8b10d6",
-    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.trajectoryLinkCard": "f8b8aa52ebd8b67c",
-    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.interruptedRecordingCard": "1877833efe115f0d",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.recentWorkoutEntries()": "a746e478136654e9",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.dailyActivitySurfaces": "cdd9dd7282b1a3e5",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.heatAcclimationCard": "4576a034169bd105"
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::func FitnessTabView.heroCard(latest:)": "4d8dce03d5bc1228",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::func FitnessTabView.recentWorkoutsList(entries:)": "713e05f6e9ddbbdd",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::func FitnessTabView.summaryTileGrid(entries:)": "fabbf5465410b73b",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.trajectoryLinkCard": "f62e6b6232a3cd2f",
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.interruptedRecordingCard": "d0c394caff9022b1",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.recentWorkoutEntries()": "1dd6c55938cd5825",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.dailyActivitySurfaces": "de2c34850d20a96b",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.heatAcclimationCard": "bd652105533ead20"
    }
   },
   {
@@ -548,9 +511,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "793b7401620a8337"
    }
   },
   {
@@ -565,10 +527,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.dailyActivityCard": "34790fb404530a94",
-    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.getMeBackCard": "3bd2a1068cff9456"
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.dailyActivityCard": "863fca79ef707337",
+    "Emuqu/Sources/Views/FitnessTabView+Sections.swift::var FitnessTabView.getMeBackCard": "45aed81dcecbbc45"
    }
   },
   {
@@ -586,12 +547,11 @@
     "mem:FitnessTabView.recentWorkoutLoadFailed"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.loadFitnessHomeData()": "f4a32d3723f92e16",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.fitnessToolbar": "54b5dacef59c9fa7",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.sensorSheet": "04170f1ddba8b063"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.loadFitnessHomeData()": "ddf9f7c637731c2b",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.fitnessToolbar": "4df35ee440c87c09",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.sensorSheet": "1567a8d782f45e0b"
    }
   },
   {
@@ -603,7 +563,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -627,14 +586,13 @@
     "mem:TrainingMetricsCache.dailySeries"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)": "91671447087aacfe",
-    "Emuqu/Sources/Collection/PedometerHistoryImporter.swift::func PedometerHistoryImporter.importRecent(days:)": "276159fb959205b4",
-    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::func FitnessTabView.reloadInterruptedRecordings()": "ca8d6ca32d1d437f",
+    "Emuqu/Sources/Collection/PedometerHistoryImporter.swift::func PedometerHistoryImporter.importRecent(days:)": "55dd989a7ae30a1d",
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::func FitnessTabView.reloadInterruptedRecordings()": "0751e3299a93dec5",
     "Emuqu/Sources/Views/FitnessTabView+Sections.swift::func FitnessTabView.loadWorkoutElevationTotals()": "0de3e28b5b9d6865",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.paintCachedFitnessSnapshot()": "e59804e1b1c738ac",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.trainingCache": "51ff8a2bb9b98388"
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.paintCachedFitnessSnapshot()": "7ae8010a03e06962",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.trainingCache": "48225c5ec94d9d1a"
    }
   },
   {
@@ -654,9 +612,8 @@
      "effect": "false → no-op; true → copies five values"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c"
    }
   },
   {
@@ -670,9 +627,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.fitnessDataMenu": "ef3936d127fe0c65"
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.fitnessDataMenu": "875b8b7a4e32e396"
    }
   },
   {
@@ -702,13 +658,12 @@
      "effect": "true → message text shown"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.gpxPreviewSheet(_:)": "da35f75c988a085d",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.presentPendingGPXShare()": "8f07da8af93048e4",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.gpxShareBinding": "600ed11b76cf57ae",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.gpxShareSheet": "4bb2d0e4efc813b4"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.gpxPreviewSheet(_:)": "36c6010a6bf7204c",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.presentPendingGPXShare()": "8a4e5da3cfa1f490",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.gpxShareBinding": "699b7835e139a713",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.gpxShareSheet": "27c63295ad6dd484"
    }
   },
   {
@@ -722,7 +677,6 @@
     "mem:FitnessTabView.gpxSharePresented"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -740,7 +694,6 @@
      "effect": "false → empty sheet content"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -754,9 +707,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.shareGPXAfterPreview(_:)": "318376e9c3eb1e72"
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.shareGPXAfterPreview(_:)": "12451a46595479d5"
    }
   },
   {
@@ -771,7 +723,6 @@
     "mem:FitnessTabView.gpxPreviewPayload"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -793,7 +744,6 @@
      "effect": "gpxSharePresented = true"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -819,11 +769,10 @@
      "effect": "true → message text"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.healthImportSheet": "b6ddfe9f10589692",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.handleImportResult(_:)": "41d01b38b88e35e2"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/FitnessTabView+DataMenu.swift::var FitnessTabView.healthImportSheet": "324ee5335ddc8d07",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.handleImportResult(_:)": "efd07f8b3775d049"
    }
   },
   {
@@ -837,9 +786,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def"
    }
   },
   {
@@ -857,7 +805,6 @@
      "effect": "early return false"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -869,9 +816,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -883,10 +829,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },
   {
@@ -923,37 +868,13 @@
      "effect": "debugLog warning only; user gets no feedback and the row stays"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "A failed archive delete is only logged; the user sees no message.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessTabView.swift:565"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The delete + notify + CloudKit uploadDeletion sequence is repeated in several views instead of one helper.",
-     "evidence": [
-      "Emuqu/Sources/Views/FitnessTabView.swift:558",
-      "Emuqu/Sources/Views/HistoryView.swift:335",
-      "Emuqu/Sources/Views/TrendsV2View.swift:263",
-      "Emuqu/Sources/Views/MainTabView+Tabs.swift:204",
-      "Emuqu/Sources/Views/RecordView+Sections.swift:408"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)": "35795a3f19c6054a",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var WorkoutSummaryItem.id": "0b2b1d7a070ad4a1"
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)": "0576298ec8979497",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var WorkoutSummaryItem.id": "aa23ed1e162665a0"
    }
   },
   {
@@ -989,12 +910,11 @@
      "effect": "false → exportMessage 'Couldn't decode GPS track for export.' (also used when the file write threw), return; true → gpxPreviewPayload set"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.latestTrackedWorkout(entries:)": "68f55a99b644f32d",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.recentWorkoutEntries()": "a746e478136654e9",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.writeGPX(session:polyline:)": "2c3168ca3bb4d522"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.latestTrackedWorkout(entries:)": "0393a4c8d2c4973d",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.recentWorkoutEntries()": "1dd6c55938cd5825",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.writeGPX(session:polyline:)": "aae81e6f9a94e82c"
    }
   },
   {
@@ -1008,9 +928,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.firstEntryWithPolyline(_:archive:)": "b92bb8f9907a1a33"
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.firstEntryWithPolyline(_:archive:)": "1b1c26e914e5cb19"
    }
   },
   {
@@ -1037,7 +956,6 @@
      "effect": "false → continue (read errors swallowed by try?); true → return (session, polyline)"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "0bbfc03c60fb225a"
    }
@@ -1063,11 +981,10 @@
      "effect": "returns ([], nil)"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "9076ca04b3bf1372",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.writeToTempFile(session:track:)": "65d6fe9d8e38b012",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.writeToTempFile(session:track:)": "81948264d3d30c1e",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -1097,10 +1014,9 @@
      "effect": "importMessage 'Couldn't open file: …'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.importGPX(from:)": "bb9ecbc1646db22c"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.importGPX(from:)": "f4f6621a6641e28c"
    }
   },
   {
@@ -1141,14 +1057,13 @@
      "effect": "importMessage 'Import failed: <error>'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.buildSession(from:)": "d9ce53f199efc000",
-    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parseWorkout(data:defaultSport:)": "fd68276977030bb1",
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "1c38f37d10093863",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.isArchivedWorkout(startingAt:)": "ce49f563ebd7e2eb"
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.buildSession(from:)": "763d10ef1091b055",
+    "Emuqu/Sources/Analysis/GPXImporter.swift::func GPXImporter.parseWorkout(data:defaultSport:)": "b9bc9dc832b4f121",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.isArchivedWorkout(startingAt:)": "704cf76d45829788"
    }
   },
   {
@@ -1164,10 +1079,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.isAlreadyArchived(start:existingStarts:)": "6efdd13994d3e5ea"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Import/HealthWorkoutImporter.swift::func HealthWorkoutImporter.isAlreadyArchived(start:existingStarts:)": "1b21847bb67f3db3"
    }
   },
   {
@@ -1187,7 +1101,6 @@
      "effect": "clears lastCompletedSession (also closes a hero-opened sheet, see FitnessTabView+Strap.swift:196)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1216,13 +1129,12 @@
      "effect": "targetZone restored; startError = localizedDescription"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.start(sport:source:intervalPlan:thresholds:route:)": "3ccf53157fe3d7cd",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "c3e90b3ab0e837fa",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "611e443a4e0e62d1",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.start(sport:source:intervalPlan:thresholds:route:)": "6ef658b176509f08",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "ad7f41a3d1b733bb",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "e21307e5349b7d9b",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
    }
   },
   {
@@ -1234,7 +1146,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1259,9 +1170,8 @@
      "effect": "default dashboard"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "d0bce80edccaa2fe"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "1594d0dd9fa6bbb7"
    }
   },
   {
@@ -1285,9 +1195,8 @@
      "effect": "early return"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::init WorkoutRecorder(core:conversation:location:footPod:settingsProvider:)": "2283c317b2fb1315"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::init WorkoutRecorder(core:conversation:location:footPod:settingsProvider:)": "896a364be22825e0"
    }
   }
  ],

@@ -9,7 +9,6 @@
   "file:Emuqu/Sources/Storage/*.swift"
  ],
  "toplevel": "cd to repo root. No Emuqu/Sources/Storage/CloudKit*.swift -> exit 2. Python over every Swift file under Emuqu and the watch app that contains `CKRecord` (none -> 2): resolves `let name = \"literal\"` constants (a name maps to every value it has); a write is `<x>record[<literal or constant>] = value` or `.setValue/.setObject(value, forKey: <literal or constant>)`; health-field key -> error; settingsJSON/deviceName key with a value other than nil -> error. Writer loop (compressedPayload, compressedPoints, encryptedSettingsPayload) under Emuqu/Sources/Storage: not found -> exit 2; awk body to first 4-space `}`; body lacks CloudPayloadCodec.encode / *ncryptedFor*( -> error; file lacks CloudPayloadCodec.hasUsableKey -> error. Reader loop (decodePoints, decodeSessionAsset): not found -> exit 2; body without DataCompression.decompress -> exit 2; body without CloudPayloadCodec.decode -> error. bad>0 -> exit 1; else clean.",
- "flags": [],
  "units": [],
  "deps": {}
 }

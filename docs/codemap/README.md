@@ -3,30 +3,6 @@
 One record for every unit of code in this repository, a call graph over all of them, and CI rules
 that keep both in step with the code.
 
-## What was done, and where it stands
-
-Two pieces of work produced this directory.
-
-1. **The map.** Every line of every tracked file was read and a record written for each unit
-   (19,669 records), then a second reader checked each record against the code. Along the way the
-   readers recorded the problems they found: 40 high, 744 medium and 3,382 low.
-2. **The fix pass.** The high and medium findings were then fixed in app code, tests, docs, CI
-   scripts and config, together with about half of the low ones. Open findings after it: 1 high,
-   111 medium, 1,577 low. The remaining high is the HR-only sleep staging, which agrees with lab
-   sleep studies at about chance level; it needs a science decision, not a code fix. Most of the
-   remaining medium findings need a product decision, new user-facing text, or a test seam.
-
-Limits a reader should know:
-
-- The fix pass was done without a Swift compiler. Its changes were checked by reading, parsing and
-  the Linux gates, not by building or running the app; the first macOS build and test run is the
-  real check.
-- The fixes changed what many functions do. About 4,500 callers of those functions have not been
-  re-read against the change (the "re-check" lines below). The check counts them without failing on
-  them, and `codemap.py status` lists them.
-- Records describe the code; the check proves only that each was written after its code last
-  changed. A record can still be wrong.
-
 A unit is a Swift function, initializer, deinitializer, subscript, computed property, observed
 property, closure-initialised stored property or protocol requirement; a Python `def`; a shell
 function; a C or Objective-C function; a `Makefile` target; a workflow job or step; or a Markdown
@@ -46,7 +22,6 @@ two large string catalogs also has a file-level record.
 | `units[].calls` | Units it calls, as `path::key`, plus `ext:` framework calls and `dyn:` / `closure:` dispatch. |
 | `units[].reads`, `writes` | Persistent or shared state, prefixed `ud:` `file:` `archive:` `hk:` `ck:` `kc:` `kvs:` `mem:` `notif:` `net:` `ble:` `wc:`. |
 | `units[].branches` | Every branch point, `at` as an offset from the unit's first line, with its condition and effect. |
-| `flags`, `units[].flags` | Problems found, with kind, severity, text and evidence. |
 | `hash` | Hash of the code the record was written against. |
 | `deps` | For each unit it certainly calls: a hash of what that callee's record said when this record was last checked. Written by `stamp`. |
 
@@ -84,7 +59,8 @@ when:
 - the code of a unit, or the code of a file outside its units, has changed since its record was
   stamped;
 - a record exists for a unit or file that no longer does;
-- the number of open high- or medium-severity findings differs from its budget (below).
+- with the local findings overlay present, the number of open high- or medium-severity findings
+  differs from its budget (below).
 
 It also lists, without failing, the records to re-check:
 
@@ -98,20 +74,19 @@ It also lists, without failing, the records to re-check:
 `codemap.py status` prints every re-check line; `check` prints only how many there are. Each one
 is cleared by re-reading the unit and stamping it (see "Changing code").
 
-The open-findings ratchet: `.ci/codemap_open_high.txt` and `.ci/codemap_open_med.txt` hold the
-number of open high- and medium-severity flags across all records, and the check fails unless the
-records contain exactly that many.
-
-- A change that adds a high or medium flag fails. Fix the problem instead of recording it.
-- A change that fixes one removes its flag and lowers the budget by the same amount in the same
-  change; leaving the budget where it was fails, so the count cannot creep back up.
-- `check_budget_monotonicity.sh` stops either budget being raised. A problem that already existed
-  and has only now been found can be recorded by raising the budget with a
-  `budget-raise-ok: .ci/codemap_open_<sev>.txt <reason>` trailer in the commit message.
+Findings are kept out of the public records. Each record's `flags` (kind, severity, text and
+evidence of a problem found) live in a local, untracked overlay, `do_not_ship/codemap/flags/<path>.json`
+(`{"file": [...], "units": {key: [...]}}`; `$CODEMAP_OVERLAY` points elsewhere). `codemap.py`
+merges the overlay into each record it loads and writes flags only to it. Where the overlay exists,
+the open-findings ratchet runs too: `do_not_ship/codemap/codemap_open_high.txt` and
+`codemap_open_med.txt` hold the number of open high- and medium-severity flags, and the check fails
+unless the overlay contains exactly that many. A change that adds a high or medium flag fails; a
+change that fixes one removes its flag and lowers the budget by the same amount. Without the
+overlay (a public clone, GitHub Actions) the ratchet does not run.
 
 The code hash leaves out whole-line comments and the lines of units nested inside a unit, so
 editing a comment or a nested function does not make the outer record stale. What a caller is
-checked against is the callee's `does`, `entry`, `reads`, `writes`, branches and flags: rewording
+checked against is the callee's `does`, `entry`, `reads`, `writes` and branches: rewording
 a record therefore sends its callers back, so change a record only when the behaviour changed.
 
 The check proves that each record was written after the last change to its code, and lists the
@@ -129,7 +104,7 @@ differs from `<ref>` (default `origin/main`), or for units named as `path::key`:
   it through certain callers;
 - the tests and doc sections that reach it;
 - the shared state it reads and writes, and every other unit that reads or writes the same state;
-- the open findings on it and on its direct callers.
+- with the overlay present, the open findings on it and on its direct callers.
 
 On a pull request, `gates.yml` writes the same list to the job summary, even when the check
 failed. `codemap.py callers <path::key>` lists one unit's direct callers.
@@ -137,15 +112,15 @@ failed. `codemap.py callers <path::key>` lists one unit's direct callers.
 ## Changing code
 
 1. Before changing a unit, run `make codemap-impact` or `codemap.py impact <path::key>` and read the
-   unit's record, its callers, the triggers and tests that reach it, the shared state, and the open
-   findings. Those are the paths the change has to keep working.
+   unit's record, its callers, the triggers and tests that reach it, the shared state, and (with the
+   overlay) the open findings. Those are the paths the change has to keep working.
 2. Make the change, including whatever the impact list shows the callers need.
 3. `make codemap-guard` lists every record the change affects.
 4. For new or deleted units: `codemap.py sync <path>` adds empty records and drops the ones whose
    code is gone.
 5. Re-read the code and rewrite each listed record so it describes the code as it now is: `does`,
-   `entry`, `calls`, `reads`, `writes`, every branch, and flags. Delete the flags the change fixed
-   and lower the matching `.ci/codemap_open_*.txt` budget.
+   `entry`, `calls`, `reads`, `writes` and every branch. With the overlay, delete the flags the
+   change fixed and lower the matching `codemap_open_*.txt` budget.
 6. For each "re-check" line, re-read that unit against the callee's new behaviour. If the unit
    still behaves as its record says, stamp it unchanged. If it does not, fix the unit or rewrite its
    record, which sends its own callers back.
@@ -167,7 +142,7 @@ and review is the only thing that catches that.
 ## The report
 
 `make codemap-report` builds a browsable report in `build/codemap`: the whole-app and per-area
-call flowcharts, every finding with filters, every unit with its certain and possible callers and
+call flowcharts, every finding in the local overlay with filters, every unit with its certain and possible callers and
 its callees, unreachable code, shared state written from more than one area, and the
 string-catalog audit. Serve it with `python3 -m http.server -d build/codemap` and open the printed
 address; it loads its data with relative fetches, so opening the file directly does not work.
@@ -176,6 +151,5 @@ address; it loads its data with relative fetches, so opening the file directly d
 
 The first full set was written against main at `8d32097`: one reader went through every line of
 every file and wrote a record per unit, and a second reader re-checked every record against the
-code. Doc sections were then linked to the code that implements them. Line numbers in the evidence
-of those findings refer to that commit. The `deps` of those records were set from the graph at the
-same time.
+code. Doc sections were then linked to the code that implements them. The `deps` of those records
+were set from the graph at the same time.

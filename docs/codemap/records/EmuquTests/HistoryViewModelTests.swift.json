@@ -11,7 +11,6 @@
   "mem:HistoryViewModelTests.createdSessionIds"
  ],
  "toplevel": "lazy tempDir and archive properties; createdSessionIds array.",
- "flags": [],
  "units": [
   {
    "key": "func HistoryViewModelTests.setUp()",
@@ -22,7 +21,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -44,9 +42,8 @@
      "effect": "try? archive.delete; failures swallowed"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b"
    }
   },
   {
@@ -74,28 +71,16 @@
      "effect": "sleeps 20 ms and polls again; exits when any tracked id appears or on timeout"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Timing-dependent: waits at most 2 s for the detached recompute (HistoryViewModel.recomputeFilteredEntries) with a 20 ms poll; a slow CI host times out and the assertions then fail on an empty list rather than on wrong collapse logic.",
-     "evidence": [
-      "EmuquTests/HistoryViewModelTests.swift:82",
-      "EmuquTests/HistoryViewModelTests.swift:85"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.recomputeFilteredEntries()": "4709c5b029b6ba41",
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.refreshIfNeeded(archiveVersion:)": "31cf379f4b178303",
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::init HistoryViewModel(archive:settingsProvider:)": "b8e4e68becf134f2",
-    "EmuquTests/HistoryViewModelTests.swift::func HistoryViewModelTests.makeSession(start:end:score:)": "3cd367dddcb8681d",
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d",
-    "EmuquTests/TestDate.swift::func TestDate.adding(_:_:to:calendar:file:line:)": "05f3816097f2b356"
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.recomputeFilteredEntries()": "0bc839b08b8e54e3",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.refreshIfNeeded(archiveVersion:)": "090a425376b10bfe",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::init HistoryViewModel(archive:settingsProvider:)": "ebc552fa80004921",
+    "EmuquTests/HistoryViewModelTests.swift::func HistoryViewModelTests.makeSession(start:end:score:)": "c711b68251f6ee1f",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b",
+    "EmuquTests/TestDate.swift::func TestDate.adding(_:_:to:calendar:file:line:)": "4f1f533a0b713b35"
    }
   },
   {
@@ -109,10 +94,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161"
    }
   }
  ],

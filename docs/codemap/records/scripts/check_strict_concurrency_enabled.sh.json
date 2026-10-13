@@ -9,7 +9,6 @@
   "env:SWIFT_LANGUAGE_VERSION (default 6.0)"
  ],
  "toplevel": "cd to repo root; fail if pbxproj missing. Counts lines with grep -c: configs = 'SWIFT_VERSION = ' (8 at 8d32097), strict = 'SWIFT_STRICT_CONCURRENCY = <level>;' (8), werror = 'SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;' (2), swift6 = 'SWIFT_VERSION = <ver>;' (8). Prints the three ratios. fail (exit 1) if strict < configs, if swift6 < configs, or if werror < 1; else prints clean. Counts are line counts, not per-configuration matches: a configuration with two strict lines and another with none would still pass, and a configuration lacking SWIFT_VERSION is not in the denominator. Warnings-as-errors only needs to be on in one configuration (2 of 8 at HEAD).",
- "flags": [],
  "units": [
   {
    "key": "fn fail",
@@ -20,11 +19,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],
  "deps": {
-  "scripts/check_strict_concurrency_enabled.sh::fn fail": "a02e4dd485c8c8e2"
+  "scripts/check_strict_concurrency_enabled.sh::fn fail": "8d5dfcf6ca16c0ba"
  }
 }

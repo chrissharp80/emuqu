@@ -17,17 +17,6 @@
   "mem:SampleDataModel.phase/isPresent/failure (per-view @State instance)"
  ],
  "toplevel": "Each view owns its own SampleDataModel @State, so progress and failure are not shared across the offer row, banner and section.",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No unit test references SampleDataModel; only UI accessibility identifiers exist for these views.",
-   "evidence": [
-    "Emuqu/Sources/Views/SampleDataViews.swift:12"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var SampleDataModel.isWorking",
@@ -38,7 +27,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -57,9 +45,8 @@
     "mem:SampleDataModel.phase/isPresent/failure"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.isPresent": "6c1955020e1cc025"
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.isPresent": "de4dbc90cab5c43f"
    }
   },
   {
@@ -84,10 +71,9 @@
      "effect": "catch: failure = localizedDescription (shown by SampleDataProgress); phase still reset"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.load(nights:progress:)": "853411c43471b505",
-    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.refresh(_:)": "952333ca64b65e6c"
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.refresh(_:)": "8acb1f00ea5c9c23"
    }
   },
   {
@@ -113,10 +99,9 @@
      "effect": "catch: failure = localizedDescription; phase reset"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.remove()": "51c44700e1b50ac9",
-    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.refresh(_:)": "952333ca64b65e6c"
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::func SampleDataLibrary.remove()": "b3c110f1055eb21c",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.refresh(_:)": "8acb1f00ea5c9c23"
    }
   },
   {
@@ -144,9 +129,8 @@
      "effect": "'Removing sample data…'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -164,7 +148,6 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -176,9 +159,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -190,9 +172,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -204,9 +185,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -218,9 +198,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -237,15 +216,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataOfferRow.load()": "52d1f9439e0a9461",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.isWorking": "0a1a1c4b71c451b9",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataOfferRow.buttonLabel": "2102d68d1336b410",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataProgress.body": "5b8407ccc378a494",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataOfferRow.load()": "a33db4f323ee8cd1",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.isWorking": "4636004a87ea11a0",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataOfferRow.buttonLabel": "727bbc5d2677431f",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataProgress.body": "fa6588d5d10dfd93",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -262,11 +240,10 @@
     "archive:SessionArchive.archive"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SampleDataLibrary.swift::init SampleDataLibrary(collector:cloudSync:)": "8af3ea7920af7728",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
-    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.load(_:)": "d513eeffc116eb10"
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::init SampleDataLibrary(collector:cloudSync:)": "0883e83369602e10",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.load(_:)": "9ec98a073fb5eeeb"
    }
   },
   {
@@ -278,10 +255,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -309,25 +285,13 @@
      "effect": "show banner; else nothing"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "library.isPresent (UserDefaults ledger read + scan of all archive entries) runs on every body evaluation of the Dashboard banner.",
-     "evidence": [
-      "Emuqu/Sources/Views/SampleDataViews.swift:157",
-      "Emuqu/Sources/Services/SampleDataLibrary.swift:52"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.archiveVersion": "a2f9ce0b04a1be11",
-    "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.isPresent": "6c1955020e1cc025",
-    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataBanner.remove()": "449c1c872243d8f1",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.banner": "2328a3b51094676b",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.library": "93179fe60c2ed8d2",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.isWorking": "0a1a1c4b71c451b9"
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.archiveVersion": "7c843f91f7345a6c",
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::var SampleDataLibrary.isPresent": "de4dbc90cab5c43f",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataBanner.remove()": "d9e80dcbd1958c62",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.banner": "0ca3f7b95e8ed85c",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.library": "bb5cfba1852757c4",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.isWorking": "4636004a87ea11a0"
    }
   },
   {
@@ -341,10 +305,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SampleDataLibrary.swift::init SampleDataLibrary(collector:cloudSync:)": "8af3ea7920af7728",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::init SampleDataLibrary(collector:cloudSync:)": "0883e83369602e10",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c"
    }
   },
   {
@@ -361,10 +324,9 @@
     "archive:SessionArchive.remove"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.remove(_:)": "bc06cb7a1a83ad51",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.library": "93179fe60c2ed8d2"
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.remove(_:)": "b21a04571a5d71da",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.library": "bb5cfba1852757c4"
    }
   },
   {
@@ -380,13 +342,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.bannerCaption": "31e2f84d5eb63470",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.removeButton": "ee82b4c08857f6e7",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataProgress.body": "5b8407ccc378a494",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.bannerCaption": "9b9c9f5b31500e8b",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataBanner.removeButton": "858134467efb05cc",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataProgress.body": "fa6588d5d10dfd93",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -398,11 +359,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -416,10 +376,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataCopy.removeTitle": "061371de0890407c",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.isWorking": "0a1a1c4b71c451b9"
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataCopy.removeTitle": "1fb275afbeb40d31",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.isWorking": "4636004a87ea11a0"
    }
   },
   {
@@ -445,11 +404,10 @@
      "effect": "show failure; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.progressText": "585388a63807b640",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataProgress.progressBar": "83583144da9607d6",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.progressText": "66b6be4858c75740",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataProgress.progressBar": "66bff8e2998cdeab",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -469,9 +427,8 @@
      "effect": "determinate; else indeterminate"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.progressFraction": "644fc98976a38577"
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.progressFraction": "8b1923586dc5d824"
    }
   },
   {
@@ -486,10 +443,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataCopy.removeConfirmMessage": "c662a2b668e13367",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataCopy.removeTitle": "061371de0890407c"
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataCopy.removeConfirmMessage": "c9c9685f8b2e2646",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataCopy.removeTitle": "1fb275afbeb40d31"
    }
   },
   {
@@ -517,17 +473,16 @@
      "effect": "show remove button"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.archiveVersion": "a2f9ce0b04a1be11",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.refresh(_:)": "952333ca64b65e6c",
-    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataSection.remove()": "449c1c872243d8f1",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataCopy.explanation": "bead25070b032711",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataProgress.body": "5b8407ccc378a494",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.library": "93179fe60c2ed8d2",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.loadButton": "7d5549d79da98c7a",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.removeButton": "61c29faea8d7a4c9"
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.archiveVersion": "7c843f91f7345a6c",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.refresh(_:)": "8acb1f00ea5c9c23",
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataSection.remove()": "d9e80dcbd1958c62",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataCopy.explanation": "d68e6c5d1520e6b8",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataProgress.body": "fa6588d5d10dfd93",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.library": "bb5cfba1852757c4",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.loadButton": "0d46a538ed223276",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.removeButton": "5fd665853cd143d1"
    }
   },
   {
@@ -541,10 +496,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/SampleDataLibrary.swift::init SampleDataLibrary(collector:cloudSync:)": "8af3ea7920af7728",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74"
+    "Emuqu/Sources/Services/SampleDataLibrary.swift::init SampleDataLibrary(collector:cloudSync:)": "0883e83369602e10",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c"
    }
   },
   {
@@ -561,10 +515,9 @@
     "archive:SessionArchive.remove"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.remove(_:)": "bc06cb7a1a83ad51",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.library": "93179fe60c2ed8d2"
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.remove(_:)": "b21a04571a5d71da",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.library": "bb5cfba1852757c4"
    }
   },
   {
@@ -581,12 +534,11 @@
     "archive:SessionArchive.archive"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.load(_:)": "d513eeffc116eb10",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataCopy.loadTitle": "ac18ea2412b8d729",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.isWorking": "0a1a1c4b71c451b9",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.library": "93179fe60c2ed8d2"
+    "Emuqu/Sources/Views/SampleDataViews.swift::func SampleDataModel.load(_:)": "9ec98a073fb5eeeb",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataCopy.loadTitle": "2ce1b9acbd55bd29",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.isWorking": "4636004a87ea11a0",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.library": "bb5cfba1852757c4"
    }
   },
   {
@@ -598,10 +550,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataCopy.removeTitle": "061371de0890407c",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.isWorking": "0a1a1c4b71c451b9"
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataCopy.removeTitle": "1fb275afbeb40d31",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataModel.isWorking": "4636004a87ea11a0"
    }
   },
   {
@@ -615,10 +566,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.body": "575c025b9196edff"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SampleDataViews.swift::var SampleDataSection.body": "328ae146e98b982e"
    }
   }
  ],

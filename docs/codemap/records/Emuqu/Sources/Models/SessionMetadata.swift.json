@@ -25,7 +25,6 @@
   "mem:HRVSession.ImportedMetrics.eliteHRVSource = \"Elite HRV\""
  ],
  "toplevel": "Static lets above; HRVSession and SessionArchiveEntry have custom init(from:)/encode(to:); DeviceProvenance, DataSourceSummary, SleepSegmentMs, ImportedMetrics, OfflineSession use synthesized Codable. HRVSession.sourceSchemaVersion and SessionArchiveEntry.sourceSchemaVersion are transient (decoded, never encoded). The KeyedDecodingContainer extension at the end gives both decoders (and SleepStageInterval's) lenient enum reads.",
- "flags": [],
  "units": [
   {
    "key": "func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)",
@@ -44,9 +43,8 @@
      "effect": "appVersion 'unknown'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.systemVersion": "e0ba0769e57b63de"
+    "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.systemVersion": "39e90677709e32e9"
    }
   },
   {
@@ -86,9 +84,8 @@
      "effect": "'Workout'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -126,7 +123,6 @@
      "effect": "figure.run"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -138,7 +134,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -152,9 +147,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVDataQuality.allowsHRVAggregates(_:)": "4dfe19c5257b4cab"
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVDataQuality.allowsHRVAggregates(_:)": "e3b8279aa42f24f4"
    }
   },
   {
@@ -166,7 +160,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -184,7 +177,6 @@
      "effect": "false"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -230,11 +222,10 @@
      "effect": "'<selectedSource> data used' (raw source string interpolated)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.DataSourceSummary.streamingDescription": "b5a96582db568d93",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.DataSourceSummary.streamingDescription": "71e6dec74afc3e60",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -260,10 +251,9 @@
      "effect": "'Streamed (N streamed, M on strap)'; else 'Streamed from strap'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.DataSourceSummary.isVeritySense": "0661ec92ce3c6e33",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.DataSourceSummary.isVeritySense": "473fd4a3627d0f56",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -275,19 +265,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only HRVSessionTests.swift:78-84 read HRVSession.isResumable; EmuquApp.swift:618/625 use a different type's isResumable.",
-     "evidence": [
-      "Emuqu/Sources/Models/SessionMetadata.swift:393",
-      "EmuquTests/HRVSessionTests.swift:78",
-      "Emuqu/EmuquApp.swift:64"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -299,9 +276,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.rmssd": "64652e57c90f256a"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.rmssd": "52bc71a25da47070"
    }
   },
   {
@@ -313,7 +289,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -325,7 +300,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -343,7 +317,6 @@
      "effect": "kept; otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -409,15 +382,14 @@
      "effect": "recoveryScore, frozenReadiness and scoreBreakdown set to nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)": "95e5ec417e853349",
-    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isLegacyEliteImport(source:)": "8e65d83bbf9eb543",
-    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.withLegacyImportProvenance(source:)": "eba96be4c889210e",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.payloadSchemaVersion(in:)": "2c4a5b6d31ace5f5",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.validPerceivedReadiness(_:)": "56cd87cfab43101f",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnown(_:forKey:unknown:)": "f1723a2f2e51bf9b",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnownIfPresent(_:forKey:unknown:)": "c768f7a21d96a4b4"
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)": "bc02b75234c663d6",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isLegacyEliteImport(source:)": "41bb01e173ce8025",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.withLegacyImportProvenance(source:)": "cc64885d0b69f322",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.payloadSchemaVersion(in:)": "5bddc82debedd36a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.validPerceivedReadiness(_:)": "05392db9102760f0",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnown(_:forKey:unknown:)": "5f530a3867203acd",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnownIfPresent(_:forKey:unknown:)": "4f735db783adbd32"
    }
   },
   {
@@ -437,9 +409,8 @@
      "effect": "newer than this build; otherwise the stated version"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.holdsUnknownCase(_:forKey:)": "dce20faafaf96561"
+    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.holdsUnknownCase(_:forKey:)": "d9a7b18c284cc9ca"
    }
   },
   {
@@ -456,12 +427,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encodeIdentity(into:)": "ae546a3c203bc452",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encodeScoring(into:)": "7f6a11e529961c42",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encodeSleep(into:)": "f63e070dcf4a28c2",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encodeSubjective(into:)": "c7d7fc8c6bd3c202"
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encodeIdentity(into:)": "e4d7c5db454e28b3",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encodeScoring(into:)": "b348ea0088b53f40",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encodeSleep(into:)": "b04c4b32173b4976",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encodeSubjective(into:)": "85fd9bf4ab9de437"
    }
   },
   {
@@ -473,7 +443,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -485,7 +454,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -497,7 +465,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -518,9 +485,8 @@
      "effect": "encoded; otherwise key omitted (empty array round-trips as nil)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(_:)": "021c456f0b4a088b"
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(_:)": "35bdf9e7524011cc"
    }
   },
   {
@@ -538,7 +504,6 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -556,18 +521,6 @@
      "effect": "false"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only HRVSessionTests.swift:56-70 reference isValidForAnalysis; no production caller.",
-     "evidence": [
-      "Emuqu/Sources/Models/SessionMetadata.swift:648",
-      "EmuquTests/HRVSessionTests.swift:56"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -579,7 +532,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -591,7 +543,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -603,9 +554,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f"
    }
   },
   {
@@ -617,9 +567,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f"
    }
   },
   {
@@ -631,7 +580,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -643,7 +591,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -655,7 +602,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -683,7 +629,6 @@
      "effect": "returns endDate; else falls through to date"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -697,9 +642,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVDataQuality.allowsHRVAggregates(_:)": "4dfe19c5257b4cab"
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVDataQuality.allowsHRVAggregates(_:)": "e3b8279aa42f24f4"
    }
   },
   {
@@ -711,10 +655,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "a5bf3abe9c530fa0",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "7126e79a187bd556",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423"
    }
   },
   {
@@ -749,11 +692,10 @@
      "effect": ".insufficient"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnownIfPresent(_:forKey:unknown:)": "c768f7a21d96a4b4",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "a5bf3abe9c530fa0",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnownIfPresent(_:forKey:unknown:)": "4f735db783adbd32",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "7126e79a187bd556",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423"
    }
   },
   {
@@ -769,11 +711,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::func SessionArchiveEntry.encodeIdentity(into:)": "a8e932f97cb96b61",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func SessionArchiveEntry.encodeMetrics(into:)": "eefc77255a74dc2b",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func SessionArchiveEntry.encodeSleepSummary(into:)": "42794563747297e7"
+    "Emuqu/Sources/Models/SessionMetadata.swift::func SessionArchiveEntry.encodeIdentity(into:)": "abf6f5ae9df36966",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func SessionArchiveEntry.encodeMetrics(into:)": "e56d7e65150e95b1",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func SessionArchiveEntry.encodeSleepSummary(into:)": "ff010ba084eeed50"
    }
   },
   {
@@ -785,7 +726,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -797,10 +737,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "a5bf3abe9c530fa0",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "7126e79a187bd556",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423"
    }
   },
   {
@@ -812,7 +751,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -830,7 +768,6 @@
      "effect": "unknown"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -848,7 +785,6 @@
      "effect": "nil; otherwise case or unknown"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -871,7 +807,6 @@
      "effect": "true; otherwise false"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

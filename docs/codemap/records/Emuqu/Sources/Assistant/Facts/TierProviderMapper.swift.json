@@ -8,18 +8,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "med",
-   "text": "No test references TierProviderMapper; its consent gate (consentedProvider) is the only thing keeping Auto/Deep routing from sending health context to an unconsented Grok/DeepSeek, and none of the collapse/fallback paths are covered.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:176",
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:54"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func TierProviderMapper.mapping(for:registry:)",
@@ -50,11 +38,10 @@
      "effect": "deepMapping"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.autoMapping(_:)": "b317efb1271b6fb2",
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)": "14236e71b1e1036a",
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.quickMapping(_:)": "797c5532948ab602"
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.autoMapping(_:)": "82a3cd48321f650a",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)": "e24210dbe73e3f98",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.quickMapping(_:)": "48b070323723b3d4"
    }
   },
   {
@@ -76,11 +63,10 @@
      "effect": "true: Apple mapping, collapsed false; false: chosenOrApple(registry)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.appleModel(_:)": "796b8597adaa93e9",
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.chosenOrApple(_:)": "5616629471cd51f3",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.isAvailable": "d524ee87b19f78de"
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.appleModel(_:)": "da6f8e5f6496ad70",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.chosenOrApple(_:)": "0a68a7e0215c121d",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.isAvailable": "7149ecf4de3543a4"
    }
   },
   {
@@ -101,10 +87,9 @@
      "effect": "true: that provider, collapsed false; false: chosenOrApple"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.chosenOrApple(_:)": "5616629471cd51f3",
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.midTierProvider(in:)": "783bf94ea521500f"
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.chosenOrApple(_:)": "0a68a7e0215c121d",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.midTierProvider(in:)": "58e91edf8788b7bd"
    }
   },
   {
@@ -131,11 +116,10 @@
      "effect": "returns Grok/DeepSeek, collapsed true; else chosenOrApple"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.chosenOrApple(_:)": "5616629471cd51f3",
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.midTierProvider(in:)": "783bf94ea521500f",
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.userChosenMapping(_:)": "9f6e11383f866dc5"
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.chosenOrApple(_:)": "0a68a7e0215c121d",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.midTierProvider(in:)": "58e91edf8788b7bd",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.userChosenMapping(_:)": "f02447f6780aedf9"
    }
   },
   {
@@ -163,12 +147,11 @@
      "effect": "returns Apple, collapsed true; else fallback(registry)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.appleModel(_:)": "796b8597adaa93e9",
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.fallback(_:)": "85728777ae07a5e7",
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.userChosenMapping(_:)": "9f6e11383f866dc5",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.isAvailable": "d524ee87b19f78de"
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.appleModel(_:)": "da6f8e5f6496ad70",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.fallback(_:)": "38f93dab887dea73",
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.userChosenMapping(_:)": "f02447f6780aedf9",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.isAvailable": "7149ecf4de3543a4"
    }
   },
   {
@@ -184,20 +167,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "hasCloudProvider now answers the right question (a consented Grok/DeepSeek, the only clouds tier routing uses below an Apple primary), but nothing calls it: the Settings notice uses its own AIAssistantSettingsPage.anyCloudMayAnswer, which counts any consented cloud provider. A user with only a consented Claude/OpenAI/Gemini key still sees no 'every mode answers on Apple Intelligence' notice although Auto and Deep map to Apple for them, until the notice calls hasCloudProvider (handoff).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift:122",
-      "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift:201"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.midTierProvider(in:)": "783bf94ea521500f"
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.midTierProvider(in:)": "58e91edf8788b7bd"
    }
   },
   {
@@ -222,9 +193,8 @@
      "effect": "nil -> registry.activeModel"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.availableModels": "80a707f4a1b3be44"
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.availableModels": "b0801f20c967c762"
    }
   },
   {
@@ -236,7 +206,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -259,9 +228,8 @@
      "effect": "false: nil; true: tuple"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "4d1d71f3bef78e55"
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "016373538fb3a9ab"
    }
   },
   {
@@ -286,9 +254,8 @@
      "effect": "returns it immediately"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.consentedProvider(_:in:)": "cec78cb02486aed7"
+    "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.consentedProvider(_:in:)": "eadb3a93f87400fa"
    }
   },
   {
@@ -321,14 +288,13 @@
      "effect": "no default -> first; no models -> nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "4d1d71f3bef78e55",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "ac9ddbe514f8e580",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "3848c612cbdb11bc",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerConsentTracker": "b6e12f3eff34e013"
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "6cc9d2a50a137c6c",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "016373538fb3a9ab",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.allProviders": "d6c953953bdfc507",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerConsentTracker": "c3caff64d81005e4"
    }
   }
  ],

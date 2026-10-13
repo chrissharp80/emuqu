@@ -15,7 +15,6 @@
   "file:<store dir>/email_contacts.undecodable.json (copy of a contacts file that read but did not decode)"
  ],
  "toplevel": "`static let shared = EmailContactStore()` lazily creates the singleton on first access, whose init reads email_contacts.json. EmailContact gets synthesized Codable/Equatable/Hashable.",
- "flags": [],
  "units": [
   {
    "key": "init EmailContact(id:name:email:notes:createdAt:)",
@@ -26,7 +25,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -43,9 +41,8 @@
     "file:email_contacts.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.discard()": "47e4239bbc7bec8e"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.discard()": "4d9b88ba10ab6291"
    }
   },
   {
@@ -78,12 +75,11 @@
      "effect": "falls back to AppConfig.sharedContainerURL(), which persists like Application Support"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "157bcf7d925c42b3",
-    "Emuqu/Sources/Models/SavedRoute.swift::init LatestWinsFileWriter(url:options:label:)": "ee7815cbe4a936ef",
-    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "9cf3a08c95588151",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "6125884ca4c11aa9",
+    "Emuqu/Sources/Models/SavedRoute.swift::init LatestWinsFileWriter(url:options:label:)": "ff6d7d9df5fa4798",
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "cf6b353e36f53586",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -107,10 +103,9 @@
      "effect": "return false, nothing added"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "9a408cb5bcdee313",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "07b23a30e5577ba5"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "f08cdd3da9297fef",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "92952b96008002e5"
    }
   },
   {
@@ -134,10 +129,9 @@
      "effect": "return false, nothing removed"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "9a408cb5bcdee313",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "07b23a30e5577ba5"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "f08cdd3da9297fef",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "92952b96008002e5"
    }
   },
   {
@@ -151,7 +145,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -188,9 +181,8 @@
      "effect": "append name to ambiguous"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "92584adbeea8d829"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.classify(_:)": "9dd0c3d5ab04929f"
    }
   },
   {
@@ -223,11 +215,10 @@
      "effect": "return .ambiguous; else resolved to the single match's email"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "38cd212e69874bc9",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.looksLikeEmailAddress(_:)": "d97ded06e79d0f8d",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.find(name:)": "68c09cc09a0bc0a2",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.looksLikeEmailAddress(_:)": "e4c137486b3dae9d",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197"
    }
   },
   {
@@ -250,7 +241,6 @@
      "effect": "true; otherwise false"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -289,10 +279,9 @@
      "effect": "loadFailed = the copy aside failed; otherwise contacts = decoded, loadFailed=false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.setAsideUndecodable(_:reason:)": "860ed7f5a0511a3e",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.setAsideUndecodable(_:reason:)": "e92e9e0f79a8a45c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -324,10 +313,9 @@
      "effect": "copied=false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -356,9 +344,8 @@
      "effect": "return, keeping the in-memory list"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "157bcf7d925c42b3"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "6125884ca4c11aa9"
    }
   },
   {
@@ -381,10 +368,9 @@
      "effect": "true: log error and return without writing — the edit stays in memory and is merged and saved once the file reads (retryLoadIfBlocked); false: enqueue write"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.enqueue(_:)": "ee33d1b89059305a",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.enqueue(_:)": "a110d95e1d08cfd3",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }
  ],

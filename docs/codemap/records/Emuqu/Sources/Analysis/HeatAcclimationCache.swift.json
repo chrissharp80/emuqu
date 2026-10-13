@@ -19,7 +19,6 @@
   "maxAgeSec = 300"
  ],
  "toplevel": "status initial value .computing; shared instance created lazily on first access.",
- "flags": [],
  "units": [
   {
    "key": "var HeatAcclimationCache.current",
@@ -38,7 +37,6 @@
      "effect": "returns r; else nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -55,11 +53,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a"
    }
   },
   {
@@ -81,20 +78,6 @@
      "effect": "removeObject"
     }
    ],
-   "flags": [
-    {
-     "kind": "race",
-     "sev": "low",
-     "text": "Only UserDefaults is cleared: an in-flight refresh task finishing afterwards calls cacheIfSettled → persistReadout and writes the readout back after opt-out/purge, and the in-memory status keeps the old readout for the rest of the launch.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:72",
-      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:160",
-      "Emuqu/Sources/Analysis/HeatAcclimationCache.swift:171",
-      "Emuqu/Sources/Views/HeatAcclimationCard.swift:51"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -112,9 +95,8 @@
     "ud:FlowRecovery.heat.lastReadout"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.clearPersistedData()": "4a4dfd84e0fa8a6e"
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.clearPersistedData()": "3b2f19a112a0da7a"
    }
   },
   {
@@ -136,9 +118,8 @@
      "effect": "stores data; else nothing written"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -158,7 +139,6 @@
      "effect": "false: nil; true: try? decode"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -170,7 +150,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -201,16 +180,15 @@
      "effect": "status = .ready(saved) (lastUpdated stays nil); else status stays .computing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.invalidate()": "4f24385603346fd6",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.loadPersistedReadout()": "48f6b2e298daae55",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.makeArchiveObserver(_:)": "515f98457d5daf23",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled": "405c8d72e8a5a787",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "2c8002649ba22b7f",
-    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "e97498d0288a8c95"
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.invalidate()": "75576b7a2a663ea7",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.loadPersistedReadout()": "7b89631783d33317",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.makeArchiveObserver(_:)": "f6992b465db4bcf1",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled": "32663bec544ff592",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "0be02377b8827b75",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "443c12d5227f3e97"
    }
   },
   {
@@ -226,7 +204,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -240,9 +217,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)": "0ec1945b222f6025"
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)": "dd504bad520a4d13"
    }
   },
   {
@@ -256,7 +232,6 @@
     "mem:HeatAcclimationCache.lastUpdated"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -303,11 +278,10 @@
      "effect": "result dropped"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.cacheIfSettled(_:)": "ef039a4bac97272d",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.computeStatus()": "607b434724fc305d",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled": "405c8d72e8a5a787"
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.cacheIfSettled(_:)": "0b8b9ba44edd593f",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.computeStatus()": "2b2e20354b76ad63",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled": "32663bec544ff592"
    }
   },
   {
@@ -331,10 +305,9 @@
      "effect": "persist readout"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.persistReadout(_:)": "3193619252c10cbd",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled": "405c8d72e8a5a787"
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.persistReadout(_:)": "e2fa29bd599956f1",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled": "32663bec544ff592"
    }
   },
   {
@@ -361,11 +334,10 @@
      "effect": "false: nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.refresh()": "108c7be4282d1bc3",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.current": "3e4384fddefe26f1",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled": "405c8d72e8a5a787"
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.refresh()": "49b8309243951cd6",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.current": "a3787d13f9c2f356",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled": "32663bec544ff592"
    }
   },
   {
@@ -401,12 +373,11 @@
      "effect": "false: .noRecordedWeather(outdoorWorkouts: count); true: replay readout"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.archivedWorkouts(since:)": "ca7528110acd0fcb",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.exposuresByDay(_:calendar:)": "aae3d691bef4c4d4",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.mergingHealthKitWorkouts(into:)": "d72cdbffb1125081",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.replayReadout(exposuresByDay:attributedWorkoutCount:from:to:calendar:)": "036eac35bbd13475",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.archivedWorkouts(since:)": "6cc07c02bcf5982b",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.exposuresByDay(_:calendar:)": "3b827bc2e062019b",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.mergingHealthKitWorkouts(into:)": "2ecf6ab26c44cdec",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.replayReadout(exposuresByDay:attributedWorkoutCount:from:to:calendar:)": "0b036d5441af0adc",
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
    }
   },
@@ -427,13 +398,12 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.workoutForHeat(_:)": "09545022d3fdb7da",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS": "e1e254fffc25bef1",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.workoutForHeat(_:)": "717b9080cb4ce2c3",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS": "17652f56f6054d5a",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6"
    }
   },
   {
@@ -447,9 +417,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.activeMinutes(of:)": "746dba75cbf93dbd"
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.activeMinutes(of:)": "a4fb9432cee9ff84"
    }
   },
   {
@@ -467,7 +436,6 @@
      "effect": "moving time; else wall-clock span"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -490,10 +458,9 @@
      "effect": "false: skipped; true: appended to that day"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
-    "EmuquTests/HeatAcclimationTests.swift::func HeatExposureAttributionTests.weather(tempC:rh:)": "f56a0d3a661c6bb8"
+    "EmuquTests/HeatAcclimationTests.swift::func HeatExposureAttributionTests.weather(tempC:rh:)": "bea8321f2c530dcd"
    }
   },
   {
@@ -522,13 +489,12 @@
      "effect": "skip; else append"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+Heat.swift::func HealthKitManager.fetchOutdoorWorkoutsForHeat(days:)": "7fe3ab77e85a9920",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager": "06772931aba0baf2",
-    "EmuquTests/HeatAcclimationTests.swift::func HeatExposureAttributionTests.weather(tempC:rh:)": "f56a0d3a661c6bb8"
+    "Emuqu/Sources/Collection/HealthKitManager+Heat.swift::func HealthKitManager.fetchOutdoorWorkoutsForHeat(days:)": "d568cc71ab279ac7",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.healthKitManager": "0cb31e51c3346ac7",
+    "EmuquTests/HeatAcclimationTests.swift::func HeatExposureAttributionTests.weather(tempC:rh:)": "bea8321f2c530dcd"
    }
   },
   {
@@ -557,15 +523,14 @@
      "effect": "0 when the series is empty"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.adaptedWBGT(for:)": "628e3425290cf48d",
-    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.band(for:)": "69a605c9d88fcba3",
-    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.daysToTarget(current:target:assumedDailyStimulus:)": "9175bdf2ed0ba7c2",
-    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)": "ff6a468a801cbe6b",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.exposuresByDay(_:calendar:)": "aae3d691bef4c4d4",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.gapFilledDays(exposuresByDay:from:to:calendar:)": "3fe35ddd67c269c8",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c"
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.adaptedWBGT(for:)": "fa03779e06fb9dbb",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.band(for:)": "2fa0a57f95f055cb",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.daysToTarget(current:target:assumedDailyStimulus:)": "a16c702ae5f6e9d8",
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.replay(_:)": "1ac26aabf99d188a",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.exposuresByDay(_:calendar:)": "3b827bc2e062019b",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.gapFilledDays(exposuresByDay:from:to:calendar:)": "222bf06b1137f0a3",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "d69dc4946fa26d08"
    }
   },
   {
@@ -600,10 +565,9 @@
      "effect": "break"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.dailyStimulus(_:)": "f6dd4f2856515bad",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::init HeatAcclimationCache(archive:)": "d7c63d5183bc8a4f"
+    "Emuqu/Sources/Analysis/HeatAcclimation.swift::func HeatAcclimation.dailyStimulus(_:)": "577efbbc632e21f3",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::init HeatAcclimationCache(archive:)": "ec5d36bcebb342da"
    }
   },
   {
@@ -617,9 +581,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.activeMinutes(of:)": "746dba75cbf93dbd"
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.activeMinutes(of:)": "a4fb9432cee9ff84"
    }
   }
  ],

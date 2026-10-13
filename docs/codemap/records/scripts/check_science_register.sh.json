@@ -9,18 +9,6 @@
   "file:Emuqu/Sources/Analysis/ScoringVersion.swift (read)"
  ],
  "toplevel": "cd to repo root; exit 2 if any of the three inputs is missing. Python: parse register (exit 2 on any exception); VALID = keys of _status_meanings (exit 2 if empty). Per entry: duplicate id, status not in VALID, empty affects/evidence/allowed_language, and any `tests` path that does not exist are problems. Reads `static let current = \"...\"` from ScoringVersion.swift (exit 2 if absent) and flags register.scoring_version mismatch (both v3.1.oct2026 at 8d32097). If _retracted_claims.claims non-empty: substring-scans each entry's evidence/affects/allowed_language/notes (str or list) and every .swift/.md file under Emuqu/Sources and docs/ for each claim. Discovery: regex `func <name>(Adjustment|Penalty|Bonus|Modifier|Damper|Fraction)` across Emuqu/Sources/Analysis/**/*.swift except paths containing CauseDetection/ (names ending Descriptions/Message dropped); unclaimed (not in any entry's `symbols` nor in _waived_symbols keys not starting '_') and stale (claimed/waived but not discovered) names are problems. Budget = int(file) with no error handling (a non-integer raises ValueError -> traceback, exit 1 not 2). Prints problems to stderr, a tally line, exits 1 on any problem; exits 1 if count < floor; prints 'raise floor' advisory (still passes) if count > floor; else 'clean'. Discovery only sees the listed name suffixes; a heuristic named otherwise is invisible (the header says so).",
- "flags": [
-  {
-   "kind": "unreachable-branch",
-   "sev": "low",
-   "text": "SYMBOL_RE requires the name to END in Adjustment|Penalty|Bonus|Modifier|Damper|Fraction followed by \\b, so a discovered name can never end in 'Descriptions' or 'Message'; the exclusion at line 264 never fires. Also `[a-zA-Z]+` means a score function whose name contains a digit is never discovered.",
-   "evidence": [
-    "scripts/check_science_register.sh:254",
-    "scripts/check_science_register.sh:264"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [],
  "deps": {}
 }

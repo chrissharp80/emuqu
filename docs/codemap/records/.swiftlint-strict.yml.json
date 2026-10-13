@@ -5,19 +5,6 @@
  "types": [],
  "state": [],
  "toplevel": "parent_config .swiftlint.yml; overrides line_length 150/250, function_body_length 80/150, function_parameter_count 6/8, type_body_length 400/700, file_length 800/1300, cyclomatic_complexity 12/25, large_tuple 3/4, identifier_name min_length 2/2 with '_' allowed. Its only consumer is scripts/lint_changed_swift.sh:29 (`swiftlint lint --strict --config .swiftlint-strict.yml --use-script-input-files`), and that script is not invoked by any Makefile target, .githooks/pre-commit or .github workflow (grep finds only docs/MAINTAINERS.md:346 listing the file).",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "The strict config is reachable only through scripts/lint_changed_swift.sh, which nothing in Makefile, .githooks or .github/workflows calls; the stricter thresholds never gate anything.",
-   "evidence": [
-    ".swiftlint-strict.yml:1",
-    "scripts/lint_changed_swift.sh:29",
-    "docs/MAINTAINERS.md:346"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [],
  "deps": {}
 }

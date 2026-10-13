@@ -11,7 +11,6 @@
   "mem:RecordingSleepEstimate.shortAsleepShare = 0.85"
  ],
  "toplevel": "Static constants only; Equatable synthesized.",
- "flags": [],
  "units": [
   {
    "key": "init RecordingSleepEstimate(recordingMinutes:)",
@@ -28,7 +27,6 @@
      "effect": "true: share 0.90; false (incl. exactly 180): share 0.85"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -44,20 +42,6 @@
      "at": "+1",
      "cond": "recordingMinutes > 0",
      "effect": "true: asleep/recording*100; false: 0"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "efficiencyPercent is by construction the fixed share (~85 or ~90%) of an estimate, yet OvernightChartsView passes it as OvernightStats.sleepEfficiency, whose declaration says it is nil when the night's wake was not measured; the type doc claims nothing is invented for a recording-length estimate.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift:28",
-      "Emuqu/Sources/Views/OvernightChartsView+Stats.swift:536",
-      "Emuqu/Sources/Views/OvernightChartsView+Init.swift:87",
-      "Emuqu/Sources/Analysis/RecordingSleepEstimate.swift:8"
-     ],
-     "found": "second read"
     }
    ],
    "deps": {}

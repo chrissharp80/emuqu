@@ -13,7 +13,6 @@
   "cjkKanaHangulBlocks: Hangul Jamo, Hiragana/Katakana, Hangul Compatibility Jamo, Katakana Phonetic Extensions, CJK Ext A, CJK Unified, Hangul Syllables, CJK Compatibility Ideographs, Halfwidth Katakana, U+20000-3FFFF ideographic planes"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func VoiceEchoHeuristics.tokens(_:)",
@@ -26,9 +25,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "07c8e0b97ba47028"
    }
   },
   {
@@ -42,9 +40,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "d5c3ea46ec37494e"
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.words(_:)": "07c8e0b97ba47028"
    }
   },
   {
@@ -64,9 +61,8 @@
      "effect": "skipped"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "6e1e23404f458a63"
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.isCJKOrHangul(_:)": "b0fe17d697bb99d7"
    }
   },
   {
@@ -89,7 +85,6 @@
      "effect": "true; else false"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -109,9 +104,8 @@
      "effect": "0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5"
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "30c02bd048cdb7b9"
    }
   },
   {
@@ -132,22 +126,9 @@
      "effect": "false"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The code comment now states the real trade (0.65 is stricter about calling a candidate echo than the post-turn 0.6, so more of the reply's leakage passes as barge-in), but the test testTheInFlightThresholdIsLooserThanThePostTurnOne still calls it 'more permissive' / 'missing a barge-in is better', and the docs describe this gate as a Jaccard overlap with a 'length-sensitive threshold' while it is a one-sided overlap fraction with a fixed 0.65.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift:80",
-      "EmuquTests/VoiceEchoHeuristicsTests.swift:141",
-      "docs/VOICE_AND_TOOL_USE.md:614"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)": "cfd8f3c3e577452f",
-    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5"
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)": "f2363efe86a4473f",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "30c02bd048cdb7b9"
    }
   },
   {
@@ -174,11 +155,10 @@
      "effect": "false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)": "cfd8f3c3e577452f",
-    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.threshold(forTokenCount:)": "c1c559efe3742383",
-    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "ebc1bd00eb993ff5"
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.overlapRatio(of:against:)": "f2363efe86a4473f",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.threshold(forTokenCount:)": "1c0811fbaead95af",
+    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "30c02bd048cdb7b9"
    }
   },
   {
@@ -196,7 +176,6 @@
      "effect": "0.85; else 0.6"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

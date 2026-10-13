@@ -9,7 +9,6 @@
   "ud:didRunTrainingRecalibration_v1_banister064 (standard suite; static trainingRecalibrationKey)"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func SessionDataMigrations.runTrainingRecalibrationIfNeeded()",
@@ -51,23 +50,11 @@
      "effect": "increment touched"
     }
    ],
-   "flags": [
-    {
-     "kind": "untested",
-     "sev": "low",
-     "text": "No test calls runTrainingRecalibrationIfNeeded; only the static recalibratedContext is tested (RRModelsTests.swift:358-379).",
-     "evidence": [
-      "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift:41",
-      "EmuquTests/RRModelsTests.swift:358"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.recalibrate(_:)": "5982f471c0968fca",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.recalibrationCandidates(in:defaults:)": "63cc82718d0b9598",
-    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.loadArchivedSessions()": "126051022cf23c3b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.recalibrate(_:)": "931681ce525cb429",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.recalibrationCandidates(in:defaults:)": "d11f4f5cac2fa0e8",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.loadArchivedSessions()": "664c375933d4a520",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -90,11 +77,10 @@
      "effect": "set flag, log, return nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.carriesRecoveryScore(_:)": "15ddd86c7ef287cf",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.carriesRecoveryScore(_:)": "2ebab9f7d750aae6",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -135,15 +121,14 @@
      "effect": "logged, return false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.applyCorrectedContext(_:to:)": "07f1c5fa41cb3e13",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.recalibratedContext(load:anchor:old:)": "72c0a39e793f43f1",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.trainingAnchor(of:)": "f21e1f3c3178fccd",
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitManager.calculateTrainingLoad(relativeTo:)": "6701fb9622de3bda",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.applyCorrectedContext(_:to:)": "2f9647324c71248c",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.recalibratedContext(load:anchor:old:)": "137ae972c8bb5a2b",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift::func SessionDataMigrations.trainingAnchor(of:)": "83f42dbb3822fe2d",
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitManager.calculateTrainingLoad(relativeTo:)": "74c9f44e22a51927",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -159,18 +144,6 @@
      "at": "+1",
      "cond": "endDate nil (??)",
      "effect": "fallback to startDate"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Anchor differs from ReanalysisService.morningAnchor (5 AM on the end day) used by repairTrainingSnapshots for the same snapshot field, so the two training repairs compute different contexts for one night.",
-     "evidence": [
-      "Emuqu/Sources/Collection/SessionDataMigrations+TrainingRecalibration.swift:111",
-      "Emuqu/Sources/Services/ReanalysisService+Sleep.swift:559-562"
-     ],
-     "found": "first read, upheld on second"
     }
    ],
    "deps": {}
@@ -197,10 +170,9 @@
      "effect": "override new context vo2Max with frozen value; else keep load-derived vo2Max"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)": "9c385b2767688026",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)": "fd7deac52d920bd3",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -220,10 +192,9 @@
      "effect": "frozenReadiness left as it was"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "7aa853f03a8994f8"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "09343bbc201631d1"
    }
   },
   {
@@ -235,10 +206,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26"
    }
   }
  ],

@@ -26,19 +26,6 @@
   "mem:EmuquApp.recoveryResultMessage (@State String?)"
  ],
  "toplevel": "Stored-property initializers of EmuquApp call the seven makeX() factories (EmuquApp.swift:86-99), so every root singleton is built when EmuquApp.main() instantiates the App struct, after EmuquMain.main() has run the UI-test wipe and diagnostics install. emailBridge reads AssistantEmailBridge.shared directly (106). LaunchModal conforms to Identifiable for fullScreenCover(item:). Only the @State factories, emailBridge and installDiagnostics read `.shared` singletons directly (the file is whitelisted as composition root by scripts/check_no_shared_outside_root.sh); the scene-phase, launch and Watch handlers reach ambient location, power policy, morning scheduler, keyboard dismissal, recorder box and settings sync through AppDependencies.current, as the AppLaunchTasks/AppLaunchRecovery extensions do, so a test override reaches both. LaunchModal has no associated values, so it is Equatable and drives .onChange(of: activeModal).",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No unit or UI test references EmuquApp, LaunchModal, InterruptedSessionInfo, the launch-modal ordering, the Watch refusal logic or the scene-phase handler (grep of EmuquTests finds only a comment mention).",
-   "evidence": [
-    "Emuqu/EmuquApp.swift:441",
-    "Emuqu/EmuquApp.swift:790",
-    "Emuqu/Sources/Services/AppLaunchTasks.swift:648"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func signpostStart(_: StaticString)",
@@ -51,9 +38,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::var LaunchModal.id": "7fcb362a2bde7764"
+    "Emuqu/EmuquApp.swift::var LaunchModal.id": "b132737ea832be30"
    }
   },
   {
@@ -67,7 +53,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -81,9 +66,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::var LaunchModal.id": "7fcb362a2bde7764"
+    "Emuqu/EmuquApp.swift::var LaunchModal.id": "b132737ea832be30"
    }
   },
   {
@@ -97,7 +81,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -135,7 +118,6 @@
      "effect": "returns \"scoreArchitectureChange\""
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -153,7 +135,6 @@
      "effect": "true: returns false (workouts always go to the non-resumable alert); false: returns age < 6 h"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -174,14 +155,13 @@
     "mem:RRCollector.current (set by makeDefault, RRCollector.swift:532)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "874005cc61527110",
-    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "a46d5b33c5a57842",
-    "Emuqu/EmuquApp.swift::var LaunchModal.id": "7fcb362a2bde7764",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()": "c45a4875dda79b61",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "77db749d2e74b6b0",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "fa4b89dd27ebd952",
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "543175552a9fbfa0",
+    "Emuqu/EmuquApp.swift::var LaunchModal.id": "b132737ea832be30",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()": "be1e45efca604118",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "4ba35bfe1dd469ec",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -200,12 +180,11 @@
     "mem:CloudKitSyncManager singleton (constructed on first access)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "874005cc61527110",
-    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "a46d5b33c5a57842",
-    "Emuqu/EmuquApp.swift::var LaunchModal.id": "7fcb362a2bde7764",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "fa4b89dd27ebd952",
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "543175552a9fbfa0",
+    "Emuqu/EmuquApp.swift::var LaunchModal.id": "b132737ea832be30",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -224,12 +203,11 @@
     "mem:SettingsManager singleton (constructed on first access)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "874005cc61527110",
-    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "a46d5b33c5a57842",
-    "Emuqu/EmuquApp.swift::var LaunchModal.id": "7fcb362a2bde7764",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "fa4b89dd27ebd952",
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "543175552a9fbfa0",
+    "Emuqu/EmuquApp.swift::var LaunchModal.id": "b132737ea832be30",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -248,12 +226,11 @@
     "mem:StoreKitManager singleton (constructed on first access)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "874005cc61527110",
-    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "a46d5b33c5a57842",
-    "Emuqu/EmuquApp.swift::var LaunchModal.id": "7fcb362a2bde7764",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "fa4b89dd27ebd952",
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "543175552a9fbfa0",
+    "Emuqu/EmuquApp.swift::var LaunchModal.id": "b132737ea832be30",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -272,12 +249,11 @@
     "mem:LanguageManager singleton (constructed on first access)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "874005cc61527110",
-    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "a46d5b33c5a57842",
-    "Emuqu/EmuquApp.swift::var LaunchModal.id": "7fcb362a2bde7764",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "fa4b89dd27ebd952",
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "543175552a9fbfa0",
+    "Emuqu/EmuquApp.swift::var LaunchModal.id": "b132737ea832be30",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -296,12 +272,11 @@
     "mem:VoiceConversationController singleton (constructed on first access)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "874005cc61527110",
-    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "a46d5b33c5a57842",
-    "Emuqu/EmuquApp.swift::var LaunchModal.id": "7fcb362a2bde7764",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "fa4b89dd27ebd952",
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "543175552a9fbfa0",
+    "Emuqu/EmuquApp.swift::var LaunchModal.id": "b132737ea832be30",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -320,12 +295,11 @@
     "mem:WatchConnectivityBridge singleton (constructed on first access)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "874005cc61527110",
-    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "a46d5b33c5a57842",
-    "Emuqu/EmuquApp.swift::var LaunchModal.id": "7fcb362a2bde7764",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "fa4b89dd27ebd952",
+    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "543175552a9fbfa0",
+    "Emuqu/EmuquApp.swift::var LaunchModal.id": "b132737ea832be30",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -341,10 +315,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquApp.observeMemoryWarnings()": "b0818bc7b194b948",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/EmuquApp.swift::func EmuquApp.observeMemoryWarnings()": "ccf71e022d63855a",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -362,7 +335,6 @@
     "mem:SystemDiagnosticsManager.shared"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.install()": "245cc724df0e73b3",
     "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.install()": "5d93902873652d8a"
@@ -384,10 +356,9 @@
     "mem:FrequencyDomainAnalyzer DFT cache (cleared on warning)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "78441ed5272f3d2d",
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.teardownDFTCache()": "fc58f768615e360e"
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.teardownDFTCache()": "4afe7ba6757c906e"
    }
   },
   {
@@ -401,9 +372,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::var EmuquApp.appRootView": "d862c36b22a32eea"
+    "Emuqu/EmuquApp.swift::var EmuquApp.appRootView": "a032f46ab69f4be3"
    }
   },
   {
@@ -422,14 +392,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquApp.environmentInjected(_:)": "ffc7e29abe77d6df",
-    "Emuqu/EmuquApp.swift::func EmuquApp.interruptedSessionAlerts(_:)": "41cf243c18061a87",
-    "Emuqu/EmuquApp.swift::func EmuquApp.launchTasks(_:)": "a5f7bd8df1c99b8b",
-    "Emuqu/EmuquApp.swift::func EmuquApp.modalPresentations(_:)": "c8f4389befce7713",
-    "Emuqu/EmuquApp.swift::func EmuquApp.stateChangeHandlers(_:)": "9c39ac9a415a5311",
-    "Emuqu/EmuquApp.swift::var EmuquApp.rootTabView": "2ff54a38d90e7d91"
+    "Emuqu/EmuquApp.swift::func EmuquApp.environmentInjected(_:)": "8141492ee87c39ad",
+    "Emuqu/EmuquApp.swift::func EmuquApp.interruptedSessionAlerts(_:)": "82a8a54bf6f2f5e6",
+    "Emuqu/EmuquApp.swift::func EmuquApp.launchTasks(_:)": "bd319fe0058ce78e",
+    "Emuqu/EmuquApp.swift::func EmuquApp.modalPresentations(_:)": "dc17355375f71dae",
+    "Emuqu/EmuquApp.swift::func EmuquApp.stateChangeHandlers(_:)": "96e1930f2ff6be5c",
+    "Emuqu/EmuquApp.swift::var EmuquApp.rootTabView": "f065df6598a02cc8"
    }
   },
   {
@@ -447,11 +416,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dashboardSummarySeed(inEntries:today:calendar:)": "b24308d59349f9aa",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dashboardSummarySeed(inEntries:today:calendar:)": "46fc7ccc466ac1d6",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightScore(inEntries:calendar:)": "d7dab2b30d219444",
-    "Emuqu/Sources/Views/MainTabView.swift::init MainTabView(initialSessionCount:initialSeedScore:initialSeedSummary:requestedTab:)": "b2c8e356a16948e7"
+    "Emuqu/Sources/Views/MainTabView.swift::init MainTabView(initialSessionCount:initialSeedScore:initialSeedSummary:requestedTab:)": "750efcc9af81d3a7"
    }
   },
   {
@@ -475,11 +443,10 @@
      "effect": "true: preferredColorScheme(.light); false (dark or dim): .dark"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.currentLocale": "f07c3820aae0d0e3",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.layoutDirection": "65922f80a2b0ebd5",
-    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.currentLocale": "9765c0f47b6354f4",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.layoutDirection": "d1fb65a6e5fd71ef",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "0e30550bddc40f29"
    }
   },
   {
@@ -498,12 +465,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquApp.environmentInjected(_:)": "ffc7e29abe77d6df",
-    "Emuqu/EmuquApp.swift::func EmuquApp.launchModal(_:)": "d3ba6f96ccf8788a",
-    "Emuqu/EmuquApp.swift::func EmuquApp.mailComposer(for:)": "8ff0275c06c80b02",
-    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+    "Emuqu/EmuquApp.swift::func EmuquApp.environmentInjected(_:)": "8141492ee87c39ad",
+    "Emuqu/EmuquApp.swift::func EmuquApp.launchModal(_:)": "f440b53ba52aa07f",
+    "Emuqu/EmuquApp.swift::func EmuquApp.mailComposer(for:)": "47aa7b574b383b22",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "0e30550bddc40f29"
    }
   },
   {
@@ -546,11 +512,10 @@
      "effect": "ScoreArchitectureChangeSheet with the custom binding"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::var EmuquApp.scoreArchitectureChangeBinding": "a6429b548adb2ed5",
-    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::init OnboardingView(onTakeReading:)": "010b76d536d1a790",
-    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+    "Emuqu/EmuquApp.swift::var EmuquApp.scoreArchitectureChangeBinding": "df60df7acf621b04",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::init OnboardingView(onTakeReading:)": "219485e012260453",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "0e30550bddc40f29"
    }
   },
   {
@@ -593,10 +558,9 @@
      "effect": "ScoreArchitectureChangeSheet with the custom binding"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::var EmuquApp.scoreArchitectureChangeBinding": "a6429b548adb2ed5",
-    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::init OnboardingView(onTakeReading:)": "010b76d536d1a790"
+    "Emuqu/EmuquApp.swift::var EmuquApp.scoreArchitectureChangeBinding": "df60df7acf621b04",
+    "Emuqu/Sources/Views/Onboarding/OnboardingView.swift::init OnboardingView(onTakeReading:)": "219485e012260453"
    }
   },
   {
@@ -621,7 +585,6 @@
      "effect": "returns without change; false: sets ack flag true and activeModal = nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -637,10 +600,9 @@
     "mem:AssistantEmailBridge.pendingDraft"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift::func AssistantEmailBridge.clear()": "cc5b64604e08fc73",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.ccRecipients(_:fallback:)": "8dd6f78bcdd316ee"
+    "Emuqu/Sources/Assistant/Chat/AssistantEmailBridge.swift::func AssistantEmailBridge.clear()": "e491a5aa65900cf9",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.ccRecipients(_:fallback:)": "49602d7e4159168a"
    }
   },
   {
@@ -664,14 +626,13 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquApp.handleDisclaimerAcceptance(_:)": "c92fe77750de1197",
-    "Emuqu/EmuquApp.swift::func EmuquApp.handleLaunchModalChange(from:to:)": "266dbbe68cfd25c0",
-    "Emuqu/EmuquApp.swift::func EmuquApp.handleOnboardingCompletion(_:)": "6b8905b9e02abb2a",
-    "Emuqu/EmuquApp.swift::func EmuquApp.handlePurchaseChange(_:)": "f278ba0b66e7b99f",
-    "Emuqu/EmuquApp.swift::func EmuquApp.handleScenePhaseChange(from:to:)": "96635e5e25b411a8",
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.hasAcceptedDisclaimer": "075d6b0f976f5f2f"
+    "Emuqu/EmuquApp.swift::func EmuquApp.handleDisclaimerAcceptance(_:)": "acb4005e1a1d86af",
+    "Emuqu/EmuquApp.swift::func EmuquApp.handleLaunchModalChange(from:to:)": "d9e1a72e64363342",
+    "Emuqu/EmuquApp.swift::func EmuquApp.handleOnboardingCompletion(_:)": "b3199f311046a9b5",
+    "Emuqu/EmuquApp.swift::func EmuquApp.handlePurchaseChange(_:)": "9dbd0c6d1c596061",
+    "Emuqu/EmuquApp.swift::func EmuquApp.handleScenePhaseChange(from:to:)": "e10bf95a553aed6e",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.hasAcceptedDisclaimer": "6137b39fe90ea00e"
    }
   },
   {
@@ -695,10 +656,9 @@
      "effect": "returns without doing anything; true: dismisses modal and loads data"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.loadDataAndContinue()": "5bee0d9fd03ac782",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.loadDataAndContinue()": "03c448aed5e540d8",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -725,24 +685,8 @@
      "effect": "true: activeModal = .paywall; false: activeModal = nil and return"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Two access predicates exist for the same gate: storeKitManager.hasActiveAccess (isPurchased || hasBypassGrant, StoreKitManager.swift:627) here and in presentPaywallIfNowRequired, and EmuquApp.hasAccess (AppLaunchTasks.swift:700) in paywallModal/watch refusals/startWorkoutFromWatch. They differ under -UITests-ForcePaywall: hasAccess returns false unconditionally while hasActiveAccess still honours the persisted Skip (Debug) grant (StoreKitManager.swift:540-543), so the launch gate and onboarding-completion gate can disagree in Debug UI runs.",
-     "evidence": [
-      "Emuqu/EmuquApp.swift:423",
-      "Emuqu/Sources/Services/AppLaunchTasks.swift:240",
-      "Emuqu/Sources/Services/AppLaunchTasks.swift:701",
-      "Emuqu/Sources/Services/StoreKitManager.swift:532",
-      "Emuqu/Sources/Services/StoreKitManager.swift:540",
-      "Emuqu/Sources/Services/StoreKitManager.swift:627"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess": "06ce3985fbd581c7"
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess": "0c542716ce6a23c7"
    }
   },
   {
@@ -767,7 +711,6 @@
      "effect": "true: activeModal = nil; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -791,20 +734,8 @@
      "effect": "returns; otherwise checkForInterruptedSession()"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Trial reminder 'Unlock Now' dismisses the reminder (running the interrupted-session check here, which can raise its alert) and 400 ms later observeTrialPaywallRequests sets activeModal = .paywall; with an interrupted session pending, the paywall cover is presented while that alert may still be up, and SwiftUI may not show both.",
-     "evidence": [
-      "Emuqu/EmuquApp.swift:443",
-      "Emuqu/Sources/Views/TrialReminderView.swift:95",
-      "Emuqu/EmuquApp.swift:848"
-     ]
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.checkForInterruptedSession()": "d0144e6bfc52eb61"
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.checkForInterruptedSession()": "28d6b02ac98ff198"
    }
   },
   {
@@ -860,17 +791,16 @@
      "effect": "true: recheckEntitlementOnForeground(); false: skip"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquApp.autoArchivePendingSession()": "8bdf6cb21914352f",
-    "Emuqu/EmuquApp.swift::func EmuquApp.recheckEntitlementOnForeground()": "38acfb09afd9a12a",
-    "Emuqu/EmuquApp.swift::func EmuquApp.refreshHealthKitWriteAuthorization()": "f404e420aa268a87",
-    "Emuqu/EmuquApp.swift::func EmuquApp.rescheduleMorningNotification()": "5f2985f98397047f",
-    "Emuqu/EmuquApp.swift::func EmuquApp.resumeSyncOnForeground()": "4c82780560b67e99",
-    "Emuqu/EmuquApp.swift::func EmuquApp.startAmbientLocationOnForeground()": "6866ffeb25d33b61",
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.stop()": "c484c284ad06ca32",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "33a2cabc9b97ee7b"
+    "Emuqu/EmuquApp.swift::func EmuquApp.autoArchivePendingSession()": "c57c4369fb787745",
+    "Emuqu/EmuquApp.swift::func EmuquApp.recheckEntitlementOnForeground()": "fbe05d827b8d2aef",
+    "Emuqu/EmuquApp.swift::func EmuquApp.refreshHealthKitWriteAuthorization()": "676af5b07f6c68d7",
+    "Emuqu/EmuquApp.swift::func EmuquApp.rescheduleMorningNotification()": "6962a544ccfd6cef",
+    "Emuqu/EmuquApp.swift::func EmuquApp.resumeSyncOnForeground()": "a02d7435c5d97b84",
+    "Emuqu/EmuquApp.swift::func EmuquApp.startAmbientLocationOnForeground()": "d38cfbe77dd34f0f",
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.stop()": "f05d1ea73499775a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "0434ddbabd3bc89c"
    }
   },
   {
@@ -893,10 +823,9 @@
      "effect": "true: refreshPurchaseEntitlementsInBackground(); false: returns"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::var EmuquApp.isRecordingInProgress": "8379756b708df72a",
-    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.refreshPurchaseEntitlementsInBackground()": "b8a82ad554c6e559"
+    "Emuqu/EmuquApp.swift::var EmuquApp.isRecordingInProgress": "562bc9e2213d1e92",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.refreshPurchaseEntitlementsInBackground()": "24a3f3eddac79d4b"
    }
   },
   {
@@ -920,10 +849,9 @@
      "effect": "true when either holds (short-circuits on isCollecting)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::var EmuquApp.isWorkoutInProgress": "4f63990a854d3006",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "fae635a5d47df935"
+    "Emuqu/EmuquApp.swift::var EmuquApp.isWorkoutInProgress": "ee44c0d7c842d79b",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "f52c78dcfaca1b83"
    }
   },
   {
@@ -951,13 +879,12 @@
      "effect": "returns false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "d0bce80edccaa2fe",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox": "51d3dd77075ccb10",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "2eb455c219ca902b"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "1594d0dd9fa6bbb7",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox": "59f6a0baabb8c1c8",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
    }
   },
   {
@@ -983,11 +910,10 @@
      "effect": "true: startIfAuthorized(); false: return"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.startIfAuthorized()": "bf3a1dee046c7f81",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "33a2cabc9b97ee7b"
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.startIfAuthorized()": "fe48bb6684a1010a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "0434ddbabd3bc89c"
    }
   },
   {
@@ -1019,13 +945,12 @@
      "effect": "error only debugLogged; session stays pending in memory; assertion still ended by the defer"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "37c71d78df96a761",
-    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.acceptSession()": "800c03c657c5beae",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "b611e0c61d35d899",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.acceptSession()": "f362c4967d2e9405",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()": "4b7b063f686c4762",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::init BackgroundTaskAssertion(name:onExpire:)": "de35035394cc6205",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -1051,13 +976,12 @@
      "effect": "true: return without syncing; false: sync Task"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/PowerStatePolicy.swift::var PowerStatePolicy.shouldSkipPeriodicRefresh": "e22f4aa6249419a7",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSyncIfNeeded(minInterval:)": "516be81406e72151",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.powerStatePolicy": "7b3132e65863137f"
+    "Emuqu/Sources/Services/PowerStatePolicy.swift::var PowerStatePolicy.shouldSkipPeriodicRefresh": "3ace9f231bb6f233",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSyncIfNeeded(minInterval:)": "be47df571ac7a0cf",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.powerStatePolicy": "30251ece00d6643c"
    }
   },
   {
@@ -1074,12 +998,11 @@
     "mem:UNUserNotificationCenter pending morning notification"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "162c08d2673af8aa",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.morningNotificationScheduler": "63eba98b61787e49"
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "62bd5275ef3f248f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.morningNotificationScheduler": "507098363688faff"
    }
   },
   {
@@ -1101,12 +1024,11 @@
     "archive:healthKitExportedAt flag"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.backfillWorkoutsToHealthKit(archive:bodyWeightKg:)": "61d9de6761c320eb",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.ensureWriteAuthorizationFresh()": "504fe81677526ee9",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "6aabde6ed09dc61f",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "f61a7a679f5280dd"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.ensureWriteAuthorizationFresh()": "73acd061ae933fab",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "f13b6ef4aa525d0f",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5"
    }
   },
   {
@@ -1122,11 +1044,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquApp.recoveryCompleteAlert(_:)": "0db601a8ef6a680d",
-    "Emuqu/EmuquApp.swift::func EmuquApp.resumableInterruptionAlert(_:)": "5221bc66fbcbd1ba",
-    "Emuqu/EmuquApp.swift::func EmuquApp.unresumableInterruptionAlert(_:)": "8b066b9dfb9aa0c3"
+    "Emuqu/EmuquApp.swift::func EmuquApp.recoveryCompleteAlert(_:)": "65f315f0390f6b68",
+    "Emuqu/EmuquApp.swift::func EmuquApp.resumableInterruptionAlert(_:)": "b715b46ee4880d22",
+    "Emuqu/EmuquApp.swift::func EmuquApp.unresumableInterruptionAlert(_:)": "0cf6b05edb721b07"
    }
   },
   {
@@ -1152,15 +1073,14 @@
      "effect": "shows the message Text; nil: empty message"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::var EmuquApp.resumableInterruptionBinding": "636f686a767a63bb",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.dismissInterruptedSession()": "9c336cc06e0af47c",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedSession()": "f15986c899237725",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resumeInterruptedSession()": "14e5f528f7e0a6e4",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/EmuquApp.swift::var EmuquApp.resumableInterruptionBinding": "35314e282b85051c",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.dismissInterruptedSession()": "8256130028c86fa4",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedSession()": "203321a74b19c5f8",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resumeInterruptedSession()": "49c41cb4f5e67435",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },
   {
@@ -1185,14 +1105,13 @@
      "effect": "shows message; nil: empty message"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::var EmuquApp.unresumableInterruptionBinding": "d61a63eee6f3f0a5",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.dismissInterruptedSession()": "9c336cc06e0af47c",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedSession()": "f15986c899237725",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/EmuquApp.swift::var EmuquApp.unresumableInterruptionBinding": "fb9b592c31e6b94d",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.dismissInterruptedSession()": "8256130028c86fa4",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedSession()": "203321a74b19c5f8",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },
   {
@@ -1217,10 +1136,9 @@
      "effect": "shows Text(msg); nil: no message"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::var EmuquApp.recoveryResultBinding": "0beb7df2b20b79d3",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/EmuquApp.swift::var EmuquApp.recoveryResultBinding": "40341f3bc2e20677",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1244,9 +1162,8 @@
      "effect": "clears interruptedSessionAlert; true: no-op"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::var InterruptedSessionInfo.isResumable": "41435d6748ec21fb"
+    "Emuqu/EmuquApp.swift::var InterruptedSessionInfo.isResumable": "6a205b3f1a9d74bf"
    }
   },
   {
@@ -1270,9 +1187,8 @@
      "effect": "clears interruptedSessionAlert; true: no-op"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::var InterruptedSessionInfo.isResumable": "41435d6748ec21fb"
+    "Emuqu/EmuquApp.swift::var InterruptedSessionInfo.isResumable": "6a205b3f1a9d74bf"
    }
   },
   {
@@ -1294,7 +1210,6 @@
      "effect": "recoveryResultMessage = nil; true: no-op"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1312,12 +1227,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquApp.observeTrialPaywallRequests()": "cc9d979af2dcdf39",
-    "Emuqu/EmuquApp.swift::func EmuquApp.runPostFirstFrameSetup()": "c991b5d4e8eff9e5",
-    "Emuqu/EmuquApp.swift::func EmuquApp.runWatchAndSyncWiring()": "08e7f2e70f942fce",
-    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.rescheduleMorningPushOnSettingsChange()": "8b30d986db495bc0",
+    "Emuqu/EmuquApp.swift::func EmuquApp.observeTrialPaywallRequests()": "463f30b42cdfd21a",
+    "Emuqu/EmuquApp.swift::func EmuquApp.runPostFirstFrameSetup()": "7493fb8682d171fb",
+    "Emuqu/EmuquApp.swift::func EmuquApp.runWatchAndSyncWiring()": "f2d208596087257c",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.rescheduleMorningPushOnSettingsChange()": "c8fe4f4aef93f645",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runLaunchTask()": "04785eeb1b5bb490"
    }
   },
@@ -1336,13 +1250,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquApp.bootArchiveOffMain()": "63923472c98af514",
-    "Emuqu/EmuquApp.swift::func EmuquApp.installGlobalKeyboardDismissal()": "9dfb5ef281821c76",
-    "Emuqu/EmuquApp.swift::func EmuquApp.prewarmSpeechVoices()": "7250dcb479571043",
-    "Emuqu/EmuquApp.swift::func EmuquApp.wireWatchBridgeCallbacks()": "eb4be484dee94d6d",
-    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runDeferredBoot()": "700d50443111055c"
+    "Emuqu/EmuquApp.swift::func EmuquApp.bootArchiveOffMain()": "e9a224ef3879ca6a",
+    "Emuqu/EmuquApp.swift::func EmuquApp.installGlobalKeyboardDismissal()": "f50de22bde9831e5",
+    "Emuqu/EmuquApp.swift::func EmuquApp.prewarmSpeechVoices()": "04ae801d189cdf70",
+    "Emuqu/EmuquApp.swift::func EmuquApp.wireWatchBridgeCallbacks()": "31177221f2f0ad12",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runDeferredBoot()": "24bb139a2c4ecb6c"
    }
   },
   {
@@ -1360,14 +1273,13 @@
     "mem:GlobalKeyboardDismissal (AppDependencies.current.app.globalKeyboardDismissal)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.globalKeyboardDismissal": "f69ecc62d8f3f0be",
     "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.install()": "382790801bb249ba",
     "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.prewarmKeyboard()": "a36159df382a7f4f",
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
    }
   },
   {
@@ -1383,7 +1295,6 @@
     "archive:SessionArchive.boot (index reconcile)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.boot()": "84fa584035a1eb46"
    }
@@ -1408,10 +1319,9 @@
      "effect": "uses \"en\"; otherwise the language code identifier"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.prewarm(forLanguage:)": "c177f2494c6c0984",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.prewarm(forLanguage:)": "4fcf7e9af3f6bbf2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -1430,12 +1340,11 @@
     "mem:WatchConnectivityBridge callbacks"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquApp.wireWatchVoiceChatTrigger()": "a542b191f1be810f",
-    "Emuqu/EmuquApp.swift::func EmuquApp.wireWatchWorkoutStartTrigger()": "fb9fe560a093c80b",
-    "Emuqu/EmuquApp.swift::func EmuquApp.wireWatchWorkoutTransportTriggers()": "da7ec7ab3e526d8d",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.mirrorStrapState(from:)": "32e5f0df18141a5f"
+    "Emuqu/EmuquApp.swift::func EmuquApp.wireWatchVoiceChatTrigger()": "d58d518ce46f8df9",
+    "Emuqu/EmuquApp.swift::func EmuquApp.wireWatchWorkoutStartTrigger()": "04e4a746e21871fe",
+    "Emuqu/EmuquApp.swift::func EmuquApp.wireWatchWorkoutTransportTriggers()": "f2ad800a8747b985",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.mirrorStrapState(from:)": "09bbd944797ac111"
    }
   },
   {
@@ -1451,9 +1360,8 @@
     "mem:WatchConnectivityBridge.onStartVoiceChatFromWatch"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquApp.toggleVoiceChatFromWatch()": "fd075de85810256e"
+    "Emuqu/EmuquApp.swift::func EmuquApp.toggleVoiceChatFromWatch()": "806ebe3643cf7a02"
    }
   },
   {
@@ -1485,14 +1393,13 @@
      "effect": "returns nil without toggling; accepted: voiceChat.toggle() and nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquApp.watchAccessRefusal()": "a8eea278079a8131",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "062805abbf745ea9",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.toggle()": "37942af49c1d3170",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel": "683bce28accc5e69"
+    "Emuqu/EmuquApp.swift::func EmuquApp.watchAccessRefusal()": "a7bf36ef2e80d25d",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "7b0cb0f1c0ee5aac",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.toggle()": "e3d50db69eedc7d3",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel": "a9161ec7b1d3b09c"
    }
   },
   {
@@ -1512,9 +1419,8 @@
      "effect": "true: .needsUnlock; false: nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AppLaunchTasks.swift::var EmuquApp.hasAccess": "9b8d4f96a4fa39c4"
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::var EmuquApp.hasAccess": "0562037118d85c46"
    }
   },
   {
@@ -1543,21 +1449,8 @@
      "effect": "adds userInfo[\"targetZone\"]; nil: omitted"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "med",
-     "text": "The Watch is told the start succeeded (nil) as soon as the notification is posted, but startWorkoutFromWatch (AppLaunchTasks.swift) only logs when recorder.start throws, so a start that fails on the phone still shows as started on the Watch. (A workout already recording/finalizing is now refused up front with .strapBusy.) Reporting the throw needs a WatchControlRefusal case and string, outside this file.",
-     "evidence": [
-      "Emuqu/EmuquApp.swift:797",
-      "Emuqu/Sources/Services/AppLaunchTasks.swift:60",
-      "Emuqu/Sources/Services/WatchConnectivityBridge.swift:888"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquApp.watchStartRefusal(sportRaw:)": "20073d738dd55623"
+    "Emuqu/EmuquApp.swift::func EmuquApp.watchStartRefusal(sportRaw:)": "f366deb9f9325a94"
    }
   },
   {
@@ -1591,11 +1484,10 @@
      "effect": "returns .strapBusy; else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquApp.watchAccessRefusal()": "a8eea278079a8131",
-    "Emuqu/EmuquApp.swift::var EmuquApp.isWorkoutInProgress": "4f63990a854d3006",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "80cfea9a213f0e16"
+    "Emuqu/EmuquApp.swift::func EmuquApp.watchAccessRefusal()": "a7bf36ef2e80d25d",
+    "Emuqu/EmuquApp.swift::var EmuquApp.isWorkoutInProgress": "ee44c0d7c842d79b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610"
    }
   },
   {
@@ -1611,9 +1503,8 @@
     "mem:WatchConnectivityBridge transport closures"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquApp.postWatchTransport(_:)": "d7b19d5f73cea766"
+    "Emuqu/EmuquApp.swift::func EmuquApp.postWatchTransport(_:)": "b44bde70c63350b8"
    }
   },
   {
@@ -1627,7 +1518,6 @@
     "notif:watchRequestedWorkoutStop|Pause|Resume / watchAcknowledgedFinished"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1649,9 +1539,8 @@
      "effect": "sets paywall after 400 ms; loop ends only when the task is cancelled"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
    }
   },
   {
@@ -1667,11 +1556,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquApp.prebindWorkoutRecorder()": "39dc0a6541f9c07e",
-    "Emuqu/EmuquApp.swift::func EmuquApp.pushSettingsToCloudAfterLaunch()": "41ca9a5eceb72f1c",
-    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runAppLevelWatchWorkoutListeners()": "c81abd9a54ded28b"
+    "Emuqu/EmuquApp.swift::func EmuquApp.prebindWorkoutRecorder()": "c5b6ccb5a8b147c8",
+    "Emuqu/EmuquApp.swift::func EmuquApp.pushSettingsToCloudAfterLaunch()": "3ab4ed4b2f7141e7",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runAppLevelWatchWorkoutListeners()": "c4e0db1554c4ba0b"
    }
   },
   {
@@ -1688,12 +1576,11 @@
     "mem:RecorderBox.recorder"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox": "51d3dd77075ccb10",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func RecorderBox.bind(core:conversation:)": "3ad83ae7597a6bdb"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox": "59f6a0baabb8c1c8",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func RecorderBox.bind(core:conversation:)": "4c7780153d87644f"
    }
   },
   {
@@ -1710,13 +1597,12 @@
     "ck:settings record"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushImmediately()": "271ed9eedddd24d7",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSettingsSync": "795829a4e1aab357",
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSettingsSync": "ea626da789f00ac9",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
    }
   },
   {
@@ -1732,10 +1618,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquApp.installDiagnostics()": "9898f51d4674deb3",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6"
+    "Emuqu/EmuquApp.swift::func EmuquApp.installDiagnostics()": "08fdee7dbd6f8c45",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "27176c4bfdf71136"
    }
   }
  ],

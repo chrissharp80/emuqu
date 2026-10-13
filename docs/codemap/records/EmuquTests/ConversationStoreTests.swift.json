@@ -11,18 +11,6 @@
   "testDebounceMs = 25 (instance let)"
  ],
  "toplevel": "lazy fileURL = tempDir/conversation.json; testDebounceMs = 25. Pins NSTimeZone.default to UTC for the class although no test here depends on the time zone (ChatTurn dates are fixed epoch values).",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "The class pins NSTimeZone.default to UTC though none of its tests format or bucket dates; the boilerplate is copied, not needed, and mutates process-global state for the class run.",
-   "evidence": [
-    "EmuquTests/ConversationStoreTests.swift:23",
-    "EmuquTests/ConversationStoreTests.swift:69"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func ConversationStoreTests.setUp()",
@@ -37,9 +25,8 @@
     "mem:NSTimeZone.default (process-global)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "f07306afb47b7ee7"
    }
   },
   {
@@ -61,7 +48,6 @@
      "effect": "true: NSTimeZone.default restored to it; false: default left as-is (UTC from setUp)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -77,9 +63,8 @@
     "file:<tmp>/ConversationStoreTests-<UUID>/"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
@@ -95,9 +80,8 @@
     "file:<tmp>/ConversationStoreTests-<UUID>/"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/ConversationStoreTests.swift::let ConversationStoreTests.tempDir": "f6ff8541dca342f8"
+    "EmuquTests/ConversationStoreTests.swift::let ConversationStoreTests.tempDir": "086c02a91cbd2f3d"
    }
   },
   {
@@ -111,9 +95,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da"
    }
   },
   {
@@ -133,9 +116,8 @@
      "effect": "true: role .user; false: role .assistant"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "9a474c3f1ee99094"
    }
   },
   {
@@ -161,20 +143,8 @@
      "effect": "true: return immediately (success); false: sleep 20 ms and retry"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Synchronisation by wall-clock polling of a debounced background queue; a 30 s ceiling bounds failure time, but tests remain timing-dependent on the DispatchQueue (comment cites CI run 33191820285 failing with 3 s).",
-     "evidence": [
-      "EmuquTests/ConversationStoreTests.swift:85",
-      "EmuquTests/ConversationStoreTests.swift:94"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
    }
   },
   {
@@ -191,22 +161,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The timeout message string \"\\(expected) persisted turns (have \\(store.load().count))\" is evaluated once, before polling starts, so on failure it reports the count read at the start (normally 0), not the count at the deadline; the \"have 0\" diagnostic quoted from CI run 33191820285 in the comment is therefore not evidence the write never landed.",
-     "evidence": [
-      "EmuquTests/ConversationStoreTests.swift:114",
-      "EmuquTests/ConversationStoreTests.swift:87",
-      "EmuquTests/ConversationStoreTests.swift:104"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitUntil(_:timeout:file:line:_:)": "39bba82e48c5b44f"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "de93b526e2a64d31",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitUntil(_:timeout:file:line:_:)": "df7bdca0fea57b1a"
    }
   },
   {
@@ -221,11 +178,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "785dfe428b3f1a95"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "de93b526e2a64d31",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769"
    }
   },
   {
@@ -249,18 +205,17 @@
     "file:conversation.json (test temp)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "ea382288f26dc91d",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "9b8bb6177e99bd77",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "91470ec41509ddb4",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "785dfe428b3f1a95",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "ac37585e461a4e00",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "029f2f661e0a569f"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "de93b526e2a64d31",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "4fec008743e3c5c5",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "cceb013557669e90",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "a9d4357b820cc2e8",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "9a474c3f1ee99094",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "c3d49b52410003c3",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "814889da1ceaa6ca"
    }
   },
   {
@@ -290,17 +245,16 @@
      "effect": "false: returns early (the preceding XCTAssertEqual already failed) to avoid an out-of-bounds trap; true: asserts per-field values"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "ea382288f26dc91d",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "9b8bb6177e99bd77",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "91470ec41509ddb4",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "6c805df1b6141cac",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "785dfe428b3f1a95",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "029f2f661e0a569f"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "de93b526e2a64d31",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "4fec008743e3c5c5",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "cceb013557669e90",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "a9d4357b820cc2e8",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "9a474c3f1ee99094",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "814889da1ceaa6ca"
    }
   },
   {
@@ -324,19 +278,18 @@
     "file:conversation.json (test temp)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "b6bad85bf5d0fdad",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "ea382288f26dc91d",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "9b8bb6177e99bd77",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "91470ec41509ddb4",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "785dfe428b3f1a95",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "ac37585e461a4e00",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "029f2f661e0a569f",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitUntil(_:timeout:file:line:_:)": "39bba82e48c5b44f"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "9e63918d42003eae",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "de93b526e2a64d31",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "4fec008743e3c5c5",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "cceb013557669e90",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "a9d4357b820cc2e8",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "c3d49b52410003c3",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "814889da1ceaa6ca",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitUntil(_:timeout:file:line:_:)": "df7bdca0fea57b1a"
    }
   },
   {
@@ -359,17 +312,16 @@
     "file:conversation.json (test temp)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "ea382288f26dc91d",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "9b8bb6177e99bd77",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "91470ec41509ddb4",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "785dfe428b3f1a95",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "ac37585e461a4e00",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "029f2f661e0a569f"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "de93b526e2a64d31",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "4fec008743e3c5c5",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "cceb013557669e90",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "a9d4357b820cc2e8",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "c3d49b52410003c3",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "814889da1ceaa6ca"
    }
   },
   {
@@ -392,17 +344,16 @@
     "file:conversation.json (test temp)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "ea382288f26dc91d",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "9b8bb6177e99bd77",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "91470ec41509ddb4",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "785dfe428b3f1a95",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "ac37585e461a4e00",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "029f2f661e0a569f"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "de93b526e2a64d31",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "4fec008743e3c5c5",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "cceb013557669e90",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "a9d4357b820cc2e8",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "c3d49b52410003c3",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "814889da1ceaa6ca"
    }
   },
   {
@@ -428,20 +379,19 @@
     "file:conversation.undecodable-<unix>.json (test temp)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "ea382288f26dc91d",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "9b8bb6177e99bd77",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "91470ec41509ddb4",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func UndecodableFile.setAside(_:caller:)": "76b5be5e37c88b2f",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::var ConversationStore.needsReloadFromDisk": "c1e1072e58417519",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "785dfe428b3f1a95",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "ac37585e461a4e00",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "029f2f661e0a569f",
-    "EmuquTests/ConversationStoreTests.swift::let ConversationStoreTests.tempDir": "f6ff8541dca342f8"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "de93b526e2a64d31",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "4fec008743e3c5c5",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "cceb013557669e90",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "a9d4357b820cc2e8",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func UndecodableFile.setAside(_:caller:)": "ece1c58cdf429e28",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::var ConversationStore.needsReloadFromDisk": "b7c9c8390d25c7ff",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "c3d49b52410003c3",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "814889da1ceaa6ca",
+    "EmuquTests/ConversationStoreTests.swift::let ConversationStoreTests.tempDir": "086c02a91cbd2f3d"
    }
   },
   {
@@ -465,29 +415,17 @@
     "file:conversation.json (test temp)"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Named \"ClearReplacesAnUndecodableHistory\" but never asserts the corrupt bytes are gone or that no *.undecodable-* file was created; the only check is that 3 turns eventually decode.",
-     "evidence": [
-      "EmuquTests/ConversationStoreTests.swift:227",
-      "EmuquTests/ConversationStoreTests.swift:235"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "b6bad85bf5d0fdad",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "ea382288f26dc91d",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "9b8bb6177e99bd77",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "91470ec41509ddb4",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "785dfe428b3f1a95",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "ac37585e461a4e00",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "029f2f661e0a569f"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "9e63918d42003eae",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "de93b526e2a64d31",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "4fec008743e3c5c5",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "cceb013557669e90",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "a9d4357b820cc2e8",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "c3d49b52410003c3",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "814889da1ceaa6ca"
    }
   },
   {
@@ -504,22 +442,11 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Negative assertion after a fixed 100 ms sleep: a regression that wrote the file later than 100 ms after retryHeldSave would still pass.",
-     "evidence": [
-      "EmuquTests/ConversationStoreTests.swift:241"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.retryHeldSave()": "c5edee68d81706b7",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "785dfe428b3f1a95",
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "9b0181db6472cf0d"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.retryHeldSave()": "aa783f277d1e6109",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
+    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
    }
   },
   {
@@ -542,29 +469,16 @@
     "file:conversation.json (test temp)"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Asserts the same behaviour as testSaveOverwritesPreviousContents (save N turns, wait, save a suffix, assert only the suffix is on disk); the merge path it names (mergedWithDisk) is only taken when unreadableOnDisk is set, which neither test sets.",
-     "evidence": [
-      "EmuquTests/ConversationStoreTests.swift:193",
-      "EmuquTests/ConversationStoreTests.swift:251",
-      "Emuqu/Sources/Assistant/Chat/ConversationStore.swift:199"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "c52e8d92d07d55d4",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "ea382288f26dc91d",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "a412e3b0848259de",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "9b8bb6177e99bd77",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "91470ec41509ddb4",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "98bc258bf177b380",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "785dfe428b3f1a95",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "ac37585e461a4e00",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "029f2f661e0a569f"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "de93b526e2a64d31",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "4fec008743e3c5c5",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "cceb013557669e90",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.writeCoalescedSnapshot()": "a9d4357b820cc2e8",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeTurns(count:)": "c3d49b52410003c3",
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.waitForPersistedCount(_:_:file:line:)": "814889da1ceaa6ca"
    }
   }
  ],

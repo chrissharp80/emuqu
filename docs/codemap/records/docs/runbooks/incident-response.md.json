@@ -5,7 +5,6 @@
  "types": [],
  "state": [],
  "toplevel": "Markdown only; no executable content. References code symbols (FeatureFlags, EncryptionManager.getOrCreateKey/keychainAccount/reEncryptIfNeeded, CloudPayloadCodec, SleepBoundaryResolver, AppFactResolver, ProviderConsentTracker), the make target sendable-guard, docs/runbooks/hotfix.md, .github/dependabot.yml open-pull-requests-limit and the iCloud container iCloud.com.chrissharp.flowrecovery; all of these exist in the repo (Constants.swift:12, Emuqu.entitlements:23, Makefile:58, .github/dependabot.yml:24).",
- "flags": [],
  "units": [
   {
    "key": "§ Runbook: Incident Response",
@@ -16,7 +15,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -34,13 +32,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "4d1d71f3bef78e55",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.bindingFor(flag:)": "6d79ab08d5b80831",
-    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.set(_:for:)": "5a8afd1a67fff2fb",
-    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)": "a2781a86fccf2cac",
-    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::var FeatureFlags.Key.defaultValue": "6904ac00f3193e7f"
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.isEnabled(_:)": "016373538fb3a9ab",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.bindingFor(flag:)": "f1a9b31161d15fd0",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.set(_:for:)": "e3466403d0f0a9a9",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)": "5026cc5eddd06cce",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::var FeatureFlags.Key.defaultValue": "16ac004c70060b2a"
    }
   },
   {
@@ -55,10 +52,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.noteSaveFailure(_:uploading:)": "749903fda9a37fe1",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.pullRemoteChanges()": "c6e313e283ebbfc5"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.noteSaveFailure(_:uploading:)": "30dfbfb7c5fe0baf",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.pullRemoteChanges()": "8c5a6bd5df5606b2"
    }
   },
   {
@@ -73,10 +69,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift::func MapBoundsHelper.region(for:paddingFactor:minimumDelta:emptyFallbackDelta:)": "9d9f61a1de8a5dfe",
-    "Makefile::target sendable-guard": "16583da771b94003"
+    "Makefile::target sendable-guard": "c009f552884c46bc"
    }
   },
   {
@@ -101,34 +96,19 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Step 3-4 says a key-version bump without migration makes old files unreadable and that a hotfix must add a fallback to try the previous key version. decrypt already reads the version byte from each blob and loads that version's key (EncryptionManager.swift:99-106, extractVersion :148, loadKey :188), so old files stay readable as long as the old Keychain item exists; decryption does not go through getOrCreateKey at all. reEncryptIfNeeded has no caller (comment EncryptionManager.swift:25-27). An operator following the runbook would look for the wrong failure mechanism.",
-     "evidence": [
-      "docs/runbooks/incident-response.md:128",
-      "docs/runbooks/incident-response.md:133",
-      "Emuqu/Sources/Storage/EncryptionManager.swift:99",
-      "Emuqu/Sources/Storage/EncryptionManager.swift:188",
-      "Emuqu/Sources/Storage/EncryptionManager.swift:25"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importPulledSession(from:sessionId:sessionIdString:version:)": "073aa1a0dc992192",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "15dfc7e25d0a72b9",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.keys(from:)": "81582ac8db121057",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "32058ab0050d0265",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "a845a5d28c932fe3",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "4022d046812dddbc",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "196540555ada322e",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)": "73bbaca567719214",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)": "d4f3a003d85390a6",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.reEncryptIfNeeded(_:)": "feb91bb148e897c6",
-    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()": "9c0f9430d592c398",
-    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.phraseMatches": "8aa342b61ee12090"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importPulledSession(from:sessionId:sessionIdString:version:)": "fb7ea0a650ecd090",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.decode(_:)": "07a8c15768d32cfc",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.keys(from:)": "166c1ebf54a125d2",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "0da96942872536de",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.extractVersion(from:)": "23819ca6a7583ff6",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.getOrCreateKey(version:)": "d57929ceabea0682",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.keychainAccount(for:)": "598d3b1447a1ad8b",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.loadKey(version:)": "e2135a76562a08f7",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.makeKeyMigratable(account:)": "25a975a4420f8455",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.reEncryptIfNeeded(_:)": "163b9699a2fa48c3",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()": "15384bf66f97c8b2",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.phraseMatches": "82e1882c3d480239"
    }
   },
   {
@@ -143,9 +123,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)": "4de5d7c899db8255",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)": "6b22c8efc9ae5167",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)": "472051ae5134cf89"
    }
   },
@@ -170,30 +149,18 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Step 5 says 'File a SECURITY.md update'; there is no SECURITY.md at the repository root, only .github/SECURITY.md, so the instruction names a file location that does not exist as written.",
-     "evidence": [
-      "docs/runbooks/incident-response.md:183",
-      ".github/SECURITY.md"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.record(provider:model:systemPrompt:messagesJSON:toolsJSON:)": "7d4a9916a0cef544",
-    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "b36a2b8ea48a5e61",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.consentGateAllowsDispatch(provider:voiceMode:)": "8f3ebec1754d08b5",
-    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.set(_:for:)": "5a8afd1a67fff2fb",
-    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)": "a2781a86fccf2cac",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportToFileAsync()": "9a89afa792ea197c",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "1ce9d44bc1dd4c98",
-    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.shareToolbarItem": "194eda71ad3390ed",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.exportLogButton": "cb60546e391b24fd",
-    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.aiPromptAuditSection": "08eb3b53bcf6c126",
-    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.developerSections": "828616a191fb03e5"
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.record(provider:model:systemPrompt:messagesJSON:toolsJSON:)": "54b70891909d3d9d",
+    "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "6cc9d2a50a137c6c",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.consentGateAllowsDispatch(provider:voiceMode:)": "71ef29af1a6b5d05",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.set(_:for:)": "e3466403d0f0a9a9",
+    "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)": "5026cc5eddd06cce",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportToFileAsync()": "387ef887798c24ed",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "d2ebc3c09c6c5f31",
+    "Emuqu/Sources/Views/LLMPromptAuditView.swift::var LLMPromptAuditDetailView.shareToolbarItem": "8af8c911949ab2cb",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.exportLogButton": "4253edeec26ecd94",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.aiPromptAuditSection": "d948574110a75d40",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.developerSections": "bf2a9db669279a3d"
    }
   },
   {
@@ -212,27 +179,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Runbook says that with the WhisperKit path off, voice degrades to typed input. In code WhisperKit is an opt-in STT provider; Apple SFSpeechRecognizer is the default and the documented fallback when WhisperKit fails to load or transcribe, and non-English locales already route to Apple. Turning the WhisperKit path off leaves voice working via Apple Speech, so the user-facing message the runbook prescribes overstates the loss.",
-     "evidence": [
-      "docs/runbooks/incident-response.md:210",
-      "Emuqu/Sources/Assistant/Chat/STTProvider.swift:28",
-      "Emuqu/Sources/Assistant/Chat/STTProvider.swift:62",
-      "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift:48"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/STTProvider.swift::func STTProviderKind.effective(preferred:languageCode:)": "3f0e7550bc0a4074",
-    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.prepareModelIfNeeded()": "5d6e0d3caf99dda1",
-    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.transcribeAndReset()": "ff19fc4ecee92710",
-    "Emuqu/Sources/Collection/PolarSDKFactory.swift::func PolarSDKFactory.makeApi(queue:)": "e36e5e29a1f57b04",
-    "Makefile::target sbom-guard": "66e379cb76f4a7ec",
-    "scripts/generate_sbom.py::def build": "2bff7ea18a12bcc5"
+    "Emuqu/Sources/Assistant/Chat/STTProvider.swift::func STTProviderKind.effective(preferred:languageCode:)": "ebe3189b172cf755",
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.prepareModelIfNeeded()": "69c83d136f0f0c7b",
+    "Emuqu/Sources/Assistant/Chat/WhisperKitSTTBridge.swift::func WhisperKitSTTBridge.transcribeAndReset()": "4d0eb814c5090886",
+    "Emuqu/Sources/Collection/PolarSDKFactory.swift::func PolarSDKFactory.makeApi(queue:)": "f012c9eb1daee729",
+    "Makefile::target sbom-guard": "b6d05ef975bc25ca",
+    "scripts/generate_sbom.py::def build": "74b57087bd847cfe"
    }
   },
   {
@@ -244,7 +197,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

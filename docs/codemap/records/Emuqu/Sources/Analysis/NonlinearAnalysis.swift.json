@@ -8,7 +8,6 @@
  ],
  "state": [],
  "toplevel": "imports Accelerate for vDSP_meanvD; no globals.",
- "flags": [],
  "units": [
   {
    "key": "func NonlinearAnalyzer.computeNonlinear(_:flags:windowStart:windowEnd:)",
@@ -29,11 +28,10 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.metrics(for:successiveDifferences:)": "143c1e176b22c969",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.cleanWindow(_:flags:windowStart:windowEnd:)": "9dbe7e5a8b81c4f1",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.successiveDifferences(in:)": "0819a2e676679e45"
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.metrics(for:successiveDifferences:)": "15b9e7e629287438",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.cleanWindow(_:flags:windowStart:windowEnd:)": "c4daa471f979e9f7",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.successiveDifferences(in:)": "bf234ea3f2660e7b"
    }
   },
   {
@@ -57,13 +55,12 @@
      "effect": "ratio sd1/sd2; else 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(window:)": "3b5f011038902703",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeApproxEntropy(_:followsGap:m:r:)": "907785ad4fc24d5a",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computePoincareMetrics(_:successiveDifferences:)": "d78d9e8fd012360d",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeSampleEntropy(_:followsGap:m:r:)": "aab401aab19f1009",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func CleanBeatWindow.isAdjacentToPrevious(_:)": "b8f138edd91e20cf"
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(window:)": "3e3d78bd99965ddb",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeApproxEntropy(_:followsGap:m:r:)": "cbe4397586e1a7f2",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computePoincareMetrics(_:successiveDifferences:)": "662072809525d926",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeSampleEntropy(_:followsGap:m:r:)": "b759d619db875bd8",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func CleanBeatWindow.isAdjacentToPrevious(_:)": "b19b910353d1701b"
    }
   },
   {
@@ -81,7 +78,6 @@
      "effect": "runLength[i] = runLength[i+1] + 1"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -93,7 +89,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -120,11 +115,10 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computePhi(_:templateLength:tolerance:)": "d589aabba4c56fd4",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.entropySubsample(_:followsGap:)": "f0515cd7eae0d94d",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.sampleStandardDeviation(_:)": "8a931451a298edee"
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computePhi(_:templateLength:tolerance:)": "bd140ea897bd1c4e",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.entropySubsample(_:followsGap:)": "d8e8a97b7e869c0a",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.sampleStandardDeviation(_:)": "3240b6e41f4df56e"
    }
   },
   {
@@ -155,10 +149,9 @@
      "effect": "add log(ci); always true because of self-match"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.BeatRuns.templateStarts(length:)": "6e1f2033f19e30f0",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.templatesMatch(_:_:_:templateLength:tolerance:)": "1b6395258b3c2a03"
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.BeatRuns.templateStarts(length:)": "21aafef8a1ba7ff0",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.templatesMatch(_:_:_:templateLength:tolerance:)": "b4040ff62dda9573"
    }
   },
   {
@@ -176,7 +169,6 @@
      "effect": "return false; loop completes → true"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -197,22 +189,9 @@
      "effect": "(0,0); unreachable from computeNonlinear (≥10 beats)"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "SD1/SD2 are computed a second time for the HRV detail chart's Poincaré ellipse, by rotating centred (RRn, RRn+1) pairs. The ellipse drawn can differ from the SD1/SD2 numbers this unit stores (different centring and pairs: this unit uses only originally adjacent, ectopic-gated pairs).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/NonlinearAnalysis.swift:148",
-      "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:193",
-      "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:207"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.populationVariance(_:)": "9557738a591c4f20",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.successiveDifferenceVariance(_:)": "5aad7b940e8f42c5"
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.populationVariance(_:)": "466ba01d43e7938a",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.successiveDifferenceVariance(_:)": "2561198fc44eeab5"
    }
   },
   {
@@ -235,7 +214,6 @@
      "effect": "accumulate sum and square sum"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -255,7 +233,6 @@
      "effect": "accumulate squared deviation"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -275,7 +252,6 @@
      "effect": "accumulate squared deviation"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -300,9 +276,8 @@
      "effect": "accumulate gaps through it"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::init NonlinearAnalyzer.BeatRuns(values:followsGap:)": "5e1c3c6faf6bee4b"
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::init NonlinearAnalyzer.BeatRuns(values:followsGap:)": "e1df7c20acf7c4c0"
    }
   },
   {
@@ -330,12 +305,11 @@
      "effect": "nil (undefined entropy surfaced as missing)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.BeatRuns.templateStarts(length:)": "6e1f2033f19e30f0",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.countTemplateMatches(_:starts:templateLength:tolerance:)": "f8909d0eab2fa689",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.entropySubsample(_:followsGap:)": "f0515cd7eae0d94d",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.sampleStandardDeviation(_:)": "8a931451a298edee"
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.BeatRuns.templateStarts(length:)": "21aafef8a1ba7ff0",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.countTemplateMatches(_:starts:templateLength:tolerance:)": "16420ced5951a97d",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.entropySubsample(_:followsGap:)": "d8e8a97b7e869c0a",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.sampleStandardDeviation(_:)": "3240b6e41f4df56e"
    }
   },
   {
@@ -355,9 +329,8 @@
      "effect": "count matches with every later start"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.templatesMatch(_:_:_:templateLength:tolerance:)": "1b6395258b3c2a03"
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.templatesMatch(_:_:_:templateLength:tolerance:)": "b4040ff62dda9573"
    }
   }
  ],

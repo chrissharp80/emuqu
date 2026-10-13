@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)",
@@ -20,9 +19,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "38d3af3b87efbcd7"
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::init HealthWorkoutSummary(date:type:durationMinutes:caloriesBurned:averageHR:maxHR:precomputedLoad:precomputedLoadSource:wasRecovered:)": "5f9e195a4d0ab23f"
    }
   },
   {
@@ -37,22 +35,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "The forwarder HealthKitManager.deduplicateWorkouts that every test in this file calls has no production caller; production code calls TrainingHealthQueries.deduplicateWorkouts directly (from mergeArchiveAuthoritative and line 197). The forwarder exists only for these tests.",
-     "evidence": [
-      "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift:21",
-      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:120",
-      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:197",
-      "EmuquTests/WorkoutDeduplicationTests.swift:30"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "31818d59ec481976",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b"
    }
   },
@@ -69,11 +53,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "31818d59ec481976",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
-    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "5b1653904034ac91"
    }
   },
   {
@@ -89,11 +72,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "31818d59ec481976",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
-    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "5b1653904034ac91"
    }
   },
   {
@@ -109,11 +91,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "31818d59ec481976",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
-    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "5b1653904034ac91"
    }
   },
   {
@@ -129,12 +110,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageHR(samples:from:to:)": "a342a175c8f140e7",
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "31818d59ec481976",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
-    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "5b1653904034ac91"
    }
   },
   {
@@ -150,12 +130,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageHR(samples:from:to:)": "a342a175c8f140e7",
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "31818d59ec481976",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
-    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "5b1653904034ac91"
    }
   },
   {
@@ -171,11 +150,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "31818d59ec481976",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
-    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "5b1653904034ac91"
    }
   },
   {
@@ -191,24 +169,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The production doc comment on deduplicateWorkouts says two rules are BOTH required, the first being starts within 5 minutes; the code scans a 30-minute window and merges on same-type-within-300 s OR >=60% overlap. This test comment (lines 89-93) describes the code, so the tests pin behaviour that contradicts the production doc comment.",
-     "evidence": [
-      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:40",
-      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:79",
-      "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift:81",
-      "EmuquTests/WorkoutDeduplicationTests.swift:89"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "31818d59ec481976",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
-    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "5b1653904034ac91"
    }
   },
   {
@@ -224,11 +188,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "31818d59ec481976",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
-    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "5b1653904034ac91"
    }
   },
   {
@@ -244,11 +207,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "31818d59ec481976",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
-    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "5b1653904034ac91"
    }
   },
   {
@@ -264,11 +226,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "31818d59ec481976",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
-    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "5b1653904034ac91"
    }
   },
   {
@@ -284,12 +245,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.averageHR(samples:from:to:)": "a342a175c8f140e7",
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "dcfad2711ca29680",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.deduplicateWorkouts(_:)": "31818d59ec481976",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.deduplicateWorkouts(_:)": "2f1fc9b6d653492b",
-    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "79b4b129ea145ea1"
+    "EmuquTests/WorkoutDeduplicationTests.swift::func WorkoutDeduplicationTests.makeWorkout(minutesFromEpoch:type:duration:calories:avgHR:maxHR:)": "5b1653904034ac91"
    }
   }
  ],

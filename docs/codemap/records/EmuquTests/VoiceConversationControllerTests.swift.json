@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func VoiceConversationControllerTests.testSharedSingletonIsPersistent()",
@@ -20,7 +19,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -34,7 +32,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -46,17 +43,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Asserts compiler-synthesized Equatable reflexivity; it cannot fail for a payload-free enum and checks no app behaviour.",
-     "evidence": [
-      "EmuquTests/VoiceConversationControllerTests.swift:29"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -68,17 +54,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Tautological check of synthesized Equatable on enum cases; cannot fail.",
-     "evidence": [
-      "EmuquTests/VoiceConversationControllerTests.swift:38"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -98,25 +73,10 @@
     "mem:VoiceConversationController.shared.textChunker"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Doc comment says this pins the chunker 'the controller feeds every streamed delta through (ingestInterjectionDelta, finishInterjection)', but the test calls textChunker.append/finalize directly and never goes through those controller methods (VoiceConversationController+Audio.swift:676, :681); a regression in how the controller feeds or speaks chunks is not covered, and comparing against another SpokenTextChunker instance of the same type adds nothing beyond the literal expectations.",
-     "evidence": [
-      "EmuquTests/VoiceConversationControllerTests.swift:47",
-      "EmuquTests/VoiceConversationControllerTests.swift:58",
-      "EmuquTests/VoiceConversationControllerTests.swift:59",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:676",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift:681"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)": "bdd4dfc591e46762",
-    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()": "dd0ee2d1995fab40",
-    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()": "a226667027d63c39"
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)": "11b7d59f422f3990",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()": "617bf2c6974d2d39",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()": "2a4db3fb94564d8d"
    }
   }
  ],

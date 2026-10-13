@@ -18,31 +18,6 @@
   "mem:WorkoutVoiceCoach.ambientFixMaxAgeSec (private static let = 10 s)"
  ],
  "toplevel": "Stored-property initializers: isMuted=false, hasAnnouncedSubsystem=false, fresh MileMarkerState/TurnAlertState/TurnMarkerState, routeEngagedAt=nil. static ambientFixMaxAgeSec=10. The coach has no synthesizer of its own.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "watchBridge is stored in init but never read anywhere in the class; the .haptic tier is a no-op (line 255), so the injected bridge (WorkoutRecorder.swift:417) does nothing.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:39",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:78",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:255",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift:417"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No test in EmuquTests references WorkoutVoiceCoach (grep), so the mute/settings gating, routine-suppression, preamble and route-reset logic are untested.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:105",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:249",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:302"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var WorkoutVoiceCoach.isMuted",
@@ -66,7 +41,6 @@
      "effect": "purge queued spoken triggers; otherwise nothing"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.discardPendingSpokenTriggers()": "deb2f58b411dd3e1"
    }
@@ -91,9 +65,8 @@
      "effect": "nil → a new WorkoutTriggerEngine() is created; non-nil (tests/injection) → the passed engine is used. Production (WorkoutRecorder.swift:417) always passes nil."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine(rules:settingsProvider:)": "00247454d7684582"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine(rules:settingsProvider:)": "ee975218d86a22ee"
    }
   },
   {
@@ -135,17 +108,16 @@
      "effect": "true → tickRouteEngines; false → route engines skipped, ActiveRouteSession step index is not advanced by the coach."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.evaluate(context:now:canSpeak:)": "625dd6a7b78118b5",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatch(event:)": "56e99d22bdf96403",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.tickMileMarker(context:settings:)": "9114ebdaaa50f85a",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.tickRouteEngines(context:settings:)": "47a7791fbd3ee863",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::var WorkoutVoiceCoach.isMuted": "1a7ee0826f692e35",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.evaluate(context:now:canSpeak:)": "c4d7dd48145cd1ef",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatch(event:)": "f1c0200a327e83ff",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.tickMileMarker(context:settings:)": "78cdeb6854935c50",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.tickRouteEngines(context:settings:)": "b3d6904d841bb199",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::var WorkoutVoiceCoach.isMuted": "cd68da581853e1fb",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a"
    }
   },
   {
@@ -176,14 +148,13 @@
      "effect": "false → return after saving state (marker silently consumed); true → render and handleTrigger(message:) with default .routine urgency (queued if user/AI busy)."
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.handleTrigger(message:urgency:)": "bc9e7a9e730970e1",
-    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.render(payload:unitsImperial:)": "0e4dc65f6684d03d",
-    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "30562879d4645834",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::var WorkoutVoiceCoach.isMuted": "1a7ee0826f692e35",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func MileMarkerFormatter.render(payload:unitsImperial:)": "37da8d6fdf816af8",
+    "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "bf899a6178762308",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::var WorkoutVoiceCoach.isMuted": "cd68da581853e1fb",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47"
    }
   },
   {
@@ -238,21 +209,20 @@
      "effect": "true → announceRouteLine(rendered text); false → nothing spoken."
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerEngine.evaluate(step:context:state:)": "f2b9402240281d21",
-    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerFormatter.render(payload:unitsImperial:)": "b417f89669383404",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.announceRouteLine(_:)": "34b79c229217f5ca",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.resetRouteStateIfNewRoute(engagedAt:)": "623ee699450e9d71",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.routeFix(context:)": "aa5467c2cbf70e31",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.tickTurnAlert(step:stepCount:imperial:)": "1ee610be0d422680",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)": "4fda6362df3bfa07",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.snapshot()": "c0ce08ecb6d252c2",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.activeRouteSession": "bd4f88369c187afe"
+    "Emuqu/Sources/Assistant/TurnMarkerEngine.swift::func TurnMarkerFormatter.render(payload:unitsImperial:)": "2b071242a46fe366",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.announceRouteLine(_:)": "84e58134104c69a8",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.resetRouteStateIfNewRoute(engagedAt:)": "415d747e4186b031",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.routeFix(context:)": "caee9f3f073a8489",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.tickTurnAlert(step:stepCount:imperial:)": "e527e1a1811196f2",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)": "2681f2bbcbb3c4af",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.snapshot()": "236e3a0832306138",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.activeRouteSession": "afc55a2a74fa184f"
    }
   },
   {
@@ -278,11 +248,10 @@
      "effect": "true → announceRouteLine(TurnAlertFormatter.render(...)); false → nothing spoken."
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.evaluate(step:state:isFinalStep:)": "3d226c62978a31d8",
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.render(payload:unitsImperial:)": "c18371c16ee28f67",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.announceRouteLine(_:)": "34b79c229217f5ca",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.render(payload:unitsImperial:)": "93d6b704e00166ac",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.announceRouteLine(_:)": "84e58134104c69a8",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func stepCount(samples:)": "6c00c4d3ab2ac3d3"
    }
   },
@@ -308,12 +277,11 @@
      "effect": "true → CLLocation from them (no accuracy/timestamp carried); false → ambient cached fix ≤10 s old, or nil which makes tickRouteEngines return."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "888694eec42b438e",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "236ffadb120d332c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "33a2cabc9b97ee7b"
+    "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "5a648c91bbefd58c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "0434ddbabd3bc89c"
    }
   },
   {
@@ -337,7 +305,6 @@
      "effect": "true → return (same route, state kept); false (first route or a new one) → store date and reset both route-engine states."
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -360,10 +327,9 @@
      "effect": "false → return silently (line lost; engine state already advanced); true → handleTrigger(message:) default .routine."
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.handleTrigger(message:urgency:)": "bc9e7a9e730970e1",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::var WorkoutVoiceCoach.isMuted": "1a7ee0826f692e35"
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::var WorkoutVoiceCoach.isMuted": "cd68da581853e1fb"
    }
   },
   {
@@ -384,9 +350,8 @@
     "mem:WorkoutVoiceCoach.routeEngagedAt"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.reset()": "dd666db9228d90aa"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.reset()": "8ddf50cc8d3b9351"
    }
   },
   {
@@ -425,24 +390,10 @@
      "effect": "dispatchSpoken(event)."
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs say fired events are dispatched to TTS / haptics and the coach handles TTS + haptics, but the .haptic tier is a no-op.",
-     "evidence": [
-      "docs/FLOWCHART.md:1112",
-      "docs/FLOWCHART.md:1127",
-      "docs/ARCHITECTURE.md:1316",
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:255"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::var VoiceConversationController.isAIInFlight": "082991477bc5db3a",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatchSpoken(_:)": "1cccbf832563c9e6",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::var VoiceConversationController.isAIInFlight": "4b6231b54a13c73a",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatchSpoken(_:)": "8fb0289c45398ff6",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -471,11 +422,10 @@
      "effect": ".urgent → TriggerUrgency.urgent; anything else → .routine. handleTrigger: routine queues if user/AI busy; urgent preempts and copies partial transcript to clipboard."
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.handleTrigger(message:urgency:)": "bc9e7a9e730970e1",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.announcedAlertText(_:)": "ecdb0354dca70e6e",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.taggedAlertText(_:)": "08fb77e0faec67be"
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.announcedAlertText(_:)": "95e19d39527f18e7",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.taggedAlertText(_:)": "ec235073fa16ea56"
    }
   },
   {
@@ -506,21 +456,9 @@
      "effect": "false (already announced and AI idle) → body unchanged; true → set flag and return preamble + \" \" + body."
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "hasAnnouncedSubsystem is set when the text is built, before handleTrigger decides to play or queue; a routine line queued behind the user and later dropped (queue cap) still consumes the once-per-session preamble.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift:305",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:366"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AssistantSubsystem.voiceAnnouncement": "7672e776d1f17081",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::var VoiceConversationController.isAIInFlight": "082991477bc5db3a"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AssistantSubsystem.voiceAnnouncement": "c1f316667625bc0a",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::var VoiceConversationController.isAIInFlight": "4b6231b54a13c73a"
    }
   },
   {
@@ -536,9 +474,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -564,10 +501,9 @@
      "effect": "nil → \"en\"; else the code identifier."
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.cachedCompactVoiceIfReady(forLanguage:)": "9a5029b9978ca312",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.cachedCompactVoiceIfReady(forLanguage:)": "36f2b537028a3cf7",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   }
  ],

@@ -7,17 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "hack",
-   "sev": "low",
-   "text": "File is named NavigationHeader.swift but declares no NavigationHeader (grep 'struct NavigationHeader' finds nothing); it contains only LocalizedDuration, so the name points readers to the wrong content.",
-   "evidence": [
-    "Emuqu/Sources/Views/NavigationHeader.swift:10"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func LocalizedDuration.hoursMinutes(minutes:)",
@@ -37,24 +26,10 @@
      "effect": "DurationFormatter.hoursMinutes(minutes:) English fallback"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Fourth hours-minutes formatter in the app alongside DurationFormatter.hoursMinutes, NarrativeLanguage.hoursMinutes and SleepData.hoursMinutes; call sites pick different ones so the same duration renders differently across screens.",
-     "evidence": [
-      "Emuqu/Sources/Views/NavigationHeader.swift:13",
-      "Emuqu/Sources/Utilities/Extensions.swift:12",
-      "Emuqu/Sources/Services/NarrativeLanguage.swift:47",
-      "Emuqu/Sources/Models/SleepData.swift:83"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Utilities/Extensions.swift::func DurationFormatter.hoursMinutes(minutes:)": "040ffec531ca3586",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.formatter(_:)": "0a19fe8de02ad85a",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "0eaf9ea6f219f5b6"
+    "Emuqu/Sources/Utilities/Extensions.swift::func DurationFormatter.hoursMinutes(minutes:)": "c991ffd8e3975e6f",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.formatter(_:)": "4be60b05902fe7ae",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9"
    }
   },
   {
@@ -74,9 +49,8 @@
      "effect": "'<n> min' fallback"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.formatter(_:)": "0a19fe8de02ad85a"
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.formatter(_:)": "4be60b05902fe7ae"
    }
   },
   {
@@ -96,9 +70,8 @@
      "effect": "'<n>h' fallback"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.formatter(_:)": "0a19fe8de02ad85a"
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.formatter(_:)": "4be60b05902fe7ae"
    }
   },
   {
@@ -112,9 +85,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   }
  ],

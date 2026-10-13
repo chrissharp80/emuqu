@@ -9,7 +9,6 @@
   "file:FileManager.temporaryDirectory/<UUID>.pdf (written and deleted per render)"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func WorkoutReportSmokeTests.workoutSamples(count:)",
@@ -22,9 +21,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b"
    }
   },
   {
@@ -46,11 +44,10 @@
      "effect": "?? workoutSamples(): default 1800 samples used; otherwise the passed array (empty allowed)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSamples(count:)": "5114509b5b050aba"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSamples(count:)": "2aed055ee4c19786"
    }
   },
   {
@@ -65,13 +62,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
     "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
-    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "8f7224c0359ecb0f"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "9fdc7dd4a10137ff"
    }
   },
   {
@@ -99,9 +95,8 @@
      "effect": "XCTFail and return; otherwise asserts page count > 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
@@ -115,9 +110,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::init WorkoutPDFReport(session:track:userMaxHR:userRestingHR:userLTHR:units:config:)": "bd3c61559ac25534"
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::init WorkoutPDFReport(session:track:userMaxHR:userRestingHR:userLTHR:units:config:)": "8c54fb5979cbb404"
    }
   },
   {
@@ -136,12 +130,11 @@
     "file:NSTemporaryDirectory/<uuid>.pdf"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "88a243ef2ca4a8fe",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "222bb18549eb1625",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutReport(session:units:)": "489b9af4dcfdbffc",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "7e248227d66dc3eb"
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "1b31a12f55de0923",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutReport(session:units:)": "e33a10f200a1b027",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "ee41cbb732325932"
    }
   },
   {
@@ -166,12 +159,11 @@
      "effect": "renders once per unit system"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "88a243ef2ca4a8fe",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "222bb18549eb1625",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutReport(session:units:)": "489b9af4dcfdbffc",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "7e248227d66dc3eb"
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "1b31a12f55de0923",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutReport(session:units:)": "e33a10f200a1b027",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "ee41cbb732325932"
    }
   },
   {
@@ -196,12 +188,11 @@
      "effect": "renders once per sport"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "88a243ef2ca4a8fe",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "222bb18549eb1625",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutReport(session:units:)": "489b9af4dcfdbffc",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "7e248227d66dc3eb"
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "1b31a12f55de0923",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutReport(session:units:)": "e33a10f200a1b027",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "ee41cbb732325932"
    }
   },
   {
@@ -220,12 +211,11 @@
     "file:NSTemporaryDirectory/<uuid>.pdf"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "88a243ef2ca4a8fe",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "222bb18549eb1625",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutReport(session:units:)": "489b9af4dcfdbffc",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "7e248227d66dc3eb"
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "1b31a12f55de0923",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutReport(session:units:)": "e33a10f200a1b027",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "ee41cbb732325932"
    }
   },
   {
@@ -244,12 +234,11 @@
     "file:NSTemporaryDirectory/<uuid>.pdf"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "88a243ef2ca4a8fe",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "222bb18549eb1625",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutReport(session:units:)": "489b9af4dcfdbffc",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "7e248227d66dc3eb"
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "1b31a12f55de0923",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutReport(session:units:)": "e33a10f200a1b027",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "ee41cbb732325932"
    }
   },
   {
@@ -269,13 +258,12 @@
     "file:NSTemporaryDirectory/<uuid>.pdf"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "88a243ef2ca4a8fe",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "222bb18549eb1625",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutReport(session:units:)": "489b9af4dcfdbffc",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSamples(count:)": "5114509b5b050aba",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "7e248227d66dc3eb"
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "1b31a12f55de0923",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutReport(session:units:)": "e33a10f200a1b027",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSamples(count:)": "2aed055ee4c19786",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "ee41cbb732325932"
    }
   },
   {
@@ -294,12 +282,11 @@
     "file:NSTemporaryDirectory/<uuid>.pdf"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "88a243ef2ca4a8fe",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "222bb18549eb1625",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutReport(session:units:)": "489b9af4dcfdbffc",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "7e248227d66dc3eb"
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "1b31a12f55de0923",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutReport(session:units:)": "e33a10f200a1b027",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "ee41cbb732325932"
    }
   },
   {
@@ -313,9 +300,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:sleepSchedule:temperatureUnit:liveLoadSnapshot:config:)": "4efd68e54be1f713"
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:sleepSchedule:temperatureUnit:liveLoadSnapshot:config:)": "bb5ab327a3621079"
    }
   },
   {
@@ -336,14 +322,13 @@
     "file:NSTemporaryDirectory/<uuid>.pdf"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)": "8e081b59989b2340",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)": "25451d753d99a6cd",
     "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "88a243ef2ca4a8fe",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "222bb18549eb1625",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "1b31a12f55de0923",
     "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.holisticReport(workout:overnight:recent:)": "27b3122521dd77c6",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.overnightSession(nightsBefore:rmssd:)": "734edb14514b2b1f",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "7e248227d66dc3eb"
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.overnightSession(nightsBefore:rmssd:)": "84d39984a28e8053",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "ee41cbb732325932"
    }
   },
   {
@@ -375,15 +360,14 @@
      "effect": "XCTFail and return; otherwise compares page counts"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)": "8e081b59989b2340",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)": "25451d753d99a6cd",
     "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "88a243ef2ca4a8fe",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439",
     "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.holisticReport(workout:overnight:recent:)": "27b3122521dd77c6",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.overnightSession(nightsBefore:rmssd:)": "734edb14514b2b1f",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutReport(session:units:)": "489b9af4dcfdbffc",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "7e248227d66dc3eb"
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.overnightSession(nightsBefore:rmssd:)": "84d39984a28e8053",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutReport(session:units:)": "e33a10f200a1b027",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "ee41cbb732325932"
    }
   },
   {
@@ -402,12 +386,11 @@
     "file:NSTemporaryDirectory/<uuid>.pdf"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)": "8e081b59989b2340",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "222bb18549eb1625",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)": "25451d753d99a6cd",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "1b31a12f55de0923",
     "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.holisticReport(workout:overnight:recent:)": "27b3122521dd77c6",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "7e248227d66dc3eb"
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "ee41cbb732325932"
    }
   },
   {
@@ -427,13 +410,12 @@
     "file:NSTemporaryDirectory/<uuid>.pdf"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)": "8e081b59989b2340",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "222bb18549eb1625",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)": "25451d753d99a6cd",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "1b31a12f55de0923",
     "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.holisticReport(workout:overnight:recent:)": "27b3122521dd77c6",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.overnightSession(nightsBefore:rmssd:)": "734edb14514b2b1f",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "7e248227d66dc3eb"
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.overnightSession(nightsBefore:rmssd:)": "84d39984a28e8053",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "ee41cbb732325932"
    }
   },
   {
@@ -453,13 +435,12 @@
     "file:NSTemporaryDirectory/<uuid>.pdf"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)": "8e081b59989b2340",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "222bb18549eb1625",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)": "25451d753d99a6cd",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "1b31a12f55de0923",
     "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.holisticReport(workout:overnight:recent:)": "27b3122521dd77c6",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.overnightSession(nightsBefore:rmssd:)": "734edb14514b2b1f",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "7e248227d66dc3eb"
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.overnightSession(nightsBefore:rmssd:)": "84d39984a28e8053",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "ee41cbb732325932"
    }
   },
   {
@@ -489,29 +470,17 @@
     "file:NSTemporaryDirectory/<uuid>.pdf"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Shares state with the app host: setLanguage persists the language to UserDefaults.standard 'AppleLanguages' and posts languageDidChangeNotification in the host process; restoration relies on the teardown block, so an interrupted run leaves the host app's language set to Arabic.",
-     "evidence": [
-      "EmuquTests/WorkoutReportSmokeTests.swift:299",
-      "Emuqu/Sources/Views/SettingsView+Appearance.swift:302"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)": "8e081b59989b2340",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)": "25451d753d99a6cd",
     "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "88a243ef2ca4a8fe",
     "Emuqu/Sources/Services/LanguageManager.swift::func LanguageManager.setLanguage(_:)": "632a885ec90f6c05",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "70c2d81e1884a014",
-    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "219e669a24b19238",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "222bb18549eb1625",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "88c930a700ca5930",
+    "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "f757a06ccf19fb1d",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.assertRendersPDF(_:file:line:_:)": "1b31a12f55de0923",
     "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.holisticReport(workout:overnight:recent:)": "27b3122521dd77c6",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.overnightSession(nightsBefore:rmssd:)": "734edb14514b2b1f",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutReport(session:units:)": "489b9af4dcfdbffc",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "7e248227d66dc3eb"
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.overnightSession(nightsBefore:rmssd:)": "84d39984a28e8053",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutReport(session:units:)": "e33a10f200a1b027",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "ee41cbb732325932"
    }
   },
   {
@@ -528,14 +497,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvZScore": "83806d8e1aaebd60",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.recoveryBaselineRMSSD": "59dcc4120d020599",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.hrvZScore": "16bbab64b69b1bb7",
+    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift::var DailyLoopAnalysis.recoveryBaselineRMSSD": "62cc968833009ac1",
     "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.analysis()": "ce69989bb2984f00",
     "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.holisticReport(workout:overnight:recent:)": "27b3122521dd77c6",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.overnightSession(nightsBefore:rmssd:)": "734edb14514b2b1f",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "7e248227d66dc3eb"
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.overnightSession(nightsBefore:rmssd:)": "84d39984a28e8053",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "ee41cbb732325932"
    }
   },
   {
@@ -558,24 +526,11 @@
      "effect": "true: asserts non-blank; false: no assertion"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "No assertion ever runs: the fixture passes no liveLoadSnapshot, so loadAsOfDisplay (liveLoadSnapshot?.disclosure) is always nil and the if-let body is skipped; the comment says it 'reads a cache', which it does not.",
-     "evidence": [
-      "EmuquTests/WorkoutReportSmokeTests.swift:337",
-      "Emuqu/Sources/Export/HolisticDailyReport.swift:261",
-      "EmuquTests/WorkoutReportSmokeTests.swift:213"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.loadAsOfDisplay()": "09c84963faa3d831",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.loadAsOfDisplay()": "59770a51ca58846d",
     "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.holisticReport(workout:overnight:recent:)": "27b3122521dd77c6",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.overnightSession(nightsBefore:rmssd:)": "734edb14514b2b1f",
-    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "7e248227d66dc3eb"
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.overnightSession(nightsBefore:rmssd:)": "84d39984a28e8053",
+    "EmuquTests/WorkoutReportSmokeTests.swift::func WorkoutReportSmokeTests.workoutSession(sport:samples:distanceMeters:)": "ee41cbb732325932"
    }
   }
  ],

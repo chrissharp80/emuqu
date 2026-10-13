@@ -22,19 +22,6 @@
   "notif:ProcessInfo.thermalStateDidChangeNotification (observed)"
  ],
  "toplevel": "Stored-property initializers: shared singleton, samplingQueue, the @objc dynamic memoryWarningCount, constants above. Conforms to MXMetricManagerSubscriber. No deinit: the only instance is the never-released shared singleton.",
- "flags": [
-  {
-   "kind": "untested",
-   "sev": "low",
-   "text": "No test in EmuquTests references SystemDiagnosticsManager (trim/tail/JSONL parsing and heartbeat throttling are untested).",
-   "evidence": [
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift:560",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift:572",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift:470"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var SystemDiagnosticsManager.diagnosticsDirectory",
@@ -47,7 +34,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "324ee77df2888a13"
    }
@@ -63,9 +49,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.diagnosticsDirectory": "97d2c3a1cad66557"
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.diagnosticsDirectory": "ef0a68f6265f6535"
    }
   },
   {
@@ -79,9 +64,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.diagnosticsDirectory": "97d2c3a1cad66557"
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.diagnosticsDirectory": "ef0a68f6265f6535"
    }
   },
   {
@@ -93,7 +77,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -112,11 +95,10 @@
     "file:<AppGroup>/Diagnostics/memory_trace.jsonl"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.ensureDiagnosticsDirectory()": "b1693dafc9f3e370",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.installSystemObservers()": "8edbdd3e7f7ee635",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.sampleMemoryAndThermal(reason:)": "f9733f63e1c14fe4"
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.ensureDiagnosticsDirectory()": "a7f73b0dd884bbab",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.installSystemObservers()": "f0916476171c8a06",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.sampleMemoryAndThermal(reason:)": "f1fca05c0d76c044"
    }
   },
   {
@@ -134,10 +116,9 @@
     "file:<AppGroup>/Diagnostics/"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.diagnosticsDirectory": "97d2c3a1cad66557"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.diagnosticsDirectory": "ef0a68f6265f6535"
    }
   },
   {
@@ -154,10 +135,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.handleMemoryWarning()": "ce3036a172b6c39d",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.handleThermalChange()": "0e64de4dac2044d7"
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.handleMemoryWarning()": "587f5dbae3d491b7",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.handleThermalChange()": "bca4b245e5d1b1fc"
    }
   },
   {
@@ -186,12 +166,11 @@
      "effect": "returns without starting a timer; otherwise sets up the timer (self is the immortal singleton, so false in practice)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.sampleMemoryAndThermal(reason:)": "f9733f63e1c14fe4",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.trimIfNeeded(_:maxBytes:)": "ca43fcf754558ad2",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.memoryTraceURL": "2b273c204b0ca258"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.sampleMemoryAndThermal(reason:)": "f1fca05c0d76c044",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.trimIfNeeded(_:maxBytes:)": "f077b65efe4b1d31",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.memoryTraceURL": "4f7fc57c2b5635a2"
    }
   },
   {
@@ -209,10 +188,9 @@
     "mem:SystemDiagnosticsManager.samplingTimer"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.sampleMemoryAndThermal(reason:)": "f9733f63e1c14fe4"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.sampleMemoryAndThermal(reason:)": "f1fca05c0d76c044"
    }
   },
   {
@@ -232,9 +210,8 @@
      "effect": "persistMetricPayload; empty array does nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.persistMetricPayload(_:)": "fa3ce3dbd3da1851"
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.persistMetricPayload(_:)": "68f59f6f4219af20"
    }
   },
   {
@@ -254,9 +231,8 @@
      "effect": "persistDiagnosticPayload; empty array does nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.persistDiagnosticPayload(_:)": "57e139f2786d33ac"
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.persistDiagnosticPayload(_:)": "e57bfe1e06d9023d"
    }
   },
   {
@@ -280,11 +256,10 @@
      "effect": "logs it; otherwise ?? fallback '(no summary)' (when applicationExitMetrics is nil)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.enqueueMetricKitLine(_:)": "1ee9dfaac4bcb13b",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.summarizeMetricPayload(_:)": "9597f5fcfaf1132b"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.enqueueMetricKitLine(_:)": "8a0bef3a256d4173",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.summarizeMetricPayload(_:)": "764deaedb3a6b0c6"
    }
   },
   {
@@ -319,12 +294,11 @@
      "effect": "logCrashCallStack(crash)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.enqueueMetricKitLine(_:)": "1ee9dfaac4bcb13b",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.logCrashCallStack(_:)": "f5e068c525c4619b",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.summarizeDiagnosticPayload(_:)": "55fe0fd371f96553"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.enqueueMetricKitLine(_:)": "8a0bef3a256d4173",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.logCrashCallStack(_:)": "6cbde1301211880f",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.summarizeDiagnosticPayload(_:)": "28833839c5555147"
    }
   },
   {
@@ -357,12 +331,11 @@
      "effect": "returns (never: immortal singleton)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.appendLine(_:to:)": "a2e436a235c1ab5c",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.jsonLineData(_:)": "ba4a2045934e52d5",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.trimIfNeeded(_:maxBytes:)": "ca43fcf754558ad2",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.metricKitLogURL": "64ed22fea755660e"
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.appendLine(_:to:)": "ba125f20b39560df",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.jsonLineData(_:)": "cf397cfec3080cc1",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.trimIfNeeded(_:maxBytes:)": "f077b65efe4b1d31",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.metricKitLogURL": "eb2b4a0a1bcdf7d9"
    }
   },
   {
@@ -411,12 +384,11 @@
      "effect": "logs 'no call stack in payload' warning and returns; otherwise logFrames"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: Data)": "7f61c081676aff5a",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.jsonObject(_:)": "9a1d7d64e7b7abb3",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.logFrames(_:)": "e3ba23ffe2fc12b5"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: Data)": "09b6c92da11aa772",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.jsonObject(_:)": "6434d7bb9357355e",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.logFrames(_:)": "0b1411617f4374c5"
    }
   },
   {
@@ -436,9 +408,8 @@
      "effect": "one debugLog line per frame"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -459,9 +430,8 @@
      "effect": "returns nil; otherwise casts to dictionary (nil if not a dictionary)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -484,12 +454,11 @@
      "effect": "adds exit_background/exit_foreground/summary; otherwise no 'summary' key (persistMetricPayload then logs '(no summary)')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.addResourceRollups(_:to:)": "101d61b64f9a719f",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.exitCounts(background:)": "cb1d82a1f45aa3e8",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.exitCounts(foreground:)": "f9fb6de1e2ddd4c6",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.summarizeExitCounts(bg:fg:)": "334be1c3bebb7797"
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.addResourceRollups(_:to:)": "d72dda4d8987e9ea",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.exitCounts(background:)": "d8dfc6b41066d3bf",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.exitCounts(foreground:)": "1df99ed543748805",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.summarizeExitCounts(bg:fg:)": "565aa7e2c6763410"
    }
   },
   {
@@ -512,7 +481,6 @@
      "effect": "adds peak and average suspended memory bytes; otherwise omitted"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -524,7 +492,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -536,7 +503,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -564,7 +530,6 @@
      "effect": "returns 'no abnormal exits this period'; otherwise sorted joined string"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -594,9 +559,8 @@
      "effect": "summary 'no diagnostic events'; otherwise joined with ' · '"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.crashAndHangFields(_:into:)": "0f5660e195ff55f8"
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.crashAndHangFields(_:into:)": "e82d52d5be31a6d4"
    }
   },
   {
@@ -626,10 +590,9 @@
      "effect": "?? 0 (cannot happen: array non-empty)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.RequestBody.ToolDecl.AnyKey.intValue": "5b3e3e88bcb958f6",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.persistedFrames(_:)": "99cd2b687e2769ca"
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.RequestBody.ToolDecl.AnyKey.intValue": "23293795c6e81a26",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.persistedFrames(_:)": "73389bef5e4af6c6"
    }
   },
   {
@@ -644,9 +607,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: Data)": "7f61c081676aff5a"
+    "Emuqu/Sources/Utilities/MetricKitCrashStack.swift::func MetricKitCrashStack.frames(fromCallStackTree: Data)": "09b6c92da11aa772"
    }
   },
   {
@@ -672,10 +634,9 @@
      "effect": "returns; otherwise counts and samples"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.sampleMemoryAndThermal(reason:)": "f9733f63e1c14fe4"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.sampleMemoryAndThermal(reason:)": "f1fca05c0d76c044"
    }
   },
   {
@@ -701,11 +662,10 @@
      "effect": "returns; otherwise samples"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.sampleMemoryAndThermal(reason:)": "f9733f63e1c14fe4",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.thermalStateName(_:)": "9a5f576f030c6f19"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.sampleMemoryAndThermal(reason:)": "f1fca05c0d76c044",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.thermalStateName(_:)": "fcf80ef932f43adf"
    }
   },
   {
@@ -727,13 +687,12 @@
     "file:<AppGroup>/Diagnostics/memory_trace.jsonl"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.appendJSONLine(at:line:)": "72ba9ad8a6388c68",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.currentResidentMemoryBytes()": "fe3ac68a44b7bd92",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.logHeartbeat(reason:bytes:thermal:)": "2f2ac2f660c21317",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.thermalStateName(_:)": "9a5f576f030c6f19",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.memoryTraceURL": "2b273c204b0ca258"
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.appendJSONLine(at:line:)": "ca4461c55a56938d",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.currentResidentMemoryBytes()": "793894b4bacc4d5c",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.logHeartbeat(reason:bytes:thermal:)": "f1e6d032b0a359f8",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.thermalStateName(_:)": "fcf80ef932f43adf",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.memoryTraceURL": "4f7fc57c2b5635a2"
    }
   },
   {
@@ -765,11 +724,10 @@
      "effect": "logs at .warning (lands in error catalog); otherwise .info"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.isHeartbeatTick(reason:)": "6299cd6e026ef6b2",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.thermalStateName(_:)": "9a5f576f030c6f19"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.isHeartbeatTick(reason:)": "f2e866d8963eef35",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.thermalStateName(_:)": "fcf80ef932f43adf"
    }
   },
   {
@@ -789,7 +747,6 @@
      "effect": "returns true without counting; otherwise counts and returns counter % 12 == 0"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -809,7 +766,6 @@
      "effect": "returns 0 (sample then records 0 MB as if real); otherwise phys_footprint"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -847,7 +803,6 @@
      "effect": "'unknown'"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -865,11 +820,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readJSONLines(from:)": "bd6c3868c91fd327",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "7b5a1795f426677a",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.metricKitLogURL": "64ed22fea755660e"
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readJSONLines(from:)": "2894618c6840d67a",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "9ab2aeb75102c673",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.metricKitLogURL": "eb2b4a0a1bcdf7d9"
    }
   },
   {
@@ -887,23 +841,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Called, with readMetricKitHistory, from a SwiftUI view body (ExportAndArchiveViews diagnosticsLinks), so a file tail read and JSON parse (up to 1000 samples here, up to 1 MB of payload history there) run on the main thread on every re-render of that view.",
-     "evidence": [
-      "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift:538",
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:890",
-      "Emuqu/Sources/Views/ExportAndArchiveViews.swift:891"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readJSONLines(from:)": "bd6c3868c91fd327",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "7b5a1795f426677a",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.memoryTraceURL": "2b273c204b0ca258"
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.readJSONLines(from:)": "2894618c6840d67a",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "9ab2aeb75102c673",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.memoryTraceURL": "4f7fc57c2b5635a2"
    }
   },
   {
@@ -948,11 +889,10 @@
      "effect": "returns without rewriting; otherwise writes the remainder after the first newline"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.createDiagnosticsFile(at:first:)": "71d5db7c5965fd59",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "7b5a1795f426677a"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.createDiagnosticsFile(at:first:)": "d5385d1e0d34f6b5",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.tail(of:maxBytes:)": "9ab2aeb75102c673"
    }
   },
   {
@@ -991,10 +931,9 @@
      "effect": "?? Data() → empty"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "3fe009cf9aa411e3",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -1017,10 +956,9 @@
      "effect": "returns (logged by jsonLineData's attempt)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.appendLine(_:to:)": "a2e436a235c1ab5c",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.jsonLineData(_:)": "ba4a2045934e52d5"
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.appendLine(_:to:)": "ba125f20b39560df",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.jsonLineData(_:)": "cf397cfec3080cc1"
    }
   },
   {
@@ -1041,9 +979,8 @@
      "effect": "returns nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -1074,11 +1011,10 @@
      "effect": "returns, line lost, failure logged by attempt"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.createDiagnosticsFile(at:first:)": "71d5db7c5965fd59"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "3fe009cf9aa411e3",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.createDiagnosticsFile(at:first:)": "d5385d1e0d34f6b5"
    }
   },
   {
@@ -1099,10 +1035,9 @@
     "file:<AppGroup>/Diagnostics/memory_trace.jsonl"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.ensureDiagnosticsDirectory()": "b1693dafc9f3e370"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.ensureDiagnosticsDirectory()": "a7f73b0dd884bbab"
    }
   },
   {
@@ -1116,7 +1051,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

@@ -10,18 +10,6 @@
   "start: static fixture Date 1_700_000_000"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "No pinEnglishLanguage() call, yet testConversationalSummaryWithoutMetadataStillReturnsSomething asserts the English substring 'nothing to report on' from a String(localized:bundle: LanguageManager.appBundle) lookup; on a host whose app language is not English the test fails without a defect.",
-   "evidence": [
-    "EmuquTests/CoachReportGeneratorTests.swift:74",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift:67"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func CoachReportGeneratorTests.setUp()",
@@ -35,9 +23,8 @@
     "mem:CoachReportGeneratorTests.savedDefaultTimeZone"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "f07306afb47b7ee7"
    }
   },
   {
@@ -57,7 +44,6 @@
      "effect": "true: restores NSTimeZone.default to it; false: leaves the current default (UTC) in place"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -81,19 +67,18 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.historyComparison(session:meta:pastWorkouts:units:userMaxHR:)": "b1328c888607af7b",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.openingVerdict(session:meta:userMaxHR:)": "86d496d8f9a0b1ee",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.physiologyParagraph(meta:userMaxHR:)": "c9fccaa2fa7daa13",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.recoveryParagraph(meta:)": "460ea86485a7b4f5",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)": "cf9e18f559c6b06a",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.summaryHeadline(session:meta:units:)": "c0f38b6443553a76",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.tomorrowParagraph(session:meta:)": "610eaa3ee0da046e",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDistance(_:units:)": "24ecb07e6937fccb",
-    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "a36dafa82ad91f58",
-    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.makeSession(offsetDays:)": "76fa7056a2e0afb7",
-    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.summary(_:past:units:)": "fee6e87452719bb8"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.historyComparison(session:meta:pastWorkouts:units:userMaxHR:)": "1053946b8adb8df0",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.openingVerdict(session:meta:userMaxHR:)": "26480030a8ac7c1c",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.physiologyParagraph(meta:userMaxHR:)": "f5889f718c6e490c",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.recoveryParagraph(meta:)": "930e6c5d39525827",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)": "c0321e4f307bf266",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.summaryHeadline(session:meta:units:)": "ac1c4ce0a6eee820",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.tomorrowParagraph(session:meta:)": "d825af500efc71e6",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDistance(_:units:)": "366bea81e784c4a2",
+    "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "12d2b7be83b2918b",
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.makeSession(offsetDays:)": "7bff6052ca26605b",
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.summary(_:past:units:)": "75446e49e65bbbcd"
    }
   },
   {
@@ -115,18 +100,17 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.historyComparison(session:meta:pastWorkouts:units:userMaxHR:)": "b1328c888607af7b",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.openingVerdict(session:meta:userMaxHR:)": "86d496d8f9a0b1ee",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.physiologyParagraph(meta:userMaxHR:)": "c9fccaa2fa7daa13",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.recoveryParagraph(meta:)": "460ea86485a7b4f5",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)": "cf9e18f559c6b06a",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.summaryHeadline(session:meta:units:)": "c0f38b6443553a76",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.tomorrowParagraph(session:meta:)": "610eaa3ee0da046e",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDistance(_:units:)": "24ecb07e6937fccb",
-    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.makeSession(offsetDays:)": "76fa7056a2e0afb7",
-    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.summary(_:past:units:)": "fee6e87452719bb8"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.historyComparison(session:meta:pastWorkouts:units:userMaxHR:)": "1053946b8adb8df0",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.openingVerdict(session:meta:userMaxHR:)": "26480030a8ac7c1c",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.physiologyParagraph(meta:userMaxHR:)": "f5889f718c6e490c",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.recoveryParagraph(meta:)": "930e6c5d39525827",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)": "c0321e4f307bf266",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.summaryHeadline(session:meta:units:)": "ac1c4ce0a6eee820",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.tomorrowParagraph(session:meta:)": "d825af500efc71e6",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDistance(_:units:)": "366bea81e784c4a2",
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.makeSession(offsetDays:)": "7bff6052ca26605b",
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.summary(_:past:units:)": "75446e49e65bbbcd"
    }
   },
   {
@@ -143,11 +127,10 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)": "e9294fe4ebcf99bd",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
-    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.summary(_:past:units:)": "fee6e87452719bb8"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.summary(_:past:units:)": "75446e49e65bbbcd"
    }
   },
   {
@@ -170,18 +153,17 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.historyComparison(session:meta:pastWorkouts:units:userMaxHR:)": "b1328c888607af7b",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.openingVerdict(session:meta:userMaxHR:)": "86d496d8f9a0b1ee",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.physiologyParagraph(meta:userMaxHR:)": "c9fccaa2fa7daa13",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.recoveryParagraph(meta:)": "460ea86485a7b4f5",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)": "cf9e18f559c6b06a",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.summaryHeadline(session:meta:units:)": "c0f38b6443553a76",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.tomorrowParagraph(session:meta:)": "610eaa3ee0da046e",
-    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDistance(_:units:)": "24ecb07e6937fccb",
-    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.makeSession(offsetDays:)": "76fa7056a2e0afb7",
-    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.summary(_:past:units:)": "fee6e87452719bb8"
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.historyComparison(session:meta:pastWorkouts:units:userMaxHR:)": "1053946b8adb8df0",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.openingVerdict(session:meta:userMaxHR:)": "26480030a8ac7c1c",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.physiologyParagraph(meta:userMaxHR:)": "f5889f718c6e490c",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.recoveryParagraph(meta:)": "930e6c5d39525827",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)": "c0321e4f307bf266",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.summaryHeadline(session:meta:units:)": "ac1c4ce0a6eee820",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.tomorrowParagraph(session:meta:)": "d825af500efc71e6",
+    "Emuqu/Sources/Analysis/CoachReportGenerator+Sections.swift::func CoachReportGenerator.formatDistance(_:units:)": "366bea81e784c4a2",
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.makeSession(offsetDays:)": "7bff6052ca26605b",
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.summary(_:past:units:)": "75446e49e65bbbcd"
    }
   },
   {
@@ -195,7 +177,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/CoachReportGenerator+Conversational.swift::func CoachReportGenerator.renderConversationalSummary(session:pastWorkouts:units:userMaxHR:userRestingHR:)": "e9294fe4ebcf99bd"
    }
@@ -213,13 +194,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "716a78b59d65c933",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce",
     "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
-    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.sample(at:)": "fb8f3a00a7b5302a"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95",
+    "EmuquTests/CoachReportGeneratorTests.swift::func CoachReportGeneratorTests.sample(at:)": "193732d7bf72d846"
    }
   },
   {
@@ -231,9 +211,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b"
    }
   }
  ],

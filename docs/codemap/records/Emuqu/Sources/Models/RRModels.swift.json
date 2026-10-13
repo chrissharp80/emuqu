@@ -27,7 +27,6 @@
   "mem:TimeDomainMetrics.currentSchemaVersion = 1 (written to archive as schemaVersion)"
  ],
  "toplevel": "Codable synthesis for RRPoint, RRSeries, ArtifactFlags, FrequencyDomainMetrics, NonlinearMetrics, ANSMetrics, PeakCapacity, TrainingContext, WorkoutSnapshot, HRVAnalysisResult (persisted in the session archive / CloudKit payloads); TimeDomainMetrics has hand-written CodingKeys including schemaVersion and hrRangeIsApproximate. Static let ArtifactFlags.clean.",
- "flags": [],
  "units": [
   {
    "key": "func RRPoint.shifted(by:)",
@@ -40,9 +39,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "1ad44fdc2c485550"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "34068fa905e7636c"
    }
   },
   {
@@ -56,20 +54,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "RRPoint.isPhysiologicallyValid has no production caller; only EmuquTests/RRModelsTests.swift:44 references it (grep of Emuqu/ and EmuquTests/).",
-     "evidence": [
-      "Emuqu/Sources/Models/RRModels.swift:31",
-      "EmuquTests/RRModelsTests.swift:44"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "330523605d6eeba2"
+    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "7f0108f249102317"
    }
   },
   {
@@ -81,7 +67,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -93,7 +78,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -105,7 +89,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -121,18 +104,6 @@
      "at": "+1",
      "cond": "wallClockMs is nil",
      "effect": "returns nil; otherwise returns wallClockMs - t_ms"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "RRPoint.clockDriftMs has no production caller; only EmuquTests/RRModelsTests.swift:36 references it (grep of Emuqu/ and EmuquTests/).",
-     "evidence": [
-      "Emuqu/Sources/Models/RRModels.swift:64",
-      "EmuquTests/RRModelsTests.swift:36"
-     ],
-     "found": "first read, upheld on second"
     }
    ],
    "deps": {}
@@ -154,9 +125,8 @@
      "effect": "returns 0; otherwise last.endMs - first.t_ms"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417"
    }
   },
   {
@@ -170,9 +140,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "fc1fd164e934dda1"
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "b8e2a1bd40019ca9"
    }
   },
   {
@@ -184,9 +153,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "13a0c889be18396d"
    }
   },
   {
@@ -204,9 +172,8 @@
      "effect": "returns nil; otherwise last.wallClockMs - first.wallClockMs"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "13a0c889be18396d"
    }
   },
   {
@@ -232,10 +199,9 @@
      "effect": "returns 0.0; otherwise returns drift/wallDuration*100"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "fc1fd164e934dda1",
-    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.wallClockDurationMs": "d0449d0e5ae38295"
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "b8e2a1bd40019ca9",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.wallClockDurationMs": "829458b1e738e607"
    }
   },
   {
@@ -266,21 +232,9 @@
      "effect": "skips index; otherwise appends gap tuple"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "RRSeries.detectGaps has no production caller; only EmuquTests/RRModelsTests.swift:143 references it (grep of Emuqu/ and EmuquTests/).",
-     "evidence": [
-      "Emuqu/Sources/Models/RRModels.swift:114",
-      "EmuquTests/RRModelsTests.swift:143"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.gapMs(endingAt:)": "787e0af90a710dc3",
-    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.hasWallClockTimestamps": "01a075db218b6989"
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.gapMs(endingAt:)": "7281dadf97082284",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.hasWallClockTimestamps": "2a29ce558ae10dcf"
    }
   },
   {
@@ -298,9 +252,8 @@
      "effect": "returns nil; otherwise the gap value (can be negative when several beats share one BLE packet timestamp)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "13a0c889be18396d"
    }
   },
   {
@@ -316,18 +269,6 @@
      "at": "+1",
      "cond": "index < 0 or >= count",
      "effect": "returns nil; otherwise startDate + t_ms/1000"
-    }
-   ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "RRSeries.absoluteTime(at:) has no production caller; only EmuquTests/RRModelsTests.swift:117 references it (grep of Emuqu/ and EmuquTests/).",
-     "evidence": [
-      "Emuqu/Sources/Models/RRModels.swift:142",
-      "EmuquTests/RRModelsTests.swift:117"
-     ],
-     "found": "first read, upheld on second"
     }
    ],
    "deps": {}
@@ -352,9 +293,8 @@
      "effect": "uses wall clock; otherwise falls back to t_ms"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "13a0c889be18396d"
    }
   },
   {
@@ -366,9 +306,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.relativeMs(from:)": "19e202068f45eef7"
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.relativeMs(from:)": "9dc8cf0af88381e2"
    }
   },
   {
@@ -396,12 +335,11 @@
      "effect": "falls back to startDate + tMs (cannot happen for an in-range index)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.absoluteTime(fromRelativeMs:)": "bd9136deb1060666",
-    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.absoluteTimeWallClock(at:)": "b828c96564df6c4f",
-    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.closestIndex(to:key:)": "9dd9dec04ac4869d",
-    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.hasWallClockTimestamps": "01a075db218b6989"
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.absoluteTime(fromRelativeMs:)": "6b9560884cd638b7",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.absoluteTimeWallClock(at:)": "1a657f767a8f94cb",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.closestIndex(to:key:)": "3cc353c4ae900de1",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.hasWallClockTimestamps": "2a29ce558ae10dcf"
    }
   },
   {
@@ -429,7 +367,6 @@
      "effect": "returns low-1; otherwise returns low"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -443,18 +380,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "RRSeries.relativeMs(from:) has no production caller; only EmuquTests/RRModelsTests.swift:131 references it (grep of Emuqu/ and EmuquTests/).",
-     "evidence": [
-      "Emuqu/Sources/Models/RRModels.swift:212",
-      "EmuquTests/RRModelsTests.swift:131"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
    }
@@ -482,22 +407,10 @@
      "effect": "search on t_ms; otherwise on wallClockMs"
     }
    ],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "RRSeries.indexClosestToWallClock has no production caller; only EmuquTests/RRModelsTests.swift:206 references it (grep of Emuqu/ and EmuquTests/).",
-     "evidence": [
-      "Emuqu/Sources/Models/RRModels.swift:221",
-      "EmuquTests/RRModelsTests.swift:206"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
-    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.closestIndex(to:key:)": "9dd9dec04ac4869d",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "13a0c889be18396d",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.closestIndex(to:key:)": "3cc353c4ae900de1",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43"
    }
   },
   {
@@ -517,10 +430,9 @@
      "effect": "uses wall clock; otherwise startDate + durationMs"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
-    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "fc1fd164e934dda1"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "13a0c889be18396d",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "b8e2a1bd40019ca9"
    }
   },
   {
@@ -532,7 +444,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -544,7 +455,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -556,18 +466,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Convenience init without min/max HR has no production caller (TimeDomainAnalysis, EliteHRV importer and chart preview all use the full init); only tests use it.",
-     "evidence": [
-      "Emuqu/Sources/Models/RRModels.swift:303",
-      "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift:243"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -579,7 +477,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -612,18 +509,6 @@
      "effect": "true when min or max was absent; otherwise the stored value"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "Legacy results without minHR/maxHR get mean±SD substituted; hrRangeIsApproximate now marks them, but HRVDetailV2View's 'HR range' cell does not read the marker and still shows the approximation as if measured.",
-     "evidence": [
-      "Emuqu/Sources/Models/RRModels.swift:369",
-      "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift:482"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {}
   },
   {
@@ -641,7 +526,6 @@
      "effect": "encode true; otherwise the key is omitted"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -659,7 +543,6 @@
      "effect": "returns nil; otherwise lf/sum*100"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -677,7 +560,6 @@
      "effect": "returns nil; otherwise hf/sum*100"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -689,7 +571,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -707,7 +588,6 @@
      "effect": "returns nil; otherwise atl/ctl"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -738,13 +618,12 @@
      "effect": "recentWorkouts = nil; otherwise the array"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "cd200634574141b1",
-    "Emuqu/Sources/Models/RRModels.swift::func TrainingContext.sanitized(_:)": "cc1400fa3c727215",
-    "Emuqu/Sources/Models/RRModels.swift::func TrainingContext.snapshots(of:)": "0e0b5d75fde12dd2",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "a9d6ffe38efc1df5",
+    "Emuqu/Sources/Models/RRModels.swift::func TrainingContext.sanitized(_:)": "088c47da6c178c32",
+    "Emuqu/Sources/Models/RRModels.swift::func TrainingContext.snapshots(of:)": "1b03dabbc050da0f",
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -772,9 +651,8 @@
      "effect": "keeps it; else derived ctl-atl from sanitized values"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -789,9 +667,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthWorkoutSummary.typeDescription": "5d7b7cae1db5737e",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthWorkoutSummary.typeDescription": "01f126cccb021e92",
     "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "919b0c34f3cd4748"
    }
   },
@@ -804,7 +681,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -824,9 +700,8 @@
      "effect": "nil; else value"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "75ec424f441a2c51"
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "8135b4550ce76019"
    }
   },
   {
@@ -840,9 +715,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.measured(_:as:)": "4539da414e4ceaf5"
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.measured(_:as:)": "0b6a666af20d7f59"
    }
   },
   {
@@ -862,9 +736,8 @@
      "effect": "nil; else cleanBeatCount"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "75ec424f441a2c51"
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "8135b4550ce76019"
    }
   },
   {
@@ -884,9 +757,8 @@
      "effect": "'—'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredCleanBeatCount": "ee4a2ef206d35aab"
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredCleanBeatCount": "1f4fe82c56acffe9"
    }
   },
   {
@@ -900,9 +772,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.measured(_:as:)": "4539da414e4ceaf5"
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.measured(_:as:)": "0b6a666af20d7f59"
    }
   },
   {
@@ -934,11 +805,10 @@
      "effect": "beatCount marked"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isLegacyEliteImport(source:)": "8e65d83bbf9eb543",
-    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.legacyEliteRangeWasDerived": "69362856d1f1e399",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func HRVAnalysisResult.withANSMetrics(_:)": "ec830f673ebc57a9"
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isLegacyEliteImport(source:)": "41bb01e173ce8025",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.legacyEliteRangeWasDerived": "6adab035889f0fec",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func HRVAnalysisResult.withANSMetrics(_:)": "826f7c9201a59e0d"
    }
   },
   {
@@ -961,7 +831,6 @@
      "effect": "true; else false"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -973,7 +842,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -997,10 +865,9 @@
      "effect": "returns text as is"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "75ec424f441a2c51",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "8135b4550ce76019",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1050,9 +917,8 @@
      "effect": "returned verbatim"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -1077,9 +943,8 @@
      "effect": "falls back to the stored English string"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.localized(_:)": "afa1067b05c39859"
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.localized(_:)": "3558287f7fe4d698"
    }
   },
   {
@@ -1116,26 +981,11 @@
      "effect": "returns localized peak sentence with the full metric name, e.g. 'SDNN (Total Power proxy)'. Otherwise falls through to return nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "coupling",
-     "sev": "low",
-     "text": "Parses WindowSelector's English format strings by substring markers ('(RMSSD ', 'α1=', 'CV ', ') at '); any wording change in selectionReason/peakSelectionReason/manualSelectionReason silently reverts the UI/PDF to English. RecoveryDetailCopy.storedWindowMethod parses the same strings independently.",
-     "evidence": [
-      "Emuqu/Sources/Models/RRModels.swift:690",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:385",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:705",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:829",
-      "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift:639"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.numbers(in:valueAfter:)": "db71f96024fe5296",
-    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.peakMetric(in:)": "fa287aece797c899",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "dd580b6b4eefe2c4"
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.numbers(in:valueAfter:)": "37de3532560a693c",
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.peakMetric(in:)": "eee98cac7028b1ba",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "EmuquTests/LivePaceEstimatorTests.swift::func PaceRun.position(at:)": "8a792a74a1634e4b"
    }
   },
   {
@@ -1168,12 +1018,11 @@
      "effect": "α1 shown as '—'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.bracketedValue(in:)": "a2146406bd115191",
-    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.field(_:after:before:)": "949f264071cb2b3d",
-    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.formatted(_:digits:)": "9d5624b7351a16a7",
-    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.positionPercent(in:)": "023853cb6a006aeb"
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.bracketedValue(in:)": "f3ef86aa591cec1b",
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.field(_:after:before:)": "a6e006d94045cad5",
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.formatted(_:digits:)": "e2ca306f73aaa197",
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.positionPercent(in:)": "59fafba959390898"
    }
   },
   {
@@ -1198,9 +1047,8 @@
      "effect": "returns nil; otherwise Int of the tail minus last char (nil if not numeric)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.field(_:after:before:)": "949f264071cb2b3d",
+    "Emuqu/Sources/Models/RRModels.swift::func WindowSelectionReasonText.field(_:after:before:)": "a6e006d94045cad5",
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948"
    }
   },
@@ -1219,7 +1067,6 @@
      "effect": "return the text between; otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1237,7 +1084,6 @@
      "effect": "returns nil; otherwise the substring"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948"
@@ -1258,7 +1104,6 @@
      "effect": "returns nil; otherwise substring"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948"
@@ -1275,10 +1120,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   }
  ],

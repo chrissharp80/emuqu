@@ -8,19 +8,6 @@
   "TARGET_FOR_PREFIX (module constant)"
  ],
  "toplevel": "Module docstring (lines 1-46); imports; TARGET_FOR_PREFIX tuple (lines 139-144) mapping path prefixes EmuquUITests/EmuquTests/EmuquWatch Watch App/Emuqu to target names; `if __name__ == '__main__': main()` (line 341-342).",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "No idempotency check: re-running for an already-registered file inserts a second PBXFileReference/PBXBuildFile and a second Sources-phase row; Xcode then fails with 'Multiple commands produce' (check_no_orphan_swift.sh duplicate check catches it). README claims the script 'Can be safely re-run'.",
-   "evidence": [
-    "scripts/add_swift_file.py:180",
-    "scripts/README.md:224",
-    "scripts/check_no_orphan_swift.sh:92"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "def generate_unique_id",
@@ -31,7 +18,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -43,7 +29,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -55,20 +40,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "Basename fallback returns the first matching group in file order, so a folder name that exists twice (Utilities exists under Sources/ and Sources/Views/) resolves correctly only because of pbxproj ordering.",
-     "evidence": [
-      "scripts/add_swift_file.py:115",
-      "scripts/add_swift_file.py:118"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "scripts/add_swift_file.py::def find_sources_build_phase_id": "cc3150dfd21b1519"
+    "scripts/add_swift_file.py::def find_sources_build_phase_id": "467015547318abcf"
    }
   },
   {
@@ -80,7 +53,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -92,7 +64,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -115,24 +86,12 @@
     "file:Emuqu.xcodeproj/project.pbxproj"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "No duplicate-registration check before inserting; re-running for the same path registers the file twice.",
-     "evidence": [
-      "scripts/add_swift_file.py:223",
-      "scripts/add_swift_file.py:229"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "scripts/add_swift_file.py::def extract_all_ids": "b99bbb150d460717",
-    "scripts/add_swift_file.py::def find_group_id_for_path": "2ac3b579f0ee7e28",
-    "scripts/add_swift_file.py::def find_sources_build_phase_id": "cc3150dfd21b1519",
-    "scripts/add_swift_file.py::def generate_unique_id": "4ece1b9e975d9603",
-    "scripts/add_swift_file.py::def target_for_path": "d3ad8bed0732fc26"
+    "scripts/add_swift_file.py::def extract_all_ids": "8a45e5f7a10109e4",
+    "scripts/add_swift_file.py::def find_group_id_for_path": "8a8cd2944f4302bc",
+    "scripts/add_swift_file.py::def find_sources_build_phase_id": "467015547318abcf",
+    "scripts/add_swift_file.py::def generate_unique_id": "a4b959ff9c02b250",
+    "scripts/add_swift_file.py::def target_for_path": "0960cca0e39d39d6"
    }
   },
   {
@@ -148,13 +107,12 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "scripts/add_swift_file.py::def add_file_to_project": "1d453d51211a2439"
+    "scripts/add_swift_file.py::def add_file_to_project": "4f532efc9488af7e"
    }
   }
  ],
  "deps": {
-  "scripts/add_swift_file.py::def main": "68ed0ee07cc4700e"
+  "scripts/add_swift_file.py::def main": "8b1c554080275ad7"
  }
 }

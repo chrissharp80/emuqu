@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func ACWRBandTests.testBandEdgesMatchTheTrainingLoadScreen()",
@@ -20,9 +19,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/TrainingMetrics.swift::init ACWRBand(ratio:)": "ab23d40ded8191dc"
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::init ACWRBand(ratio:)": "5edbd44d3d44c8b7"
    }
   },
   {
@@ -34,7 +32,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -56,11 +53,10 @@
      "effect": "asserts label/detail/rangeText non-empty; loop over 5 fixed cases"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.detail": "1ed042da75f55834",
-    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.label": "9ea37e9b11a3009c",
-    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.rangeText": "24fc941d7ace4739"
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.detail": "b92d3cd16a511c17",
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.label": "f761e1646cb48efc",
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.rangeText": "7a5ad0b2fe7ed5bf"
    }
   },
   {
@@ -85,13 +81,12 @@
      "effect": "asserts the PDF text contains band.label and band.detail; one ratio per band"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/TrainingMetrics.swift::init ACWRBand(ratio:)": "ab23d40ded8191dc",
-    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.detail": "1ed042da75f55834",
-    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.label": "9ea37e9b11a3009c",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretACWR(_:)": "b1b7873dbab900b6",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::init ACWRBand(ratio:)": "5edbd44d3d44c8b7",
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.detail": "b92d3cd16a511c17",
+    "Emuqu/Sources/Collection/TrainingMetrics.swift::var ACWRBand.label": "f761e1646cb48efc",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretACWR(_:)": "ac3274ad8398f90c",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "4cfce958d4dd049b",
     "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847"
    }
   },
@@ -108,21 +103,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Asserts absence of English literals while interpretACWR returns String(localized:) via LanguageManager.appBundle; under a non-English app language the assertions pass vacuously.",
-     "evidence": [
-      "EmuquTests/ACWRBandTests.swift:57",
-      "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift:393"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretACWR(_:)": "b1b7873dbab900b6",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.interpretACWR(_:)": "ac3274ad8398f90c",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "4cfce958d4dd049b",
     "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "fc9f14bb70664847"
    }
   }

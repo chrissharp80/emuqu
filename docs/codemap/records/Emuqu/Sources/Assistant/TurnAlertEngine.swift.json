@@ -13,7 +13,6 @@
   "mem:TurnAlertState held as WorkoutVoiceCoach.turnAlertState"
  ],
  "toplevel": "Static tunables (far fires <=165 m, near <=67.5 m, at-turn <=25 m, arrival <=25 m remaining). TurnAlertState.arrivalAnnounced defaults false and survives step changes.",
- "flags": [],
  "units": [
   {
    "key": "func TurnAlertEngine.evaluate(step:state:isFinalStep:)",
@@ -44,22 +43,10 @@
      "effect": "false: (nil, working); true: level recorded and payload returned"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "The arrival test also fires on step.remainingDistanceMeters <= 25, which bypasses the _hasLeftEnd loop guard used by step.arrived on every step but the last; at commit 8d32097 remainingDistanceMeters was the sum of the full lengths of the current and later steps, not the distance left from the user's position. The working tree's ActiveRouteSession (another batch) now measures it from the position; until that lands, entering steps whose total length is <= 25 m announces arrival wherever the user is on them.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/TurnAlertEngine.swift:132",
-      "Emuqu/Sources/Services/ActiveRouteSession.swift:202"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.arrivalAlert(step:working:)": "593b57880f00dbea",
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.crossedThreshold(distance:alreadyFired:)": "d8737d1a1abea704",
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)": "b239d70435168b09"
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.arrivalAlert(step:working:)": "90a641898304906a",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.crossedThreshold(distance:alreadyFired:)": "71ecad594f74fc76",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)": "be15e8da931879fc"
    }
   },
   {
@@ -77,9 +64,8 @@
      "effect": "true: nil (already announced for this route); false: sets it and returns the arrival payload"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)": "b239d70435168b09"
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)": "be15e8da931879fc"
    }
   },
   {
@@ -107,7 +93,6 @@
      "effect": "1; otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -119,7 +104,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -151,12 +135,11 @@
      "effect": "instruction alone; else distance-prefixed line"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)": "b239d70435168b09",
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.formatDistance(meters:imperial:)": "36ad7df6c942a31c",
-    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.lowercaseFirst(_:)": "7ae2fa39646325c4",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertEngine.payload(step:distance:level:)": "be15e8da931879fc",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.formatDistance(meters:imperial:)": "b8b0b8dbde34dd48",
+    "Emuqu/Sources/Assistant/TurnAlertEngine.swift::func TurnAlertFormatter.lowercaseFirst(_:)": "0faf83b553bdb304",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -176,9 +159,8 @@
      "effect": "true: first letter lowercased; false: s unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -208,9 +190,8 @@
      "effect": "rounded to nearest 10; else rounded meter"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   }
  ],

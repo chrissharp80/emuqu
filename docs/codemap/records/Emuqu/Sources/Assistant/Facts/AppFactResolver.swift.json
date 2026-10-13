@@ -17,7 +17,6 @@
   "mem:RecentBiometricProfile.recent (MainActor static: start time + in-flight/finished fetch Task)"
  ],
  "toplevel": "Imports CoreMotion under #if canImport(CoreMotion). Header comment states the concurrency contract (fact resolution runs on MainActor; assumeIsolated relies on it). No global code.",
- "flags": [],
  "units": [
   {
    "key": "func PeriodParser.cutoff(for:now:)",
@@ -66,9 +65,8 @@
      "effect": "returns nil (caller treats as unknown period); else now - days"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.numericDayWindow(_:)": "bf32db0a6694f020"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.numericDayWindow(_:)": "2b47a160638e5297"
    }
   },
   {
@@ -113,9 +111,8 @@
      "effect": "nil; else [start, now]"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.cutoff(for:now:)": "4649473008518c23"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.cutoff(for:now:)": "77f1f69a5a0abdaa"
    }
   },
   {
@@ -136,10 +133,9 @@
      "effect": "returns unknownPeriod(raw); otherwise nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)": "e66f9b4913f074f8",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.unknownPeriod(_:)": "c328a78356e85e54"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.interval(for:now:)": "c3d7ca874235029f",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func PeriodParser.unknownPeriod(_:)": "13097e0b88607f54"
    }
   },
   {
@@ -151,7 +147,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -174,7 +169,6 @@
      "effect": "returns it; otherwise continues; nil after all candidates"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -190,11 +184,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func AppFactResolverFactory.registerAppNamespaces(on:archive:settings:)": "1c49016c073f660d",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func AppFactResolverFactory.registerHealthNamespaces(on:archive:settings:)": "ef5f6eb7910928f6",
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.register(_:)": "187b4ba97d61662a"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func AppFactResolverFactory.registerAppNamespaces(on:archive:settings:)": "089a7632892447a1",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func AppFactResolverFactory.registerHealthNamespaces(on:archive:settings:)": "8c879db02a4a6895",
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.register(_:)": "fe99886312dd99b7"
    }
   },
   {
@@ -208,9 +201,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.register(_:)": "187b4ba97d61662a"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.register(_:)": "fe99886312dd99b7"
    }
   },
   {
@@ -224,9 +216,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.register(_:)": "187b4ba97d61662a"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.register(_:)": "fe99886312dd99b7"
    }
   },
   {
@@ -252,12 +243,11 @@
      "effect": "awaits and returns its result; otherwise starts and records a new fetch"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "ee8ecd721e21103a",
-    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()": "acc4e78677a6f52c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolveTimeout.withTimeout(seconds:_:)": "f371094b11799aa6",
+    "Emuqu/Sources/Collection/HealthKitManager+Store.swift::func HealthKitManager.fetchBiometricProfile()": "f57858abc4c464e9",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -273,11 +263,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileEntries": "edfc610d21ddf44b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileEntries2": "a38cb9a8e602f682",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsEntries": "8294626bb7783688"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileEntries": "65b2bec48164a885",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileEntries2": "579065dd67914457",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsEntries": "40914b6ba40fff0e"
    }
   },
   {
@@ -298,16 +287,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileAgeEntry": "7759c9c4c4156831",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileBiologicalSexEntry": "1ebe74b84e853644",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileLthrEntry": "7ea2b544340eca67",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileLthrIsUserSetEntry": "e263cb63fffb6441",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileMaxHrEntry": "90b20f7e0a58296a",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileMaxHrIsUserSetEntry": "ba7c332fad4b4ae7",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileRestingHrEntry": "09555e303d086e10",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileWeightKgEntry": "7bae133d0a785a9a"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileAgeEntry": "446e388e92854202",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileBiologicalSexEntry": "686bde7cdb9013e4",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileLthrEntry": "87152def7055e125",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileLthrIsUserSetEntry": "6d96d4fbb7b114fc",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileMaxHrEntry": "d41ed57e0a64e602",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileMaxHrIsUserSetEntry": "29dda01f2bc9d2e3",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileRestingHrEntry": "d18b3a4c9d72ccd3",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileWeightKgEntry": "41270d72db402c8b"
    }
   },
   {
@@ -327,15 +315,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.scoreAlgorithmVersionEntry": "98e718f4a096dca4",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.scoreHistoryRecomputedUnderV2Entry": "a97ec8ad10e263af",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsComebackModeActiveEntry": "5c69d7e1798ff220",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsComebackModeDayInWindowEntry": "5cd270fc367039a0",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsOnTrainingBreakEntry": "0491e990fbf932c2",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsTypicalSleepHoursEntry": "c24ef2e1886f181c",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsUnitsEntry": "ffe2a3385affac7d"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.scoreAlgorithmVersionEntry": "5b9cf4e00e29a6f5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.scoreHistoryRecomputedUnderV2Entry": "e6e3172a1ce89761",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsComebackModeActiveEntry": "e400eb5bcb83ddd5",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsComebackModeDayInWindowEntry": "d520e631d51fb5ea",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsOnTrainingBreakEntry": "e1ad4bfabd8c6e39",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsTypicalSleepHoursEntry": "ee5978a636da7826",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userSettingsUnitsEntry": "09a8252100394f02"
    }
   },
   {
@@ -352,12 +339,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileUsesHealthkitVo2maxEntry": "4b21a491918c895b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileVo2MaxEntry": "c2bb851d12a7a9f1",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileVo2MaxIsOverrideEntry": "675be0268467c5ab",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileVo2MaxTrendEntry": "5334e385319f28d7"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileUsesHealthkitVo2maxEntry": "5a3dcf0c0b905d86",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileVo2MaxEntry": "a085e06806658a62",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileVo2MaxIsOverrideEntry": "c8dec213485ddfbd",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::var UserProfileNamespace.userProfileVo2MaxTrendEntry": "011aa269ea3d4442"
    }
   },
   {
@@ -374,10 +360,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db"
    }
   },
   {
@@ -394,10 +379,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "e5203c48a278e778"
    }
   },
   {
@@ -414,10 +398,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "d8f21d4214c3f50a"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8ad8fec17a5ea41b"
    }
   },
   {
@@ -439,9 +422,8 @@
      "effect": "treated as 0 → false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -463,9 +445,8 @@
      "effect": "treated as 0 → false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -494,13 +475,12 @@
      "effect": "returns HK weight; timeout/unavailable/nil → missing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func RecentBiometricProfile.fetch()": "59764968e0e76ed2",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "7ac0cf1ea91ba5f2",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func RecentBiometricProfile.fetch()": "ec83114dfa4d232f",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "838aa75e67df46a0",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -529,14 +509,13 @@
      "effect": "returns HK value; else missing('not set in Settings or Apple Health')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func RecentBiometricProfile.fetch()": "59764968e0e76ed2",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "7ac0cf1ea91ba5f2",
-    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthBiometricProfile.appBiologicalSex": "ad45ac65e59d2989",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "55c985aa6bd25115",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func RecentBiometricProfile.fetch()": "ec83114dfa4d232f",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "838aa75e67df46a0",
+    "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthBiometricProfile.appBiologicalSex": "8df60a4ed262a060",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "95791358c97c8afc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -566,14 +545,13 @@
      "effect": "returns HK-derived age; else missing('no birthday in Settings or Apple Health')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func RecentBiometricProfile.fetch()": "59764968e0e76ed2",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "7ac0cf1ea91ba5f2",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)": "5a39f12343a8c5ae",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "848cd8a572666b81",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func RecentBiometricProfile.fetch()": "ec83114dfa4d232f",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "838aa75e67df46a0",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)": "7c099bb7fac73a8e",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "303c0ceaa1afbf51",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -597,11 +575,10 @@
      "effect": "'imperial'; otherwise 'metric'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47"
    }
   },
   {
@@ -617,9 +594,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -636,10 +612,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isOnTrainingBreak": "4d09b6e877f250f8"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isOnTrainingBreak": "4fdc3002bba9b633"
    }
   },
   {
@@ -656,10 +631,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "ad54156cccbbbb24"
    }
   },
   {
@@ -688,11 +662,10 @@
      "effect": "returns it; otherwise missing('could not compute day-in-window')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)": "5a39f12343a8c5ae",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "4a697d3be6c9e5eb",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Int?, reason: MissingReason, detail: String?)": "7c099bb7fac73a8e",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.isComebackModeActive": "ad54156cccbbbb24",
     "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
    }
   },
@@ -707,9 +680,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -725,9 +697,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -757,12 +728,11 @@
      "effect": "returns HK value; else missing('no VO2max override and HealthKit estimate unavailable')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)": "add609a71bb226b6",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "47972947e76f100c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)": "f28da9f623e93922",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func FactValue.from(_: Double?, reason: MissingReason, detail: String?)": "656e05b9cdaf0e6b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -784,9 +754,8 @@
      "effect": "treated as 0 → false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -802,9 +771,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -819,10 +787,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func UserProfileNamespace.resolveUserProfileVo2MaxTrend()": "7525520f29afdb15",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver.swift::func UserProfileNamespace.resolveUserProfileVo2MaxTrend()": "d8e2f05498f03029",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   },
   {
@@ -849,10 +816,9 @@
      "effect": "adds change_30_days; omitted otherwise"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)": "add609a71bb226b6",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)": "f28da9f623e93922",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -867,10 +833,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func CMAltimeterIsAvailable()": "61cfce07b4686691",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "5f41668f62c5df27"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func CMAltimeterIsAvailable()": "5eff2d9e15d332fc",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
    }
   }
  ],

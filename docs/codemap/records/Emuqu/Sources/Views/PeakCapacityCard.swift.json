@@ -10,29 +10,6 @@
   "mem:PeakCapacityCard.showingInfo (@State)"
  ],
  "toplevel": "Only production use: SessionHRVDetailView.swift:41 (showInfoButton: true; describesSleep left at its default true) when result.peakCapacity is non-nil.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "docs/USERS_MANUAL.md:146 says the Autonomic capacity card shows peak total power, but the card renders only Max RMSSD, Max SDNN and Window HR; PeakCapacity.peakTotalPower (RRModels.swift:470) is never displayed.",
-   "evidence": [
-    "docs/USERS_MANUAL.md:146",
-    "Emuqu/Sources/Views/PeakCapacityCard.swift:43",
-    "Emuqu/Sources/Models/RRModels.swift:470"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Beyond the card not rendering it, PeakCapacity.peakTotalPower is always nil: the only constructor passes peakTotalPower: nil, so the USERS_MANUAL 'peak total power' claim cannot be met by any view.",
-   "evidence": [
-    "docs/USERS_MANUAL.md:146",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:530"
-   ],
-   "found": "second read"
-  }
- ],
  "units": [
   {
    "key": "var PeakCapacityCard.body",
@@ -48,26 +25,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "Card copy says 'Highest sustained HRV during sleep', but peak capacity is computed for any recording, and SessionHRVDetailView shows the card for every session type. The card now hides that line when describesSleep is false, but the only caller does not pass it yet (handoff b23: pass session.sessionType == .overnight || .nap), so a daytime quick reading is still described as a sleep ceiling.",
-     "evidence": [
-      "Emuqu/Sources/Views/PeakCapacityCard.swift:18",
-      "Emuqu/Sources/Views/SessionHRVDetailView.swift:40",
-      "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift:503",
-      "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift:33",
-      "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift:186"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.header": "9fc3d8b0a09dcd93",
-    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.metricsRowSection": "3dc543194d764d1d",
-    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.sleepExplanation": "c3a9382c377928c9",
-    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "d0ad0fd7fe9ef4fb"
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.header": "35ed78b6e9581e2b",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.metricsRowSection": "a655f383d888c99b",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.sleepExplanation": "efa9433c907ad2bb",
+    "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "e4d2d4a7dacc0d53"
    }
   },
   {
@@ -87,10 +49,9 @@
      "effect": "caption; else nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -112,20 +73,8 @@
      "effect": "true: Button sets showingInfo=true and presents CapacityExplanationPopover; false: plain headerContent"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "low",
-     "text": "The only production caller passes showInfoButton: true, so the plain-header else branch never runs in the app.",
-     "evidence": [
-      "Emuqu/Sources/Views/PeakCapacityCard.swift:38",
-      "Emuqu/Sources/Views/SessionHRVDetailView.swift:41"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.headerContent": "ab232a21536e7109"
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.headerContent": "1433fbcf63535260"
    }
   },
   {
@@ -141,13 +90,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.peakRmssdSection": "9bde6e3a88857a95",
-    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.peakSdnnSection": "9ff2a07cf5cee69c",
-    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.windowHrIfAvailableSection": "52745eec4b48c53d"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.peakRmssdSection": "7318f72d8b6883f1",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.peakSdnnSection": "942a178abd8a8f3f",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.windowHrIfAvailableSection": "63e99fefd2513628"
    }
   },
   {
@@ -161,14 +109,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "7646093d377bac7c",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sageText": "b4125545ddd3d313",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -182,14 +129,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sdnnColor": "1e7f13f4bbfc48ae",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sdnnColor": "c20316e0eba1838b",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -209,10 +155,9 @@
      "effect": "true: show HR column; false: omitted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.windowMeanHR(_:windowSize:)": "b87d947521f454f0",
-    "Emuqu/Sources/Views/PeakCapacityCard.swift::func PeakCapacityCard.windowHrColumn(_:)": "33c69d41561c235e"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.windowMeanHR(_:windowSize:)": "61532c95347760ef",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::func PeakCapacityCard.windowHrColumn(_:)": "572e3911c239068f"
    }
   },
   {
@@ -226,12 +171,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/PeakCapacityCard.swift::func PeakCapacityCard.windowHrValue(_:)": "77aeaca5ff8e5e07",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::func PeakCapacityCard.windowHrValue(_:)": "04020b4ad6118c6c",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -245,13 +189,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "ad7640199703b059",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "6a18b5025ee3e850",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "a97b4b25212e5466",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -265,12 +208,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.capacityHeaderRow": "00ff87456abd7fd0",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.capacityHeaderRow": "f5e1fba3bf060afa",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -288,11 +230,10 @@
      "effect": "true: info.circle glyph shown; false: none"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -307,14 +248,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/PeakCapacityCard.swift::var CapacityExplanationPopover.autonomicCapacitySection": "f0e734830b11e4ad",
-    "Emuqu/Sources/Views/PeakCapacityCard.swift::var CapacityExplanationPopover.whatItMeasuresSection": "7341c8638f7d08b4",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "19185c9dae5dc07e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var CapacityExplanationPopover.autonomicCapacitySection": "0e38aa8f35d529b4",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var CapacityExplanationPopover.whatItMeasuresSection": "b749469fd83f07c8",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -328,11 +268,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "13c6a310d3c724fe"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {
@@ -346,11 +285,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/PeakCapacityCard.swift::func CapacityExplanationPopover.measuresRow(glyph:tint:text:)": "a116ac8cd68c0fdb",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::func CapacityExplanationPopover.measuresRow(glyph:tint:text:)": "633380bb90dec870",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -362,9 +300,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   }
  ],

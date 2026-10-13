@@ -8,25 +8,6 @@
  ],
  "state": [],
  "toplevel": "SettingsSearchEntry stores title/subtitle/aliases/systemImage/destination/haystack as lets; Identifiable conformance uses the computed id. No globals. Titles and subtitles are localized via LanguageManager.appBundle at build time; aliases are hard-coded English. SettingsView rebuilds the catalogue when LanguageManager.revision changes (SettingsView.swift:68-71).",
- "flags": [
-  {
-   "kind": "hack",
-   "sev": "low",
-   "text": "entries(scrollToTopToken:settingsManager:) still takes scrollToTopToken, which nothing uses; the parameter stays only because SettingsView.refreshSearchEntries passes it (the section factories no longer take it).",
-   "evidence": [
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift:62",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift:74",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift:135",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift:194",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift:211",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift:233",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift:272",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift:305",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift:131"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var SettingsSearchEntry.id",
@@ -37,7 +18,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -49,7 +29,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -67,7 +46,6 @@
      "effect": "true: returns false (empty query matches nothing); false: proceeds to the all-tokens substring test"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -88,28 +66,15 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "low",
-     "text": "The catalogue has no entry for the Restore Purchases row in Settings, so searching 'restore', 'purchase' or 'subscription' returns no result although the row exists.",
-     "evidence": [
-      "Emuqu/Sources/Views/SettingsSearchIndex.swift:62",
-      "Emuqu/Sources/Views/SettingsView.swift:352",
-      "Emuqu/Sources/Views/SettingsView.swift:369"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.advancedEntries()": "66c1f51b166c0caa",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.appearanceEntries()": "d101c43e2a2f04a0",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.dataSourcesEntries(settingsManager:)": "17a7d162a5ed95c3",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.floMainAiEntries()": "ecac6c7745fd4bb3",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.helpAboutEntries()": "6bd71544e3a5f031",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.identityProfileEntries()": "7e0aa6fba8861840",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.notificationsEntries()": "78f575efa0982299",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.recoveryTrainingEntries()": "250ba93c6b587539"
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.advancedEntries()": "69fbe9294d5cc5fc",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.appearanceEntries()": "3a9b8efeda5b092d",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.dataSourcesEntries(settingsManager:)": "f7b070cc51b19468",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.floMainAiEntries()": "b20e29abb3556dc2",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.helpAboutEntries()": "34aef92f5a2fc5df",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.identityProfileEntries()": "f8c2771312ca84b6",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.notificationsEntries()": "300e769155ae4e33",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.recoveryTrainingEntries()": "e9fb56349c7c496c"
    }
   },
   {
@@ -123,10 +88,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -142,11 +106,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.dataSettingsPageEntry()": "3b863f9dcf68d2a0",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.reportsSettingsPageEntry(settingsManager:)": "f2c4e0f14dce7beb",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.wearablesSettingsPageEntry()": "38a0b30c1771a14f"
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.dataSettingsPageEntry()": "9079982793d8e2b2",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.reportsSettingsPageEntry(settingsManager:)": "8d8772a3b2534e68",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.wearablesSettingsPageEntry()": "bfb2a0e67449c246"
    }
   },
   {
@@ -162,10 +125,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -181,10 +143,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -200,10 +161,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -221,13 +181,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.customTagsPageEntry()": "325c15bbe7b1986f",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.modesSettingsPageEntry()": "1966af4c1958cb82",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.savedRoutesPageEntry()": "48d4c4a71976d1d0",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.sleepSettingsPageEntry()": "3d15c0820481774b",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.trainingSettingsPageEntry()": "6633d3103724dac5"
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.customTagsPageEntry()": "bd818d05f9c9e787",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.modesSettingsPageEntry()": "0569a5c30015c409",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.savedRoutesPageEntry()": "83f81ace731aa515",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.sleepSettingsPageEntry()": "1de7d8c1e02b53dc",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.trainingSettingsPageEntry()": "5f08e318b5741abb"
    }
   },
   {
@@ -243,10 +202,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -262,10 +220,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -281,10 +238,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -300,10 +256,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -319,10 +274,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -336,10 +290,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -353,10 +306,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -372,11 +324,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.appearancePageEntry()": "a297e3eec157174d",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.languagePageEntry()": "40eb459c5a48ad97",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.performanceSettingsPageEntry()": "9f01e0432df20d5d"
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.appearancePageEntry()": "e69c07204c19e854",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.languagePageEntry()": "22869f9d6cdae2d5",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.performanceSettingsPageEntry()": "8a341916cd806393"
    }
   },
   {
@@ -392,10 +343,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -411,10 +361,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -430,10 +379,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -448,11 +396,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.sampleDataEntry()": "6ea33955327646e1",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.sampleDataEntry()": "ce24f9bc0afa0cbc",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -468,10 +415,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -486,10 +432,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.helpEntries()": "3d468377b88fff21",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.legalEntries()": "748b2526a108f06e"
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.helpEntries()": "15f0c1533757a9d0",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.legalEntries()": "26a131581a7eb081"
    }
   },
   {
@@ -505,11 +450,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.helpCenterViewEntry()": "268be0633d6a0500",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.metricExplanationsViewEntry()": "297f69b52ba529fb",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.recoveryMethodologyViewEntry()": "5f2daf98c337c3dd"
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.helpCenterViewEntry()": "e6ccce817f0652c3",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.metricExplanationsViewEntry()": "aa0bace8eb15d49a",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.recoveryMethodologyViewEntry()": "84efc193199787ea"
    }
   },
   {
@@ -526,11 +470,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/HelpCenterView.swift::init HelpCenterView()": "b289c4ded5db282b",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/HelpCenterView.swift::init HelpCenterView()": "65a27c01ab98f8e8",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -546,10 +489,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -565,10 +507,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -585,12 +526,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.acknowledgementsViewEntry()": "e3f2f5e36608ccbb",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.healthDisclaimerViewEntry()": "1c3ca6b1b4d63d53",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.privacyPolicyViewEntry()": "7fbf1a01c2777804",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.termsOfUseViewEntry()": "9f91850b12f06cdc"
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.acknowledgementsViewEntry()": "c19f2700a9d7cdb7",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.healthDisclaimerViewEntry()": "6d5af1edb83612ab",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.privacyPolicyViewEntry()": "e1e4e0eea9b753db",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchIndex.termsOfUseViewEntry()": "3974b1354162f27a"
    }
   },
   {
@@ -606,10 +546,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -625,10 +564,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -644,10 +582,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   },
   {
@@ -663,10 +600,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "524dc4da646bc31f"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::init SettingsSearchEntry(title:subtitle:aliases:systemImage:destination:)": "33412e8300101257"
    }
   }
  ],

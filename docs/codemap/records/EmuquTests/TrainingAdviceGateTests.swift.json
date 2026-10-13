@@ -11,30 +11,6 @@
   "scenarios: two high-load scenarios (ACWR 1.6 recovery 80; ACWR 1.99 recovery 92; CTL 40)"
  ],
  "toplevel": "Stored properties pushPhrases and scenarios; Scenario.atl and Scenario.tsb are computed properties (lines 43-44).",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "Negative-only phrase scan: assertNoPush passes for an empty list or an empty string, and only the morning steps have a positive control (testMorningStepsStillPushOnAClearLoad); the score-detail actions, workout tier and live readiness headline tests would pass if those surfaces produced no copy at all, or English copy reworded to avoid the 8 listed phrases.",
-   "evidence": [
-    "EmuquTests/TrainingAdviceGateTests.swift:26",
-    "EmuquTests/TrainingAdviceGateTests.swift:189",
-    "EmuquTests/TrainingAdviceGateTests.swift:206",
-    "EmuquTests/TrainingAdviceGateTests.swift:250"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "strongBreakdown(composite:) fixture is re-declared in TrainingAdviceSurfaceTests.",
-   "evidence": [
-    "EmuquTests/TrainingAdviceGateTests.swift:122",
-    "EmuquTests/TrainingAdviceSurfaceTests.swift:33"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func TrainingAdviceGateTests.setUp()",
@@ -49,9 +25,8 @@
     "mem:LanguageManager (pinned English)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "ee2c07f9e537359c"
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "53b148fe7d5c46b7"
    }
   },
   {
@@ -74,7 +49,6 @@
      "effect": "XCTFail naming the surface, phrase and text; no failure when none match"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -86,7 +60,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -98,9 +71,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -116,11 +88,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "598952b71e6507c4",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.tsb": "05df6cc7d3615051"
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "cc26a08289fff8fb",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.tsb": "059970436ec76c9f"
    }
   },
   {
@@ -135,10 +106,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.tsb": "05df6cc7d3615051"
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.tsb": "059970436ec76c9f"
    }
   },
   {
@@ -152,11 +122,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "fd8e1c85787a7675",
-    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "e7ea205eac0bb472",
-    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "8f7224c0359ecb0f"
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "a94b71838be09fe7",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "c59f8f5cc7f523b9",
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "9fdc7dd4a10137ff"
    }
   },
   {
@@ -171,11 +140,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.goodNight(rmssd:)": "468379e4dbcab7be"
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.goodNight(rmssd:)": "577d828cb75e3a62"
    }
   },
   {
@@ -206,17 +174,16 @@
      "effect": "true: generator gets the live load snapshot; false: frozen context only"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)": "8aa3c485c86068ba",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.actionableSteps": "371677b7a279c950",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "886c28e6678bd645",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.context(_:)": "3f46403903ad0cf8",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.goodNight(rmssd:)": "468379e4dbcab7be",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.live(_:)": "eac2bbba198812a9",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.overnight(daysAgo:rmssd:recovery:)": "ce38effe50371ae4"
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)": "98dbcb140294897f",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Steps.swift::var AnalysisSummaryGenerator.actionableSteps": "600ca0c029aea57f",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "7129f4e36883222a",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "d0e8e799aa6d05f1",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "d39519f741795634",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.context(_:)": "bee611e07476c987",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.goodNight(rmssd:)": "577d828cb75e3a62",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.live(_:)": "0fc2f0f9908a109d",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.overnight(daysAgo:rmssd:recovery:)": "a9a99415eb6c0cc0"
    }
   },
   {
@@ -231,10 +198,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "8e988f6172e1a8a5",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "c3e56399f7952f3a"
    }
   },
   {
@@ -253,15 +219,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.allowsPush(recoveryScore:load:)": "d3c58e19e02fe6c6",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)": "3e6ec93f1a8fa572",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)": "bf6f23dc7ce2f7fe",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.monotonyReasons(_:)": "65e6060d74298b65",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.ratioReasons(_:)": "f4c51ff887c66484",
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.allowsPush(recoveryScore:load:)": "9ae025d7e5eed53e",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)": "728106e00d9ef476",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)": "fd9f76808fe380e7",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "d69dc4946fa26d08",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.monotonyReasons(_:)": "eab33e291bf4124e",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.ratioReasons(_:)": "51e3888003ca8600",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb"
    }
   },
   {
@@ -282,10 +247,9 @@
      "effect": "checks live and frozen step lists"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)": "a8acb6d664fc06dc",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.steps(_:live:)": "fb6ef1cd5c949705"
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)": "481ab7a98bb5ecb1",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.steps(_:live:)": "f95b85369c438984"
    }
   },
   {
@@ -299,9 +263,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.steps(_:live:)": "fb6ef1cd5c949705"
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.steps(_:live:)": "f95b85369c438984"
    }
   },
   {
@@ -316,10 +279,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)": "a8acb6d664fc06dc",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.steps(_:live:)": "fb6ef1cd5c949705"
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)": "481ab7a98bb5ecb1",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.steps(_:live:)": "f95b85369c438984"
    }
   },
   {
@@ -348,20 +310,19 @@
      "effect": "computes level and message and asserts"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "b27056eb75799513",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)": "3e6ec93f1a8fa572",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)": "bf6f23dc7ce2f7fe",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.monotonyReasons(_:)": "65e6060d74298b65",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.ratioReasons(_:)": "f4c51ff887c66484",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(live:)": "ecd339d63b5be913",
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)": "a8acb6d664fc06dc",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.live(_:)": "eac2bbba198812a9",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.strongBreakdown(composite:)": "ae1d8ad87e3996c2"
+    "Emuqu/Sources/Analysis/ScoreBreakdownCopy.swift::func ScoreBreakdownCopy.message(for:loadLevel:)": "7a3cc98036fc3eac",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)": "728106e00d9ef476",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)": "fd9f76808fe380e7",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "d69dc4946fa26d08",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.monotonyReasons(_:)": "eab33e291bf4124e",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.ratioReasons(_:)": "51e3888003ca8600",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(live:)": "f1e7db5fd4f4ab33",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "d39519f741795634",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)": "481ab7a98bb5ecb1",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.live(_:)": "0fc2f0f9908a109d",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.strongBreakdown(composite:)": "204224e79346860c"
    }
   },
   {
@@ -386,16 +347,15 @@
      "effect": "builds view and scans its actions"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.buildActions()": "981daf8302fd9b24",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::init RecoveryScoreDetailView(session:result:recentSessions:baselineStats:totalSessionCount:onReanalyze:onReanalyzeAt:)": "c6edb2ba34b25dab",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)": "a8acb6d664fc06dc",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.context(_:)": "3f46403903ad0cf8",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.goodNight(rmssd:)": "468379e4dbcab7be",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.overnight(daysAgo:rmssd:recovery:)": "ce38effe50371ae4"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "d39519f741795634",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.buildActions()": "d4ecb0aa76145f13",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::init RecoveryScoreDetailView(session:result:recentSessions:baselineStats:totalSessionCount:onReanalyze:onReanalyzeAt:)": "7b44e54e8cb657d9",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)": "481ab7a98bb5ecb1",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.context(_:)": "bee611e07476c987",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.goodNight(rmssd:)": "577d828cb75e3a62",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.overnight(daysAgo:rmssd:recovery:)": "a9a99415eb6c0cc0"
    }
   },
   {
@@ -421,17 +381,16 @@
      "effect": "builds the report and scans its tier"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
-    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.combinedReadinessScore()": "66d43c648619507c",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:sleepSchedule:temperatureUnit:liveLoadSnapshot:config:)": "4efd68e54be1f713",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)": "a8acb6d664fc06dc",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.context(_:)": "3f46403903ad0cf8",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.overnight(daysAgo:rmssd:recovery:)": "ce38effe50371ae4",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.strongBreakdown(composite:)": "ae1d8ad87e3996c2"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "d39519f741795634",
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.combinedReadinessScore()": "6df613aa83dfe240",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:sleepSchedule:temperatureUnit:liveLoadSnapshot:config:)": "bb5ab327a3621079",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)": "481ab7a98bb5ecb1",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.context(_:)": "bee611e07476c987",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.overnight(daysAgo:rmssd:recovery:)": "a9a99415eb6c0cc0",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.strongBreakdown(composite:)": "204224e79346860c"
    }
   },
   {
@@ -466,19 +425,18 @@
      "effect": "asserts message and label per value"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)": "855c8b68d2abcbc7",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:load:)": "428d2b77ecb51ae3",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)": "11a51846fa10aee7",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)": "3e6ec93f1a8fa572",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)": "bf6f23dc7ce2f7fe",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "e3f2ea3fa0b21c3c",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.monotonyReasons(_:)": "65e6060d74298b65",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.ratioReasons(_:)": "f4c51ff887c66484",
-    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(context:)": "d6e23bfcd5da4f5d",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)": "a8acb6d664fc06dc",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.context(_:)": "3f46403903ad0cf8"
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)": "ce864bb2c19d8f10",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:load:)": "54eed8a3f01dd829",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)": "298b8b4866490148",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.assess(_:)": "728106e00d9ef476",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.fatigueReasons(_:)": "fd9f76808fe380e7",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "d69dc4946fa26d08",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.monotonyReasons(_:)": "eab33e291bf4124e",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.ratioReasons(_:)": "51e3888003ca8600",
+    "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::init TrainingAdviceGate.Load(context:)": "467718c6aa0a8f6b",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)": "481ab7a98bb5ecb1",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.context(_:)": "bee611e07476c987"
    }
   },
   {
@@ -495,12 +453,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "dadd07d5df986633",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)": "855c8b68d2abcbc7",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:load:)": "428d2b77ecb51ae3",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)": "11a51846fa10aee7"
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "73e325cd77d48c64",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)": "ce864bb2c19d8f10",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:load:)": "54eed8a3f01dd829",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)": "298b8b4866490148"
    }
   },
   {
@@ -516,11 +473,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)": "855c8b68d2abcbc7",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:load:)": "428d2b77ecb51ae3",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)": "11a51846fa10aee7"
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:)": "ce864bb2c19d8f10",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessLabel(for:load:)": "54eed8a3f01dd829",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.readinessMessage(for:load:)": "298b8b4866490148"
    }
   },
   {
@@ -543,16 +499,15 @@
      "effect": "computes live readiness and scans its headline"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "6781ab4fbf48049b",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)": "a8acb6d664fc06dc",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.context(_:)": "3f46403903ad0cf8",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.live(_:)": "eac2bbba198812a9",
-    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.overnight(daysAgo:rmssd:recovery:)": "ce38effe50371ae4",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "43565f161f7e12f3",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "d39519f741795634",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.assertNoPush(_:_:file:line:)": "481ab7a98bb5ecb1",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.context(_:)": "bee611e07476c987",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.live(_:)": "0fc2f0f9908a109d",
+    "EmuquTests/TrainingAdviceGateTests.swift::func TrainingAdviceGateTests.overnight(daysAgo:rmssd:recovery:)": "a9a99415eb6c0cc0",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   }
  ],

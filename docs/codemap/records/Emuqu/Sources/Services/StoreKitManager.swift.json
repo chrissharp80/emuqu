@@ -21,7 +21,6 @@
   "mem:StoreKitManager.transactionListener"
  ],
  "toplevel": "isPurchased initializer: true when paywallEnabled is false, else UserDefaults storekit.lastKnownPurchased; hasPurchasedProduct initializer: storekit.lastKnownPurchased. isDebugBuild (#if DEBUG true) and isDeveloperInstall (isDebugBuild || ud:storekit.verifiedXcodeInstall) are computed statics that lookup.py does not list as units. debugGrantAccess/hasDebugGrant/debugPurchasedKey are compiled only under #if DEBUG.",
- "flags": [],
  "units": [
   {
    "key": "init ()",
@@ -32,7 +31,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -68,10 +66,9 @@
      "effect": "returns without touching StoreKit"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)": "ac55d5528623c3fb",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func listenForTransactions()": "a82afdc8a527608c",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func listenForTransactions()": "7c5292baf69cdfc9",
     "Emuqu/Sources/Services/StoreKitManager.swift::func migrateLegacyTestFlightFlag(now: Date)": "0a96e2bb61904cf4",
     "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()": "4a419daa1ea32c6c",
     "Emuqu/Sources/Services/StoreKitManager.swift::func verifyAppTransactionInBackground()": "e693c5f18f50b045"
@@ -106,10 +103,9 @@
      "effect": "log, return without recording"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordHistoryCheck(hasHistory:wallClock:)": "c865f24db06c46b0",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordHistoryCheck(hasHistory:wallClock:)": "b19f866beaa086f0",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -143,11 +139,10 @@
      "effect": "returns; otherwise recordBetaTester"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()": "05e93b4b6b00deb7",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordBetaTester(wallClock:)": "285d9d6e9a00f1ff",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()": "3cd6345cc5b71d44",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordBetaTester(wallClock:)": "daf578085952d189",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -181,11 +176,10 @@
      "effect": "returns; otherwise recordBetaTester"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()": "1f50f386668c92fd",
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordBetaTester(wallClock:)": "e38f5e43d8f8feb2",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -197,7 +191,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -230,9 +223,8 @@
      "effect": "productsUnavailable and trialUnavailable set true, error logged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -254,11 +246,10 @@
      "effect": "returns (loaded already set the error when the product is unavailable)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func buy(_:handle:)": "ab0c9eabda8a9cae",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "e329aa54bcf75960"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func buy(_:handle:)": "5cfd470998fad6a3",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "3fe009cf9aa411e3",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b"
    }
   },
   {
@@ -293,13 +284,12 @@
      "effect": "errorMessage 'Purchase failed', logged with product id"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func handleTrial(_:)": "e3656343c85219cc",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func purchase()": "9448035434dd0b63",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "3fe009cf9aa411e3",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handleTrial(_:)": "1232f41fce92d6b6",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func purchase()": "814bbf66e427e6a2",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -330,10 +320,9 @@
      "effect": "sets errorMessage, returns nil; else returns the product"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()": "44d0e6cc3ae26171"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loadProducts()": "ca287cbeb2dba343"
    }
   },
   {
@@ -373,11 +362,10 @@
      "effect": "returns"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func checkVerified(_:)": "186a6ff204970156",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()": "8bfb2b667c2317f7"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func checkVerified(_:)": "b8e8d1ec5a29b9c8",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()": "643885aa9999eb53"
    }
   },
   {
@@ -399,11 +387,10 @@
      "effect": "returns (loaded already set the error)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func buy(_:handle:)": "ab0c9eabda8a9cae",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func handleTrial(_:)": "e3656343c85219cc",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "e329aa54bcf75960"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func buy(_:handle:)": "5cfd470998fad6a3",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handleTrial(_:)": "1232f41fce92d6b6",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b"
    }
   },
   {
@@ -443,13 +430,12 @@
      "effect": "sets 'free trial has ended' notice; otherwise nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func adoptStoreTrialStart(_:)": "8e670066c75e47a7",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func checkVerified(_:)": "186a6ff204970156",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()": "8bfb2b667c2317f7",
-    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess": "06ce3985fbd581c7"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func adoptStoreTrialStart(_:)": "ef7b603e7ba92bc5",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func checkVerified(_:)": "b8e8d1ec5a29b9c8",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()": "643885aa9999eb53",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasActiveAccess": "0c542716ce6a23c7"
    }
   },
   {
@@ -474,23 +460,12 @@
     "mem:SettingsManager.settings.trialStartDate"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "coupling",
-     "sev": "low",
-     "text": "A StoreKit static reaches through AppDependencies.current.app.settingsManager to write settings, a hidden dependency on the global container from the purchase path.",
-     "evidence": [
-      "Emuqu/Sources/Services/StoreKitManager.swift:365"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptTrialStart(_:)": "357fbb7428dfc716",
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordStoreTrialStart(_:wallClock:)": "f14ed2057ec54b1f",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a"
    }
   },
   {
@@ -528,12 +503,11 @@
      "effect": "log, return could-not-restore message"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func restoreMessage(for:)": "b496d778746cbc09",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func sweepAndApply()": "ae449c1db734c51a",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func restoreMessage(for:)": "8c2808dbb30f024c",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func sweepAndApply()": "2d95e08a84e2d8ab",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -558,9 +532,8 @@
      "effect": "restored; else not found"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -583,9 +556,8 @@
      "effect": "isPurchased = true, return"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func sweepAndApply()": "ae449c1db734c51a"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func sweepAndApply()": "2d95e08a84e2d8ab"
    }
   },
   {
@@ -611,10 +583,9 @@
      "effect": "not applied; returned"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func apply(_:)": "012d74d399b3bde2",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func entitlementSweep()": "ef7faf071ddc08c5"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func apply(_:)": "6c9ce4d1904533f7",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func entitlementSweep()": "60dbdf1909143396"
    }
   },
   {
@@ -652,12 +623,11 @@
      "effect": "isPurchased = lastConfirmedPurchase || hasBypassGrant, hasPurchasedProduct untouched, return"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func adoptStoreTrialStart(_:)": "8e670066c75e47a7",
-    "Emuqu/Sources/Services/StoreKitManager.swift::var hasBypassGrant": "a1516a60a8eef2af",
-    "Emuqu/Sources/Services/StoreKitManager.swift::var lastConfirmedPurchase": "c5f47428b44936b4",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func adoptStoreTrialStart(_:)": "ef7b603e7ba92bc5",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasBypassGrant": "f1df8d9eb12d219e",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var lastConfirmedPurchase": "b0d5199466263063",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -671,7 +641,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -711,11 +680,10 @@
      "effect": "hasTrialTransaction = true; else asks Transaction.latest(for: trialProductId)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func grantsEntitlement(_:)": "b5f3745df112e61e",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func trialStartDate(_:)": "7315789c1639b2b9",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latest": "5e42751419956bc4"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func grantsEntitlement(_:)": "c20cb54c06c80358",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func trialStartDate(_:)": "50b882cd4b828e9c",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latest": "444bf834d75a2c2b"
    }
   },
   {
@@ -733,7 +701,6 @@
      "effect": "returns nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -754,10 +721,9 @@
      "effect": "logs 'Unverified transaction skipped', returns false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func checkVerified(_:)": "186a6ff204970156",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func checkVerified(_:)": "b8e8d1ec5a29b9c8",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -779,11 +745,10 @@
      "effect": "returns true; otherwise !forcesPaywall && isTrialActive"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentGrant": "99229b542fd0154b",
-    "Emuqu/Sources/Services/StoreKitManager.swift::var isTrialActive": "f481fc574ba5ca83",
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.forcesPaywall": "4e4f0ca729be0f84"
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentGrant": "d72a69561d849d58",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var isTrialActive": "752c545c3f1eb711",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.forcesPaywall": "d026c86afb1838ad"
    }
   },
   {
@@ -815,11 +780,10 @@
      "effect": "returns false; otherwise isGrandfatheredBetaTester || isDeveloperInstall"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::var hasDebugGrant": "5ed91678fb037cad",
-    "Emuqu/Sources/Services/StoreKitManager.swift::var isGrandfatheredBetaTester": "0e2bace7ba6b3827",
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.forcesPaywall": "4e4f0ca729be0f84"
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasDebugGrant": "975f73cd245b39d6",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var isGrandfatheredBetaTester": "c77e518303e9898e",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.forcesPaywall": "d026c86afb1838ad"
    }
   },
   {
@@ -840,9 +804,8 @@
      "effect": "finishVerifiedUpdate (self weak; nil after release)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func finishVerifiedUpdate(_:)": "ed9cb2d017b7c411"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func finishVerifiedUpdate(_:)": "f3208ad69f32c3c8"
    }
   },
   {
@@ -865,11 +828,10 @@
      "effect": "logs and skips the update (not finished)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func checkVerified(_:)": "186a6ff204970156",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()": "8bfb2b667c2317f7",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func checkVerified(_:)": "b8e8d1ec5a29b9c8",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()": "643885aa9999eb53",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -893,10 +855,9 @@
      "effect": "falls back to settings.trialStartDate (nil → inactive)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.isActive(start:now:)": "e0c8b2a9474563e9",
-    "Emuqu/Sources/Services/StoreKitManager.swift::var trialClock": "1a24752dd983fe9f"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.isActive(start:now:)": "c9abf0c56a26f2fa",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var trialClock": "3e1a0f81c2e0d3ad"
    }
   },
   {
@@ -925,15 +886,14 @@
      "effect": "settings.trialStartDate"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "201177101ead59c4",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()": "05e93b4b6b00deb7",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)": "5364495875c1deda",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate": "c2790c8b1c7b29cd",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb"
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()": "3cd6345cc5b71d44",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.effectiveNow(_:wallClock:)": "e2967a01fdcec822",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::var EntitlementAnchor.Record.trialStartDate": "1650d77cfa557cbe",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a"
    }
   },
   {
@@ -950,9 +910,8 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::var trialClock": "1a24752dd983fe9f"
+    "Emuqu/Sources/Services/StoreKitManager.swift::var trialClock": "3e1a0f81c2e0d3ad"
    }
   },
   {
@@ -966,9 +925,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::var localTrialStart": "d35fe2b96dac8cef"
+    "Emuqu/Sources/Services/StoreKitManager.swift::var localTrialStart": "8dfa4ca748feb474"
    }
   },
   {
@@ -986,21 +944,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Same computation as SettingsManager.trialDaysRemaining (which the launch gate uses) — the copy is in SettingsManager, outside this file (handed off: it should read StoreKitManager.trialDaysRemaining or a shared resolver).",
-     "evidence": [
-      "Emuqu/Sources/Services/StoreKitManager.swift:611",
-      "Emuqu/Sources/Models/SettingsManager.swift:405"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)": "85ff9dd63dfc635a",
-    "Emuqu/Sources/Services/StoreKitManager.swift::var trialClock": "1a24752dd983fe9f"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func TrialPolicy.daysRemaining(start:now:)": "ba3691d361e804bd",
+    "Emuqu/Sources/Services/StoreKitManager.swift::var trialClock": "3e1a0f81c2e0d3ad"
    }
   },
   {
@@ -1014,20 +960,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "AppLaunchTasks.hasAccess is a second derivation of 'access by any route' with different inputs (SettingsManager.isInTrialPeriod instead of isTrialActive, and no DEBUG debug grant), so the launch gate and hasActiveAccess are two copies that must be kept in step.",
-     "evidence": [
-      "Emuqu/Sources/Services/StoreKitManager.swift:627",
-      "Emuqu/Sources/Services/AppLaunchTasks.swift:700"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::var hasBypassGrant": "a1516a60a8eef2af"
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasBypassGrant": "f1df8d9eb12d219e"
    }
   },
   {
@@ -1041,9 +975,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentGrant": "99229b542fd0154b"
+    "Emuqu/Sources/Services/StoreKitManager.swift::var hasPermanentGrant": "d72a69561d849d58"
    }
   },
   {
@@ -1061,10 +994,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()": "05e93b4b6b00deb7",
-    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.grantsBetaTesterAccess(isAnchoredBetaTester:isVerifiedProductionInstall:)": "41b659749437d085"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.cached()": "3cd6345cc5b71d44",
+    "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.grantsBetaTesterAccess(isAnchoredBetaTester:isVerifiedProductionInstall:)": "26d1dd7c5610e099"
    }
   },
   {
@@ -1094,12 +1026,11 @@
      "effect": "sets/clears the production flag"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func setVerifiedFlag(_:forKey:)": "a5b14e5286173f2a",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func verifiedProductionInstall(for:)": "6a940270930c94ec",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func verifiedXcodeInstall(for:)": "69cdf6edf12aa185",
-    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func setVerifiedFlag(_:forKey:)": "1af773df42c037ce",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifiedProductionInstall(for:)": "6f811e7507304313",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifiedXcodeInstall(for:)": "cdb4e248e2457f64",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "0e30550bddc40f29"
    }
   },
   {
@@ -1120,7 +1051,6 @@
      "effect": "set true; otherwise removeObject"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1148,7 +1078,6 @@
      "effect": "nil (no change)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1176,7 +1105,6 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1197,10 +1125,9 @@
      "effect": "returns without refreshing; true: await self?.refreshStatus() (no-op if the manager is gone)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()": "8bfb2b667c2317f7",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func verifyAppTransactionWithRetries()": "f2a11afeaf554ecf"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()": "643885aa9999eb53",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifyAppTransactionWithRetries()": "203748a0820df23e"
    }
   },
   {
@@ -1231,10 +1158,9 @@
      "effect": "return false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func verifyAppTransaction()": "fb8369a454caf6f0",
-    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "c0fa5e77e7dfe851"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifyAppTransaction()": "6c38d0a09b9783aa",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4"
    }
   },
   {
@@ -1272,10 +1198,9 @@
      "effect": "log, return nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func recordVerifiedEnvironment(_:)": "8000c796682fd5ac",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func recordVerifiedEnvironment(_:)": "81c3dfee9d0f468e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -1290,7 +1215,6 @@
     "ud:debug_isPurchased"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1304,7 +1228,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -1327,7 +1250,6 @@
      "effect": "returns value"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

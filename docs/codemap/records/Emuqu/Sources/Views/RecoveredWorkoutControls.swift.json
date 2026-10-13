@@ -15,7 +15,6 @@
   "mem:RecoveredRouteFromWatchButton.working/message (@State)"
  ],
  "toplevel": "File-scope private helpers recoveryCard / recoveryMessage / actionLabel. Hosts: FitnessPostSummaryView+Feeling.swift:319-327 (strap button, route button, trim control with .id(session.endDate); onTrim calls RRCollector.retrimRecoveredWorkout).",
- "flags": [],
  "units": [
   {
    "key": "init RecoveredWorkoutTrimControl(session:onTrim:)",
@@ -32,7 +31,6 @@
      "effect": "no endDate: duration 0 → endMinutes 1"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -50,7 +48,6 @@
      "effect": "no endDate: 0"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -64,9 +61,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.durationMinutes": "aec1a981228ced4a"
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.durationMinutes": "b1ce6850c5ca64e9"
    }
   },
   {
@@ -80,9 +76,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.durationMinutes": "aec1a981228ced4a"
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.durationMinutes": "b1ce6850c5ca64e9"
    }
   },
   {
@@ -96,9 +91,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.untrimmedMinutes": "ad14e2bc981ee9ad"
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.untrimmedMinutes": "1be3a8fb28d8679c"
    }
   },
   {
@@ -114,14 +108,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryCard(_:tint:fill:stroke:)": "b3cd845286e8734b",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.saveTrimButton": "dc3263e7d1eec373",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.trimEndControl": "c05e2538530b024e",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryCard(_:tint:fill:stroke:)": "e095fe658bbebcc1",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.saveTrimButton": "6b85064d78bece03",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.trimEndControl": "ef5d3afeb119695e",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -135,12 +128,11 @@
     "mem:RecoveredWorkoutTrimControl.endMinutes"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "380cb385515abafc",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.maxMinutes": "227bb7871c7b6ace",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d"
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.maxMinutes": "c0c157d618aee49f",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
    }
   },
   {
@@ -157,22 +149,9 @@
     "mem:RecoveredWorkoutTrimControl.working"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "onTrim returns Void; when retrimRecoveredWorkout keeps <30 beats or WorkoutRecoveryService.recover returns nil it just returns (and still marks the workout reviewed), so the button reverts to 'Save trimmed length' with no message and the user cannot tell the trim did nothing.",
-     "evidence": [
-      "Emuqu/Sources/Views/RecoveredWorkoutControls.swift:71",
-      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:181",
-      "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift:194"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.bodyLabel": "ebd41163c349eb5c",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.changed": "fda48960cfd244c2"
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.bodyLabel": "b196500b26553f9a",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.changed": "2a8d9d4d5bc946fa"
    }
   },
   {
@@ -200,11 +179,10 @@
      "effect": "true: primary background; false: 40% opacity"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.changed": "fda48960cfd244c2",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredWorkoutTrimControl.changed": "2a8d9d4d5bc946fa",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -220,14 +198,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryCard(_:tint:fill:stroke:)": "b3cd845286e8734b",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryMessage(_:)": "b0d25a92354edfb2",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoverSessionFromStrapButton.recoverFromStrapButton": "d446e917f59fc128",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryCard(_:tint:fill:stroke:)": "e095fe658bbebcc1",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryMessage(_:)": "d088078ac6179d1f",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoverSessionFromStrapButton.recoverFromStrapButton": "beb146cb2eb091be",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -242,11 +219,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func RecoverSessionFromStrapButton.recoverFromStrap()": "08c4ff4b30fcc103",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func actionLabel(working:busyTitle:idleTitle:tint:)": "2fdad1003875cc62"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func RecoverSessionFromStrapButton.recoverFromStrap()": "0f9d16596fa070d4",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func actionLabel(working:busyTitle:idleTitle:tint:)": "57b2db0a36bc9893"
    }
   },
   {
@@ -266,10 +242,9 @@
     "ble:Polar strap on-device recording (via augmentWorkoutFromStrap)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.augmentWorkoutFromStrap(sessionId:)": "1e3fc9ecdc810109",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func RecoverSessionFromStrapButton.strapMergeMessage(_:)": "d3282ce484001bd1"
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.augmentWorkoutFromStrap(sessionId:)": "e88b407deb381f84",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func RecoverSessionFromStrapButton.strapMergeMessage(_:)": "4a0dee737fbe46d4"
    }
   },
   {
@@ -302,9 +277,8 @@
      "effect": "'Couldn't merge — try again.'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -316,9 +290,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "3c283474ede55728"
+    "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
    }
   },
   {
@@ -336,9 +309,8 @@
      "effect": "true: Text shown; false: nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -361,7 +333,6 @@
      "effect": "busyTitle else idleTitle"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -377,15 +348,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryCard(_:tint:fill:stroke:)": "b3cd845286e8734b",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryMessage(_:)": "b0d25a92354edfb2",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredRouteFromWatchButton.recoverRouteButton": "4be54de2adffbcec",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "345c4aada3afd60d",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "87f128a4744cd149"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryCard(_:tint:fill:stroke:)": "e095fe658bbebcc1",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func recoveryMessage(_:)": "d088078ac6179d1f",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::var RecoveredRouteFromWatchButton.recoverRouteButton": "fc93fcd394efd566",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
@@ -400,12 +370,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func RecoveredRouteFromWatchButton.recoverRoute()": "b8a595f1a5663800",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func actionLabel(working:busyTitle:idleTitle:tint:)": "2fdad1003875cc62",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func RecoveredRouteFromWatchButton.recoverRoute()": "8800070b4cf279f8",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func actionLabel(working:busyTitle:idleTitle:tint:)": "57b2db0a36bc9893",
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
@@ -426,10 +395,9 @@
     "archive:SessionArchive (via recoverRouteFromAppleWatch)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverRouteFromAppleWatch(sessionId:)": "aaf99121fbf15ff7",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func RecoveredRouteFromWatchButton.routeRecoveryMessage(_:)": "88c58c01eb5c31e7"
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverRouteFromAppleWatch(sessionId:)": "429815e3231b2b8e",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func RecoveredRouteFromWatchButton.routeRecoveryMessage(_:)": "20d75a3d69ed8289"
    }
   },
   {
@@ -464,10 +432,9 @@
      "effect": "'Couldn't recover — try again.'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func RecoveredRouteFromWatchButton.distanceText(_:)": "77fba777506e7ed8"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecoveredWorkoutControls.swift::func RecoveredRouteFromWatchButton.distanceText(_:)": "afe9cf991a3f2346"
    }
   },
   {
@@ -490,12 +457,11 @@
      "effect": "true: miles; false: kilometres"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "697a766e6b559ac3"
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   }
  ],

@@ -11,7 +11,6 @@
   "mem:TimeDomainAnalyzer.recordingBreakToleranceMs (static let 2000)"
  ],
  "toplevel": "Two private static constants: localMedianWindow=10 (the one ectopic gate's neighbourhood; the window selector calls ectopicKeepMask itself) and recordingBreakToleranceMs=2000.",
- "flags": [],
  "units": [
   {
    "key": "func CleanBeatWindow.isAdjacentToPrevious(_:)",
@@ -28,7 +27,6 @@
      "effect": "true; otherwise false"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -53,9 +51,8 @@
      "effect": "accumulates squared diffs"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.finiteOrNil(_:)": "6e844c5f4bcbd17e"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.finiteOrNil(_:)": "864cedbdc2350ad8"
    }
   },
   {
@@ -73,7 +70,6 @@
      "effect": "true → value; false → nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -103,9 +99,8 @@
      "effect": "false → nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.finiteOrNil(_:)": "6e844c5f4bcbd17e"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.finiteOrNil(_:)": "864cedbdc2350ad8"
    }
   },
   {
@@ -126,10 +121,9 @@
      "effect": "false → nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)": "705ef065c9683ac6",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromRRs:isValid:followsBreak:)": "239697378d9c890e",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)": "bad10396fbecce5a",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromRRs:isValid:followsBreak:)": "ceb764c31e14797f",
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948"
    }
@@ -162,12 +156,11 @@
      "effect": "false → nil; true → RMSSD"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(points:range:isValid:)": "23d4a3e47ba4d2c5",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(points:range:isValid:)": "6ff0056a23efaabf",
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.lowerBound": "42532e07486db197",
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.upperBound": "cc499f4494650948",
-    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "330523605d6eeba2"
+    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "7f0108f249102317"
    }
   },
   {
@@ -181,9 +174,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.ectopicKeepMask(_:)": "4416f76b49e1dabe"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.ectopicKeepMask(_:)": "02e01e27fe494a31"
    }
   },
   {
@@ -203,9 +195,8 @@
      "effect": "false → all kept"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.isWithinLocalMedian(_:index:half:)": "97c6f598ac800128"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.isWithinLocalMedian(_:index:half:)": "8e838d18821070a8"
    }
   },
   {
@@ -238,7 +229,6 @@
      "effect": "false → keep (true)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -263,10 +253,9 @@
      "effect": "false → false; true → compare wall-clock gap"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "5950e566f77c54d0",
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b"
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "13a0c889be18396d",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417"
    }
   },
   {
@@ -286,9 +275,8 @@
      "effect": "index inserted"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.isRecordingBreak(between:and:)": "1b25dbe12de7ff83"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.isRecordingBreak(between:and:)": "a83bfc29bd250f82"
    }
   },
   {
@@ -311,12 +299,11 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.cleanWindow(_:flags:windowStart:windowEnd:)": "9dbe7e5a8b81c4f1",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeHRStatistics(series:flags:windowStart:windowEnd:cleanRR:)": "1a859548dc25dece",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.metrics(cleanRR:diffs:hrStats:)": "d7b17e8c1de6d93f",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.successiveDifferences(in:)": "0819a2e676679e45"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.cleanWindow(_:flags:windowStart:windowEnd:)": "c4daa471f979e9f7",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeHRStatistics(series:flags:windowStart:windowEnd:cleanRR:)": "271733259b6ae97a",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.metrics(cleanRR:diffs:hrStats:)": "34a2ca171394d522",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.successiveDifferences(in:)": "bf234ea3f2660e7b"
    }
   },
   {
@@ -341,9 +328,8 @@
      "effect": "append RR and index"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)": "705ef065c9683ac6"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)": "bad10396fbecce5a"
    }
   },
   {
@@ -360,12 +346,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTriangularIndex(_:)": "ab7273c32bbb6cbd",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rootMeanSquare(_:)": "5fa9b1b0c1d49fe8",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.standardDeviation(_:mean:)": "bf7b6b540a27bbda",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.standardDeviationOfDifferences(_:)": "a71a24659ccb6091",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTriangularIndex(_:)": "37a9d86e2c67ca71",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rootMeanSquare(_:)": "5afd09ceee5c8a32",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.standardDeviation(_:mean:)": "ce3b8e3937806f36",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.standardDeviationOfDifferences(_:)": "f243dfab2f92e373",
     "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:minHR:maxHR:triangularIndex:)": "c51dfbe929c95510"
    }
   },
@@ -392,10 +377,9 @@
      "effect": "nil; else return them"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.adjacentDifferences(in:isKept:)": "3be9019f91376f2d",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.ectopicKeepMask(_:)": "4416f76b49e1dabe"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.adjacentDifferences(in:isKept:)": "90932cb6ced814c9",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.ectopicKeepMask(_:)": "02e01e27fe494a31"
    }
   },
   {
@@ -420,9 +404,8 @@
      "effect": "append the difference"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func CleanBeatWindow.isAdjacentToPrevious(_:)": "b8f138edd91e20cf"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func CleanBeatWindow.isAdjacentToPrevious(_:)": "b19b910353d1701b"
    }
   },
   {
@@ -436,9 +419,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.standardDeviation(_:mean:)": "bf7b6b540a27bbda"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.standardDeviation(_:mean:)": "ce3b8e3937806f36"
    }
   },
   {
@@ -486,7 +468,6 @@
      "effect": "false → nil; never false since every beat lands in a bin"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -500,9 +481,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)": "6a1a9d5b3116a177"
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.sampleStandardDeviation(_:)": "d50c103ae5862c0c"
    }
   },
   {
@@ -516,9 +496,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.rootMeanSquare(_:)": "fc0d58e5da7718f5"
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.rootMeanSquare(_:)": "aac629d3009716a1"
    }
   },
   {
@@ -546,12 +525,11 @@
      "effect": "false → meanRRFallback(cleanRR:); true → statistics"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.meanRRFallback(cleanRR:)": "cdf1ae8303776b45",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rollingWindowHRSamples(series:flags:windowStart:windowEnd:)": "746593a27e452bf9",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.statistics(of:)": "4dc8ce7439211f3b",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.storedHRStatistics(series:flags:windowStart:windowEnd:)": "b971c3634d35c3be"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.meanRRFallback(cleanRR:)": "b98ca863730bc624",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rollingWindowHRSamples(series:flags:windowStart:windowEnd:)": "346a1e207c699814",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.statistics(of:)": "a493cec4f54050ab",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.storedHRStatistics(series:flags:windowStart:windowEnd:)": "00e7407acbc2dbbe"
    }
   },
   {
@@ -581,9 +559,8 @@
      "effect": "false → nil; true → statistics"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.statistics(of:)": "4dc8ce7439211f3b"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.statistics(of:)": "a493cec4f54050ab"
    }
   },
   {
@@ -613,9 +590,8 @@
      "effect": "true → step 5 beats; false → jump to j"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.tenSecondWindowHR(series:flags:from:to:)": "af276904011c2b24"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.tenSecondWindowHR(series:flags:from:to:)": "476c2959dc10c7db"
    }
   },
   {
@@ -648,9 +624,8 @@
      "effect": "true → HR; false → nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "c275ddb86778fcf0"
+    "EmuquTests/WorkoutRRMergeTests.swift::func WorkoutRRMergeTests.points(_:)": "dbe151bb9e688f54"
    }
   },
   {
@@ -664,7 +639,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -689,9 +663,8 @@
      "effect": "fallback mean; unreachable"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.standardDeviation(_:mean:)": "bf7b6b540a27bbda"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.standardDeviation(_:mean:)": "ce3b8e3937806f36"
    }
   }
  ],

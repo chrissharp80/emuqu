@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "Callers: Alpha1ReportCards+Report.swift:621, FitnessPostSummaryView+Share.swift:418, WorkoutPreflightView.swift:532, FitnessRecordingView+Tiles.swift:863.",
- "flags": [],
  "units": [
   {
    "key": "func MapBoundsHelper.region(for:paddingFactor:minimumDelta:emptyFallbackDelta:)",
@@ -31,22 +30,8 @@
      "effect": "subtract 360"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "Doc calls this \"the one shared implementation for the app's route maps\", yet three other units recompute the same min/max bounding region with their own padding: TrailRow.mapRegion, RecapCard.snapshotOptions, WorkoutPDFRenderer.mapSnapshotOptions.",
-     "evidence": [
-      "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift:5",
-      "Emuqu/Sources/Views/DiscoverTrailsView.swift:783",
-      "Emuqu/Sources/Views/RecapCard.swift:323",
-      "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift:296"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift::func MapBoundsHelper.unwrappedLongitudes(_:)": "455b68e74af97aed"
+    "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift::func MapBoundsHelper.unwrappedLongitudes(_:)": "6dcf51b4692d931e"
    }
   },
   {
@@ -64,7 +49,6 @@
      "effect": "return input"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

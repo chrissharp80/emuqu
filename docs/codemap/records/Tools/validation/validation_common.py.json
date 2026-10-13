@@ -10,18 +10,6 @@
   "CLASSES = ['wake','core','deep','rem'] line 43"
  ],
  "toplevel": "Module-level constants only (DATA_ROOT, COMMIT, symbol sets, CLASSES); imports numpy.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "DATA_ROOT is hard-coded to a scratchpad directory of a different (past) Claude session, so every validation script except test_ports.py/make_results.py fails with FileNotFoundError on any other machine until the constant is edited; RESULTS_template.md 'Reproducing' only says DATA_ROOT 'is set in validation_common.py'.",
-   "evidence": [
-    "Tools/validation/validation_common.py:11",
-    "Tools/validation/RESULTS_template.md:300"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "def beats_from_ann",
@@ -32,7 +20,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -50,7 +37,6 @@
      "effect": "true: append the (t_ms, rr_ms) point; false: pair omitted"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -62,7 +48,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -74,7 +59,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -97,7 +81,6 @@
      "effect": "true: returns kappa; false (all mass on one class in both marginals): returns NaN"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -132,9 +115,8 @@
      "effect": "prec = tp/col else NaN"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/validation_common.py::def kappa_from_cm": "ecda049001ae64d6"
+    "Tools/validation/validation_common.py::def kappa_from_cm": "70713ddbffd24474"
    }
   },
   {
@@ -152,7 +134,6 @@
      "effect": "returns bias=mean (NaN if empty) and NaN sd/loa"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -170,7 +151,6 @@
      "effect": "returns 'n/a', else f'{x:.nd f}'"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -199,9 +179,8 @@
      "effect": "derives record count from file size; always then clamps nrec to what the file size can hold (line 119)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/validation_common.py::def edf_read_channel.field": "522d7747a64da539"
+    "Tools/validation/validation_common.py::def edf_read_channel.field": "c9c33057cc57ddc5"
    }
   },
   {
@@ -213,7 +192,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

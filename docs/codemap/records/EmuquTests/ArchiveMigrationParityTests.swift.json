@@ -13,7 +13,6 @@
   "mem:ArchiveMigrationParityTests.savedMigrationFlags ([String: Bool], the host's flag values captured in setUp)"
  ],
  "toplevel": "archiveDirectory per-instance temp URL; lazy archive = SessionArchive(directory:) (production settings providers) which setUp immediately replaces with an injected 22:00/8h schedule and merge mode .off; migrationDoneFlags lists the four backfill done-flag keys the tests clear and restore; savedMigrationFlags holds the host's values meanwhile. migrationDoneFlags includes the legacy Elite index flag.",
- "flags": [],
  "units": [
   {
    "key": "func ArchiveMigrationParityTests.setUp()",
@@ -29,9 +28,8 @@
     "mem:ArchiveMigrationParityTests.savedDefaultTimeZone"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "62821ebd21fe11e7"
+    "EmuquTests/MaxHeartRateTests.swift::var MaxHeartRateTests.utc": "f07306afb47b7ee7"
    }
   },
   {
@@ -54,7 +52,6 @@
      "effect": "restores it; else leaves default as is"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -74,21 +71,9 @@
     "mem:ArchiveMigrationParityTests.savedMigrationFlags"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "The injected merge mode .off makes removeDuplicates (one of the seven steps of runDeferredMigrations) return immediately, so the duplicate-quarantine migration is never exercised by this suite.",
-     "evidence": [
-      "EmuquTests/ArchiveMigrationParityTests.swift:64",
-      "Emuqu/Sources/Storage/Archive+Migrations.swift:286"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "312605e0908fbc30",
-    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.clearMigrationFlags()": "516fafdd5b7c7888"
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
+    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.clearMigrationFlags()": "7eb79978d61dd6aa"
    }
   },
   {
@@ -116,10 +101,9 @@
      "effect": "try? delete; errors ignored"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "cefef470ab858af7",
-    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.restoreMigrationFlags()": "3b241007931ad0c9"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b",
+    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.restoreMigrationFlags()": "f60436576b162217"
    }
   },
   {
@@ -145,7 +129,6 @@
      "effect": "saves a Bool value when present, then removes the key"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -170,7 +153,6 @@
      "effect": "sets it back; else removes the key"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -193,7 +175,6 @@
      "effect": "XCTAssertTrue the flag is set, reported at the caller's file/line"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -221,38 +202,14 @@
     "ud:ArchiveMigrations MigrationFlag.* done flags (UserDefaults.standard)"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Fixture session has no RR series, analysis or sleep snapshot, so the backfill migrations have nothing to patch; equality of nil fields across runs is trivially true.",
-     "evidence": [
-      "EmuquTests/ArchiveMigrationParityTests.swift:140",
-      "EmuquTests/ArchiveMigrationParityTests.swift:97"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "The class doc says each case archives a session whose index entry is in the pre-migration shape and asserts the post-migration shape; neither test builds a pre-migration entry (the fixture is archived with a current, complete entry) nor asserts any migrated field.",
-     "evidence": [
-      "EmuquTests/ArchiveMigrationParityTests.swift:16",
-      "EmuquTests/ArchiveMigrationParityTests.swift:18",
-      "EmuquTests/ArchiveMigrationParityTests.swift:86",
-      "EmuquTests/ArchiveMigrationParityTests.swift:97"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "58f2ac150ca0a682",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "533489add6f1c58a",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "35d630570bec345f",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
-    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.assertEveryBackfillRan(file:line:)": "7fd3042c2e5478b5",
-    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.makeCompletedSession()": "4f6a66270b66d262"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.assertEveryBackfillRan(file:line:)": "eaf16369c9612392",
+    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.makeCompletedSession()": "fb1491fb78cecfe9"
    }
   },
   {
@@ -292,16 +249,15 @@
      "effect": "asserts fields and readability; else XCTFail('dropped') and return"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "58f2ac150ca0a682",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "533489add6f1c58a",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "35d630570bec345f",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6",
-    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.assertEveryBackfillRan(file:line:)": "7fd3042c2e5478b5",
-    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.makeCompletedSession()": "4f6a66270b66d262"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6",
+    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.assertEveryBackfillRan(file:line:)": "eaf16369c9612392",
+    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.makeCompletedSession()": "fb1491fb78cecfe9"
    }
   },
   {
@@ -318,17 +274,16 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "ea9a72bd018fe66d",
-    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "58f2ac150ca0a682",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.legacyElitePatch(entry:session:)": "4c77a67474e58d1e",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateLegacyEliteImportIndex()": "e84148b00578230a",
-    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.assertEveryBackfillRan(file:line:)": "7fd3042c2e5478b5",
-    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.legacyEliteImportResult(beats:minHR:maxHR:)": "35e17d21b1a9d7ca"
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "533489add6f1c58a",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.legacyElitePatch(entry:session:)": "99fe94900694fa31",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateLegacyEliteImportIndex()": "b04f455c10ed849c",
+    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.assertEveryBackfillRan(file:line:)": "eaf16369c9612392",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.legacyEliteImportResult(beats:minHR:maxHR:)": "84963dca14540033"
    }
   },
   {
@@ -348,9 +303,8 @@
      "effect": "start = now; else 8 h ago"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a"
    }
   }
  ],

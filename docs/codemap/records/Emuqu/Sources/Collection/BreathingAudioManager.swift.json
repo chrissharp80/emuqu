@@ -12,7 +12,6 @@
   "lastSpokenCue, isActive (private)"
  ],
  "toplevel": "Declares AVSpeechSynthesizerDelegate conformance and sets itself as delegate but implements no delegate methods.",
- "flags": [],
  "units": [
   {
    "key": "var BreathingAudioManager.isEnabled",
@@ -39,10 +38,9 @@
      "effect": "calls start(); false calls stop()"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.start()": "4460902c1fa5d3a5",
-    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.stop()": "bbfa0b16f1f39e22"
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.start()": "dbfc96e8ad39986f",
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.stop()": "67cd21b128a084a5"
    }
   },
   {
@@ -54,7 +52,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -84,9 +81,8 @@
      "effect": "records it and calls speak (the cue is recorded even if speak then skips because the synthesizer is busy, so that phase stays silent); same cue does nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.speak(_:)": "e52823d824d15b4e"
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.speak(_:)": "90f622445afe9bd3"
    }
   },
   {
@@ -133,13 +129,12 @@
      "effect": "log shows '?'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.breathUtterance(_:)": "f420151490e6a804",
-    "Emuqu/Sources/Collection/BreathingAudioManager.swift::let BreathingAudioManager.synthesizer": "58a5207252b45a36",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeSpeak": "7d8b80467768d419"
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.breathUtterance(_:)": "d081b9e74ec31049",
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::let BreathingAudioManager.synthesizer": "3a875494fd060d17",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeSpeak": "9e3cc39296241896"
    }
   },
   {
@@ -153,10 +148,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "fa61a702fe44b576",
-    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.appLanguageVoice()": "840eae12a70d0f17"
+    "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.voice": "4b39999a63ca2c1d",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.appLanguageVoice()": "f6972423b2fb8a62"
    }
   },
   {
@@ -186,14 +180,13 @@
      "effect": "logged and swallowed; guide still marked active and speaks into whatever session state exists"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.prewarm(forLanguage:)": "c177f2494c6c0984",
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)": "8cb2c9351aa03754",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.prewarm(forLanguage:)": "4fcf7e9af3f6bbf2",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)": "3ff6db18fe48072d",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -221,17 +214,16 @@
      "effect": "logged; nil (deactivated or had to stay up) does nothing"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.deactivateIfIdle(completion:)": "6b8bb1f63109f78c",
-    "Emuqu/Sources/Collection/BreathingAudioManager.swift::let BreathingAudioManager.synthesizer": "58a5207252b45a36",
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)": "00b2c416245f74ae",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "3b77b2139e8273b8",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.backgroundAudioManager": "a650b3abbfe836c8",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStopSpeaking": "962b6642341b1aa4"
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.deactivateIfIdle(completion:)": "54f914e10dc645e2",
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::let BreathingAudioManager.synthesizer": "3a875494fd060d17",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)": "37f8c4633bbb78c6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.backgroundAudioManager": "15097112ff88f3c9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStopSpeaking": "2d4d6cd0ca845f84"
    }
   }
  ],

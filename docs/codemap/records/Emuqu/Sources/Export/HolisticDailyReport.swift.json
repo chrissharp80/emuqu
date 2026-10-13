@@ -21,19 +21,6 @@
   "file:<tmp>/holistic-cover-<8 hex>.pdf"
  ],
  "toplevel": "Config stored-property initializers create UIFonts/UIColors at construction. Constructed by ReportsListView.renderHolistic (ReportsListView.swift:392), MainTabView+Reports.renderDailyReport (MainTabView+Reports.swift:113) and WorkoutRecorder+Metrics.holisticReport (WorkoutRecorder+Metrics.swift:444), plus EmuquTests/WorkoutReportSmokeTests.swift:214 and TrainingAdviceGateTests.",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "TrainingLoadRegistry's surface table says the Holistic Daily Report draws no disclosure (\"none drawn\"), but drawLoadAsOf draws liveLoadSnapshot.disclosure (\"Live · updated …\") at the top right of page 1 whenever a live snapshot is present.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift:70",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift:260",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift:48"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:sleepSchedule:temperatureUnit:liveLoadSnapshot:config:)",
@@ -57,21 +44,8 @@
      "effect": "stores and analyses with the passed liveLoadSnapshot; otherwise nil"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "docs/TRAINING_LOAD.md says the PDF/holistic reports read cache.current (the live numbers), but the initializer drops the caller-captured live snapshot unless the workout ended today. Any past-day daily report prints the frozen session load and gates advice on it.",
-     "evidence": [
-      "docs/TRAINING_LOAD.md:289",
-      "Emuqu/Sources/Export/HolisticDailyReport.swift:116",
-      "Emuqu/Sources/Export/HolisticDailyReport.swift:117"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.makeLoopAnalysis(workoutSession:overnightSession:recentOvernightSessions:userMaxHR:sleepSchedule:liveLoad:)": "0aa87161146b5e45"
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.makeLoopAnalysis(workoutSession:overnightSession:recentOvernightSessions:userMaxHR:sleepSchedule:liveLoad:)": "f806e0b76aa6afdb"
    }
   },
   {
@@ -91,12 +65,11 @@
     "file:<tmp>/holistic-*.pdf (transient)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.mergePDFs(cover:workout:to:)": "d0e011ebea5c01cd",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.removeTemp(_:)": "0d40ae4cc85bc961",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.renderCoverPDF()": "46df12ac277b5b88",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.renderWorkoutPDF()": "204d12c0221ab60a"
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.mergePDFs(cover:workout:to:)": "462e4e5988f91144",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.removeTemp(_:)": "b7ab0e7d1e958195",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.renderCoverPDF()": "736bf1cc84cce607",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.renderWorkoutPDF()": "fbdb76ba2f8668f6"
    }
   },
   {
@@ -120,9 +93,8 @@
      "effect": "returns without doing anything; otherwise removes it, swallowing (logging) any error"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -146,12 +118,11 @@
      "effect": "removes the temp then rethrows; otherwise returns the URL"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.removeTemp(_:)": "0d40ae4cc85bc961",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.removeTemp(_:)": "b7ab0e7d1e958195",
     "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "88a243ef2ca4a8fe",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::init WorkoutPDFReport(session:track:userMaxHR:userRestingHR:userLTHR:units:config:)": "bd3c61559ac25534",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::init WorkoutPDFReport(session:track:userMaxHR:userRestingHR:userLTHR:units:config:)": "8c54fb5979cbb404",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
@@ -176,12 +147,11 @@
      "effect": "removes the temp and rethrows; otherwise returns the URL"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawTodayInOneGlancePage(ctx:)": "0adf1b7a30d4faec",
-    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawWhyYourScorePage(ctx:)": "355020bcf989f70d",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.removeTemp(_:)": "0d40ae4cc85bc961",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawTodayInOneGlancePage(ctx:)": "8cd83681778a5d63",
+    "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawWhyYourScorePage(ctx:)": "f133e48cd9194fa5",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.removeTemp(_:)": "b7ab0e7d1e958195",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
@@ -214,23 +184,9 @@
      "effect": "logs a warning and copies the workout-only PDF to url; if write left a file at url, copyItem throws and the error propagates"
     }
    ],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "On either fallback the user receives a workout-only PDF titled as a daily report, with the recovery/loop and score pages missing; the only signal is a debugLog warning.",
-     "evidence": [
-      "Emuqu/Sources/Export/HolisticDailyReport.swift:187",
-      "Emuqu/Sources/Export/HolisticDailyReport.swift:188",
-      "Emuqu/Sources/Export/HolisticDailyReport.swift:197",
-      "Emuqu/Sources/Export/HolisticDailyReport.swift:198"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.appendPages(of:to:from:)": "4def772abc5464fc",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.appendPages(of:to:from:)": "83e0088b46c0f417",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -256,7 +212,6 @@
      "effect": "skips that page silently (continue)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -288,12 +243,11 @@
      "effect": "?? overnightSession?.trainingSnapshot; nil when neither has one"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "cd200634574141b1",
-    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "598952b71e6507c4",
-    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "8440b3e654c747f8"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Collection/TrainingLoad.swift::func TrainingLoad.daysSinceHardWorkout(in:anchors:relativeTo:)": "a9d6ffe38efc1df5",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "cc26a08289fff8fb",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
@@ -307,9 +261,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::var TrainingLoadRegistry.TrainingLoad.disclosure": "67c9eb0de80372f3"
+    "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::var TrainingLoadRegistry.TrainingLoad.disclosure": "b875b621f254f36e"
    }
   },
   {
@@ -321,7 +274,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -341,9 +293,8 @@
      "effect": "?? reported night = workoutSession.startDate"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.adviceGateLoad(live:workoutSession:overnightSession:)": "9497ba7540b45ed5"
+    "Emuqu/Sources/Export/HolisticDailyReport+Score.swift::func HolisticDailyReport.adviceGateLoad(live:workoutSession:overnightSession:)": "7f6ba26a718f10a0"
    }
   },
   {
@@ -371,9 +322,8 @@
      "effect": "config.primary"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "0412c3e299fc07f3"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   }
  ],

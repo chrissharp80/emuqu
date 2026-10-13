@@ -11,7 +11,6 @@
   "TCXExporter.indoorStepSec = 5 s"
  ],
  "toplevel": "indoorStepSec static constant (5 s); HRTrack.halfWindow = 3 s.",
- "flags": [],
  "units": [
   {
    "key": "func TCXExporter.export(session:track:)",
@@ -42,14 +41,13 @@
      "effect": "timeOnlyTrackpoints; else GPS trackpoints"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.header(session:activityType:summary:iso:)": "d7149ace8d57bc92",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.humanSummary(session:)": "a66f30922dfacaed",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.lapHeader(session:iso:)": "016c138a088221bc",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.tcxActivityType(for:)": "7255eb219a0819d6",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.timeOnlyTrackpoints(session:iso:)": "735bbf1e12a8c831",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "a784bf4553e314a2"
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.header(session:activityType:summary:iso:)": "dd7039383816486b",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.humanSummary(session:)": "4c33d183cdfd2699",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.lapHeader(session:iso:)": "ac5e5a92a41f0616",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.tcxActivityType(for:)": "a648ba0b5d8aec61",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.timeOnlyTrackpoints(session:iso:)": "566911e89e0bc1f1",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "f037f4bc54a92314"
    }
   },
   {
@@ -78,11 +76,10 @@
      "effect": "'imperial' else 'metric' text"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryTotals(session:imperial:)": "943e67f8555d6704",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "65996718e29d397e",
-    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "30161b38858d770d"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryTotals(session:imperial:)": "4a9b4fcd58f3a3a1",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47"
    }
   },
   {
@@ -94,9 +91,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.humanSummary(session:)": "a66f30922dfacaed"
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.humanSummary(session:)": "4c33d183cdfd2699"
    }
   },
   {
@@ -132,10 +128,9 @@
      "effect": "writes AverageHeartRateBpm (truncated Int)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "a5bf3abe9c530fa0"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "1c67a4466d2d6f0e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "7126e79a187bd556"
    }
   },
   {
@@ -162,11 +157,10 @@
      "effect": "adds distance from previous fix"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func HRTrack.median(near:)": "fc82274b901cfff2",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoint(_:cumulative:heartRate:iso:)": "d334cbaab5d86412",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::init HRTrack(session:)": "58cb250c8f6900d3"
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func HRTrack.median(near:)": "aba0168573b658f8",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoint(_:cumulative:heartRate:iso:)": "f82dda1870725dbc",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::init HRTrack(session:)": "2cd1009e5f6fc8a1"
    }
   },
   {
@@ -199,12 +193,11 @@
      "effect": "skip; start is always written (schema needs ≥1 trackpoint)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func HRTrack.median(near:)": "fc82274b901cfff2",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.timeOnlyTrackpoint(at:heartRate:iso:)": "118c90e86bb330db",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::init HRTrack(session:)": "58cb250c8f6900d3",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "2773bb6ff5712d48"
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func HRTrack.median(near:)": "aba0168573b658f8",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.timeOnlyTrackpoint(at:heartRate:iso:)": "89b32c1cd6f2c6b4",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::init HRTrack(session:)": "2cd1009e5f6fc8a1",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "1c67a4466d2d6f0e"
    }
   },
   {
@@ -222,7 +215,6 @@
      "effect": "writes HR; else time only"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -245,7 +237,6 @@
      "effect": "writes HR; else omitted"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -276,12 +267,11 @@
      "effect": "throws NSError; else writes"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "b0dacdceb37ebf7b",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "d624b9d12029e2d1",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
@@ -319,7 +309,6 @@
      "effect": "'Other'"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -352,10 +341,9 @@
      "effect": "use the wall-clock samples; else the RR beats"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.hrSamplesWithWallClock(rrPoints:startDate:)": "d33a2d473968cbc6",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.wallClockSeconds(forActiveOffset:)": "529feacf74cbee54"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.hrSamplesWithWallClock(rrPoints:startDate:)": "2a3a0fa1d0c4c6a7",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.wallClockSeconds(forActiveOffset:)": "6b320e30aeb20b67"
    }
   },
   {
@@ -388,7 +376,6 @@
      "effect": "nil; else sorted[count/2]"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

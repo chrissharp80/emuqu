@@ -11,7 +11,6 @@
  ],
  "state": [],
  "toplevel": "ppiReadings is compiled only under #if canImport(PolarBleSdk); without the SDK openAndDrain returns an empty Pass, so the run loop spins on the backoff with no data.",
- "flags": [],
  "units": [
   {
    "key": "func StrapHeartRateFeed.start(generation:)",
@@ -27,9 +26,8 @@
     "mem:StrapLinkRuntime.feedTask"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.run(generation:manager:)": "68146d1e3106564f"
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.run(generation:manager:)": "5c607c5aeea5ddb3"
    }
   },
   {
@@ -51,9 +49,8 @@
      "effect": "false: returns, no subscription opened; true: start(generation)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.start(generation:)": "cad30d50a80cd551"
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.start(generation:)": "a72fa36db125e906"
    }
   },
   {
@@ -71,7 +68,6 @@
      "effect": "true: .ppi; false: .heartRate"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -85,7 +81,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -137,14 +132,13 @@
      "effect": "true: logs the pass (also every pass after a successful one, since failures==0 satisfies %10); false: silent"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.resubscribeDelay(afterFailures:)": "61f3f2d049fb2a7f",
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.isCurrent(_:generation:)": "09258ce982b3435d",
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.logPass(_:_:failure:attempt:since:)": "1c7ed9219751e74d",
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.openAndDrain(kind:manager:)": "8e1b5d7c2807699d",
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.resolveKind(manager:generation:)": "a55929b4e9895a96",
-    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)": "590ba7959a45b0d5"
+    "Emuqu/Sources/Collection/StrapFeedHealth.swift::func StrapFeedHealth.resubscribeDelay(afterFailures:)": "23ef8ecbfdba4b48",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.isCurrent(_:generation:)": "01f74fd8f4957937",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.logPass(_:_:failure:attempt:since:)": "95750b38f6df4c21",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.openAndDrain(kind:manager:)": "10426a03860f3a98",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.resolveKind(manager:generation:)": "77cae666f722f553",
+    "Emuqu/Sources/Collection/StrapSignal.swift::func StrapSignal.wait(timeout:)": "fde0bbdf2808590a"
    }
   },
   {
@@ -158,10 +152,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -191,13 +184,12 @@
      "effect": "true: .heartRate; false (ready/unconfirmed/timedOut — timedOut when generation superseded or cancelled): .ppi"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "ddd3f927e6710f42",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "f529498b78d90b9d",
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.desiredKind(deviceType:sessionActive:)": "fb318ac17b3c3e6e",
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.isCurrent(_:generation:)": "09258ce982b3435d",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitFeature(_:until:while:)": "84a3137fadf0dfa1"
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.desiredKind(deviceType:sessionActive:)": "54a93e3f2c157db5",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.isCurrent(_:generation:)": "01f74fd8f4957937",
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.awaitFeature(_:until:while:)": "ad034f12378b9f3a"
    }
   },
   {
@@ -238,13 +230,12 @@
      "effect": "opens SDK PPI stream; each batch mapped by ppiReadings → ingestPpi"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "a4128b4165979968",
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestPpi(_:receivedAt:)": "9fb7ab25e595695f",
-    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "e4c52ee834297d0b",
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)": "8825a3365e8b1d5b",
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.ppiReadings(_:)": "336f8c189a273045"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestHeartRate(_:receivedAt:)": "eb6ed4b05fd2c6e3",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.ingestPpi(_:receivedAt:)": "ba02fbeb859912bd",
+    "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.strapAPI": "18cc22720cb25011",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)": "4cddd723f0a007db",
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.ppiReadings(_:)": "96ec3e66cc789aa4"
    }
   },
   {
@@ -256,7 +247,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -276,10 +266,9 @@
      "effect": "catch: error stored in pass.error; no throw: error nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.forward(_:counting:_:)": "48034ce5c544a8ab",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212"
+    "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.forward(_:counting:_:)": "8a4579a4fe0c063b",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "3fe009cf9aa411e3"
    }
   },
   {
@@ -304,9 +293,8 @@
      "effect": "true: returns without handling the element; false: count+1 and handle"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "4ca4c631cc8c2212"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "3fe009cf9aa411e3"
    }
   }
  ],

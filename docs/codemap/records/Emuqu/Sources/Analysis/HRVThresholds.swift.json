@@ -76,40 +76,6 @@
   "mem:HRVThresholds.illnessDeclineThreshold=0.95"
  ],
  "toplevel": "All HRVThresholds members are static let constants (no logic). Nested types and RMSSDThresholds construction live in units. No #if blocks.",
- "flags": [
-  {
-   "kind": "dead",
-   "sev": "low",
-   "text": "HRVThresholds.illnessConsecutiveDeclineDays has no reference anywhere in the repo outside its declaration.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/HRVThresholds.swift:247"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "lfHfModerateSympatheticUpper and lfHfSympatheticDominance are both 3.0 under different names; callers use both interchangeably (TagBasedCauseDetector uses one, MetricBasedCauseDetector the other).",
-   "evidence": [
-    "Emuqu/Sources/Analysis/HRVThresholds.swift:121",
-    "Emuqu/Sources/Analysis/HRVThresholds.swift:124",
-    "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift:129",
-    "Emuqu/Sources/Analysis/CauseDetection/MetricBasedCauseDetector.swift:184"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Constant names contradict their values: rmssdModerate (40) sits above rmssdGood (35), sleepShortMinutes (300) is stricter than sleepVeryShortMinutes (360); comments acknowledge it and keep names because a governance gate hashes them.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/HRVThresholds.swift:50",
-    "Emuqu/Sources/Analysis/HRVThresholds.swift:165",
-    "Emuqu/Sources/Analysis/HRVThresholds.swift:169"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var AgeAdjustedHRV.Sex.rmssdMultiplier",
@@ -131,7 +97,6 @@
      "effect": "returns 0.92"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -186,9 +151,8 @@
      "effect": "multiplier 1.0 when sex unknown, else sex.rmssdMultiplier"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::var AgeAdjustedHRV.Sex.rmssdMultiplier": "0c543a88a849147b"
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::var AgeAdjustedHRV.Sex.rmssdMultiplier": "3328fb4cadb16efe"
    }
   },
   {
@@ -202,9 +166,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.medianRMSSD(forAge:sex:)": "6dc65df7357d7689"
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.medianRMSSD(forAge:sex:)": "80adb5be8e61a71e"
    }
   },
   {
@@ -226,11 +189,10 @@
      "effect": "early return interpretAbsolute(rmssd) (ageContext nil); otherwise age-banded interpretation"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.categorize(rmssd:age:sex:)": "cff3c034db73edc2",
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.interpretAbsolute(rmssd:)": "dd4f9e90b8552c74",
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedAgeContext": "465506b05bb30d83"
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.categorize(rmssd:age:sex:)": "97f5c1b0aa55b9f5",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.interpretAbsolute(rmssd:)": "a2c74be22e44e82c",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedAgeContext": "04f946a8b4f02aed"
    }
   },
   {
@@ -265,13 +227,12 @@
      "effect": ".reduced; else falls through to .low"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.excellent(_:)": "32ef5872d3b536c5",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.fair(_:)": "a5fefa381c71f597",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.good(_:)": "c6b63e41e15ce7ec",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.low(_:)": "0dbc3b9bab439012",
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.rmssdThresholds(forAge:sex:)": "3df80fffefa3fee2"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.excellent(_:)": "bf360e81f26cade3",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.fair(_:)": "80350f0334d9442d",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.good(_:)": "101044190b185848",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func ExplanationCopy.low(_:)": "f2395087493b8656",
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::func AgeAdjustedHRV.rmssdThresholds(forAge:sex:)": "348b6be7739c27a5"
    }
   },
   {
@@ -304,7 +265,6 @@
      "effect": ".reduced; else .low"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -346,9 +306,8 @@
      "effect": "'Low'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -390,9 +349,8 @@
      "effect": "'Significantly below average...'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -406,9 +364,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedLabel": "34fa7b333dfcae74"
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedLabel": "4400fe81fd8f4785"
    }
   },
   {
@@ -428,9 +385,8 @@
      "effect": "nil; else category.localizedAgeContext"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedAgeContext": "465506b05bb30d83"
+    "Emuqu/Sources/Analysis/HRVThresholds.swift::var RMSSDCategory.localizedAgeContext": "04f946a8b4f02aed"
    }
   }
  ],

@@ -7,7 +7,6 @@
   "mem:MorningProcessingService.emptyPollResult (static let: no boundaries, source .recordingBounds)"
  ],
  "toplevel": "Static emptyPollResult initializer only.",
- "flags": [],
  "units": [
   {
    "key": "func MorningProcessingService.timedSleepPoll(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)",
@@ -28,11 +27,10 @@
      "effect": "log prints totalSleepMin=-1"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)": "1205007f930cbba9",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)": "d9d0f9db1bfbbd45",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -64,12 +62,11 @@
      "effect": "set to 0; otherwise unchanged"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
-    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)": "80523643994e6dd9",
-    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollHealthKitSleep(series:effectiveStartDate:recordingEnd:totalBeats:isBackgroundRefinement:statusCallback:)": "01f01a5535f4967d",
-    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.readySleepData(prefetched:effectiveStartDate:recordingEnd:isBackgroundRefinement:)": "758f705c6d43df97"
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)": "f5dffb131decedc0",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollHealthKitSleep(series:effectiveStartDate:recordingEnd:totalBeats:isBackgroundRefinement:statusCallback:)": "696706af855ce8ec",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.readySleepData(prefetched:effectiveStartDate:recordingEnd:isBackgroundRefinement:)": "e985be128ebdcce4"
    }
   },
   {
@@ -100,13 +97,12 @@
      "effect": "return nil (go to the poll); else return clamped result from cache"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "77e23c3d71c4740e",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.buildSleepPollResult(from:effectiveStartDate:)": "0e93dbf9c9ccf0fd",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.buildSleepPollResult(from:effectiveStartDate:)": "6151334404064e55",
     "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.read(coveringRecordingStart:)": "ff61987017e5305d",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -159,12 +155,11 @@
      "effect": "call statusCallback(.waitingForSleep); background skips; then sleep 2 s"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.pollResult(fromFetched:effectiveStartDate:)": "f428b9606923ede3",
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.pollResult(fromFetched:effectiveStartDate:)": "27de835752e3dbc4",
     "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.fetchSleepAttempt(series:effectiveStartDate:recordingEnd:attempt:)": "cda6475872605b79",
-    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.logPollExhausted(_:)": "533eda06b49c590c",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.logPollExhausted(_:)": "9d548f65d40fbedf",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -205,13 +200,12 @@
      "effect": "return (nil, true) to abort retries; any other error → (nil, false) retry"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "8e9dc5b9d24c750a",
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)": "4d5c08b31b317a34",
-    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.withNapSleepMinutes(_:)": "e0f3fbb6f526617f",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -241,11 +235,10 @@
      "effect": "return; else apply Watch-HR estimate"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "6fcc761d41125b66",
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.estimateSleepFromRR(rrPoints:recordingStart:)": "d7907a319cf846fe",
-    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.applyEstimate(_:source:effectiveStartDate:to:)": "6c7693c2dbb2d284"
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "7c655ba9e01d2483",
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.estimateSleepFromRR(rrPoints:recordingStart:)": "78d9e196f9619240",
+    "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.applyEstimate(_:source:effectiveStartDate:to:)": "dd30695f18f59a31"
    }
   },
   {
@@ -266,11 +259,10 @@
      "effect": "sleepSegments set to per-segment offsets; else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.clampedToRecordingStart(_:)": "ed2ca67c9732baf3",
-    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.offsetMs(_:from:)": "504ed71bcdaff5e6",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "b0b34d19018e2344"
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.clampedToRecordingStart(_:)": "c989472983358346",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.offsetMs(_:from:)": "b902f80f932ce72d",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "3161593fbc6e5971"
    }
   },
   {
@@ -284,7 +276,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac"
    }
@@ -300,9 +291,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }
  ],

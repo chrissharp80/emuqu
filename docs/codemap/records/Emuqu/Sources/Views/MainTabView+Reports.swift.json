@@ -11,7 +11,6 @@
   "file:tmp/emuqu-report-<epoch seconds>.pdf"
  ],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "func MainTabView.renderReport(kind:inputs:liveLoadSnapshot:)",
@@ -49,13 +48,12 @@
      "effect": "return .failed(error.localizedDescription) shown in the alert"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderDailyReport(_:to:recent:load:hr:)": "b7a333c9d14e27a8",
-    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderRecoveryReport(_:to:load:)": "4294186426e55b76",
-    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderWorkoutReport(_:to:hr:)": "cee404d394730215",
-    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderDailyReport(_:to:recent:load:hr:)": "c13107e76bb2029c",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderRecoveryReport(_:to:load:)": "5c57715982e652c9",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderWorkoutReport(_:to:hr:)": "bb3f44aeedfc5043",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "793b7401620a8337",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
@@ -95,14 +93,13 @@
      "effect": "recentOvernight = nights before it; else the passed list"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
-    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportBaselineNights.before(_:archive:sleepSchedule:)": "c8c4570546e3b00b",
-    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "d39519f741795634",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportBaselineNights.before(_:archive:sleepSchedule:)": "19423ad10bac11a7",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "793b7401620a8337"
    }
   },
   {
@@ -135,11 +132,10 @@
      "effect": "propagates to renderReport's catch"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.renderRecovery(_:recentOvernight:baselineStats:load:to:)": "5df0504de6a6b1f0"
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "d39519f741795634",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.renderRecovery(_:recentOvernight:baselineStats:load:to:)": "2f11338ae6afd594"
    }
   },
   {
@@ -162,10 +158,9 @@
      "effect": "return .failed('No workout with an overnight recording…')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.decodeTrack(for:)": "0c576bd61818c007",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.decodeTrack(for:)": "48e4ba4ef3779947",
     "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.renderDaily(workout:track:overnight:recentOvernight:profile:load:to:)": "e43162a208232dfb"
    }
   },
@@ -189,11 +184,10 @@
      "effect": "return .failed('No recent workout to report on…')"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.decodeTrack(for:)": "0c576bd61818c007",
-    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.renderWorkout(_:track:profile:to:)": "4a896824cf0c3e27"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.decodeTrack(for:)": "48e4ba4ef3779947",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.renderWorkout(_:track:profile:to:)": "1f6f321897c359a6"
    }
   },
   {
@@ -218,7 +212,6 @@
      "effect": "0 duration makes GPXExporter use 5 s per fix (same as nil)"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decode(polyline:startDate:duration:)": "9076ca04b3bf1372"
    }
@@ -256,14 +249,13 @@
      "effect": "its nightKey counts toward the 60"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isBaselineCandidate(_:)": "9b2b167d3f241aed",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)": "b52d1b79b4d7211e",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "ea9a72bd018fe66d",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isBaselineCandidate(_:)": "976073a3b4a70758",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)": "b6c50fe75996849a",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6"
    }
   },
   {
@@ -286,10 +278,9 @@
      "effect": "false"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.recoveryPDFURL(for:recentOvernight:baselineStats:load:)": "6e0cc8a77e33e42b",
-    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.replace(_:with:)": "2e232f1d8e887de9"
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportRenderer.replace(_:with:)": "2fe3dd1d262467a7"
    }
   },
   {
@@ -309,15 +300,14 @@
     "file:tmp PDF written by PDFReportGenerator"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::func AnalysisSleepTrendInput.recentNights(before:in:)": "401b1ccceb3ab387",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
-    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.generateReportURL(for:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "778fffbb2cefce5c",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "f5883be68a9c9606",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepData(from:)": "0bacc660b77071e6",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.VitalsData(from:)": "1f72b8e1242a44d9"
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::func AnalysisSleepTrendInput.recentNights(before:in:)": "2578f55064aa0084",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.generateReportURL(for:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "127c22e10bdf6826",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)": "4cfce958d4dd049b",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepData(from:)": "a8830417f0789ef6",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.VitalsData(from:)": "1327045e4ea33129"
    }
   },
   {
@@ -341,9 +331,8 @@
      "effect": "remove it first"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -360,11 +349,10 @@
     "file:<pdfURL>"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)": "8e081b59989b2340",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:sleepSchedule:temperatureUnit:liveLoadSnapshot:config:)": "4efd68e54be1f713",
-    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)": "25451d753d99a6cd",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:sleepSchedule:temperatureUnit:liveLoadSnapshot:config:)": "bb5ab327a3621079",
+    "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "793b7401620a8337"
    }
   },
   {
@@ -381,10 +369,9 @@
     "file:<pdfURL>"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "88a243ef2ca4a8fe",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::init WorkoutPDFReport(session:track:userMaxHR:userRestingHR:userLTHR:units:config:)": "bd3c61559ac25534"
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::init WorkoutPDFReport(session:track:userMaxHR:userRestingHR:userLTHR:units:config:)": "8c54fb5979cbb404"
    }
   }
  ],

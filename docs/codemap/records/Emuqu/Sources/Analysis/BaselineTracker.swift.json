@@ -23,21 +23,6 @@
   "mem:BaselineTracker.recoveryWindowNights (static let 60 — nights the recovery score's baseline reads; also ReportBaselineNights.count and the coach report's night limit)"
  ],
  "toplevel": "Stored-property initializers: fileManager = FileManager.default, lock = NSRecursiveLock(), historicalData = []. Class is @unchecked Sendable relying on manual lock discipline. Static constants baselineWindowDays=7, maxHistoricalPoints=90, recoveryWindowNights=60.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "RRCollector's default argument and the test fixtures (MorningProcessingServiceTests, ReanalysisServiceTests, SessionImmutabilityTests, BaselineTrackerTests) still construct the tracker with init(onBaselineUpdated:), which binds the real shared-container HRVBaseline.json, so tests read and can overwrite the app's baseline file on the host. init(baselineFile:onBaselineUpdated:) now takes a temporary file; the tests need to use it.",
-   "evidence": [
-    "Emuqu/Sources/Analysis/BaselineTracker.swift:147",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift:159",
-    "EmuquTests/MorningProcessingServiceTests.swift:26",
-    "EmuquTests/ReanalysisServiceTests.swift:98",
-    "EmuquTests/BaselineTrackerTests.swift:64"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "init BaselineTracker(onBaselineUpdated:)",
@@ -59,11 +44,10 @@
     "mem:SettingsManager.settings.baselineRMSSD/baselineHR (via callback)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)": "be93861445c19b1e",
-    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "9cf3a08c95588151",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)": "9d3d63da31c6a847",
+    "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "cf6b353e36f53586",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -93,12 +77,11 @@
      "effect": "log text only"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.load()": "f251ce68334651d0",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.notifyBaselineChanged()": "b0ecf57f715c05d6",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recalculateBaseline()": "7281b2ffd178a6de",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.load()": "c99a5e1a6fa8cb8a",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.notifyBaselineChanged()": "d9460af4bcb9f8a8",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recalculateBaseline()": "e3832f816a21e0ba",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -112,7 +95,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -132,9 +114,8 @@
      "effect": "returns false; otherwise returns sampleCount >= Baseline.minimumSamples (3)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.baseline": "ba410d90f6e968ea",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.baseline": "de5a96986bf66c67",
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "4f00a2cb9ab6b0f5"
    }
   },
@@ -149,7 +130,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -165,7 +145,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.stats(from:)": "36042c28cf8528af"
    }
@@ -184,10 +163,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.stats(from:)": "36042c28cf8528af",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)": "b52d1b79b4d7211e"
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)": "b6c50fe75996849a"
    }
   },
   {
@@ -213,10 +191,9 @@
      "effect": "returns nil; else returns baselineStats(...)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineStats(recentData:lnValues:)": "0eab476b41d21f36",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.lnRmssdValues(_:)": "421a2e102c940335"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineStats(recentData:lnValues:)": "3964270adfea6cdb",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.lnRmssdValues(_:)": "0a86767f4bf9c1b6"
    }
   },
   {
@@ -234,7 +211,6 @@
      "effect": "false → dropped (nil); true → log(rmssd)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -251,12 +227,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.sevenDayCV(_:)": "247be1463ed1dd6d",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)": "824c387a5657df7c",
-    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].mean": "23a91ed9d381e272",
-    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].sampleSD": "ae142517b1b31736"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.sevenDayCV(_:)": "4afe45a9b03ce042",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)": "dcb3e6827e60897b",
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].mean": "5e55c4e4aeacdeb6",
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].sampleSD": "03349b986abb84fb"
    }
   },
   {
@@ -276,9 +251,8 @@
      "effect": "widening = 1.0; else sqrt(7/count) (≈1.53 at 3). Count 0 would give sqrt(7/0)=inf × 0 = NaN, but no caller passes 0: stats(from:) and DailyLoopAnalysis guard >= 3 (DailyLoopAnalysis.swift:225), TrendAnalysis passes its earlier group which is >= 2 (TrendAnalysis+Verdict.swift:52,114)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].sampleSD": "ae142517b1b31736"
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].sampleSD": "03349b986abb84fb"
    }
   },
   {
@@ -304,10 +278,9 @@
      "effect": "returns nil; else CV×100 (nil if mean ln is 0)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.lnRmssdValues(_:)": "421a2e102c940335",
-    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.coefficientOfVariation(_:)": "94ce03fd602b388d"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.lnRmssdValues(_:)": "0a86767f4bf9c1b6",
+    "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.coefficientOfVariation(_:)": "e4ba15b7de26ecb6"
    }
   },
   {
@@ -352,12 +325,11 @@
      "effect": "log text only"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.commitChanges()": "4e20a09700ac9292",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isRebuildCandidate(_:)": "a9c7e91f47c75b7a",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.commitChanges()": "f4e127028238994c",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isRebuildCandidate(_:)": "fc4908668d6dc055",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "301cdd78533bd624",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -371,9 +343,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f"
    }
   },
@@ -401,11 +372,10 @@
      "effect": "false; else true"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isRebuildCandidate(_:)": "a9c7e91f47c75b7a",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isStructurallySoundForBaseline(session:result:)": "76516c681454bf73",
-    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "75ec424f441a2c51"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isRebuildCandidate(_:)": "fc4908668d6dc055",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isStructurallySoundForBaseline(session:result:)": "8011a97b1922b0d1",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "8135b4550ce76019"
    }
   },
   {
@@ -438,12 +408,11 @@
      "effect": "suffix(60): most recent 60"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)": "21b7430a99678506",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isBaselineCandidate(_:)": "9b2b167d3f241aed",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.mergeIntoNight(_:into:sleepSchedule:)": "64bd2a8afec2d94b",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)": "b52d1b79b4d7211e"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)": "82a594cdf1ca5074",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isBaselineCandidate(_:)": "976073a3b4a70758",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.mergeIntoNight(_:into:sleepSchedule:)": "65301be0ab94c4bf",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)": "b6c50fe75996849a"
    }
   },
   {
@@ -463,21 +432,8 @@
      "effect": "duration 0, so the span and 3 h tests fail unless the window is long enough and recovery organized"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The two structural tests are written twice: here (isStructurallySound) and in SessionAcceptanceService.isInsufficientData/analysedSpanMs. Both now read a missing window as the whole session, but a change to one copy will not reach the other; acceptance should call BaselineTracker.isStructurallySound(result:sessionDuration:).",
-     "evidence": [
-      "Emuqu/Sources/Analysis/BaselineTracker.swift:374",
-      "Emuqu/Sources/Services/SessionAcceptanceService.swift:107",
-      "Emuqu/Sources/Services/SessionAcceptanceService.swift:119"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isStructurallySound(result:sessionDuration:)": "720f2edd22b09f7e"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isStructurallySound(result:sessionDuration:)": "a9800f8c01fa9744"
    }
   },
   {
@@ -505,7 +461,6 @@
      "effect": "returns that"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1"
    }
@@ -534,9 +489,8 @@
      "effect": "returns with no change"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.commitChanges()": "4e20a09700ac9292",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.commitChanges()": "f4e127028238994c",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "301cdd78533bd624"
    }
   },
@@ -563,11 +517,10 @@
      "effect": "returns false"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.admitsToBaseline(_:result:)": "836597a99ab2f10d",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)": "21b7430a99678506",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.mergeIntoNight(_:into:sleepSchedule:)": "64bd2a8afec2d94b"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)": "82a594cdf1ca5074",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.mergeIntoNight(_:into:sleepSchedule:)": "65301be0ab94c4bf"
    }
   },
   {
@@ -595,11 +548,10 @@
      "effect": "keeps only the newest 90 points (oldest dropped permanently)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.notifyBaselineChanged()": "b0ecf57f715c05d6",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recalculateBaseline()": "7281b2ffd178a6de",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.save()": "54e347e4f552e3eb"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.notifyBaselineChanged()": "d9460af4bcb9f8a8",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recalculateBaseline()": "e3832f816a21e0ba",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.save()": "75ce0f6de4305ace"
    }
   },
   {
@@ -642,13 +594,12 @@
      "effect": "returns false (no log); else true"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isStructurallySoundForBaseline(session:result:)": "76516c681454bf73",
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "75ec424f441a2c51",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "15319afa7ff717d9",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isStructurallySoundForBaseline(session:result:)": "8011a97b1922b0d1",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "8135b4550ce76019",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "1f169ca3f7045de3",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -660,13 +611,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "fd8e1c85787a7675",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
-    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "8f7224c0359ecb0f"
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "d883c6e73179cc5c",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "a94b71838be09fe7",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423",
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "9fdc7dd4a10137ff"
    }
   },
   {
@@ -695,11 +645,10 @@
      "effect": "overwrites the existing slot; false → new point discarded"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)": "21b7430a99678506",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.shouldReplace(_:with:sleepSchedule:)": "f0b53f7a21ad5d26",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)": "b52d1b79b4d7211e"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)": "82a594cdf1ca5074",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.shouldReplace(_:with:sleepSchedule:)": "bab797f16da542a3",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)": "b6c50fe75996849a"
    }
   },
   {
@@ -730,11 +679,10 @@
      "effect": "returns whether the new one is the morning reading; else objective comparison"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)": "21b7430a99678506",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.newWindowIsObjectivelyBetter(new:existing:)": "4b68527ec6a73004",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.isMorningReading(endDate:)": "ed898a2e9f6f85cc"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)": "82a594cdf1ca5074",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.newWindowIsObjectivelyBetter(new:existing:)": "c27eba48306762d4",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.isMorningReading(endDate:)": "d49b78447c38b0d1"
    }
   },
   {
@@ -758,9 +706,8 @@
      "effect": "returns without calling; the settings copy keeps its previous values"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.baseline": "ba410d90f6e968ea",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.baseline": "de5a96986bf66c67",
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "4f00a2cb9ab6b0f5"
    }
   },
@@ -783,10 +730,9 @@
      "effect": "returns nil; else deviation(of:against:) (nil below 3 nights)"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(of:against:)": "47f57f1203015992",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.baseline": "ba410d90f6e968ea"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.baseline": "de5a96986bf66c67"
    }
   },
   {
@@ -810,12 +756,11 @@
      "effect": "returns nil; else deviation(of:against:)"
     }
    ],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.deviation(of:against:)": "47f57f1203015992",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.makeBaseline(from:)": "b997af7e5fc92b7e",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.baseline": "ba410d90f6e968ea",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)": "b52d1b79b4d7211e"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.makeBaseline(from:)": "6cb35bed80cf9f01",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.baseline": "de5a96986bf66c67",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)": "b6c50fe75996849a"
    }
   },
   {
@@ -842,15 +787,14 @@
      "effect": "sdnnDeviation nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.optionalPercentDeviation(current:baseline:)": "1d4a13fd12c312f8",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.percentDeviation(current:baseline:)": "d6c9baf6192fe3da",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.baseline": "ba410d90f6e968ea",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "2dc1cfa3ae220984",
-    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "6a822d05adef4c73",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.optionalPercentDeviation(current:baseline:)": "fb4d772c07e20294",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.percentDeviation(current:baseline:)": "b3da5cb09c5be05f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.baseline": "de5a96986bf66c67",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "45d5fec7bbf69622",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "1fac8fed8eddf554",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423"
    }
   },
   {
@@ -868,34 +812,8 @@
     "file:<AppGroup or Documents>/HRVBaseline.json"
    ],
    "branches": [],
-   "flags": [
-    {
-     "kind": "silent-failure",
-     "sev": "low",
-     "text": "reset() never notifies the callback (notifyBaselineChanged also skips when baseline is nil), so SettingsManager.settings.baselineRMSSD/baselineHR keep the pre-reset values after a reset or replacing rebuild that yields no 7-day baseline.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/BaselineTracker.swift:500",
-      "Emuqu/Sources/Analysis/BaselineTracker.swift:469",
-      "Emuqu/Sources/Models/SettingsManager.swift:381",
-      "Emuqu/Sources/Collection/RRCollector.swift:606"
-     ],
-     "found": "first read, upheld on second"
-    },
-    {
-     "kind": "data-loss",
-     "sev": "low",
-     "text": "BaselineTrackerTests call reset() before and after each test on a tracker bound to the real shared-container HRVBaseline.json (no injectable path), so running the unit tests on a device/simulator wipes the host app's stored baseline nights.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/BaselineTracker.swift:147",
-      "Emuqu/Sources/Analysis/BaselineTracker.swift:505",
-      "EmuquTests/BaselineTrackerTests.swift:65",
-      "EmuquTests/BaselineTrackerTests.swift:66"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.save()": "54e347e4f552e3eb"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.save()": "75ce0f6de4305ace"
    }
   },
   {
@@ -915,9 +833,8 @@
      "effect": "nil; else mean"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].mean": "23a91ed9d381e272"
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].mean": "5e55c4e4aeacdeb6"
    }
   },
   {
@@ -950,12 +867,11 @@
      "effect": "returns false; else isMeaningfullyBetterScore"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.consolidationVerdict(new:existing:)": "f95d69fd35b9cdd0",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isMeaningfullyBetterScore(new:existing:)": "679f6fd006f2dd39",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.organizedRecoveryVerdict(new:existing:)": "ffaaa16a52c9be59",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.passesQualityGates(new:existing:)": "6a650b274c8b4d05"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.consolidationVerdict(new:existing:)": "7e0dc791102f0e4a",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isMeaningfullyBetterScore(new:existing:)": "24a769caad1d428a",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.organizedRecoveryVerdict(new:existing:)": "e0313af2e0d2a7ff",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.passesQualityGates(new:existing:)": "19a98e3d26b6b3fc"
    }
   },
   {
@@ -1000,10 +916,9 @@
      "effect": "returns true; otherwise nil (undecided)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "8f7224c0359ecb0f"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "9fdc7dd4a10137ff"
    }
   },
   {
@@ -1048,11 +963,10 @@
      "effect": "treated as 0; else falls through to nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "fd8e1c85787a7675",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "8f7224c0359ecb0f"
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "a94b71838be09fe7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "9fdc7dd4a10137ff"
    }
   },
   {
@@ -1083,11 +997,10 @@
      "effect": "logs, returns false; else hrStabilityAcceptable"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.hrStabilityAcceptable(new:existing:)": "9d8a1e9d418c0235",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "d883c6e73179cc5c",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.hrStabilityAcceptable(new:existing:)": "25dfc7f529b965aa",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -1112,9 +1025,8 @@
      "effect": "returns true; else logs and returns false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -1144,9 +1056,8 @@
      "effect": "logs and returns true; else logs and returns false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -1164,9 +1075,8 @@
     "mem:BaselineTracker.currentBaseline"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.makeBaseline(from:)": "b997af7e5fc92b7e"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.makeBaseline(from:)": "6cb35bed80cf9f01"
    }
   },
   {
@@ -1188,12 +1098,11 @@
      "effect": "returns nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.geometricMeanRMSSD(of:)": "a87fb2ec68d092ce",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.optionalMean(_:)": "ed00fd9b1b987359",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
-    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].mean": "23a91ed9d381e272"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.geometricMeanRMSSD(of:)": "822d0a611b734715",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.optionalMean(_:)": "e75dfa6518485c7a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423",
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].mean": "5e55c4e4aeacdeb6"
    }
   },
   {
@@ -1213,9 +1122,8 @@
      "effect": "returns arithmetic mean of raw rmssd; else geometric mean"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].mean": "23a91ed9d381e272"
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].mean": "5e55c4e4aeacdeb6"
    }
   },
   {
@@ -1233,9 +1141,8 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.baseline": "ba410d90f6e968ea"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.baseline": "de5a96986bf66c67"
    }
   },
   {
@@ -1253,9 +1160,8 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.baseline": "ba410d90f6e968ea"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.baseline": "de5a96986bf66c67"
    }
   },
   {
@@ -1286,10 +1192,9 @@
      "effect": "logs, moves file to .corrupt; tracker starts empty (prior nights lost until a rebuild from archive)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.quarantineCorruptFile()": "0c1e6b09757cc94a",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.quarantineCorruptFile()": "2a7433d5dbeb0d87",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -1318,10 +1223,9 @@
      "effect": "logs only; corrupt file stays in place and will be overwritten by the next save()"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -1346,9 +1250,8 @@
      "effect": "logged via debugLog only; in-memory state diverges from disk silently"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }
  ],

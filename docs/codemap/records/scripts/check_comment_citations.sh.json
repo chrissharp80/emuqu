@@ -11,7 +11,6 @@
   "file:README.md"
  ],
  "toplevel": "cd to repo root. Roots = args or Emuqu, 'EmuquWatch Watch App', EmuquTests, EmuquUITests. Python: file_lengths[path] and lengths[basename]=max line count over roots; CITATION regex captures an optional directory prefix and the basename and accepts `:N`, ` ~N`, `line N`, `#LN`; a number followed by `-NN` (a date) is skipped; known_length uses only files whose path ends with prefix/name when a prefix is given, else the longest file of that basename. comment_lines yields // lines and every line while a /* */ block is open. Unknown file or line > length -> broken. Also scans every Markdown file from `git ls-files --cached --others --exclude-standard '*.md'` (git failure -> exit 2). Prints totals; broken -> stderr list + exit 1. In-range but wrong-line citations are undecidable by design (header). Wired: gates.yml, ci.yml, Makefile comment-citations.",
- "flags": [],
  "units": [],
  "deps": {}
 }

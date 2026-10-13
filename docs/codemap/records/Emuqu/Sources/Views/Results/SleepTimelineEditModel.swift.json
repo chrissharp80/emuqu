@@ -15,20 +15,6 @@
   "SleepTimelineUndoStack.limit = 5"
  ],
  "toplevel": "Synthesized Equatable on SleepTimelineEdit/State/Segment (compares UUIDs too). No other top-level code.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Edit summaries are hard-coded English strings persisted into SleepData.edits (e.g. \"Start moved to\", \"Added\", \"Carved\"); nothing in the app displays SleepEditRecord.summary, so they are stored but unused.",
-   "evidence": [
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:177",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:192",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift:247",
-    "Emuqu/Sources/Models/SleepData.swift:454"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func SleepTimelineState.hasSameContent(as:)",
@@ -55,10 +41,9 @@
      "effect": "false"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2"
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "ad1cbf78f6431b31",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "a25102dd7955c053"
    }
   },
   {
@@ -86,13 +71,12 @@
      "effect": "true: single envelope segment with intervals []; false: keep segments (possibly empty)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitStageIntervalsByAwake(_:gap:)": "2ed6f8998ac10205",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.splitStageIntervalsByAwake(_:gap:)": "9637915119e4cfec",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.attaching(_:to:)": "a5eea61f08b9124e",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.envelopeSegment(from:)": "a3951e38a7454c48",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.segment(spanning:)": "2ee5bbb0b258ce4d",
-    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.envelopeSegment(from:)": "fc3a970005ecd6b1",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.segment(spanning:)": "2bd0cf77dd666b6a",
+    "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "1a9a72f64eabce05"
    }
   },
   {
@@ -110,7 +94,6 @@
      "effect": "returns nil"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -133,9 +116,8 @@
      "effect": "?? index 0 (first segment)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88"
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "ad1cbf78f6431b31"
    }
   },
   {
@@ -156,10 +138,9 @@
      "effect": "nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.envelopeProvenance(_:)": "e1e57356fe80eb7d"
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "f6e5f489bd3b0b44",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.envelopeProvenance(_:)": "6301fc0b8fe0c14d"
    }
   },
   {
@@ -182,7 +163,6 @@
      "effect": ".hrvDerived"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -233,15 +213,14 @@
      "effect": "applyingCarveAwake with snapped bounds"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingAddSegment(start:end:)": "5b2ce4afde9e203d",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingAdjustBoundary(id:side:newTime:)": "c24d537ab36a6d48",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingCarveAwake(start:end:)": "9fc676e65a1b6092",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingMerge(leftId:rightId:)": "23a13cd80f3808f9",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingRemoveSegment(id:)": "6320e7ce613870ee",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingSplit(id:at:)": "c670c6163ffb29b6",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.snap(_:)": "40a7ec58116226a1"
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingAddSegment(start:end:)": "c1b688686fdcf4f8",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingAdjustBoundary(id:side:newTime:)": "294d7281a8d87a15",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingCarveAwake(start:end:)": "45afd79157d95fc0",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingMerge(leftId:rightId:)": "a26e1a913a036189",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingRemoveSegment(id:)": "5ab5b20980a051bb",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingSplit(id:at:)": "04d84eb50b88d89b",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.snap(_:)": "6d12928957121682"
    }
   },
   {
@@ -255,9 +234,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.snap(_:)": "40a7ec58116226a1"
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.snap(_:)": "6d12928957121682"
    }
   },
   {
@@ -269,7 +247,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -304,15 +281,14 @@
      "effect": "summary names the applied start or end"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.clipIntervals(_:to:end:)": "464377796700dee8",
-    "Emuqu/Sources/Models/SleepData.swift::init SleepEditRecord(kind:summary:timestamp:id:)": "d8a29315bcd236be",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.clampedBoundary(_:side:newTime:)": "9d6020487be55266",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.extensionFill(from:to:)": "eff6e2a7f55dc145",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)": "b36cf9ea81331d50",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.normalized()": "8439c7da2556fbdf"
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "ad1cbf78f6431b31",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.clipIntervals(_:to:end:)": "ca7eb433764d66d9",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepEditRecord(kind:summary:timestamp:id:)": "fb495df66c1eab63",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.clampedBoundary(_:side:newTime:)": "eb432b8b6cd8c7c2",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.extensionFill(from:to:)": "b8c1fc71a9c4e9a0",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)": "4d15ca78a4ee5766",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.normalized()": "b09bce3385bbe04f"
    }
   },
   {
@@ -337,10 +313,9 @@
      "effect": "fill the added tail"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48",
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "f6e5f489bd3b0b44",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb"
    }
   },
   {
@@ -370,15 +345,14 @@
      "effect": "return self"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2",
-    "Emuqu/Sources/Models/SleepData.swift::init SleepEditRecord(kind:summary:timestamp:id:)": "d8a29315bcd236be",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatDuration(_:)": "79f75f2216be81b3",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)": "b36cf9ea81331d50",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.normalized()": "8439c7da2556fbdf",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.uncoveredRanges(from:to:)": "cfe2c1c0de0ba0af",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.userSegment(start:end:)": "3fd100e3b57055a0"
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "a25102dd7955c053",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepEditRecord(kind:summary:timestamp:id:)": "fb495df66c1eab63",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatDuration(_:)": "2e9aeee894776041",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)": "4d15ca78a4ee5766",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.normalized()": "b09bce3385bbe04f",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.uncoveredRanges(from:to:)": "f2c29e3f628a30d3",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.userSegment(start:end:)": "4529ff62a5ea4db0"
    }
   },
   {
@@ -400,11 +374,10 @@
      "effect": "return self"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::init SleepEditRecord(kind:summary:timestamp:id:)": "d8a29315bcd236be",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatDuration(_:)": "79f75f2216be81b3",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)": "b36cf9ea81331d50"
+    "Emuqu/Sources/Models/SleepData.swift::init SleepEditRecord(kind:summary:timestamp:id:)": "fb495df66c1eab63",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatDuration(_:)": "2e9aeee894776041",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)": "4d15ca78a4ee5766"
    }
   },
   {
@@ -433,15 +406,14 @@
      "effect": "return self (silently rejected)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.clipIntervals(_:to:end:)": "464377796700dee8",
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2",
-    "Emuqu/Sources/Models/SleepData.swift::init SleepEditRecord(kind:summary:timestamp:id:)": "d8a29315bcd236be",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.canSplit(segmentStart:segmentEnd:at:)": "8f17f75b0a247beb",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)": "b36cf9ea81331d50",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.normalized()": "8439c7da2556fbdf"
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "ad1cbf78f6431b31",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.clipIntervals(_:to:end:)": "ca7eb433764d66d9",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "a25102dd7955c053",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepEditRecord(kind:summary:timestamp:id:)": "fb495df66c1eab63",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.canSplit(segmentStart:segmentEnd:at:)": "28dd038453320551",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)": "4d15ca78a4ee5766",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.normalized()": "b09bce3385bbe04f"
    }
   },
   {
@@ -473,13 +445,12 @@
      "effect": "return self"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2",
-    "Emuqu/Sources/Models/SleepData.swift::init SleepEditRecord(kind:summary:timestamp:id:)": "d8a29315bcd236be",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.mergeGapFill(between:and:)": "524e146ae9a129f6",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.normalized()": "8439c7da2556fbdf"
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "ad1cbf78f6431b31",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "a25102dd7955c053",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepEditRecord(kind:summary:timestamp:id:)": "fb495df66c1eab63",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.mergeGapFill(between:and:)": "e160ef8d57fb75c7",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.normalized()": "b09bce3385bbe04f"
    }
   },
   {
@@ -508,14 +479,13 @@
      "effect": "return self (no edit)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "428ceef7932431a2",
-    "Emuqu/Sources/Models/SleepData.swift::init SleepEditRecord(kind:summary:timestamp:id:)": "d8a29315bcd236be",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatDuration(_:)": "79f75f2216be81b3",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)": "b36cf9ea81331d50",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.normalized()": "8439c7da2556fbdf",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.segmentsCarving(start:end:)": "c277c824d9b8cc9f"
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "a25102dd7955c053",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepEditRecord(kind:summary:timestamp:id:)": "fb495df66c1eab63",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatDuration(_:)": "2e9aeee894776041",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.formatTime(_:)": "4d15ca78a4ee5766",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.normalized()": "b09bce3385bbe04f",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.segmentsCarving(start:end:)": "cd777eec520d84be"
    }
   },
   {
@@ -535,10 +505,9 @@
      "effect": "no fill"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48",
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13"
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "f6e5f489bd3b0b44",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb"
    }
   },
   {
@@ -568,10 +537,9 @@
      "effect": "returns segments, else nil"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.carving(_:from:to:)": "e953c1dbc8560363"
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "ad1cbf78f6431b31",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.carving(_:from:to:)": "98cd86857c6921fd"
    }
   },
   {
@@ -597,10 +565,9 @@
      "effect": "kept as-is; else replaced by its remnants"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.remnants(of:clippedStart:clippedEnd:)": "81a31393d3227866"
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "f6e5f489bd3b0b44",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.remnants(of:clippedStart:clippedEnd:)": "e85b61a9efe175f5"
    }
   },
   {
@@ -625,9 +592,8 @@
      "effect": "adds tail piece"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "f6e5f489bd3b0b44"
    }
   },
   {
@@ -663,10 +629,9 @@
      "effect": "?? .distantFuture ceiling"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.nextNeighborStart(after:)": "147fa62041185792",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.previousNeighborEnd(before:)": "69db79ebeaf288db"
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.nextNeighborStart(after:)": "c058800f7d64c5e3",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.previousNeighborEnd(before:)": "4ab0a0e61f770d77"
    }
   },
   {
@@ -680,9 +645,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "ec3d6b9cd4d65d48"
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "f6e5f489bd3b0b44"
    }
   },
   {
@@ -694,7 +658,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -706,7 +669,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -734,7 +696,6 @@
      "effect": "adds trailing piece"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -754,10 +715,9 @@
      "effect": "clip each"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "cab2cc006b4ecb88",
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.clipIntervals(_:to:end:)": "464377796700dee8"
+    "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "ad1cbf78f6431b31",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.clipIntervals(_:to:end:)": "ca7eb433764d66d9"
    }
   },
   {
@@ -771,9 +731,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "3f04b1b2d2a2db68"
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "be4e73ad60b0264d"
    }
   },
   {
@@ -794,10 +753,9 @@
      "effect": "LocalizedDuration.hoursMinutes, else LocalizedDuration.minutes"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "a4e4b582efee3f03",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "0eaf9ea6f219f5b6"
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316",
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9"
    }
   },
   {
@@ -809,7 +767,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -827,7 +784,6 @@
      "effect": "removeFirst oldest"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -839,7 +795,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -851,7 +806,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

@@ -7,7 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [],
  "units": [
   {
    "key": "var AnalysisPerformanceTests.isRunningUnderThreadSanitizer",
@@ -20,7 +19,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -42,21 +40,9 @@
      "effect": "asserts compute non-nil once and returns without measuring; otherwise runs measure{} with the non-nil assertion in each iteration"
     }
    ],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Only asserts the result is non-nil; the synthetic periodic RR series' DFA alpha values are never checked, so a numerically wrong DFA still passes. Without a stored baseline the XCTClockMetric measure has no pass/fail threshold.",
-     "evidence": [
-      "EmuquTests/AnalysisPerformanceTests.swift:43",
-      "EmuquTests/AnalysisPerformanceTests.swift:50"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
-    "EmuquTests/AnalysisPerformanceTests.swift::var AnalysisPerformanceTests.isRunningUnderThreadSanitizer": "b1cc28eaecec127b"
+    "EmuquTests/AnalysisPerformanceTests.swift::var AnalysisPerformanceTests.isRunningUnderThreadSanitizer": "8f46939f995c957f"
    }
   }
  ],

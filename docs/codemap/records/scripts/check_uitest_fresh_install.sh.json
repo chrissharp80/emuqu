@@ -7,19 +7,6 @@
   "file:EmuquUITests/**/*.swift (read) or dir $1"
  ],
  "toplevel": "set -euo pipefail; exit 66 if the directory is missing. Per file: sed strips whole-line `//` comments and trailing `<ws>//...`; files whose code lacks `.launch()` are skipped. awk prints from any line containing `launchArguments` until a line containing `]`; if `-UITests-FreshInstall` is not in that output the file is listed as missing. Any missing -> list and exit 1; else prints count of launching files (18 at 8d32097). Granularity is per FILE, not per launch: a file passes if any one launchArguments block carries the flag, e.g. DataDeletionUITests.swift:146 sets `app.launchArguments = [\"-UITests\"] + ...` without the flag while :30 has it. A `launchArguments.append(` line without `]` keeps the awk block open until the next `]` anywhere later in the file.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "Checked per file, not per launch: a second launch in the same file without the flag passes (DataDeletionUITests.swift:146 launches with only \"-UITests\"), so the gate cannot catch a dropped flag in a suite that launches twice.",
-   "evidence": [
-    "scripts/check_uitest_fresh_install.sh:49",
-    "scripts/check_uitest_fresh_install.sh:53",
-    "EmuquUITests/DataDeletionUITests.swift:146"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [],
  "deps": {}
 }

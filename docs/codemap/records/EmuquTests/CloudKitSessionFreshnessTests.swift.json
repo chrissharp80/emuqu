@@ -9,19 +9,6 @@
   "earlier/later: fixed Dates 1_800_000_000 and +60 s"
  ],
  "toplevel": "Stored properties earlier/later are fixed fixture dates.",
- "flags": [
-  {
-   "kind": "fragile",
-   "sev": "low",
-   "text": "stampRecord is gated on the process-wide static CloudKitSessionFreshness.fieldRejected lock, which noteSaveFailure sets permanently for the process; testRecordCarriesTheStampOnlyWhenTheSessionHasOne would fail if any earlier test in the same host process triggered a production-schema save failure.",
-   "evidence": [
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift:65",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift:91",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift:63"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func CloudKitSessionFreshnessTests.testRemoteWithoutStampNeverReplacesTheLocalCopy()",
@@ -36,11 +23,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "2231f2a3598337a4",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)": "e4aa63958f1544f2",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.decide(local:remote:onTie:)": "16147fc78a06e4e2"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "5d82df2e514f90e5",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)": "a46a38707c7acf3f",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.decide(local:remote:onTie:)": "b20571745bb721d5"
    }
   },
   {
@@ -56,11 +42,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "2231f2a3598337a4",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)": "e4aa63958f1544f2",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.decide(local:remote:onTie:)": "16147fc78a06e4e2"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "5d82df2e514f90e5",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)": "a46a38707c7acf3f",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.decide(local:remote:onTie:)": "b20571745bb721d5"
    }
   },
   {
@@ -76,11 +61,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "2231f2a3598337a4",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)": "e4aa63958f1544f2",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.decide(local:remote:onTie:)": "16147fc78a06e4e2"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "5d82df2e514f90e5",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)": "a46a38707c7acf3f",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.decide(local:remote:onTie:)": "b20571745bb721d5"
    }
   },
   {
@@ -96,11 +80,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "2231f2a3598337a4",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)": "e4aa63958f1544f2",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.decide(local:remote:onTie:)": "16147fc78a06e4e2"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "5d82df2e514f90e5",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)": "a46a38707c7acf3f",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.decide(local:remote:onTie:)": "b20571745bb721d5"
    }
   },
   {
@@ -116,11 +99,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "2231f2a3598337a4",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)": "e4aa63958f1544f2",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.decide(local:remote:onTie:)": "16147fc78a06e4e2"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "5d82df2e514f90e5",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)": "a46a38707c7acf3f",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.decide(local:remote:onTie:)": "b20571745bb721d5"
    }
   },
   {
@@ -136,11 +118,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "2231f2a3598337a4",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)": "e4aa63958f1544f2",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.decide(local:remote:onTie:)": "16147fc78a06e4e2"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "5d82df2e514f90e5",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)": "a46a38707c7acf3f",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.decide(local:remote:onTie:)": "b20571745bb721d5"
    }
   },
   {
@@ -155,10 +136,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.onTie(serverVersion:heldVersion:)": "ad0d8712d4fc7685",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.decide(local:remote:onTie:)": "16147fc78a06e4e2"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.onTie(serverVersion:heldVersion:)": "3d64beac434cba6a",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.decide(local:remote:onTie:)": "b20571745bb721d5"
    }
   },
   {
@@ -172,9 +152,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.onTie(serverVersion:heldVersion:)": "ad0d8712d4fc7685"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.onTie(serverVersion:heldVersion:)": "3d64beac434cba6a"
    }
   },
   {
@@ -188,9 +167,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.decide(local:remote:onTie:)": "16147fc78a06e4e2"
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.decide(local:remote:onTie:)": "b20571745bb721d5"
    }
   },
   {
@@ -212,14 +190,13 @@
     "file:<tmp>/CloudKitSessionFreshnessTests-<uuid>/"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "8782e72ec2fc6000",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replaceIfStillNewer(_:with:onTie:in:)": "422ba9ea13f03b71",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.archivedSessionWithNewerICloudCopy(in:)": "de5b03a0b28b00df",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeArchive()": "e58e8460e4aa5049",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.removeDirectory(_:)": "8fef7a7f331259a2"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replaceIfStillNewer(_:with:onTie:in:)": "342bb73a36f43561",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.archivedSessionWithNewerICloudCopy(in:)": "7aa400d557f5383d",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeArchive()": "62f63cae49cabc1c",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.removeDirectory(_:)": "400218a5c880b91a"
    }
   },
   {
@@ -234,10 +211,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)": "1e4a5922d1acfc50",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)": "e4aa63958f1544f2"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)": "4c10324f8b76c2f3",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)": "a46a38707c7acf3f"
    }
   },
   {
@@ -254,12 +230,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stampRecord(_:from:)": "9441f89220415055",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeRecord(for:modifiedAt:probe:)": "e7c723198655943d",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "af5933239f2e74a5"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stampRecord(_:from:)": "adca72056d224b68",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeRecord(for:modifiedAt:probe:)": "d651bfc9393cd4c0",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "e035e9b291c18c99"
    }
   },
   {
@@ -279,15 +254,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "2231f2a3598337a4",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.overwrite(_:with:restoring:yieldingIn:)": "b0699ba6eb837bd0",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "ebf11c4da93767ab",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "f7f8c1ad85cef5dc",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeRecord(for:modifiedAt:probe:)": "e7c723198655943d",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSyncState()": "6e8f21a6a8c64b2a"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "5d82df2e514f90e5",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.overwrite(_:with:restoring:yieldingIn:)": "31e798e05b44debf",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "271213db35c3c82e",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "98960771cca73957",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeRecord(for:modifiedAt:probe:)": "d651bfc9393cd4c0",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSyncState()": "5142e59032ac23d2"
    }
   },
   {
@@ -304,12 +278,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "2231f2a3598337a4",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.overwrite(_:with:restoring:yieldingIn:)": "b0699ba6eb837bd0",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeRecord(for:modifiedAt:probe:)": "e7c723198655943d",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSyncState()": "6e8f21a6a8c64b2a"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "5d82df2e514f90e5",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.overwrite(_:with:restoring:yieldingIn:)": "31e798e05b44debf",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeRecord(for:modifiedAt:probe:)": "d651bfc9393cd4c0",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSyncState()": "5142e59032ac23d2"
    }
   },
   {
@@ -327,13 +300,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "2231f2a3598337a4",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.overwrite(_:with:restoring:yieldingIn:)": "b0699ba6eb837bd0",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeRecord(for:modifiedAt:probe:)": "e7c723198655943d",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSyncState()": "6e8f21a6a8c64b2a"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "5d82df2e514f90e5",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.overwrite(_:with:restoring:yieldingIn:)": "31e798e05b44debf",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeRecord(for:modifiedAt:probe:)": "d651bfc9393cd4c0",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSyncState()": "5142e59032ac23d2"
    }
   },
   {
@@ -350,12 +322,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "2231f2a3598337a4",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.overwrite(_:with:restoring:yieldingIn:)": "b0699ba6eb837bd0",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeRecord(for:modifiedAt:probe:)": "e7c723198655943d",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSyncState()": "6e8f21a6a8c64b2a"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "5d82df2e514f90e5",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.overwrite(_:with:restoring:yieldingIn:)": "31e798e05b44debf",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeRecord(for:modifiedAt:probe:)": "d651bfc9393cd4c0",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSyncState()": "5142e59032ac23d2"
    }
   },
   {
@@ -371,11 +342,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.overwrite(_:with:restoring:yieldingIn:)": "b0699ba6eb837bd0",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeRecord(for:modifiedAt:probe:)": "e7c723198655943d",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSyncState()": "6e8f21a6a8c64b2a"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.overwrite(_:with:restoring:yieldingIn:)": "31e798e05b44debf",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeRecord(for:modifiedAt:probe:)": "d651bfc9393cd4c0",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSyncState()": "5142e59032ac23d2"
    }
   },
   {
@@ -391,11 +361,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.overwrite(_:with:restoring:yieldingIn:)": "b0699ba6eb837bd0",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeRecord(for:modifiedAt:probe:)": "e7c723198655943d",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSyncState()": "6e8f21a6a8c64b2a"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.overwrite(_:with:restoring:yieldingIn:)": "31e798e05b44debf",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeRecord(for:modifiedAt:probe:)": "d651bfc9393cd4c0",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSyncState()": "5142e59032ac23d2"
    }
   },
   {
@@ -414,17 +383,16 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.keepSleep(of:in:)": "851c95f949e98fb6",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)": "a8d2d7c07f638ee5",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)": "7d6537466e814742",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "af5933239f2e74a5",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSleep()": "86ec5cbdf534b886",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeVitals()": "29e3bbfbc1053148"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.keepSleep(of:in:)": "30f7b6d7d07998e3",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)": "b809c28c8de5089a",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)": "62f5272a5d47ff5a",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "e035e9b291c18c99",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSleep()": "6b7f475953c275f2",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeVitals()": "568d4ff2f67f2bab"
    }
   },
   {
@@ -442,14 +410,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)": "a8d2d7c07f638ee5",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.sameSleepWindow(_:_:)": "e6d07acb5dc81d91",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)": "7d6537466e814742",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "af5933239f2e74a5",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSleep()": "86ec5cbdf534b886"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)": "b809c28c8de5089a",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.sameSleepWindow(_:_:)": "d2c290b367afce2c",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)": "62f5272a5d47ff5a",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "e035e9b291c18c99",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSleep()": "6b7f475953c275f2"
    }
   },
   {
@@ -467,14 +434,13 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.keepSleep(of:in:)": "851c95f949e98fb6",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)": "a8d2d7c07f638ee5",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "f080778df155b85f",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "af5933239f2e74a5",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSleep()": "86ec5cbdf534b886"
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.keepSleep(of:in:)": "30f7b6d7d07998e3",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)": "b809c28c8de5089a",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "e035e9b291c18c99",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSleep()": "6b7f475953c275f2"
    }
   },
   {
@@ -489,15 +455,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "f080778df155b85f",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSessionWithHealthKitReadings()": "cc960b8afcd531b8"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSessionWithHealthKitReadings()": "51f524e14ed4efbd"
    }
   },
   {
@@ -514,15 +479,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)": "a8d2d7c07f638ee5",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)": "7d6537466e814742",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "f080778df155b85f",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSessionWithHealthKitReadings()": "cc960b8afcd531b8"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replacing(_:with:)": "b809c28c8de5089a",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)": "62f5272a5d47ff5a",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSessionWithHealthKitReadings()": "51f524e14ed4efbd"
    }
   },
   {
@@ -538,12 +502,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)": "3e719c97348423df",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "3e2fd096f03ca384",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "af5933239f2e74a5"
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)": "044e343b3259ee39",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "e035e9b291c18c99"
    }
   },
   {
@@ -558,10 +521,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.Source.appleHealth(sourceName:)": "0aea9d1aae5624d4",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::var ImportedWorkoutBuilder.Source.appleHealthSamples": "79d71a3530cf9efe"
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.Source.appleHealth(sourceName:)": "7ae9bebeccefd6ab",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::var ImportedWorkoutBuilder.Source.appleHealthSamples": "b3f33845ce47332e"
    }
   },
   {
@@ -580,15 +542,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)": "c637ecabe636a4db",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func SessionArchiveEntry.encode(to:)": "9aa00c4440bacb12",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)": "8f523714536d1d3f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func SessionArchiveEntry.encode(to:)": "c70379e32a76e7ad",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "e5448b1797ebcb23",
     "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(from:)": "4152f3b5379b5147",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)": "fc939f955bfe257a",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "af5933239f2e74a5"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)": "e279cc050a658fb7",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "e035e9b291c18c99"
    }
   },
   {
@@ -607,15 +568,14 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "e021c7f17b266931",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replaceIfStillNewer(_:with:onTie:in:)": "422ba9ea13f03b71",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.archivedSessionWithNewerICloudCopy(in:)": "de5b03a0b28b00df",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.decide(local:remote:onTie:)": "16147fc78a06e4e2",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeArchive()": "e58e8460e4aa5049",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.removeDirectory(_:)": "8fef7a7f331259a2"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replaceIfStillNewer(_:with:onTie:in:)": "342bb73a36f43561",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.archivedSessionWithNewerICloudCopy(in:)": "7aa400d557f5383d",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.decide(local:remote:onTie:)": "b20571745bb721d5",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeArchive()": "62f63cae49cabc1c",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.removeDirectory(_:)": "400218a5c880b91a"
    }
   },
   {
@@ -632,12 +592,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replaceIfStillNewer(_:with:onTie:in:)": "422ba9ea13f03b71",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.archivedSessionWithNewerICloudCopy(in:)": "de5b03a0b28b00df",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeArchive()": "e58e8460e4aa5049",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.removeDirectory(_:)": "8fef7a7f331259a2"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replaceIfStillNewer(_:with:onTie:in:)": "342bb73a36f43561",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.archivedSessionWithNewerICloudCopy(in:)": "7aa400d557f5383d",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeArchive()": "62f63cae49cabc1c",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.removeDirectory(_:)": "400218a5c880b91a"
    }
   },
   {
@@ -655,13 +614,12 @@
     "file:<temp archive>/<id>.json"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)": "1e4a5922d1acfc50",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "af5933239f2e74a5"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)": "4c10324f8b76c2f3",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "e035e9b291c18c99"
    }
   },
   {
@@ -675,10 +633,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "312605e0908fbc30",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
@@ -700,7 +657,6 @@
      "effect": "ignored (swallow-ok)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -714,9 +670,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "2231f2a3598337a4"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)": "5d82df2e514f90e5"
    }
   },
   {
@@ -730,9 +685,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161"
    }
   },
   {
@@ -755,7 +709,6 @@
      "effect": "true: sets record['probe']; false: absent"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -769,10 +722,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::init CloudKitSyncState(syncStateURL:)": "d9fba658d4c49cb0",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "e4ada115cab31ac4"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::init CloudKitSyncState(syncStateURL:)": "87152d1641176798",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
@@ -791,21 +743,20 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "6d045d2ab75f0630",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "1f7485fa01851fa3",
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "e2ce5faefbaf35f7",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
-    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "598952b71e6507c4",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "8e988f6172e1a8a5",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "c3e56399f7952f3a",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "cc26a08289fff8fb",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "245c2d41dcd0a692",
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "ab2b39acc87fdc13",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "af5933239f2e74a5",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSleep()": "86ec5cbdf534b886",
-    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeVitals()": "29e3bbfbc1053148"
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "e035e9b291c18c99",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSleep()": "6b7f475953c275f2",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeVitals()": "568d4ff2f67f2bab"
    }
   },
   {
@@ -819,9 +770,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722"
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925"
    }
   },
   {
@@ -833,7 +783,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   }
  ],

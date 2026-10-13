@@ -7,29 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "RecapCard is snapshotted as a SwiftUI view through the harness renderer, not through RecapCard.renderImage() (ImageRenderer at export scale) which produces the PNG actually shared, so the shared image path the header calls uncorrectable is not pinned.",
-   "evidence": [
-    "EmuquTests/CardSnapshotTests.swift:7",
-    "Emuqu/Sources/Views/RecapCard.swift:286"
-   ],
-   "found": "first read, upheld on second"
-  },
-  {
-   "kind": "test-defect",
-   "sev": "low",
-   "text": "Both TrendComparisonCard tests omit baselineStats, so only the nil-baseline (cold start) rendering is snapshotted; the baseline-backed figures the card's comment says must agree with the hero are never rendered.",
-   "evidence": [
-    "EmuquTests/CardSnapshotTests.swift:63",
-    "EmuquTests/CardSnapshotTests.swift:77",
-    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift:12"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func CardSnapshotTests.hosted(_:)",
@@ -45,10 +22,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "cee8619a3d38e814",
-    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "fe0869f551e25b93"
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "4d6afc6970c97bb2",
+    "EmuquTests/BigScreenSnapshotTests.swift::func BigScreenSnapshotTests.environment(_:)": "0e30550bddc40f29"
    }
   },
   {
@@ -64,12 +40,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
-    "Emuqu/Sources/Views/RecapCard.swift::var RecapCard.body": "3f293a2bef61d6c9",
-    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)": "53d2f36d7159e9f0",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "d39519f741795634",
+    "Emuqu/Sources/Views/RecapCard.swift::var RecapCard.body": "83d4189116bc0147",
+    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)": "5a2b34f6f27c5217",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -85,11 +60,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/RecapCard.swift::var RecapCard.body": "3f293a2bef61d6c9",
-    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)": "53d2f36d7159e9f0",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/RecapCard.swift::var RecapCard.body": "83d4189116bc0147",
+    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)": "5a2b34f6f27c5217",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -105,12 +79,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "0720dc2c9968a3e7",
-    "Emuqu/Sources/Views/RecapCard.swift::var RecapCard.body": "3f293a2bef61d6c9",
-    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)": "53d2f36d7159e9f0",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "d39519f741795634",
+    "Emuqu/Sources/Views/RecapCard.swift::var RecapCard.body": "83d4189116bc0147",
+    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)": "5a2b34f6f27c5217",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -128,13 +101,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::var TrendComparisonCard.body": "4f0f434946d7ac6c",
-    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)": "53d2f36d7159e9f0",
-    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "c6360e6fb9ef3864",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::var TrendComparisonCard.body": "ea1d598f1d9a19e9",
+    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)": "5a2b34f6f27c5217",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "aef292316c7c5c6f",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -152,13 +124,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::var TrendComparisonCard.body": "4f0f434946d7ac6c",
-    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)": "53d2f36d7159e9f0",
-    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "c6360e6fb9ef3864",
+    "Emuqu/Sources/Views/MorningResults/TrendComparisonCard.swift::var TrendComparisonCard.body": "ea1d598f1d9a19e9",
+    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)": "5a2b34f6f27c5217",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "aef292316c7c5c6f",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -176,13 +147,12 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/LiveWaveformView.swift::init LiveWaveformView(rrPoints:maxPoints:showGrid:accentColor:)": "d5f519d5f06649a0",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.body": "302ab8d0ef031670",
-    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)": "53d2f36d7159e9f0",
-    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.rrSeries(beats:)": "0efc8f7067b76e4f",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/LiveWaveformView.swift::init LiveWaveformView(rrPoints:maxPoints:showGrid:accentColor:)": "e8fe38e65c439b19",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.body": "941844b1b2297644",
+    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)": "5a2b34f6f27c5217",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.rrSeries(beats:)": "43e4966188052958",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   },
   {
@@ -199,12 +169,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Views/LiveWaveformView.swift::init LiveWaveformView(rrPoints:maxPoints:showGrid:accentColor:)": "d5f519d5f06649a0",
-    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.body": "302ab8d0ef031670",
-    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)": "53d2f36d7159e9f0",
-    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "0d3702ea32f0146e"
+    "Emuqu/Sources/Views/LiveWaveformView.swift::init LiveWaveformView(rrPoints:maxPoints:showGrid:accentColor:)": "e8fe38e65c439b19",
+    "Emuqu/Sources/Views/LiveWaveformView.swift::var LiveWaveformView.body": "941844b1b2297644",
+    "EmuquTests/CardSnapshotTests.swift::func CardSnapshotTests.hosted(_:)": "5a2b34f6f27c5217",
+    "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434"
    }
   }
  ],

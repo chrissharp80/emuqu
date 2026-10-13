@@ -8,18 +8,6 @@
   "file:<outdir>/<name> and <name>.part temp file"
  ],
  "toplevel": "Calls main() when run as a script (line 59).",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Docstring says 'With no files, fetches RECORDS and then <rec>.hea/.atr/... per --ext list', but main() only iterates the file names given on the command line; with no names it downloads nothing and there is no --ext option.",
-   "evidence": [
-    "Tools/validation/fetch_physionet.py:8",
-    "Tools/validation/fetch_physionet.py:50"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "def fetch",
@@ -76,7 +64,6 @@
      "effect": "records it, sleeps, retries; after all tries raises RuntimeError"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -96,13 +83,12 @@
      "effect": "fetch and print; no names => no-op"
     }
    ],
-   "flags": [],
    "deps": {
-    "Tools/validation/fetch_physionet.py::def fetch": "a04c2095b14e4db8"
+    "Tools/validation/fetch_physionet.py::def fetch": "2276429a61b009c7"
    }
   }
  ],
  "deps": {
-  "Tools/validation/fetch_physionet.py::def main": "abb23336efab6f67"
+  "Tools/validation/fetch_physionet.py::def main": "430ad2c88296135a"
  }
 }

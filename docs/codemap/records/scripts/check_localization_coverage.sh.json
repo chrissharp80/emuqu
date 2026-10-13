@@ -10,7 +10,6 @@
   "env:GITHUB_STEP_SUMMARY"
  ],
  "toplevel": "set -euo pipefail; cd to repo root. CATALOGUE=$1 or Emuqu/Localizable.xcstrings (missing -> 66); FLOOR_FILE=$2 or .ci/min_localization_coverage.txt (missing -> 66, empty -> 65); PROJECT_FILE=$3 or Emuqu.xcodeproj/project.pbxproj (missing -> 66). Python: keys with shouldTranslate != false; locales = project knownRegions (none found -> 65) plus every catalogue localization, minus Base and the source language, so a shipped locale with no entries counts as 0%; is_translated requires stringUnit state 'translated' with a value, or every variation case translated with plural 'other' present; worst locale < floor -> exit 1. Summary echoed and appended to GITHUB_STEP_SUMMARY. Wired for Localizable, Emuqu/InfoPlist, Watch InfoPlist and Help catalogues in gates.yml/ci.yml/Makefile.",
- "flags": [],
  "units": [],
  "deps": {}
 }

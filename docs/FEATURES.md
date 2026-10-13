@@ -70,7 +70,7 @@ project is in one screen. For how each feature is built, start with [`MAINTAINER
 ### Sleep Integration
 - **Sleep Score** — Weighted quality assessment (0-100) from duration, efficiency, deep sleep, and REM, enhanced with sleep science analysis (fragmentation, cycles, architecture, age-adjusted norms) when stage data is available
 - **Stage Analysis** — Deep, REM, core, and awake time breakdown
-- **HRV Sleep Stage Classifier** — Full sleep stage classification from chest strap RR data when no Apple Watch is available. With a Watch, optional HRV-enhanced refinement catches stages the Watch misclassifies
+- **HRV Sleep Stage Classifier** — Estimated sleep stages from chest strap RR data when no Apple Watch is available. With a Watch, optional HRV-based refinement overrides Watch stages where the HRV evidence strongly disagrees. Stages are estimates; agreement with lab sleep studies is not claimed
 - **Sleep Export to Apple Health** — On nights Apple Health has no sleep, write the sleep detected from heart rate as asleep and awake samples. Stages are estimates, so they are not written as deep, REM or core
 - **Sleep Adjustment Timeline** — Tap "Adjust Sleep" to fine-tune session boundaries on a draggable timeline (replaces the older slider-based editor). Multi-segment nights show all segments with gap indicators; exclude any segment from totals
 - **Sleep Refresh Bounded to Session Start** — Refreshing sleep no longer pulls in pre-recording data; stale baselines are penalized

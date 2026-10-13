@@ -7,19 +7,6 @@
  ],
  "state": [],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "spec-mismatch",
-   "sev": "low",
-   "text": "Passes the bare '-UITests' launch argument, which no production code reads (only -UITests-FreshInstall at AppLaunchRecovery.swift:185 and -UITests-ForcePaywall/-UITests-SeedArchive at UITestLaunchArguments.swift:18,23 are checked); it is inert",
-   "evidence": [
-    "EmuquUITests/AppearanceUITests.swift:26",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift:185",
-    "Emuqu/Sources/Services/UITestLaunchArguments.swift:18"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "func AppearanceUITests.setUp()",
@@ -34,11 +21,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "6ce77cca4f0ebae6",
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "35f7ec6a1e50e9a0",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "747ec38364b540cd"
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "27176c4bfdf71136",
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::func NarrativeLanguage.english(_:)": "3b88145026dfe70b",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "41bb3923e9a887c8"
    }
   },
   {
@@ -50,7 +36,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -72,11 +57,10 @@
      "effect": "return without tapping (assertion above already failed)"
     }
    ],
-   "flags": [],
    "deps": {
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "c573281c88c15ee6",
-    "EmuquUITests/EmuquUITests.swift::func UITestNav.openSettings(_:)": "db4b4ddcef0ceb5a",
-    "EmuquUITests/EmuquUITests.swift::func UITestNav.scrollTo(_:identifier:label:attempts:)": "57e7d029f2eefe07"
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "a044cbc5d334763f",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.openSettings(_:)": "49f96428e9dbf386",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.scrollTo(_:identifier:label:attempts:)": "9934cd4d819fd2ee"
    }
   },
   {
@@ -91,22 +75,10 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Passes if any one of three common substrings appears anywhere on screen, so it does not verify a theme picker exists (doc claims all three options are exposed)",
-     "evidence": [
-      "EmuquUITests/AppearanceUITests.swift:58",
-      "EmuquUITests/AppearanceUITests.swift:13"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquUITests/AppearanceUITests.swift::func AppearanceUITests.navigateToAppearance()": "5ff51edee30e4424",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "EmuquUITests/AppearanceUITests.swift::func AppearanceUITests.navigateToAppearance()": "806c4e736e24c6e4",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
   {
@@ -122,23 +94,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "test-defect",
-     "sev": "low",
-     "text": "Ignores tapSafely's result and asserts only that the tab bar exists (it stays in the hierarchy on any screen), so the theme switch may never have happened; XCTSkipUnless turns a missing button into a skip",
-     "evidence": [
-      "EmuquUITests/AppearanceUITests.swift:80",
-      "EmuquUITests/AppearanceUITests.swift:83"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "033500b652067ed6",
-    "EmuquUITests/AppearanceUITests.swift::func AppearanceUITests.navigateToAppearance()": "5ff51edee30e4424",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)": "5ba2bf71286c792e",
-    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "fde0094d94599f68"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "EmuquUITests/AppearanceUITests.swift::func AppearanceUITests.navigateToAppearance()": "806c4e736e24c6e4",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.tapSafely(_:in:)": "efab8f8cde2d1594",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   }
  ],

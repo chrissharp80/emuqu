@@ -50,21 +50,6 @@
   "mem:VoiceTriggerQueue.items (private)"
  ],
  "toplevel": "Stored-property initializers: shared singleton built on first access; synthesizer and audioEngine are lazy (synthesizer's closure initializer wires its delegate to self, so construction builds neither); textChunker = SpokenTextChunker() at construction. No explicit init: NSObject's init() is inherited. State conforms to Equatable. The class is @Observable so the UI and the Watch mirror observe state/partialTranscript/currentResponseText/permissionError. VoiceTriggerQueue (declared after the class) holds the queue's array and its cap, so the controller and its extensions go through enqueue/popFirst/removeAll/discardSpokenLines.",
- "flags": [
-  {
-   "kind": "unreachable-branch",
-   "sev": "low",
-   "text": "State.thinking is never assigned anywhere in the repo (grep '= .thinking' finds no setter), so every branch that tests for .thinking (toggle's .thinking case, stopAnyOngoingSpeech's wasMidResponse, scheduleListeningRestartAfterStop's guard, VoiceTurnPolicy's thinking branch) is dead; the Watch 'thinking' label is never pushed.",
-   "evidence": [
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift:94",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:23",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:216",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift:242",
-    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift:102"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
  "units": [
   {
    "key": "var VoiceConversationController.VoiceError.errorDescription",
@@ -103,9 +88,8 @@
      "effect": "finite → Int(sampleRate); NaN/inf → 0"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -148,7 +132,6 @@
      "effect": "'alert'"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -173,12 +156,11 @@
      "effect": "no push (early return); otherwise push the new label to the Watch"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.State.watchLabel": "49edab9094df9643",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.State.watchLabel": "ef5f5c32f78e25ec",
     "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.pushVoiceChatState(_:)": "47d2c9478f11a1ef",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "8f71f3de23c47a6a"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f"
    }
   },
   {
@@ -190,7 +172,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -204,10 +185,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.beginUserTurn()": "103619e1b249fe5a",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.beginUserTurn()": "415c8b197f5ea4c5",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "d607730c7c553774"
    }
   },
   {
@@ -221,10 +201,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.finalizeUserTurn()": "9b86e704dcce060c",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296"
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "d607730c7c553774"
    }
   },
   {
@@ -238,20 +217,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "dead",
-     "sev": "low",
-     "text": "Only callers are EmuquTests/VoiceAudioMeasurementTests.swift:25-72; production uses VoiceAudioPipeline.rms directly (Pipeline:464).",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController.swift:159",
-      "EmuquTests/VoiceAudioMeasurementTests.swift:25"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.rms(of:)": "0109a710de983eae"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.rms(of:)": "d8792f186dbb8a89"
    }
   },
   {
@@ -265,10 +232,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.configureAudioSessionForConversation()": "5ea693db349960eb",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.configureAudioSessionForConversation()": "be31a18c022fcb04",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "d607730c7c553774"
    }
   },
   {
@@ -282,10 +248,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.installInterruptionObserver()": "06a82d907331d5cd",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.installInterruptionObserver()": "b6f52346c4690dfb",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "d607730c7c553774"
    }
   },
   {
@@ -299,10 +264,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.removeInterruptionObserver()": "ec53aacbf9b9aa78",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.removeInterruptionObserver()": "d98812f1fb888d4d",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "d607730c7c553774"
    }
   },
   {
@@ -316,10 +280,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.teardownAudioPipeline()": "70cbadb533650bd0",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.teardownAudioPipeline()": "359e688d8aa63c4e",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "d607730c7c553774"
    }
   },
   {
@@ -333,10 +296,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.startFreshRecognitionTask()": "10bad226e064553d",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.startFreshRecognitionTask()": "ab038f6282161a6c",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "d607730c7c553774"
    }
   },
   {
@@ -350,10 +312,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.cancelLLM()": "87daed6dbd5e55c1",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "94d9d4e86ac71296"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.cancelLLM()": "96e4b90ab7e3f620",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "d607730c7c553774"
    }
   },
   {
@@ -370,7 +331,6 @@
     "mem:VoiceConversationController.synthesizer"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -384,10 +344,9 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -403,9 +362,8 @@
     "mem:VoiceConversationController.assistantObservers"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationHandle.cancel()": "547f7a8018872a02"
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationHandle.cancel()": "0cd1631627784c9f"
    }
   },
   {
@@ -423,9 +381,8 @@
     "mem:VoiceConversationController.pendingTriggers"
    ],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceTriggerQueue.discardSpokenLines()": "bb1826116451a354"
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceTriggerQueue.discardSpokenLines()": "c718555ba9b176d2"
    }
   },
   {
@@ -456,26 +413,10 @@
      "effect": "return; recognizer stays nil so a later start fails in startAudioEngineAndRecognizer with recognizerUnavailable"
     }
    ],
-   "flags": [
-    {
-     "kind": "broken",
-     "sev": "med",
-     "text": "The enableVoiceMode flag only skips recognizer construction (boot, and refreshLanguageForSession, which now also drops an existing recognizer at the next voice start). Nothing hides the voice buttons or gates start(): with the flag off, tapping talk still runs the mic/speech permission prompts, then beginUserTurn fails with 'Couldn't restart the mic: Speech recognizer not created (locale unsupported?)'. Needs a gate in start() (+Control) and in the chat/recording views; the synthesizer is no longer built at construction.",
-     "evidence": [
-      "Emuqu/Sources/Assistant/VoiceConversationController.swift:479",
-      "Emuqu/Sources/Assistant/VoiceConversationController.swift:491",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift:40",
-      "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift:76",
-      "Emuqu/Sources/Views/AdvancedDataControlsPage.swift:186",
-      "Emuqu/Sources/Assistant/Views/AssistantChatView.swift:204"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.makeRecognizer(locale:)": "0a047e5091fa7f95",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.recognizerLocale()": "1b4034da736dd774",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.performanceFlag(_:)": "ed30443c1dbd5d83"
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.makeRecognizer(locale:)": "5778f383e85b30e8",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.recognizerLocale()": "0dc3a6eebe05884a",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.performanceFlag(_:)": "65a80fa7834f4f53"
    }
   },
   {
@@ -508,12 +449,11 @@
      "effect": "return without rebuilding; otherwise rebuild"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.makeRecognizer(locale:)": "0a047e5091fa7f95",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.recognizerLocale()": "1b4034da736dd774",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.refreshVoices()": "bb02c3e09f60f984",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.performanceFlag(_:)": "ed30443c1dbd5d83"
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.makeRecognizer(locale:)": "5778f383e85b30e8",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.recognizerLocale()": "0dc3a6eebe05884a",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.refreshVoices()": "57fb94a27fed689d",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.performanceFlag(_:)": "65a80fa7834f4f53"
    }
   },
   {
@@ -546,12 +486,11 @@
      "effect": "drop the result; else set bestVoice"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.bestVoice(for:)": "85014ab958e8c3aa",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.preferredLanguage()": "fe566c7c1ee67a2b",
-    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.prewarm(forLanguage:)": "c177f2494c6c0984",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.bestVoice(for:)": "f4829910f7275059",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.preferredLanguage()": "95229ea316a9a08c",
+    "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.prewarm(forLanguage:)": "4fcf7e9af3f6bbf2",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {
@@ -572,11 +511,10 @@
      "effect": "true → Locale en-US; false → app locale"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
    }
   },
   {
@@ -596,7 +534,6 @@
      "effect": "falls back to an en-US recognizer (can itself be nil)"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -610,7 +547,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -624,7 +560,6 @@
    ],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -646,7 +581,6 @@
      "effect": "removeFirst(count - capacity); 0 dropped otherwise"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -668,7 +602,6 @@
      "effect": "nil; else removeFirst"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -682,7 +615,6 @@
     "mem:VoiceTriggerQueue.items (the VoiceConversationController.pendingTriggers value)"
    ],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -704,7 +636,6 @@
      "effect": "removed; .aiPrompt kept"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],

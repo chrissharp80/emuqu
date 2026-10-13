@@ -9,7 +9,6 @@
  ],
  "state": [],
  "toplevel": "Sessions get deviceIds 'gpx-import', 'healthkit-rebuild', 'healthkit-import' (recorded in DeviceProvenance). No RR series or analysis result is ever produced.",
- "flags": [],
  "units": [
   {
    "key": "func ImportedWorkoutTrack.timeOrdered()",
@@ -20,7 +19,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -32,9 +30,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -46,9 +43,8 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -66,9 +62,8 @@
      "effect": "label 'Apple Health'; otherwise 'Apple Health — <sourceName>'"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -85,23 +80,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "low",
-     "text": "The 0...48 h duration clamp is repeated inline in FitnessTabView's GPX import message, so the minutes shown after a GPX import and the session's built length are two copies of the same rule.",
-     "evidence": [
-      "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift:107",
-      "Emuqu/Sources/Views/FitnessTabView.swift:675"
-     ],
-     "found": "second read"
-    }
-   ],
    "deps": {
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.clampedDurationSeconds(from:to:)": "9af2d2772ff62865",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "cb81614d89bb9b09",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "134787195f5faa97",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutTrack.timeOrdered()": "d08b14e1d7de59c8"
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.clampedDurationSeconds(from:to:)": "8c76e416342e0d73",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.perSecondSamples(from:duration:)": "b484ea3981bf0b48",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.session(from:samples:source:replacing:)": "fc9a6bbffaece3fd",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutTrack.timeOrdered()": "284674fd6a1a9f44"
    }
   },
   {
@@ -113,7 +96,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -125,7 +107,6 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [],
    "deps": {}
   },
   {
@@ -148,7 +129,6 @@
      "effect": "add distance from previous point; first point cumulative 0"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -197,14 +177,13 @@
      "effect": "altitude nil; otherwise altitude of nearest point (0 when CLLocation has no altitude)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.advancing(_:to:elapsed:)": "624c46c302bf8255",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.nearestValue(in:near:within:)": "145df9bcea00d94a",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.secondKeyedSamples(from:)": "2178c82a6719bf6a",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.trackIndex(_:)": "d0691e63229713fa",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8",
-    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.track": "c1dc8df0f9c68727"
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.advancing(_:to:elapsed:)": "016d2e0c5d9357b4",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.nearestValue(in:near:within:)": "d2a451983c13b089",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.secondKeyedSamples(from:)": "87979d196aa3a9bf",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.trackIndex(_:)": "690cb2f724842f04",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.track": "6ac5b02917da2d08"
    }
   },
   {
@@ -227,7 +206,6 @@
      "effect": "return cursor+1; otherwise cursor"
     }
    ],
-   "flags": [],
    "deps": {}
   },
   {
@@ -254,11 +232,10 @@
      "effect": "healthKitExportedAt = Date() so backfill never re-exports it; otherwise nil (GPX and rebuild are exported)"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "f42191bee7fea21e",
-    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.blankSession(startDate:source:existingID:)": "d62a52b956d07164",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "e29f39e4c0cb178c",
+    "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift::func ImportedWorkoutBuilder.blankSession(startDate:source:existingID:)": "5e1f9ba5d32a7d68",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95"
    }
   },
   {
@@ -280,11 +257,10 @@
      "effect": "new session via convenience init; otherwise memberwise init with existingID"
     }
    ],
-   "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "0b05308ede465bfe",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5"
+    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "07ffebce6a868a6a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a"
    }
   },
   {
@@ -312,7 +288,6 @@
      "effect": "return it; after the loop return nil"
     }
    ],
-   "flags": [],
    "deps": {}
   }
  ],
