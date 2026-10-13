@@ -1218,8 +1218,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 10. Build, test, CI & tooling > CI/CD (`.github/workflows/`)",
-   "hash": "28473e91eaeaf489",
-   "does": "Claims ci.yml is workflow_dispatch (gates/unit/full) + workflow_call from testflight.yml on macos-26 with Xcode 26.6 (verified ci.yml:34,50,67,84); job 1 lint-and-budgets, job 2 strict-concurrency on ubuntu, job 3 thread-sanitizer, job 4 tests with coverage floors; gates.yml on push to main, pull_request and dispatch on ubuntu, including the code-map check, plus the code-map impact report in the job summary on pull requests, and required before anything merges to main (repository ruleset); security.yml, performance.yml, testflight.yml workflow_dispatch only (verified).",
+   "hash": "da9af927076fa0a3",
+   "does": "Claims ci.yml runs on every pull request and push to main (scope unit), workflow_dispatch (gates/unit/full) and workflow_call from testflight.yml (scope full) on macos-26 with Xcode 26.6; job 1 lint-and-budgets, job 2 strict-concurrency on ubuntu, job 3 thread-sanitizer and job 4 tests (coverage floors at full, unit target with the Views floor at unit), each of jobs 3 and 4 ending with a step that writes its result to the run summary; the macOS jobs are not required checks; gates.yml on push to main, pull_request and dispatch on ubuntu, including the code-map check, plus the code-map impact report in the job summary on pull requests, and required before anything merges to main (repository ruleset); security.yml, performance.yml, testflight.yml workflow_dispatch only.",
    "entry": null,
    "calls": [
     ".github/workflows/ci.yml::job lint-and-budgets",

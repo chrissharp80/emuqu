@@ -153,10 +153,11 @@ make ci
 
 Check the exit status, not the last line of output. **This is the enforcement.**
 `gates.yml` runs the bash-and-python gates on every push, including the
-tech-debt budgets and spec conformance; the build, the test suite, SwiftLint
-and its warning budget need macOS and run only on demand, for reasons costed
-in [`docs/CI_POSTURE.md`](docs/CI_POSTURE.md). So `make ci` is the gate rather
-than a convenience. `make ci` runs lint, budgets, spec conformance,
+tech-debt budgets and spec conformance. `ci.yml` runs SwiftLint, the macOS
+build, the unit suite and Thread Sanitizer on every pull request; the UI target
+runs only on demand and before a release (see
+[`docs/CI_POSTURE.md`](docs/CI_POSTURE.md)). So `make ci`, which includes the
+UI target, is the gate rather than a convenience. `make ci` runs lint, budgets, spec conformance,
 localization, copy perimeter, documentation links, and the full test suite
 with coverage. The test suite is the slow part, because the UI target drives a
 real simulator. Two checks that `ci.yml` runs are not part of `make ci`,

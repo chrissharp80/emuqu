@@ -186,8 +186,8 @@
   },
   {
    "key": "§ How a change lands in Emuqu > Before you open a pull request",
-   "hash": "f85c26207f72e8d5",
-   "does": "`make ci` is the enforcement: gates.yml runs bash/python gates on push incl. debt budgets and spec conformance; build/tests/SwiftLint need macOS and run on demand; `make ci` runs lint, budgets, spec conformance, localization, copy perimeter, doc links and the full test suite with coverage (Makefile ci). Says two ci.yml checks are not in `make ci`: `make thread-sanitizer` and `make release-build`, to run when a change touches concurrency or could differ under the optimizer. Adds that `make codemap-impact` lists everything the branch's changes can affect and that a pull request gets the same list in the gates.yml job summary.",
+   "hash": "2512a1224e38cd0d",
+   "does": "`make ci` is the enforcement: gates.yml runs bash/python gates on push incl. debt budgets and spec conformance; ci.yml runs SwiftLint, the macOS build, the unit suite and Thread Sanitizer on every pull request, the UI target only on demand and before a release; `make ci` (which includes the UI target) runs lint, budgets, spec conformance, localization, copy perimeter, doc links and the full test suite with coverage (Makefile ci). Says two ci.yml checks are not in `make ci`: `make thread-sanitizer` and `make release-build`, to run when a change touches concurrency or could differ under the optimizer. Adds that `make codemap-impact` lists everything the branch's changes can affect and that a pull request gets the same list in the gates.yml job summary.",
    "entry": null,
    "calls": [
     "Makefile::target ci",

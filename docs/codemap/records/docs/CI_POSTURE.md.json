@@ -1,15 +1,15 @@
 {
  "file": "docs/CI_POSTURE.md",
  "hash": "e3b0c44298fc1c14",
- "role": "Explains why macOS CI is manual-dispatch only, what gates run where (gates.yml on ubuntu, make ci locally), the gate self-verification harnesses and the costs accepted.",
+ "role": "Explains what CI runs where: gates.yml (ubuntu) and ci.yml at scope unit on every pull request and push to main, the UI target and full coverage floors (scope full) on demand and before releases, make ci locally; the gate self-verification harnesses; and what the posture does not claim.",
  "types": [],
  "state": [],
  "toplevel": "Markdown only; no executable content.",
  "units": [
   {
-   "key": "§ CI posture — why the macOS suite does not run automatically",
-   "hash": "afcd6b0bd7f34a8f",
-   "does": "Claims every macOS workflow is workflow_dispatch only; gates.yml runs the bash/python gates (including the code map) on every push to main and every pull request on ubuntu, and that job is the one status check main requires before a merge. Code: ci.yml, performance.yml, security.yml and testflight.yml trigger on workflow_dispatch (ci.yml also workflow_call); gates.yml triggers on push to branches [main], pull_request and workflow_dispatch on ubuntu-latest and has the step \"Code map is current\". The required check is a repository ruleset setting, not visible in the repo.",
+   "key": "§ CI posture",
+   "hash": "32831c3c1ad81a6c",
+   "does": "Claims every pull request and push to main runs gates.yml (bash/python gates including the code map, ubuntu, about a minute, the one status check main requires) and ci.yml at scope unit (SwiftLint and budgets, strict concurrency, macOS build, unit suite with the Views coverage floor, unit suite under Thread Sanitizer, jobs in parallel, about 15-20 minutes); public repositories pay no minutes for standard runners; the UI target and full coverage floors (scope full, about 90 minutes) run on demand and before every release. Code: gates.yml and ci.yml trigger on pull_request and push to branches [main]; testflight.yml calls ci.yml. The required check is a repository ruleset setting, not visible in the repo.",
    "entry": null,
    "calls": [
     ".github/workflows/gates.yml::job script-gates",
@@ -25,16 +25,16 @@
    "deps": {
     ".github/workflows/ci.yml::job lint-and-budgets": "a4472fcc86e48a24",
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
-    ".github/workflows/ci.yml::job tests": "a02b46f65c3a153e",
+    ".github/workflows/ci.yml::job tests": "be43d3924046dfa3",
     ".github/workflows/ci.yml::job thread-sanitizer": "1af3ef404705660f",
     ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64",
     ".github/workflows/gates.yml::step script-gates/Code map is current": "816d6727b1d4d826"
    }
   },
   {
-   "key": "§ CI posture — why the macOS suite does not run automatically > The arithmetic",
-   "hash": "de6c9d6eef0bfaee",
-   "does": "Claims macOS minutes bill at 10x and a full run (tests, thread-sanitizer, lint-and-budgets) is ~108 wall minutes / ~1,080 billable, measured on run 33202282889, and that on a push trigger the allowance would be gone in under a week. ci.yml's header comment records the same measurement (1083 billable).",
+   "key": "§ CI posture > The arithmetic, while the repository was private",
+   "hash": "7564221921a53bc9",
+   "does": "History: while private, macOS minutes billed at 10x against a 3,000-minute plan (~300 macOS minutes a month) and a full run (tests, thread-sanitizer, lint-and-budgets) was ~108 wall minutes / ~1,080 billable (run 33202282889), which is why ci.yml was manual-only and has a scope input. Claims public repositories are not billed for standard runners and the scopes remain because the UI target is the slow part. ci.yml's header comment records the same measurement (1083 billable).",
    "entry": null,
    "calls": [
     ".github/workflows/ci.yml::job lint-and-budgets",
@@ -46,12 +46,12 @@
    "branches": [],
    "deps": {
     ".github/workflows/ci.yml::job lint-and-budgets": "a4472fcc86e48a24",
-    ".github/workflows/ci.yml::job tests": "a02b46f65c3a153e",
+    ".github/workflows/ci.yml::job tests": "be43d3924046dfa3",
     ".github/workflows/ci.yml::job thread-sanitizer": "1af3ef404705660f"
    }
   },
   {
-   "key": "§ CI posture — why the macOS suite does not run automatically > What actually enforces quality here",
+   "key": "§ CI posture > What actually enforces quality here",
    "hash": "8542584b9c83d314",
    "does": "Claims `make ci` runs every gate plus the full test suite with the identical scripts and .ci budget files CI uses. Makefile:272 ci lists the static gates, verify-gates and test-coverage; it does not include the thread-sanitizer target (Makefile:162) that ci.yml runs as its own job.",
    "entry": null,
@@ -72,8 +72,8 @@
    }
   },
   {
-   "key": "§ CI posture — why the macOS suite does not run automatically > What actually enforces quality here > Running CI locally before paying for it",
-   "hash": "be6ec4725a243e6a",
+   "key": "§ CI posture > What actually enforces quality here > Running CI locally before pushing",
+   "hash": "3c49337829711dcf",
    "does": "Claims make ci-local / ci-local-unit run scripts/simulate_ci.sh, which parses ci.yml and executes its run: blocks in order, treating unknown steps as errors and skipping only Xcode selection and brew install; should run after committing because the ratchet compares HEAD to HEAD~1. Makefile:260/263 call simulate_ci.sh (with --scope unit); simulate_ci.sh loads ci.yml via yaml.safe_load and has skip patterns for sudo xcode-select and brew install/update/tap.",
    "entry": null,
    "calls": [
@@ -93,7 +93,7 @@
    }
   },
   {
-   "key": "§ CI posture — why the macOS suite does not run automatically > What actually enforces quality here > The gates",
+   "key": "§ CI posture > What actually enforces quality here > The gates",
    "hash": "e763954f55b9aae0",
    "does": "Claims the listed gate groups (including a Change tracking row: the code map's records current with their code, records whose callees changed listed for re-check) are all scripts in scripts/ run identically by make ci, make ci-local and Actions; every gate except check_coverage.sh and check_thread_sanitizer.sh has a plant in verify_gates_fail.sh, whose meta-check enumerates scripts/check_*.sh and enforce_*.sh failing on any without a plant or exemption; check_budget_monotonicity.sh skips without a baseline and takes HEAD to check uncommitted edits. Code: verify_gates_fail.sh loops over check_*/enforce_* and errors on unplanted gates; check_budget_monotonicity.sh exits 0 without a baseline (no_baseline) and accepts a ref argument.",
    "entry": null,
@@ -126,7 +126,7 @@
    }
   },
   {
-   "key": "§ CI posture — why the macOS suite does not run automatically > What actually enforces quality here > Three questions, not one",
+   "key": "§ CI posture > What actually enforces quality here > Three questions, not one",
    "hash": "499422214edac01b",
    "does": "Claims each gate is checked three ways: verify_gates_fail.sh (goes red), check_gate_preflight.sh (fails closed), check_gates_wired.sh (wired into ci.yml). All three scripts exist; ci.yml has 'Gates actually fail', 'Gates fail closed' and 'Every gate is wired into CI' steps.",
    "entry": null,
@@ -147,7 +147,7 @@
    }
   },
   {
-   "key": "§ CI posture — why the macOS suite does not run automatically > What actually enforces quality here > Two things must not read the tree at the same time",
+   "key": "§ CI posture > What actually enforces quality here > Two things must not read the tree at the same time",
    "hash": "28b71b0921dc6f3e",
    "does": "Claims verify_gates_fail.sh and verify_tests_fail.sh mutate tracked source and restore in an EXIT trap, both take .git/emuqu-tree-mutation.lock, simulate_ci.sh refuses to start while it is held, and a stale lock is taken over with a warning; check_no_leaked_mutations.sh is the backstop for a killed run. Code: both harnesses source scripts/lib/preflight.sh and call gate_acquire_tree_lock (verify_gates_fail.sh:37, verify_tests_fail.sh:74) with release in the EXIT trap; GATE_TREE_LOCK defaults to <git dir>/emuqu-tree-mutation.lock (falling back to TMPDIR when no git dir); simulate_ci.sh:47 calls gate_require_unmutated_tree; preflight.sh:159 warns on a stale lock.",
    "entry": null,
@@ -170,7 +170,7 @@
    }
   },
   {
-   "key": "§ CI posture — why the macOS suite does not run automatically > What actually enforces quality here > The tests are checked too, not just the code",
+   "key": "§ CI posture > What actually enforces quality here > The tests are checked too, not just the code",
    "hash": "06c46d6d9ed23cb0",
    "does": "Claims verify_tests_fail.sh mutates a chosen set of behaviours (pNN50 threshold, SDNN, RMSSD, NP fourth root, recovery label comparison, encrypted-write branch) and requires the suite to catch each; logic lifted out of large types gets its own mutations; TrackBackupWatermark's test drops one cursor at a time with a mutation per clause, and the recovery merge's more-beats tie-break is its own function with its own test because DataSourceSelector answers first. verify_tests_fail.sh defines mutate(), a pnn50_threshold mutation of TimeDomainAnalysis 'abs($0) > 50' -> 75 against EmuquTests/TimeDomainTests, and TrackBackupWatermark mutations.",
    "entry": null,
@@ -189,7 +189,7 @@
    }
   },
   {
-   "key": "§ CI posture — why the macOS suite does not run automatically > What actually enforces quality here > Where to point it next: at the comments that claim something is subtle",
+   "key": "§ CI posture > What actually enforces quality here > Where to point it next: at the comments that claim something is subtle",
    "hash": "5cf45fc94c75572b",
    "does": "Claims comments that call behaviour subtle are mutation leads: tests pin the three RRDataImporter+CSV.rrValue asymmetries with permanent mutations; WorkoutMileMarkerEngine's zone label must use max HR, not session peak, as the denominator, with tests and a mutation swapping it back; HealthExportIdentity's tests assert no metric's delete reaches another metric's or session's samples; verify_tests_fail.sh needs a build per mutation so it is not in make ci. Named units exist; verify_tests_fail.sh has RRDataImporter+CSV, HealthExportIdentity and zone_label_uses_session_peak_as_denominator cases and is not a dependency of the Makefile ci target.",
    "entry": null,
@@ -212,9 +212,9 @@
    }
   },
   {
-   "key": "§ CI posture — why the macOS suite does not run automatically > What actually enforces quality here > Runs are scoped, because a full one is expensive",
-   "hash": "c774aa828520d9a6",
-   "does": "Claims ci.yml takes a dispatch scope gates (default, ~14 billable), unit (~300), full (~1080), and workflow_call defaults to full so the TestFlight gate runs everything. Code: ci.yml workflow_dispatch input scope default gates with those options; workflow_call input scope default full; testflight.yml quality-gate uses ./.github/workflows/ci.yml.",
+   "key": "§ CI posture > What actually enforces quality here > Runs are scoped, because a full one is expensive",
+   "hash": "228b89dd05783403",
+   "does": "Claims ci.yml takes a dispatch scope gates (default, ~14 billable while private), unit (~300), full (~1080); pull requests and pushes run unit; workflow_call defaults to full so the TestFlight gate runs everything. Code: ci.yml workflow_dispatch input scope default gates with those options; pull_request/push carry no inputs, so the scope != 'gates' jobs run and tests takes TEST_SCOPE unit; workflow_call input scope default full; testflight.yml quality-gate uses ./.github/workflows/ci.yml.",
    "entry": null,
    "calls": [
     ".github/workflows/ci.yml::job lint-and-budgets",
@@ -229,7 +229,7 @@
    }
   },
   {
-   "key": "§ CI posture — why the macOS suite does not run automatically > What actually enforces quality here > The compiler is one of the gates",
+   "key": "§ CI posture > What actually enforces quality here > The compiler is one of the gates",
    "hash": "7bfab7b87c7a1677",
    "does": "Claims run_tests_with_coverage.sh passes -warn-long-expression-type-checking and -warn-long-function-bodies, the spec-conformance scan covers the whole app target (including Emuqu/EmuquApp.swift, where verify_gates_fail.sh plants a violation), there are zero swiftlint:disable directives in Emuqu/Sources, and check_budget_monotonicity.sh fails unjustified raises. Code: run_tests_with_coverage.sh:221 TYPE_CHECK_FLAGS with =4000/=6000; grep finds 0 swiftlint:disable in Emuqu/Sources.",
    "entry": null,
@@ -248,11 +248,14 @@
    }
   },
   {
-   "key": "§ CI posture — why the macOS suite does not run automatically > Where GitHub Actions is still used",
-   "hash": "077a489d9abb2422",
-   "does": "Claims testflight.yml calls ci.yml as a reusable workflow and security.yml (CodeQL) is on demand. Code: testflight.yml quality-gate job uses ci.yml; security.yml is workflow_dispatch with codeql and dependency-review jobs.",
+   "key": "§ CI posture > Where GitHub Actions is still used",
+   "hash": "f83115f295cf990c",
+   "does": "Claims every pull request and push to main runs gates.yml and ci.yml (unit), testflight.yml calls ci.yml as a reusable workflow at scope full, and security.yml (CodeQL) is on demand. Code: gates.yml/ci.yml pull_request and push [main] triggers; testflight.yml quality-gate job uses ci.yml; security.yml is workflow_dispatch with codeql and dependency-review jobs.",
    "entry": null,
    "calls": [
+    ".github/workflows/gates.yml::job script-gates",
+    ".github/workflows/ci.yml::job thread-sanitizer",
+    ".github/workflows/ci.yml::job tests",
     ".github/workflows/testflight.yml::job quality-gate",
     ".github/workflows/testflight.yml::job deploy",
     ".github/workflows/security.yml::job codeql",
@@ -262,37 +265,52 @@
    "writes": [],
    "branches": [],
    "deps": {
+    ".github/workflows/ci.yml::job tests": "be43d3924046dfa3",
+    ".github/workflows/ci.yml::job thread-sanitizer": "1af3ef404705660f",
+    ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64",
     ".github/workflows/security.yml::job codeql": "64078fc4677fac05",
-    ".github/workflows/security.yml::job dependency-review": "4665797cb224b382",
+    ".github/workflows/security.yml::job dependency-review": "f544cc3ea5ca4098",
     ".github/workflows/testflight.yml::job deploy": "e646693de510f6b6",
     ".github/workflows/testflight.yml::job quality-gate": "bce49f9b26dee90e"
    }
   },
   {
-   "key": "§ CI posture — why the macOS suite does not run automatically > What this posture does *not* claim",
-   "hash": "bd801d1e097db38d",
-   "does": "no behavioural claim: lists accepted costs, smaller than a CI system that cannot run, (no automated gate before main, no independent verification, no third-party record).",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {}
-  },
-  {
-   "key": "§ CI posture — why the macOS suite does not run automatically > For reviewers",
-   "hash": "3c70f7f8d97433d7",
-   "does": "Tells reviewers that the macOS suite not running automatically is intended, and that main is protected by one required check, the Linux gates.yml job, with nothing needing macOS required; that macOS jobs should become required only after budget and a green run, which the Linux job has passed. Claims evidence_report.sh prints enforced ceilings (--json for machine output) without builds; sbom.spdx.json covers the app plus 11 resolved packages and make sbom-check fails when stale; the SBOM is unsigned with no build provenance. Code: sbom.spdx.json has 12 packages (app + 11); Makefile sbom-check. The required check is a repository ruleset setting, not visible in the repo.",
+   "key": "§ CI posture > What this posture does *not* claim",
+   "hash": "689455b006767123",
+   "does": "Claims a pull request gets the macOS build, unit suite with the Views floor and Thread Sanitizer, while the UI flows and overall/logic coverage floors run only at scope full (on demand and before a release), so a UI-only break can reach main; and that the macOS jobs are not required checks, main requiring only gates.yml. Code: ci.yml tests job TEST_SCOPE unit unless scope full. The required check is a repository ruleset setting, not visible in the repo.",
    "entry": null,
    "calls": [
-    "scripts/evidence_report.sh::fn budget",
-    "Makefile::target sbom-check",
+    ".github/workflows/ci.yml::job tests",
+    ".github/workflows/ci.yml::job thread-sanitizer",
     ".github/workflows/gates.yml::job script-gates"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    ".github/workflows/ci.yml::job tests": "be43d3924046dfa3",
+    ".github/workflows/ci.yml::job thread-sanitizer": "1af3ef404705660f",
+    ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64"
+   }
+  },
+  {
+   "key": "§ CI posture > For reviewers",
+   "hash": "aedce828f50cec3f",
+   "does": "Tells reviewers the macOS build, unit suite and Thread Sanitizer run on every pull request and push to main and the UI target on demand and before a release; main is protected by one required check, the Linux gates.yml job, with nothing needing macOS required; for evidence, look at the CI run on the pull request or commit, whose run summary has one line per macOS job with scope and result, and ask for a scope full run for the UI target; macOS jobs become required after a record of green runs, as gates.yml did. Claims evidence_report.sh prints enforced ceilings (--json for machine output) without builds; sbom.spdx.json covers the app plus 11 resolved packages and make sbom-check fails when stale; the SBOM is unsigned with no build provenance. Code: ci.yml summary steps in thread-sanitizer and tests; sbom.spdx.json has 12 packages (app + 11); Makefile sbom-check. The required check is a repository ruleset setting, not visible in the repo.",
+   "entry": null,
+   "calls": [
+    "scripts/evidence_report.sh::fn budget",
+    "Makefile::target sbom-check",
+    ".github/workflows/gates.yml::job script-gates",
+    ".github/workflows/ci.yml::step thread-sanitizer/Write the result to the run summary",
+    ".github/workflows/ci.yml::step tests/Write the result to the run summary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    ".github/workflows/ci.yml::step tests/Write the result to the run summary": "17b49090fc1e0a77",
+    ".github/workflows/ci.yml::step thread-sanitizer/Write the result to the run summary": "4c12a1bdce7dc65e",
     ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64",
     "Makefile::target sbom-check": "46aecc781adb961a",
     "scripts/evidence_report.sh::fn budget": "a927bad97b8838e4"
