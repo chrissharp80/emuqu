@@ -74,9 +74,9 @@
   },
   {
    "key": "deinit StrapLinkRuntime",
-   "hash": "cbb972e0d8343cde",
+   "hash": "0a285e790e8953c3",
    "does": "On release cancels all six runtime tasks and finishes the event pump.",
-   "entry": "isolated deinit when the PolarManager (owner) is deallocated.",
+   "entry": "Nonisolated deinit, on whatever thread releases the PolarManager (owner).",
    "calls": [
     "Emuqu/Sources/Collection/StrapLinkRuntime.swift::func StrapEventPump.finish()"
    ],

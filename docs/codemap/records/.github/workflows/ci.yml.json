@@ -1,14 +1,14 @@
 {
  "file": ".github/workflows/ci.yml",
- "hash": "2b2bcb177d1e6738",
- "role": "The full CI workflow (\"CI\"): manual-only (workflow_dispatch with scope gates|unit|full and optional baseline-ref) and reusable (workflow_call, scope default full) so testflight.yml gates releases on it. Four jobs: lint-and-budgets (macOS, every static gate), strict-concurrency (ubuntu), thread-sanitizer and tests (macOS, skipped for gates scope).",
+ "hash": "b289deebf5f92f8c",
+ "role": "The macOS CI workflow (\"CI\"): runs at scope unit on every pull_request and on push to main, on workflow_dispatch with scope gates|unit|full (default gates) and optional baseline-ref, and as a reusable workflow (workflow_call, scope default full) so testflight.yml gates releases on it. Four jobs: lint-and-budgets (macOS, every static gate), strict-concurrency (ubuntu), thread-sanitizer and tests (macOS, skipped for gates scope).",
  "types": [],
  "state": [
   "concurrency group ci-<workflow>-<ref>, cancel-in-progress",
   "permissions contents: read",
   "env RESULT_BUNDLE=build/TestResults.xcresult"
  ],
- "toplevel": "Triggers: workflow_dispatch only (no push/PR/schedule) and workflow_call. Top-level permissions contents:read; concurrency cancels an in-flight run on the same workflow+ref (when called from testflight.yml, github.workflow is the caller's name). Scope gates runs lint-and-budgets + strict-concurrency only; unit adds TSan and the unit test target (overall/logic coverage floors not gated, Views floor gated); full adds the UI target and the coverage floors. scripts/simulate_ci.sh (make ci-local) parses this file to replay it locally, and scripts/check_gates_wired.sh requires every check_/enforce_ script name to appear in it. Since nothing triggers it automatically, every gate that exists only here runs only when someone dispatches it or deploys to TestFlight. lint-and-budgets installs SwiftLint pinned by version and checksum.",
+ "toplevel": "Triggers: pull_request, push to branches [main], workflow_dispatch and workflow_call; no schedule. Pull requests and pushes carry no inputs, so inputs.scope is empty: thread-sanitizer and tests run (their if is scope != 'gates') and tests takes TEST_SCOPE unit. Top-level permissions contents:read; concurrency cancels an in-flight run on the same workflow+ref (when called from testflight.yml, github.workflow is the caller's name). Scope gates runs lint-and-budgets + strict-concurrency only; unit adds TSan and the unit test target (overall/logic coverage floors not gated, Views floor gated); full adds the UI target and the coverage floors. thread-sanitizer and tests each end with an always() step that appends one line with the job's result to the run summary. scripts/simulate_ci.sh (make ci-local) parses this file to replay it locally, and scripts/check_gates_wired.sh requires every check_/enforce_ script name to appear in it. lint-and-budgets installs SwiftLint pinned by version and checksum.",
  "units": [
   {
    "key": "job lint-and-budgets",
@@ -1110,6 +1110,28 @@
    }
   },
   {
+   "key": "step thread-sanitizer/Write the result to the run summary",
+   "hash": "52175b6b1edb924d",
+   "does": "Appends the line \"- Thread Sanitizer (unit suite): <job.status>\" to $GITHUB_STEP_SUMMARY, so the run summary shows this job's result.",
+   "entry": "Step of ci.yml thread-sanitizer job",
+   "calls": [],
+   "reads": [
+    "job.status",
+    "env GITHUB_STEP_SUMMARY"
+   ],
+   "writes": [
+    "$GITHUB_STEP_SUMMARY (appends one line)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "always()",
+     "effect": "runs after an earlier step failed or the job was cancelled, writing failure or cancelled"
+    }
+   ],
+   "deps": {}
+  },
+  {
    "key": "job tests",
    "hash": "67952978c1de2fe0",
    "does": "macOS-26 job 'Tests + coverage' (timeout 110). Sets TEST_SCOPE=full when scope is full, otherwise unit, plus SCHEME/PROJECT/RESULT_BUNDLE. Steps: checkout, Xcode 26.6, resolve simulator, make release-build, run_tests_with_coverage.sh, upload xcresult. Skipped for gates scope. In unit scope the overall and logic floors are reported but not gated (SKIP_OVERALL_COVERAGE/SKIP_LOGIC_COVERAGE); the Views floor (.ci/min_coverage_views.txt) is gated in both scopes, which the job's comment now states.",
@@ -1239,6 +1261,29 @@
      "at": "+1",
      "cond": "always()",
      "effect": "runs even after earlier step failure or cancellation; if-no-files-found: ignore means no bundle → no error"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "step tests/Write the result to the run summary",
+   "hash": "57940db1766007e1",
+   "does": "Appends the line \"- Release build, tests and coverage (scope <TEST_SCOPE>): <job.status>\" to $GITHUB_STEP_SUMMARY, so the run summary shows this job's scope (unit or full) and result.",
+   "entry": "Step of ci.yml tests job",
+   "calls": [],
+   "reads": [
+    "job.status",
+    "env TEST_SCOPE",
+    "env GITHUB_STEP_SUMMARY"
+   ],
+   "writes": [
+    "$GITHUB_STEP_SUMMARY (appends one line)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "always()",
+     "effect": "runs after an earlier step failed or the job was cancelled, writing failure or cancelled"
     }
    ],
    "deps": {}

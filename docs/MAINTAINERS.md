@@ -1287,8 +1287,9 @@ lists them all as possible callers, and only certain edges trigger re-checks.
 
 ### CI/CD (`.github/workflows/`)
 
-- **`ci.yml`** — manual only (`workflow_dispatch`, with a `gates` / `unit` /
-  `full` scope) and `workflow_call` from `testflight.yml`. Runs on `macos-26` runners
+- **`ci.yml`** — every pull request and push to `main` (scope `unit`),
+  `workflow_dispatch` (with a `gates` / `unit` / `full` scope) and
+  `workflow_call` from `testflight.yml` (scope `full`). Runs on `macos-26` runners
   with Xcode 26.6 selected (`xcode-select -s /Applications/Xcode_26.6.app`). Jobs 3 and 4 skip at the `gates` scope.
   - **Job 1 `lint-and-budgets`** — SwiftLint (0 errors, warnings under budget),
     tech-debt budgets, budget monotonicity, copy-perimeter, Info.plist drift,
@@ -1303,14 +1304,17 @@ lists them all as possible callers, and only certain edges trigger re-checks.
     that can show the `@unchecked Sendable` / `nonisolated(unsafe)` escapes
     (capped by `.ci/unchecked_sendable_budget.txt`, each in an allowlisted
     file, each naming the queue or lock that owns its state) are actually
-    safe, as opposed to merely no more numerous than last week.
+    safe, as opposed to merely no more numerous than last week. Its last step
+    writes the job's result to the run summary.
   - **Job 4 `tests`** — `xcodebuild test` with coverage, against the floors in
-    `.ci/min_coverage.txt` and `.ci/min_coverage_logic.txt`.
+    `.ci/min_coverage.txt` and `.ci/min_coverage_logic.txt` (scope `full`;
+    `unit` runs the unit target against the Views floor only). Its last step
+    writes the scope and the job's result to the run summary.
 - **`gates.yml`** — on pushes to `main` and every pull request, ubuntu runner:
   the script gates from `make ci` that need only bash and python (no SwiftLint,
   no Xcode), including the code-map check. On a pull request it also writes the
   code-map impact report to the job summary. About a minute. The macOS jobs
-  above stay manual. `main` requires this job to pass before anything merges.
+  above are not required checks. `main` requires this job to pass before anything merges.
 - **`security.yml`** — `workflow_dispatch` only — CodeQL over the Swift
   (macOS) and dependency review (ubuntu).
 - **`performance.yml`** — `workflow_dispatch` only — `AnalysisPerformanceTests`.

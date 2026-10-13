@@ -10,7 +10,7 @@
 #
 # Two workflows, two questions:
 #
-#   * `ci.yml` (manual, the complete list): every gate must run there.
+#   * `ci.yml` (the complete list): every gate must run there.
 #   * `gates.yml` (every push and pull request): every gate must run there too,
 #     unless it is in NOT_ON_PUSH with the reason it cannot run on a Linux
 #     runner (SwiftLint, Xcode, a simulator).

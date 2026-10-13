@@ -86,7 +86,11 @@ final class StrapLinkRuntime {
     /// The strap this app is trying to get back after an unexpected drop.
     var reconnectTargetId: String?
 
-    isolated deinit {
+    /// Nonisolated: it reads only `Sendable` stored properties (the tasks and
+    /// the pump). An `isolated deinit` crashed the process ("pointer being
+    /// freed was not allocated") when the owner was released on the main
+    /// actor under XCTest, so every test that dropped a `PolarManager` died.
+    deinit {
         [deliveryTask, feedTask, healthTask, settleTask, statusCheckTask, reconnectDeadlineTask]
             .forEach { $0?.cancel() }
         pump.finish()
