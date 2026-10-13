@@ -1,40 +1,31 @@
-# CI posture — why the macOS suite does not run automatically
+# CI posture
 
-**Read this before filing a finding about missing CI automation or branch protection.**
+Every pull request and every push to `main` runs two workflows:
 
-Every macOS workflow in `.github/workflows/` is `workflow_dispatch` only. There
-is no push trigger, no pull-request trigger, and no schedule for anything that
-needs Xcode.
+- `gates.yml`: the script gates that need only bash and python (copy perimeter,
+  science register, scoring governance, localization, documentation, SBOM,
+  source-hygiene guards, the code map, the tech-debt budgets and refactor-spec
+  conformance) on an **ubuntu** runner in about a minute. It is the status
+  check `main` requires before anything merges.
+- `ci.yml` at scope `unit`: SwiftLint and the budgets, strict concurrency, the
+  macOS build, the unit suite with the Views coverage floor, and the unit suite
+  under Thread Sanitizer, on GitHub's standard macOS runner. The jobs run in
+  parallel; a run takes about 15–20 minutes.
 
-The one exception is `gates.yml`: the script gates that
-need only bash and python — copy perimeter, science register, scoring
-governance, localization, documentation, SBOM, source-hygiene guards, the
-code map, the tech-debt budgets and refactor-spec conformance — run on every
-push to `main` and every pull request on an **ubuntu** runner, in about a
-minute, billed at 1x. That job is the one status check `main` requires before
-anything merges. It is a fast
-subset, not a replacement: SwiftLint, the tests, coverage and the sanitizer
-still need macOS and still run on demand.
+The repository is public, and standard GitHub-hosted runners cost public
+repositories no Actions minutes. The UI target and the full coverage floors
+(scope `full`, about 90 minutes) run on demand and before every release.
 
-That is deliberate, it is costed, and the checks themselves are neither missing
-nor weakened. This page exists so the reasoning is in the repository rather than
-being re-derived — or misread — by each new reviewer.
+## The arithmetic, while the repository was private
 
-## The arithmetic
-
-macOS GitHub Actions minutes bill at **10×**. A 3,000-minute plan is therefore
-about **300 macOS minutes a month**.
-
-A full run of this repository's macOS CI jobs (`tests`, `thread-sanitizer`,
-`lint-and-budgets`) is ~108 wall-clock minutes, about 1,080 billable.
-
-About 1,080 billable minutes against three thousand is **fewer than three runs a
-month, for everything** (measured on run 33202282889; see "Runs are scoped"
-below) — and that is before a release build, which is the one thing that
-genuinely needs a machine that is not the developer's.
-
-On a push trigger, the allowance would be gone in under a week and nothing
-would run for the rest of the month.
+Until the repository went public, macOS Actions minutes billed at **10×** the
+Linux rate against a 3,000-minute plan, about **300 macOS minutes a month**. A
+full run of the macOS jobs (`tests`, `thread-sanitizer`, `lint-and-budgets`)
+was ~108 wall-clock minutes, about 1,080 billable (run 33202282889): fewer than
+three full runs a month. That is why `ci.yml` was manual-only and why it has a
+`scope` input. Public repositories are not billed for standard GitHub-hosted
+runners, so the constraint no longer applies; the scopes remain because the UI
+target is still the slow part of a run.
 
 ## What actually enforces quality here
 
@@ -52,7 +43,7 @@ costs nothing and takes about forty minutes.
 `./scripts/evidence_report.sh` prints the live counts; nothing in this document
 restates a number the tooling already knows, because a restated number rots.
 
-### Running CI locally before paying for it
+### Running CI locally before pushing
 
 ```bash
 make ci-local          # every gate, ~2 minutes, free
@@ -197,11 +188,13 @@ it when the analysis or storage code changes.
 
 ### Runs are scoped, because a full one is expensive
 
-`ci.yml` takes a `scope` on dispatch. Measured on run 33202282889:
+`ci.yml` takes a `scope` on dispatch; pull requests and pushes run `unit`.
+Billable minutes as measured on run 33202282889, while the repository was
+private (a public repository is not billed for these runners):
 
 | scope | what runs | billable minutes |
 |---|---|---|
-| `gates` (default) | lint, budgets, strict concurrency | ~14 |
+| `gates` (dispatch default) | lint, budgets, strict concurrency | ~14 |
 | `unit` | + unit suite and Thread Sanitizer | ~300 |
 | `full` | + UI target and the coverage floors | ~1080 |
 
@@ -232,38 +225,31 @@ fails a raise that has no written justification.
 
 ## Where GitHub Actions is still used
 
-Manually, for the thing it is uniquely good at: proving a release candidate
-builds and passes on a machine that is not the developer's.
-
-- `testflight.yml` calls `ci.yml` as a reusable workflow, so a release cannot be
-  cut without the full suite passing first.
+- Every pull request and push to `main`: `gates.yml` and `ci.yml` (`unit`).
+- `testflight.yml` calls `ci.yml` as a reusable workflow at scope `full`, so a
+  release cannot be cut without the full suite, UI target included, passing
+  first.
 - `security.yml` (CodeQL) is run on demand when a security pass is wanted.
-
-A full run fits fewer than three times a month; the `gates` and `unit` scopes
-cost far less. That is enough for the release cadence.
 
 ## What this posture does *not* claim
 
-It is a genuine trade, and these are the real costs:
-
-- **A broken commit can reach `main`.** There is no automated gate between the
-  developer's editor and the branch. The mitigation is that `make ci` is run
-  before pushing, which is a discipline, not an enforcement.
-- **No independent verification of the developer's claims.** A green `make ci`
-  is asserted by the person who wrote the code. A CI run on someone else's
-  hardware is not.
-- **No third-party record.** There is no external artifact showing the suite was
-  green at a given commit, other than a manually-triggered run.
-
-Those costs are accepted knowingly. They are smaller than the cost of a CI
-system that cannot run at all.
+- **The UI target does not run on every pull request.** A pull request gets the
+  macOS build, the unit suite with the Views coverage floor and Thread
+  Sanitizer; the UI flows and the overall and logic coverage floors run only at
+  scope `full`, on demand and before every release. A change that breaks only
+  a UI flow can reach `main` and is caught at the latest by the release gate.
+  `make ci` runs the full suite locally, which is a discipline, not an
+  enforcement.
+- **The macOS jobs are not required checks.** `main` requires only the Linux
+  `gates.yml` job. A red `ci.yml` run on a pull request is visible on the pull
+  request but does not block the merge by itself.
 
 ## For reviewers
 
-If your finding is *"the macOS suite does not run automatically"* — that is
-accurate, intended, and documented above. Please score it against the
-constraint rather than the checklist. `main` is protected by one required
-check, the Linux `gates.yml` job; nothing that needs macOS is required.
+The macOS build, the unit suite and Thread Sanitizer run on every pull request
+and every push to `main`; the UI target runs on demand and before a release.
+`main` is protected by one required check, the Linux `gates.yml` job; nothing
+that needs macOS is required.
 
 For a fast, factual snapshot of what is enforced — every ceiling, every
 zero-tolerance counter, and where each is written down:
@@ -277,15 +263,15 @@ It runs no builds and takes seconds. It deliberately omits coverage and
 pass/fail, because those need a real run and a cached number would be a
 stale claim dressed as a current one.
 
-If your finding is *"there is no evidence the checks pass"* — that is fair, and
-the answer is to ask for a run rather than to infer failure from a quiet Actions
-tab. `make ci` output or a dispatched workflow run will settle it.
+If your finding is *"there is no evidence the checks pass"*, look at the `CI`
+run on the pull request, or on the commit for a push to `main`. Its run summary
+has one line per macOS job with the scope and the result. For the UI target
+and the full coverage floors, ask for a run at scope `full`.
 
-If your finding is *"the macOS jobs should be required checks on `main`"* — note
-the ordering problem. Required checks that can never execute block every merge
-permanently. Enabling them without a working budget makes the repository worse,
-not better, and the correct sequence is: budget → one green run → then require.
-The Linux `gates.yml` job passed that sequence and is required.
+If your finding is *"the macOS jobs should be required checks on `main`"*, the
+sequence is: the jobs run on every pull request → a record of green runs →
+then require them. The Linux `gates.yml` job went through that sequence and is
+required; the macOS jobs are at the first step.
 
 `sbom.spdx.json` covers the app and its 11
 resolved packages with versions, commit SHAs, Package URLs and licences, and

@@ -1,19 +1,15 @@
 name: CI
 
-# MANUAL ONLY.
+# Runs the macOS build, the unit suite and Thread Sanitizer on every pull
+# request and every push to main (scope `unit`). The repository is public and
+# these jobs use GitHub's standard macOS runner, on which public repositories
+# pay no Actions minutes; the billing figures below date from when it was
+# private. The UI target (scope `full`, ~90 min) stays manual and is what
+# testflight.yml calls before a release.
 #
-# macOS Actions minutes bill at 10x, so a 3,000-minute plan is really about 300
-# macOS minutes a month. A full run of this suite is ~108 wall-clock minutes
-# across its jobs — about 1,080 billable (measured below) — so on a push
-# trigger it exhausts the month in under three runs and leaves nothing for a
-# release build. That is how the allowance went last time.
+# Reasoning and accepted trade-offs: docs/CI_POSTURE.md
 #
-# Full reasoning, costs and accepted trade-offs: docs/CI_POSTURE.md
-#
-# Everything here also runs locally with `make ci`, which is where it belongs
-# while the codebase is moving: same scripts, same budgets, no meter running.
-# Trigger this by hand when you want a clean-room verification, and let
-# testflight.yml call it before a release.
+# Everything here also runs locally with `make ci`.
 on:
   # 2026-08-28 — scope added because a full run is expensive and most of the
   # cost buys very little most of the time. Measured on run 33202282889:
@@ -29,8 +25,13 @@ on:
   # alone — 61% of a whole run. Six full runs in one day exhausted a month's
   # included minutes and most of the spending cap, which is what prompted this.
   #
-  # `gates` is the default because it catches most regressions for ~1% of the
-  # cost. Pick `full` when a release needs the coverage floors and the UI flows.
+  # Pull requests and pushes to main carry no inputs, so `inputs.scope` is
+  # empty there: the jobs gated on `scope != 'gates'` run, and the tests job
+  # takes the `unit` scope. Pick `full` by hand when a release needs the
+  # coverage floors and the UI flows.
+  pull_request:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       scope:
@@ -124,8 +125,8 @@ jobs:
       # budgets ratchet down, and a raise needs a `budget-raise-ok:` trailer.
       - name: Resolve the budget baseline
         id: baseline
-        # `github.event.before` is a PUSH-event field, and this workflow is
-        # dispatch/call only — so it was always empty, the script always printed
+        # `github.event.before` is a PUSH-event field and is empty on pull
+        # requests, dispatches and calls; reading it, the script always printed
         # "no PR baseline … Skipping", and exited 0. The ratchet reported
         # success while comparing nothing, for every run that mattered,
         # confirmed in run 33313057950's own log.
@@ -459,6 +460,11 @@ jobs:
       - name: Unit suite under Thread Sanitizer
         run: ./scripts/check_thread_sanitizer.sh
 
+      - name: Write the result to the run summary
+        if: always()
+        run: |
+          echo "- Thread Sanitizer (unit suite): ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+
   tests:
     name: Tests + coverage
     # Skipped for a `gates` run. On `unit` it runs the unit target only, which
@@ -532,3 +538,8 @@ jobs:
           name: test-results-xcresult
           path: ${{ env.RESULT_BUNDLE }}
           if-no-files-found: ignore
+
+      - name: Write the result to the run summary
+        if: always()
+        run: |
+          echo "- Release build, tests and coverage (scope ${TEST_SCOPE}): ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
