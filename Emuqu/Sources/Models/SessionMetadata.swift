@@ -406,6 +406,9 @@ struct HRVSession: Codable, Identifiable, Sendable {
         /// SDNN value (ms) — used by Apple Watch Breathe sessions which only provide SDNN
         let sdnn: Double?
 
+        /// The `source` the Elite HRV summary importer writes.
+        static let eliteHRVSource = "Elite HRV"
+
         init(rmssd: Double, rmssdRaw: Double, artifactPercent: Double, source: String, sdnn: Double? = nil) {
             self.rmssd = rmssd
             self.rmssdRaw = rmssdRaw
@@ -520,6 +523,8 @@ struct HRVSession: Codable, Identifiable, Sendable {
 
         // MARK: sleep — mirrors encodeSleep. All nil for legacy data.
         importedMetrics = try container.decodeIfPresent(ImportedMetrics.self, forKey: .importedMetrics)
+        let isLegacyEliteImport = analysisResult?.isLegacyEliteImport(source: importedMetrics?.source) == true
+        analysisResult = analysisResult?.withLegacyImportProvenance(source: importedMetrics?.source)
         deviceProvenance = try container.decodeIfPresent(DeviceProvenance.self, forKey: .deviceProvenance)
         sleepStartMs = try container.decodeIfPresent(Int64.self, forKey: .sleepStartMs)
         sleepEndMs = try container.decodeIfPresent(Int64.self, forKey: .sleepEndMs)
@@ -542,6 +547,13 @@ struct HRVSession: Codable, Identifiable, Sendable {
         autoWindowResult = try container.decodeIfPresent(HRVAnalysisResult.self, forKey: .autoWindowResult)
         autoWindowScore = try container.decodeIfPresent(Double.self, forKey: .autoWindowScore)
         hrvDataQuality = try container.decodeKnownIfPresent(HRVDataQuality.self, forKey: .hrvDataQuality, unknown: .insufficient)
+        // A legacy Elite import's score was a readiness made from RMSSD alone,
+        // not a score the app computed: it is dropped with what it was built on.
+        if isLegacyEliteImport {
+            recoveryScore = nil
+            frozenReadiness = nil
+            scoreBreakdown = nil
+        }
 
         // MARK: subjective — mirrors encodeSubjective
         aiContext = try container.decodeIfPresent([String: String].self, forKey: .aiContext)

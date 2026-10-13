@@ -153,14 +153,14 @@
   },
   {
    "key": "func CSVExporter.export(session:track:)",
-   "hash": "637f304d4bf32d6f",
+   "hash": "4934b586da046273",
    "does": "Assembles the full CSV string: preamble, trackpoint table (header always present), indoor per-second table when the track is empty and samples exist, and the splits table when splits exist.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/CSVExporter.swift::init CSVExporter.Units(imperial:)",
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.headerBlock(session:sport:units:iso:)",
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.trackpointBlock(session:track:samples:units:iso:)",
-    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.indoorBlock(samples:units:)",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.indoorBlock(samples:of:units:)",
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.splitsBlock(_:units:)",
     "Emuqu/Sources/Models/Sport.swift::var Sport.displayName"
    ],
@@ -181,8 +181,8 @@
     },
     {
      "at": "+14",
-     "cond": "track empty AND samples non-empty",
-     "effect": "appends indoorBlock; otherwise no indoor table (an indoor session with no samples gets only the empty trackpoint header)"
+     "cond": "track empty AND metadata non-nil AND samples non-empty",
+     "effect": "appends indoorBlock (timed by the metadata's pauses); otherwise no indoor table (an indoor session with no samples gets only the empty trackpoint header)"
     },
     {
      "at": "+17",
@@ -193,7 +193,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.headerBlock(session:sport:units:iso:)": "3ba7bb557cde97a1",
-    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.indoorBlock(samples:units:)": "f8966309990fe195",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.indoorBlock(samples:of:units:)": "53897c25e93d0729",
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.splitsBlock(_:units:)": "ee00f769477b3961",
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.trackpointBlock(session:track:samples:units:iso:)": "f89461773dded7ad",
     "Emuqu/Sources/Analysis/CSVExporter.swift::init CSVExporter.Units(imperial:)": "679b9e97f80aebce",
@@ -307,11 +307,13 @@
    }
   },
   {
-   "key": "func CSVExporter.indoorBlock(samples:units:)",
-   "hash": "725bc6e193f0b28a",
-   "does": "Builds the indoor table (seconds_from_start, hr, pace, cadence, mets, power, altitude, α1) with one row per WorkoutSample, converting pace/altitude to user units.",
+   "key": "func CSVExporter.indoorBlock(samples:of:units:)",
+   "hash": "ee80ebb0b6b1d5ab",
+   "does": "Builds the indoor table (seconds_from_start, hr, pace, cadence, mets, power, altitude, α1) with one row per WorkoutSample, converting pace/altitude to user units. seconds_from_start is wall-clock time like the GPS table's: the sample's active offsetSec plus the pauses before it (WorkoutMetadata.wallClockSeconds(forActiveOffset:)), truncated to whole seconds.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.wallClockSeconds(forActiveOffset:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -360,7 +362,8 @@
    "deps": {
     "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "d9315eaf78873e8c",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "ad61e93456f590a4",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.wallClockSeconds(forActiveOffset:)": "529feacf74cbee54"
    }
   },
   {

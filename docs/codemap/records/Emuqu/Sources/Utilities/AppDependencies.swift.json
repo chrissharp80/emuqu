@@ -4,7 +4,7 @@
  "role": "Composition root: the only file (with EmuquApp/WatchApp) allowed to read `Type.shared`. AppDependencies exposes eight lazily-built service groups whose accessors return a test substitute from a lock-guarded Overrides box or the live singleton; also defines the SwiftUI `\\.dependencies` environment key and the shared Overpass client.",
  "types": [
   "AppDependencies: struct — container: overrides box + 8 group accessors + static `current`",
-  "AppDependencies.Overrides: final class — OSAllocatedUnfairLock<Values> holding 67 optional substitutes",
+  "AppDependencies.Overrides: final class — OSAllocatedUnfairLock<Values> holding 68 optional substitutes",
   "UtilityServices / AnalysisServices / AssistantServices / CollectionServices / LocationServices / ProviderServices / AppServices / StorageServices: struct — per-layer accessors (substitute ?? .shared)",
   "OverpassServices: private enum — one OverpassClient shared by RoadGraphService and TrailDiscoveryService",
   "DependenciesKey: private struct EnvironmentKey — computed defaultValue returning AppDependencies.current at each read",
@@ -21,7 +21,7 @@
   {
    "kind": "dead",
    "sev": "low",
-   "text": "The whole Overrides substitution layer (67 lock-guarded slots, the `current` setter and reset()) is never exercised: no code in Emuqu, EmuquTests or EmuquUITests assigns any `overrides.<name>`, sets `AppDependencies.current`, or calls `reset()`. Every group accessor's `if let substitute` branch is therefore never taken and the container is only an indirection over `.shared`.",
+   "text": "The whole Overrides substitution layer (68 lock-guarded slots, the `current` setter and reset()) is never exercised: no code in Emuqu, EmuquTests or EmuquUITests assigns any `overrides.<name>`, sets `AppDependencies.current`, or calls `reset()`. Every group accessor's `if let substitute` branch is therefore never taken and the container is only an indirection over `.shared`.",
    "evidence": [
     "Emuqu/Sources/Utilities/AppDependencies.swift:55",
     "Emuqu/Sources/Utilities/AppDependencies.swift:127",

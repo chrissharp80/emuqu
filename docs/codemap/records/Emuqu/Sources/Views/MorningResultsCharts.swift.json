@@ -74,19 +74,21 @@
   },
   {
    "key": "var PoincarePlotView.body",
-   "hash": "6a16c354d6bda8a9",
-   "does": "Renders a Canvas inside a GeometryReader that draws the Poincaré plot, collapsed into one accessibility element labelled with SD1 and SD2 (ms, app locale).",
+   "hash": "994351b612108e70",
+   "does": "Renders a Canvas inside a GeometryReader that draws the Poincaré plot, collapsed into one accessibility element labelled with SD1 and SD2 (ms, app locale; marked '(estimate)' when they are).",
    "entry": "SwiftUI body; PoincarePlotView is built by SessionHRVDetailView (SessionHRVDetailView.swift:223) and HRVChartSnapshotTests",
    "calls": [
     "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawPoincarePlot(_:size:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/MorningResultsCharts.swift::func PoincarePlotView.drawPoincarePlot(_:size:)": "3b9ea5321048ad29"

@@ -186,6 +186,28 @@ final class BaselineTrackerTests: XCTestCase {
         XCTAssertTrue(BaselineTracker.isStructurallySoundForBaseline(session: s, result: result))
     }
 
+    /// The daily report reads its nights from `baselineRMSSDs`, so they must
+    /// be the nights the score's baseline holds for the same night: the same
+    /// count and ln(RMSSD) mean as `recoveryBaselineStats(excludingNightOf:)`
+    /// on a tracker rebuilt from the same sessions, with a short partial,
+    /// an unreliable night and the reported night itself among them.
+    func testBaselineRMSSDsAreTheNightsTheScoreReads() throws {
+        let today = producerMockSession(daysAgo: 0, rmssd: 70)
+        var sessions = (1 ... 8).map { producerMockSession(daysAgo: $0, rmssd: 40 + Double($0) * 3) }
+        sessions.append(shortMockSession(daysAgo: 9, rmssd: 200, durationSec: 1800))
+        sessions.append(producerMockSession(daysAgo: 10, rmssd: 5, hrvDataQuality: .insufficient))
+        sessions.append(today)
+        let tracker = makeTracker()
+        tracker.rebuildFromSessions(sessions, sleepSchedule: producerSchedule)
+
+        let stats = try XCTUnwrap(tracker.recoveryBaselineStats(excludingNightOf: today, sleepSchedule: producerSchedule))
+        let nights = BaselineTracker.baselineRMSSDs(rebuiltFrom: sessions, beforeNightOf: today, sleepSchedule: producerSchedule)
+
+        XCTAssertEqual(nights.count, 8)
+        XCTAssertEqual(nights.count, stats.daysInWindow)
+        XCTAssertEqual(nights.map { log($0) }.reduce(0, +) / Double(nights.count), stats.lnRmssdMean, accuracy: 1e-12)
+    }
+
     private func seededTracker(rmssdValues: [Double]) -> BaselineTracker {
         let tracker = makeTracker()
         // One distinct calendar day per value (daysAgo = index) so each appends.

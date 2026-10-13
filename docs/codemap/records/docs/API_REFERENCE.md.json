@@ -195,8 +195,8 @@
   },
   {
    "key": "§ Emuqu — API Reference > Data Models > HRV Metrics",
-   "hash": "72789c7150a522f9",
-   "does": "Declares HRV metric structs: TimeDomainMetrics, FrequencyDomainMetrics (vlf nil if window < 10 min; lfNu/hfNu = LF or HF/(LF+HF)*100, nil when sum is 0), NonlinearMetrics, ANSMetrics (PNS/SNS -3..+3, readinessScore 1-10), PeakCapacity, TrainingContext (acuteChronicRatio ATL/CTL, nil if CTL 0; static empty), HRVAnalysisResult fields. VLF gate confirmed: FrequencyDomainAnalysis.swift:114 uses minimumVLFWindowMinutes(5)*2 = 10 min. HRVAnalysisResult in code also has organizedRecoveryZones and overnightNadirHR/MinHR/MaxHR/MeanHR fields (RRModels.swift:600-642) not listed.",
+   "hash": "6a5991e632cf95b1",
+   "does": "Declares HRV metric structs: TimeDomainMetrics, FrequencyDomainMetrics (vlf nil if window < 10 min; lfNu/hfNu = LF or HF/(LF+HF)*100, nil when sum is 0), NonlinearMetrics, ANSMetrics (PNS/SNS -3..+3, readinessScore 1-10), PeakCapacity, TrainingContext (acuteChronicRatio ATL/CTL, nil if CTL 0; static empty), HRVAnalysisResult fields. VLF gate confirmed: FrequencyDomainAnalysis.swift:114 uses minimumVLFWindowMinutes(5)*2 = 10 min. HRVAnalysisResult in code also has organizedRecoveryZones and overnightNadirHR/MinHR/MaxHR/MeanHR fields (RRModels.swift:600-642) not listed. Lists HRVAnalysisResult.estimatedMetrics (EstimatedMetric raw names an importer filled without a measurement; display marks them, aggregates leave them out) with its readers isEstimated/measuredSDNN/measuredPNN50/measured(_:as:)/markingEstimate, and the EstimatedMetric enum.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/RRModels.swift::var FrequencyDomainMetrics.lfNu",
@@ -207,21 +207,31 @@
     "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)",
     "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:minHR:maxHR:triangularIndex:)",
     "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(from:)",
-    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.displayWindowClassification"
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.displayWindowClassification",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.measured(_:as:)",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(from:)": "bb2301f3ab16e3bb",
-    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:minHR:maxHR:triangularIndex:)": "c51dfbe929c95510",
-    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "75ec424f441a2c51",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.measured(_:as:)": "4539da414e4ceaf5",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(from:)": "97482236f96f24fe",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:minHR:maxHR:triangularIndex:)": "a302a9408120d3c1",
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "e7ea205eac0bb472",
     "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "598952b71e6507c4",
     "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)": "9c385b2767688026",
     "Emuqu/Sources/Models/RRModels.swift::var FrequencyDomainMetrics.hfNu": "ac3b054fa2322008",
     "Emuqu/Sources/Models/RRModels.swift::var FrequencyDomainMetrics.lfNu": "df4252212a128c2f",
     "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.displayWindowClassification": "05705434f873a955",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50": "c6bd570c1d8742c7",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "6a822d05adef4c73",
     "Emuqu/Sources/Models/RRModels.swift::var TrainingContext.acuteChronicRatio": "bab331587abdd3ff"
    }
   },
@@ -795,36 +805,46 @@
   },
   {
    "key": "§ Emuqu — API Reference > Analysis Pipeline > NonlinearAnalyzer",
-   "hash": "5c61dbb623bc9942",
-   "does": "NonlinearAnalyzer.computeNonlinear: Poincare SD1/SD2, Sample Entropy (m=2, r=0.2*SD), Approximate Entropy, DFA. Confirmed NonlinearAnalysis.swift:15,38-45 (both entropies m:2 r:0.2, DFAAnalyzer.compute).",
+   "hash": "22f4d0771adfbb06",
+   "does": "NonlinearAnalyzer.computeNonlinear: Poincare SD1/SD2, Sample Entropy (m=2, r=0.2*SD), Approximate Entropy, DFA; none treats a removed beat or a recording break as adjacency: SD1 = sqrt(½·Var) of TimeDomainAnalyzer.successiveDifferences(in:) (SD1 tracks SDSD/√2), SD2 by Brennan's identity over all clean beats, entropy templates inside runs of neighbours, DFA via DFAAnalyzer.compute(window:); window from TimeDomainAnalyzer.cleanWindow (CleanBeatWindow); nil below 10 clean beats or with no adjacent pair; a gap-free window gives the single-series values. Confirmed NonlinearAnalysis.swift:15-54 and TimeDomainAnalysis.swift:246-310.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeNonlinear(_:flags:windowStart:windowEnd:)",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.cleanWindow(_:flags:windowStart:windowEnd:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.successiveDifferences(in:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(window:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
-    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeNonlinear(_:flags:windowStart:windowEnd:)": "d02079f558b62c40"
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(window:)": "3b5f011038902703",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeNonlinear(_:flags:windowStart:windowEnd:)": "9d2c4d7fa171ad67",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.cleanWindow(_:flags:windowStart:windowEnd:)": "9dbe7e5a8b81c4f1",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.successiveDifferences(in:)": "0819a2e676679e45"
    }
   },
   {
    "key": "§ Emuqu — API Reference > Analysis Pipeline > DFAAnalyzer",
-   "hash": "b66aa55560dff80f",
-   "does": "DFAAnalyzer.compute(rr, alpha1Range 4...16, alpha2Range 16...64) -> DFAResult(alpha1, alpha2?, alpha1R2, alpha2R2?), requires >= 64 beats, log-spaced box sizes (Peng 1995). Confirmed DFAAnalysis.swift:12-45 and Constants.swift:185-188.",
+   "hash": "71924275c30b9af4",
+   "does": "DFAAnalyzer.compute(rr, alpha1Range 4...16, alpha2Range 16...64) -> DFAResult(alpha1, alpha2?, alpha1R2, alpha2R2?), requires >= 64 beats, log-spaced box sizes (Peng 1995); compute(window:) = compute(segments: interpolatedSegments(window)); compute(segments:) uses one profile, no box spanning two segments, boxes up to 1/4 of the longest segment, one segment == compute(_:); interpolatedSegments splits at breaks and linearly interpolates removed beats (Kubios; Lipponen & Tarvainen 2019), no extrapolation. Confirmed DFAAnalysis.swift:12-126 and Constants.swift:185-188.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)"
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(window:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.interpolatedSegments(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354"
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3d6177b087c41dc6",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)": "ed0dd2075262a171",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(window:)": "3b5f011038902703",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.interpolatedSegments(_:)": "a40d4f530774aac8"
    }
   },
   {
@@ -867,8 +887,8 @@
   },
   {
    "key": "§ Emuqu — API Reference > Analysis Pipeline > RecoveryScoreCalculator",
-   "hash": "4c529bc7dcdfee49",
-   "does": "RecoveryScoreCalculator: composite is HRV+Sleep+Vitals 60/25/15 (training removed; trainingMetrics/trainingContext accepted but unused); Comeback mode 80/20/0; ScoringConfiguration with init(from:) and memberwise init; ScoreBreakdown (0-100 composite, tier 1/2/3, factors HRV/Sleep/Vitals, penalties 'currently only SpO2 -10 if <95%', scoringVersion v3.1.oct2026 or 'unversioned' when decoded); ScoreFactor; ScoringParameters V1/V2, default V2; ScoreInputs; two calculateWithBreakdown overloads (TrainingContext overload: useBaselineHRV substitutes baseline, perceivedReadiness 0-1 clamped blended 30% with 70% baseline HRV factor); calculateVitalsScore; zToRecoveryScore; calculateTier1; calculateSleepScore; fosterMonotonyStrain; zToPercentileScore. Weights confirmed Constants.swift:399-445; version ScoringVersion.swift:29; unused params RecoveryScoreCalculator.swift:453-501; perceived blend :566-618.",
+   "hash": "c6d8dd0552e0abaa",
+   "does": "RecoveryScoreCalculator: composite is HRV+Sleep+Vitals 60/25/15 (training removed; trainingMetrics/trainingContext accepted but unused); Comeback mode 80/20/0; ScoringConfiguration with init(from:) and memberwise init; ScoreBreakdown (0-100 composite, tier 1/2/3, factors HRV/Sleep/Vitals, penalties 'currently only SpO2 -10 if <95%', scoringVersion v3.2.oct2026 or 'unversioned' when decoded); ScoreFactor; ScoringParameters V1/V2, default V2; ScoreInputs; two calculateWithBreakdown overloads (TrainingContext overload: useBaselineHRV substitutes baseline, perceivedReadiness 0-1 clamped blended 30% with 70% baseline HRV factor); calculateVitalsScore; zToRecoveryScore; calculateTier1; calculateSleepScore; fosterMonotonyStrain; zToPercentileScore. Weights confirmed Constants.swift:399-445; version ScoringVersion.swift:37; unused params RecoveryScoreCalculator.swift:453-501; perceived blend :566-618.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)",
@@ -917,13 +937,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "7330a00595a0e155",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "042f75023c6f6a31",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "89cf0881d7057b9f",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "afd78f8aece889c0",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "ccb3c6f568b7e996",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.calculateVitalsScore(vitals:baselineStats:)": "b59dd8519dd71d65",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.blendingPerceivedReadiness(_:vitals:missingSleep:into:)": "d0620f0c8638139f",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "ca2be1737136e0d8",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "7f20947af6a0bf60",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "6ba2b8b8a5adb0f2",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "70be27c5f9044d3f",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.composeFinalScore(weightedSum:vitals:missingSleep:)": "e2b0f7314f854d76",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.computeBreakdown(_:config:ansBalance:referenceDate:)": "157b8438d8f25096",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.subjectiveScore(from:)": "4d2ec64f284e2b74",
@@ -1077,8 +1097,8 @@
   },
   {
    "key": "§ Emuqu — API Reference > Analysis Pipeline > AnalysisSummaryGenerator",
-   "hash": "21cb3f024cba688b",
-   "does": "AnalysisSummaryGenerator: AnalysisSummary (title, icon, diagnosticScore, headlineScore, explanation, probableCauses, keyFindings, actionableSteps, trendInsight), ProbableCause, init with 15 parameters and generate(); AnalysisSleepInput/AnalysisSleepTrendInput top-level in AnalysisSleepInputs.swift. Matches AnalysisSummaryGenerator.swift:12-151 and AnalysisSleepInputs.swift:15-89.",
+   "hash": "8ff060d5feda4af9",
+   "does": "AnalysisSummaryGenerator: AnalysisSummary (title, icon, diagnosticScore, headlineScore, explanation, probableCauses, keyFindings, actionableSteps, trendInsight), ProbableCause, init with 15 parameters and generate(); AnalysisSleepInput/AnalysisSleepTrendInput top-level in AnalysisSleepInputs.swift (efficiencies optional), with AnalysisSleepTrendInput.recentNights(before:in:) building the trend from the archived nights before a session. Matches AnalysisSummaryGenerator.swift:12-151 and AnalysisSleepInputs.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
@@ -1086,31 +1106,20 @@
     "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)",
     "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(from:)",
     "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepTrendInput(averageSleepMinutes:averageDeepSleepMinutes:averageEfficiency:trend:nightsAnalyzed:)",
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepTrendInput(from:)"
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepTrendInput(from:)",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::func AnalysisSleepTrendInput.recentNights(before:in:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc types AnalysisSleepInput.sleepEfficiency and AnalysisSleepTrendInput.averageEfficiency as non-optional Double; code declares both Double?.",
-     "evidence": [
-      "docs/API_REFERENCE.md:1245",
-      "docs/API_REFERENCE.md:1253",
-      "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift:22",
-      "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift:68"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::func AnalysisSleepTrendInput.recentNights(before:in:)": "401b1ccceb3ab387",
     "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(from:)": "59f6fee3b5af8655",
     "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:awakeMinutes:sleepEfficiency:)": "8aa3c485c86068ba",
     "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepTrendInput(averageSleepMinutes:averageDeepSleepMinutes:averageEfficiency:trend:nightsAnalyzed:)": "c732705f7ed71a85",
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepTrendInput(from:)": "0ccebab0c1a68636",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepTrendInput(from:)": "d1aec411499c093d",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "886c28e6678bd645",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624"
    }
   },
@@ -1773,8 +1782,8 @@
   },
   {
    "key": "§ Emuqu — API Reference > Import / Export > RRDataImporter",
-   "hash": "b331dd7c4f3cb401",
-   "does": "RRDataImporter: ImportFormat 6 cases (CSV, JSON, Text, Kubios, Elite HRV Summary, Emuqu RR Export) with description; ImportResult; EliteHRVSummaryResult; FlowHRVMultiSessionResult; ImportError 6 cases; importFile/createSession; Elite HRV summary detection/parse/createAnalyzedSession/importEliteHRVFile; Emuqu multi-session detect/parse/createSessionFromFlowHRVData. Formats and most methods confirmed in RRDataImporter.swift, +EliteHRV.swift, +FlowHRV.swift.",
+   "hash": "81d01075144567d0",
+   "does": "RRDataImporter: ImportFormat 6 cases (CSV, JSON, Text, Kubios, Elite HRV Summary, Emuqu RR Export) with description; ImportResult; EliteHRVSummaryResult; FlowHRVMultiSessionResult; ImportError 6 cases; importFile/createSession; Elite HRV summary detection/parse/createAnalyzedSession/importEliteHRVFile; Emuqu multi-session detect/parse/createSessionFromFlowHRVData. Formats and most methods confirmed in RRDataImporter.swift, +EliteHRV.swift, +FlowHRV.swift. EliteHRVSummaryResult.SessionSummary lists sdnn/pnn50 (the file's own columns, nil when absent) and rrRangeStated.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.importFile(at:)",
@@ -1814,11 +1823,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)": "848e586933a18c74",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)": "d67169d3f312e020",
     "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)": "2e325dd5af2d0727",
     "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.createSessionFromFlowHRVData(_:originalFileName:)": "efe41cf2f674d4c6",
     "Emuqu/Sources/Import/RRDataImporter+FlowHRV.swift::func RRDataImporter.parseFlowHRVMultiSession(_:fileName:)": "828b22a9aa9a4b2f",
-    "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.createSession(from:)": "1d74bf3b2cfddd2c",
     "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.detectFormat(content:extension:)": "872fcc5db5a1a906",
     "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.importFile(at:)": "45a916896649136c",
     "Emuqu/Sources/Import/RRDataImporter.swift::func RRDataImporter.isEliteHRVSummary(_:)": "567b3df2fdee4565",

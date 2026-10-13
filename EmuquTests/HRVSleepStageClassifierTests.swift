@@ -620,3 +620,126 @@ final class HRVSleepStageClassifierTests: XCTestCase {
     }
 
 }
+
+// MARK: - Gaps: dropped beats and recording breaks
+//
+// A window's beat-to-beat features must not treat two beats as neighbours
+// when an invalid beat was dropped between them or a recording break
+// separates them. Collapsing the gap adds one spurious successive difference
+// per gap, and splices unrelated stretches into one DFA series.
+
+extension HRVSleepStageClassifierTests {
+    /// Beats back to back on the beat-sum clock, the first starting at `startMs`.
+    private func contiguousBeats(_ rrs: [Int], startMs: Int64 = 0) -> [RRPoint] {
+        var t = startMs
+        return rrs.map { rr in
+            defer { t += Int64(rr) }
+            return RRPoint(t_ms: t, rr_ms: rr, wallClockMs: nil, hr: nil)
+        }
+    }
+
+    /// Deterministic RRs around 900 ms (±60), varied enough for a DFA fit.
+    private func variedRRs(count: Int, from step: Int = 0) -> [Int] {
+        (0 ..< count).map { 900 + deterministicOffset(step: step + $0, min: -60, max: 60) }
+    }
+
+    /// The one feature window cut from `points` over the first five minutes.
+    private func singleWindow(_ points: [RRPoint]) throws -> HRVSleepStageClassifier.FeatureWindow {
+        let windows = HRVSleepStageClassifier.buildFeatureWindows(
+            rrPoints: points, sleepStartMs: 0, sleepEndMs: 5 * 60 * 1000, recordingStart: fixedRecordingStart
+        )
+        XCTAssertEqual(windows.count, 1, "All beats should fall in one 5-minute window")
+        return try XCTUnwrap(windows.first)
+    }
+
+    /// Ten beats at 1000 ms, one 250 ms artifact, ten at 1100 ms. Every pair of
+    /// originally adjacent valid beats differs by 0, so RMSSD is 0. Joining
+    /// across the dropped beat would add a 100 ms difference (RMSSD ≈ 22.9).
+    func testAnArtifactGapDoesNotProduceASuccessiveDifference() throws {
+        let rrs = Array(repeating: 1_000, count: 10) + [250] + Array(repeating: 1_100, count: 10)
+        let window = try singleWindow(contiguousBeats(rrs))
+        XCTAssertEqual(window.rmssd, 0, accuracy: 1e-9)
+    }
+
+    /// The same two runs separated by a 60-second recording break instead of
+    /// an artifact: no difference is taken across the break.
+    func testARecordingBreakDoesNotProduceASuccessiveDifference() throws {
+        let before = contiguousBeats(Array(repeating: 1_000, count: 10))
+        let after = contiguousBeats(Array(repeating: 1_100, count: 10), startMs: 10_000 + 60_000)
+        let window = try singleWindow(before + after)
+        XCTAssertEqual(window.rmssd, 0, accuracy: 1e-9)
+    }
+
+    /// The masked difference rule itself: a pair that does not follow its
+    /// predecessor is skipped, and with none left RMSSD is 0.
+    func testWindowVariabilitySkipsPairsThatAreNotAdjacent() {
+        let rrs: [Double] = [1_000, 1_000, 1_200, 1_200]
+        let skipped = HRVSleepStageClassifier.windowVariability(rrs, avgRR: 1_100) { $0 != 2 }
+        XCTAssertEqual(skipped.rmssd, 0, accuracy: 1e-9)
+        let none = HRVSleepStageClassifier.windowVariability(rrs, avgRR: 1_100) { _ in false }
+        XCTAssertEqual(none.rmssd, 0)
+        XCTAssertEqual(none.sdnn, 100, accuracy: 1e-9, "SDNN still takes every valid beat")
+    }
+
+    /// Two stretches (150 and 90 beats, both long enough for DFA) separated by
+    /// a 30-second break. α1 and the spectral features come from the longer
+    /// stretch alone; neither spans the break.
+    func testAlpha1AndSpectrumDoNotSpanARecordingBreak() throws {
+        let first = variedRRs(count: 150)
+        let second = variedRRs(count: 90, from: 150)
+        let firstEnd = Int64(first.reduce(0, +))
+        let points = contiguousBeats(first) + contiguousBeats(second, startMs: firstEnd + 30_000)
+        let window = try singleWindow(points)
+
+        let firstAlpha1 = try XCTUnwrap(DFAAnalyzer.compute(first.map(Double.init))?.alpha1)
+        let joinedAlpha1 = try XCTUnwrap(DFAAnalyzer.compute((first + second).map(Double.init))?.alpha1)
+        let alpha1 = try XCTUnwrap(window.dfaAlpha1)
+        XCTAssertEqual(alpha1, firstAlpha1, accuracy: 1e-12)
+        XCTAssertNotEqual(alpha1, joinedAlpha1, accuracy: 1e-9, "α1 must not be fitted across the break")
+
+        let expectedLfHf = try XCTUnwrap(firstStretchSpectrum(first)?.lfHfRatio)
+        XCTAssertEqual(try XCTUnwrap(window.lfHfRatio), expectedLfHf, accuracy: 1e-12)
+    }
+
+    /// LF/HF of one contiguous run, each beat timed at its midpoint on the
+    /// beat-sum clock from the run's start.
+    private func firstStretchSpectrum(_ rrs: [Int]) -> FrequencyDomainMetrics? {
+        var elapsed = 0.0
+        let times = rrs.map { rr in
+            defer { elapsed += Double(rr) }
+            return (elapsed + Double(rr) / 2.0) / 1_000.0
+        }
+        return FrequencyDomainAnalyzer.computeFromCleanPairs(times: times, rrValues: rrs.map(Double.init))
+    }
+
+    /// One 150 ms artifact in 200 beats (0.5 %): α1 is fitted on the series with
+    /// that beat linearly interpolated between its neighbours, not on the
+    /// series with it removed (which would make its neighbours adjacent).
+    func testAlpha1InterpolatesAnArtifactRatherThanJoiningItsNeighbours() throws {
+        var rrs = variedRRs(count: 200)
+        rrs[100] = 150
+        let window = try singleWindow(contiguousBeats(rrs))
+
+        var interpolated = rrs.map(Double.init)
+        interpolated[100] = (interpolated[99] + interpolated[101]) / 2
+        let expected = try XCTUnwrap(DFAAnalyzer.compute(interpolated)?.alpha1)
+        XCTAssertEqual(try XCTUnwrap(window.dfaAlpha1), expected, accuracy: 1e-12)
+    }
+
+    /// Every tenth beat invalid (10 %, above the live path's 6 % ceiling): α1
+    /// would mostly describe the interpolator, so the window has none.
+    func testAlpha1IsWithheldWhenTooMuchOfTheStretchIsInterpolated() throws {
+        var rrs = variedRRs(count: 200)
+        for i in stride(from: 5, to: 200, by: 10) { rrs[i] = 150 }
+        let window = try singleWindow(contiguousBeats(rrs))
+        XCTAssertNil(window.dfaAlpha1)
+    }
+
+    /// Gap-free input is unchanged: α1 is DFA over every beat, as before.
+    func testGapFreeAlpha1IsDFAOverEveryBeat() throws {
+        let rrs = variedRRs(count: 200)
+        let window = try singleWindow(contiguousBeats(rrs))
+        let expected = try XCTUnwrap(DFAAnalyzer.compute(rrs.map(Double.init))?.alpha1)
+        XCTAssertEqual(try XCTUnwrap(window.dfaAlpha1), expected, accuracy: 1e-12)
+    }
+}

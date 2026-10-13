@@ -20,7 +20,7 @@ enum HRSleepEstimator {
     /// Uses HR drop patterns: sleep onset is detected when HR drops significantly and stabilizes
     /// Wake is detected when HR rises back toward awake levels
     ///
-    /// The HR-estimated onset is clamped to a plausible
+    /// The HR-estimated onset is held to a plausible
     /// sleep-onset latency. `detectSleepBoundariesFromHR` thresholds against
     /// the whole night's HR MINIMUM (deep-sleep bradycardia, which occurs
     /// later), so early/light sleep stays above the midpoint and is misread as
@@ -29,8 +29,10 @@ enum HRSleepEstimator {
     /// band later and shrinking sleep 337→268 min → skewed score). But this
     /// app's recording STARTS at bedtime, so onset can't plausibly be an hour
     /// of lying awake: typical sleep-onset latency is 10-20 min (>30 min is
-    /// clinically prolonged). Clamped to that ceiling — symmetric with the wake
-    /// side, which already trusts the recording END.
+    /// clinically prolonged). A detection past that ceiling is treated as a
+    /// misfire and the onset falls back to the recording start (see
+    /// `plausibleOnsetMs`) — symmetric with the wake side, which already
+    /// trusts the recording END.
     ///
     /// - Parameters:
     ///   - rrPoints: Array of RR data points with timestamps
@@ -41,7 +43,7 @@ enum HRSleepEstimator {
         let windowedHR = computeWindowedHR(rrPoints: rrPoints)
         guard windowedHR.count >= 3 else { return nil }
         let (rawOnsetMs, wakeMs) = detectSleepBoundariesFromHR(windowedHR)
-        let sleepOnsetMs = rawOnsetMs.map { clampedOnsetMs($0, in: rrPoints) }
+        let sleepOnsetMs = rawOnsetMs.map { plausibleOnsetMs($0, in: rrPoints) }
         let stageResult = HRVSleepStageClassifier.classify(
             rrPoints: rrPoints,
             sleepStartMs: sleepOnsetMs ?? 0,
@@ -54,15 +56,19 @@ enum HRSleepEstimator {
         )
     }
 
-    /// The onset clamp is a latency after the recording started, so it is
-    /// measured on the wall clock: on the beat-sum clock a stretch of beats
-    /// lost early in the night let the onset land more than the ceiling
-    /// after bedtime. Returns the onset unchanged when it is within the
-    /// ceiling, else the beat-sum time whose wall-clock time is the ceiling.
-    nonisolated static func clampedOnsetMs(_ onsetMs: Int64, in rrPoints: [RRPoint]) -> Int64 {
-        let maxOnsetLatencyMs = Int64(SleepConstants.maxHREstimatedOnsetLatencyMin) * 60 * 1000
-        guard wallClockMs(forBeatSumMs: onsetMs, in: rrPoints) > maxOnsetLatencyMs else { return onsetMs }
-        return min(onsetMs, beatSumMs(forWallClockMs: maxOnsetLatencyMs, in: rrPoints))
+    /// The onset when its latency after the recording start is plausible,
+    /// else the recording start (beat-sum 0). The latency is measured on the
+    /// wall clock, as the other two HR detectors measure it: on the beat-sum
+    /// clock a stretch of beats lost early in the night let the onset land
+    /// more than the ceiling after bedtime. A detection past the ceiling is
+    /// the detector misfiring (`SleepConstants.maxHREstimatedOnsetLatencyMin`),
+    /// so onset is undetermined; at the recording start the night's latency
+    /// reads as unknown rather than as a made-up 20 minutes.
+    nonisolated static func plausibleOnsetMs(_ onsetMs: Int64, in rrPoints: [RRPoint]) -> Int64 {
+        let latencyMs = wallClockMs(forBeatSumMs: onsetMs, in: rrPoints)
+        guard !SleepConstants.isPlausibleHROnsetLatency(wallClockMs: latencyMs) else { return onsetMs }
+        debugLog("[HRSleepEstimator] onset at \(latencyMs / 60_000) min is past the latency ceiling — undetermined, using the recording start")
+        return 0
     }
 
     /// Assemble the SleepData for the RR-inferred path. Total sleep prefers the
@@ -193,14 +199,6 @@ enum HRSleepEstimator {
         return ms + (anchor.exportTimeMs - anchor.t_ms)
     }
 
-    /// The inverse of `wallClockMs(forBeatSumMs:in:)`: a wall-clock time
-    /// moved onto the beat-sum clock by the offset of the first beat at or
-    /// after it on the wall clock (the last beat when none is).
-    nonisolated static func beatSumMs(forWallClockMs ms: Int64, in rrPoints: [RRPoint]) -> Int64 {
-        guard let anchor = rrPoints.first(where: { $0.exportTimeMs >= ms }) ?? rrPoints.last else { return ms }
-        return ms - (anchor.exportTimeMs - anchor.t_ms)
-    }
-
     /// Midpoint between the night's max (awake baseline, same logic as the
     /// RR-based estimation) and min HR. Needs at least 8 BPM of range for the
     /// split to mean anything.
@@ -217,9 +215,10 @@ enum HRSleepEstimator {
     /// Sleep onset: 2 consecutive smoothed points below threshold (relaxed from
     /// 3 because samples are sparser than RR data).
     ///
-    /// Clamped to a plausible sleep-onset latency, IDENTICAL to
+    /// Held to a plausible sleep-onset latency by the same test as
     /// the sibling detectors `estimateSleepFromHR` (RR path) and
-    /// `SleepBoundaryResolver.detectSleepOnset`.
+    /// `SleepBoundaryResolver.detectSleepOnset`
+    /// (`SleepConstants.isPlausibleHROnsetLatency`).
     /// This passive-Watch-HR detector also thresholds against
     /// deep-sleep bradycardia, which consolidates LATER than true onset, so on
     /// some nights it reports a bogus long "onset" and shrinks the night (the
@@ -232,7 +231,10 @@ enum HRSleepEstimator {
     /// Ohayon et al., Sleep 2004;27(7):1255). This was the THIRD and last
     /// HR-onset estimator still missing the clamp (the recurrence the 2026-08
     /// fixes kept re-introducing by fixing one copy at a time).
-    nonisolated static func clampedSleepOnset(
+    ///
+    /// A detection past the ceiling is a misfire, not an onset at minute 20:
+    /// onset is undetermined and falls back to `windowStart`, the bedtime.
+    nonisolated static func plausibleSleepOnset(
         _ smoothed: [(date: Date, hr: Double)],
         threshold: Double,
         windowStart: Date
@@ -249,8 +251,10 @@ enum HRSleepEstimator {
             debugLog("[HealthKitManager] HealthKit HR sleep estimation: no sleep onset detected")
             return nil
         }
-        let maxOnsetLatency = TimeInterval(SleepConstants.maxHREstimatedOnsetLatencyMin * 60)
-        return min(sleepOnsetDetected, windowStart.addingTimeInterval(maxOnsetLatency))
+        let latencyMs = Int64((sleepOnsetDetected.timeIntervalSince(windowStart) * 1000).rounded())
+        guard !SleepConstants.isPlausibleHROnsetLatency(wallClockMs: latencyMs) else { return sleepOnsetDetected }
+        debugLog("[HealthKitManager] HealthKit HR sleep estimation: onset \(latencyMs / 60_000) min after bedtime is past the latency ceiling — using bedtime")
+        return windowStart
     }
 
     /// Wake: end of the last continuous sleep block. Same reasoning

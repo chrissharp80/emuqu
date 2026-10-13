@@ -465,6 +465,29 @@
    }
   },
   {
+   "key": "func WorkoutExportersTests.testCSVIndoorSecondsFromStartAreWallClockAfterAPause()",
+   "hash": "fb179bbce5101c77",
+   "does": "Track-less treadmill session with HR samples at active 10 and 20 and a 600 s pause at active 15; asserts the indoor table rows start with 10,101 and 620,177 (wall-clock seconds_from_start).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.indoorBlock(samples:of:units:)",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.wallClockSeconds(forActiveOffset:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)": "a650112243a7f912",
+    "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.indoorBlock(samples:of:units:)": "53897c25e93d0729",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.wallClockSeconds(forActiveOffset:)": "529feacf74cbee54",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "eb772ae55676de35",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "26b496eaa37ca3d8"
+   }
+  },
+  {
    "key": "func WorkoutExportersTests.testWallClockSecondsAddThePausesBeforeTheActiveSecond()",
    "hash": "d83c9558ba9a15db",
    "does": "Asserts wallClockSeconds(forActiveOffset:) is the identity without pauses, adds only pauses that began before the active second (15 → 15, 20 → 620, 40 → 700 with pauses at 15/600 s and 30/60 s), and round-trips through activeOffset(forWallClockSeconds:).",

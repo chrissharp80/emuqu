@@ -637,6 +637,106 @@ struct HRVAnalysisResult: Codable, Sendable {
     var overnightMinHR: Double?
     var overnightMaxHR: Double?
     var overnightMeanHR: Double?
+
+    /// Provenance: the metrics in this result that were estimated rather
+    /// than measured or read from a file, as `EstimatedMetric` raw values.
+    /// Nil for every result the analysis pipeline computes. Raw strings, not
+    /// the enum, so a name a newer build adds does not fail the decode.
+    var estimatedMetrics: [String]?
+}
+
+// MARK: - Estimated metrics
+
+/// A metric an importer had to fill without a measurement. `TimeDomainMetrics`
+/// and `NonlinearMetrics` hold these as plain numbers, so the result's
+/// `estimatedMetrics` says which ones are stand-ins: display marks them as
+/// estimates, and baselines, trends, cause rules, AI context and Apple Health
+/// leave them out.
+enum EstimatedMetric: String, CaseIterable, Sendable {
+    case sdnn, pnn50, sdsd, sdHR, hrRange, sd1, sd2, sd1Sd2Ratio
+    /// The beat count is unknown: `cleanBeatCount` holds 0 in its place.
+    case beatCount
+}
+
+extension HRVAnalysisResult {
+    func isEstimated(_ metric: EstimatedMetric) -> Bool {
+        estimatedMetrics?.contains(metric.rawValue) == true
+    }
+
+    /// `value`, this result's reading of `metric`, or nil when the result
+    /// holds it as an estimate.
+    func measured(_ value: Double, as metric: EstimatedMetric) -> Double? {
+        isEstimated(metric) ? nil : value
+    }
+
+    /// SDNN, or nil when it is an estimate.
+    var measuredSDNN: Double? {
+        measured(timeDomain.sdnn, as: .sdnn)
+    }
+
+    /// The window's clean beat count, or nil when it is unknown.
+    var measuredCleanBeatCount: Int? {
+        isEstimated(.beatCount) ? nil : cleanBeatCount
+    }
+
+    /// The clean beat count for display: "—" when it is unknown.
+    var cleanBeatCountText: String {
+        measuredCleanBeatCount.map { "\($0)" } ?? "—"
+    }
+
+    /// pNN50, or nil when it is an estimate.
+    var measuredPNN50: Double? {
+        measured(timeDomain.pnn50, as: .pnn50)
+    }
+
+    /// An Elite HRV import saved before `estimatedMetrics` existed holds
+    /// every metric but RMSSD as an unmarked estimate from RMSSD: that
+    /// importer never read the file's own SDNN or pNN50, and filled the
+    /// stress index (and, in earlier builds, readiness) the same way. Such a
+    /// result, read back with its session's import `source`, is given the
+    /// full estimated set and loses its ANS metrics, which the model can hold
+    /// as absent. It is known by that importer's shape too: SDSD stored as
+    /// exactly RMSSD, which RR analysis never yields, so a recorded session
+    /// that took an Elite import's `importedMetrics` in a merge keeps its own
+    /// analysis. A result that already carries the marker, and one from any
+    /// other source, is returned unchanged.
+    ///
+    /// Two fields that importer took from the file when it could are marked
+    /// only when they hold its stand-ins: the HR range when it is the 60–100
+    /// bpm default or mean HR ±15% (`legacyEliteRangeWasDerived`), the beat
+    /// count when it is the default of 100.
+    func withLegacyImportProvenance(source: String?) -> HRVAnalysisResult {
+        guard isLegacyEliteImport(source: source) else { return self }
+        var result = withANSMetrics(nil)
+        var marked = EstimatedMetric.allCases.filter { $0 != .hrRange && $0 != .beatCount }
+        if legacyEliteRangeWasDerived { marked.append(.hrRange) }
+        if windowEnd == 100 { marked.append(.beatCount) }
+        result.estimatedMetrics = marked.map(\.rawValue)
+        return result
+    }
+
+    /// The old Elite importer's HR-range stand-ins: 600/1000 ms (60–100 bpm)
+    /// or mean RR ×0.85/×1.15, whose bpm ends stand in the ratio 1.15/0.85.
+    private var legacyEliteRangeWasDerived: Bool {
+        let (low, high) = (timeDomain.minHR, timeDomain.maxHR)
+        let isDefault = abs(low - 60) < 1e-6 && abs(high - 100) < 1e-6
+        return isDefault || (low > 0 && abs(high / low - 1.15 / 0.85) < 1e-6)
+    }
+
+    /// Whether this result, read back with its session's import `source`, is
+    /// an unmarked Elite HRV import from before `estimatedMetrics` (see
+    /// `withLegacyImportProvenance`).
+    func isLegacyEliteImport(source: String?) -> Bool {
+        estimatedMetrics == nil && source == HRVSession.ImportedMetrics.eliteHRVSource
+            && timeDomain.sdsd == timeDomain.rmssd
+    }
+
+    /// `text`, a formatted value of `metric`, followed by "(estimate)" when
+    /// the value is one.
+    func markingEstimate(_ text: String, for metric: EstimatedMetric) -> String {
+        guard isEstimated(metric) else { return text }
+        return "\(text) (\(String(localized: "estimate", bundle: LanguageManager.appBundle)))"
+    }
 }
 
 // MARK: - Display labels

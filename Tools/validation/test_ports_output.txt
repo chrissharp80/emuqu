@@ -112,5 +112,12 @@ PASS  HRVReferenceValidationTests.testPipelineRMSSDIsNeverLargerThanTheUnfiltere
 PASS  HRVReferenceValidationTests.(comment value) nsr005 '16.03 against 28.98' -- stale: from the pre-5c4a23d collapsed-array rule  raw=28.98 old-rule=16.03 e028039-rule=15.96
 PASS  HRVReferenceValidationTests.testPNN50MatchesTheReferenceWhereNoBeatIsFiltered  compared=16
 PASS  HRVReferenceValidationTests.testVariabilityIsInvariantUnderAConstantShift  
+PASS  HRVSleepStageClassifierTests.testAnArtifactGapDoesNotProduceASuccessiveDifference  rmssd=0.0
+PASS  HRVSleepStageClassifierTests.testARecordingBreakDoesNotProduceASuccessiveDifference  rmssd=0.0
+PASS  HRVSleepStageClassifierTests.testWindowVariabilitySkipsPairsThatAreNotAdjacent  
+PASS  HRVSleepStageClassifierTests.testAlpha1AndSpectrumDoNotSpanARecordingBreak  a1=0.4325872921230382 first=0.4325872921230382 joined=0.4178243154871426
+PASS  HRVSleepStageClassifierTests.testAlpha1InterpolatesAnArtifactRatherThanJoiningItsNeighbours  a1=0.42329873779381627 exp=0.42329873779381627
+PASS  HRVSleepStageClassifierTests.testAlpha1IsWithheldWhenTooMuchOfTheStretchIsInterpolated  
+PASS  HRVSleepStageClassifierTests.testGapFreeAlpha1IsDFAOverEveryBeat  
 
-114/114 cases matched
+121/121 cases matched

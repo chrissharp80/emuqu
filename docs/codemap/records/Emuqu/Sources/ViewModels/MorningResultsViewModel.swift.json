@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift",
- "hash": "8caad3fbee20a6d7",
+ "hash": "5af8c69cce65958d",
  "role": "@Observable @MainActor view model behind MorningResultsView (the Recovery Report sheet): resolves the displayed session (input or re-analysed/archived copy), computes the frozen-or-live composite recovery score and its breakdown, generates and memoises the narrative summary, loads sleep (frozen snapshot or live HealthKit/estimate) and persists the perceived-readiness answer for unreliable nights.",
  "types": [
   "MorningResultsViewModel: class (@Observable, @MainActor, final) — presentation state + scoring/sleep loading for MorningResultsView"
@@ -13,7 +13,6 @@
   "mem:MorningResultsViewModel.selectedMethod (WindowSelectionMethod, seeded from settings.defaultWindowSelectionMethod)",
   "mem:MorningResultsViewModel.isReanalyzing/isGeneratingPDF/isGeneratingEmailPDF (Bool flags, set by view extensions)",
   "mem:MorningResultsViewModel.healthKitSleep (SleepData?)",
-  "mem:MorningResultsViewModel.sleepTrendStats (HealthKitManager.SleepTrendStats?)",
   "mem:MorningResultsViewModel.recoveryVitals (RecoveryVitals?)",
   "mem:MorningResultsViewModel.isSleepLoading (Bool, initially true)",
   "mem:MorningResultsViewModel.baselineStats (set by MorningResultsView.hydrateAndLoad from collector.scoringBaselineStats)",
@@ -58,6 +57,27 @@
    ],
    "flags": [],
    "deps": {}
+  },
+  {
+   "key": "var MorningResultsViewModel.sleepTrendStats",
+   "hash": "1b6a6d6a5d863731",
+   "does": "Computed: the week of nights before displaySession from the sleep archived with recentSessions (SleepTrendStats.recentNights); nil when none has measured sleep. Read by the summary generator input, its memo key and the PDF report inputs.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SleepTrendStats.swift::func SleepTrendStats.recentNights(before:in:days:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession"
+   ],
+   "reads": [
+    "mem:MorningResultsViewModel.recentSessions",
+    "mem:MorningResultsViewModel.reanalyzedSession"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepTrendStats.swift::func SleepTrendStats.recentNights(before:in:days:)": "3511be29c1b3e8e0",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "eccc568f4bbb99c3"
+   }
   },
   {
    "key": "var MorningResultsViewModel.displayResult",

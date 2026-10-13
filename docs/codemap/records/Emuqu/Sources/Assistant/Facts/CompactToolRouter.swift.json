@@ -1,20 +1,20 @@
 {
  "file": "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift",
- "hash": "4f8b77eb1661e5b7",
+ "hash": "453290dc7b05fa18",
  "role": "Compact ~21-read-tool + allow-listed-action-tool schema the AI providers see in place of the full fact catalog, plus the dispatcher that maps those tool calls back to fact keys on FactResolverRegistry.",
  "types": [
   "CompactToolRouter: struct (@MainActor) — schema builder, capability index text and read-tool dispatcher wrapping a FactResolverRegistry"
  ],
  "state": [
-  "mem:CompactToolRouter.allowedActionNames (private static Set<String>, 18 action tool names exposed to the model)",
+  "mem:CompactToolRouter.allowedActionNames (private static Set<String>, 19 action tool names exposed to the model)",
   "CompactToolRouter.registry (stored let FactResolverRegistry)"
  ],
- "toplevel": "allowedActionNames static set initializer (lines 420-439) lists 18 action tool names: assistant_artifacts_add/update_status, routes_library_rename/save_workout/engage, assistant_contacts_add/remove, assistant_email_compose, assistant_memory_add/remove/clear, web_search, location_current, location_current_detailed, location_situation, location_set_address, directions_routeTo, directions_clear. The catalog also declares action location.roads_ahead (AppFactResolver+LiveNavigation) which is NOT in this list, so it never appears in the compact schema.",
+ "toplevel": "allowedActionNames static set initializer (lines 420-439) lists 19 action tool names: assistant_artifacts_add/update_status, routes_library_rename/save_workout/engage, assistant_contacts_add/remove, assistant_email_compose, assistant_memory_add/remove/clear/restore, web_search, location_current, location_current_detailed, location_situation, location_set_address, directions_routeTo, directions_clear. The catalog also declares action location.roads_ahead (AppFactResolver+LiveNavigation) which is NOT in this list, so it never appears in the compact schema.",
  "flags": [
   {
    "kind": "spec-mismatch",
    "sev": "low",
-   "text": "Action-tool count is stated inconsistently: AssistantViewModel says 'up to 16 action tools' while allowedActionNames holds 18; docs/FLO_ARCHITECTURE.md:216 lists the allowed actions but omits assistant_artifacts_add / assistant_artifacts_update_status.",
+   "text": "Action-tool count is stated inconsistently: AssistantViewModel says 'up to 16 action tools' while allowedActionNames holds 19 (the header comment says up to 19); docs/FLO_ARCHITECTURE.md:216 lists the allowed actions but omits assistant_artifacts_add / assistant_artifacts_update_status.",
    "evidence": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift:166",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift:420",
@@ -357,7 +357,7 @@
   },
   {
    "key": "func CompactToolRouter.readTools5b()",
-   "hash": "a2272f6d24dc27ed",
+   "hash": "eed5f311ffddf6d7",
    "does": "Static data: returns the ToolSpec rows for get_score_meta (required field) and get_breadcrumbs (required field), built with spec(...).",
    "entry": null,
    "calls": [

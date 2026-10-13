@@ -76,3 +76,29 @@ final class RecoveryScoreDisplayTests: XCTestCase {
         }
     }
 }
+
+// MARK: - VoiceOver names the score the ring shows
+
+/// The ring is reused for the recovery score, the live readiness
+/// (`ReadinessExplainView`, and `QuickResultsCard` when a reading has only an
+/// ANS readiness) and the sleep score (`SleepDetailV2View`); every one of them
+/// used to be announced as "Recovery score".
+extension RecoveryScoreDisplayTests {
+    @MainActor
+    func testTheRingNamesTheScoreItShows() {
+        pinEnglishLanguage()
+        let bundle = LanguageManager.appBundle
+        XCTAssertEqual(
+            ScoreRing.scoreSentence(.recovery, score: 72, verdict: "Good", bundle: bundle),
+            "Recovery score 72, Good, ring filled 72 percent."
+        )
+        XCTAssertEqual(
+            ScoreRing.scoreSentence(.readiness, score: 72, verdict: "Good", bundle: bundle),
+            "Readiness 72, Good, ring filled 72 percent."
+        )
+        XCTAssertEqual(
+            ScoreRing.scoreSentence(.sleep, score: 72, verdict: "Good", bundle: bundle),
+            "Sleep score 72, Good, ring filled 72 percent."
+        )
+    }
+}

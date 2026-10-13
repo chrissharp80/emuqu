@@ -144,7 +144,7 @@ extension PDFReportGenerator {
         in context: UIGraphicsPDFRendererContext, pageRect: CGRect
     ) -> CGFloat {
         var y = ensureSpace(needed: 60, y: yPosition, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-        y = drawTimeDomainSection(result.timeDomain, yPosition: y, in: context, pageRect: pageRect)
+        y = drawTimeDomainSection(result, yPosition: y, in: context, pageRect: pageRect)
 
         if let fd = result.frequencyDomain {
             y = ensureSpace(needed: 60, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
@@ -152,7 +152,7 @@ extension PDFReportGenerator {
         }
 
         y = ensureSpace(needed: 60, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)
-        y = drawNonlinearSection(result.nonlinear, yPosition: y, in: context, pageRect: pageRect)
+        y = drawNonlinearSection(result, yPosition: y, in: context, pageRect: pageRect)
 
         if let ans = result.ansMetrics {
             y = ensureSpace(needed: 60, y: y, pageNumber: &pageNumber, context: context, pageRect: pageRect)

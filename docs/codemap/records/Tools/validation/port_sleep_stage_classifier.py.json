@@ -1,14 +1,14 @@
 {
  "file": "Tools/validation/port_sleep_stage_classifier.py",
- "hash": "7e112a584d573e94",
- "role": "Python port of HRVSleepStageClassifier.classify RR-only path (HRVSleepStageClassifier.swift, +Watch smoothing/intervals, SleepBoundaryResolver RRWindowSweep, SleepClassifierConstants @ e028039): 5-min feature windows (HR, RMSSD, SDNN, CV, DFA alpha1, LF/HF, HF), within-night percentile ranks, weighted deep/REM/awake scores with time-of-night priors, thresholds, one-window smoothing and interval minutes. Re-checked against main 8d32097: every constant, weight table, rank, score, smoothing and interval rule matches, and HRVSleepStageClassifier*.swift / Constants*.swift are unchanged since e028039; the one divergence is SleepStageInterval.durationMinutes, which main rounds and the port truncates (see unit :247).",
+ "hash": "b8b86b5996cff388",
+ "role": "Python port of HRVSleepStageClassifier.classify RR-only path (HRVSleepStageClassifier.swift, +Watch smoothing/intervals, SleepBoundaryResolver RRWindowSweep, SleepClassifierConstants @ e028039, feature windows re-synced with the per-window gap fix after 99f28e6): 5-min feature windows (HR, RMSSD over originally adjacent valid beats with no recording break, SDNN, CV, DFA alpha1 on the longest break-free stretch with invalid beats interpolated and withheld above 6 % interpolated, LF/HF and HF on that stretch timed on the beat-sum clock), within-night percentile ranks, weighted deep/REM/awake scores with time-of-night priors, thresholds, one-window smoothing and interval minutes. Re-checked against main 8d32097: every constant, weight table, rank, score, smoothing and interval rule matches; the one divergence is SleepStageInterval.durationMinutes, which main rounds and the port truncates (see unit :247). Recording breaks use the t_ms rule only (the input carries no wall clock).",
  "types": [],
  "state": [
-  "WINDOW_MS=300000, MIN_POINTS=10, MIN_VALID=8, MIN_WINDOWS=6, MIN_BEATS_DFA=64, MIN_TIME_BEFORE_REM_MS=3600000, RR 300-2000 (lines 22-28)",
+  "WINDOW_MS=300000, MIN_POINTS=10, MIN_VALID=8, MIN_WINDOWS=6, MIN_BEATS_DFA=64, MIN_TIME_BEFORE_REM_MS=3600000, RR 300-2000, RECORDING_BREAK_TOLERANCE_MS=2000 (lines 33-40)",
   "Thresholds DEEP 0.60 / REM 0.63 / AWAKE 0.80 and temporal-prior constants (lines 30-33)",
   "Weight tables W_DEEP_*, W_REM_*, W_AWAKE_* (lines 35-44)"
  ],
- "toplevel": "Constants and weight dictionaries; imports port_dfa and port_frequency_domain.",
+ "toplevel": "Constants and weight dictionaries; imports port_dfa, port_frequency_domain and port_live_dfa_clean.",
  "flags": [],
  "units": [
   {
@@ -43,8 +43,8 @@
   },
   {
    "key": "def window_variability",
-   "hash": "42286ecc2241a504",
-   "does": "Returns (RMSSD of successive diffs, population SDNN, CV = SDNN/mean) for the valid RRs; zeros for <= 1 value; CV 0 when mean <= 0.",
+   "hash": "73f10f4844f4a298",
+   "does": "Returns (RMSSD, population SDNN, CV = SDNN/mean) for the valid RRs; RMSSD only over diffs whose follows_previous entry is true (all when None); zeros for <= 1 value; RMSSD 0 with no pair; CV 0 when mean <= 0.",
    "entry": null,
    "calls": [
     "Tools/validation/port_sleep_stage_classifier.py::def root_mean_square"
@@ -53,12 +53,17 @@
    "writes": [],
    "branches": [
     {
-     "at": "+1",
+     "at": "+3",
      "cond": "<= 1 value",
      "effect": "(0,0,0)"
     },
     {
      "at": "+6",
+     "cond": "follows_previous None or true",
+     "effect": "diff kept; else skipped"
+    },
+    {
+     "at": "+9",
      "cond": "avg > 0",
      "effect": "cv = sdnn/avg else 0"
     }
@@ -69,15 +74,151 @@
    }
   },
   {
-   "key": "def feature_window",
-   "hash": "eb27b8d7cb2c2202",
-   "does": "Builds one window's features: None if < 10 points or < 8 valid RRs; HR = 60000/mean; DFA alpha1 when >= 64 valid beats; LF/HF and HF power from computeFromCleanPairs on beat midpoints (t + rr/2) of valid points.",
+   "key": "def is_recording_break",
+   "hash": "2f845b1cedd70ec3",
+   "does": "TimeDomainAnalyzer.isRecordingBreak t_ms rule: True when nxt starts more than prev rr + 2000 ms after prev ends.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "def window_beats",
+   "hash": "194a03fd6031f2a3",
+   "does": "SleepWindowBeats: returns (validity mask, valid indices, per valid beat whether it follows the previous valid beat with consecutive indices and no break, longest break-free stretch as a range or None; max keeps the first on a tie like Swift max(by:)).",
    "entry": null,
    "calls": [
     "Tools/validation/port_sleep_stage_classifier.py::def is_valid_rr",
-    "Tools/validation/port_sleep_stage_classifier.py::def window_variability",
-    "Tools/validation/port_dfa.py::def compute",
+    "Tools/validation/port_sleep_stage_classifier.py::def is_recording_break"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "each break",
+     "effect": "closes a stretch"
+    },
+    {
+     "at": "+12",
+     "cond": "start < len(points)",
+     "effect": "appends the final stretch"
+    },
+    {
+     "at": "+14",
+     "cond": "stretches empty",
+     "effect": "longest None"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_sleep_stage_classifier.py::def is_recording_break": "90bf293f4f5415e0",
+    "Tools/validation/port_sleep_stage_classifier.py::def is_valid_rr": "bfd5aabd81d91c4c"
+   }
+  },
+  {
+   "key": "def interpolated_stretch",
+   "hash": "98e95ce34866467c",
+   "does": "SleepWindowBeats.interpolatedStretch: the stretch from its first to last valid beat with invalid beats linearly interpolated by port_live_dfa_clean._interpolate; returns (values, corrected_count) or None when no stretch or no valid beat.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_live_dfa_clean.py::def _interpolate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "stretch None",
+     "effect": "None"
+    },
+    {
+     "at": "+7",
+     "cond": "no valid beat",
+     "effect": "None"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_live_dfa_clean.py::def _interpolate": "090f0fea7001fd1f"
+   }
+  },
+  {
+   "key": "def window_alpha1",
+   "hash": "248d0bdb679f5823",
+   "does": "windowAlpha1: DFA alpha1 of the interpolated longest stretch; None when no series, < 64 values, corrected fraction > MAX_CORRECTED_FRACTION (0.06) or DFA fails.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def interpolated_stretch",
+    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction",
+    "Tools/validation/port_dfa.py::def compute"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no series or < 64 values",
+     "effect": "None"
+    },
+    {
+     "at": "+4",
+     "cond": "corrected fraction > 0.06",
+     "effect": "None"
+    },
+    {
+     "at": "+7",
+     "cond": "DFA result",
+     "effect": "alpha1 else None"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
+    "Tools/validation/port_live_dfa_clean.py::def corrected_fraction": "11d7a6ccfb7cf58c",
+    "Tools/validation/port_sleep_stage_classifier.py::def interpolated_stretch": "0ca226c1d1097c51"
+   }
+  },
+  {
+   "key": "def window_frequency",
+   "hash": "2a78a3392b82799a",
+   "does": "windowFrequencyMetrics: computeFromCleanPairs over the valid beats of the longest stretch, each timed at its midpoint on the beat-sum clock from the stretch start (invalid intervals included); None with no stretch.",
+   "entry": null,
+   "calls": [
     "Tools/validation/port_frequency_domain.py::def compute_from_clean_pairs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "stretch None",
+     "effect": "None"
+    },
+    {
+     "at": "+8",
+     "cond": "valid beat",
+     "effect": "appends (time, rr)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Tools/validation/port_frequency_domain.py::def compute_from_clean_pairs": "0d74f26c6c46407f"
+   }
+  },
+  {
+   "key": "def feature_window",
+   "hash": "9f61cedebf745f66",
+   "does": "Builds one window's features: None if < 10 points or < 8 valid RRs; HR = 60000/mean; RMSSD/SDNN/CV via window_variability with adjacency from window_beats; alpha1 via window_alpha1 and LF/HF + HF via window_frequency on the longest break-free stretch.",
+   "entry": null,
+   "calls": [
+    "Tools/validation/port_sleep_stage_classifier.py::def window_beats",
+    "Tools/validation/port_sleep_stage_classifier.py::def window_variability",
+    "Tools/validation/port_sleep_stage_classifier.py::def window_alpha1",
+    "Tools/validation/port_sleep_stage_classifier.py::def window_frequency"
    ],
    "reads": [],
    "writes": [],
@@ -88,32 +229,22 @@
      "effect": "None"
     },
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "< 8 valid RR",
      "effect": "None"
     },
     {
-     "at": "+9",
-     "cond": ">= 64 valid",
-     "effect": "DFA alpha1 (None if compute fails)"
-    },
-    {
-     "at": "+11",
-     "cond": "DFA result",
-     "effect": "alpha1 else None"
-    },
-    {
-     "at": "+16",
+     "at": "+13",
      "cond": "frequency result present",
      "effect": "lfHfRatio/hfPower set; else None"
     }
    ],
    "flags": [],
    "deps": {
-    "Tools/validation/port_dfa.py::def compute": "7de4083f302fad86",
-    "Tools/validation/port_frequency_domain.py::def compute_from_clean_pairs": "0d74f26c6c46407f",
-    "Tools/validation/port_sleep_stage_classifier.py::def is_valid_rr": "bfd5aabd81d91c4c",
-    "Tools/validation/port_sleep_stage_classifier.py::def window_variability": "e4bd8517e9867564"
+    "Tools/validation/port_sleep_stage_classifier.py::def window_alpha1": "5b0c45e231505b8f",
+    "Tools/validation/port_sleep_stage_classifier.py::def window_beats": "6cdb9142e5d2c936",
+    "Tools/validation/port_sleep_stage_classifier.py::def window_frequency": "4be0da71ef9182d1",
+    "Tools/validation/port_sleep_stage_classifier.py::def window_variability": "6beca26f8d23fc15"
    }
   },
   {
@@ -556,6 +687,7 @@
   }
  ],
  "deps": {
+  "Tools/validation/port_live_dfa_clean.py::def _interpolate": "090f0fea7001fd1f",
   "Tools/validation/port_sleep_stage_classifier.py::def classify": "ef83db0fee5a99b6"
  }
 }

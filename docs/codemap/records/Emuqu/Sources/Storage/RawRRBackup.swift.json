@@ -3,7 +3,7 @@
  "hash": "83ffd4617253c01f",
  "role": "Crash-safety net for raw RR beats: writes every recording's beats to RRBackup/ in the App Group container (one-shot encrypted single-file JSON, or append-only header+JSONL via RawRRBackup+Streaming.swift), keeps a JSON index of backups, and serves retrieve/list/discard/purge/reconcile APIs to recovery, archive and diagnostics code.",
  "types": [
-  "RawRRBackup: class (@unchecked Sendable) — raw RR backup store; extended by an in-file extension (holdsBackup), RawRRBackup+Streaming.swift, RawRRBackup+IndexRecovery.swift and SessionStorageDiagnostic.swift",
+  "RawRRBackup: class (@unchecked Sendable) — raw RR backup store; extended by an in-file extension (holdsBackup, writeOneShot), RawRRBackup+Streaming.swift, RawRRBackup+IndexRecovery.swift and SessionStorageDiagnostic.swift",
   "RawRRBackup.BackupEntry: struct (Codable) — decoded backup (id, captureDate, deviceId, points, hash)",
   "RawRRBackup.BackupHeader: struct (Codable) — header file of the append-only format",
   "RawRRBackup.BackupIndex: struct (Codable) — index row (fileName for one-shot, backedUpCount for append-only, archived flag, lastBackupTime) with schemaVersion key",
@@ -12,7 +12,7 @@
  "state": [
   "file:{AppGroup group.com.chrissharp.flowrecovery or Documents or tmp}/RRBackup/ (AppConfig.backupDirectoryName)",
   "file:RRBackup/backup_index.json (indexFile, plaintext JSON)",
-  "file:RRBackup/<uuid>_<unixtime>.json (one-shot backup, encrypted when EncryptionManager available)",
+  "file:RRBackup/<uuid>_<stamp>.json (one-shot backup, stamp = write time in ms raised past any taken name; older files carry whole seconds; encrypted when EncryptionManager available)",
   "file:RRBackup/<uuid>_header.json, file:RRBackup/<uuid>_points.jsonl (append-only format; point lines sealed by EncryptionManager when the key is reachable)",
   "mem:RawRRBackup.index (in-memory [BackupIndex], guarded by indexLock)",
   "mem:RawRRBackup.indexReadFailed",
@@ -283,14 +283,13 @@
   },
   {
    "key": "func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)",
-   "hash": "0134a2a6eaf0e9f8",
-   "does": "One-shot backup: refuses empty points; via replaceableIndexEntry merges an index the launch could not read (throws while unreadable) and refuses to replace an existing backup with more beats; otherwise writes an encrypted (or plaintext + ledger) single-file JSON <uuid>_<unixtime>.json atomically, replaces and saves the index row (archived=false, backedUpCount nil; the previous row is restored in memory if the save throws), and only then deletes the session's append-only files and the previous one-shot file. Returns the entry.",
+   "hash": "ef76276364dc0837",
+   "does": "One-shot backup: refuses empty points; via replaceableIndexEntry merges an index the launch could not read (throws while unreadable) and refuses to replace an existing backup with more beats; builds the entry (captureDate = caller's, else the existing row's, else now; integrityHash); writeOneShot writes it under a never-reused <uuid>_<ms>.json name and replaces and saves the index row (on a failed save the previous row is restored and the new file removed); only then deletes the session's append-only files and the previous one-shot file (removeReplacedFile; the names always differ now). Returns the entry.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.replaceableIndexEntry(_:newCount:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.integrityHash(of:)",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.writeEntry(_:to:sessionId:)",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reindex(sessionId:entry:fileName:beatCount:replacing:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.writeOneShot(_:replacing:)",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.cleanupAppendFiles(for:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.removeReplacedFile(_:keeping:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
@@ -301,7 +300,8 @@
     "file:RRBackup/backup_index.json"
    ],
    "writes": [
-    "file:RRBackup/<uuid>_<unixtime>.json",
+    "file:RRBackup/<uuid>_<ms>.json (via writeOneShot)",
+    "file:RRBackup/<uuid>_<stamp>.json (previous one-shot file, deleted)",
     "file:RRBackup/<uuid>_header.json (deleted)",
     "file:RRBackup/<uuid>_points.jsonl (deleted)",
     "file:RRBackup/backup_index.json",
@@ -325,36 +325,23 @@
      "effect": "captureDate ?? existing.captureDate ?? Date(): caller value wins, else the existing row's date, else now"
     },
     {
-     "at": "+12",
-     "cond": "saveIndex throws in reindex",
-     "effect": "throws; old files and old on-disk row kept, the new one-shot file is left unindexed"
+     "at": "+10",
+     "cond": "writeOneShot throws (write or index save)",
+     "effect": "throws; old files and old row kept and consistent; the new file is removed when only the save failed"
     },
     {
-     "at": "+15",
+     "at": "+13",
      "cond": "points.count < 100",
      "effect": "logs the small backup; otherwise silent"
     }
    ],
-   "flags": [
-    {
-     "kind": "fragile",
-     "sev": "low",
-     "text": "When reindex's save throws, writeEntry has already updated the raw-backup PendingEncryptionLedger for the NEW file (cleared if it was encrypted); if the still-indexed old one-shot file was plaintext, it then drops off the re-encryption queue while staying on disk unencrypted.",
-     "evidence": [
-      "Emuqu/Sources/Storage/RawRRBackup.swift:307",
-      "Emuqu/Sources/Storage/RawRRBackup.swift:309",
-      "Emuqu/Sources/Storage/RawRRBackup.swift:360"
-     ],
-     "found": "fix pass"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.cleanupAppendFiles(for:)": "7d78a36cf3a3b548",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.integrityHash(of:)": "a0026fd7232f77e8",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reindex(sessionId:entry:fileName:beatCount:replacing:)": "c2207b1ec020e5b1",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.removeReplacedFile(_:keeping:)": "7a668f2439d3f896",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.replaceableIndexEntry(_:newCount:)": "2a38fad629432aca",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.writeEntry(_:to:sessionId:)": "f7380e6d6a868ec5",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.writeOneShot(_:replacing:)": "33485c9f585f2600",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
@@ -1359,6 +1346,66 @@
    "branches": [],
    "flags": [],
    "deps": {}
+  },
+  {
+   "key": "func RawRRBackup.writeOneShot(_:replacing:)",
+   "hash": "e5c1ace8e1173954",
+   "does": "Names the one-shot file with OneShotBackupName.make (write time in ms, raised past any name that is the existing row's file or already on disk), writes the entry there (writeEntry: encrypted, or plaintext + re-encryption ledger), then reindexes the session to that file. If reindex's index save throws (reindex has already restored the previous row in memory), removes the new, unindexed file and rethrows, so the restored row still names its own intact file with its own hash. Returns the file name.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.make(for:at:isTaken:)",
+    "ext:FileManager.fileExists",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.writeEntry(_:to:sessionId:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reindex(sessionId:entry:fileName:beatCount:replacing:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [
+    "file:RRBackup/<uuid>_<ms>.json (existence of candidate names)",
+    "mem:RawRRBackup.index (via existing row)"
+   ],
+   "writes": [
+    "file:RRBackup/<uuid>_<ms>.json",
+    "file:RRBackup/backup_index.json",
+    "mem:RawRRBackup.index",
+    "ud:storage.pendingReencryption.rawBackupIDs"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "candidate name equals the existing row's file or exists on disk",
+     "effect": "isTaken true: make tries the next millisecond"
+    },
+    {
+     "at": "+5",
+     "cond": "writeEntry throws",
+     "effect": "rethrows; nothing indexed, index unchanged"
+    },
+    {
+     "at": "+8",
+     "cond": "reindex throws (index save failed)",
+     "effect": "remove the new file (logged via attempt on failure), rethrow"
+    }
+   ],
+   "flags": [
+    {
+     "kind": "fragile",
+     "sev": "low",
+     "text": "When reindex's save throws, writeEntry has already updated the raw-backup PendingEncryptionLedger for the NEW file (cleared if it was encrypted); if the still-indexed old one-shot file was plaintext, it then drops off the re-encryption queue while staying on disk unencrypted.",
+     "evidence": [
+      "Emuqu/Sources/Storage/RawRRBackup.swift:857",
+      "Emuqu/Sources/Storage/RawRRBackup.swift:859",
+      "Emuqu/Sources/Storage/RawRRBackup.swift:375"
+     ],
+     "found": "fix pass"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.make(for:at:isTaken:)": "69bee2207aa996a7",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reindex(sessionId:entry:fileName:beatCount:replacing:)": "c2207b1ec020e5b1",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.writeEntry(_:to:sessionId:)": "f7380e6d6a868ec5",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "52c0205fd3b71bf5"
+   }
   }
  ],
  "deps": {}

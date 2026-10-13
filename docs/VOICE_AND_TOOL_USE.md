@@ -261,7 +261,7 @@ Apple's tool-use lives behind a thin adapter:
 - **[`AppleToolCatalog.wrap(_:handler:)`](../Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift)** —
   wraps each `ToolSpec` in a `Tool<Arguments, Output>` where
   `Arguments = AppleToolArgs(@Guide argumentsJSON: String)` and
-  `Output = String`. One adapter shape for the whole catalog (21 read tools plus up to 18 action tools);
+  `Output = String`. One adapter shape for the whole catalog (21 read tools plus up to 19 action tools);
   the adapter forwards `argumentsJSON` to the dispatcher.
 - **[`AppleToolDispatcher.shared`](../Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift)** —
   `@MainActor` singleton. Before each Apple-routed send,
@@ -353,7 +353,7 @@ GetMeBackView UI:
 **Score-architecture facts** — let the AI answer
 questions about the v3.oct2026 score change without inferring from
 indirect signals. Live-evaluated, no caching:
-- `score.algorithm.version` — `"v3.1.oct2026"`. Carries the description
+- `score.algorithm.version` — `"v3.2.oct2026"`. Carries the description
   of what changed and the citation behind it (Impellizzeri 2020/2021)
   so the AI has full context when the user asks.
 - `score.history.recomputed_under_v2` — Bool. False when an upgrading
@@ -545,11 +545,24 @@ but the contract is stricter:
    to the user and asks — never guesses.
 5. **No self-initiated undo.** Mutations stay committed until the user
    asks for the reverse.
+6. **Destructive actions need the user's next message.**
+   `assistant.memory.remove`, `assistant.memory.clear` and
+   `assistant.contacts.remove` change nothing on the first call: it records a
+   pending request (`AssistantActionConfirmations`) and returns
+   `status=confirmation_required` with an app-written `ask_user` question.
+   The same call made again runs only when the user's message directly after
+   the request is a short, explicit yes (`AffirmationReply`, at most five
+   words, no negation, affirmations in the shipped languages). Another
+   reply, an intervening turn or ten minutes cancels it. The `user_quote`
+   check alone is not authorization: an instruction in a web result or a
+   pasted email can make the model quote any span of the user's message.
+   `assistant.memory.restore` undoes the last confirmed wipe until the app
+   quits.
 
 The action entries the model can call are listed in
-`CompactToolRouter.allowedActionNames`: route library rename /
-save_workout / engage, contacts add / remove, email compose, memory
-add / remove / clear, web search, current location (plain, detailed,
+`CompactToolRouter.allowedActionNames`: artifacts add / update_status,
+route library rename / save_workout / engage, contacts add / remove,
+email compose, memory add / remove / clear / restore, web search, current location (plain, detailed,
 situation), set address, and directions route-to / clear. Not all of
 them change app state (the location and web-search entries read), but
 all go through the same action path and contract.

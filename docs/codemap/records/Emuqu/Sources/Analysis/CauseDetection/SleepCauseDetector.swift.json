@@ -69,26 +69,7 @@
      "effect": "true: appends 'Improving Sleep Pattern' moderateHigh/0.7; false: only the above-average cause (if any)"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "med",
-     "text": "In the shipped app context.sleepTrend never has nightsAnalyzed >= 3: the morning summary builds it with AnalysisSleepTrendInput(from: sleepTrendStats), and MorningResultsViewModel.sleepTrendStats is declared but never assigned anywhere in the repo, so it is always .empty (nightsAnalyzed 0). The PDF paths pass nil or the same never-assigned stats, the assistant's ContextBuilder.build defaults it to nil, and HealthKitManager.fetchSleepTrend/analyzeSleepTrend have no app callers. So every trend-based sleep cause (Above/Below Your Sleep Average, Improving/Declining Sleep Pattern) only ever fires in CauseDetectorTests.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift:31",
-      "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift:147",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:24",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:313",
-      "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift:91",
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:707",
-      "Emuqu/Sources/Views/ReportsListView.swift:452",
-      "Emuqu/Sources/Views/MainTabView+Reports.swift:96",
-      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:21",
-      "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift:20"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.aboveSleepAverageCause(in:trends:)": "26b8ae76c7f825c3",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5",
@@ -294,26 +275,7 @@
      "effect": "false: returns []; true: runs both checks"
     }
    ],
-   "flags": [
-    {
-     "kind": "unreachable-branch",
-     "sev": "med",
-     "text": "In the shipped app context.sleepTrend never has nightsAnalyzed >= 3: the morning summary builds it with AnalysisSleepTrendInput(from: sleepTrendStats), and MorningResultsViewModel.sleepTrendStats is declared but never assigned anywhere in the repo, so it is always .empty (nightsAnalyzed 0). The PDF paths pass nil or the same never-assigned stats, the assistant's ContextBuilder.build defaults it to nil, and HealthKitManager.fetchSleepTrend/analyzeSleepTrend have no app callers. So every trend-based sleep cause (Above/Below Your Sleep Average, Improving/Declining Sleep Pattern) only ever fires in CauseDetectorTests.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift:31",
-      "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift:147",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:24",
-      "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift:313",
-      "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift:91",
-      "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift:707",
-      "Emuqu/Sources/Views/ReportsListView.swift:452",
-      "Emuqu/Sources/Views/MainTabView+Reports.swift:96",
-      "Emuqu/Sources/Assistant/Context/ContextBuilder.swift:21",
-      "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift:20"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.belowSleepAverageCause(in:trends:)": "773ee1fffbd9dd22",
     "Emuqu/Sources/Analysis/CauseDetection/SleepCauseDetector.swift::func SleepCauseDetector.decliningSleepCause(in:trends:)": "e30f8b20b61bd87c",

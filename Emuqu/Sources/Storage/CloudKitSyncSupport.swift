@@ -870,7 +870,8 @@ extension HRVAnalysisResult {
             organizedRecoveryZones: organizedRecoveryZones, peakCapacity: peakCapacity,
             trainingContext: trainingContext, analysisSegmentLabel: analysisSegmentLabel, isReanalysis: isReanalysis,
             overnightNadirHR: overnightNadirHR, overnightNadirTimeMs: overnightNadirTimeMs,
-            overnightMinHR: overnightMinHR, overnightMaxHR: overnightMaxHR, overnightMeanHR: overnightMeanHR
+            overnightMinHR: overnightMinHR, overnightMaxHR: overnightMaxHR, overnightMeanHR: overnightMeanHR,
+            estimatedMetrics: estimatedMetrics
         )
     }
 }

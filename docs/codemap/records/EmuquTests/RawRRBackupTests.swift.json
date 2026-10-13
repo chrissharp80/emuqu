@@ -947,6 +947,64 @@
    }
   },
   {
+   "key": "func RawRRBackupTests.testBackup_twoWritesInOneMomentUseDistinctFiles()",
+   "hash": "d3dc06d430708638",
+   "does": "Backs up 50 then 60 points under one id back to back (same second, possibly the same millisecond) and asserts the two index rows name different files, the first file is gone and retrieve returns the 60-beat backup: no write reuses the previous file's name.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.writeOneShot(_:replacing:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:App Group <backupDirectoryName>/ (real RawRRBackup store + backup_index.json)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "08e16a863de3668c",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)": "91d7a1453b421595",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.writeOneShot(_:replacing:)": "33485c9f585f2600",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)": "50c9f6787b41b601"
+   }
+  },
+  {
+   "key": "func RawRRBackupTests.testOneShotName_skipsTakenNames()",
+   "hash": "b89159fba665a8ef",
+   "does": "At a fixed instant (…000.5 s) with the names for 500 and 501 ms marked taken, OneShotBackupName.make returns the 502 ms name.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.make(for:at:isTaken:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.make(for:at:isTaken:)": "69bee2207aa996a7"
+   }
+  },
+  {
+   "key": "func RawRRBackupTests.testOneShotName_parsesSecondAndMillisecondStamps()",
+   "hash": "1a58342e8bfda6d1",
+   "does": "A legacy seconds name parses to ms (×1000), a ms name parses to its id, the later legacy name orders after the earlier ms name by writtenMs, and _header.json / _points.jsonl names do not parse.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.parse(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.writtenMs(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.parse(_:)": "8aa91e1609fa7b46",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.writtenMs(_:)": "89546bc812f222f9"
+   }
+  },
+  {
    "key": "func RawRRBackupTests.testBackup_keepsTheGivenStartDateAcrossRewrites()",
    "hash": "a40de51471e8fd9d",
    "does": "Asserts a given captureDate survives a later rewrite without one.",

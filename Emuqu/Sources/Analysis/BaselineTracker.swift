@@ -137,6 +137,10 @@ final class BaselineTracker: @unchecked Sendable {
     /// Maximum historical points to store (limit storage growth)
     static let maxHistoricalPoints = 90
 
+    /// Nights the recovery score's baseline reads: the most recent 60 stored
+    /// nights (`stats(from:)`, `baselineRMSSDs(rebuiltFrom:beforeNightOf:sleepSchedule:)`).
+    static let recoveryWindowNights = 60
+
     // MARK: - Initialization
 
     /// The app's tracker, on `HRVBaseline.json` in the App Group container
@@ -224,7 +228,7 @@ final class BaselineTracker: @unchecked Sendable {
     /// The 60 most recent points, or nil below `minimumDays`.
     private func stats(from points: [BaselineDataPoint]) -> RecoveryBaselineStats? {
         guard points.count >= RecoveryBaselineStats.minimumDays else { return nil }
-        let recentData = Array(points.suffix(60))
+        let recentData = Array(points.suffix(Self.recoveryWindowNights))
         let lnValues = lnRmssdValues(recentData)
         guard lnValues.count >= RecoveryBaselineStats.minimumDays else { return nil }
         return baselineStats(recentData: recentData, lnValues: lnValues)
@@ -332,6 +336,39 @@ final class BaselineTracker: @unchecked Sendable {
             && session.analysisResult != nil && session.isReliableForHRVAggregates
     }
 
+    /// Whether `session` can hold a night of the baseline: a rebuild
+    /// candidate that also passes the structural gate and carries a measured
+    /// SDNN, i.e. what `rebuildFromSessions` admits (`admitsToBaseline`).
+    static func isBaselineCandidate(_ session: HRVSession) -> Bool {
+        guard isRebuildCandidate(session), let result = session.analysisResult else { return false }
+        return isStructurallySoundForBaseline(session: session, result: result) && !result.isEstimated(.sdnn)
+    }
+
+    /// RMSSD of the nights the recovery score's baseline holds for the night
+    /// of `session`, rebuilt from `sessions`, oldest first: the sessions
+    /// `rebuildFromSessions` admits (`isBaselineCandidate`), merged in start
+    /// order one per night (`SleepSchedule.nightKey`) by the same replacement
+    /// rule, from nights before `session`'s only, the most recent
+    /// `recoveryWindowNights` of them — what
+    /// `recoveryBaselineStats(excludingNightOf:sleepSchedule:)` reads. The
+    /// daily report's baseline comes from here, so it counts the nights the
+    /// score counts: a short window is left out, a split night counts once,
+    /// and an earlier segment of the reported night is not a night before it.
+    static func baselineRMSSDs(
+        rebuiltFrom sessions: [HRVSession], beforeNightOf session: HRVSession, sleepSchedule: SleepSchedule
+    ) -> [Double] {
+        let night = sleepSchedule.nightKey(for: session.startDate)
+        let points = sessions
+            .filter { isBaselineCandidate($0) && sleepSchedule.nightKey(for: $0.startDate) < night }
+            .sorted { $0.startDate < $1.startDate }
+            .compactMap { candidate in candidate.analysisResult.map { dataPoint(session: candidate, result: $0) } }
+        var nights: [BaselineDataPoint] = []
+        for point in points {
+            mergeIntoNight(point, into: &nights, sleepSchedule: sleepSchedule)
+        }
+        return nights.sorted { $0.date < $1.date }.suffix(recoveryWindowNights).map(\.rmssd)
+    }
+
     /// Update baseline with new session data.
     /// Whether a session has enough structural signal to be admitted to the
     /// rolling baseline — a *different* question from whether it is worth
@@ -396,7 +433,7 @@ final class BaselineTracker: @unchecked Sendable {
     /// False when it was turned away. Caller holds `lock`.
     private func merge(_ session: HRVSession, sleepSchedule: SleepSchedule) -> Bool {
         guard let result = session.analysisResult, admitsToBaseline(session, result: result) else { return false }
-        mergeIntoNight(dataPoint(session: session, result: result), sleepSchedule: sleepSchedule)
+        Self.mergeIntoNight(Self.dataPoint(session: session, result: result), into: &historicalData, sleepSchedule: sleepSchedule)
         return true
     }
 
@@ -412,7 +449,7 @@ final class BaselineTracker: @unchecked Sendable {
         save()
     }
 
-    /// Three gates a session must pass to reach the baseline.
+    /// Four gates a session must pass to reach the baseline.
     ///
     /// Overnight only. A quick or nap reading carries no `hrvDataQuality`, so
     /// it passes the quality gate, and a daytime reading is not the resting
@@ -431,6 +468,10 @@ final class BaselineTracker: @unchecked Sendable {
     ///
     /// The STRUCTURAL gate is separate from the quality flag; see
     /// `isStructurallySoundForBaseline` for why.
+    ///
+    /// A reading whose SDNN is an estimate (an Elite HRV summary import,
+    /// `HRVAnalysisResult.estimatedMetrics`) stays out: a data point's SDNN
+    /// is a stored number the SDNN baseline averages.
     private func admitsToBaseline(_ session: HRVSession, result: HRVAnalysisResult) -> Bool {
         guard session.sessionType == .overnight else {
             debugLog("[Baseline] Skipping \(session.sessionType.rawValue) session \(session.id.uuidString.prefix(8)) — only overnight readings form the baseline")
@@ -444,10 +485,10 @@ final class BaselineTracker: @unchecked Sendable {
             debugLog("[Baseline] Skipping session \(session.id.uuidString.prefix(8)) — window too short or no organized recovery")
             return false
         }
-        return true
+        return !result.isEstimated(.sdnn)
     }
 
-    private func dataPoint(session: HRVSession, result: HRVAnalysisResult) -> BaselineDataPoint {
+    private static func dataPoint(session: HRVSession, result: HRVAnalysisResult) -> BaselineDataPoint {
         BaselineDataPoint(
             date: session.startDate,
             endDate: session.endDate,
@@ -471,21 +512,25 @@ final class BaselineTracker: @unchecked Sendable {
     /// (`SleepSchedule.nightKey`), not the calendar day: a night started at
     /// 23:30 and its 00:30 continuation share a slot, and two different
     /// nights never do. A morning reading always beats a non-morning one;
-    /// otherwise the newcomer has to have earned the slot outright.
-    private func mergeIntoNight(_ dataPoint: BaselineDataPoint, sleepSchedule: SleepSchedule) {
+    /// otherwise the newcomer has to have earned the slot outright. Static,
+    /// over the `nights` it is given, so the stored baseline and
+    /// `baselineRMSSDs` apply the one rule.
+    private static func mergeIntoNight(
+        _ dataPoint: BaselineDataPoint, into nights: inout [BaselineDataPoint], sleepSchedule: SleepSchedule
+    ) {
         let night = sleepSchedule.nightKey(for: dataPoint.date)
-        guard let existingIndex = historicalData.firstIndex(
+        guard let existingIndex = nights.firstIndex(
             where: { sleepSchedule.nightKey(for: $0.date) == night }
         ) else {
-            historicalData.append(dataPoint)
+            nights.append(dataPoint)
             return
         }
-        if shouldReplace(historicalData[existingIndex], with: dataPoint, sleepSchedule: sleepSchedule) {
-            historicalData[existingIndex] = dataPoint
+        if shouldReplace(nights[existingIndex], with: dataPoint, sleepSchedule: sleepSchedule) {
+            nights[existingIndex] = dataPoint
         }
     }
 
-    private func shouldReplace(
+    private static func shouldReplace(
         _ existing: BaselineDataPoint,
         with dataPoint: BaselineDataPoint,
         sleepSchedule: SleepSchedule
@@ -537,7 +582,7 @@ final class BaselineTracker: @unchecked Sendable {
         guard baseline.sampleCount >= Baseline.minimumSamples else { return nil }
         return BaselineDeviation(
             rmssdDeviation: percentDeviation(current: result.timeDomain.rmssd, baseline: baseline.rmssd),
-            sdnnDeviation: percentDeviation(current: result.timeDomain.sdnn, baseline: baseline.sdnn),
+            sdnnDeviation: result.measuredSDNN.flatMap { percentDeviation(current: $0, baseline: baseline.sdnn) },
             meanHRDeviation: percentDeviation(current: result.timeDomain.meanHR, baseline: baseline.meanHR),
             hfDeviation: optionalPercentDeviation(current: result.frequencyDomain?.hf, baseline: baseline.hf),
             lfHfDeviation: optionalPercentDeviation(current: result.frequencyDomain?.lfHfRatio, baseline: baseline.lfHfRatio),
@@ -568,7 +613,7 @@ final class BaselineTracker: @unchecked Sendable {
     ///   - new: New data point candidate
     ///   - existing: Existing data point currently in baseline
     /// - Returns: True if new window is objectively superior and should replace existing
-    private func newWindowIsObjectivelyBetter(new: BaselineDataPoint, existing: BaselineDataPoint) -> Bool {
+    private static func newWindowIsObjectivelyBetter(new: BaselineDataPoint, existing: BaselineDataPoint) -> Bool {
         if let verdict = consolidationVerdict(new: new, existing: existing) { return verdict }
         if let verdict = organizedRecoveryVerdict(new: new, existing: existing) { return verdict }
         if !passesQualityGates(new: new, existing: existing) { return false }
@@ -578,7 +623,7 @@ final class BaselineTracker: @unchecked Sendable {
     /// 1. Consolidated windows take priority over non-consolidated: a true
     /// consolidated recovery (sustained plateau + stable HR) beats a spike.
     /// Nil means consolidation didn't decide it.
-    private func consolidationVerdict(new: BaselineDataPoint, existing: BaselineDataPoint) -> Bool? {
+    private static func consolidationVerdict(new: BaselineDataPoint, existing: BaselineDataPoint) -> Bool? {
         let newScore = new.readinessScore ?? 0
         let existingScore = existing.readinessScore ?? 0
         let newConsolidated = new.isConsolidated ?? false
@@ -600,7 +645,7 @@ final class BaselineTracker: @unchecked Sendable {
 
     /// 2. With consolidation equal, organized recovery (DFA α1 0.75-1.0) is the
     /// critical readiness signal. Nil means it didn't decide it.
-    private func organizedRecoveryVerdict(new: BaselineDataPoint, existing: BaselineDataPoint) -> Bool? {
+    private static func organizedRecoveryVerdict(new: BaselineDataPoint, existing: BaselineDataPoint) -> Bool? {
         guard (new.isConsolidated ?? false) == (existing.isConsolidated ?? false) else { return nil }
         let newOrganized = new.isOrganizedRecovery ?? false
         let existingOrganized = existing.isOrganizedRecovery ?? false
@@ -619,7 +664,7 @@ final class BaselineTracker: @unchecked Sendable {
 
     /// 3-4. Quality control: artifact rate and HR stability must not be
     /// meaningfully worse than what is already in the baseline.
-    private func passesQualityGates(new: BaselineDataPoint, existing: BaselineDataPoint) -> Bool {
+    private static func passesQualityGates(new: BaselineDataPoint, existing: BaselineDataPoint) -> Bool {
         let newArtifacts = new.artifactPercentage ?? 100.0
         let existingArtifacts = existing.artifactPercentage ?? 100.0
 
@@ -637,7 +682,7 @@ final class BaselineTracker: @unchecked Sendable {
 
     /// Lower CV is better. A window more than 30% less stable than the one it
     /// would replace is rejected.
-    private func hrStabilityAcceptable(new: BaselineDataPoint, existing: BaselineDataPoint) -> Bool {
+    private static func hrStabilityAcceptable(new: BaselineDataPoint, existing: BaselineDataPoint) -> Bool {
         guard let newStability = new.windowHRStability,
               let existingStability = existing.windowHRStability else { return true }
         guard newStability > existingStability * BaselineConstants.hrStabilityRejectMultiplier else { return true }
@@ -647,7 +692,7 @@ final class BaselineTracker: @unchecked Sendable {
 
     /// 5. Both windows have similar quality characteristics by now, so the new
     /// one must be meaningfully better (>5% improvement minimum).
-    private func isMeaningfullyBetterScore(new: BaselineDataPoint, existing: BaselineDataPoint) -> Bool {
+    private static func isMeaningfullyBetterScore(new: BaselineDataPoint, existing: BaselineDataPoint) -> Bool {
         let newScore = new.readinessScore ?? 0
         let existingScore = existing.readinessScore ?? 0
         let scoreDelta = newScore - existingScore

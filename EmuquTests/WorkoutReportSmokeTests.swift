@@ -219,7 +219,8 @@ final class WorkoutReportSmokeTests: XCTestCase {
             userMaxHR: 190,
             userRestingHR: 50,
             userLTHR: 168,
-            units: .metric
+            units: .metric,
+            sleepSchedule: SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0)
         )
     }
 

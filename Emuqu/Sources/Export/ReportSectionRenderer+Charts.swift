@@ -141,9 +141,9 @@ extension ReportSectionRenderer {
     private func drawPoincareStats(result: HRVAnalysisResult, pointCount: Int, x statsX: CGFloat, y: CGFloat) {
         // Stats next to plot
         let stats = [
-            ("SD1", String(format: "%.1f ms", locale: LanguageManager.appLocale, result.nonlinear.sd1)),
-            ("SD2", String(format: "%.1f ms", locale: LanguageManager.appLocale, result.nonlinear.sd2)),
-            ("SD1/SD2", String(format: "%.3f", locale: LanguageManager.appLocale, result.nonlinear.sd1Sd2Ratio)),
+            ("SD1", result.markingEstimate(String(format: "%.1f ms", locale: LanguageManager.appLocale, result.nonlinear.sd1), for: .sd1)),
+            ("SD2", result.markingEstimate(String(format: "%.1f ms", locale: LanguageManager.appLocale, result.nonlinear.sd2), for: .sd2)),
+            ("SD1/SD2", result.markingEstimate(String(format: "%.3f", locale: LanguageManager.appLocale, result.nonlinear.sd1Sd2Ratio), for: .sd1Sd2Ratio)),
             (String(localized: "Points", bundle: LanguageManager.appBundle), "\(pointCount)")
         ]
 

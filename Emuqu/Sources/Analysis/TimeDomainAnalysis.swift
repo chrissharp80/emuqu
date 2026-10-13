@@ -1,6 +1,28 @@
 import Accelerate
 import Foundation
 
+/// The non-artifact beats of an analysis window, each with its index in the
+/// series, and the series indices whose beat follows a recording break
+/// (`TimeDomainAnalyzer.beatsAfterRecordingBreak`).
+///
+/// Collapsing a window to its valid beats loses which of them were
+/// neighbours. This keeps it, so every metric built on beat-to-beat
+/// structure reads the same adjacency: time-domain RMSSD/pNN50/SDSD and
+/// Poincaré SD1 difference only neighbouring beats, entropy templates stay
+/// inside a run of neighbours, and DFA interpolates removed beats and splits
+/// at breaks (`DFAAnalyzer.interpolatedSegments`).
+struct CleanBeatWindow {
+    let rr: [Double]
+    let indices: [Int]
+    let breaks: Set<Int>
+
+    /// Whether beat `k` and beat `k - 1` were neighbours in the series with
+    /// no recording break between them. False for the first beat.
+    func isAdjacentToPrevious(_ k: Int) -> Bool {
+        k > 0 && indices[k] == indices[k - 1] + 1 && !breaks.contains(indices[k])
+    }
+}
+
 /// Time-domain HRV analysis
 enum TimeDomainAnalyzer {
     // RMSSD=√(mean successive ΔRR²); pNN50; SDNN(N−1); triangular index 1/128s
@@ -207,26 +229,37 @@ enum TimeDomainAnalyzer {
         windowStart: Int,
         windowEnd: Int
     ) -> TimeDomainMetrics? {
+        guard let window = cleanWindow(series, flags: flags, windowStart: windowStart, windowEnd: windowEnd),
+              window.rr.count >= 10,
+              let diffs = successiveDifferences(in: window)
+        else { return nil }
+        return metrics(
+            cleanRR: window.rr, diffs: diffs,
+            hrStats: computeHRStatistics(series: series, flags: flags, windowStart: windowStart, windowEnd: windowEnd, cleanRR: window.rr)
+        )
+    }
+
+    /// The window's non-artifact beats with their series indices and the
+    /// recording breaks in it; nil when the bounds cannot address both
+    /// `series.points` and `flags`. Shared with `NonlinearAnalyzer`, so the
+    /// two read the same beats with the same adjacency.
+    static func cleanWindow(
+        _ series: RRSeries, flags: [ArtifactFlags], windowStart: Int, windowEnd: Int
+    ) -> CleanBeatWindow? {
         // Window bounds must be valid against BOTH points and flags (separate
         // parameters). Valid callers always satisfy this; a stale window index
         // applied to a shorter/re-loaded series would otherwise trap on the
         // subscript. nil = the existing insufficient-data contract.
         guard windowStart >= 0, windowStart <= windowEnd,
               windowEnd <= series.points.count, windowEnd <= flags.count else { return nil }
-        var cleanRR = [Double]()
-        var cleanIndices = [Int]()
+        var rr = [Double]()
+        var indices = [Int]()
         for i in windowStart ..< windowEnd where !flags[i].isArtifact {
-            cleanRR.append(Double(series.points[i].rr_ms))
-            cleanIndices.append(i)
+            rr.append(Double(series.points[i].rr_ms))
+            indices.append(i)
         }
         let breaks = beatsAfterRecordingBreak(in: series.points, range: windowStart ..< windowEnd)
-        guard cleanRR.count >= 10,
-              let diffs = successiveDifferences(of: cleanRR, originalIndices: cleanIndices, breaks: breaks)
-        else { return nil }
-        return metrics(
-            cleanRR: cleanRR, diffs: diffs,
-            hrStats: computeHRStatistics(series: series, flags: flags, windowStart: windowStart, windowEnd: windowEnd, cleanRR: cleanRR)
-        )
+        return CleanBeatWindow(rr: rr, indices: indices, breaks: breaks)
     }
 
     private static func metrics(
@@ -248,9 +281,12 @@ enum TimeDomainAnalyzer {
         )
     }
 
-    /// Successive differences for RMSSD / pNN50 / SDSD, taken only between
-    /// beats that are ADJACENT in the original series, both kept, and not
-    /// separated by a recording break (`breaks`, see `isRecordingBreak`).
+    /// Successive differences for RMSSD / pNN50 / SDSD and Poincaré SD1,
+    /// taken only between beats that are ADJACENT in the original series,
+    /// both kept, and not separated by a recording break
+    /// (`CleanBeatWindow.isAdjacentToPrevious`, see `isRecordingBreak`).
+    /// `NonlinearAnalyzer` takes SD1 from these same pairs, so
+    /// SD1² = ½·Var(these differences) stays tied to SDSD.
     ///
     /// The Task Force definition is the difference between adjacent NN
     /// intervals. Dropping a flagged or ectopic beat and differencing the
@@ -263,31 +299,23 @@ enum TimeDomainAnalyzer {
     /// (`WindowSelector.maskedRMSSD`). The gate keeps every beat when there
     /// are too few to judge. If the gate leaves no adjacent pair, adjacent
     /// artifact-clean pairs are used without it.
-    private static func successiveDifferences(
-        of cleanRR: [Double], originalIndices: [Int], breaks: Set<Int>
-    ) -> [Double]? {
-        let kept = ectopicKeepMask(cleanRR)
-        let gated = adjacentDifferences(cleanRR, originalIndices: originalIndices, breaks: breaks) { kept[$0] }
+    static func successiveDifferences(in window: CleanBeatWindow) -> [Double]? {
+        let kept = ectopicKeepMask(window.rr)
+        let gated = adjacentDifferences(in: window) { kept[$0] }
         if !gated.isEmpty { return gated }
-        let ungated = adjacentDifferences(cleanRR, originalIndices: originalIndices, breaks: breaks) { _ in true }
+        let ungated = adjacentDifferences(in: window) { _ in true }
         return ungated.isEmpty ? nil : ungated
     }
 
     /// `rr[k] - rr[k - 1]` for every k whose beat and predecessor are both
     /// kept, were neighbours in the original series, and have no recording
     /// break between them.
-    private static func adjacentDifferences(
-        _ rr: [Double],
-        originalIndices: [Int],
-        breaks: Set<Int>,
-        isKept: (Int) -> Bool
-    ) -> [Double] {
+    private static func adjacentDifferences(in window: CleanBeatWindow, isKept: (Int) -> Bool) -> [Double] {
+        let rr = window.rr
         guard rr.count > 1 else { return [] }
         var diffs = [Double]()
         diffs.reserveCapacity(rr.count - 1)
-        for k in 1 ..< rr.count
-        where isKept(k) && isKept(k - 1) && originalIndices[k] == originalIndices[k - 1] + 1
-            && !breaks.contains(originalIndices[k]) {
+        for k in 1 ..< rr.count where isKept(k) && isKept(k - 1) && window.isAdjacentToPrevious(k) {
             diffs.append(rr[k] - rr[k - 1])
         }
         return diffs

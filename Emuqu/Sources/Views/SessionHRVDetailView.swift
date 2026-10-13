@@ -126,10 +126,10 @@ struct SessionHRVDetailView: View {
 
     private var hrStatsRow: some View {
         HStack(spacing: 8) {
-            hrStatCard(title: String(localized: "Min", bundle: LanguageManager.appBundle), value: result.timeDomain.minHR, unit: Self.bpmUnit, color: AppTheme.sage)
+            hrStatCard(title: result.markingEstimate(String(localized: "Min", bundle: LanguageManager.appBundle), for: .hrRange), value: result.timeDomain.minHR, unit: Self.bpmUnit, color: AppTheme.sage)
             hrStatCard(title: String(localized: "Avg", bundle: LanguageManager.appBundle), value: result.timeDomain.meanHR, unit: Self.bpmUnit, color: AppTheme.terracotta)
-            hrStatCard(title: String(localized: "Max", bundle: LanguageManager.appBundle), value: result.timeDomain.maxHR, unit: Self.bpmUnit, color: AppTheme.dustyRose)
-            hrStatCard(title: String(localized: "SDNN", bundle: LanguageManager.appBundle), value: result.timeDomain.sdnn, unit: Self.msUnit, color: AppTheme.sdnnColor)
+            hrStatCard(title: result.markingEstimate(String(localized: "Max", bundle: LanguageManager.appBundle), for: .hrRange), value: result.timeDomain.maxHR, unit: Self.bpmUnit, color: AppTheme.dustyRose)
+            hrStatCard(title: result.markingEstimate(String(localized: "SDNN", bundle: LanguageManager.appBundle), for: .sdnn), value: result.timeDomain.sdnn, unit: Self.msUnit, color: AppTheme.sdnnColor)
         }
     }
 
@@ -206,9 +206,9 @@ struct SessionHRVDetailView: View {
                 .frame(height: 120)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(String(localized: "RR interval tachogram", bundle: LanguageManager.appBundle))
-                .accessibilityValue(String(
+                .accessibilityValue(result.markingEstimate(String(
                     localized: "RMSSD \(Int(result.timeDomain.rmssd)) milliseconds, SDNN \(Int(result.timeDomain.sdnn)) milliseconds", bundle: LanguageManager.appBundle
-                ))
+                ), for: .sdnn))
         }
         .zenCard()
     }
@@ -231,9 +231,9 @@ struct SessionHRVDetailView: View {
                 .foregroundColor(AppTheme.textPrimary)
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                Text(String(localized: "SD1: \(String(format: "%.1f", locale: LanguageManager.appLocale, result.nonlinear.sd1)) ms", bundle: LanguageManager.appBundle))
+                Text(result.markingEstimate(String(localized: "SD1: \(String(format: "%.1f", locale: LanguageManager.appLocale, result.nonlinear.sd1)) ms", bundle: LanguageManager.appBundle), for: .sd1))
                     .font(.caption)
-                Text(String(localized: "SD2: \(String(format: "%.1f", locale: LanguageManager.appLocale, result.nonlinear.sd2)) ms", bundle: LanguageManager.appBundle))
+                Text(result.markingEstimate(String(localized: "SD2: \(String(format: "%.1f", locale: LanguageManager.appLocale, result.nonlinear.sd2)) ms", bundle: LanguageManager.appBundle), for: .sd2))
                     .font(.caption)
             }
             .foregroundColor(AppTheme.textSecondary)
@@ -245,9 +245,9 @@ struct SessionHRVDetailView: View {
             .frame(height: 250)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(String(localized: "Poincaré plot", bundle: LanguageManager.appBundle))
-            .accessibilityValue(String(
+            .accessibilityValue(result.markingEstimate(String(
                 localized: "SD1 \(String(format: "%.1f", locale: LanguageManager.appLocale, result.nonlinear.sd1)) milliseconds, SD2 \(String(format: "%.1f", locale: LanguageManager.appLocale, result.nonlinear.sd2)) milliseconds", bundle: LanguageManager.appBundle
-            ))
+            ), for: .sd2))
     }
 
     private var poincareLegend: some View {

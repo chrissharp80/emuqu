@@ -1,9 +1,9 @@
 {
  "file": "Emuqu/Sources/Views/MainTabView+Tabs.swift",
- "hash": "d741aab9786bb9c5",
+ "hash": "e3e81aff0a7f6e94",
  "role": "MainTabView extension: More tab, the coalesced/debounced/deferred dashboard reload pipeline (decrypt slice, count, UIStateCache snapshot, LaunchCoordinator ready signal), dashboard callbacks (delete, tags, reanalyze, ask assistant) and the Send-report preparation flow.",
  "types": [
-  "MainTabView.SendReportInputs: struct — main-actor snapshot of sessions/baseline/HR settings/units for the detached report render",
+  "MainTabView.SendReportInputs: struct — main-actor snapshot of sessions/baseline/HR settings/units/sleep schedule for the detached report render",
   "MainTabView.RenderOutcome: enum — ok(URL) | failed(String)"
  ],
  "state": [],
@@ -428,8 +428,8 @@
   },
   {
    "key": "func MainTabView.sendReportInputs(for:)",
-   "hash": "49dd58a86a0a42db",
-   "does": "Captures recovery/workout/pair sessions, reliable overnights of the dashboard slice (replaced for recovery and daily reports by withFullSessions with the archive's nights before the reported one), the baseline as it stood for the reported night (reportBaselineStats: the daily pair's overnight for .daily, otherwise the recovery night), effective max/resting HR and LTHR, units and temperature unit from settings.",
+   "hash": "7d54bd3b011f1c1d",
+   "does": "Captures recovery/workout/pair sessions, reliable overnights of the dashboard slice (replaced for recovery and daily reports by withFullSessions with the archive's nights before the reported one), the baseline as it stood for the reported night (reportBaselineStats: the daily pair's overnight for .daily, otherwise the recovery night), effective max/resting HR and LTHR, units, sleep schedule and temperature unit from settings.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
@@ -442,7 +442,8 @@
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reportBaselineStats(night:settings:)"
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reportBaselineStats(night:settings:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.sleepSchedule"
    ],
    "reads": [
     "mem:SettingsManager.settings",
@@ -467,6 +468,7 @@
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "d8f21d4214c3f50a",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "cef5ee5d9e3b4ade",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "6de242bd745f1424",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.sleepSchedule": "8de4d6a741ac1366",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "307287cc00c127be",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "320e181d89b608eb",
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.mostRecentDailyPair()": "2358ab79f93dc47e",

@@ -224,13 +224,14 @@
   },
   {
    "key": "func ReportSectionRenderer.drawPoincareStats(result:pointCount:x:y:)",
-   "hash": "7c47f8f07a9a9a7f",
-   "does": "Draws SD1, SD2 (ms), SD1/SD2 ratio and the pair count to the right of the plot, 14pt per row.",
+   "hash": "21d3236a1b8d6d59",
+   "does": "Draws SD1, SD2 (ms), SD1/SD2 ratio (each marked '(estimate)' when it is one) and the pair count to the right of the plot, 14pt per row.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)"
    ],
    "reads": [
     "mem:LanguageManager.appBundle",
@@ -248,6 +249,7 @@
    "deps": {
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "29c985d5d464ee1e",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
    }

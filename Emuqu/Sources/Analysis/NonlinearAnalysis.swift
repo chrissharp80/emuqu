@@ -18,35 +18,62 @@ enum NonlinearAnalyzer {
         windowStart: Int,
         windowEnd: Int
     ) -> NonlinearMetrics? {
-        // Window bounds must be valid against BOTH points and flags (separate
-        // parameters). Valid callers always satisfy this; a stale window index
-        // applied to a shorter/re-loaded series would otherwise trap on the
-        // subscript. nil = the existing insufficient-data contract.
-        guard windowStart >= 0, windowStart <= windowEnd,
-              windowEnd <= series.points.count, windowEnd <= flags.count else { return nil }
-        var cleanRR = [Double]()
-        for i in windowStart ..< windowEnd where !flags[i].isArtifact {
-            cleanRR.append(Double(series.points[i].rr_ms))
-        }
-        guard cleanRR.count >= 10 else { return nil }
-        return metrics(forCleanRR: cleanRR)
+        // `cleanWindow` is nil for bounds that cannot address both points and
+        // flags; no adjacent pair is the time domain's insufficient-data case.
+        guard let window = TimeDomainAnalyzer.cleanWindow(series, flags: flags, windowStart: windowStart, windowEnd: windowEnd),
+              window.rr.count >= 10,
+              let diffs = TimeDomainAnalyzer.successiveDifferences(in: window)
+        else { return nil }
+        return metrics(for: window, successiveDifferences: diffs)
     }
 
-    /// The four nonlinear families over an already-cleaned RR array.
-    private static func metrics(forCleanRR cleanRR: [Double]) -> NonlinearMetrics {
-        let (sd1, sd2) = computePoincareMetrics(cleanRR)
-        let dfaResult = DFAAnalyzer.compute(cleanRR)
+    /// The four nonlinear families over a window's clean beats. None of them
+    /// treats a removed beat or a recording break as adjacency: SD1 uses the
+    /// time domain's adjacent pairs, entropy templates stay inside runs of
+    /// neighbouring beats, and DFA interpolates removed beats and splits at
+    /// breaks (`DFAAnalyzer.compute(window:)`). A window with no removed beat
+    /// and no break gives the textbook single-series values.
+    private static func metrics(
+        for window: CleanBeatWindow, successiveDifferences diffs: [Double]
+    ) -> NonlinearMetrics {
+        let (sd1, sd2) = computePoincareMetrics(window.rr, successiveDifferences: diffs)
+        let dfaResult = DFAAnalyzer.compute(window: window)
+        let followsGap = window.rr.indices.map { $0 > 0 && !window.isAdjacentToPrevious($0) }
         return NonlinearMetrics(
             sd1: sd1,
             sd2: sd2,
             sd1Sd2Ratio: sd2 > 0 ? sd1 / sd2 : 0,
             // Both entropies are O(n^2); each subsamples internally.
-            sampleEntropy: computeSampleEntropy(cleanRR, m: 2, r: 0.2),
-            approxEntropy: computeApproxEntropy(cleanRR, m: 2, r: 0.2),
+            sampleEntropy: computeSampleEntropy(window.rr, followsGap: followsGap, m: 2, r: 0.2),
+            approxEntropy: computeApproxEntropy(window.rr, followsGap: followsGap, m: 2, r: 0.2),
             dfaAlpha1: dfaResult?.alpha1,
             dfaAlpha2: dfaResult?.alpha2,
             dfaAlpha1R2: dfaResult?.alpha1R2
         )
+    }
+
+    /// Beats in runs of neighbours, for entropy: a template of m beats must
+    /// be m CONSECUTIVE beats (Pincus 1991; Richman & Moorman 2000), so one
+    /// that would cross a removed beat or a recording break is not formed.
+    private struct BeatRuns {
+        let values: [Double]
+        /// For each beat, how many beats its run has from it to the end.
+        let runLength: [Int]
+
+        init(values: [Double], followsGap: [Bool]) {
+            self.values = values
+            var lengths = [Int](repeating: 1, count: values.count)
+            for i in stride(from: values.count - 2, through: 0, by: -1) where !followsGap[i + 1] {
+                lengths[i] = lengths[i + 1] + 1
+            }
+            runLength = lengths
+        }
+
+        /// Starts of every template of `length` beats that lies inside a run.
+        /// With no gap, every start from 0 through `values.count - length`.
+        func templateStarts(length: Int) -> [Int] {
+            values.indices.filter { runLength[$0] >= length }
+        }
     }
 
     // MARK: - Approximate Entropy
@@ -57,26 +84,27 @@ enum NonlinearAnalyzer {
     ///   - m: Embedding dimension (typically 2)
     ///   - r: Tolerance as fraction of SD (typically 0.2)
     /// - Returns: Approximate entropy value
-    private static func computeApproxEntropy(_ rr: [Double], m: Int, r: Double) -> Double? {
+    private static func computeApproxEntropy(_ rr: [Double], followsGap: [Bool], m: Int, r: Double) -> Double? {
         guard rr.count >= m + 2 else { return nil }
         let tolerance = r * sampleStandardDeviation(rr)
-        let entropyValues = entropySubsample(rr)
-        guard let phiM = computePhi(entropyValues, templateLength: m, tolerance: tolerance),
-              let phiM1 = computePhi(entropyValues, templateLength: m + 1, tolerance: tolerance)
+        let runs = entropySubsample(rr, followsGap: followsGap)
+        guard let phiM = computePhi(runs, templateLength: m, tolerance: tolerance),
+              let phiM1 = computePhi(runs, templateLength: m + 1, tolerance: tolerance)
         else { return nil }
         return phiM - phiM1
     }
 
-    /// Compute Phi value for ApEn calculation
-    private static func computePhi(_ data: [Double], templateLength: Int, tolerance: Double) -> Double? {
-        let n = data.count
-        guard n > templateLength else { return nil }
-        let numTemplates = n - templateLength + 1
+    /// Compute Phi value for ApEn calculation, over the templates that lie
+    /// inside a run of neighbouring beats; nil with fewer than two.
+    private static func computePhi(_ runs: BeatRuns, templateLength: Int, tolerance: Double) -> Double? {
+        let starts = runs.templateStarts(length: templateLength)
+        guard starts.count >= 2 else { return nil }
+        let numTemplates = starts.count
         var logSum: Double = 0
-        for i in 0 ..< numTemplates {
+        for i in starts {
             // Includes the self-match, so the count is always at least 1.
-            let count = (0 ..< numTemplates).count { j in
-                templatesMatch(data, i, j, templateLength: templateLength, tolerance: tolerance)
+            let count = starts.count { j in
+                templatesMatch(runs.values, i, j, templateLength: templateLength, tolerance: tolerance)
             }
             let ci = Double(count) / Double(numTemplates)
             if ci > 0 { logSum += log(ci) }
@@ -108,30 +136,39 @@ enum NonlinearAnalyzer {
     /// to preserve the fundamental identity: SD1² + SD2² = 2·Var(RR)
     /// Poincaré SD1²=½·SDSD², SD1²+SD2²=2·SDNN² — Brennan, Palaniswami, Kamen,
     /// IEEE TBME 2001;48:1342-1347.
-    private static func computePoincareMetrics(_ rr: [Double]) -> (sd1: Double, sd2: Double) {
+    ///
+    /// `diffs` are the time domain's successive differences
+    /// (`TimeDomainAnalyzer.successiveDifferences(in:)`): adjacent beats only,
+    /// never across a removed beat or a recording break, through the same
+    /// ectopic gate. Each Poincaré point (RR(n), RR(n+1)) is a pair of
+    /// neighbouring beats, so SD1 comes from exactly the pairs SDSD does:
+    /// SD1² = ½·Var(diffs), population variance here where SDSD divides by
+    /// N−1. SD2 keeps Brennan's identity with the variance of every clean
+    /// beat, the beats SDNN is taken over.
+    private static func computePoincareMetrics(
+        _ rr: [Double], successiveDifferences diffs: [Double]
+    ) -> (sd1: Double, sd2: Double) {
         guard rr.count >= 2 else { return (0, 0) }
         // SD1 = SDSD / sqrt(2), using the population variance of successive
         // differences. Per Brennan et al. (2001): SD1^2 = Var(diffs) / 2.
-        let sd1 = sqrt(max(0, successiveDifferenceVariance(rr)) / 2.0)
+        let sd1 = sqrt(max(0, successiveDifferenceVariance(diffs)) / 2.0)
         // SD2^2 = 2*Var(RR) - SD1^2. Population variance again, so the Brennan
         // identity SD1^2 + SD2^2 = 2*Var(RR) holds exactly.
         let variance = populationVariance(rr)
         return (sd1, sqrt(max(0, 2 * variance - sd1 * sd1)))
     }
 
-    /// Population variance of the RR(n+1) - RR(n) series.
-    private static func successiveDifferenceVariance(_ rr: [Double]) -> Double {
-        // Fewer than two beats yields no differences: the loop bound would be
-        // invalid and `nDiffs` would be a zero divisor.
-        guard rr.count >= 2 else { return 0 }
+    /// Population variance of a series of successive differences.
+    private static func successiveDifferenceVariance(_ diffs: [Double]) -> Double {
+        // No differences: `nDiffs` would be a zero divisor.
+        guard !diffs.isEmpty else { return 0 }
         var diffSum: Double = 0
         var diffSumSq: Double = 0
-        for i in 0 ..< (rr.count - 1) {
-            let diff = rr[i + 1] - rr[i]
+        for diff in diffs {
             diffSum += diff
             diffSumSq += diff * diff
         }
-        let nDiffs = Double(rr.count - 1)
+        let nDiffs = Double(diffs.count)
         let meanDiff = diffSum / nDiffs
         return diffSumSq / nDiffs - meanDiff * meanDiff
     }
@@ -165,11 +202,21 @@ enum NonlinearAnalyzer {
     /// points still gives reliable estimates for m=2, r=0.2*SD (Richman &
     /// Moorman 2000). Tolerance is always computed from the FULL dataset, which
     /// keeps the statistical basis correct regardless of the subsampling.
-    private static func entropySubsample(_ rr: [Double]) -> [Double] {
+    /// Two picks continue one run only when no gap (`followsGap`) lies
+    /// between the beats they were taken from.
+    private static func entropySubsample(_ rr: [Double], followsGap: [Bool]) -> BeatRuns {
         let maxEntropyPoints = 1_000
-        guard rr.count > maxEntropyPoints else { return rr }
+        guard rr.count > maxEntropyPoints else { return BeatRuns(values: rr, followsGap: followsGap) }
         let stride = Double(rr.count) / Double(maxEntropyPoints)
-        return (0 ..< maxEntropyPoints).map { rr[Int(Double($0) * stride)] }
+        let picks = (0 ..< maxEntropyPoints).map { Int(Double($0) * stride) }
+        // gapsThrough[i]: how many gaps lie at or before beat i.
+        var gapsThrough = [Int]()
+        gapsThrough.reserveCapacity(rr.count)
+        for gap in followsGap {
+            gapsThrough.append((gapsThrough.last ?? 0) + (gap ? 1 : 0))
+        }
+        let pickedGaps = picks.indices.map { $0 > 0 && gapsThrough[picks[$0]] > gapsThrough[picks[$0 - 1]] }
+        return BeatRuns(values: picks.map { rr[$0] }, followsGap: pickedGaps)
     }
 
     // MARK: - Sample Entropy
@@ -182,27 +229,27 @@ enum NonlinearAnalyzer {
     /// - Returns: Sample entropy value, or nil if cannot compute
     /// Sample entropy m=2, r=0.2·SD, −ln(A/B) — Richman & Moorman, Am J Physiol
     /// 2000;278:H2039.
-    private static func computeSampleEntropy(_ rr: [Double], m: Int, r: Double) -> Double? {
+    private static func computeSampleEntropy(_ rr: [Double], followsGap: [Bool], m: Int, r: Double) -> Double? {
         guard rr.count >= m + 2 else { return nil }
         let tolerance = r * sampleStandardDeviation(rr)
-        let entropyValues = entropySubsample(rr)
-        // Both lengths compare the same N − m templates (Richman & Moorman),
-        // so A is not counted over one template fewer than B.
-        let templates = entropyValues.count - m
-        let countM = countTemplateMatches(entropyValues, templateLength: m, templateCount: templates, tolerance: tolerance)
-        let countM1 = countTemplateMatches(entropyValues, templateLength: m + 1, templateCount: templates, tolerance: tolerance)
+        let runs = entropySubsample(rr, followsGap: followsGap)
+        // Both lengths compare the same templates (Richman & Moorman): those
+        // with room for m + 1 beats inside their run — the first N − m when
+        // there is no gap — so A is not counted over fewer templates than B.
+        let starts = runs.templateStarts(length: m + 1)
+        let countM = countTemplateMatches(runs.values, starts: starts, templateLength: m, tolerance: tolerance)
+        let countM1 = countTemplateMatches(runs.values, starts: starts, templateLength: m + 1, tolerance: tolerance)
         guard countM > 0, countM1 > 0 else { return nil }
         return -log(Double(countM1) / Double(countM))
     }
 
-    /// Count matching template pairs, among the first `templateCount`
-    /// templates of `templateLength`, using Chebyshev distance. Zero when
-    /// the templates would run past the data.
-    private static func countTemplateMatches(_ data: [Double], templateLength: Int, templateCount: Int, tolerance: Double) -> Int {
-        guard templateCount > 0, templateCount + templateLength - 1 <= data.count else { return 0 }
+    /// Count matching template pairs among the templates of `templateLength`
+    /// beginning at `starts`, using Chebyshev distance. Every start must
+    /// leave room for `templateLength` beats.
+    private static func countTemplateMatches(_ data: [Double], starts: [Int], templateLength: Int, tolerance: Double) -> Int {
         var count = 0
-        for i in 0 ..< templateCount {
-            count += ((i + 1) ..< templateCount).count { j in
+        for (position, i) in starts.enumerated() {
+            count += starts[(position + 1)...].count { j in
                 templatesMatch(data, i, j, templateLength: templateLength, tolerance: tolerance)
             }
         }

@@ -354,7 +354,7 @@ extension SleepHealthQueries {
             minimumSamples: minimumSamples, minimumSleepMinutes: minimumSleepMinutes
         ) else { return nil }
         guard let threshold = HRSleepEstimator.hrSleepThreshold(smoothed) else { return nil }
-        guard let sleepStart = HRSleepEstimator.clampedSleepOnset(smoothed, threshold: threshold, windowStart: windowStart),
+        guard let sleepStart = HRSleepEstimator.plausibleSleepOnset(smoothed, threshold: threshold, windowStart: windowStart),
               let sleepEnd = HRSleepEstimator.sleepWake(smoothed, threshold: threshold)
         else { return nil }
         // Default: 120 min for full-night detection.

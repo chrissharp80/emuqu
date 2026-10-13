@@ -148,7 +148,7 @@ When a downloaded strap recording has no start time and no session on the phone 
 3. Require > 15 windows.
 4. `ceiling = maxHR − 0.5·(maxHR − minHR)` over this night's windows (midpoint of the night's own HR range).
 5. For `j` from 5 to `count − 11`: `before = mean(HR[j−5..j−1])`, `after = mean(HR[j..j+9])`. The first `j` with `before − after > 8 bpm` and `after < ceiling` is the onset.
-6. Clamp the onset to ≤ 20 min, the plausible sleep-onset latency for a recording started at bedtime [12].
+6. Accept the onset only within 20 min, the plausible sleep-onset latency for a recording started at bedtime [12]. A first drop later than that is read as a misfire (the detector catching the light-to-deep transition), and the onset is undetermined (0 in step 2 above), never set to 20 min.
 
 *Why it works.* The strap file carries beats but no clock; HealthKit carries a clock but no beats. Sleep onset is visible in both, as a timestamp in HealthKit and as a sustained heart-rate drop in the beats, so aligning the two places the recording on the wall clock. The ceiling is the midpoint of the night's own HR range because a fixed ceiling such as 65 bpm fails for anyone whose sleeping HR sits above it and has no effect for athletes; the midpoint adapts to each person.
 
@@ -208,11 +208,11 @@ RMSSD is the root mean square of `rr_k − rr_{k−1}` over pairs where (a) both
 On the morning path, boundaries come from, in order:
 
 1. HealthKit sleep for the recording, fetched with the RR series so the HealthKit layer can cross-check it.
-2. If HealthKit gives no start: an RR heart-rate estimate. Take 5-min HR windows (≥ 10 beats each) and set `threshold = maxHR − 0.5·(maxHR − minHR)`. Onset is the first of three consecutive windows below the threshold, clamped to ≤ 20 min. Wake is the window after the last window below the threshold.
+2. If HealthKit gives no start: an RR heart-rate estimate. Take 5-min HR windows (≥ 10 beats each) and set `threshold = maxHR − 0.5·(maxHR − minHR)`. Onset is the first of three consecutive windows below the threshold if it lies within 20 min of the recording start (wall clock); a later one leaves the onset undetermined and sleep starts at the recording start, with latency unknown. Wake is the window after the last window below the threshold.
 3. If no sleep data was obtained at all: an estimate from Apple Watch passive HR samples (same midpoint rule, two consecutive points, ≥ 8 bpm range required).
 4. Otherwise: recording start and end.
 
-A negative onset is clamped to 0. HealthKit/HR reconciliation, where used, lets HR move the onset earlier freely. HR can move it later only when HealthKit has no detailed stages, and only by more than 15 min. HR can only extend the wake time.
+A negative onset is clamped to 0. HealthKit/HR reconciliation, where used, keeps the HealthKit onset whenever HealthKit has detailed stages (deep or REM). Without them HR replaces it, earlier or later, when the two differ by more than 15 min. HR can only extend the wake time.
 
 #### 3.4.2 Wall-clock to beat-timeline mapping
 
@@ -428,7 +428,7 @@ Rules 1 and 3 are asymmetric: a short reading is replaced only when it is low. T
 
 #### 3.9.1 Epochs and features
 
-Between sleep start and end, cut 5-min epochs on the beat timeline. An epoch needs ≥ 10 beats and ≥ 8 range-valid RRs, otherwise it is dropped; a night with fewer than 6 epochs is not staged. Per epoch: HR = 60000 / mean RR, RMSSD, population SDNN, CV = SDNN / mean RR, α1 (if ≥ 64 beats), and LF/HF and high-frequency (HF) power from the shared spectral routine over spline-resampled beats.
+Between sleep start and end, cut 5-min epochs on the beat timeline. An epoch needs ≥ 10 beats and ≥ 8 range-valid RRs, otherwise it is dropped; a night with fewer than 6 epochs is not staged. Per epoch: HR = 60000 / mean RR, population SDNN and CV = SDNN / mean RR over the valid beats. RMSSD takes differences only between valid beats that were adjacent in the recording, so none is taken across a dropped beat or a recording break (a pause longer than one RR plus 2 s). α1 and LF/HF and high-frequency (HF) power use the epoch's longest break-free stretch. For α1, dropped beats inside the stretch are linearly interpolated and those at its ends are trimmed. α1 needs ≥ 64 beats and at most 6 % interpolated, the live α1 ceiling. LF/HF and HF come from the shared spectral routine over spline-resampled beats.
 
 #### 3.9.2 Within-night rank normalization
 
@@ -529,7 +529,7 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Earliest dated record:* flow-recovery-old aeaf0db, 2026-01-18 (first form: 5% rule and gap rule, matched on beat-sum time, no de-duplication); emuqu 554540f, 2026-10-03 (current form: gap-interior-only insertion). 50 ms de-duplication: flow-recovery-dev c48eeb9, 2026-03-01; cluster tolerance: flow-recovery cc7c53e, 2026-04-18; arrival-clock matching: emuqu-dev 680bbee, 2026-08-25.
 
-**N2 (Section 3.1.4). Dating a chest-strap recording that carries no start time by subtracting an RR-detected sleep onset from the HealthKit sleep start.** The onset is the first sustained drop of more than 8 bpm (5-window versus 10-window means over 120-beat windows) into the lower half of that night's own HR range, clamped to 20 min.
+**N2 (Section 3.1.4). Dating a chest-strap recording that carries no start time by subtracting an RR-detected sleep onset from the HealthKit sleep start.** The onset is the first sustained drop of more than 8 bpm (5-window versus 10-window means over 120-beat windows) into the lower half of that night's own HR range, accepted only within 20 min of the start (a later drop gives no onset, so the recording is aligned with its start at the HealthKit sleep start).
 
 *Builds on:* sleep-onset detection from heart-rate change points, evaluated against polysomnography [32]; adds the use of an onset to date a recording.
 
@@ -663,7 +663,7 @@ Window selection (Sections 3.4–3.5), the baseline rules (Section 3.6) and the 
 - *Selection follows the score.* Ranking by the scoring function picks the best-scoring eligible window, so scores are consistent across nights but sit at the favorable end of the eligible windows rather than at a random one.
 - *Drop-only artifact handling* never fabricates a difference, at the cost of fewer usable pairs in noisy windows; a 20% median rule treats beats less than 20% premature as normal.
 - *Display is asymmetric; the structural admission test is not.* A short high reading is shown to the user but not admitted to the baseline unless it passes the structural test; the only direction-dependent exclusion is a below-baseline session shorter than 3 h.
-- *Estimated boundaries.* When HealthKit sleep is absent, HR-estimated boundaries (clamped to a 20-min onset) set the band, which moves with them.
+- *Estimated boundaries.* When HealthKit sleep is absent, HR-estimated boundaries (an onset accepted only within 20 min, else the recording start) set the band, which moves with them.
 - *Thresholds as conventions.* The organized-window α1 band and CV < 0.08 are app conventions with register label awaiting-validation.
 - *Stage minutes are estimates* derived from beat intervals, not measurements of sleep stages.
 
@@ -803,7 +803,7 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 | onset minimum windows | > 15 | windows | Onset detector |
 | onset drop | > 8 | bpm | Before (5-window) − after (10-window) mean |
 | ceiling fraction | 0.5 | — | Midpoint of the night's HR range |
-| max onset latency | 20 | min | Clamp on HR-estimated onset |
+| max onset latency | 20 | min | Ceiling on HR-estimated onset; a later detection leaves onset undetermined |
 | boundary disagreement | 15 | min | HR vs HealthKit reconciliation |
 | RR valid range | 300–2000 | ms | Physiological gate |
 | rolling median half-window | 25 | beats | Whole-series classifier (51-value centered) |

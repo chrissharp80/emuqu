@@ -364,8 +364,8 @@
   },
   {
    "key": "func MetricBasedCauseDetector.detectTrainingLoad(in:)",
-   "hash": "377d9c3459e5e90b",
-   "does": "'Accumulated Training Load' (lowModerate, 0.4) when the system post-exercise tag isn't selected and RMSSD < good, pNN50 < low, DFA α1 > trainingLoadDFAAlpha1 (1.1).",
+   "hash": "bae960577e286f30",
+   "does": "'Accumulated Training Load' (lowModerate, 0.4) when the system post-exercise tag isn't selected and RMSSD < good, a measured pNN50 (non-nil) < low, DFA α1 > trainingLoadDFAAlpha1 (1.1).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/CauseDetection/TagBasedCauseDetector.swift::func Set.containsSystemTag(_:)",
@@ -382,7 +382,7 @@
     },
     {
      "at": "+8",
-     "cond": "all three metric conditions",
+     "cond": "all three metric conditions (pNN50 nil fails the second)",
      "effect": "adds cause"
     }
    ],

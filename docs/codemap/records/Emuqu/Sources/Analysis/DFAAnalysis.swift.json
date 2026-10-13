@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Analysis/DFAAnalysis.swift",
  "hash": "13a91598b63d4b00",
- "role": "Detrended Fluctuation Analysis: computes DFA alpha1 (box sizes 4-16) and alpha2 (16-64) with R² from clean RR intervals, using log-spaced box sizes and per-box least-squares detrending.",
+ "role": "Detrended Fluctuation Analysis: computes DFA alpha1 (box sizes 4-16) and alpha2 (16-64) with R² from clean RR intervals, using log-spaced box sizes and per-box least-squares detrending; also over contiguous segments (no box spans two) and over a CleanBeatWindow whose removed beats are interpolated and whose recording breaks split it.",
  "types": [
   "DFAAnalyzer: enum — namespace for DFA computation",
   "DFAAnalyzer.DFAResult: struct — alpha1, alpha2?, alpha1R2, alpha2R2?"
@@ -12,43 +12,172 @@
  "units": [
   {
    "key": "func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
-   "hash": "b1e3a725c6459428",
-   "does": "Returns DFAResult for >=64 RR intervals: integrates the series, builds log-spaced box sizes for alpha1 (4..min(16,n/4)) and alpha2 (16..min(64,n/4)), regresses log F(n) on log n for alpha1, and adds alpha2 only when alpha2Exponent allows; nil when fewer than 64 beats, fewer than 3 alpha1 box sizes, or the alpha1 regression has no exponent (a degenerate series such as constant intervals).",
+   "hash": "dfe1b5e24a5b02a7",
+   "does": "Single-series DFA: compute(segments: [rr]) with the given box ranges. Returns DFAResult for >=64 RR intervals with alpha1 over log-spaced boxes 4..min(16,n/4) and alpha2 over 16..min(64,n/4) when alpha2Exponent allows; nil when fewer than 64 beats, fewer than 3 alpha1 box sizes, or the alpha1 regression has no exponent (a degenerate series such as constant intervals). Used by the live and offline workout α1 paths and the sleep-stage classifier.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)": "ed0dd2075262a171"
+   }
+  },
+  {
+   "key": "func DFAAnalyzer.compute(window:)",
+   "hash": "8ab943f73093103c",
+   "does": "DFA for an overnight window with removed beats: compute(segments: interpolatedSegments(window)) — removed beats linearly interpolated, segments split at recording breaks. A window with no removed beat and no break gives exactly compute(_:) on its beats. Used by NonlinearAnalyzer (reported/scored α1) and WindowSelector.scoredBlock (window selection α1).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.interpolatedSegments(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)": "ed0dd2075262a171",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.interpolatedSegments(_:)": "a40d4f530774aac8"
+   }
+  },
+  {
+   "key": "func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)",
+   "hash": "d423ff49344ad84b",
+   "does": "DFA over contiguous segments of one recording: joins them, integrates once (global mean), lays boxes only inside a segment (computeFluctuation), with box sizes log-spaced up to a quarter of the longest segment; regresses log F(n) on log n for alpha1, adds alpha2 when alpha2Exponent allows. One segment is the textbook single-series DFA (Peng 1995).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.segmentRanges(_:)",
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)",
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)"
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+5",
-     "cond": "rr.count >= 64 (alpha2ScaleMax)",
-     "effect": "false: returns nil; true: continues"
+     "at": "+6",
+     "cond": "joined count < 64 (alpha2ScaleMax)",
+     "effect": "nil"
     },
     {
      "at": "+14",
-     "cond": "alpha1Sizes.count >= 3",
-     "effect": "false: returns nil (reachable through a narrow custom alpha1Range); true: computes alpha1"
+     "cond": "fewer than 3 alpha1 box sizes (longest segment < 24 beats, or a narrow custom range)",
+     "effect": "nil"
     },
     {
      "at": "+16",
      "cond": "logLogRegression nil",
-     "effect": "returns nil (no alpha1 exponent)"
+     "effect": "nil (no alpha1 exponent)"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "ff10fadb59725343",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)": "dba9de7eead6a5c2",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)": "19b8517e6aa5d5e9",
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "40d4e06584f15088",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb"
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.segmentRanges(_:)": "5bc9690eae78d875"
    }
+  },
+  {
+   "key": "func DFAAnalyzer.interpolatedSegments(_:)",
+   "hash": "2e1f232d79546625",
+   "does": "Turns a CleanBeatWindow into DFA input: starts a new segment wherever a recording break lies between consecutive clean beats, and inside a segment fills each run of removed beats with linear interpolation between the kept beats either side (one value per removed series index; Kubios / Lipponen & Tarvainen 2019, as LiveDFAAnalyzer.cleanRRForDFA does live). Removed beats before a segment's first or after its last kept beat are not extrapolated.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.spansBreak(_:at:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.interpolation(from:to:missing:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "k > 0 and a break lies between beat k-1 and k",
+     "effect": "close the current segment, start a new one"
+    },
+    {
+     "at": "+7",
+     "cond": "k > 0 otherwise",
+     "effect": "append interpolated values for the removed indices between them"
+    },
+    {
+     "at": "+13",
+     "cond": "current segment non-empty",
+     "effect": "append it"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.interpolation(from:to:missing:)": "cdae6dccc55984b0",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.spansBreak(_:at:)": "32fde3d045628758"
+   }
+  },
+  {
+   "key": "func DFAAnalyzer.spansBreak(_:at:)",
+   "hash": "7a27baa8ecd2c6ec",
+   "does": "Whether any series index after clean beat k-1's, up to clean beat k's, follows a recording break; true when the indices are not increasing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "indices not increasing",
+     "effect": "true"
+    },
+    {
+     "at": "+4",
+     "cond": "some index in (previous, next] in breaks",
+     "effect": "true; else false"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DFAAnalyzer.interpolation(from:to:missing:)",
+   "hash": "0f81a014f9ece7c9",
+   "does": "`missing` values evenly spaced strictly between left and right (left + (right-left)*j/(missing+1)).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "missing <= 0",
+     "effect": "[]"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func DFAAnalyzer.segmentRanges(_:)",
+   "hash": "f917045b5cf21e72",
+   "does": "Each segment's index range within the joined series.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each segment",
+     "effect": "append start..<start+count, advance start"
+    }
+   ],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "func DFAAnalyzer.integratedSeries(_:)",
@@ -71,12 +200,12 @@
    "deps": {}
   },
   {
-   "key": "func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
-   "hash": "a63c1b61d957d0bb",
-   "does": "Alpha2 exponent and R²: nil unless there are >=3 alpha2 box sizes and >=256 beats and the log-log regression yields an exponent.",
+   "key": "func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)",
+   "hash": "76de2969eb38938d",
+   "does": "Alpha2 exponent and R² over the alpha2 box sizes (boxes inside segments); nil when fewer than 3 sizes, fewer than MinimumBeats.forDFA (256) beats in the joined series, or the regression fails.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)",
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)"
    ],
    "reads": [],
@@ -84,13 +213,13 @@
    "branches": [
     {
      "at": "+5",
-     "cond": "alpha2Sizes.count >= 3 && beatCount >= 256",
-     "effect": "false: returns nil (DFAResult.alpha2/alpha2R2 nil); true: the regression's (slope, r2), or nil when it has none"
+     "cond": "fewer than 3 sizes or fewer than 256 beats",
+     "effect": "nil"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)": "19b8517e6aa5d5e9",
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "40d4e06584f15088"
    }
   },
@@ -128,9 +257,9 @@
    "deps": {}
   },
   {
-   "key": "func DFAAnalyzer.computeFluctuation(_:boxSize:)",
-   "hash": "a35cb8c1090bb566",
-   "does": "RMS fluctuation F(n): splits the integrated profile into non-overlapping boxes of boxSize, sums detrended squared residuals, returns sqrt(total / (boxes*boxSize)); trailing remainder beats are dropped.",
+   "key": "func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)",
+   "hash": "daa83bc891c55da3",
+   "does": "RMS detrended fluctuation F(n): non-overlapping boxes of boxSize laid from the start of each segment, none spanning two segments, each linearly detrended; sqrt(total residual SS / (boxes*boxSize)); 0 when no segment holds a whole box (the log-log fit then drops that size).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.detrendedSumOfSquares(_:)"
@@ -139,14 +268,14 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "numBoxes > 0",
-     "effect": "false: returns 0 (later mapped to log -10 by logLogRegression); true: computes"
+     "at": "+3",
+     "cond": "for each segment, each whole box",
+     "effect": "add detrended SS, count the box"
     },
     {
-     "at": "+4",
-     "cond": "for each box",
-     "effect": "accumulates detrendedSumOfSquares"
+     "at": "+9",
+     "cond": "no box",
+     "effect": "0"
     }
    ],
    "flags": [],

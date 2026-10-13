@@ -97,6 +97,7 @@ final class HolisticDailyReport: Sendable {
         userRestingHR: Int,
         userLTHR: Int,
         units: UnitsPreference,
+        sleepSchedule: SleepSchedule,
         temperatureUnit: TemperatureUnit = .regionDefault,
         liveLoadSnapshot: TrainingLoadRegistry.TrainingLoad? = nil,
         config: Config = Config()
@@ -118,7 +119,8 @@ final class HolisticDailyReport: Sendable {
         self.config = config
         self.loopAnalysis = Self.makeLoopAnalysis(
             workoutSession: workoutSession, overnightSession: overnightSession,
-            recentOvernightSessions: recentOvernightSessions, userMaxHR: userMaxHR, liveLoad: reportLoad
+            recentOvernightSessions: recentOvernightSessions, userMaxHR: userMaxHR,
+            sleepSchedule: sleepSchedule, liveLoad: reportLoad
         )
     }
 
@@ -277,11 +279,12 @@ final class HolisticDailyReport: Sendable {
     }
 
     /// The baseline is built only from nights up to the one reported, so a
-    /// past day's report is not measured against nights that came after it.
-    /// The gate reads the same load `adviceGateLoad()` does.
+    /// past day's report is not measured against nights that came after it;
+    /// `sleepSchedule` assigns the nights as the recovery score's baseline
+    /// does. The gate reads the same load `adviceGateLoad()` does.
     private static func makeLoopAnalysis(
         workoutSession: HRVSession, overnightSession: HRVSession?, recentOvernightSessions: [HRVSession],
-        userMaxHR: Int, liveLoad: TrainingLoadRegistry.TrainingLoad?
+        userMaxHR: Int, sleepSchedule: SleepSchedule, liveLoad: TrainingLoadRegistry.TrainingLoad?
     ) -> DailyLoopAnalysis {
         let reportedNight = overnightSession?.startDate ?? workoutSession.startDate
         return DailyLoopAnalysis(
@@ -289,6 +292,7 @@ final class HolisticDailyReport: Sendable {
             overnightSession: overnightSession,
             recentOvernightSessions: recentOvernightSessions.filter { $0.startDate <= reportedNight },
             userMaxHR: userMaxHR,
+            sleepSchedule: sleepSchedule,
             adviceLoad: adviceGateLoad(live: liveLoad, workoutSession: workoutSession, overnightSession: overnightSession)
         )
     }

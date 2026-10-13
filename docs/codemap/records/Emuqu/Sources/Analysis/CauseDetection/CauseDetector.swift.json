@@ -1,11 +1,11 @@
 {
  "file": "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift",
- "hash": "f243eb483db3053b",
+ "hash": "6724d3575edf5757",
  "role": "Cause-detection core: DetectedCause value (cause, pattern-match label, explanation, ranking weight), CauseDetectionContext (tonight's metrics, tags, trend/sleep inputs, recent sessions), the CauseDetectionStrategy protocol, and CauseDetector which runs six strategies and returns the top-N causes by ranking weight for AnalysisSummaryGenerator.probableCauses.",
  "types": [
   "DetectedCause: struct — one candidate cause",
   "DetectedCause.CauseConfidence: enum String — English raw pattern-match labels (badge colour key) + localized label",
-  "CauseDetectionContext: struct — inputs to every strategy (plus currentHR and isGoodSleep derived from them)",
+  "CauseDetectionContext: struct — inputs to every strategy (pNN50 optional: nil when the reading holds it as an estimate; plus currentHR and isGoodSleep derived from them)",
   "CauseDetectionStrategy: protocol — detectCauses(in:)",
   "CauseDetector: class — aggregates Positive, Severe, TagBased, Sleep, MetricBased, Pattern strategies",
   "DetectedCause: extension — toProbableCause()"

@@ -1,21 +1,24 @@
 {
  "file": "Emuqu/Sources/Storage/Archive+IndexIO.swift",
- "hash": "dacf3de530db660b",
+ "hash": "4204215b2bf94422",
  "role": "SessionArchive index persistence (load/merge/save of index.json and the deleted-ids file), file-protection upgrade, the ArchiveError taxonomy, and the SessionArchiveEntry factory/sleep-mirror helpers.",
  "types": [
   "SessionArchive: extension — index I/O and protection",
   "SessionArchive.ArchiveError: enum — hashMismatch|fileNotFound|sessionWasDeleted|newerSchemaVersion(Int)",
   "SessionArchiveEntry: extension — make(from:) factory and mirroringSleepFields",
   "SessionArchiveEntry.SleepMirror: struct — stage minutes + nocturnal dip from a session",
-  "LenientIndexEntry: private struct (file scope) — one index entry or nil when it does not decode on this build"
+  "LenientIndexEntry: private struct (file scope) — one index entry or nil when it does not decode on this build",
+  "IndexEntriesFromNewerBuild: struct (internal, file scope) — raw JSON of the index.json entries a newer build wrote: undecodable ones (with the sessionId they name) and newer-schema ones by sessionId; writes them back on save",
+  "SessionArchiveEntry: extension — isFromNewerSchema"
  ],
  "state": [
   "file:<archiveDirectory>/<indexFile> (index JSON)",
   "file:<indexFile>.unreadable_<epoch> (aside copy)",
   "file:<deletedIndexFile> (deleted session ids)",
-  "file:<deletedIndexFile>.unreadable_<epoch>"
+  "file:<deletedIndexFile>.unreadable_<epoch>",
+  "mem:SessionArchive.newerBuildIndexEntries (raw index entries from a newer build, kept for saveIndex)"
  ],
- "toplevel": "File-private func rewriteWithProtection(at:) and private struct LenientIndexEntry at file scope; protectionAttributes static computed = .completeUntilFirstUserAuthentication.",
+ "toplevel": "File-private func rewriteWithProtection(at:), private struct LenientIndexEntry and internal struct IndexEntriesFromNewerBuild at file scope; protectionAttributes static computed = .completeUntilFirstUserAuthentication.",
  "flags": [],
  "units": [
   {
@@ -190,8 +193,8 @@
   },
   {
    "key": "func SessionArchive.loadIndex()",
-   "hash": "ecbc13769fc74443",
-   "does": "Loads index.json into memory: missing file → nothing; read error → keeps file, sets indexReadFailed for retry; entries decoded one by one (decodeIndex), so one this build cannot read is skipped and logged rather than failing the index; bytes that are not an index at all → index=[], indexDecodeFailed=true and the file moved aside so boot's orphan scan re-adopts sessions.",
+   "hash": "9c5927200c41b5db",
+   "does": "Loads index.json into memory: missing file → nothing; read error → keeps file, sets indexReadFailed for retry; entries decoded one by one (decodeIndex): the decoded ones become index and the ones a newer build wrote (undecodable here, or from a newer schema) are kept raw in newerBuildIndexEntries so saveIndex writes them back; bytes that are not an index at all → index=[], indexDecodeFailed=true and the file moved aside so boot's orphan scan re-adopts sessions.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.decodeIndex(_:)",
@@ -203,6 +206,7 @@
    ],
    "writes": [
     "mem:SessionArchive.index",
+    "mem:SessionArchive.newerBuildIndexEntries",
     "mem:SessionArchive.indexReadFailed",
     "mem:SessionArchive.indexDecodeFailed",
     "mem:SessionArchive.sortedEntriesCache",
@@ -227,18 +231,19 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.decodeIndex(_:)": "e55202aeb15bffc8",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.decodeIndex(_:)": "8824fff7e6cabe80",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.preserveUnreadableIndex()": "972f0c2d5d875697",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func SessionArchive.mergeIndexThatFailedToLoad()",
-   "hash": "679713ef81c3c082",
-   "does": "If the launch read failed, re-reads index.json (throwing while still unreadable) and merges on-disk entries (decodeIndex, undecodable entries skipped) not already in memory and not deleted; bytes that are not an index move aside and set indexDecodeFailed.",
+   "hash": "6d9414f9158fb95b",
+   "does": "If the launch read failed, re-reads index.json (throwing while still unreadable) and merges on-disk entries (decodeIndex) not already in memory and not deleted, and the newer build's raw entries into newerBuildIndexEntries (merge keeps ones already held); bytes that are not an index move aside and set indexDecodeFailed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.decodeIndex(_:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.merge(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.preserveUnreadableIndex()"
    ],
@@ -248,6 +253,7 @@
    ],
    "writes": [
     "mem:SessionArchive.index",
+    "mem:SessionArchive.newerBuildIndexEntries",
     "mem:SessionArchive.indexReadFailed",
     "mem:SessionArchive.indexDecodeFailed",
     "mem:SessionArchive.sortedEntriesCache",
@@ -261,32 +267,51 @@
      "effect": "returns (nothing to merge)"
     },
     {
-     "at": "+11",
+     "at": "+12",
      "cond": "catch decode error on retry",
      "effect": "logs, sets indexDecodeFailed, moves file aside; in-memory index kept and saved over it by the caller"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.decodeIndex(_:)": "e55202aeb15bffc8",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.merge(_:)": "27766a314e3ebfbd",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "ea9a72bd018fe66d",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.decodeIndex(_:)": "8824fff7e6cabe80",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.preserveUnreadableIndex()": "972f0c2d5d875697",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func SessionArchive.decodeIndex(_:)",
-   "hash": "b5baaef5b206a69a",
-   "does": "Decodes index JSON as an array of LenientIndexEntry and keeps the entries that decoded; throws only when the data is not such an array.",
+   "hash": "c32e6c39f29759ed",
+   "does": "Decodes index JSON as an array of LenientIndexEntry. Returns the entries that decoded, plus (only when some entry did not decode or decoded from a schema above SessionArchiveEntry.currentSchemaVersion) an IndexEntriesFromNewerBuild holding those entries' raw JSON from a JSONSerialization parse of the same bytes; throws when the data is not such an array.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::init LenientIndexEntry(from:)"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::init LenientIndexEntry(from:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchiveEntry.isFromNewerSchema",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::init IndexEntriesFromNewerBuild()",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::init IndexEntriesFromNewerBuild(decoded:objects:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "every entry decoded and none is from a newer schema",
+     "effect": "returns the entries with an empty IndexEntriesFromNewerBuild (no second parse)"
+    },
+    {
+     "at": "+4",
+     "cond": "JSONSerialization does not give an array of the same length",
+     "effect": "throws CocoaError(.fileReadCorruptFile), which the caller treats as an unreadable index"
+    }
+   ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::init IndexEntriesFromNewerBuild()": "c15455a925203692",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::init IndexEntriesFromNewerBuild(decoded:objects:)": "e662fcf50dedfa1f",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::init LenientIndexEntry(from:)": "5b4da656a7209135",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchiveEntry.isFromNewerSchema": "ec170657fc966c5a",
     "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionDecoder": "77d9e4601604691c"
    }
   },
@@ -468,14 +493,17 @@
   },
   {
    "key": "func SessionArchive.saveIndex()",
-   "hash": "8a6a5501594df369",
-   "does": "Merges a previously unreadable on-disk index (throws if still unreadable), clears derived caches, encodes and atomically writes index.json.",
+   "hash": "bca4380e7593c197",
+   "does": "Merges a previously unreadable on-disk index (throws if still unreadable), clears derived caches, builds the bytes with newerBuildIndexEntries.indexData (the plain encoding, or with a newer build's entries written back as read) and atomically writes index.json.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeIndexThatFailedToLoad()"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeIndexThatFailedToLoad()",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.indexData(for:deleted:)"
    ],
    "reads": [
-    "mem:SessionArchive.index"
+    "mem:SessionArchive.index",
+    "mem:SessionArchive.newerBuildIndexEntries",
+    "mem:SessionArchive.deletedSessionIds"
    ],
    "writes": [
     "file:<indexFile>",
@@ -485,8 +513,8 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeIndexThatFailedToLoad()": "0df72c4fe8d28a6d",
-    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.indexEncoder": "8a27621768860427"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.indexData(for:deleted:)": "53b78f6149a2bb7d",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeIndexThatFailedToLoad()": "81fe02f02c1b0ae2"
    }
   },
   {
@@ -672,6 +700,136 @@
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::init SessionArchiveEntry.SleepMirror(session:)": "8a9f7ea9caa1a3fc",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "15e47dcf21fecd71"
    }
+  },
+  {
+   "key": "init IndexEntriesFromNewerBuild()",
+   "hash": "03b89b2f9e0c7a5d",
+   "does": "Empty holder: nothing from a newer build.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "init IndexEntriesFromNewerBuild(decoded:objects:)",
+   "hash": "33769281c8367ffc",
+   "does": "Walks decoded entries alongside the parsed JSON objects; for each entry that did not decode or is from a newer schema, serialises the object (sortedKeys) and keeps it: by sessionId in newerSchema when it decoded, else in undecodable with the sessionId the object names.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchiveEntry.isFromNewerSchema",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "entry decoded and is not from a newer schema",
+     "effect": "skipped (where clause)"
+    },
+    {
+     "at": "+2",
+     "cond": "object is not a valid top-level JSON object",
+     "effect": "skipped: not an entry any build wrote (also avoids the ObjC exception data(withJSONObject:) raises)"
+    },
+    {
+     "at": "+4",
+     "cond": "entry decoded",
+     "effect": "true: newerSchema[sessionId] = json; false: appended to undecodable"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "ea9a72bd018fe66d",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchiveEntry.isFromNewerSchema": "ec170657fc966c5a"
+   }
+  },
+  {
+   "key": "func IndexEntriesFromNewerBuild.sessionId(in:)",
+   "hash": "0fa102541057f827",
+   "does": "The UUID in the object's \"sessionId\" string, or nil when the object is not a dictionary or the value is not a UUID string.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func IndexEntriesFromNewerBuild.merge(_:)",
+   "hash": "327eaa558222e28b",
+   "does": "Adds another holder's entries: undecodable ones whose sessionId is not already held (or that name none), and newer-schema ones for session ids not already held (the held copy wins).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "301cdd78533bd624",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "ea9a72bd018fe66d"
+   }
+  },
+  {
+   "key": "func IndexEntriesFromNewerBuild.indexData(for:deleted:)",
+   "hash": "3db84fc8efe854f5",
+   "does": "Encodes index with SessionArchive.indexEncoder. With anything held, re-parses that encoding and replaces each entry still from a newer schema (this build has not rebuilt it) by its raw JSON, appends the undecodable entries undecodableObjects keeps, and re-serialises (prettyPrinted, sortedKeys).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchiveEntry.isFromNewerSchema",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.undecodableObjects(notIn:deleted:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "nothing held, or the encoding does not parse as an array",
+     "effect": "returns the plain encoding"
+    },
+    {
+     "at": "+4",
+     "cond": "index entry is from a newer schema",
+     "effect": "replaced by its raw JSON when one is held for its sessionId; else left as encoded"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "ea9a72bd018fe66d",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.undecodableObjects(notIn:deleted:)": "9bac3db8440ac20d",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchiveEntry.isFromNewerSchema": "ec170657fc966c5a",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.indexEncoder": "8a27621768860427"
+   }
+  },
+  {
+   "key": "func IndexEntriesFromNewerBuild.undecodableObjects(notIn:deleted:)",
+   "hash": "6ff6dced9ecf6cfa",
+   "does": "The held undecodable entries as parsed JSON, leaving out those whose sessionId is now listed in index (an orphan scan adopted the file) or in deleted; an entry naming no readable sessionId is always kept.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "ea9a72bd018fe66d"
+   }
+  },
+  {
+   "key": "var SessionArchiveEntry.isFromNewerSchema",
+   "hash": "bca1a4708d6957d1",
+   "does": "True when the entry was decoded with a schemaVersion above SessionArchiveEntry.currentSchemaVersion (nil, for an entry built in memory, counts as 0).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   },
   {
    "key": "init LenientIndexEntry(from:)",

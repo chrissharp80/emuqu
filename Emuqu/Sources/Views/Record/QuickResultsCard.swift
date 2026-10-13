@@ -20,7 +20,7 @@ struct QuickResultsCard: View {
     private var v2Body: some View {
         VStack(spacing: 18) {
             quickResultsHeader
-            ScoreRing(state: ringState, size: .card, snappy: true)
+            ScoreRing(state: ringState, size: .card, snappy: true, metric: ringMetric)
                 .frame(width: 120, height: 120)
             if let verdict = scoredVerdict { verdictText(verdict) }
             quickResultsMetrics
@@ -41,6 +41,12 @@ struct QuickResultsCard: View {
 
     private var scoredVerdict: ScoreVerdict? {
         score10.map { ScoreVerdict(score: Double(ScoreVerdict.safeDisplayScore($0 * 10))) }
+    }
+
+    /// What `score10` is, so VoiceOver does not read the ANS readiness
+    /// fallback as a recovery score.
+    private var ringMetric: ScoreRing.Metric {
+        session.recoveryScore == nil ? .readiness : .recovery
     }
 
     private var ringState: ScoreRing.DisplayState {
@@ -91,7 +97,7 @@ struct QuickResultsCard: View {
                     unit: "/10"
                 )
             } else {
-                v2Stat(label: "SDNN", value: String(Int(result.timeDomain.sdnn.rounded())), unit: Self.msUnit)
+                v2Stat(label: result.markingEstimate("SDNN", for: .sdnn), value: String(Int(result.timeDomain.sdnn.rounded())), unit: Self.msUnit)
             }
         }
     }

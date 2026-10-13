@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift",
  "hash": "1aba8d4171b3f27e",
- "role": "Plain value types carrying last night's sleep and multi-night sleep trend into AnalysisSummaryGenerator; built by MorningResultsViewModel from SleepData / SleepTrendStats.",
+ "role": "Plain value types carrying last night's sleep and multi-night sleep trend into AnalysisSummaryGenerator; built from SleepData / SleepTrendStats, the trend from the archived nights before a session (AnalysisSleepTrendInput.recentNights).",
  "types": [
   "AnalysisSleepInput: struct — one night's sleep minutes/stages/efficiency plus short/good/fragmented gates against HRVThresholds",
   "AnalysisSleepTrendInput: struct — averaged sleep trend over N nights",
@@ -128,6 +128,30 @@
    ],
    "flags": [],
    "deps": {}
+  },
+  {
+   "key": "func AnalysisSleepTrendInput.recentNights(before:in:)",
+   "hash": "3001f0100b103f1f",
+   "does": "AnalysisSleepTrendInput from SleepTrendStats.recentNights(before:in:) for the session, or nil when there is no session or no prior night with measured sleep.",
+   "entry": "Called by AssistantContextSource.build, ContextBuilder.yesterdayDiagnostic and ReportRenderer.recoveryPDFURL.",
+   "calls": [
+    "Emuqu/Sources/Collection/SleepTrendStats.swift::func SleepTrendStats.recentNights(before:in:days:)",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepTrendInput(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session nil or no prior night",
+     "effect": "nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepTrendInput(from:)": "d1aec411499c093d",
+    "Emuqu/Sources/Collection/SleepTrendStats.swift::func SleepTrendStats.recentNights(before:in:days:)": "3511be29c1b3e8e0"
+   }
   }
  ],
  "deps": {}

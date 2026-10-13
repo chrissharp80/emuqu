@@ -294,7 +294,7 @@ extension TrendsV2View {
         switch metric {
         case .recoveryScore: return s.recoveryScore.map { $0 * 10 }
         case .rmssd: return s.analysisResult?.timeDomain.rmssd
-        case .sdnn: return s.analysisResult?.timeDomain.sdnn
+        case .sdnn: return s.analysisResult?.measuredSDNN
         case .meanHR: return s.analysisResult?.timeDomain.meanHR
         case .balance: return s.analysisResult?.frequencyDomain?.lfHfRatio
         case .hfPower: return s.analysisResult?.frequencyDomain?.hf

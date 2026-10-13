@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/Context/AssistantContext+Types.swift",
- "hash": "8e696cc99589f88d",
+ "hash": "00d343760779399c",
  "role": "Declares the nested Codable value types that make up AssistantContext (profile, session, workout history, baselines, trends, analysis summary, live workout and live HRV snapshots, route topology/weather/threshold/interval sub-snapshots). Pure data, no functions.",
  "types": [
   "AssistantContext.UserProfileSnapshot: struct — age/sex/fitness/maxHR/units/training-break/comeback/algorithm-version/training goal",
@@ -8,7 +8,7 @@
   "AssistantContext.SessionSnapshot: struct — full overnight session (score, factors, HRV domains, overnight HR, sleep, vitals, training, feeling)",
   "AssistantContext.OvernightHRSnapshot: struct — whole-night nadir/min/max/mean HR",
   "AssistantContext.SessionSnapshotLite: struct — one-line recent session incl. ATL/CTL/TSB/ACWR and sleep stages",
-  "AssistantContext.ScoreFactorSnapshot / TimeDomainSnapshot / FrequencyDomainSnapshot / NonlinearSnapshot / ANSMetricsSnapshot / SleepSnapshot / VitalsSnapshot / TrainingSnapshot / BaselineSnapshot: structs — metric groups",
+  "AssistantContext.ScoreFactorSnapshot / TimeDomainSnapshot / FrequencyDomainSnapshot / NonlinearSnapshot / ANSMetricsSnapshot / SleepSnapshot / VitalsSnapshot / TrainingSnapshot / BaselineSnapshot: structs — metric groups (TimeDomainSnapshot.sdnn/pnn50 and the NonlinearSnapshot Poincaré fields are optional: nil when the reading holds them as estimates)",
   "AssistantContext.TrendSnapshot (+MetricTrend): struct — period trend summary",
   "AssistantContext.AnalysisSummarySnapshot (+ProbableCause): struct — cached analysis narrative",
   "AssistantContext.LiveWorkoutSnapshot: struct — live workout metrics, location, route, weather, trends, readiness, zones, predictions, thresholds, interval progress",

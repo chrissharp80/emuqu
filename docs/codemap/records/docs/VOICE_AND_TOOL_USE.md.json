@@ -428,8 +428,8 @@
   },
   {
    "key": "§ Voice Conversation & Tool Use > How the assistant fetches data > Apple Intelligence — tool wiring + verbatim compaction",
-   "hash": "3a3a57a4f5d5fd26",
-   "does": "Claims Apple tools are wrapped by AppleToolCatalog.wrap (21 read + up to 18 action tools), dispatched via AppleToolDispatcher.shared with setRegistry before each Apple send, returning FactValue.toToolResultJSON; AppleContextCompactor enforces 4,096-token window compacting at 70%; SessionCache reuses a session, rotating after 20 turns or when the token estimate would overflow; replies capped at 512 tokens. Verified contextWindow 4096 and compactionThreshold 0.70 (AppleContextCompactor.swift:43-48), maxTurnsPerSession = 20 (AppleFoundationProvider.swift:117), maximumResponseTokens = responseReserve (446), setRegistry at AssistantViewModel+Routing.swift:563, 18 allowedActionNames.",
+   "hash": "92de2d497f31be56",
+   "does": "Claims Apple tools are wrapped by AppleToolCatalog.wrap (21 read + up to 19 action tools), dispatched via AppleToolDispatcher.shared with setRegistry before each Apple send, returning FactValue.toToolResultJSON; AppleContextCompactor enforces 4,096-token window compacting at 70%; SessionCache reuses a session, rotating after 20 turns or when the token estimate would overflow; replies capped at 512 tokens. Verified contextWindow 4096 and compactionThreshold 0.70 (AppleContextCompactor.swift:43-48), maxTurnsPerSession = 20 (AppleFoundationProvider.swift:117), maximumResponseTokens = responseReserve (446), setRegistry at AssistantViewModel+Routing.swift:563, 19 allowedActionNames.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.wrap(_:handler:)",
@@ -448,22 +448,22 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)": "c3f0201319859f72",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.newestTurnsFitting(_:budget:)": "c15febfcdfc53400",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)": "e4fee05924b00edd",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.newestTurnsFitting(_:budget:)": "4b9e1af59e6896de",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.canReuse(for:)": "fbf5b10083bbede1",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.lease(for:)": "3fa99c5054ae2269",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.replyOptions": "e0818b10778c2fb8",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolAdapter.call(arguments:)": "5c979037fab6e074",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.wrap(_:handler:)": "075e79e94137f110",
-    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)": "b3177fa1422e580b",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)": "dd65e131a7601d37",
     "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.refusal(for:)": "7235a36d374e5f20",
     "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.setRegistry(_:)": "7fe971dbead49f86"
    }
   },
   {
    "key": "§ Voice Conversation & Tool Use > How the assistant fetches data > What's in the catalog",
-   "hash": "873ae2d9d2f5c2ad",
-   "does": "Claims the catalog has 21 top-level namespaces and ~240 entries, plus specific namespaces/keys: location.* with 5-minute cache / 5 s cold fetch, directions.* (arrived within 25 m), breadcrumb.* (recent = newest 10), score.algorithm.version 'v3.1.oct2026', comeback mode HRV 80/Sleep 20/Vitals 0 vs 60/25/15 for 21 days, vitals.hr_now 10-minute gate, workout.live.* keys, route_topology climbs capped at 5, weather 30-min TTL from MET Norway, workout.power.*, app.*, assistant.memory.*, road context refreshed every ~15 m or ~60 s, web.* with curated research/manufacturer domain lists and exclusions, routes.library.* reads and rename/save_workout actions. Verified: 238 distinct keys/patterns across exactly 21 prefixes; ActiveRouteSession arrival 25 m (ActiveRouteSession.swift:193); breadcrumb prefix(10); RecoveryScoreCalculator.swift:7-15 weights; WeatherService.cacheTTL 30*60; RoadGeocodingService movementThresholdMeters 15 / timeThresholdSec 60; WebSearchService domain lists match the doc.",
+   "hash": "50c4d7b27375f233",
+   "does": "Claims the catalog has 21 top-level namespaces and ~240 entries, plus specific namespaces/keys: location.* with 5-minute cache / 5 s cold fetch, directions.* (arrived within 25 m), breadcrumb.* (recent = newest 10), score.algorithm.version 'v3.2.oct2026', comeback mode HRV 80/Sleep 20/Vitals 0 vs 60/25/15 for 21 days, vitals.hr_now 10-minute gate, workout.live.* keys, route_topology climbs capped at 5, weather 30-min TTL from MET Norway, workout.power.*, app.*, assistant.memory.*, road context refreshed every ~15 m or ~60 s, web.* with curated research/manufacturer domain lists and exclusions, routes.library.* reads and rename/save_workout actions. Verified: 238 distinct keys/patterns across exactly 21 prefixes; ActiveRouteSession arrival 25 m (ActiveRouteSession.swift:193); breadcrumb prefix(10); RecoveryScoreCalculator.swift:7-15 weights; WeatherService.cacheTTL 30*60; RoadGeocodingService movementThresholdMeters 15 / timeThresholdSec 60; WebSearchService domain lists match the doc.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools1()",
@@ -484,28 +484,21 @@
   },
   {
    "key": "§ Voice Conversation & Tool Use > How the assistant fetches data > Mutation tools (`[ACTION]`)",
-   "hash": "8c2939f8d27abfe0",
-   "does": "Claims mutation tools carry an [ACTION] description prefix, may only be called on explicit instruction, return old/new values for read-back, surface invalidParameter disambiguation, and never self-undo; lists CompactToolRouter.allowedActionNames as route rename/save_workout/engage, contacts add/remove, email compose, memory add/remove/clear, web search, location current/detailed/situation, set address, directions routeTo/clear; no monthly/year-over-year aggregation facts.",
+   "hash": "afe42bd9f878fe26",
+   "does": "Claims mutation tools carry an [ACTION] description prefix, may only be called on explicit instruction, return old/new values for read-back, surface invalidParameter disambiguation, never self-undo, and that memory remove/clear and contacts remove only record a pending request (AssistantActionConfirmations) and return confirmation_required with an app-written ask_user question, running when the same call comes back and the user's next message is a short explicit yes (AffirmationReply: ≤5 words, no negation); another reply, an intervening turn or ten minutes cancels; memory.restore undoes the last confirmed wipe until the app quits. Lists CompactToolRouter.allowedActionNames as artifacts add/update_status, route rename/save_workout/engage, contacts add/remove, email compose, memory add/remove/clear/restore, web search, location current/detailed/situation, set address, directions routeTo/clear; no monthly/year-over-year aggregation facts.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.actionTools(registry:)"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.actionTools(registry:)",
+    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift::func AssistantActionConfirmations.evaluate(action:target:turns:now:)",
+    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift::func AffirmationReply.isExplicitYes(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "low",
-     "text": "Doc's enumeration of allowedActionNames omits assistant_artifacts_add and assistant_artifacts_update_status, which are in the set (18 entries) and do change app state.",
-     "evidence": [
-      "docs/VOICE_AND_TOOL_USE.md:537",
-      "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift:420"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift::func AffirmationReply.isExplicitYes(_:)": "12092e677243d970",
+    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift::func AssistantActionConfirmations.evaluate(action:target:turns:now:)": "91972d59b16b48b6",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.actionTools(registry:)": "2ca04b95b7f6356a"
    }
   },

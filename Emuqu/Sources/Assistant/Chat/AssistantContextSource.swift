@@ -88,6 +88,7 @@ final class AssistantContextSource: Sendable {
         return ContextBuilder.build(
             latestSession: latestSession, yesterdaySession: yesterdaySession, recentSessions: recentSessions,
             sleepInput: AnalysisSleepInput(from: latestSession?.sleepSnapshot),
+            sleepTrend: .recentNights(before: latestSession, in: recentSessions),
             trainingContext: latestSession?.trainingSnapshot,
             userSettings: settings, customTagNames: settings.customTags.map(\.name),
             baseline: baselineTracker?.baseline,

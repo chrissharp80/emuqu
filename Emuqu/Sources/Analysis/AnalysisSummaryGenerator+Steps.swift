@@ -155,7 +155,7 @@ extension AnalysisSummaryGenerator {
         let lfhf = result.frequencyDomain?.lfHfRatio ?? 1.0
         let dfa = result.nonlinear.dfaAlpha1 ?? 1.0
         let windowCV = result.windowHRStability ?? 0.0
-        let hasStrongVagalTone = result.timeDomain.pnn50 > HRVThresholds.pnn50Moderate && rmssd >= HRVThresholds.rmssdModerate
+        let hasStrongVagalTone = (result.measuredPNN50 ?? 0) > HRVThresholds.pnn50Moderate && rmssd >= HRVThresholds.rmssdModerate
         let hasUnstableWindow = windowCV > HRVThresholds.windowUnstableCVThreshold
         let hasFatigueSignal = hasStrongVagalTone ? dfa > HRVThresholds.dfaAlpha1ClearlyElevated : dfa > HRVThresholds.dfaAlpha1Fatigue
         let hasRaisedLFHF = hasStrongVagalTone ? false : lfhf > HRVThresholds.lfHfSympatheticDominance

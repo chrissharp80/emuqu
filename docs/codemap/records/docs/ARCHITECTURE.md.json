@@ -266,8 +266,8 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Analysis Algorithms",
-   "hash": "19f5e89856597a0c",
-   "does": "Claims RecoveryScoreCalculator keeps composite entry points with +Composite/+Tiers/+Training extensions; ScoringVersion.current = v3.1.oct2026; training load is not a composite tier; ReadinessScoring, VitalsScoring and ScoreDetailBuilder were split out with forwarding extensions; WindowSelection split into +Scoring (findBestWindow, selectWindowByMethod, analyzeAtPosition), +Evaluation and +Filters. Code matches: ScoringVersion.swift:29 current = \"v3.1.oct2026\"; all named files exist; the three functions are in WindowSelection+Scoring.swift (:83, :554, :724).",
+   "hash": "5fd9ea69523b4644",
+   "does": "Claims RecoveryScoreCalculator keeps composite entry points with +Composite/+Tiers/+Training extensions; ScoringVersion.current = v3.2.oct2026; training load is not a composite tier; ReadinessScoring, VitalsScoring and ScoreDetailBuilder were split out with forwarding extensions; WindowSelection split into +Scoring (findBestWindow, selectWindowByMethod, analyzeAtPosition), +Evaluation and +Filters. Code matches: ScoringVersion.swift:37 current = \"v3.2.oct2026\"; all named files exist; the three functions are in WindowSelection+Scoring.swift (:83, :554, :724).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)",
@@ -281,11 +281,10 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.calculate(_:trainingContext:config:ansBalance:)": "fc05f16d5d71d6fe",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "ca2be1737136e0d8",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.analyzeAtPosition(in:flags:targetMs:)": "0dc195fa4232cb80",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "80f3df9ec13766e3",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectWindowByMethod(_:in:flags:sleepStartMs:wakeTimeMs:)": "879f43de5f898d0e"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "6ba2b8b8a5adb0f2",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.analyzeAtPosition(in:flags:targetMs:)": "43a57b3f677f5156",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "15efe5b42c0fbb9e",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectWindowByMethod(_:in:flags:sleepStartMs:wakeTimeMs:)": "dcd8bcc51d9ad6ea"
    }
   },
   {
@@ -379,16 +378,21 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Analysis Algorithms > DFA Analysis",
-   "hash": "77bf20973441fb1a",
-   "does": "Claims DFA integrates (RR-mean), uses log-spaced boxes 4..N/4, linear detrend per box, log-log slope; alpha1 boxes 4-16, alpha2 16-64 requiring >=256 beats; alpha1 bands 0.75-1.0 organized, 0.6-0.75 flexible, >1.0 high variability, <0.6 anti-correlated; bands drive window selection and a +/-5 Tier-1 adjustment; Tools/copy_linter blocks verdict language. Code matches: DFAAnalyzer.compute returns nil below 64 beats, maxBox = count/4, alpha2Exponent requires forDFA=256; RecoveryWindow.optimalAlpha1Range 0.75...1.0, flexible 0.60...0.75; dfaAlpha1Adjustment +5; Tools/copy_linter/prohibited_terms.json lists the 'gold standard'/'load-bearing' patterns.",
+   "hash": "fe243ccba9884edf",
+   "does": "Claims DFA integrates (RR-mean), uses log-spaced boxes 4..N/4, linear detrend per box, log-log slope; alpha1 boxes 4-16, alpha2 16-64 requiring >=256 beats; overnight DFA (NonlinearAnalyzer and each WindowSelector candidate) interpolates removed beats (artifact, or in selection also ectopic/out of range) and splits at recording breaks with no box across a split, boxes up to a quarter of the longest segment; SD1 from the same adjacent pairs as RMSSD/SDSD; entropy templates inside runs of neighbours; alpha1 bands 0.75-1.0 organized, 0.6-0.75 flexible, >1.0 high variability, <0.6 anti-correlated; bands drive window selection and a +/-5 Tier-1 adjustment; Tools/copy_linter blocks verdict language. Code matches: DFAAnalyzer.compute(segments:) returns nil below 64 beats, maxBox = longest segment/4, alpha2Exponent requires forDFA=256; DFAAnalyzer.compute(window:)/interpolatedSegments; WindowSelector.scoredBlock and NonlinearAnalyzer.metrics(for:successiveDifferences:) call it; RecoveryWindow.optimalAlpha1Range 0.75...1.0, flexible 0.60...0.75; dfaAlpha1Adjustment +5; Tools/copy_linter/prohibited_terms.json lists the 'gold standard'/'load-bearing' patterns.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(window:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.interpolatedSegments(_:)",
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)",
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)",
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)",
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.metrics(for:successiveDifferences:)",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.scoredBlock(slice:rrValues:artifactRate:clean:sessionStartMs:sessionEndMs:)",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)"
    ],
    "reads": [],
@@ -396,13 +400,18 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:beatCount:)": "3fe033cde5824936",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:)": "5e2d210eaaa5ec53",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)": "dba9de7eead6a5c2",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3d6177b087c41dc6",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)": "ed0dd2075262a171",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(window:)": "3b5f011038902703",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.computeFluctuation(_:boxSize:segments:)": "19b8517e6aa5d5e9",
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.integratedSeries(_:)": "2016475f9338aaaf",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "122daaa56131b662",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.interpolatedSegments(_:)": "a40d4f530774aac8",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logLogRegression(sizes:fluctuations:)": "40d4e06584f15088",
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.logSpacedBoxSizes(from:through:)": "6da94147dc9db2eb",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)": "1677a6c322363f55"
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.metrics(for:successiveDifferences:)": "143c1e176b22c969",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)": "689def0d1a18a3e0",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.scoredBlock(slice:rrValues:artifactRate:clean:sessionStartMs:sessionEndMs:)": "eaae1344757a9930"
    }
   },
   {
@@ -1114,15 +1123,15 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Sleep Pipeline > HR-Estimated Sleep (fallback, not extension)",
-   "hash": "a879b68116b33305",
-   "does": "Claims when HealthKit has zero sleep, MorningResultsViewModel.estimateSleepFallback tries the RR-derived estimate (estimateSleepFromHR) then passive Watch HR (estimateSleepFromHealthKitHR over the window extended to the schedule end); passive algorithm: 20-min rolling average, >=8 BPM range, threshold at range midpoint, onset = first 2 consecutive points below threshold clamped to plausible latency, wake = end of last below-threshold block; minimumSamples 12, minimumSleepMinutes 120; AutoSleepExtension is never constructed outside SleepResolverTests; DashboardViewModel/WatchSleepDetector do not exist. Code matches: estimateSleepFallback (MorningResultsViewModel.swift:488), smoothHRSamples(windowMinutes: 20) at HealthKitManager+Sleep.swift:418, hrSleepThreshold, clampedSleepOnset, sleepWake, estimateSleepFromHealthKitHR(minimumSamples: 12, minimumSleepMinutes: 120); grep finds AutoSleepExtension( only in EmuquTests/SleepResolverTests.swift; no DashboardViewModel or checkForExtendedSleep in Swift sources.",
+   "hash": "6c5a6f8b86db8d20",
+   "does": "Claims when HealthKit has zero sleep, MorningResultsViewModel.estimateSleepFallback tries the RR-derived estimate (estimateSleepFromHR) then passive Watch HR (estimateSleepFromHealthKitHR over the window extended to the schedule end); passive algorithm: 20-min rolling average, >=8 BPM range, threshold at range midpoint, onset = first 2 consecutive points below threshold, accepted only within a 20-min wall-clock latency, else bedtime (a later detection is a misfire), wake = end of last below-threshold block; minimumSamples 12, minimumSleepMinutes 120; AutoSleepExtension is never constructed outside SleepResolverTests; DashboardViewModel/WatchSleepDetector do not exist. Code matches: estimateSleepFallback (MorningResultsViewModel.swift:488), smoothHRSamples(windowMinutes: 20) at HealthKitManager+Sleep.swift:418, hrSleepThreshold, plausibleSleepOnset (SleepConstants.isPlausibleHROnsetLatency), sleepWake, estimateSleepFromHealthKitHR(minimumSamples: 12, minimumSleepMinutes: 120); grep finds AutoSleepExtension( only in EmuquTests/SleepResolverTests.swift; no DashboardViewModel or checkForExtendedSleep in Swift sources.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.estimateSleepFallback(for:)",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrSleepThreshold(_:)",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.clampedSleepOnset(_:threshold:windowStart:)",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleSleepOnset(_:threshold:windowStart:)",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.sleepWake(_:threshold:)",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.smoothHRSamples(_:windowMinutes:)"
    ],
@@ -1131,12 +1140,12 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.clampedSleepOnset(_:threshold:windowStart:)": "28342b913bf4cf73",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)": "587065d915433525",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)": "80312c4bf28d1463",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrSleepThreshold(_:)": "8eeb970522a525e8",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleSleepOnset(_:threshold:windowStart:)": "4d252e0b67e586da",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.sleepWake(_:threshold:)": "d98e3e3b3303abfc",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.smoothHRSamples(_:windowMinutes:)": "9f5948f5c3231d79",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "e828c2c98f9aa86c",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "8fe746290d7bcd76",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.estimateSleepFallback(for:)": "edc7063b85dc483c"
    }
   },
@@ -1246,7 +1255,7 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Storage & Sync > UI Session Load Contract",
-   "hash": "2ec3213ecde1dbde",
+   "hash": "0d8b9569f340ebd3",
    "does": "Claims per-screen session loading: MainTabView loads 35 sessions (dashboardSessionLoadLimit) for DashboardV2View only; TrendsV2View loads all overnight analysed sessions; HistoryView uses the full index with pageSize 10; SessionArchive.entries newest-first, HistoryViewModel by displayDate desc, TrendAnalyzer ascending; delete adds to deletedSessionIds, persists, removes from index, deletes file; session.recoveryScore stored 0-10 via toTenScale; runDeferredMigrations runs 7 passes (reencryptPendingSessions, migrateRecoveryScores, migrateEndDates, migrateMetrics, migrateSleepIndexFields, removeDuplicates, relinkSameNightSessions); Archive split into Archive+Migrations, SessionMerger, Archive+Repair. Code matches: MainTabView.swift:710 dashboardSessionLoadLimit = 35; HistoryViewModel pageSize = 10; ArchiveMigrations.runDeferredMigrations lists exactly those 7 calls; ArchiveStore.delete; the archive is additionally split into Archive+IndexIO/Internal/MergeForwarding/MergeTarget/MigrationForwarding/PendingEncryption/SessionCodec/StoreForwarding/Trash files not listed.",
    "entry": null,
    "calls": [

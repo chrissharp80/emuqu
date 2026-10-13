@@ -207,10 +207,12 @@ extension AssistantContext {
         let contribution: Double // score * weight
     }
 
+    /// SDNN and pNN50 are nil when the reading holds them as estimates
+    /// (`HRVAnalysisResult.estimatedMetrics`): the AI is given measurements only.
     struct TimeDomainSnapshot: Codable {
         let rmssd: Double
-        let sdnn: Double
-        let pnn50: Double
+        let sdnn: Double?
+        let pnn50: Double?
         let meanRR: Double
         let meanHR: Double
     }
@@ -222,10 +224,11 @@ extension AssistantContext {
         let totalPower: Double
     }
 
+    /// The Poincaré fields are nil when the reading holds them as estimates.
     struct NonlinearSnapshot: Codable {
-        let sd1: Double
-        let sd2: Double
-        let sd1Sd2Ratio: Double
+        let sd1: Double?
+        let sd2: Double?
+        let sd1Sd2Ratio: Double?
         let dfaAlpha1: Double?
         let dfaAlpha2: Double?
         let sampleEntropy: Double?

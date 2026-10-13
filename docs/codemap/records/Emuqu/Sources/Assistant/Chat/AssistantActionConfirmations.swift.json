@@ -1,0 +1,137 @@
+{
+ "file": "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift",
+ "hash": "98c818b7b3058ead",
+ "role": "Second step of the assistant's destructive actions: AssistantActionConfirmations holds at most one pending request and confirms it only when the user's next message is an explicit yes (AffirmationReply); requests lapse after another turn or 10 minutes.",
+ "types": [
+  "PendingAssistantAction: struct Equatable Sendable — action key, lowercased target, requesting user turn id, time",
+  "AssistantActionConfirmations: final class (@MainActor) — pending-request store; Outcome enum confirmed/awaitingConfirmation/noUserMessage",
+  "AffirmationReply: enum — explicit-yes classifier over word lists in the shipped languages"
+ ],
+ "state": [
+  "mem:AssistantActionConfirmations.pending",
+  "mem:AssistantActionConfirmations.lifetime = 600 s",
+  "mem:AffirmationReply.maxWords = 5",
+  "mem:AffirmationReply.affirmations (Set<String>, no duplicates — a duplicate traps)",
+  "mem:AffirmationReply.negations (Set<String>)"
+ ],
+ "toplevel": "Type declarations and static constants only.",
+ "flags": [],
+ "units": [
+  {
+   "key": "init AssistantActionConfirmations()",
+   "hash": "13a2566dcb26bdfe",
+   "does": "Nonisolated empty initializer (pending starts nil), so the shared instance and a test case can each build one.",
+   "entry": "AssistantActionConfirmations.shared (read only by AppDependencies AssistantServices.assistantActionConfirmations) and tests",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantActionConfirmations.evaluate(action:target:turns:now:)",
+   "hash": "e643fe47794165d6",
+   "does": "Filters the transcript to user turns. With none, clears pending and returns .noUserMessage. Lowercases target; if confirms() holds, clears pending and returns .confirmed; otherwise records PendingAssistantAction(action, target, latest user turn id, now) — replacing any earlier request — and returns .awaitingConfirmation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift::func AssistantActionConfirmations.confirms(action:target:userTurns:now:)"
+   ],
+   "reads": [
+    "mem:AssistantActionConfirmations.pending"
+   ],
+   "writes": [
+    "mem:AssistantActionConfirmations.pending"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no user turn in the transcript",
+     "effect": "pending=nil, returns .noUserMessage"
+    },
+    {
+     "at": "+7",
+     "cond": "confirms() is true",
+     "effect": "pending=nil, returns .confirmed; else records the request and returns .awaitingConfirmation"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift::func AssistantActionConfirmations.confirms(action:target:userTurns:now:)": "2d9a3be3255e12a3"
+   }
+  },
+  {
+   "key": "func AssistantActionConfirmations.confirms(action:target:userTurns:now:)",
+   "hash": "d84be3df35ccbe44",
+   "does": "True only when a pending request has the same action and target, is at most `lifetime` (10 min) old, was recorded during the user turn directly before the latest one, and the latest user turn is an explicit yes (AffirmationReply.isExplicitYes).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift::func AffirmationReply.isExplicitYes(_:)"
+   ],
+   "reads": [
+    "mem:AssistantActionConfirmations.pending"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no pending, different action/target, expired, fewer than two user turns, or the request was not made during the previous user turn",
+     "effect": "returns false; else returns isExplicitYes(latest text)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift::func AffirmationReply.isExplicitYes(_:)": "12092e677243d970",
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.target(_:)": "110d5071d698c224"
+   }
+  },
+  {
+   "key": "func AffirmationReply.isExplicitYes(_:)",
+   "hash": "299c16b83bc875e9",
+   "does": "Tokenizes the reply; true when it has 1-5 words, none of them a negation/hedge (no, not, don, but, wait, cancel, nein, nicht, non, pas, … in the shipped languages) and the first word or two-word opening is an affirmation (yes, ok, sure, do it, go ahead, ja, oui, d accord, sí, sì, да, はい, 네, 是的, …).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift::func AffirmationReply.tokens(_:)"
+   ],
+   "reads": [
+    "mem:AffirmationReply.affirmations",
+    "mem:AffirmationReply.negations"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "empty or more than maxWords (5) words",
+     "effect": "returns false"
+    },
+    {
+     "at": "+3",
+     "cond": "any word is a negation",
+     "effect": "returns false"
+    },
+    {
+     "at": "+5",
+     "cond": "first word or two-word opening is an affirmation",
+     "effect": "returns true; else false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift::func AffirmationReply.tokens(_:)": "18e0d786f2d68680"
+   }
+  },
+  {
+   "key": "func AffirmationReply.tokens(_:)",
+   "hash": "ce0a710ad6e77115",
+   "does": "Lowercases and splits on whitespace, punctuation and symbols, dropping empty pieces (\"d'accord\" → [\"d\",\"accord\"]).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

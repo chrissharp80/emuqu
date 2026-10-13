@@ -1,11 +1,11 @@
 {
  "file": "Emuqu/Sources/Import/RRDataImporter.swift",
- "hash": "118c6c33ba10f5af",
+ "hash": "1c3f8c407d01df31",
  "role": "Stateless importer for single-file RR data (CSV/Kubios/JSON/TXT) plus the result and error types for Elite HRV summary and Emuqu multi-session RR exports; detects format, parses, validates and builds an HRVSession.",
  "types": [
   "RRDataImporter: final class (Sendable) — RR file importer, extended by +CSV, +JSON, +EliteHRV, +FlowHRV",
   "RRDataImporter.ImportFormat: enum (String, CaseIterable, Identifiable) — csv|json|txt|kubios|eliteHRV|flowHRVMultiSession",
-  "RRDataImporter.EliteHRVSummaryResult: struct (+ SessionSummary) — per-row Elite HRV metrics",
+  "RRDataImporter.EliteHRVSummaryResult: struct (+ SessionSummary) — per-row Elite HRV metrics, incl. the file's own SDNN/pNN50 (nil when not stated), the beat count (nil when unknown) and whether both RR extremes were stated",
   "RRDataImporter.FlowHRVMultiSessionResult: struct (+ SessionRRData) — per-session raw RR from an Emuqu export",
   "RRDataImporter.ImportError: enum (LocalizedError)",
   "RRDataImporter.ImportResult: struct — single-file parse result",

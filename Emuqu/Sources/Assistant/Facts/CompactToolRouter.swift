@@ -21,7 +21,7 @@ import Foundation
 ///
 /// **Tool budget.**
 ///   • 21 read tools (cover all `.fixed` + `.parameterized` + `.composite`)
-///   • up to 18 action tools (`allowedActionNames`, preserved verbatim —
+///   • up to 19 action tools (`allowedActionNames`, preserved verbatim —
 ///     write operations stay visible because their identity matters:
 ///     `assistant_email_compose` vs `assistant_contacts_add` are
 ///     different audit-trail events).
@@ -327,7 +327,7 @@ struct CompactToolRouter {
     private static func readTools5b() -> [ToolSpec] {
         [
             // 14. get_score_meta
-            spec("get_score_meta", "Recovery-score algorithm metadata. `field`: 'algorithm_version' (current scoring version, e.g. 'v3.1.oct2026') or 'history_recomputed' (whether the user has run the v1→v2 history recompute).", [
+            spec("get_score_meta", "Recovery-score algorithm metadata. `field`: 'algorithm_version' (current scoring version, e.g. 'v3.2.oct2026') or 'history_recomputed' (whether the user has run the v1→v2 history recompute).", [
                 ("field", "'algorithm_version' or 'history_recomputed'")
             ], required: ["field"]),
             // 15. get_breadcrumbs
@@ -428,6 +428,7 @@ struct CompactToolRouter {
         "assistant_memory_add",
         "assistant_memory_remove",
         "assistant_memory_clear",
+        "assistant_memory_restore",
         "web_search",
         "location_current",
         "location_current_detailed",

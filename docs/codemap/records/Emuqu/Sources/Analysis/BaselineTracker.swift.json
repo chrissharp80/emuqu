@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Analysis/BaselineTracker.swift",
- "hash": "70f83c16e2b9f8a2",
- "role": "Per-user overnight HRV baseline: keeps one data point per night (max 90) persisted to HRVBaseline.json, derives a display baseline over the 7 most recent stored nights (geometric-mean RMSSD etc.) and ln(RMSSD) z-score stats over the last 60 stored nights for recovery scoring, gating which sessions may enter.",
+ "hash": "3da36fdcd0926639",
+ "role": "Per-user overnight HRV baseline: keeps one data point per night (max 90) persisted to HRVBaseline.json, derives a display baseline over the 7 most recent stored nights (geometric-mean RMSSD etc.) and ln(RMSSD) z-score stats over the last 60 stored nights for recovery scoring, gating which sessions may enter. Also exposes the baseline's night selection as static functions (isBaselineCandidate, baselineRMSSDs) so the daily report's baseline counts exactly the nights the score counts.",
  "types": [
   "BaselineTracker: class (@unchecked Sendable, NSRecursiveLock-protected) — baseline store and statistics",
   "BaselineTracker.Baseline: struct Codable — display baseline snapshot over the 7 most recent stored nights (minimumSamples=3)",
@@ -19,9 +19,10 @@
   "mem:BaselineTracker.maxHistoricalPoints (static let 90)",
   "mem:BaselineTracker.Baseline.minimumSamples (static let 3)",
   "mem:BaselineTracker.RecoveryBaselineStats.minimumDays (static let 3)",
-  "mem:BaselineTracker.onBaselineUpdated (injected (rmssd, hr) closure; production wiring RRCollector.swift:647 → SettingsManager.updateBaseline)"
+  "mem:BaselineTracker.onBaselineUpdated (injected (rmssd, hr) closure; production wiring RRCollector.swift:647 → SettingsManager.updateBaseline)",
+  "mem:BaselineTracker.recoveryWindowNights (static let 60 — nights the recovery score's baseline reads; also ReportBaselineNights.count and the coach report's night limit)"
  ],
- "toplevel": "Stored-property initializers: fileManager = FileManager.default, lock = NSRecursiveLock(), historicalData = []. Class is @unchecked Sendable relying on manual lock discipline. Static constants baselineWindowDays=7, maxHistoricalPoints=90.",
+ "toplevel": "Stored-property initializers: fileManager = FileManager.default, lock = NSRecursiveLock(), historicalData = []. Class is @unchecked Sendable relying on manual lock discipline. Static constants baselineWindowDays=7, maxHistoricalPoints=90, recoveryWindowNights=60.",
  "flags": [
   {
    "kind": "fragile",
@@ -191,8 +192,8 @@
   },
   {
    "key": "func BaselineTracker.stats(from:)",
-   "hash": "628b57c566ed67fb",
-   "does": "Takes up to the last 60 points, converts to ln(RMSSD), and builds RecoveryBaselineStats; nil below 3 points or 3 positive RMSSD values.",
+   "hash": "d6d0d9cb11776331",
+   "does": "Takes up to the last recoveryWindowNights (60) points, converts to ln(RMSSD), and builds RecoveryBaselineStats; nil below 3 points or 3 positive RMSSD values.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.lnRmssdValues(_:)",
@@ -212,21 +213,7 @@
      "effect": "returns nil; else returns baselineStats(...)"
     }
    ],
-   "flags": [
-    {
-     "kind": "duplicate",
-     "sev": "med",
-     "text": "DailyLoopAnalysis.lnRmssdBaseline builds a second ln(RMSSD) baseline from raw sessions (comment says it 'mirrors BaselineTracker'), but filters only isReliableForHRVAggregates: it does not apply isStructurallySoundForBaseline or the one-reading-per-night merge, so short windows and same-night duplicates enter it and its mean/SD can differ from the score's baseline.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/BaselineTracker.swift:211",
-      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:215",
-      "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:218",
-      "Emuqu/Sources/Analysis/BaselineTracker.swift:399",
-      "Emuqu/Sources/Analysis/BaselineTracker.swift:440"
-     ],
-     "found": "second read"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineStats(recentData:lnValues:)": "0eab476b41d21f36",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.lnRmssdValues(_:)": "421a2e102c940335"
@@ -391,6 +378,75 @@
    }
   },
   {
+   "key": "func BaselineTracker.isBaselineCandidate(_:)",
+   "hash": "8fa35bb8e250cc4a",
+   "does": "Static: whether a session can hold a baseline night — isRebuildCandidate (complete, overnight, analyzed, isReliableForHRVAggregates), isStructurallySoundForBaseline on its analysis result, and a measured (not estimated) SDNN: what rebuildFromSessions admits through admitsToBaseline. Used by baselineRMSSDs and by the report night readers (ReportBaselineNights, WorkoutRecorder+Metrics.recentOvernightSessions) to count baseline nights.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isRebuildCandidate(_:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isStructurallySoundForBaseline(session:result:)",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not a rebuild candidate or no analysisResult",
+     "effect": "false"
+    },
+    {
+     "at": "+2",
+     "cond": "structurally unsound or SDNN estimated",
+     "effect": "false; else true"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isRebuildCandidate(_:)": "a9c7e91f47c75b7a",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isStructurallySoundForBaseline(session:result:)": "76516c681454bf73",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "75ec424f441a2c51"
+   }
+  },
+  {
+   "key": "func BaselineTracker.baselineRMSSDs(rebuiltFrom:beforeNightOf:sleepSchedule:)",
+   "hash": "6ecaa7465c210ba4",
+   "does": "Static, lock-free: replays the canonical baseline selection over `sessions` for the night of `session`. Keeps isBaselineCandidate sessions whose nightKey is before the session's night, sorts them by start, builds each one's data point and merges it into its night slot with mergeIntoNight (same replacement rule as the stored baseline), then returns the RMSSD of the last recoveryWindowNights (60) nights, oldest first — the nights recoveryBaselineStats(excludingNightOf:) would read on a tracker rebuilt from the same sessions. Non-positive RMSSDs are returned as is (the caller drops them, as stats(from:) does).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isBaselineCandidate(_:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.mergeIntoNight(_:into:sleepSchedule:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "candidate and night before the session's",
+     "effect": "kept; else dropped (incl. the session's own night and later nights)"
+    },
+    {
+     "at": "+7",
+     "cond": "analysisResult nil",
+     "effect": "dropped (unreachable after isBaselineCandidate)"
+    },
+    {
+     "at": "+12",
+     "cond": "more than 60 nights",
+     "effect": "suffix(60): most recent 60"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)": "21b7430a99678506",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isBaselineCandidate(_:)": "9b2b167d3f241aed",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.mergeIntoNight(_:into:sleepSchedule:)": "64bd2a8afec2d94b",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)": "b52d1b79b4d7211e"
+   }
+  },
+  {
    "key": "func BaselineTracker.isStructurallySoundForBaseline(session:result:)",
    "hash": "22ad987295d38523",
    "does": "Structural baseline gate: isStructurallySound(result:sessionDuration:) with the session's duration (end ?? start minus start).",
@@ -486,13 +542,13 @@
   },
   {
    "key": "func BaselineTracker.merge(_:sleepSchedule:)",
-   "hash": "d667f5426153bb4e",
-   "does": "When the session has an analysisResult and passes admitsToBaseline, merges its data point into its night slot (mergeIntoNight) and returns true; else false. Caller holds the lock.",
+   "hash": "4d0fab6f83949339",
+   "does": "When the session has an analysisResult and passes admitsToBaseline, merges its data point into its night slot of historicalData (static mergeIntoNight) and returns true; else false. Caller holds the lock.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.admitsToBaseline(_:result:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.mergeIntoNight(_:sleepSchedule:)"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.mergeIntoNight(_:into:sleepSchedule:)"
    ],
    "reads": [
     "mem:BaselineTracker.historicalData"
@@ -511,7 +567,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.admitsToBaseline(_:result:)": "836597a99ab2f10d",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)": "21b7430a99678506",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.mergeIntoNight(_:sleepSchedule:)": "bde3ab5d43fe3cf7"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.mergeIntoNight(_:into:sleepSchedule:)": "64bd2a8afec2d94b"
    }
   },
   {
@@ -548,13 +604,14 @@
   },
   {
    "key": "func BaselineTracker.admitsToBaseline(_:result:)",
-   "hash": "d94df8a876c52fbb",
-   "does": "Three gates: overnight sessionType, isReliableForHRVAggregates (not .insufficient/.preSleep), and isStructurallySoundForBaseline; logs the reason for each rejection.",
+   "hash": "70ab85638bae720a",
+   "does": "Four gates: overnight sessionType, isReliableForHRVAggregates (not .insufficient/.preSleep), isStructurallySoundForBaseline (each logging its rejection), and an SDNN that is not an estimate (a data point's SDNN is a stored number the SDNN baseline averages).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isStructurallySoundForBaseline(session:result:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -577,20 +634,26 @@
     {
      "at": "+9",
      "cond": "not structurally sound",
-     "effect": "logs, returns false; else true"
+     "effect": "logs, returns false"
+    },
+    {
+     "at": "+13",
+     "cond": "SDNN marked estimated",
+     "effect": "returns false (no log); else true"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isStructurallySoundForBaseline(session:result:)": "76516c681454bf73",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "75ec424f441a2c51",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "15319afa7ff717d9",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },
   {
    "key": "func BaselineTracker.dataPoint(session:result:)",
-   "hash": "37b6a0d546a383df",
+   "hash": "e572845a4de192bd",
    "does": "Builds a BaselineDataPoint from the session (start/end dates) and analysis result (time-domain, frequency-domain, DFA, ANS metrics, window quality fields).",
    "entry": null,
    "calls": [],
@@ -601,15 +664,15 @@
    "deps": {
     "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "fd8e1c85787a7675",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
     "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "8f7224c0359ecb0f"
    }
   },
   {
-   "key": "func BaselineTracker.mergeIntoNight(_:sleepSchedule:)",
-   "hash": "2d47d00a3ccdd58f",
-   "does": "Finds an existing point with the same SleepSchedule.nightKey; appends when none, otherwise replaces it only if shouldReplace says so.",
+   "key": "func BaselineTracker.mergeIntoNight(_:into:sleepSchedule:)",
+   "hash": "183d5a89ac80874a",
+   "does": "Static over the `nights` array it is given (historicalData for the stored baseline, a local array for baselineRMSSDs): finds an existing point with the same SleepSchedule.nightKey; appends when none, otherwise replaces it only if shouldReplace says so.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)",
@@ -617,16 +680,17 @@
    ],
    "reads": [],
    "writes": [
-    "mem:BaselineTracker.historicalData"
+    "mem:BaselineTracker.historicalData (when passed it)",
+    "the caller's nights array (inout)"
    ],
    "branches": [
     {
-     "at": "+2",
+     "at": "+4",
      "cond": "no existing point for this night",
      "effect": "appends the new point"
     },
     {
-     "at": "+8",
+     "at": "+10",
      "cond": "shouldReplace true",
      "effect": "overwrites the existing slot; false → new point discarded"
     }
@@ -640,7 +704,7 @@
   },
   {
    "key": "func BaselineTracker.shouldReplace(_:with:sleepSchedule:)",
-   "hash": "ca090da95c4ac16d",
+   "hash": "ffebac3541bbe0ee",
    "does": "Morning reading (by endDate ?? date) beats a non-morning one either way; like-for-like defers to newWindowIsObjectivelyBetter.",
    "entry": null,
    "calls": [
@@ -756,12 +820,13 @@
   },
   {
    "key": "func BaselineTracker.deviation(of:against:)",
-   "hash": "881f43fc7f325164",
-   "does": "BaselineDeviation of result vs baseline (percent per metric); nil when baseline.sampleCount < 3.",
+   "hash": "90df3badf1aae7f9",
+   "does": "BaselineDeviation of result vs baseline (percent per metric); sdnnDeviation nil when the result's SDNN is an estimate; nil overall when baseline.sampleCount < 3.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.percentDeviation(current:baseline:)",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.optionalPercentDeviation(current:baseline:)"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.optionalPercentDeviation(current:baseline:)",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN"
    ],
    "reads": [],
    "writes": [],
@@ -770,6 +835,11 @@
      "at": "+1",
      "cond": "sampleCount < Baseline.minimumSamples",
      "effect": "returns nil"
+    },
+    {
+     "at": "+4",
+     "cond": "measuredSDNN nil (estimate)",
+     "effect": "sdnnDeviation nil"
     }
    ],
    "flags": [],
@@ -779,6 +849,7 @@
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.baseline": "ba410d90f6e968ea",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
     "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "2dc1cfa3ae220984",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "6a822d05adef4c73",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
    }
   },
@@ -851,7 +922,7 @@
   },
   {
    "key": "func BaselineTracker.newWindowIsObjectivelyBetter(new:existing:)",
-   "hash": "91f7e73de5193e95",
+   "hash": "a04cc2da9fcc2061",
    "does": "Replacement decision ladder: consolidation verdict, then organized-recovery verdict, then artifact/HR-stability gates, then a >5% readiness improvement.",
    "entry": null,
    "calls": [
@@ -889,7 +960,7 @@
   },
   {
    "key": "func BaselineTracker.consolidationVerdict(new:existing:)",
-   "hash": "89cf8d7d4cce19f5",
+   "hash": "517c902525d6269a",
    "does": "If existing consolidated and new not: new must beat existing readiness by > 15% of existing. If new consolidated and existing not: replace when new readiness >= 90% of existing. Else nil.",
    "entry": null,
    "calls": [
@@ -937,7 +1008,7 @@
   },
   {
    "key": "func BaselineTracker.organizedRecoveryVerdict(new:existing:)",
-   "hash": "34a9f37f13a10dfa",
+   "hash": "2aff40702a6b98b7",
    "does": "Only when consolidation status is equal: rejects a non-organized new vs organized existing; accepts organized new vs non-organized existing when readiness >= 95% of existing; else nil.",
    "entry": null,
    "calls": [
@@ -979,14 +1050,14 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "fd8e1c85787a7675",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9",
     "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "8f7224c0359ecb0f"
    }
   },
   {
    "key": "func BaselineTracker.passesQualityGates(new:existing:)",
-   "hash": "db5ac8ede8f65bda",
+   "hash": "7fee231bed0d9941",
    "does": "Rejects the new window when its artifact % exceeds max(1.5×existing, 2.0); then applies the HR-stability check.",
    "entry": null,
    "calls": [
@@ -1021,7 +1092,7 @@
   },
   {
    "key": "func BaselineTracker.hrStabilityAcceptable(new:existing:)",
-   "hash": "4fecca0daf1c0004",
+   "hash": "1b7f3a9ee3247067",
    "does": "Rejects when new window HR CV > 1.3× existing; passes when either value missing.",
    "entry": null,
    "calls": [
@@ -1048,7 +1119,7 @@
   },
   {
    "key": "func BaselineTracker.isMeaningfullyBetterScore(new:existing:)",
-   "hash": "c34c6a4658a2df66",
+   "hash": "f468f9c53c8ff231",
    "does": "Returns true when new readiness exceeds existing by more than 5% of existing (nil scores treated as 0).",
    "entry": null,
    "calls": [

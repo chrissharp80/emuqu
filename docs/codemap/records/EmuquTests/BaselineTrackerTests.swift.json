@@ -280,6 +280,34 @@
    }
   },
   {
+   "key": "func BaselineTrackerTests.testBaselineRMSSDsAreTheNightsTheScoreReads()",
+   "hash": "9fe9c86eaa46093e",
+   "does": "Eight good nights (1–8 days ago), a 30-min partial, an .insufficient night and today's session: rebuilds a temp-file tracker from them and asserts BaselineTracker.baselineRMSSDs for today returns 8 nights whose count and ln-mean equal recoveryBaselineStats(excludingNightOf: today)'s daysInWindow and lnRmssdMean.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.producerMockSession(daysAgo:rmssd:meanHR:hrvDataQuality:)",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.shortMockSession(daysAgo:rmssd:durationSec:)",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.makeTracker()",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineRMSSDs(rebuiltFrom:beforeNightOf:sleepSchedule:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/HRVBaseline-<uuid>.json (temp tracker file, removed in tearDown)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineRMSSDs(rebuiltFrom:beforeNightOf:sleepSchedule:)": "236fc4f1f7638bfe",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "c1425cbf101c9640",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)": "7bf3e795972555e6",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.makeTracker()": "c727e4331d86f1a5",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.producerMockSession(daysAgo:rmssd:meanHR:hrvDataQuality:)": "190f6254801185f1",
+    "EmuquTests/BaselineTrackerTests.swift::func BaselineTrackerTests.shortMockSession(daysAgo:rmssd:durationSec:)": "045d7f33dbfcfdba"
+   }
+  },
+  {
    "key": "func BaselineTrackerTests.seededTracker(rmssdValues:)",
    "hash": "6825cb946ca63907",
    "does": "Creates a tracker on its own empty temporary file (makeTracker) and rebuilds it from one session per day with the given RMSSD values.",

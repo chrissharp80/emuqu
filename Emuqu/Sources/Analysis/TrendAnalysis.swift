@@ -9,7 +9,8 @@ enum TrendAnalyzer {
         let id: UUID
         let date: Date
         let rmssd: Double
-        let sdnn: Double
+        /// Nil when the reading holds SDNN as an estimate.
+        let sdnn: Double?
         let meanHR: Double
         let lfHfRatio: Double?
         let hf: Double?
@@ -30,7 +31,7 @@ enum TrendAnalyzer {
         /// one place instead of a mirrored else-branch.
         private struct Metrics {
             var rmssd: Double = 0
-            var sdnn: Double = 0
+            var sdnn: Double?
             var meanHR: Double = 0
             var lfHfRatio: Double?
             var hf: Double?
@@ -43,7 +44,7 @@ enum TrendAnalyzer {
             init(_ result: HRVAnalysisResult?) {
                 guard let result else { return }
                 rmssd = result.timeDomain.rmssd
-                sdnn = result.timeDomain.sdnn
+                sdnn = result.measuredSDNN
                 meanHR = result.timeDomain.meanHR
                 lfHfRatio = result.frequencyDomain?.lfHfRatio
                 hf = result.frequencyDomain?.hf
@@ -232,8 +233,9 @@ enum TrendAnalyzer {
         let rmssd = computeStatistics(
             metric: "RMSSD", values: dataPoints.map(\.rmssd), dates: dates, rule: TrendRule(higherIsBetter: true, scale: .logarithmic)
         )
+        let sdnnPoints = dataPoints.filter { $0.sdnn != nil }
         let sdnn = computeStatistics(
-            metric: "SDNN", values: dataPoints.map(\.sdnn), dates: dates, rule: TrendRule(higherIsBetter: true, scale: .logarithmic)
+            metric: "SDNN", values: sdnnPoints.compactMap(\.sdnn), dates: sdnnPoints.map(\.date), rule: TrendRule(higherIsBetter: true, scale: .logarithmic)
         )
         let hr = computeStatistics(
             metric: "Mean HR", values: dataPoints.map(\.meanHR), dates: dates, rule: TrendRule(higherIsBetter: false, scale: .linear)

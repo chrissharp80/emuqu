@@ -3198,21 +3198,27 @@
   },
   {
    "key": "§ Emuqu User Manual > Settings Tab > iCloud & Data",
-   "hash": "e52d1a2bc0af796b",
-   "does": "Claims iCloud Sync off by default (Health readings never uploaded, computed scores encrypted), sync status, RR import formats (CSV/JSON/TXT/Kubios/EliteHRV) with >= 60 intervals and >= 3/4 in 300-2000 ms, Export Data with three formats, Recover RR from Strap, Recover Lost Sessions, Trash kept 90 days. Verified expireTrash(keepDays: 90) called at launch (AppLaunchTasks.swift:433) and export buttons (ExportAndArchiveViews.swift:121-138).",
+   "hash": "27c63bc5e6c0a0e3",
+   "does": "Claims iCloud Sync off by default (Health readings never uploaded, computed scores encrypted), sync status, RR import formats (CSV/JSON/TXT/Kubios/EliteHRV) with >= 60 intervals and >= 3/4 in 300-2000 ms, Export Data with three formats, Recover RR from Strap, Recover Lost Sessions, Trash kept 90 days. Verified expireTrash(keepDays: 90) called at launch (AppLaunchTasks.swift:433) and export buttons (ExportAndArchiveViews.swift:121-138). EliteHRV bullet: RMSSD, and SDNN/pNN50 when the export has them, are Elite HRV's values; metrics it lacks are shown marked 'estimate' and kept out of baselines, trends, the assistant and Apple Health; no stress index, score or beat count is made up, and earlier imports lose the ones they were given (HRVSession.init(from:), ArchiveMigrations.migrateLegacyEliteImportIndex) (RRDataImporter+EliteHRV.swift createAnalyzedSession / eliteEstimatedMetrics).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/ImportDataView.swift::var ImportDataView.body",
     "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.body",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)"
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateLegacyEliteImportIndex()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)": "a45900270f8fedb2",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "1e37d17d0cf0b483",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateLegacyEliteImportIndex()": "e84148b00578230a",
     "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)": "e30d5d7080897eb4",
-    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.body": "763f75757225cbd8",
+    "Emuqu/Sources/Views/ExportAndArchiveViews.swift::var ExportDataView.body": "54ff08dcda32a798",
     "Emuqu/Sources/Views/ImportDataView.swift::var ImportDataView.body": "5996792ab39be46d"
    }
   },

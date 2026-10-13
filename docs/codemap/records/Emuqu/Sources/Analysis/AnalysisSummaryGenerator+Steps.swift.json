@@ -163,10 +163,12 @@
   },
   {
    "key": "func AnalysisSummaryGenerator.hrvSignals()",
-   "hash": "11faf869f5757a31",
-   "does": "Computes RMSSD, stress/LF-HF/DFA (defaulted), window HR CV (default 0), strong vagal tone (pNN50 > 25 and RMSSD >= 40), unstable window (CV > 0.08), fatigue (DFA > 1.35 with strong tone, else > 1.2), raised LF/HF (LF/HF > 3.0 only without strong tone; a position of the ratio, not a sympathetic measure).",
+   "hash": "2f0933f21d347f12",
+   "does": "Computes RMSSD, stress/LF-HF/DFA (defaulted), window HR CV (default 0), strong vagal tone (measured pNN50 > 25 and RMSSD >= 40; an estimated pNN50 counts as 0), unstable window (CV > 0.08), fatigue (DFA > 1.35 with strong tone, else > 1.2), raised LF/HF (LF/HF > 3.0 only without strong tone; a position of the ratio, not a sympathetic measure).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -189,6 +191,11 @@
      "at": "+5",
      "cond": "windowHRStability nil ('?? 0.0')",
      "effect": "0 → stable window"
+    },
+    {
+     "at": "+6",
+     "cond": "measuredPNN50 nil (?? 0)",
+     "effect": "not strong vagal tone"
     },
     {
      "at": "+8",
@@ -215,6 +222,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50": "c6bd570c1d8742c7",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
    }
   },

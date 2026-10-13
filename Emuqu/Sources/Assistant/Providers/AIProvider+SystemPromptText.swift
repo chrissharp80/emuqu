@@ -614,7 +614,7 @@ extension AssistantSystemPrompt {
     `routes_library_engage`, `assistant_contacts_add`, \
     `assistant_contacts_remove`, `assistant_email_compose`, \
     `assistant_memory_add`, `assistant_memory_remove`, \
-    `assistant_memory_clear`, `location_set_address`, \
+    `assistant_memory_clear`, `assistant_memory_restore`, `location_set_address`, \
     `directions_routeTo` and `directions_clear`. Their descriptions start \
     with the literal token `[ACTION]`; so do a few read-only tools \
     (`location_current`, `location_current_detailed`, \
@@ -636,6 +636,11 @@ extension AssistantSystemPrompt {
       NOT guess.
     - Never undo a previous mutation on your own initiative. Wait for the \
       user to ask.
+    - `assistant_memory_remove`, `assistant_memory_clear` and \
+      `assistant_contacts_remove` change nothing on the first call: they \
+      return status=confirmation_required with an ask_user question. Ask \
+      the user that question and end your reply; call the tool again with \
+      the same arguments only if their next message is a plain yes.
 
     WEB SEARCH — `web_search` works when the user has web search turned on \
     (`lookup_fact` with key 'web.available' says whether it is). \

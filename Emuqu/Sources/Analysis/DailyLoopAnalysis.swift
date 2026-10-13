@@ -31,6 +31,9 @@ struct DailyLoopAnalysis {
     let overnightSession: HRVSession?
     let recentOvernightSessions: [HRVSession]
     let userMaxHR: Int
+    /// Decides which night each overnight belongs to, as it does for the
+    /// recovery score's baseline (`SleepSchedule.nightKey`).
+    let sleepSchedule: SleepSchedule
     /// The training load the shared advice gate (`TrainingAdviceGate`) reads
     /// before any line here invites a hard day. Nil reads as a clear load.
     var adviceLoad: TrainingAdviceGate.Load?
@@ -224,15 +227,19 @@ struct DailyLoopAnalysis {
     /// deadband (scoringParametersV2: z ∈ [-0.5, +0.5] → flat 72).
     private static let swcSDMultiple = 0.5
 
-    /// Nights in the baseline, the same 60 `BaselineTracker` scores against.
-    private static let baselineNightLimit = 60
-
-    /// ln(RMSSD) baseline (mean + sample SD) over the 60 most recent overnight
-    /// sessions that started BEFORE today's reading, like the recovery
-    /// score's `BaselineTracker.recoveryBaselineStats(excludingNightOf:)`: a
-    /// reading is never compared to a baseline that contains it or any night
-    /// after it. At least 3 readings required. The caller decides how far
-    /// back `recentOvernightSessions` reaches.
+    /// ln(RMSSD) baseline (mean + sample SD) over the nights the recovery
+    /// score's baseline holds for today's reading
+    /// (`BaselineTracker.baselineRMSSDs(rebuiltFrom:beforeNightOf:sleepSchedule:)`):
+    /// the same gates (finished, HRV-reliable, structurally sound
+    /// overnights), one reading per night, only nights before today's, the
+    /// 60 most recent. A reading is never compared to a baseline that
+    /// contains it or any night after it. At least
+    /// `RecoveryBaselineStats.minimumDays` readings required. The caller
+    /// decides how far back `recentOvernightSessions` reaches.
+    ///
+    /// Its own filter (overnight, reliable, started before today) left in
+    /// what the score's baseline leaves out: four-minute windows, both halves
+    /// of a split night, and the earlier segment of today's own night.
     ///
     /// The SD floor AND the estimator must be `BaselineTracker`'s, not a
     /// local copy: a local floor drifts (10x too small is the observed size),
@@ -244,17 +251,12 @@ struct DailyLoopAnalysis {
     /// function, which is the only way this stays true.
     private var lnRmssdBaseline: (mean: Double, sd: Double)? {
         guard let today = overnightSession else { return nil }
-        // Exclude untrustworthy-HRV sessions from this ln(RMSSD)
-        // baseline (mirrors BaselineTracker). Callers already pre-filter, but
-        // gate here too so this parallel baseline can't drift from the app's.
-        let lnValues = recentOvernightSessions
-            .filter { $0.id != today.id && $0.startDate < today.startDate && $0.isReliableForHRVAggregates }
-            .sorted { $0.startDate > $1.startDate }
-            .prefix(Self.baselineNightLimit)
-            .compactMap { $0.rmssd }
-            .filter { $0 > 0 }
-            .map { log($0) }
-        guard lnValues.count >= 3 else { return nil }
+        let nights = BaselineTracker.baselineRMSSDs(
+            rebuiltFrom: recentOvernightSessions, beforeNightOf: today, sleepSchedule: sleepSchedule
+        )
+        let minimumNights = BaselineTracker.RecoveryBaselineStats.minimumDays
+        let lnValues = nights.filter { $0 > 0 }.map { log($0) }
+        guard nights.count >= minimumNights, lnValues.count >= minimumNights else { return nil }
         let mean = lnValues.reduce(0, +) / Double(lnValues.count)
         let sd = max(BaselineTracker.widenedLnSD(lnValues), BaselineConstants.lnRmssdSDFloor)
         return (mean, sd)

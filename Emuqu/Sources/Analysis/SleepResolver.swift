@@ -673,11 +673,12 @@ enum SleepResolver {
     ///
     /// Classification is anchored at the detected sleep onset (a sustained HR
     /// drop) rather than the envelope start, so a strap put on at 8 PM is not
-    /// "asleep 8:00 PM" by default. `detectSleepOnset` caps the onset at
-    /// `SleepConstants.maxHREstimatedOnsetLatencyMin` (20 min) after the
-    /// recording starts, so an 8 PM strap with sleep at 9:30 is anchored at
-    /// 8:20 and the classifier decides the 70 minutes before sleep window by
-    /// window. With no clear drop the envelope start stands. The onset and the
+    /// "asleep 8:00 PM" by default. `detectSleepOnset` gives no onset when
+    /// its first drop is more than `SleepConstants.maxHREstimatedOnsetLatencyMin`
+    /// (20 min) after the recording starts, so an 8 PM strap with sleep at
+    /// 9:30 is anchored at the envelope start and the classifier decides the
+    /// time before sleep window by window. With no clear drop the envelope
+    /// start stands. The onset and the
     /// envelope offsets are both wall-clock ms from the recording start.
     private static func inferStagesFromRR(
         ctx: Context,

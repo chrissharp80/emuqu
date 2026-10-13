@@ -1,6 +1,6 @@
 {
  "file": "EmuquTests/ArchiveMigrationParityTests.swift",
- "hash": "75f42a74385933f4",
+ "hash": "91407499a6c47d9d",
  "role": "XCTest suite checking SessionArchive.runDeferredMigrations is idempotent and does not drop or corrupt an archived index entry, using a private temp archive with merge mode off.",
  "types": [
   "ArchiveMigrationParityTests: class — XCTestCase for archive migration parity"
@@ -12,7 +12,7 @@
   "mem:ArchiveMigrationParityTests.migrationDoneFlags (static [String]: the four ArchiveMigrations MigrationFlag keys, copied literally because the enum is private)",
   "mem:ArchiveMigrationParityTests.savedMigrationFlags ([String: Bool], the host's flag values captured in setUp)"
  ],
- "toplevel": "archiveDirectory per-instance temp URL; lazy archive = SessionArchive(directory:) (production settings providers) which setUp immediately replaces with an injected 22:00/8h schedule and merge mode .off; migrationDoneFlags lists the four backfill done-flag keys the tests clear and restore; savedMigrationFlags holds the host's values meanwhile.",
+ "toplevel": "archiveDirectory per-instance temp URL; lazy archive = SessionArchive(directory:) (production settings providers) which setUp immediately replaces with an injected 22:00/8h schedule and merge mode .off; migrationDoneFlags lists the four backfill done-flag keys the tests clear and restore; savedMigrationFlags holds the host's values meanwhile. migrationDoneFlags includes the legacy Elite index flag.",
  "flags": [],
  "units": [
   {
@@ -302,6 +302,33 @@
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6",
     "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.assertEveryBackfillRan(file:line:)": "7fd3042c2e5478b5",
     "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.makeCompletedSession()": "4f6a66270b66d262"
+   }
+  },
+  {
+   "key": "func ArchiveMigrationParityTests.testLegacyEliteIndexEntryLosesItsMadeUpStressAndScore()",
+   "hash": "ed74510e29c720a4",
+   "does": "Archives a legacy-shaped Elite session (index entry holds stress 18.2 and a score), runs the deferred migrations, and asserts every backfill ran, the entry's stressIndex and recoveryScore are now nil and the file hash is unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.legacyEliteImportResult(beats:minHR:maxHR:)",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateLegacyEliteImportIndex()",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.legacyElitePatch(entry:session:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "ea9a72bd018fe66d",
+    "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "58f2ac150ca0a682",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.legacyElitePatch(entry:session:)": "4c77a67474e58d1e",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateLegacyEliteImportIndex()": "e84148b00578230a",
+    "EmuquTests/ArchiveMigrationParityTests.swift::func ArchiveMigrationParityTests.assertEveryBackfillRan(file:line:)": "7fd3042c2e5478b5",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.legacyEliteImportResult(beats:minHR:maxHR:)": "35e17d21b1a9d7ca"
    }
   },
   {
