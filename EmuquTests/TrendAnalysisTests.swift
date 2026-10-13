@@ -443,4 +443,16 @@ final class TrendAnalysisTests: XCTestCase {
         XCTAssertNotNil(result)
         XCTAssertEqual(try XCTUnwrap(result?.dataPoints.count), 5, "Sessions without results should be excluded")
     }
+
+    func testEstimatedSDNNStaysOutOfTheSDNNTrendButRMSSDStays() throws {
+        var sessions = (0 ..< 4).map { createMockSession(daysAgo: $0, rmssd: 50) }
+        sessions[0].analysisResult?.estimatedMetrics = [EstimatedMetric.sdnn.rawValue]
+
+        let result = try XCTUnwrap(TrendAnalyzer.analyze(sessions: sessions, period: .all))
+
+        XCTAssertEqual(result.rmssdStats.count, 4)
+        XCTAssertEqual(result.sdnnStats.count, 3)
+        XCTAssertNil(result.dataPoints.last?.sdnn, "The newest reading's SDNN is an estimate")
+        XCTAssertEqual(TrendAnalyzer.chartData(from: result.dataPoints, metric: .sdnn).count, 3)
+    }
 }

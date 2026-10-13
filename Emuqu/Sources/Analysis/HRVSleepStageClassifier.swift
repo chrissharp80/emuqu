@@ -202,6 +202,12 @@ enum HRVSleepStageClassifier {
 
     /// One window's features, or nil when the window is too sparse or too
     /// artifact-ridden to describe.
+    ///
+    /// HR, SDNN and CV take every valid beat. The beat-to-beat features do
+    /// not join beats across a gap: RMSSD differences only beats adjacent in
+    /// the recording (no invalid beat dropped between them, no recording
+    /// break), and α1 and LF/HF/HF run on the longest break-free stretch
+    /// (see `SleepWindowBeats`).
     private static func featureWindow(
         points windowPoints: [RRPoint],
         windowStart: Int64,
@@ -209,25 +215,34 @@ enum HRVSleepStageClassifier {
         recordingStart: Date
     ) -> FeatureWindow? {
         guard windowPoints.count >= minPointsPerWindow else { return nil }
-        let validRRs = windowPoints
-            .map { Double($0.rr_ms) }
-            .filter { HRVConstants.RRInterval.isValid(Int($0)) }
+        let beats = SleepWindowBeats(windowPoints)
+        let validRRs = beats.validRRs
         guard validRRs.count >= minValidRRsPerWindow else { return nil }
         let avgRR = validRRs.reduce(0, +) / Double(validRRs.count)
-        let stats = windowVariability(validRRs, avgRR: avgRR)
-        let freq = windowFrequencyMetrics(windowPoints)
+        let followsPrevious = beats.validFollowsPrevious
+        let stats = windowVariability(validRRs, avgRR: avgRR) { followsPrevious[$0] }
+        let freq = windowFrequencyMetrics(beats)
         return FeatureWindow(
             startDate: recordingStart.addingTimeInterval(Double(windowStart) / 1_000.0),
             endDate: recordingStart.addingTimeInterval(Double(windowEnd) / 1_000.0),
             midpointMs: windowStart + windowSizeMs / 2,
             hr: 60_000.0 / avgRR,
             rmssd: stats.rmssd, sdnn: stats.sdnn, hrCV: stats.hrCV,
-            dfaAlpha1: windowAlpha1(validRRs),
+            dfaAlpha1: windowAlpha1(beats),
             lfHfRatio: freq?.lfHfRatio, hfPower: freq?.hf
         )
     }
 
     /// RMSSD, SDNN and the RR-based coefficient of variation.
+    ///
+    /// RMSSD takes the difference `validRRs[i] - validRRs[i - 1]` only where
+    /// `followsPrevious(i)`: beat `i` came straight after beat `i - 1` in the
+    /// recording. Differencing across a dropped beat or a recording break
+    /// would add one spurious difference per gap (Task Force 1996: differences
+    /// of ADJACENT intervals; the same rule as
+    /// `TimeDomainAnalyzer.rmssd(fromRRs:isValid:followsBreak:)`). With no
+    /// such pair RMSSD is 0, as for a window of one beat. The default treats
+    /// every pair as adjacent, for a gap-free series.
     ///
     /// SDNN here is the POPULATION variance (divisor N), deliberately not routed
     /// through `Statistics`, which offers only sample variance (divisor N-1).
@@ -238,12 +253,14 @@ enum HRVSleepStageClassifier {
     /// pinned by a test: the comment above is otherwise the only thing
     /// distinguishing the two formulas, and a mutation to N-1 would survive
     /// the classifier's whole suite.
-    nonisolated static func windowVariability(_ validRRs: [Double], avgRR: Double) -> (rmssd: Double, sdnn: Double, hrCV: Double) {
+    nonisolated static func windowVariability(
+        _ validRRs: [Double], avgRR: Double, followsPrevious: (Int) -> Bool = { _ in true }
+    ) -> (rmssd: Double, sdnn: Double, hrCV: Double) {
         guard validRRs.count > 1 else { return (rmssd: 0, sdnn: 0, hrCV: 0) }
 
         var diffs = [Double]()
         diffs.reserveCapacity(validRRs.count - 1)
-        for i in 1 ..< validRRs.count {
+        for i in 1 ..< validRRs.count where followsPrevious(i) {
             diffs.append(validRRs[i] - validRRs[i - 1])
         }
         let variance = validRRs.map { pow($0 - avgRR, 2) }.reduce(0, +) / Double(validRRs.count)
@@ -251,27 +268,39 @@ enum HRVSleepStageClassifier {
         return (Statistics.rootMeanSquare(diffs), sdnn, avgRR > 0 ? sdnn / avgRR : 0)
     }
 
-    /// DFA α1 needs at least `minBeatsForDFA` beats to mean anything.
-    private static func windowAlpha1(_ validRRs: [Double]) -> Double? {
-        guard validRRs.count >= minBeatsForDFA else { return nil }
-        return DFAAnalyzer.compute(validRRs)?.alpha1
+    /// DFA α1 over the window's longest break-free stretch, its invalid beats
+    /// linearly interpolated in place (Kubios; Lipponen & Tarvainen 2019), so
+    /// a dropped beat is not read as two beats being adjacent and no fit spans
+    /// a recording break. Nil when that stretch has fewer than
+    /// `minBeatsForDFA` beats, more of it interpolated than the live α1 path
+    /// accepts (`LiveDFAAnalyzer.maxCorrectedFraction`), or DFA cannot fit.
+    private static func windowAlpha1(_ beats: SleepWindowBeats) -> Double? {
+        guard let series = beats.interpolatedStretch(), series.values.count >= minBeatsForDFA,
+              series.correctedFraction <= LiveDFAAnalyzer.maxCorrectedFraction else { return nil }
+        return DFAAnalyzer.compute(series.values)?.alpha1
     }
 
     /// LF/HF and HF power through the shared PSD pipeline, from cubic-spline
-    /// resampled (time, rr) pairs. Each valid beat's time is its midpoint on
-    /// the beat-sum clock within the window (the intervals before it, invalid
-    /// ones included): the wall-clock stamps the window was cut on repeat for
-    /// the beats of one BLE packet, which a spline cannot take as times.
-    private static func windowFrequencyMetrics(_ windowPoints: [RRPoint]) -> FrequencyDomainMetrics? {
+    /// resampled (time, rr) pairs of the window's longest break-free stretch:
+    /// the beat-sum clock does not advance across a recording break, so beats
+    /// on either side of one would be spliced together as if continuous. Each
+    /// valid beat's time is its midpoint on the beat-sum clock within the
+    /// stretch (the intervals before it, invalid ones included, so the spline
+    /// spans a dropped beat at its true time): the wall-clock stamps the
+    /// window was cut on repeat for the beats of one BLE packet, which a
+    /// spline cannot take as times.
+    private static func windowFrequencyMetrics(_ beats: SleepWindowBeats) -> FrequencyDomainMetrics? {
+        guard let stretch = beats.longestStretch else { return nil }
         var elapsedMs = 0.0
         var times: [Double] = []
         var rrValues: [Double] = []
-        for point in windowPoints {
-            if HRVConstants.RRInterval.isValid(point.rr_ms) {
-                times.append((elapsedMs + Double(point.rr_ms) / 2.0) / 1_000.0)
-                rrValues.append(Double(point.rr_ms))
+        for i in stretch {
+            let rr = Double(beats.points[i].rr_ms)
+            if beats.isValid[i] {
+                times.append((elapsedMs + rr / 2.0) / 1_000.0)
+                rrValues.append(rr)
             }
-            elapsedMs += Double(point.rr_ms)
+            elapsedMs += rr
         }
         return FrequencyDomainAnalyzer.computeFromCleanPairs(times: times, rrValues: rrValues)
     }
@@ -515,5 +544,82 @@ enum HRVSleepStageClassifier {
         var end = start + 1
         while end < order.count, values[order[end]] == values[order[start]] { end += 1 }
         return end
+    }
+}
+
+/// One feature window's beats, with what the beat-to-beat features need to
+/// know about where the beats are NOT adjacent: which beats are invalid
+/// (outside `HRVConstants.RRInterval`) and which follow a recording break
+/// (`TimeDomainAnalyzer.isRecordingBreak`, on the wall-clock-timed beats the
+/// window was cut from, so a Bluetooth dropout counts).
+///
+/// A file-scope type rather than more members on `HRVSleepStageClassifier`,
+/// whose body is already large.
+private struct SleepWindowBeats {
+    let points: [RRPoint]
+    let isValid: [Bool]
+    /// Indices into `points` whose beat follows a recording break.
+    let breaks: Set<Int>
+
+    init(_ points: [RRPoint]) {
+        self.points = points
+        isValid = points.map { HRVConstants.RRInterval.isValid($0.rr_ms) }
+        breaks = TimeDomainAnalyzer.beatsAfterRecordingBreak(in: points, range: points.indices)
+    }
+
+    /// Indices of the valid beats, in order.
+    private var validIndices: [Int] {
+        points.indices.filter { isValid[$0] }
+    }
+
+    /// The valid beats' RR intervals, in order.
+    var validRRs: [Double] {
+        validIndices.map { Double(points[$0].rr_ms) }
+    }
+
+    /// Per valid beat, whether it came straight after the previous valid beat:
+    /// no invalid beat was dropped between them and no recording break
+    /// separates them. The first valid beat has no predecessor and reads false.
+    var validFollowsPrevious: [Bool] {
+        let indices = validIndices
+        return indices.indices.map { k in
+            k > 0 && indices[k] == indices[k - 1] + 1 && !breaks.contains(indices[k])
+        }
+    }
+
+    /// The window cut at every recording break: runs of beats with no break
+    /// inside them, in order.
+    var stretches: [Range<Int>] {
+        var runs: [Range<Int>] = []
+        var start = 0
+        for i in breaks.sorted() {
+            runs.append(start ..< i)
+            start = i
+        }
+        if start < points.count { runs.append(start ..< points.count) }
+        return runs
+    }
+
+    /// The stretch with the most beats (the earliest on a tie), or nil for an
+    /// empty window.
+    var longestStretch: Range<Int>? {
+        stretches.max { $0.count < $1.count }
+    }
+
+    /// The longest stretch's RRs from its first valid beat to its last, each
+    /// invalid beat inside replaced by linear interpolation between its valid
+    /// neighbours (`LiveDFAAnalyzer.interpolatingArtifacts`), with how many
+    /// were replaced. Invalid beats at either end are trimmed rather than
+    /// extrapolated. Nil when the stretch has no valid beat.
+    func interpolatedStretch() -> LiveDFAAnalyzer.CleanedSeries? {
+        guard let stretch = longestStretch,
+              let first = stretch.first(where: { isValid[$0] }),
+              let last = stretch.last(where: { isValid[$0] }) else { return nil }
+        let span = first ... last
+        let invalid = span.map { !isValid[$0] }
+        return LiveDFAAnalyzer.CleanedSeries(
+            values: LiveDFAAnalyzer.interpolatingArtifacts(span.map { Double(points[$0].rr_ms) }, isArtifact: invalid),
+            correctedCount: invalid.count { $0 }
+        )
     }
 }

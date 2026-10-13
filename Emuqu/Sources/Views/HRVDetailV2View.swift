@@ -468,10 +468,10 @@ struct HRVDetailV2View: View {
 
     private var minAvgMaxStrip: some View {
         HStack(spacing: 8) {
-            stripCell(label: String(localized: "Min HR", bundle: LanguageManager.appBundle), value: String(Int(result.timeDomain.minHR.rounded())), unit: "bpm")
+            stripCell(label: result.markingEstimate(String(localized: "Min HR", bundle: LanguageManager.appBundle), for: .hrRange), value: String(Int(result.timeDomain.minHR.rounded())), unit: "bpm")
             stripCell(label: String(localized: "Avg HR", bundle: LanguageManager.appBundle), value: String(Int(result.timeDomain.meanHR.rounded())), unit: "bpm")
-            stripCell(label: String(localized: "Max HR", bundle: LanguageManager.appBundle), value: String(Int(result.timeDomain.maxHR.rounded())), unit: "bpm")
-            stripCell(label: "SDNN", value: String(Int(result.timeDomain.sdnn.rounded())), unit: "ms")
+            stripCell(label: result.markingEstimate(String(localized: "Max HR", bundle: LanguageManager.appBundle), for: .hrRange), value: String(Int(result.timeDomain.maxHR.rounded())), unit: "bpm")
+            stripCell(label: result.markingEstimate("SDNN", for: .sdnn), value: String(Int(result.timeDomain.sdnn.rounded())), unit: "ms")
         }
     }
 
@@ -629,13 +629,16 @@ extension HRVDetailV2View {
             higherIsBetter: true,
             againstBaseline: rmssdComparison.againstBaseline
         )
-        trendRow(
-            metric: "SDNN",
-            today: result.timeDomain.sdnn,
-            avg: trendAverages?.sdnn,
-            unit: String(localized: "ms", bundle: LanguageManager.appBundle),
-            higherIsBetter: true
-        )
+        // An estimated SDNN is not compared with measured nights.
+        if let sdnn = result.measuredSDNN {
+            trendRow(
+                metric: "SDNN",
+                today: sdnn,
+                avg: trendAverages?.sdnn,
+                unit: String(localized: "ms", bundle: LanguageManager.appBundle),
+                higherIsBetter: true
+            )
+        }
     }
 
     @ViewBuilder
@@ -686,7 +689,7 @@ extension HRVDetailV2View {
             $0.sessionType == .overnight && $0.isReliableForHRVAggregates && $0.sessionId != id && $0.date >= cutoff
         }
         let sdnns = nights.compactMap {
-            archive.retrieveLightweightOrLog($0.sessionId, caller: "HRVDetail.trend")?.analysisResult?.timeDomain.sdnn
+            archive.retrieveLightweightOrLog($0.sessionId, caller: "HRVDetail.trend")?.analysisResult?.measuredSDNN
         }
         return TrendAverages(
             rmssd: trendMean(nights.compactMap(\.meanRMSSD)),

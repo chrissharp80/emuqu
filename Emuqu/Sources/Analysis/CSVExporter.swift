@@ -110,8 +110,8 @@ enum CSVExporter {
         )
         out += trackpointBlock(session: session, track: track, samples: samples, units: units, iso: iso)
         // Indoor fallback: no GPS track but a per-second sample series exists.
-        if track.isEmpty, !samples.isEmpty {
-            out += indoorBlock(samples: samples, units: units)
+        if track.isEmpty, let metadata, !samples.isEmpty {
+            out += indoorBlock(samples: samples, of: metadata, units: units)
         }
         if let splits = metadata?.splits, !splits.isEmpty {
             out += splitsBlock(splits, units: units)
@@ -196,16 +196,19 @@ enum CSVExporter {
         return cells.joined(separator: ",")
     }
 
-    /// A track-less table keyed on offsetSec, so treadmill / indoor-bike
-    /// sessions aren't just "header with nothing below".
-    private static func indoorBlock(samples: [WorkoutSample], units: Units) -> String {
+    /// A track-less table of the per-second samples, so treadmill / indoor-bike
+    /// sessions aren't just "header with nothing below". Its
+    /// `seconds_from_start` is wall-clock time, as in the GPS table: each
+    /// sample's pause-excluded `offsetSec` plus the pauses before it
+    /// (`WorkoutMetadata.wallClockSeconds(forActiveOffset:)`), truncated.
+    private static func indoorBlock(samples: [WorkoutSample], of metadata: WorkoutMetadata, units: Units) -> String {
         let secPerKmToSecPerUnit = units.secPerKmToSecPerUnit
         let metresToElev = units.metresToElev
         let (paceUnit, altShort) = (units.paceUnit, units.altShort)
         var out = "\n"
         out += "seconds_from_start,hr_bpm,pace_\(paceUnit),cadence_spm,mets,power_w,altitude_\(altShort),dfa_alpha1\n"
         for s in samples {
-            let secCell = "\(s.offsetSec)"
+            let secCell = String(format: "%.0f", metadata.wallClockSeconds(forActiveOffset: s.offsetSec).rounded(.down))
             let hrCell: String = s.heartRate.map { "\($0)" } ?? ""
             let paceCell: String = s.paceSecPerKm.map { String(format: "%.0f", secPerKmToSecPerUnit($0)) } ?? ""
             let cadCell: String = s.cadenceStepsPerMin.map { String(format: "%.0f", $0) } ?? ""

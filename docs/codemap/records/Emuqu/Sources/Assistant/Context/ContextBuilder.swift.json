@@ -122,12 +122,13 @@
   },
   {
    "key": "func ContextBuilder.yesterdayDiagnostic(session:recentSessions:userSettings:baselineStats:)",
-   "hash": "ebe6a6365089f0a1",
-   "does": "Computes the analysis-summary snapshot for yesterday's session via computeOrFetchSummary using the session's own sleepSnapshot as sleep input, its frozen trainingSnapshot, no sleep trend and no live load, against the supplied yesterday baseline stats; nil when session nil or unanalysed.",
+   "hash": "57cbce6a2ac67075",
+   "does": "Computes the analysis-summary snapshot for yesterday's session via computeOrFetchSummary using the session's own sleepSnapshot as sleep input, the week of archived nights before it in recentSessions as sleep trend, its frozen trainingSnapshot and no live load, against the supplied yesterday baseline stats; nil when session nil or unanalysed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.computeOrFetchSummary(session:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:liveLoadSnapshot:baselineStats:)",
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(from:)"
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(from:)",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::func AnalysisSleepTrendInput.recentNights(before:in:)"
    ],
    "reads": [
     "mem:AnalysisSummaryCache.state"
@@ -138,6 +139,7 @@
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::func AnalysisSleepTrendInput.recentNights(before:in:)": "401b1ccceb3ab387",
     "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(from:)": "59f6fee3b5af8655",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.computeOrFetchSummary(session:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:liveLoadSnapshot:baselineStats:)": "8191e1ee6e112380",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
@@ -724,15 +726,21 @@
   },
   {
    "key": "func ContextBuilder.timeDomainSnapshot(_:)",
-   "hash": "07be7f228f7d1490",
-   "does": "Maps an analysis result's time-domain values (RMSSD, SDNN, pNN50, meanRR, meanHR) to a snapshot; nil when result nil.",
+   "hash": "df5295b3313972c3",
+   "does": "Maps an analysis result's time-domain values (RMSSD, measured SDNN and pNN50 — nil when estimated —, meanRR, meanHR) to a snapshot; nil when result nil.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50"
+   ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50": "c6bd570c1d8742c7",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "6a822d05adef4c73"
+   }
   },
   {
    "key": "func ContextBuilder.frequencyDomainSnapshot(_:)",
@@ -748,15 +756,19 @@
   },
   {
    "key": "func ContextBuilder.nonlinearSnapshot(_:)",
-   "hash": "396924ace2543e4e",
-   "does": "Maps nonlinear metrics (SD1, SD2, SD1/SD2, DFA a1/a2, sample entropy) to a snapshot; nil when result nil.",
+   "hash": "2f7d68b0d5f225e4",
+   "does": "Maps nonlinear metrics (SD1, SD2, SD1/SD2 each nil when estimated; DFA a1/a2, sample entropy) to a snapshot; nil when result nil.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.measured(_:as:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.measured(_:as:)": "4539da414e4ceaf5"
+   }
   },
   {
    "key": "func ContextBuilder.ansSnapshot(_:)",

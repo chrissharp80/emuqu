@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift",
- "hash": "61abbd4976877e05",
- "role": "RR-interval based sleep-stage classifier: slices the sleep span into 5-min windows, computes HR/RMSSD/SDNN/CV/DFA-a1/LF-HF/HF features, rank-normalises them within the night, scores deep/REM/awake with weighted linear combos plus temporal priors, and returns stage intervals and per-stage minutes. Used standalone (HRSleepEstimator, SleepResolver row 2) and for Watch augmentation (+Watch extension).",
+ "hash": "54ac274968e48e0a",
+ "role": "RR-interval based sleep-stage classifier: slices the sleep span into 5-min windows, computes HR/RMSSD/SDNN/CV/DFA-a1/LF-HF/HF features (beat-to-beat features never join beats across a dropped invalid beat or a recording break: RMSSD over originally adjacent valid pairs, a1 and LF/HF on the longest break-free stretch), rank-normalises them within the night, scores deep/REM/awake with weighted linear combos plus temporal priors, and returns stage intervals and per-stage minutes. Used standalone (HRSleepEstimator, SleepResolver row 2) and for Watch augmentation (+Watch extension).",
  "types": [
   "HRVSleepStageClassifier: enum (namespace) — classifier",
   "ClassificationResult: struct — intervals + deep/rem/core/awake minutes",
@@ -9,7 +9,8 @@
   "AugmentationResult: struct — augmented intervals, minutes, augmentation list",
   "Augmentation: struct — one overridden epoch",
   "FeatureWindow: struct — one 5-min window's features",
-  "FeatureRanks: private struct — per-feature rank arrays plus which windows had their own LF/HF"
+  "FeatureRanks: private struct — per-feature rank arrays plus which windows had their own LF/HF",
+  "SleepWindowBeats: private struct (file scope) — one window's beats with validity mask, indices after a recording break, valid-beat adjacency, break-free stretches and the interpolated longest stretch for DFA"
  ],
  "state": [
   "mem:HRVSleepStageClassifier.windowSizeMs = 300000",
@@ -231,12 +232,14 @@
   },
   {
    "key": "func HRVSleepStageClassifier.featureWindow(points:windowStart:windowEnd:recordingStart:)",
-   "hash": "4b0fb40966103924",
-   "does": "Computes one window's features: requires >=10 points and >=8 physiologically valid RRs, then HR = 60000/meanRR, RMSSD/SDNN/CV, DFA a1 (>=64 beats) and LF/HF + HF power from the valid points; dates are recordingStart + the window's wall-clock ms offsets (buildFeatureWindows windows on the wall clock). midpointMs is always windowStart + 2.5 min even for a truncated last window.",
+   "hash": "7c543f95a0d474c9",
+   "does": "Computes one window's features: requires >=10 points and >=8 physiologically valid RRs (SleepWindowBeats), then HR = 60000/meanRR and SDNN/CV over every valid beat; RMSSD only over valid beats that directly follow the previous valid beat (no invalid beat dropped between them, no recording break); DFA a1 and LF/HF + HF power from the window's longest break-free stretch (windowAlpha1 / windowFrequencyMetrics). Dates are recordingStart + the window's wall-clock ms offsets (buildFeatureWindows windows on the wall clock). midpointMs is always windowStart + 2.5 min even for a truncated last window.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)",
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::init SleepWindowBeats(_:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var SleepWindowBeats.validRRs",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var SleepWindowBeats.validFollowsPrevious",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)",
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowFrequencyMetrics(_:)",
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowAlpha1(_:)"
    ],
@@ -249,23 +252,25 @@
      "effect": "false: return nil (sparse window dropped)"
     },
     {
-     "at": "+10",
+     "at": "+9",
      "cond": "validRRs.count >= 8",
      "effect": "false: return nil (artifact-ridden window dropped)"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowAlpha1(_:)": "e229f626fb9eadc2",
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowFrequencyMetrics(_:)": "f561cc45b59bae7a",
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:)": "d8d3dfc21574a285",
-    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "330523605d6eeba2"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowAlpha1(_:)": "6e2daa719ebfd0bd",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowFrequencyMetrics(_:)": "91efaa79566317f3",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)": "5e64706c60da9f11",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::init SleepWindowBeats(_:)": "46f80afe21cb9b3e",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var SleepWindowBeats.validFollowsPrevious": "2e8e99d621f422e0",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var SleepWindowBeats.validRRs": "195dc78c3d089bcd"
    }
   },
   {
-   "key": "func HRVSleepStageClassifier.windowVariability(_:avgRR:)",
-   "hash": "26b4d136079c0616",
-   "does": "Returns (RMSSD of successive differences, population SDNN with divisor N, CV = SDNN/avgRR).",
+   "key": "func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)",
+   "hash": "a915cd849cbd6de3",
+   "does": "Returns (RMSSD, population SDNN with divisor N, CV = SDNN/avgRR) for validRRs. RMSSD is the root mean square of validRRs[i] - validRRs[i-1] over only the i where followsPrevious(i) (beat i came straight after beat i-1 in the recording); 0 when no such pair. followsPrevious defaults to always true (gap-free series). nonisolated and internal so tests can pin the SDNN divisor.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.rootMeanSquare(_:)"
@@ -274,67 +279,79 @@
    "writes": [],
    "branches": [
     {
-     "at": "+1",
+     "at": "+3",
      "cond": "validRRs.count > 1",
      "effect": "false: return zeros"
     },
     {
-     "at": "+5",
-     "cond": "for each successive pair",
-     "effect": "append difference"
+     "at": "+7",
+     "cond": "for each successive pair where followsPrevious(i)",
+     "effect": "append difference; other pairs skipped"
     },
     {
-     "at": "+10",
+     "at": "+12",
      "cond": "avgRR > 0",
      "effect": "true: sdnn/avgRR; false: 0"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var SleepWindowBeats.validRRs": "195dc78c3d089bcd",
     "Emuqu/Sources/Utilities/Statistics.swift::func Statistics.rootMeanSquare(_:)": "fc0d58e5da7718f5"
    }
   },
   {
    "key": "func HRVSleepStageClassifier.windowAlpha1(_:)",
-   "hash": "6d9e0e5511b1eb59",
-   "does": "DFA alpha1 of the window's valid RRs, or nil when fewer than 64 beats or DFAAnalyzer returns nil.",
+   "hash": "32131a9803de0535",
+   "does": "DFA alpha1 of the window's longest break-free stretch with its invalid beats linearly interpolated (SleepWindowBeats.interpolatedStretch, invalid beats at the ends trimmed); nil when there is no such series, it has fewer than 64 beats, more than LiveDFAAnalyzer.maxCorrectedFraction (6 %) of it was interpolated, or DFAAnalyzer returns nil.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func SleepWindowBeats.interpolatedStretch()",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.CleanedSeries.correctedFraction",
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:LiveDFAAnalyzer.maxCorrectedFraction"
+   ],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "validRRs.count >= 64",
-     "effect": "false: nil; true: DFAAnalyzer.compute(...)?.alpha1"
+     "cond": "interpolated series exists, >= 64 values and correctedFraction <= 0.06",
+     "effect": "false: nil; true: DFAAnalyzer.compute(values)?.alpha1"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3401262883b38a4b"
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3401262883b38a4b",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func SleepWindowBeats.interpolatedStretch()": "1c3edecca88cb259",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.CleanedSeries.correctedFraction": "4ca30bfb832337b9"
    }
   },
   {
    "key": "func HRVSleepStageClassifier.windowFrequencyMetrics(_:)",
-   "hash": "9ea45202dd0fe97d",
-   "does": "Runs FrequencyDomainAnalyzer.computeFromCleanPairs on (time, rr) pairs of the window's valid RR points, each time the beat's midpoint on the beat-sum clock within the window (sum of the intervals before it, invalid ones included) — not the wall-clock stamps, which repeat within a BLE packet; nil when the analyzer cannot compute.",
+   "hash": "bb305e45a209218e",
+   "does": "Runs FrequencyDomainAnalyzer.computeFromCleanPairs on (time, rr) pairs of the valid beats in the window's longest break-free stretch (the beat-sum clock does not advance across a break, so beats either side would be spliced as continuous). Each time is the beat's midpoint on the beat-sum clock from the stretch start (sum of the intervals before it, invalid ones included) — not the wall-clock stamps, which repeat within a BLE packet; nil for an empty window or when the analyzer cannot compute.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var SleepWindowBeats.longestStretch",
     "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+4",
-     "cond": "each point",
-     "effect": "advances the beat-sum clock"
+     "at": "+1",
+     "cond": "longestStretch exists",
+     "effect": "false: nil"
     },
     {
      "at": "+5",
+     "cond": "each beat of the stretch",
+     "effect": "advances the beat-sum clock"
+    },
+    {
+     "at": "+7",
      "cond": "valid RR",
      "effect": "appends (midpoint time, rr); else skipped"
     }
@@ -342,6 +359,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)": "c1608ecf0b3e784d",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var SleepWindowBeats.longestStretch": "f36839f5f34f9c4d",
     "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "330523605d6eeba2"
    }
   },
@@ -659,6 +677,137 @@
    ],
    "flags": [],
    "deps": {}
+  },
+  {
+   "key": "init SleepWindowBeats(_:)",
+   "hash": "8c42d0c0ad09895b",
+   "does": "Stores the window's (wall-clock-timed) beats, the per-beat validity mask (HRVConstants.RRInterval.isValid) and the set of indices whose beat follows a recording break (TimeDomainAnalyzer.beatsAfterRecordingBreak over the whole window).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)": "705ef065c9683ac6",
+    "Emuqu/Sources/Utilities/Constants.swift::func HRVConstants.RRInterval.isValid(_:)": "330523605d6eeba2"
+   }
+  },
+  {
+   "key": "var SleepWindowBeats.validIndices",
+   "hash": "8785b314e60aa65f",
+   "does": "Indices of the valid beats, in order.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SleepWindowBeats.validRRs",
+   "hash": "8168b1d7eb20916b",
+   "does": "The valid beats' RR intervals as Doubles, in order.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var SleepWindowBeats.validIndices"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var SleepWindowBeats.validIndices": "ff0f857b94b3080e"
+   }
+  },
+  {
+   "key": "var SleepWindowBeats.validFollowsPrevious",
+   "hash": "3095e3cb2e44bddc",
+   "does": "Per valid beat, true when it directly follows the previous valid beat: consecutive original indices (no invalid beat dropped between) and not in breaks. The first valid beat reads false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var SleepWindowBeats.validIndices"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "k > 0, indices adjacent, no break before indices[k]",
+     "effect": "true; else false"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var SleepWindowBeats.validIndices": "ff0f857b94b3080e"
+   }
+  },
+  {
+   "key": "var SleepWindowBeats.stretches",
+   "hash": "1642d2233992cc45",
+   "does": "The window's index range cut at every recording break, in order: runs with no break inside. Empty for an empty window.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "each break index in ascending order",
+     "effect": "closes the run before it, starts a new one"
+    },
+    {
+     "at": "+7",
+     "cond": "start < points.count",
+     "effect": "appends the final run"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "var SleepWindowBeats.longestStretch",
+   "hash": "4cf7f34b7635d717",
+   "does": "The stretch with the most beats (the earliest on a tie, max(by:) keeps the first), or nil for an empty window.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var SleepWindowBeats.stretches"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var SleepWindowBeats.stretches": "0b263ea1f67e7735"
+   }
+  },
+  {
+   "key": "func SleepWindowBeats.interpolatedStretch()",
+   "hash": "c5d292a22f453ecc",
+   "does": "The longest stretch's RRs from its first valid beat to its last, each invalid beat inside replaced by linear interpolation between its valid neighbours (LiveDFAAnalyzer.interpolatingArtifacts), packaged as a LiveDFAAnalyzer.CleanedSeries with the number replaced. Invalid beats at either end are trimmed, never extrapolated. Nil when there is no stretch or it has no valid beat.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var SleepWindowBeats.longestStretch",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.interpolatingArtifacts(_:isArtifact:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a longest stretch with a first and last valid beat",
+     "effect": "false: nil"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::var SleepWindowBeats.longestStretch": "f36839f5f34f9c4d",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.interpolatingArtifacts(_:isArtifact:)": "1021ef9da22965b7"
+   }
   }
  ],
  "deps": {}

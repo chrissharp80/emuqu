@@ -51,7 +51,7 @@ struct ReadinessExplainView: View {
 
     private var heroRecap: some View {
         HStack(spacing: 16) {
-            ScoreRing(state: .default(score: scoreInt, verdict: verdict), size: .card)
+            ScoreRing(state: .default(score: scoreInt, verdict: verdict), size: .card, metric: .readiness)
             VStack(alignment: .leading, spacing: 4) {
                 Text(verbatim: verdict.localizedWord)
                     .scaledFont(size: 22, weight: .semibold)

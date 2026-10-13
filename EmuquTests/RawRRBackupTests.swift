@@ -318,6 +318,48 @@ final class RawRRBackupTests: XCTestCase {
         XCTAssertEqual(try backup.retrieve(sessionId)?.beatCount, 300)
     }
 
+    // MARK: - One-shot file names
+
+    /// Two backups of one session in the same instant write two files: a
+    /// shared name let a failed index save restore the old row over the new
+    /// bytes, and that backup then failed its hash check.
+    func testBackup_twoWritesInOneMomentUseDistinctFiles() throws {
+        let sessionId = UUID()
+        try backup.backup(points: makePoints(count: 50), sessionId: sessionId)
+        let first = try XCTUnwrap(backup.index.first { $0.id == sessionId }?.fileName)
+        try backup.backup(points: makePoints(count: 60), sessionId: sessionId)
+        let second = try XCTUnwrap(backup.index.first { $0.id == sessionId }?.fileName)
+
+        XCTAssertNotEqual(first, second)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: backup.backupDirectory.appendingPathComponent(first).path))
+        XCTAssertEqual(try backup.retrieve(sessionId)?.beatCount, 60)
+    }
+
+    /// The same clock reading never yields a name already taken.
+    func testOneShotName_skipsTakenNames() {
+        let sessionId = UUID()
+        let now = Date(timeIntervalSince1970: 1_790_000_000.5)
+        let taken: Set = ["\(sessionId.uuidString)_1790000000500.json", "\(sessionId.uuidString)_1790000000501.json"]
+
+        let name = OneShotBackupName.make(for: sessionId, at: now) { taken.contains($0) }
+
+        XCTAssertEqual(name, "\(sessionId.uuidString)_1790000000502.json")
+    }
+
+    /// Files from before the change carry whole seconds; both forms parse to
+    /// milliseconds and order by time, not by text.
+    func testOneShotName_parsesSecondAndMillisecondStamps() throws {
+        let sessionId = UUID()
+        let legacy = "\(sessionId.uuidString)_1790000001.json"
+        let current = "\(sessionId.uuidString)_1790000000999.json"
+
+        XCTAssertEqual(try XCTUnwrap(OneShotBackupName.parse(legacy)).writtenMs, 1_790_000_001_000)
+        XCTAssertEqual(try XCTUnwrap(OneShotBackupName.parse(current)).id, sessionId)
+        XCTAssertGreaterThan(OneShotBackupName.writtenMs(legacy), OneShotBackupName.writtenMs(current))
+        XCTAssertNil(OneShotBackupName.parse("\(sessionId.uuidString)_header.json"))
+        XCTAssertNil(OneShotBackupName.parse("\(sessionId.uuidString)_points.jsonl"))
+    }
+
     /// Recovery dates the session by the backup, so it keeps the recording's
     /// start rather than the time of each write.
     func testBackup_keepsTheGivenStartDateAcrossRewrites() throws {

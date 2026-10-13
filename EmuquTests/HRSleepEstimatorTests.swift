@@ -43,20 +43,20 @@ final class HRSleepEstimatorTests: XCTestCase {
         XCTAssertNil(HRSleepEstimator.hrSleepThreshold([]))
     }
 
-    // MARK: - clampedSleepOnset (the defect fixed three times)
+    // MARK: - plausibleSleepOnset (the defect fixed three times)
 
     /// Two consecutive points below threshold mark onset. The passive path is
     /// relaxed from three because watch samples are sparser than RR data.
     func testOnsetIsTheFirstOfTwoConsecutiveBelowThresholdPoints() {
         let smoothed = samples([(0, 80), (5, 70), (10, 55), (15, 54), (20, 53)])
-        let onset = HRSleepEstimator.clampedSleepOnset(smoothed, threshold: 65, windowStart: start)
+        let onset = HRSleepEstimator.plausibleSleepOnset(smoothed, threshold: 65, windowStart: start)
         XCTAssertEqual(onset, start.addingTimeInterval(10 * 60))
     }
 
     /// A single dip is not sleep — a stretch, a yawn, one noisy sample.
     func testASingleDipBelowThresholdIsNotOnset() {
         let smoothed = samples([(0, 80), (5, 55), (10, 78), (15, 79)])
-        XCTAssertNil(HRSleepEstimator.clampedSleepOnset(smoothed, threshold: 65, windowStart: start))
+        XCTAssertNil(HRSleepEstimator.plausibleSleepOnset(smoothed, threshold: 65, windowStart: start))
     }
 
     /// THE regression. This detector thresholds against deep-sleep
@@ -64,15 +64,24 @@ final class HRSleepEstimatorTests: XCTestCase {
     /// nights it reports a bogus long onset and shrinks the night. Recording
     /// starts at bedtime, so onset cannot plausibly be an hour of lying awake:
     /// typical SOL is 10–20 min, >30 is clinically prolonged (Ohayon et al.,
-    /// Sleep 2004;27(7):1255).
-    func testALateDetectedOnsetIsClampedToPlausibleSleepLatency() throws {
+    /// Sleep 2004;27(7):1255). Such a detection is a misfire: onset is
+    /// undetermined and falls back to bedtime, not to a made-up minute 20.
+    func testALateDetectedOnsetFallsBackToBedtime() throws {
         let smoothed = samples([(0, 80), (20, 78), (40, 76), (69, 52), (75, 51), (120, 50)])
         let onset = try XCTUnwrap(
-            HRSleepEstimator.clampedSleepOnset(smoothed, threshold: 65, windowStart: start)
+            HRSleepEstimator.plausibleSleepOnset(smoothed, threshold: 65, windowStart: start)
         )
-        let latencyMinutes = onset.timeIntervalSince(start) / 60
-        XCTAssertEqual(latencyMinutes, Double(SleepConstants.maxHREstimatedOnsetLatencyMin), accuracy: 0.001)
-        XCTAssertLessThan(latencyMinutes, 69, "the raw 69-minute detection must not survive")
+        XCTAssertEqual(onset, start, "the raw 69-minute detection must not survive, nor be rewritten to minute 20")
+    }
+
+    /// The ceiling is inclusive: a detection exactly at it is a plausible onset.
+    func testAnOnsetAtTheCeilingIsKept() {
+        let ceiling = Double(SleepConstants.maxHREstimatedOnsetLatencyMin)
+        let smoothed = samples([(0, 80), (ceiling, 55), (ceiling + 5, 54)])
+        XCTAssertEqual(
+            HRSleepEstimator.plausibleSleepOnset(smoothed, threshold: 65, windowStart: start),
+            start.addingTimeInterval(ceiling * 60)
+        )
     }
 
     /// The clamp is a ceiling, not a floor: a genuine fast sleeper keeps their
@@ -80,7 +89,7 @@ final class HRSleepEstimatorTests: XCTestCase {
     func testAnEarlyOnsetIsLeftAlone() {
         let smoothed = samples([(0, 55), (5, 54), (10, 53)])
         XCTAssertEqual(
-            HRSleepEstimator.clampedSleepOnset(smoothed, threshold: 65, windowStart: start),
+            HRSleepEstimator.plausibleSleepOnset(smoothed, threshold: 65, windowStart: start),
             start
         )
     }
@@ -88,8 +97,8 @@ final class HRSleepEstimatorTests: XCTestCase {
     /// Onset needs two points; one or none must return nil rather than trap on
     /// an invalid `0 ..< count - 1` range.
     func testTooFewPointsReturnsNilWithoutTrapping() {
-        XCTAssertNil(HRSleepEstimator.clampedSleepOnset([], threshold: 65, windowStart: start))
-        XCTAssertNil(HRSleepEstimator.clampedSleepOnset(
+        XCTAssertNil(HRSleepEstimator.plausibleSleepOnset([], threshold: 65, windowStart: start))
+        XCTAssertNil(HRSleepEstimator.plausibleSleepOnset(
             samples([(0, 50)]), threshold: 65, windowStart: start
         ))
     }
@@ -259,9 +268,10 @@ final class HRSleepEstimatorTests: XCTestCase {
         XCTAssertNil(HRSleepEstimator.estimateSleepFromHR(rrPoints: points, recordingStart: start))
     }
 
-    /// End to end, with the clamp in place: a night whose HR only consolidates
-    /// an hour in still reports a plausible onset.
-    func testEndToEndOnsetNeverExceedsThePlausibleLatencyCeiling() throws {
+    /// End to end: a night whose HR only consolidates an hour in has an
+    /// undetermined onset. Sleep starts at the recording start and the
+    /// latency reads as unknown, not as the 20-minute ceiling.
+    func testEndToEndALateOnsetIsUndeterminedAndItsLatencyUnknown() throws {
         var points: [RRPoint] = []
         var t: Int64 = 0
         for _ in 0 ..< 4_300 { points.append(RRPoint(t_ms: t, rr_ms: 833)); t += 833 }   // 60 min awake
@@ -269,8 +279,36 @@ final class HRSleepEstimatorTests: XCTestCase {
         let result = try XCTUnwrap(
             HRSleepEstimator.estimateSleepFromHR(rrPoints: points, recordingStart: start)
         )
+        XCTAssertEqual(result.sleepStart, start)
+        XCTAssertNil(result.sleepLatencyMinutes)
+    }
+
+    /// End to end: an onset inside the ceiling is kept as detected — the
+    /// first of three 5-minute windows below the threshold, timed at its
+    /// middle (17.5 min, after 15 min awake).
+    func testEndToEndAnOnsetWithinTheCeilingIsKept() throws {
+        var points: [RRPoint] = []
+        var t: Int64 = 0
+        for _ in 0 ..< 1_080 { points.append(RRPoint(t_ms: t, rr_ms: 833)); t += 833 }    // 15 min awake
+        for _ in 0 ..< 19_680 { points.append(RRPoint(t_ms: t, rr_ms: 1_090)); t += 1_090 } // 6 h asleep
+        let result = try XCTUnwrap(
+            HRSleepEstimator.estimateSleepFromHR(rrPoints: points, recordingStart: start)
+        )
         let onsetMinutes = try XCTUnwrap(result.sleepStart).timeIntervalSince(start) / 60
-        XCTAssertLessThanOrEqual(onsetMinutes, Double(SleepConstants.maxHREstimatedOnsetLatencyMin))
+        XCTAssertEqual(onsetMinutes, 17.5, accuracy: 0.01)
+    }
+
+    /// The ceiling is measured on the wall clock: 25 minutes of packets lost
+    /// five minutes in put a beat-sum onset of 12.5 min at 37.5 min after
+    /// bedtime, past the ceiling, so the onset is the recording start; an
+    /// onset before the gap is kept.
+    func testTheOnsetCeilingIsMeasuredOnTheWallClock() {
+        let points = (0 ..< 7_200).map { i -> RRPoint in
+            let t = Int64(i) * 1_000
+            return RRPoint(t_ms: t, rr_ms: 1_000, wallClockMs: t >= 300_000 ? t + 1_500_000 : t, hr: 60)
+        }
+        XCTAssertEqual(HRSleepEstimator.plausibleOnsetMs(750_000, in: points), 0)
+        XCTAssertEqual(HRSleepEstimator.plausibleOnsetMs(240_000, in: points), 240_000)
     }
 
     func testTheRRPathIsLabelledAsAnEstimate() {

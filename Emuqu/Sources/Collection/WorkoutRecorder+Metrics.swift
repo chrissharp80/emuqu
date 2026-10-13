@@ -333,6 +333,8 @@ extension WorkoutSessionLifecycle {
         let restingHR: Int
         let lthr: Int
         let temperatureUnit: TemperatureUnit
+        /// Assigns overnights to nights for the daily report's baseline.
+        let sleepSchedule: SleepSchedule
         let pdfURL: URL
         let todayOvernight: HRVSession?
         let recentOvernight: [HRVSession]
@@ -366,14 +368,14 @@ extension WorkoutSessionLifecycle {
     private static func coachReportInputs(for session: HRVSession, settings: UserSettings) -> CoachReportInputs {
         let archive = AppDependencies.current.storage.sessionArchive
         let dayCutoff = Calendar.current.date(byAdding: .hour, value: -36, to: Date()) ?? Date.distantPast
-        let recentOvernight = recentOvernightSessions(archive: archive, reportedNightCutoff: dayCutoff)
+        let recentOvernight = recentOvernightSessions(archive: archive, reportedNightCutoff: dayCutoff, sleepSchedule: settings.sleepSchedule)
         return CoachReportInputs(
             session: session, subject: coachReportSubject(for: session),
             recipient: settings.defaultTrainingEmailRecipient ?? settings.defaultRecoveryEmailRecipient ?? settings.defaultEmailRecipient,
             ccRecipients: coachReportCC(settings),
             units: UnitsPreferenceStore.current.resolved, maxHR: settings.effectiveMaxHR,
             restingHR: settings.effectiveRestingHR, lthr: settings.effectiveLTHR,
-            temperatureUnit: settings.temperatureUnit,
+            temperatureUnit: settings.temperatureUnit, sleepSchedule: settings.sleepSchedule,
             pdfURL: coachReportPDFURL(for: session),
             todayOvernight: todaysOvernight(in: recentOvernight, reportedNightCutoff: dayCutoff),
             recentOvernight: recentOvernight,
@@ -398,23 +400,30 @@ extension WorkoutSessionLifecycle {
     }
 
     /// The reported night (the newest overnight session since
-    /// `reportedNightCutoff`, first when there is one) followed by the nights
-    /// before it, newest first, until 60 of them are reliable for HRV
-    /// aggregates: the window `BaselineTracker` scores a night against
-    /// (`BaselineTracker.recoveryBaselineStats(excludingNightOf:)`), so the
-    /// Daily Loop's HRV baseline in the report is the recovery score's.
+    /// `reportedNightCutoff`, first when there is one) followed by the
+    /// sessions before it, newest first, until they hold 60 baseline nights:
+    /// distinct nights before the reported one with a session
+    /// `BaselineTracker.isBaselineCandidate` admits. That is the window
+    /// `BaselineTracker` scores a night against, and the Daily Loop picks its
+    /// nights from these with the score's own rule
+    /// (`BaselineTracker.baselineRMSSDs`), so its HRV baseline in the report
+    /// is the recovery score's.
     @MainActor
-    private static func recentOvernightSessions(archive: SessionArchive, reportedNightCutoff: Date) -> [HRVSession] {
+    private static func recentOvernightSessions(
+        archive: SessionArchive, reportedNightCutoff: Date, sleepSchedule: SleepSchedule
+    ) -> [HRVSession] {
         let entries = archive.entries.filter { $0.sessionType == .overnight }.sorted { $0.date > $1.date }
         let reported = entries.first { $0.date >= reportedNightCutoff }
         var nights = reported.flatMap { archive.retrieveLightweightOrLog($0.sessionId, caller: "CoachReport.reportedNight") }
             .map { [$0] } ?? []
-        var baselineNights = 0
+        let reportedNight = reported.map { sleepSchedule.nightKey(for: $0.date) } ?? .distantFuture
+        var baselineNights = Set<Date>()
         for entry in entries where entry.date < (reported?.date ?? .distantFuture) {
-            guard baselineNights < baselineNightLimit else { break }
+            guard baselineNights.count < baselineNightLimit else { break }
             guard let night = archive.retrieveLightweightOrLog(entry.sessionId, caller: "CoachReport.baselineNights") else { continue }
             nights.append(night)
-            if night.isReliableForHRVAggregates { baselineNights += 1 }
+            let key = sleepSchedule.nightKey(for: night.startDate)
+            if key < reportedNight, BaselineTracker.isBaselineCandidate(night) { baselineNights.insert(key) }
         }
         return nights
     }
@@ -426,7 +435,7 @@ extension WorkoutSessionLifecycle {
     }
 
     /// Nights in the recovery score's HRV baseline (`BaselineTracker`).
-    private static let baselineNightLimit = 60
+    private static let baselineNightLimit = BaselineTracker.recoveryWindowNights
 
     /// The email subject the user sends, in the app's language.
     private static func coachReportSubject(for session: HRVSession) -> String {
@@ -510,7 +519,8 @@ extension WorkoutSessionLifecycle {
             workoutSession: inputs.session, workoutTrack: track,
             overnightSession: inputs.todayOvernight, recentOvernightSessions: inputs.recentOvernight,
             userMaxHR: inputs.maxHR, userRestingHR: inputs.restingHR, userLTHR: inputs.lthr,
-            units: inputs.units, temperatureUnit: inputs.temperatureUnit, liveLoadSnapshot: liveLoadSnapshot
+            units: inputs.units, sleepSchedule: inputs.sleepSchedule,
+            temperatureUnit: inputs.temperatureUnit, liveLoadSnapshot: liveLoadSnapshot
         )
     }
 

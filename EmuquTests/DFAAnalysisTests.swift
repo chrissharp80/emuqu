@@ -211,4 +211,47 @@ final class DFAAnalysisTests: XCTestCase {
             "Well-structured data should have R² > 0.7"
         )
     }
+
+    // MARK: - Removed beats and recording breaks
+
+    /// A removed beat is replaced by linear interpolation between the kept
+    /// beats either side of it, one value per removed beat, so the beats
+    /// after it keep their place in the beat index.
+    func testInterpolatedSegmentsFillRemovedBeats() {
+        let window = CleanBeatWindow(rr: [800, 900, 1_000, 700], indices: [0, 2, 6, 7], breaks: [])
+        XCTAssertEqual(DFAAnalyzer.interpolatedSegments(window), [[800, 850, 900, 925, 950, 975, 1_000, 700]])
+    }
+
+    /// A recording break splits the series; nothing is interpolated across
+    /// it, even when a removed beat sits beside it.
+    func testInterpolatedSegmentsSplitAtARecordingBreak() {
+        let window = CleanBeatWindow(rr: [800, 820, 1_000, 1_020], indices: [0, 1, 3, 4], breaks: [3])
+        XCTAssertEqual(DFAAnalyzer.interpolatedSegments(window), [[800, 820], [1_000, 1_020]])
+    }
+
+    /// Removed beats before the first kept beat have one neighbour only and
+    /// are left out rather than extrapolated.
+    func testInterpolatedSegmentsDoNotExtrapolate() {
+        let window = CleanBeatWindow(rr: [800, 810], indices: [2, 3], breaks: [])
+        XCTAssertEqual(DFAAnalyzer.interpolatedSegments(window), [[800, 810]])
+    }
+
+    /// One segment is the textbook single-series DFA, bit for bit.
+    func testOneSegmentIsTheSingleSeriesDFA() throws {
+        let rr = createCorrelatedRR(count: 500)
+        let single = try XCTUnwrap(DFAAnalyzer.compute(rr))
+        let segmented = try XCTUnwrap(DFAAnalyzer.compute(segments: [rr]))
+        XCTAssertEqual(single.alpha1, segmented.alpha1)
+        XCTAssertEqual(single.alpha1R2, segmented.alpha1R2)
+        XCTAssertEqual(single.alpha2, segmented.alpha2)
+    }
+
+    /// A segment shorter than the smallest box contributes no box, so it
+    /// leaves α1 where the long segment alone puts it.
+    func testASegmentTooShortForAnyBoxAddsNothing() throws {
+        let rr = createCorrelatedRR(count: 400)
+        let alone = try XCTUnwrap(DFAAnalyzer.compute(segments: [rr])).alpha1
+        let withScrap = try XCTUnwrap(DFAAnalyzer.compute(segments: [rr, [800, 900, 1_000]])).alpha1
+        XCTAssertEqual(alone, withScrap, accuracy: 1e-9)
+    }
 }

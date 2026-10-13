@@ -19,6 +19,31 @@ enum SnapshotFixtures {
     static let sessionId =
         UUID(uuidString: "00000000-0000-0000-0000-00000000C0DE") ?? UUID()
 
+    /// What the earlier Elite HRV importer stored: RMSSD 45 from the file,
+    /// SDSD set to RMSSD, SDNN and pNN50 from RMSSD, and a stress index
+    /// and readiness made from RMSSD.
+    static func legacyEliteImportResult(
+        beats: Int = 300, minHR: Double = 50, maxHR: Double = 100
+    ) -> HRVAnalysisResult {
+        HRVAnalysisResult(
+            windowStart: 0, windowEnd: beats,
+            timeDomain: TimeDomainMetrics(
+                meanRR: 900, sdnn: 81, rmssd: 45, pnn50: 50, sdsd: 45, meanHR: 66.7, sdHR: 3,
+                minHR: minHR, maxHR: maxHR, triangularIndex: nil
+            ),
+            frequencyDomain: nil,
+            nonlinear: NonlinearMetrics(
+                sd1: 31.8, sd2: 111, sd1Sd2Ratio: 0.29, sampleEntropy: nil, approxEntropy: nil,
+                dfaAlpha1: nil, dfaAlpha2: nil, dfaAlpha1R2: nil
+            ),
+            ansMetrics: ANSMetrics(
+                stressIndex: 18.2, pnsIndex: nil, snsIndex: nil, readinessScore: 6.5, respirationRate: nil,
+                nocturnalHRDip: nil, daytimeRestingHR: nil, nocturnalMedianHR: nil
+            ),
+            artifactPercentage: 0, cleanBeatCount: beats, analysisDate: Date(timeIntervalSince1970: 1_700_000_000)
+        )
+    }
+
     /// A plausible overnight RR series: respiratory sway, a slow downward HR
     /// drift, and two ectopic beats so artifact handling has something to draw.
     static func rrSeries(beats: Int = 600) -> RRSeries {

@@ -458,6 +458,151 @@
    }
   },
   {
+   "key": "func ArchiveIntegrityTests.testSaveKeepsAnIndexEntryThisBuildCannotDecode()",
+   "hash": "5d968b0363ed8718",
+   "does": "Appends to index.json an entry from a newer build that does not decode here (bad date, extra field), reopens the archive (the entry is not listed), archives another session (skipping the same-night merge, so it gets its own entry), and asserts the saved index.json still holds the entry verbatim beside the new one.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.appendToIndexFile(_:)",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.reopenedArchive()",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.indexFileObject(sessionId:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "ea9a72bd018fe66d",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "e1a5ccaab9fa4e3e",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.appendToIndexFile(_:)": "d33ddca9b58fb577",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.indexFileObject(sessionId:)": "72430cd5dccb274b",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.reopenedArchive()": "b5b53d6709e9c051"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testSaveWritesANewerSchemaEntryBackAsItWasRead()",
+   "hash": "d0e6f4d6e6a75181",
+   "does": "Appends a decodable entry stamped with a newer schemaVersion and an unknown field, reopens the archive (the entry is listed), archives another session, and asserts the saved entry keeps the unknown field and the newer schemaVersion.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.appendToIndexFile(_:)",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.reopenedArchive()",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.indexFileObject(sessionId:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "ea9a72bd018fe66d",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.appendToIndexFile(_:)": "d33ddca9b58fb577",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.indexFileObject(sessionId:)": "72430cd5dccb274b",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.reopenedArchive()": "b5b53d6709e9c051"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testIndexWithoutNewerEntriesIsThePlainEncoding()",
+   "hash": "de2a1261f44778c6",
+   "does": "Archives one session and asserts index.json is byte-for-byte SessionArchive.indexEncoder's encoding of the entries (no re-serialisation when nothing came from a newer build).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.indexEncoder": "8a27621768860427",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.appendToIndexFile(_:)",
+   "hash": "8515db8f57c6e398",
+   "does": "Archives one test session through `archive` (tracked for teardown), then appends the given JSON object to the index.json it wrote, as a newer build sharing the directory would.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "ext:JSONSerialization"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "mem:ArchiveIntegrityTests.testSessionIds"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "47caff304d01bfa9",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "6775cb445798d2fb"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.reopenedArchive()",
+   "hash": "a8747e47ffc4ce1e",
+   "does": "A fresh SessionArchive over the test's directory with the suite's injected schedule, merge mode and gap, so it loads index.json from disk.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "312605e0908fbc30"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.indexFileObject(sessionId:)",
+   "hash": "e38cb5f6737a5e4e",
+   "does": "The index.json object whose sessionId string matches, parsed with JSONSerialization; nil when none (fails the test when the file is not an array of objects).",
+   "entry": null,
+   "calls": [
+    "ext:JSONSerialization"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "func ArchiveIntegrityTests.sessionJSON(_:overridingSchemaVersion:)",
    "hash": "948fafc73c5456cf",
    "does": "Encodes a session with an ISO-8601 JSONEncoder, rewrites the top-level schemaVersion key to the given version via JSONSerialization and returns the bytes.",

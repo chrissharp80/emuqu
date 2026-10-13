@@ -20,6 +20,10 @@ import XCTest
 ///   • `verdict` / `verdictTone` / `loopParagraph` — the narrative layer
 @MainActor
 final class DailyLoopAnalysisTests: XCTestCase {
+    /// Bedtime 22:00 for 8 h: each fixture night starting at 22:13 UTC is its
+    /// own night, and a start two hours later belongs to the same one.
+    private let schedule = SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0)
+
     /// The copy these tests assert is English; the app's language follows
     /// the host's unless pinned.
     override func setUp() async throws {
@@ -136,7 +140,7 @@ final class DailyLoopAnalysisTests: XCTestCase {
         let later = (1 ... 3).map { makeOvernight(rmssd: 160, date: today.startDate.addingTimeInterval(Double($0) * 86_400)) }
         let a = DailyLoopAnalysis(
             workoutSession: nil, overnightSession: today,
-            recentOvernightSessions: earlier + later, userMaxHR: 190
+            recentOvernightSessions: earlier + later, userMaxHR: 190, sleepSchedule: schedule
         )
         let baseline = try XCTUnwrap(a.recoveryBaselineRMSSD)
         XCTAssertEqual(baseline, 40.0, accuracy: 0.001, "later 160 ms nights must not lift an earlier day's baseline")
@@ -158,6 +162,56 @@ final class DailyLoopAnalysisTests: XCTestCase {
             a.recoveryBaselineRMSSD,
             "Only 2 reliable readings remain after filtering, which is below the 3-reading minimum"
         )
+    }
+
+    // MARK: - The recovery score's nights
+
+    /// A four-minute window is not a baseline-quality measurement: the
+    /// recovery score's structural gate leaves it out, and so does this one.
+    func testAShortWindowSessionIsExcludedFromTheBaseline() throws {
+        var short = makeOvernight(rmssd: 200)
+        short.analysisResult?.windowStartMs = 0
+        short.analysisResult?.windowEndMs = 240_000
+        let a = makeAnalysis(
+            overnight: makeOvernight(rmssd: 50),
+            recent: [makeOvernight(rmssd: 50), short, makeOvernight(rmssd: 50), makeOvernight(rmssd: 50)]
+        )
+        let baseline = try XCTUnwrap(a.recoveryBaselineRMSSD)
+        XCTAssertEqual(baseline, 50.0, accuracy: 0.001, "the 4-minute 200 ms window must not enter the baseline")
+    }
+
+    /// The two halves of a split night are one night of the baseline, as in
+    /// the recovery score's: two nights, split or not, stay below the
+    /// three-night minimum.
+    func testASplitNightCountsOnce() {
+        let today = makeOvernight(rmssd: 50)
+        let twoNightsAgo = today.startDate.addingTimeInterval(-2 * 86_400)
+        let a = DailyLoopAnalysis(
+            workoutSession: nil, overnightSession: today,
+            recentOvernightSessions: [
+                makeOvernight(rmssd: 50, date: today.startDate.addingTimeInterval(-86_400)),
+                makeOvernight(rmssd: 50, date: twoNightsAgo),
+                makeOvernight(rmssd: 50, date: twoNightsAgo.addingTimeInterval(2 * 3600))
+            ],
+            userMaxHR: 190, sleepSchedule: schedule
+        )
+        XCTAssertNil(a.recoveryBaselineRMSSD, "a night split in two is still one night")
+    }
+
+    /// An earlier segment of today's own night started before today's
+    /// reading but is not a night before it, so it stays out of its baseline.
+    func testAnEarlierSegmentOfTheSameNightIsExcluded() throws {
+        let earlierSegment = makeOvernight(rmssd: 200)
+        let today = makeOvernight(rmssd: 50, date: earlierSegment.startDate.addingTimeInterval(2 * 3600))
+        let earlierNights = (1 ... 3).map {
+            makeOvernight(rmssd: 50, date: earlierSegment.startDate.addingTimeInterval(-Double($0) * 86_400))
+        }
+        let a = DailyLoopAnalysis(
+            workoutSession: nil, overnightSession: today,
+            recentOvernightSessions: [earlierSegment] + earlierNights, userMaxHR: 190, sleepSchedule: schedule
+        )
+        let baseline = try XCTUnwrap(a.recoveryBaselineRMSSD)
+        XCTAssertEqual(baseline, 50.0, accuracy: 0.001, "the same night's 200 ms segment must not enter its baseline")
     }
 
     /// Inside ±0.5 SD nothing is claimed in either direction — this is the
@@ -228,7 +282,7 @@ final class DailyLoopAnalysisTests: XCTestCase {
     func testNoWorkoutIsUndetermined() {
         let a = DailyLoopAnalysis(
             workoutSession: nil, overnightSession: makeOvernight(rmssd: 50),
-            recentOvernightSessions: [], userMaxHR: 190
+            recentOvernightSessions: [], userMaxHR: 190, sleepSchedule: schedule
         )
         XCTAssertEqual(a.loopState, .undetermined)
         XCTAssertEqual(a.verdictTone, .neutral)
@@ -369,7 +423,7 @@ final class DailyLoopAnalysisTests: XCTestCase {
             )),
             ("undetermined", DailyLoopAnalysis(
                 workoutSession: nil, overnightSession: nil,
-                recentOvernightSessions: [], userMaxHR: 190
+                recentOvernightSessions: [], userMaxHR: 190, sleepSchedule: schedule
             ))
         ]
         for (name, a) in fixtures {
@@ -486,7 +540,8 @@ final class DailyLoopAnalysisTests: XCTestCase {
             workoutSession: workout,
             overnightSession: overnight,
             recentOvernightSessions: prior,
-            userMaxHR: userMaxHR
+            userMaxHR: userMaxHR,
+            sleepSchedule: schedule
         )
     }
 
@@ -496,6 +551,7 @@ final class DailyLoopAnalysisTests: XCTestCase {
         copy.endDate = start.addingTimeInterval(8 * 3600)
         copy.analysisResult = session.analysisResult
         copy.hrvDataQuality = session.hrvDataQuality
+        copy.state = session.state
         return copy
     }
 
@@ -523,6 +579,7 @@ final class DailyLoopAnalysisTests: XCTestCase {
         session.endDate = date.addingTimeInterval(8 * 3600)
         session.analysisResult = result
         session.hrvDataQuality = quality
+        session.state = .complete
         return session
     }
 

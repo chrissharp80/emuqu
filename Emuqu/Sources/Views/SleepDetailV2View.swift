@@ -327,7 +327,7 @@ struct SleepDetailV2View: View {
             // No sleep data → the ring's empty state, not a 0 rated "Very low".
             ScoreRing(
                 state: sleepData == nil ? .noData : .default(score: Int(sleepScore.rounded()), verdict: verdict),
-                size: .card
+                size: .card, metric: .sleep
             )
             .frame(width: 90, height: 90)
             noSleepDataSection

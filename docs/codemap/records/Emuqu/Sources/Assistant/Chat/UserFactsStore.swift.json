@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift",
- "hash": "60d74e5588e65269",
- "role": "Persistent user facts ('memory') injected into every assistant system prompt; ≤25 deduped facts in Assistant/user_facts.json with complete protection, merge-on-unreadable and set-aside of undecodable files; plus the auto-extract toggle.",
+ "hash": "840e8a460fa27487",
+ "role": "Persistent user facts ('memory') injected into every assistant system prompt; ≤25 deduped facts in Assistant/user_facts.json with complete protection, merge-on-unreadable and set-aside of undecodable files; an in-memory backup of the assistant's last wipe for restoreCleared(); plus the auto-extract toggle.",
  "types": [
   "UserFactsStore: final class (@Observable @MainActor) — fact memory",
   "UserFactsStore.Fact: struct Codable Identifiable Hashable"
@@ -16,7 +16,8 @@
   "mem:UserFactsStore.maxFacts = 25",
   "mem:UserFactsStore.unreadableOnDisk",
   "mem:UserFactsStore.writePending (a write failed and must be retried)",
-  "mem:UserFactsStore.queue ('com.chrissharp.flowrecovery.assistant.facts')"
+  "mem:UserFactsStore.queue ('com.chrissharp.flowrecovery.assistant.facts')",
+  "mem:UserFactsStore.clearedBackup (facts the assistant's last wipe erased; memory only, dropped by clear() and restoreCleared())"
  ],
  "toplevel": "",
  "flags": [],
@@ -290,8 +291,8 @@
   },
   {
    "key": "func UserFactsStore.clear()",
-   "hash": "aed71b1bd3f34b68",
-   "does": "Empties facts, forces unreadableOnDisk=false so the write proceeds, persists (overwrites file).",
+   "hash": "af491ea1873ce5b7",
+   "does": "Empties facts and drops clearedBackup (the copy clearKeepingBackup keeps), forces unreadableOnDisk=false so the write proceeds, persists (overwrites file). The path for wipes the user makes (Settings Forget, Delete All My Data), so nothing is left to restore.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()"
@@ -299,11 +300,66 @@
    "reads": [],
    "writes": [
     "mem:UserFactsStore.facts",
+    "mem:UserFactsStore.clearedBackup",
     "file:Assistant/user_facts.json"
    ],
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.facts": "9f42a99bf34926ea"
+   }
+  },
+  {
+   "key": "func UserFactsStore.clearKeepingBackup()",
+   "hash": "c9ad2e503fc68444",
+   "does": "Copies facts, calls clear(), then keeps the copy in clearedBackup (memory only, never persisted) for restoreCleared(); returns how many facts were erased.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()"
+   ],
+   "reads": [
+    "mem:UserFactsStore.facts"
+   ],
+   "writes": [
+    "mem:UserFactsStore.facts",
+    "mem:UserFactsStore.clearedBackup",
+    "file:Assistant/user_facts.json"
+   ],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()": "c1ab054c2b1bffd2"
+   }
+  },
+  {
+   "key": "func UserFactsStore.restoreCleared()",
+   "hash": "d3a1d4d2932e26bc",
+   "does": "Puts the facts in clearedBackup back in front of any saved since, through dedupedAndCapped (newest phrasing wins, cap 25), empties clearedBackup and persists; returns how many facts were added (0 when there was no backup).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()"
+   ],
+   "reads": [
+    "mem:UserFactsStore.facts",
+    "mem:UserFactsStore.clearedBackup"
+   ],
+   "writes": [
+    "mem:UserFactsStore.facts",
+    "mem:UserFactsStore.clearedBackup",
+    "file:Assistant/user_facts.json"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "clearedBackup is empty",
+     "effect": "returns 0 and writes nothing; else restores"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "6ce28955b4e4d273",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persist()": "2b68d04bffbfc667",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.facts": "9f42a99bf34926ea"
    }

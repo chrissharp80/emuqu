@@ -203,10 +203,10 @@ extension ReportSectionRenderer {
 
         let boxWidth = contentWidth / 4
         let hrStats: [(String, String, UIColor)] = [
-            (String(localized: "Min HR", bundle: LanguageManager.appBundle), String(format: "%.0f bpm", locale: LanguageManager.appLocale, result.timeDomain.minHR), config.secondaryColor),
+            (String(localized: "Min HR", bundle: LanguageManager.appBundle), result.markingEstimate(String(format: "%.0f bpm", locale: LanguageManager.appLocale, result.timeDomain.minHR), for: .hrRange), config.secondaryColor),
             (String(localized: "Avg HR", bundle: LanguageManager.appBundle), String(format: "%.0f bpm", locale: LanguageManager.appLocale, result.timeDomain.meanHR), config.accentColor),
-            (String(localized: "Max HR", bundle: LanguageManager.appBundle), String(format: "%.0f bpm", locale: LanguageManager.appLocale, result.timeDomain.maxHR), UIColor(red: 0.8, green: 0.4, blue: 0.5, alpha: 1)),
-            ("SDNN", String(format: "%.1f ms", locale: LanguageManager.appLocale, result.timeDomain.sdnn), config.primaryColor)
+            (String(localized: "Max HR", bundle: LanguageManager.appBundle), result.markingEstimate(String(format: "%.0f bpm", locale: LanguageManager.appLocale, result.timeDomain.maxHR), for: .hrRange), UIColor(red: 0.8, green: 0.4, blue: 0.5, alpha: 1)),
+            ("SDNN", result.markingEstimate(String(format: "%.1f ms", locale: LanguageManager.appLocale, result.timeDomain.sdnn), for: .sdnn), config.primaryColor)
         ]
         drawStatBoxRow(hrStats, y: y + 6, boxWidth: boxWidth, boxHeight: statsHeight - 12)
         return y + statsHeight + 15
@@ -343,26 +343,9 @@ extension ReportSectionRenderer {
 
     // MARK: - Metric Sections
 
-    func drawTimeDomainSection(_ td: TimeDomainMetrics, yPosition: CGFloat, in _: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {
-        var y = yPosition
-
-        y = drawSectionHeading(String(localized: "Time Domain HRV", bundle: LanguageManager.appBundle), yPosition: y, pageRect: pageRect)
-
-        var metrics = [
-            (String(localized: "Mean NN", bundle: LanguageManager.appBundle), String(format: "%.1f ms", locale: LanguageManager.appLocale, td.meanRR)),
-            ("SDNN", String(format: "%.1f ms", locale: LanguageManager.appLocale, td.sdnn)),
-            ("RMSSD", String(format: "%.1f ms", locale: LanguageManager.appLocale, td.rmssd)),
-            ("pNN50", String(format: "%.1f%%", locale: LanguageManager.appLocale, td.pnn50)),
-            (String(localized: "Mean HR", bundle: LanguageManager.appBundle), String(format: "%.0f bpm", locale: LanguageManager.appLocale, td.meanHR)),
-            ("SDSD", String(format: "%.1f ms", locale: LanguageManager.appLocale, td.sdsd))
-        ]
-
-        if let tri = td.triangularIndex {
-            metrics.append(("HRV TI", String(format: "%.1f", locale: LanguageManager.appLocale, tri)))
-        }
-
-        y = drawCompactMetricsGrid(metrics, yPosition: y, pageRect: pageRect)
-
+    func drawTimeDomainSection(_ result: HRVAnalysisResult, yPosition: CGFloat, in _: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {
+        var y = drawSectionHeading(String(localized: "Time Domain HRV", bundle: LanguageManager.appBundle), yPosition: yPosition, pageRect: pageRect)
+        y = drawCompactMetricsGrid(timeDomainGridMetrics(result), yPosition: y, pageRect: pageRect)
         return y + 8
     }
 
@@ -372,9 +355,9 @@ extension ReportSectionRenderer {
         return y + 8
     }
 
-    func drawNonlinearSection(_ nl: NonlinearMetrics, yPosition: CGFloat, in _: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {
+    func drawNonlinearSection(_ result: HRVAnalysisResult, yPosition: CGFloat, in _: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {
         var y = drawSectionHeading(String(localized: "Nonlinear HRV", bundle: LanguageManager.appBundle), yPosition: yPosition, pageRect: pageRect)
-        y = drawCompactMetricsGrid(nonlinearGridMetrics(nl), yPosition: y, pageRect: pageRect)
+        y = drawCompactMetricsGrid(nonlinearGridMetrics(result), yPosition: y, pageRect: pageRect)
         return y + 8
     }
 
@@ -918,13 +901,33 @@ private func frequencyGridMetrics(_ fd: FrequencyDomainMetrics) -> [(String, Str
     return metrics
 }
 
-/// The grid rows, as data. SD1/SD2 are always present; the entropies and DFA
-/// exponents only appear when the analysis produced them.
-private func nonlinearGridMetrics(_ nl: NonlinearMetrics) -> [(String, String)] {
+/// The grid rows, as data. Each metric the result holds as an estimate is
+/// marked as one; the triangular index appears only when the analysis made it.
+private func timeDomainGridMetrics(_ result: HRVAnalysisResult) -> [(String, String)] {
+    let td = result.timeDomain
+    var metrics = [
+        (String(localized: "Mean NN", bundle: LanguageManager.appBundle), String(format: "%.1f ms", locale: LanguageManager.appLocale, td.meanRR)),
+        ("SDNN", result.markingEstimate(String(format: "%.1f ms", locale: LanguageManager.appLocale, td.sdnn), for: .sdnn)),
+        ("RMSSD", String(format: "%.1f ms", locale: LanguageManager.appLocale, td.rmssd)),
+        ("pNN50", result.markingEstimate(String(format: "%.1f%%", locale: LanguageManager.appLocale, td.pnn50), for: .pnn50)),
+        (String(localized: "Mean HR", bundle: LanguageManager.appBundle), String(format: "%.0f bpm", locale: LanguageManager.appLocale, td.meanHR)),
+        ("SDSD", result.markingEstimate(String(format: "%.1f ms", locale: LanguageManager.appLocale, td.sdsd), for: .sdsd))
+    ]
+    if let tri = td.triangularIndex {
+        metrics.append(("HRV TI", String(format: "%.1f", locale: LanguageManager.appLocale, tri)))
+    }
+    return metrics
+}
+
+/// The grid rows, as data. SD1/SD2 are always present, marked when they are
+/// estimates; the entropies and DFA exponents only appear when the analysis
+/// produced them.
+private func nonlinearGridMetrics(_ result: HRVAnalysisResult) -> [(String, String)] {
+    let nl = result.nonlinear
     var metrics: [(String, String)] = [
-        ("SD1", String(format: "%.1f ms", locale: LanguageManager.appLocale, nl.sd1)),
-        ("SD2", String(format: "%.1f ms", locale: LanguageManager.appLocale, nl.sd2)),
-        ("SD1/SD2", String(format: "%.3f", locale: LanguageManager.appLocale, nl.sd1Sd2Ratio))
+        ("SD1", result.markingEstimate(String(format: "%.1f ms", locale: LanguageManager.appLocale, nl.sd1), for: .sd1)),
+        ("SD2", result.markingEstimate(String(format: "%.1f ms", locale: LanguageManager.appLocale, nl.sd2), for: .sd2)),
+        ("SD1/SD2", result.markingEstimate(String(format: "%.3f", locale: LanguageManager.appLocale, nl.sd1Sd2Ratio), for: .sd1Sd2Ratio))
     ]
 
     if let approxEntropy = nl.approxEntropy {
@@ -978,7 +981,7 @@ private func qualityGridMetrics(_ result: HRVAnalysisResult, session: HRVSession
     let metrics: [(String, String)] = [
         (String(localized: "Recorded Beats", bundle: LanguageManager.appBundle), "\(session.rrSeries?.points.count ?? 0)"),
         (String(localized: "Analysis Window", bundle: LanguageManager.appBundle), windowDurationStr),
-        (String(localized: "Window Beats", bundle: LanguageManager.appBundle), "\(result.cleanBeatCount)"),
+        (String(localized: "Window Beats", bundle: LanguageManager.appBundle), result.cleanBeatCountText),
         (String(localized: "Artifacts", bundle: LanguageManager.appBundle), String(format: "%.1f%%", locale: LanguageManager.appLocale, result.artifactPercentage))
     ]
     return metrics

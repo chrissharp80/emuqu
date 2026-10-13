@@ -201,7 +201,8 @@ final class TrainingAdviceGateTests: XCTestCase {
             night.scoreBreakdown = strongBreakdown(composite: scenario.recovery)
             let report = HolisticDailyReport(
                 workoutSession: workout, workoutTrack: [], overnightSession: night,
-                userMaxHR: 190, userRestingHR: 50, userLTHR: 168, units: .metric
+                userMaxHR: 190, userRestingHR: 50, userLTHR: 168, units: .metric,
+                sleepSchedule: SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0)
             )
             assertNoPush([report.combinedReadinessScore().tier], "Workout report tier, \(scenario.name)")
         }

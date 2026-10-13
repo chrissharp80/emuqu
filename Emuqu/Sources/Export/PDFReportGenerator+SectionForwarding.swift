@@ -38,8 +38,8 @@ extension PDFReportGenerator {
         return sections.drawHeader(session: session, result: arg1, in: context, pageRect: pageRect)
     }
 
-    func drawNonlinearSection(_ nl: NonlinearMetrics, yPosition: CGFloat, in context: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {
-        return sections.drawNonlinearSection(nl, yPosition: yPosition, in: context, pageRect: pageRect)
+    func drawNonlinearSection(_ result: HRVAnalysisResult, yPosition: CGFloat, in context: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {
+        return sections.drawNonlinearSection(result, yPosition: yPosition, in: context, pageRect: pageRect)
     }
 
     func drawPSDGraph(
@@ -84,8 +84,8 @@ extension PDFReportGenerator {
         return sections.drawTachogram(series: series, flags: flags, result: result, yPosition: yPosition, in: arg4, pageRect: pageRect)
     }
 
-    func drawTimeDomainSection(_ td: TimeDomainMetrics, yPosition: CGFloat, in context: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {
-        return sections.drawTimeDomainSection(td, yPosition: yPosition, in: context, pageRect: pageRect)
+    func drawTimeDomainSection(_ result: HRVAnalysisResult, yPosition: CGFloat, in context: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {
+        return sections.drawTimeDomainSection(result, yPosition: yPosition, in: context, pageRect: pageRect)
     }
 
     func drawWindowSelectionSection(result: HRVAnalysisResult, yPosition: CGFloat, in context: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {

@@ -40,7 +40,8 @@ final class ArchiveMigrationParityTests: XCTestCase {
         "FlowRecovery.migration.recoveryScores.v1.done",
         "FlowRecovery.migration.endDates.v1.done",
         "FlowRecovery.migration.metrics.v1.done",
-        "FlowRecovery.migration.sleepIndexFields.v1.done"
+        "FlowRecovery.migration.sleepIndexFields.v1.done",
+        "FlowRecovery.migration.legacyEliteIndex.v1.done"
     ]
     private var savedMigrationFlags: [String: Bool] = [:]
 
@@ -176,6 +177,33 @@ final class ArchiveMigrationParityTests: XCTestCase {
         // stored.
         let round = archive.retrieveLightweightOrLog(session.id, caller: "parityTest")
         XCTAssertNotNil(round, "Session unreadable after migration")
+    }
+
+    // MARK: - Legacy Elite HRV index entries
+
+    /// An Elite import saved by an earlier build has its RMSSD-made stress
+    /// index and score in the index. The session decodes without them, and
+    /// the migration makes the entry say the same; a recorded night is left
+    /// alone.
+    func testLegacyEliteIndexEntryLosesItsMadeUpStressAndScore() throws {
+        let legacy = HRVSession(
+            id: UUID(), startDate: Date().addingTimeInterval(-86_400), endDate: Date().addingTimeInterval(-86_100),
+            state: .complete, rrSeries: nil, analysisResult: SnapshotFixtures.legacyEliteImportResult(),
+            artifactFlags: nil, recoveryScore: 6.5,
+            importedMetrics: HRVSession.ImportedMetrics(rmssd: 45, rmssdRaw: 45, artifactPercent: 0, source: "Elite HRV")
+        )
+        testSessionIds.append(legacy.id)
+        _ = try archive.archive(legacy)
+        let before = archive.entries.first { $0.sessionId == legacy.id }
+        XCTAssertEqual(before?.stressIndex, 18.2, "Pre-state: the index holds the old importer's stress index")
+
+        archive.runDeferredMigrations()
+        assertEveryBackfillRan()
+
+        let after = archive.entries.first { $0.sessionId == legacy.id }
+        XCTAssertNil(after?.stressIndex)
+        XCTAssertNil(after?.recoveryScore)
+        XCTAssertEqual(after?.fileHash, before?.fileHash, "Only the index entry changes")
     }
 
     // MARK: - Helpers

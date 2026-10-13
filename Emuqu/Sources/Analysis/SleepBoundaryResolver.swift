@@ -148,12 +148,11 @@ final class SleepBoundaryResolver: Sendable {
     private static let boundaryDisagreementThresholdMs: Int64 = .init(SleepConstants.boundaryDisagreementMinutes) * 60 * 1000
 
     /// Compare HealthKit and HR-estimated boundaries.
-    /// - Sleep START: HR can move onset EARLIER (catching sleep HealthKit missed).
-    ///   HR can move it LATER only when HealthKit lacks detailed stages (any deep
-    ///   or REM; a core-only night is what a source that does not stage sleep
-    ///   writes, as `SleepResolver.stageTotals` also treats it).
-    ///   When Apple Watch reported physiological sleep stages, those boundaries are
-    ///   authoritative and HR must not push onset later.
+    /// - Sleep START: when HealthKit has detailed stages (any deep or REM; a
+    ///   core-only night is what a source that does not stage sleep writes, as
+    ///   `SleepResolver.stageTotals` also treats it) its onset stands in both
+    ///   directions. Otherwise HR replaces it when the two disagree by more
+    ///   than the threshold.
     /// - Sleep END: HR can only EXTEND (later wake), never shrink. If HR says wake was
     ///   earlier, the recording may have stopped while the user kept sleeping.
     static func validateBoundaries(
@@ -167,9 +166,12 @@ final class SleepBoundaryResolver: Sendable {
         )
     }
 
-    /// HR can move onset EARLIER freely. It can move onset LATER only when
-    /// HealthKit lacks detailed stages — when the Watch reported physiological
-    /// stages, its earlier onset is authoritative.
+    /// A Watch onset with physiological stages is authoritative: an HR
+    /// estimate moves it neither later nor earlier. HR onsets come from a
+    /// heart-rate threshold that misreads light sleep as awake; letting one
+    /// pull a staged onset earlier claimed sleep the Watch had staged as
+    /// awake and lengthened the night. Without detailed stages HR replaces
+    /// the HealthKit onset when the two disagree by more than the threshold.
     private static func reconciledStart(
         healthKit: SleepBoundaries,
         hrEstimate: SleepBoundaries,
@@ -178,9 +180,8 @@ final class SleepBoundaryResolver: Sendable {
         guard let hkStart = healthKit.sleepStartMs, let hrStart = hrEstimate.sleepStartMs else {
             return healthKit.sleepStartMs ?? hrEstimate.sleepStartMs
         }
-        guard abs(hkStart - hrStart) > boundaryDisagreementThresholdMs else { return hkStart }
-        let hrWantsLater = hrStart > hkStart
-        return (hrWantsLater && hasDetailedStages) ? hkStart : hrStart
+        guard !hasDetailedStages, abs(hkStart - hrStart) > boundaryDisagreementThresholdMs else { return hkStart }
+        return hrStart
     }
 
     /// HR can only EXTEND the wake time, never shrink it: an earlier HR wake
@@ -233,7 +234,7 @@ final class SleepBoundaryResolver: Sendable {
         guard let nightMaxHR = allHR.max(), let nightMinHR = allHR.min() else { return nil }
         let ceiling = nightMaxHR - (nightMaxHR - nightMinHR) * OnsetDetection.sleepCeilingMidpointFraction
         if let onset = firstSustainedDrop(in: hrWindows, ceiling: ceiling) { return onset }
-        debugLog("[SleepBoundaryResolver] No clear HR drop detected - assuming sleep near recording start")
+        debugLog("[SleepBoundaryResolver] No plausible HR drop detected - onset undetermined")
         return nil
     }
 
@@ -265,16 +266,20 @@ final class SleepBoundaryResolver: Sendable {
     }
 
     /// The first window where HR drops by more than the threshold and stays
-    /// below the night's adaptive ceiling.
+    /// below the night's adaptive ceiling, when it lies within a plausible
+    /// sleep-onset latency; else nil.
     ///
-    /// The result is clamped to a plausible sleep-onset latency, identical to
-    /// the fix in `estimateSleepFromHR`. This HR-drop heuristic thresholds
-    /// against deep-sleep bradycardia, which consolidates LATER than actual
-    /// sleep onset — so on a night where HR doesn't drop below the ceiling
-    /// until well in, it reports a bogus long onset (one night reported 66
-    /// min when the Apple Watch had true onset at 5 min, skewing the HRV band
-    /// late and the score with it). The recording STARTS at bedtime, so onset
-    /// can't plausibly be an hour of lying awake; typical latency is 10-20 min.
+    /// This HR-drop heuristic thresholds against deep-sleep bradycardia,
+    /// which consolidates LATER than actual sleep onset — so on a night where
+    /// HR doesn't drop below the ceiling until well in, it reports a bogus
+    /// long onset (one night reported 66 min when the Apple Watch had true
+    /// onset at 5 min, skewing the HRV band late and the score with it). The
+    /// recording STARTS at bedtime, so onset can't plausibly be an hour of
+    /// lying awake; typical latency is 10-20 min. The window times are on the
+    /// wall clock, the clock `SleepConstants.isPlausibleHROnsetLatency` takes.
+    /// The first drop is the earliest candidate, so one past the ceiling
+    /// leaves the onset undetermined (nil) and each caller falls back to the
+    /// recording or envelope start, never a made-up minute 20.
     private static func firstSustainedDrop(
         in hrWindows: [(timeMs: Int64, hr: Double)],
         ceiling: Double
@@ -283,10 +288,10 @@ final class SleepBoundaryResolver: Sendable {
             let beforeHR = hrWindows[(j - 5) ..< j].map(\.hr).reduce(0, +) / 5.0
             let afterHR = hrWindows[j ..< (j + 10)].map(\.hr).reduce(0, +) / 10.0
             guard beforeHR - afterHR > OnsetDetection.hrDropThreshold, afterHR < ceiling else { continue }
-            let maxOnsetLatencyMs = Int64(SleepConstants.maxHREstimatedOnsetLatencyMin) * 60 * 1_000
-            let onsetMs = min(hrWindows[j].timeMs, maxOnsetLatencyMs)
-            debugLog("[SleepBoundaryResolver] Sleep onset detected (raw \(hrWindows[j].timeMs / 60_000)m, clamped \(onsetMs / 60_000)m)")
-            return onsetMs
+            let onsetMs = hrWindows[j].timeMs
+            let plausible = SleepConstants.isPlausibleHROnsetLatency(wallClockMs: onsetMs)
+            debugLog("[SleepBoundaryResolver] First HR drop at \(onsetMs / 60_000)m — \(plausible ? "onset" : "past the latency ceiling, onset undetermined")")
+            return plausible ? onsetMs : nil
         }
         return nil
     }

@@ -259,8 +259,8 @@
   },
   {
    "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.1 Capture and source selection > 3.1.4 Dating an undated strap recording",
-   "hash": "34e7a6117df85497",
-   "does": "Specifies dating an undated strap recording: HealthKit sleep for the 24 h ending now with the beats; start = T_hk - onset (onset 0 if none); else now - duration. Onset detector: >300 beats, 120-beat windows in 30-beat steps with >half valid RR, >15 windows, ceiling = midpoint of night's HR range, first j in 5..count-11 with before(5)-after(10) > 8 bpm and after < ceiling, clamped to 20 min. Code: DeviceRecordingSession.healthKitAlignedStart/recordingStart (RRCollector+DeviceRecording.swift:306-329), SleepBoundaryResolver.detectSleepOnset/onsetHRWindows/windowMeanHR/firstSustainedDrop (SleepBoundaryResolver.swift:219-284).",
+   "hash": "94737779080acc22",
+   "does": "Specifies dating an undated strap recording: HealthKit sleep for the 24 h ending now with the beats; start = T_hk - onset (onset 0 if none); else now - duration. Onset detector: >300 beats, 120-beat windows in 30-beat steps with >half valid RR, >15 windows, ceiling = midpoint of night's HR range, first j in 5..count-11 with before(5)-after(10) > 8 bpm and after < ceiling, accepted only within 20 min (a later first drop is a misfire: no onset, so onsetMs 0). Code: DeviceRecordingSession.healthKitAlignedStart/recordingStart (RRCollector+DeviceRecording.swift:306-329), SleepBoundaryResolver.detectSleepOnset/onsetHRWindows/windowMeanHR/firstSustainedDrop (SleepBoundaryResolver.swift:219-284).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.recordingStart(_:)",
@@ -287,9 +287,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "d0309f14481839ab",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.firstSustainedDrop(in:ceiling:)": "4cce8f2e0ee52df1",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.onsetHRWindows(_:)": "9de71dc46fb03569",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "1db284c5abaa3a6e",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.firstSustainedDrop(in:ceiling:)": "bbdf7a47c5220b71",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.onsetHRWindows(_:)": "c8e6d9cdb3103456",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.windowMeanHR(_:windowSize:)": "b87d947521f454f0",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.healthKitAlignedStart(rrPoints:)": "080e5641b78342c0",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.recordingStart(_:)": "3cd2c3af57a457d9"
@@ -425,8 +425,8 @@
   },
   {
    "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.4 Sleep boundaries and the search band > 3.4.1 Boundary sources",
-   "hash": "19fe35c643053f40",
-   "does": "Claims morning-path boundaries come from HealthKit sleep fetched with the RR series for cross-checking, else an RR HR estimate (5-min windows >=10 beats, midpoint threshold, onset = first of 3 below, clamp 20 min, wake = window after last below), else Watch passive HR (2 points, >=8 bpm range), else recording bounds; negative onset clamped to 0; HR may move onset earlier freely, later only without detailed stages and by >15 min; HR only extends wake. Code: MorningProcessingService.pollForSleepData/applySleepEstimates, HRSleepEstimator.computeWindowedHR/detectSleepBoundariesFromHR/hrSleepThreshold, SleepBoundaryResolver.reconciledStart/reconciledEnd.",
+   "hash": "1f295df7bd621de5",
+   "does": "Claims morning-path boundaries come from HealthKit sleep fetched with the RR series for cross-checking, else an RR HR estimate (5-min windows >=10 beats, midpoint threshold, onset = first of 3 below if within 20 min of the recording start (wall clock), else the recording start with latency unknown, wake = window after last below), else Watch passive HR (2 points, >=8 bpm range), else recording bounds; negative onset clamped to 0; HealthKit onset kept whenever it has detailed stages; without them HR replaces it, earlier or later, by >15 min; HR only extends wake. Code: MorningProcessingService.pollForSleepData/applySleepEstimates, HRSleepEstimator.computeWindowedHR/detectSleepBoundariesFromHR/hrSleepThreshold, SleepBoundaryResolver.reconciledStart/reconciledEnd.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)",
@@ -439,7 +439,8 @@
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrSleepThreshold(_:)",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validateBoundaries(healthKit:hrEstimate:hasDetailedStages:)",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.reconciledStart(healthKit:hrEstimate:hasDetailedStages:)",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.reconciledEnd(healthKit:hrEstimate:)"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.reconciledEnd(healthKit:hrEstimate:)",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleOnsetMs(_:in:)"
    ],
    "reads": [],
    "writes": [],
@@ -459,15 +460,16 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.reconciledEnd(healthKit:hrEstimate:)": "ab20fe73c711ad95",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.reconciledStart(healthKit:hrEstimate:hasDetailedStages:)": "1c982e8a65cfcdb1",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.reconciledStart(healthKit:hrEstimate:hasDetailedStages:)": "e169a9370a2e14cc",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validateBoundaries(healthKit:hrEstimate:hasDetailedStages:)": "d044430edfd646d6",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.computeWindowedHR(rrPoints:)": "f5e8d6f45b4ae323",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.detectSleepBoundariesFromHR(_:)": "383647fc72c68104",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)": "587065d915433525",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)": "80312c4bf28d1463",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrSleepThreshold(_:)": "8eeb970522a525e8",
-    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)": "30864de341a2b936",
-    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.fetchSleepAttempt(series:effectiveStartDate:recordingEnd:attempt:)": "cda6475872605b79",
-    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)": "eccc4573a72bc99f",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleOnsetMs(_:in:)": "de938246600dc43e",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)": "80523643994e6dd9",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.fetchSleepAttempt(series:effectiveStartDate:recordingEnd:attempt:)": "178e1d6ce1d13b2b",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)": "1205007f930cbba9",
     "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.readySleepData(prefetched:effectiveStartDate:recordingEnd:isBackgroundRefinement:)": "758f705c6d43df97"
    }
   },
@@ -1158,28 +1160,30 @@
   },
   {
    "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.9 RR-only sleep staging > 3.9.1 Epochs and features",
-   "hash": "ae6705e9c2b3fc3c",
-   "does": "Specifies epochs: 5-min epochs between sleep start/end, >=10 beats and >=8 valid RR, >=6 epochs; per-epoch HR, RMSSD, population SDNN, CV, alpha1 (>=64), LF/HF and HF from the shared spectral routine. Code: HRVSleepStageClassifier.classify/buildFeatureWindows/featureWindow/windowVariability/windowAlpha1/windowFrequencyMetrics (windowSizeMs 5 min at HRVSleepStageClassifier.swift:72).",
+   "hash": "f6e8422f726667b4",
+   "does": "Specifies epochs: 5-min epochs between sleep start/end, >=10 beats and >=8 valid RR, >=6 epochs; per-epoch HR, population SDNN and CV over valid beats; RMSSD only between valid beats adjacent in the recording (none across a dropped beat or a recording break, pause > one RR + 2 s); alpha1 and LF/HF/HF on the longest break-free stretch, alpha1 with dropped beats interpolated and ends trimmed, >= 64 beats and <= 6 % interpolated. Code: HRVSleepStageClassifier.classify/buildFeatureWindows/featureWindow/windowVariability/windowAlpha1/windowFrequencyMetrics and SleepWindowBeats (windowSizeMs 5 min).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)",
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.buildFeatureWindows(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)",
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.featureWindow(points:windowStart:windowEnd:recordingStart:)",
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)",
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowAlpha1(_:)",
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowFrequencyMetrics(_:)"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowFrequencyMetrics(_:)",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func SleepWindowBeats.interpolatedStretch()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.buildFeatureWindows(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "e5152bee7dc8280c",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.buildFeatureWindows(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "21b30303ee6cdb18",
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.featureWindow(points:windowStart:windowEnd:recordingStart:)": "ead6a2a14e255090",
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowAlpha1(_:)": "e229f626fb9eadc2",
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowFrequencyMetrics(_:)": "9dd9570dd88e91c4",
-    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:)": "d8d3dfc21574a285"
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.featureWindow(points:windowStart:windowEnd:recordingStart:)": "7a0c2bef7c141d1f",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowAlpha1(_:)": "6e2daa719ebfd0bd",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowFrequencyMetrics(_:)": "91efaa79566317f3",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)": "5e64706c60da9f11",
+    "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func SleepWindowBeats.interpolatedStretch()": "1c3edecca88cb259"
    }
   },
   {
@@ -1336,7 +1340,7 @@
   },
   {
    "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 5. What Is New",
-   "hash": "271ca329b41c2b77",
+   "hash": "a11ebd6b67e755a7",
    "does": "no behavioural claim: novelty statements N1-N14 restating Section 3 methods with commit-dated provenance; the restated method parameters match the code verified in the Section 3 records; commit hashes and dates in other repositories are not checkable from this checkout.",
    "entry": null,
    "calls": [],
@@ -1418,7 +1422,7 @@
   },
   {
    "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 7. Design Tradeoffs",
-   "hash": "c49f8074f79c6506",
+   "hash": "5ed7f68287ec7cca",
    "does": "no behavioural claim: design tradeoffs (prose restating behaviours documented and checked in Section 3).",
    "entry": null,
    "calls": [],
@@ -1526,8 +1530,8 @@
   },
   {
    "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > Appendix A: Parameters",
-   "hash": "cb79f4dd049738bc",
-   "does": "Parameter table (Appendix A) restating every constant of Section 3: source selection 120/5%/2000 ms/50 ms, onset detector, classifier, window geometry, caps, organized test, baseline storage/statistics/replacement fractions, z bands, Tier-1 adjustments, tier weights, penalties, freeze timeout and refresh thresholds, staging and augmentation thresholds, vitals bands. All values match the code constants listed in the FILE record.",
+   "hash": "a354034b010bc69c",
+   "does": "Parameter table (Appendix A) restating every constant of Section 3: source selection 120/5%/2000 ms/50 ms, onset detector (20-min onset ceiling: a later detection leaves onset undetermined), classifier, window geometry, caps, organized test, baseline storage/statistics/replacement fractions, z bands, Tier-1 adjustments, tier weights, penalties, freeze timeout and refresh thresholds, staging and augmentation thresholds, vitals bands. All values match the code constants listed in the FILE record.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
@@ -1545,7 +1549,7 @@
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.computeAdaptiveWindowSize(beatsAvailable:compact:)": "fd73f7db1a3e1449",
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "aa75532f95478352",
-    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "69aa588ccadc5b5e"
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "9aece8f288223d6d"
    }
   },
   {

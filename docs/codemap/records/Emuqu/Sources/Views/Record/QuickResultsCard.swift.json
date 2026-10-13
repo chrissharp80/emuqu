@@ -27,12 +27,13 @@
   },
   {
    "key": "var QuickResultsCard.v2Body",
-   "hash": "ddf89f4e7c1450d8",
-   "does": "Header, 120pt ScoreRing (snappy), verdict text when a score exists, three stat tiles, View full report and Done buttons on a card.",
+   "hash": "6940842c402db4e5",
+   "does": "Header, 120pt ScoreRing (snappy, metric from ringMetric), verdict text when a score exists, three stat tiles, View full report and Done buttons on a card.",
    "entry": "SwiftUI subview",
    "calls": [
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.quickResultsHeader",
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.ringState",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.ringMetric",
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.scoredVerdict",
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::func QuickResultsCard.verdictText(_:)",
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.quickResultsMetrics",
@@ -54,6 +55,7 @@
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.quickResultsDoneButton": "12709bde0b280c45",
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.quickResultsHeader": "213c889c2c659e08",
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.quickResultsMetrics": "1404f17216b1decc",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.ringMetric": "d627cd35c1fc5d03",
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.ringState": "90fb01bc2842f67a",
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.scoredVerdict": "b303c965b6ff176f",
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.viewFullReportButton": "14837c9e99231fec",
@@ -102,6 +104,26 @@
     "Emuqu/Sources/Models/ScoreVerdict.swift::func ScoreVerdict.safeDisplayScore(_:)": "243c4d1d41c669f4",
     "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "89445abed2b3e6c9",
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.score10": "6290d9fc096ef32d"
+   }
+  },
+  {
+   "key": "var QuickResultsCard.ringMetric",
+   "hash": "979e50c115fb8f07",
+   "does": "The ring's metric for VoiceOver: .recovery when the session has a recovery score, else .readiness (score10 then falls back to the ANS readiness).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session.recoveryScore == nil",
+     "effect": ".readiness; else .recovery"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c"
    }
   },
   {
@@ -175,14 +197,15 @@
   },
   {
    "key": "var QuickResultsCard.quickResultsMetrics",
-   "hash": "22c78854a50850f8",
-   "does": "Three stat tiles: RMSSD (ms, rounded), Avg HR (bpm, rounded), and Readiness (x.x /10) when ANS readiness exists else SDNN (ms).",
+   "hash": "09110c596481088a",
+   "does": "Three stat tiles: RMSSD (ms, rounded), Avg HR (bpm, rounded), and Readiness (x.x /10) when ANS readiness exists else SDNN (ms; its label marked '(estimate)' when it is one).",
    "entry": "SwiftUI subview",
    "calls": [
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::func QuickResultsCard.v2Stat(label:value:unit:)",
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.msUnit",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)"
    ],
    "reads": [],
    "writes": [],
@@ -196,6 +219,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::func QuickResultsCard.v2Stat(label:value:unit:)": "a99eeaa1f5357804",

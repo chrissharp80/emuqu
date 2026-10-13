@@ -21,7 +21,7 @@ final class CauseDetectorTests: XCTestCase {
         stressIndex: Double = 150.0,
         lfHfRatio: Double = 1.5,
         dfaAlpha1: Double = 0.9,
-        pnn50: Double = 15.0,
+        pnn50: Double? = 15.0,
         isGoodReading: Bool = false,
         isExcellentReading: Bool = false,
         tags: Set<ReadingTag> = [],
@@ -316,6 +316,17 @@ final class CauseDetectorTests: XCTestCase {
         // Should not duplicate - stress is already tagged
         let untaggedStressCause = causes.first { $0.cause == "Unidentified Stress" }
         XCTAssertNil(untaggedStressCause)
+    }
+
+    func testTrainingLoadRuleReadsOnlyAMeasuredPNN50() {
+        let metricDetector = MetricBasedCauseDetector()
+        let isTrainingLoad: (DetectedCause) -> Bool = { $0.cause == "Accumulated Training Load" }
+
+        let measured = metricDetector.detectCauses(in: createContext(rmssd: 25.0, dfaAlpha1: 1.2, pnn50: 5.0))
+        let estimated = metricDetector.detectCauses(in: createContext(rmssd: 25.0, dfaAlpha1: 1.2, pnn50: nil))
+
+        XCTAssertTrue(measured.contains(where: isTrainingLoad))
+        XCTAssertFalse(estimated.contains(where: isTrainingLoad), "An estimated pNN50 goes in as nil and fires nothing")
     }
 
     // MARK: - Pattern Cause Detector Tests

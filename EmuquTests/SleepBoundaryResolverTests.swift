@@ -128,6 +128,23 @@ final class SleepBoundaryResolverTests: XCTestCase {
         // 70->55 bpm is a 15 bpm drop below 65, so it should be detected.
     }
 
+    /// A first drop 40 minutes in is past the onset-latency ceiling: the
+    /// detector misfired, so onset is undetermined (nil), not minute 20.
+    func testDetectSleepOnsetPastTheLatencyCeilingIsUndetermined() {
+        var points: [RRPoint] = []
+        var tMs: Int64 = 0
+        for _ in 0 ..< 2_800 { // ~40 min awake at ~70 bpm
+            points.append(RRPoint(t_ms: tMs, rr_ms: 857))
+            tMs += 857
+        }
+        for _ in 0 ..< 600 { // then ~55 bpm
+            points.append(RRPoint(t_ms: tMs, rr_ms: 1090))
+            tMs += 1090
+        }
+
+        XCTAssertNil(SleepBoundaryResolver.detectSleepOnset(in: points))
+    }
+
     // MARK: - Resolve Tests (require HealthKit - basic structure)
 
     func testResolverInitialization() {
@@ -185,9 +202,9 @@ final class SleepBoundaryResolverTests: XCTestCase {
         XCTAssertEqual(result.sleepStartMs, 1_800_000, "Should use HR start when no detailed stages and HR wants later")
     }
 
-    func testValidateBoundaries_HRWantsEarlier_DetailedStages_UsesHR() {
-        // HealthKit says sleep at 30min, HR says 0ms — HR detects earlier sleep
-        // even with detailed stages, HR can move onset earlier (catching missed sleep)
+    func testValidateBoundaries_HRWantsEarlier_DetailedStages_KeepsHealthKit() {
+        // HealthKit says sleep at 30min, HR says 0ms. The Watch staged the
+        // first 30 min as awake; an HR threshold estimate must not overrule it.
         let hk = SleepBoundaryResolver.SleepBoundaries(sleepStartMs: 1_800_000, wakeTimeMs: 28_800_000)
         let hr = SleepBoundaryResolver.SleepBoundaries(sleepStartMs: 0, wakeTimeMs: 28_800_000)
 
@@ -197,7 +214,22 @@ final class SleepBoundaryResolverTests: XCTestCase {
             hasDetailedStages: true
         )
 
-        XCTAssertEqual(result.sleepStartMs, 0, "HR should be able to move onset earlier even with detailed stages")
+        XCTAssertEqual(result.sleepStartMs, 1_800_000, "Detailed HealthKit stages must win over an HR onset estimate")
+    }
+
+    func testValidateBoundaries_HRWantsEarlier_NoDetailedStages_UsesHR() {
+        // Without detailed stages, HR replaces a HealthKit onset it disagrees
+        // with by more than 15 min, earlier as well as later.
+        let hk = SleepBoundaryResolver.SleepBoundaries(sleepStartMs: 1_800_000, wakeTimeMs: 28_800_000)
+        let hr = SleepBoundaryResolver.SleepBoundaries(sleepStartMs: 0, wakeTimeMs: 28_800_000)
+
+        let result = SleepBoundaryResolver.validateBoundaries(
+            healthKit: hk,
+            hrEstimate: hr,
+            hasDetailedStages: false
+        )
+
+        XCTAssertEqual(result.sleepStartMs, 0)
     }
 
     func testValidateBoundaries_WithinThreshold_KeepsHealthKit() {
@@ -285,10 +317,12 @@ final class SleepBoundaryResolverTests: XCTestCase {
 
         let result = HealthKitManager.estimateSleepFromHR(rrPoints: points, recordingStart: recordingStart)
 
-        let sleepStart = try XCTUnwrap(result?.sleepStart, "Should detect sleep for a normal sleeper")
-        let onsetMinutes = sleepStart.timeIntervalSince(recordingStart) / 60
-        // Should detect onset around 30 minutes (after the awake period)
-        XCTAssertGreaterThan(onsetMinutes, 10, "Normal sleeper onset should be after awake period")
-        XCTAssertLessThan(onsetMinutes, 60, "Normal sleeper onset should be within first hour")
+        // The first sleep window is 32.5 min in, past the 20-min onset
+        // ceiling: onset is undetermined, so sleep starts at the recording
+        // start and the latency reads as unknown rather than as 20 min.
+        let estimate = try XCTUnwrap(result, "Should still estimate the night")
+        XCTAssertEqual(estimate.sleepStart, recordingStart)
+        XCTAssertNil(estimate.sleepLatencyMinutes)
+        XCTAssertNotNil(estimate.sleepEnd)
     }
 }

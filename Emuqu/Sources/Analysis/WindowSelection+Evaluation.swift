@@ -116,10 +116,15 @@ extension WindowSelector {
     }
 
     /// A window's ectopic-filtered beats and the RMSSD over its adjacent kept
-    /// pairs (`maskedRMSSD`).
+    /// pairs (`maskedRMSSD`). `beats` keeps each beat's series index and the
+    /// window's recording breaks, so the window's DFA α1 interpolates the
+    /// beats removed here and never boxes across a break
+    /// (`DFAAnalyzer.compute(window:)`, as for the reported α1).
     struct CleanBeats {
-        let rrs: [Double]
+        let beats: CleanBeatWindow
         let rmssd: Double
+
+        var rrs: [Double] { beats.rr }
     }
 
     /// Ectopic-filtered beats, or nil when too few survive. The gate is
@@ -131,13 +136,17 @@ extension WindowSelector {
         rrValues: [(index: Int, rr: Double)], windowPoints: [RRPoint], breaks: Set<Int>
     ) -> CleanBeats? {
         let kept = TimeDomainAnalyzer.ectopicKeepMask(rrValues.map(\.rr))
-        let cleanRRs = zip(rrValues, kept).filter { $0.1 }.map { $0.0.rr }
+        let keptValues = zip(rrValues, kept).filter { $0.1 }.map { $0.0 }
+        let cleanRRs = keptValues.map(\.rr)
         let adaptiveMinCleanBeats = min(config.minCleanBeats, max(50, Int(Double(windowPoints.count) * 0.75)))
         guard cleanRRs.count >= adaptiveMinCleanBeats else {
             debugLog("[WindowSelector] evaluateWindow REJECTED: only \(cleanRRs.count) clean beats (need ≥\(adaptiveMinCleanBeats)), \(rrValues.count - cleanRRs.count) ectopic removed")
             return nil
         }
-        return CleanBeats(rrs: cleanRRs, rmssd: maskedRMSSD(rrValues, kept: kept, breaks: breaks))
+        return CleanBeats(
+            beats: CleanBeatWindow(rr: cleanRRs, indices: keptValues.map(\.index), breaks: breaks),
+            rmssd: maskedRMSSD(rrValues, kept: kept, breaks: breaks)
+        )
     }
 
     private func scoredBlock(
@@ -152,7 +161,7 @@ extension WindowSelector {
         guard let relativePosition = computeRelativePosition(
             windowPoints: slice.points, sessionStartMs: sessionStartMs, sessionEndMs: sessionEndMs
         ) else { return nil }
-        let dfaAlpha1 = cleanRRs.count >= 64 ? DFAAnalyzer.compute(cleanRRs)?.alpha1 : nil
+        let dfaAlpha1 = cleanRRs.count >= 64 ? DFAAnalyzer.compute(window: clean.beats)?.alpha1 : nil
         // Optional-bind first/last instead of force-unwrap.
         // slice.points is guaranteed non-empty by the rrValues.count >= 50
         // guard in evaluateWindow, so this never fails in practice — the bind

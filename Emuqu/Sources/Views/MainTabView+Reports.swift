@@ -18,7 +18,7 @@ extension MainTabView {
         let pdfURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(stem).pdf")
         let hr = ReportRenderer.Profile(
             maxHR: inputs.maxHR, restingHR: inputs.restingHR, lthr: inputs.lthr,
-            units: inputs.units, temperatureUnit: inputs.temperatureUnit
+            units: inputs.units, sleepSchedule: inputs.sleepSchedule, temperatureUnit: inputs.temperatureUnit
         )
         let recent = inputs.recentOvernight
         do {
@@ -56,12 +56,13 @@ extension MainTabView {
             recovery: inputs.recovery.map(full),
             workout: inputs.workout.map(full),
             pair: inputs.pair.map { (workout: full($0.workout), overnight: full($0.overnight)) },
-            recentOvernight: night.map { ReportBaselineNights.before($0, archive: archive) } ?? inputs.recentOvernight,
+            recentOvernight: night.map { ReportBaselineNights.before($0, archive: archive, sleepSchedule: inputs.sleepSchedule) } ?? inputs.recentOvernight,
             baselineStats: inputs.baselineStats,
             maxHR: inputs.maxHR,
             restingHR: inputs.restingHR,
             lthr: inputs.lthr,
             units: inputs.units,
+            sleepSchedule: inputs.sleepSchedule,
             temperatureUnit: inputs.temperatureUnit
         )
     }
@@ -110,23 +111,26 @@ extension MainTabView {
 /// The overnights a report's baseline reaches back over, strictly before the
 /// reported night, newest first, so a report is measured against the nights
 /// before it and never against itself. Read (lightweight, from the archive
-/// index) until `count` of them are reliable: the daily loop drops
-/// unreliable nights, and its baseline must cover the same 60 reliable
-/// nights (`DailyLoopAnalysis.baselineNightLimit`) as the recovery score's.
-/// Shared by the Send-Report menu and Reports → Browse.
+/// index) until they hold `count` baseline nights — distinct nights before
+/// the reported one with a session `BaselineTracker.isBaselineCandidate`
+/// admits — since the daily loop picks its nights from these with the
+/// recovery score's rule (`BaselineTracker.baselineRMSSDs`) and must reach
+/// the same 60. Shared by the Send-Report menu and Reports → Browse.
 enum ReportBaselineNights {
-    static let count = 60
+    static let count = BaselineTracker.recoveryWindowNights
 
-    static func before(_ night: Date, archive: SessionArchive) -> [HRVSession] {
+    static func before(_ night: Date, archive: SessionArchive, sleepSchedule: SleepSchedule) -> [HRVSession] {
         let entries = archive.entries
             .filter { $0.sessionType == .overnight && $0.date < night }
             .sorted { $0.date > $1.date }
+        let reportedNight = sleepSchedule.nightKey(for: night)
         var nights: [HRVSession] = []
-        var reliableCount = 0
-        for entry in entries where reliableCount < count {
+        var baselineNights = Set<Date>()
+        for entry in entries where baselineNights.count < count {
             guard let session = archive.retrieveLightweightOrLog(entry.sessionId) else { continue }
             nights.append(session)
-            if session.isReliableForHRVAggregates { reliableCount += 1 }
+            let key = sleepSchedule.nightKey(for: session.startDate)
+            if key < reportedNight, BaselineTracker.isBaselineCandidate(session) { baselineNights.insert(key) }
         }
         return nights
     }
@@ -143,6 +147,8 @@ enum ReportRenderer {
         let restingHR: Int
         let lthr: Int
         let units: UnitsPreference
+        /// Assigns overnights to nights for the daily report's baseline.
+        let sleepSchedule: SleepSchedule
         var temperatureUnit: TemperatureUnit = .regionDefault
     }
 
@@ -170,7 +176,7 @@ enum ReportRenderer {
         return PDFReportGenerator().generateReportURL(
             for: overnight,
             sleepData: overnight.sleepSnapshot.map { PDFReportGenerator.SleepData(from: $0) },
-            sleepTrend: nil,
+            sleepTrend: .recentNights(before: overnight, in: recentOvernight),
             recentSessions: recentOvernight,
             healthKitHR: nil,
             vitals: overnight.vitalsSnapshot.map { PDFReportGenerator.VitalsData(from: $0) },
@@ -204,6 +210,7 @@ enum ReportRenderer {
             userRestingHR: profile.restingHR,
             userLTHR: profile.lthr,
             units: profile.units,
+            sleepSchedule: profile.sleepSchedule,
             temperatureUnit: profile.temperatureUnit,
             liveLoadSnapshot: load
         )

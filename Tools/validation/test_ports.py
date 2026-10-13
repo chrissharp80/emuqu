@@ -1037,6 +1037,93 @@ def _():
     return True, ""
 
 
+# ---------------- HRVSleepStageClassifierTests: gaps ----------------
+# Appended after the other suites so the earlier cases keep their positions.
+S = "HRVSleepStageClassifierTests"
+
+
+# The gap fix after 99f28e6 (HRVSleepStageClassifierTests gap extension).
+def _contiguous(rrs, start=0):
+    pts, t = [], start
+    for rr in rrs:
+        pts.append((t, rr))
+        t += rr
+    return pts
+
+
+def _varied(count, step=0):
+    return [900 + deterministic_offset(step + i, -60, 60) for i in range(count)]
+
+
+def _single_window(pts):
+    w = sc.build_feature_windows(pts, 0, 300000)
+    return w[0] if len(w) == 1 else None
+
+
+@case(S, "testAnArtifactGapDoesNotProduceASuccessiveDifference")
+def _():
+    w = _single_window(_contiguous([1000] * 10 + [250] + [1100] * 10))
+    return w is not None and approx(w["rmssd"], 0.0, 1e-9), f"rmssd={w and w['rmssd']!r}"
+
+
+@case(S, "testARecordingBreakDoesNotProduceASuccessiveDifference")
+def _():
+    w = _single_window(_contiguous([1000] * 10) + _contiguous([1100] * 10, 70000))
+    return w is not None and approx(w["rmssd"], 0.0, 1e-9), f"rmssd={w and w['rmssd']!r}"
+
+
+@case(S, "testWindowVariabilitySkipsPairsThatAreNotAdjacent")
+def _():
+    rrs = [1000, 1000, 1200, 1200]
+    skipped = sc.window_variability(rrs, 1100, [i != 2 for i in range(4)])
+    none = sc.window_variability(rrs, 1100, [False] * 4)
+    return approx(skipped[0], 0.0, 1e-9) and none[0] == 0 and approx(none[1], 100.0, 1e-9), ""
+
+
+@case(S, "testAlpha1AndSpectrumDoNotSpanARecordingBreak")
+def _():
+    first, second = _varied(150), _varied(90, 150)
+    w = _single_window(_contiguous(first) + _contiguous(second, sum(first) + 30000))
+    a_first = port_dfa.compute([float(v) for v in first])["alpha1"]
+    a_joined = port_dfa.compute([float(v) for v in first + second])["alpha1"]
+    el, times = 0.0, []
+    for rr in first:
+        times.append((el + rr / 2.0) / 1000.0)
+        el += rr
+    lfhf = fd.compute_from_clean_pairs(times, [float(v) for v in first])["lfHfRatio"]
+    ok = (w is not None and approx(w["dfaAlpha1"], a_first, 1e-12) and abs(w["dfaAlpha1"] - a_joined) > 1e-9
+          and approx(w["lfHfRatio"], lfhf, 1e-12))
+    return ok, f"a1={w and w['dfaAlpha1']!r} first={a_first!r} joined={a_joined!r}"
+
+
+@case(S, "testAlpha1InterpolatesAnArtifactRatherThanJoiningItsNeighbours")
+def _():
+    rrs = _varied(200)
+    rrs[100] = 150
+    w = _single_window(_contiguous(rrs))
+    interp = [float(v) for v in rrs]
+    interp[100] = (interp[99] + interp[101]) / 2
+    exp = port_dfa.compute(interp)["alpha1"]
+    return w is not None and approx(w["dfaAlpha1"], exp, 1e-12), f"a1={w and w['dfaAlpha1']!r} exp={exp!r}"
+
+
+@case(S, "testAlpha1IsWithheldWhenTooMuchOfTheStretchIsInterpolated")
+def _():
+    rrs = _varied(200)
+    for i in range(5, 200, 10):
+        rrs[i] = 150
+    w = _single_window(_contiguous(rrs))
+    return w is not None and w["dfaAlpha1"] is None, ""
+
+
+@case(S, "testGapFreeAlpha1IsDFAOverEveryBeat")
+def _():
+    rrs = _varied(200)
+    w = _single_window(_contiguous(rrs))
+    exp = port_dfa.compute([float(v) for v in rrs])["alpha1"]
+    return w is not None and approx(w["dfaAlpha1"], exp, 1e-12), ""
+
+
 if __name__ == "__main__":
     for c in CASES:
         c()

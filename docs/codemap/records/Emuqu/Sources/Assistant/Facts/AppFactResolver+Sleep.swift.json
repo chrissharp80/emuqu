@@ -569,8 +569,8 @@
   },
   {
    "key": "func HRVNamespace.hrvRecord(for:archive:)",
-   "hash": "e7e70d31e885428f",
-   "does": "Builds the HRV record for a session: time-domain, nonlinear, frequency and ANS fields plus overnight_nadir_at_iso (only when nadirWallClock can place it, which needs the RR series — loaded through `archive` for single-night callers; list callers pass nil), labelled with session_type.",
+   "hash": "e170ace1dca12aae",
+   "does": "Builds the HRV record for a session: time-domain, nonlinear, frequency and ANS fields, minus the keys whose values the analysis holds as estimates (estimatedFactKeys), plus overnight_nadir_at_iso (only when nadirWallClock can place it, which needs the RR series — loaded through `archive` for single-night callers; list callers pass nil), labelled with session_type.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.timeDomainFields(session:analysis:)",
@@ -578,7 +578,8 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.frequencyFields(_:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.ansFields(_:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.nadirWallClock(session:analysis:archive:)",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.labeled(_:_:)"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.labeled(_:_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.estimatedFactKeys(_:)"
    ],
    "reads": [
     "file:archive session JSON (full decode with RR series, via nadirWallClock, when archive is passed)"
@@ -597,18 +598,41 @@
     },
     {
      "at": "+11",
+     "cond": "for each estimated fact key",
+     "effect": "key removed from the record"
+    },
+    {
+     "at": "+12",
      "cond": "nadirWallClock returns a time (RR series available)",
      "effect": "adds overnight_nadir_at_iso; else omitted"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "301cdd78533bd624",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.ansFields(_:)": "60fb4dbe4eda80e7",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.estimatedFactKeys(_:)": "200491ec0c7ea7af",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.frequencyFields(_:)": "24687540c5bf7d94",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.nadirWallClock(session:analysis:archive:)": "a24b76c6230e4c7b",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.nonlinearFields(_:)": "03d4d61073ade608",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.timeDomainFields(session:analysis:)": "ac48282fb14dc693",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func OvernightArchive.labeled(_:_:)": "9324288c4bacf32d"
+   }
+  },
+  {
+   "key": "func HRVNamespace.estimatedFactKeys(_:)",
+   "hash": "1aa2118e69eb27d1",
+   "does": "The fact keys whose values the analysis marks as estimated: sdnn_ms, pnn50_percent, sdsd_ms, sd_hr_bpm, window_min/max_hr_bpm (hrRange), sd1_ms, sd2_ms, sd1_sd2_ratio, each when its EstimatedMetric is marked.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "75ec424f441a2c51"
    }
   },
   {
@@ -1413,7 +1437,7 @@
   },
   {
    "key": "var RecoveryNamespace.recoveryScoreLatestEntry",
-   "hash": "8df4a30c9e7a02c1",
+   "hash": "3a89ed6e94fa523b",
    "does": "Declares recovery.score.latest: scoreRecord of OvernightArchive.latest(scoredOnly: true).",
    "entry": "Invoked by FactResolverRegistry when the assistant's tool-use loop (or CompactToolRouter) resolves this fact key; availability closure is evaluated during tool-schema build.",
    "calls": [

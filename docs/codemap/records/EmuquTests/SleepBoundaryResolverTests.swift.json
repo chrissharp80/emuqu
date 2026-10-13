@@ -181,6 +181,34 @@
    }
   },
   {
+   "key": "func SleepBoundaryResolverTests.testDetectSleepOnsetPastTheLatencyCeilingIsUndetermined()",
+   "hash": "a34a41e1f168e0ec",
+   "does": "Builds 2800 beats at 857 ms (~40 min) then 600 at 1090 ms and asserts detectSleepOnset returns nil: the first drop is past the 20-min cap, so onset is undetermined rather than minute 20.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for loop over 2800 awake beats",
+     "effect": "appends 857 ms RR points"
+    },
+    {
+     "at": "+7",
+     "cond": "for loop over 600 sleep beats",
+     "effect": "appends 1090 ms RR points"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "1db284c5abaa3a6e",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
    "key": "func SleepBoundaryResolverTests.testResolverInitialization()",
    "hash": "9590bfe954f5356e",
    "does": "Constructs SleepBoundaryResolver with MockHealthKitService and asserts it is not nil.",
@@ -259,9 +287,25 @@
    }
   },
   {
-   "key": "func SleepBoundaryResolverTests.testValidateBoundaries_HRWantsEarlier_DetailedStages_UsesHR()",
-   "hash": "efbb0fc14e469d24",
-   "does": "validateBoundaries with HR start 30min earlier and detailed stages: asserts start becomes 0 (HR may move onset earlier).",
+   "key": "func SleepBoundaryResolverTests.testValidateBoundaries_HRWantsEarlier_DetailedStages_KeepsHealthKit()",
+   "hash": "057a477ed5d5a931",
+   "does": "validateBoundaries with HR start 30 min earlier and detailed stages: asserts the HealthKit start (1,800,000 ms) stands — detailed stages win over an HR estimate.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validateBoundaries(healthKit:hrEstimate:hasDetailedStages:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validateBoundaries(healthKit:hrEstimate:hasDetailedStages:)": "d044430edfd646d6"
+   }
+  },
+  {
+   "key": "func SleepBoundaryResolverTests.testValidateBoundaries_HRWantsEarlier_NoDetailedStages_UsesHR()",
+   "hash": "b48954daa6c53993",
+   "does": "validateBoundaries with HR start 30 min earlier and no detailed stages: asserts the HR start (0) is used.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.validateBoundaries(healthKit:hrEstimate:hasDetailedStages:)"
@@ -341,11 +385,12 @@
   },
   {
    "key": "func SleepBoundaryResolverTests.testEstimateSleepFromHR_NormalSleeper_StillWorks()",
-   "hash": "ae7a92e68218ac7a",
-   "does": "Builds 30min at 833ms then 6h at 1090ms and asserts estimateSleepFromHR onset is between 10 and 60 minutes.",
+   "hash": "9705f73e6344e187",
+   "does": "Builds 30 min at 833 ms then 6 h at 1090 ms; the first sleep window is 32.5 min in, past the 20-min cap, so asserts estimateSleepFromHR still estimates the night with sleepStart equal to the recording start, sleepLatencyMinutes nil and a wake time.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)"
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes"
    ],
    "reads": [],
    "writes": [],
@@ -364,7 +409,8 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "c16e3d979adbaf49",
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.sleepLatencyMinutes": "e79c0c2375a5ee79"
    }
   }
  ],

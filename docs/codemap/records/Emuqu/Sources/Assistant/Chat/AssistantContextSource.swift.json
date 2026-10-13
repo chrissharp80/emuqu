@@ -80,8 +80,8 @@
   },
   {
    "key": "func AssistantContextSource.build(liveLoadSnapshot:baselineTracker:)",
-   "hash": "0606ea05834c6808",
-   "does": "Loads ~30 days of lightweight sessions, picks newest overnight (else newest any) as latest and the previous overnight as yesterday, computes per-night scoring baselines excluding each night, and calls ContextBuilder.build with settings, tags, 7/30-day TrendAnalyzer results and live load.",
+   "hash": "1956cdb4ffd3b3e2",
+   "does": "Loads ~30 days of lightweight sessions, picks newest overnight (else newest any) as latest and the previous overnight as yesterday, computes per-night scoring baselines excluding each night, and calls ContextBuilder.build with the latest night's sleep, its sleep trend (the archived week of nights before it), settings, tags, 7/30-day TrendAnalyzer results and live load.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.recentLightweightSessions()",
@@ -89,7 +89,8 @@
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.build(latestSession:yesterdaySession:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:customTagNames:baseline:baselineStats:yesterdayBaselineStats:trends7Day:trends30Day:liveLoadSnapshot:)",
     "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)",
-    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(from:)"
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(from:)",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::func AnalysisSleepTrendInput.recentNights(before:in:)"
    ],
    "reads": [
     "mem:SettingsManager.settingsSnapshot",
@@ -105,6 +106,7 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::func AnalysisSleepTrendInput.recentNights(before:in:)": "401b1ccceb3ab387",
     "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(from:)": "59f6fee3b5af8655",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)": "7bf3e795972555e6",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",

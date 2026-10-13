@@ -21,7 +21,6 @@ final class MorningResultsViewModel {
     var isGeneratingPDF = false
     var isGeneratingEmailPDF = false
     var healthKitSleep: SleepData?
-    var sleepTrendStats: HealthKitManager.SleepTrendStats?
     var recoveryVitals: RecoveryVitals?
     var isSleepLoading = true
 
@@ -37,6 +36,14 @@ final class MorningResultsViewModel {
 
     var displaySession: HRVSession {
         reanalyzedSession ?? session
+    }
+
+    /// The week of nights before this one, from the sleep archived with
+    /// `recentSessions` (the sessions before this one); nil when none has
+    /// measured sleep. Feeds the summary's multi-night findings and the
+    /// report's sleep-trend section.
+    var sleepTrendStats: HealthKitManager.SleepTrendStats? {
+        SleepTrendStats.recentNights(before: displaySession, in: recentSessions)
     }
 
     var displayResult: HRVAnalysisResult {

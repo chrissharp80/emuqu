@@ -418,6 +418,89 @@ extension ArchiveIntegrityTests {
         XCTAssertNoThrow(try archive.archive(retrieved), "Equal versions must pass the gate")
     }
 
+    // MARK: - Index Entries From a Newer Build
+
+    /// An index entry this build cannot decode (a newer build's) is not in
+    /// the in-memory index; the next save used to write `index.json` without
+    /// it, dropping the session from the newer build's list.
+    func testSaveKeepsAnIndexEntryThisBuildCannotDecode() throws {
+        let foreignId = UUID()
+        try appendToIndexFile([
+            "schemaVersion": SessionArchiveEntry.currentSchemaVersion + 1, "sessionId": foreignId.uuidString,
+            "date": "a format a newer build uses", "fileHash": "x", "filePath": "\(foreignId.uuidString).json",
+            "fieldFromANewerBuild": ["kept": true]
+        ])
+        let cold = reopenedArchive()
+        XCTAssertFalse(cold.entries.contains { $0.sessionId == foreignId })
+
+        let next = createTestSession()
+        testSessionIds.append(next.id)
+        _ = try cold.archive(next, skipSameNightMerge: true)
+
+        let written = try XCTUnwrap(indexFileObject(sessionId: foreignId), "The save must write the entry back")
+        XCTAssertEqual(written["date"] as? String, "a format a newer build uses")
+        XCTAssertEqual((written["fieldFromANewerBuild"] as? [String: Bool])?["kept"], true)
+        XCTAssertNotNil(try indexFileObject(sessionId: next.id))
+    }
+
+    /// An entry from a newer schema decodes, but re-encoding it dropped the
+    /// fields this build does not know and stamped the older version.
+    func testSaveWritesANewerSchemaEntryBackAsItWasRead() throws {
+        let foreignId = UUID()
+        let newerVersion = SessionArchiveEntry.currentSchemaVersion + 1
+        try appendToIndexFile([
+            "schemaVersion": newerVersion, "sessionId": foreignId.uuidString,
+            "date": "2026-01-02T03:04:05Z", "fileHash": "x", "filePath": "\(foreignId.uuidString).json",
+            "fieldFromANewerBuild": "kept"
+        ])
+        let cold = reopenedArchive()
+        XCTAssertTrue(cold.entries.contains { $0.sessionId == foreignId }, "It decodes and is listed")
+
+        let next = createTestSession()
+        testSessionIds.append(next.id)
+        _ = try cold.archive(next)
+
+        let written = try XCTUnwrap(indexFileObject(sessionId: foreignId))
+        XCTAssertEqual(written["fieldFromANewerBuild"] as? String, "kept")
+        XCTAssertEqual(written["schemaVersion"] as? Int, newerVersion)
+    }
+
+    /// With no entry from a newer build, the index is the plain encoding.
+    func testIndexWithoutNewerEntriesIsThePlainEncoding() throws {
+        let session = createTestSession()
+        testSessionIds.append(session.id)
+        _ = try archive.archive(session)
+        let indexURL = archiveDirectory.appendingPathComponent("index.json")
+        XCTAssertEqual(try Data(contentsOf: indexURL), try SessionArchive.indexEncoder.encode(archive.entries))
+    }
+
+    /// Archives one session through `archive`, then appends `object` to the
+    /// `index.json` it wrote, as a newer build sharing the directory would.
+    func appendToIndexFile(_ object: [String: Any]) throws {
+        let session = createTestSession()
+        testSessionIds.append(session.id)
+        _ = try archive.archive(session)
+        let indexURL = archiveDirectory.appendingPathComponent("index.json")
+        var objects = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: indexURL)) as? [Any])
+        objects.append(object)
+        try JSONSerialization.data(withJSONObject: objects).write(to: indexURL, options: .atomic)
+    }
+
+    func reopenedArchive() -> SessionArchive {
+        SessionArchive(
+            directory: archiveDirectory,
+            sleepScheduleProvider: { SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0) },
+            sessionMergeModeProvider: { .defaultGap },
+            mergeGapProvider: { 4.5 * 3600 }
+        )
+    }
+
+    func indexFileObject(sessionId: UUID) throws -> [String: Any]? {
+        let data = try Data(contentsOf: archiveDirectory.appendingPathComponent("index.json"))
+        let objects = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [[String: Any]])
+        return objects.first { $0["sessionId"] as? String == sessionId.uuidString }
+    }
+
     /// Encode the session with the archive's date strategy, then rewrite the
     /// `schemaVersion` field to simulate a payload from a different build.
     func sessionJSON(_ session: HRVSession, overridingSchemaVersion version: Int) throws -> Data {

@@ -59,14 +59,15 @@
   },
   {
    "key": "var SessionHRVDetailView.timeDomainGrid",
-   "hash": "f6f0083465ae777c",
-   "does": "Two-column grid of time-domain cells: Mean RR, SDNN, RMSSD, SDSD (ms), pNN50 (%), HR Range (min-max rounded %.0f), Mean HR and SD HR (bpm), and HRV triangular index when present.",
+   "hash": "f86199b43bcaa020",
+   "does": "Two-column grid of time-domain cells: Mean RR, SDNN, RMSSD, SDSD (ms), pNN50 (%), HR Range (min-max rounded %.0f), Mean HR and SD HR (bpm), and HRV triangular index when present; SDNN, pNN50, SDSD, HR Range and SD HR values marked '(estimate)' when the result holds them as estimates.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricCell(label:value:)",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.measured(_:_:unit:)",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.msUnit",
-    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.bpmUnit"
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.bpmUnit",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)"
    ],
    "reads": [
     "mem:LanguageManager.shared.bundle",
@@ -82,6 +83,7 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.measured(_:_:unit:)": "ae392726e68ba5b6",
@@ -204,13 +206,14 @@
   },
   {
    "key": "var SessionHRVDetailView.nonlinearGrid",
-   "hash": "68e4296d3bc5c641",
-   "does": "Two-column grid: SD1, SD2 (ms %.1f), SD1/SD2 %.3f always; DFA α1, DFA α2 (%.2f), α1 R², SampEn, ApEn (%.3f) each when present.",
+   "hash": "e403aa7bf1a03052",
+   "does": "Two-column grid: SD1, SD2 (ms %.1f), SD1/SD2 %.3f always (each marked '(estimate)' when it is one); DFA α1, DFA α2 (%.2f), α1 R², SampEn, ApEn (%.3f) each when present.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricCell(label:value:)",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.measured(_:_:unit:)",
-    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.msUnit"
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.msUnit",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)"
    ],
    "reads": [
     "mem:LanguageManager.shared.locale"
@@ -245,6 +248,7 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.measured(_:_:unit:)": "ae392726e68ba5b6",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricCell(label:value:)": "486b77671143ef2f",
@@ -369,11 +373,12 @@
   },
   {
    "key": "var SessionHRVDetailView.dataQualityGrid",
-   "hash": "74e7e29138b922c4",
-   "does": "Two cells: 'Window Beats' = result.cleanBeatCount and 'Artifacts' = result.artifactPercentage %.1f%%.",
+   "hash": "1eb9830b81b327cb",
+   "does": "Two cells: 'Window Beats' = result.cleanBeatCountText ('—' when unknown) and 'Artifacts' = result.artifactPercentage %.1f%%.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricCell(label:value:)"
+    "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricCell(label:value:)",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.cleanBeatCountText"
    ],
    "reads": [
     "mem:LanguageManager.shared.bundle",
@@ -384,6 +389,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.cleanBeatCountText": "362fe52b148f6f4b",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::func SessionHRVDetailView.metricCell(label:value:)": "486b77671143ef2f"

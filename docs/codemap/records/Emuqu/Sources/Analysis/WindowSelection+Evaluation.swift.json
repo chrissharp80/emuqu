@@ -1,11 +1,11 @@
 {
  "file": "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift",
- "hash": "41423475cb9707c5",
+ "hash": "2b8ef6027f094810",
  "role": "WindowSelector extension that scans a beat range with a sliding grid and evaluates each candidate window into a ScoredRecoveryBlock (artifact gate, >=50 valid RR, ectopic gate, masked RMSSD, HR CV, DFA a1, relative position).",
  "types": [
   "WindowSelector.ScanGrid: struct — band start/end, window and step size",
   "WindowSelector.WindowSlice: struct — bounds-checked points/flags of one window",
-  "WindowSelector.CleanBeats: struct — ectopic-filtered RRs and masked RMSSD",
+  "WindowSelector.CleanBeats: struct — ectopic-filtered beats as a CleanBeatWindow (series indices and breaks kept for DFA) and masked RMSSD; rrs is the beats' RR",
   "WindowSelector.WindowMetrics: struct (private) — meanHR, hrCV, rmssd, sdnn"
  ],
  "state": [],
@@ -116,9 +116,21 @@
    }
   },
   {
+   "key": "var WindowSelector.CleanBeats.rrs",
+   "hash": "85b455dd0b90d62f",
+   "does": "The ectopic-filtered beats' RR values (beats.rr).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
    "key": "func WindowSelector.cleanBeats(rrValues:windowPoints:breaks:)",
-   "hash": "605263ba0b095b89",
-   "does": "Runs TimeDomainAnalyzer.ectopicKeepMask (the gate the reported RMSSD uses) over the window's valid RRs, requires min(minCleanBeats 300, max(50, 75% of window points)) survivors, and returns the clean RRs with masked RMSSD over adjacent kept, unbroken pairs.",
+   "hash": "3127a46985496ee4",
+   "does": "Runs TimeDomainAnalyzer.ectopicKeepMask (the gate the reported RMSSD uses) over the window's valid RRs, requires min(minCleanBeats 300, max(50, 75% of window points)) survivors, and returns the kept beats as a CleanBeatWindow (their series indices and the window's breaks) with masked RMSSD over adjacent kept, unbroken pairs.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.ectopicKeepMask(_:)",
@@ -129,7 +141,7 @@
    "writes": [],
    "branches": [
     {
-     "at": "+6",
+     "at": "+7",
      "cond": "clean count < adaptive minimum",
      "effect": "log and return nil; else return CleanBeats"
     }
@@ -143,13 +155,14 @@
   },
   {
    "key": "func WindowSelector.scoredBlock(slice:rrValues:artifactRate:clean:sessionStartMs:sessionEndMs:)",
-   "hash": "d27d1dfb7a23f279",
-   "does": "Builds the ScoredRecoveryBlock: metrics (mean HR, sample-SD SDNN — the reported estimator — and HR CV), relative position, DFA a1 when >=64 clean beats, ectopic rate, lfHfRatio always nil.",
+   "hash": "f3491a4391e258be",
+   "does": "Builds the ScoredRecoveryBlock: metrics (mean HR, sample-SD SDNN — the reported estimator — and HR CV), relative position, DFA a1 when >=64 clean beats via DFAAnalyzer.compute(window:) (beats removed as artifact, out of range or ectopic interpolated; no box across a recording break), ectopic rate, lfHfRatio always nil.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::var WindowSelector.CleanBeats.rrs",
     "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeWindowMetrics(cleanRRs:rmssd:windowPoints:)",
     "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeRelativePosition(windowPoints:sessionStartMs:sessionEndMs:)",
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)"
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(window:)"
    ],
    "reads": [],
    "writes": [],
@@ -172,9 +185,10 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(window:)": "3b5f011038902703",
     "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeRelativePosition(windowPoints:sessionStartMs:sessionEndMs:)": "f21cf3eee793629a",
-    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeWindowMetrics(cleanRRs:rmssd:windowPoints:)": "1ffe622727230603"
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::func WindowSelector.computeWindowMetrics(cleanRRs:rmssd:windowPoints:)": "1ffe622727230603",
+    "Emuqu/Sources/Analysis/WindowSelection+Evaluation.swift::var WindowSelector.CleanBeats.rrs": "6bfd57789c9814ed"
    }
   },
   {

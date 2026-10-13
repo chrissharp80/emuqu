@@ -510,13 +510,13 @@
   },
   {
    "key": "func SleepHealthQueries.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)",
-   "hash": "e9cd9e964dca40e2",
-   "does": "Estimates sleep from passive Watch HR in HealthKit: gets smoothed overnight HR, derives a threshold, onset (clamped to windowStart) and wake via HRSleepEstimator, and returns HRSleepEstimator.estimatedSleepData when the span is >= minimumSleepMinutes; nil otherwise. Called via the HealthKitManager forwarder by MorningProcessingService+Sleep.swift:202 and MorningResultsViewModel.swift:498 (SleepBoundaryResolver.swift:213 only mentions it in a comment).",
+   "hash": "170cbbba5c1f17cd",
+   "does": "Estimates sleep from passive Watch HR in HealthKit: gets smoothed overnight HR, derives a threshold, onset (HRSleepEstimator.plausibleSleepOnset: a detection more than 20 min after windowStart falls back to windowStart) and wake via HRSleepEstimator, and returns HRSleepEstimator.estimatedSleepData when the span is >= minimumSleepMinutes; nil otherwise. Called via the HealthKitManager forwarder by MorningProcessingService+Sleep and MorningResultsViewModel.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.smoothedOvernightHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrSleepThreshold(_:)",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.clampedSleepOnset(_:threshold:windowStart:)",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleSleepOnset(_:threshold:windowStart:)",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.sleepWake(_:threshold:)",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimatedSleepData(sleepStart:sleepEnd:sleepMinutes:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -544,7 +544,7 @@
     },
     {
      "at": "+12",
-     "cond": "no clamped onset OR no wake time found",
+     "cond": "no onset OR no wake time found",
      "effect": "returns nil"
     },
     {
@@ -555,9 +555,9 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.clampedSleepOnset(_:threshold:windowStart:)": "28342b913bf4cf73",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimatedSleepData(sleepStart:sleepEnd:sleepMinutes:)": "48140da9ccac60de",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimatedSleepData(sleepStart:sleepEnd:sleepMinutes:)": "0a63b0a4bbc7e670",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrSleepThreshold(_:)": "8eeb970522a525e8",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleSleepOnset(_:threshold:windowStart:)": "4d252e0b67e586da",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.sleepWake(_:threshold:)": "d98e3e3b3303abfc",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.smoothedOvernightHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "489a3c64566f74a5",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "6a80ac7c585d4e2f",

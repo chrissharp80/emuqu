@@ -194,6 +194,17 @@ struct HRVAnalysisResult: Codable {
     var trainingContext: TrainingContext?
     var analysisSegmentLabel: String?
     var isReanalysis: Bool?
+
+    // Provenance: `EstimatedMetric` raw values an importer filled without a
+    // measurement (nil from the analysis pipeline). Display marks them as
+    // estimates; baselines, trends, cause rules, AI context and Apple Health
+    // leave them out. `isEstimated(_:)`, `measuredSDNN`, `measuredPNN50`,
+    // `measured(_:as:)` and `markingEstimate(_:for:)` read it.
+    var estimatedMetrics: [String]?
+}
+
+enum EstimatedMetric: String, CaseIterable {
+    case sdnn, pnn50, sdsd, sdHR, hrRange, sd1, sd2, sd1Sd2Ratio
 }
 ```
 
@@ -842,6 +853,18 @@ enum NonlinearAnalyzer {
 }
 ```
 
+None of the four treats a removed (artifact) beat or a recording break as
+adjacency. SD1 = √(½·Var) of the time domain's successive differences
+(`TimeDomainAnalyzer.successiveDifferences(in:)`: originally adjacent clean
+beats, no break between them, same ectopic gate), so SD1 tracks SDSD/√2; SD2
+keeps Brennan's identity with the variance of all clean beats. Entropy
+templates lie inside runs of neighbouring beats. DFA interpolates removed
+beats and splits at breaks (`DFAAnalyzer.compute(window:)`). Both take the
+window from `TimeDomainAnalyzer.cleanWindow`, which returns a
+`CleanBeatWindow` (clean beats, their series indices, the breaks). Nil when
+fewer than 10 clean beats or no adjacent clean pair. A window with no removed
+beat and no break gives the single-series values.
+
 ### DFAAnalyzer
 **File**: `Emuqu/Sources/Analysis/DFAAnalysis.swift`
 
@@ -862,6 +885,20 @@ enum DFAAnalyzer {
     ) -> DFAResult?
     // Requires >= alpha2ScaleMax (64) beats
     // Log-spaced box sizes per Peng et al. 1995
+
+    static func compute(window: CleanBeatWindow) -> DFAResult?
+    // compute(segments: interpolatedSegments(window))
+
+    static func compute(
+        segments: [[Double]],
+        alpha1Range: ClosedRange<Int> = ..., alpha2Range: ClosedRange<Int> = ...
+    ) -> DFAResult?
+    // One profile over all segments; no box spans two. Boxes up to 1/4 of
+    // the longest segment. One segment == compute(_:).
+
+    static func interpolatedSegments(_ window: CleanBeatWindow) -> [[Double]]
+    // Split at recording breaks; removed beats inside a segment linearly
+    // interpolated (Kubios; Lipponen & Tarvainen 2019); none extrapolated.
 }
 ```
 
@@ -935,7 +972,7 @@ enum RecoveryScoreCalculator {
         let factors: [ScoreFactor]    // Labels: "HRV", "Sleep", "Vitals" (no longer "Training Load")
         let penalties: [String]       // Currently only SpO2 (-10 if <95%); the prior RR/temp
                                       // penalties moved into the Vitals sub-score.
-        var scoringVersion: String    // ScoringVersion.current ("v3.1.oct2026") when built;
+        var scoringVersion: String    // ScoringVersion.current ("v3.2.oct2026") when built;
                                       // "unversioned" when decoded from an older record
         var message: String { get }   // Computed: factor-aware coaching advice
     }
@@ -1232,7 +1269,7 @@ struct AnalysisSleepInput {
     let deepSleepMinutes: Int?
     let remSleepMinutes: Int?
     let awakeMinutes: Int
-    let sleepEfficiency: Double
+    let sleepEfficiency: Double?
     static let empty: AnalysisSleepInput
     init(from healthKit: SleepData?)
 }
@@ -1240,12 +1277,15 @@ struct AnalysisSleepInput {
 struct AnalysisSleepTrendInput {
     let averageSleepMinutes: Double
     let averageDeepSleepMinutes: Double?
-    let averageEfficiency: Double
+    let averageEfficiency: Double?
     let trend: SleepTrend
     let nightsAnalyzed: Int
     enum SleepTrend: String { case improving, declining, stable, insufficient }
     static let empty: AnalysisSleepTrendInput
     init(from healthKit: HealthKitManager.SleepTrendStats?)
+    // The week of nights before `session`, from the sleep archived with
+    // `sessions`; nil without a session or a night with measured sleep.
+    static func recentNights(before session: HRVSession?, in sessions: [HRVSession]) -> AnalysisSleepTrendInput?
 }
 ```
 
@@ -1998,6 +2038,9 @@ final class RRDataImporter {
             let rrMin: Double
             let rrMax: Double
             let fileName: String
+            let sdnn: Double?        // the file's Sdnn column, when it has one
+            let pnn50: Double?       // the file's Pnn50 column, when it has one
+            let rrRangeStated: Bool  // both RR extremes stated by the file
         }
         let sessions: [SessionSummary]
         let originalFileName: String

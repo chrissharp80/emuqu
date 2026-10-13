@@ -1,7 +1,7 @@
 {
  "file": "EmuquTests/AnalysisSummaryTrendDirectionTests.swift",
- "hash": "2ddcc4de1935bbcc",
- "role": "XCTest suite checking the morning report's 7-day HRV trend line and 'Upward Trend' cause follow the shared TrendVerdict: a clean +8% rise is reported, a noisy +12.3% week is not.",
+ "hash": "5db5423748f225eb",
+ "role": "XCTest suite checking the morning report's 7-day HRV trend line and 'Upward Trend' cause follow the shared TrendVerdict (a clean +8% rise is reported, a noisy +12.3% week is not), and that the sleep trend is built from the archived nights before a session and reaches the view model and the summary.",
  "types": [
   "AnalysisSummaryTrendDirectionTests: class — @MainActor XCTestCase over AnalysisSummaryGenerator trend wording"
  ],
@@ -160,6 +160,141 @@
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "dbee6f6b31b89e1c",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
     "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.mentionsWeeklyTrend(_:)": "74a4d6063eac8e5e",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.summary(earlier:)": "6db4385438e086f7"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryTrendDirectionTests.sleptNight(daysAgo:minutes:)",
+   "hash": "2f57c04081fb26cb",
+   "does": "An overnight fixture night (night(daysAgo:rmssd: 40)) with a measured sleep snapshot of the given minutes, dated at the session's end.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.night(daysAgo:rmssd:)",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "1cc7226bea048722",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.night(daysAgo:rmssd:)": "80178bf68a799398"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryTrendDirectionTests.priorWeek()",
+   "hash": "92ce4e201cae97c8",
+   "does": "Fixture history: 5-hour nights 1-3 days ago, 8-hour nights 4-6 days ago, a shorter duplicate of the night 1 day ago, a quick reading carrying sleep, and an 8-hour night 9 days ago (outside the week).",
+   "entry": null,
+   "calls": [
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.sleptNight(daysAgo:minutes:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "c7b26a15a8118fc5",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.sleptNight(daysAgo:minutes:)": "71818a37a072325a"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryTrendDirectionTests.testTheTrendIsBuiltFromTheWeekOfArchivedNightsBeforeTheSession()",
+   "hash": "d4f9eabc55d8f032",
+   "does": "Asserts SleepTrendStats.recentNights over priorWeek counts 6 nights (duplicate, quick reading and out-of-window night dropped), averages 390 min, reads declining and averages 90 % efficiency.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.sleptNight(daysAgo:minutes:)",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.priorWeek()",
+    "Emuqu/Sources/Collection/SleepTrendStats.swift::func SleepTrendStats.recentNights(before:in:days:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepTrendStats.swift::func SleepTrendStats.recentNights(before:in:days:)": "3511be29c1b3e8e0",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.priorWeek()": "4dbc5a65000fc7ac",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.sleptNight(daysAgo:minutes:)": "71818a37a072325a"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryTrendDirectionTests.testNoArchivedNightMeansNoTrend()",
+   "hash": "f6551c431d326ac8",
+   "does": "Asserts recentNights is nil with no history, and AnalysisSleepTrendInput.recentNights is nil without a session.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.sleptNight(daysAgo:minutes:)",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.priorWeek()",
+    "Emuqu/Sources/Collection/SleepTrendStats.swift::func SleepTrendStats.recentNights(before:in:days:)",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::func AnalysisSleepTrendInput.recentNights(before:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::func AnalysisSleepTrendInput.recentNights(before:in:)": "401b1ccceb3ab387",
+    "Emuqu/Sources/Collection/SleepTrendStats.swift::func SleepTrendStats.recentNights(before:in:days:)": "3511be29c1b3e8e0",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.priorWeek()": "4dbc5a65000fc7ac",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.sleptNight(daysAgo:minutes:)": "71818a37a072325a"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryTrendDirectionTests.testTheMorningReportReadsTheTrend()",
+   "hash": "c3544d06a43c5dcc",
+   "does": "Asserts MorningResultsViewModel.sleepTrendStats, built over priorWeek, analyses 6 nights (it was never set before).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.sleptNight(daysAgo:minutes:)",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.priorWeek()",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.result(rmssd:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::init MorningResultsViewModel(session:result:recentSessions:settingsManager:healthKit:)",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.sleepTrendStats"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::init MorningResultsViewModel(session:result:recentSessions:settingsManager:healthKit:)": "ad0f0854abe74aef",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.sleepTrendStats": "cc6148151086cb6f",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.priorWeek()": "4dbc5a65000fc7ac",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.result(rmssd:)": "1b0443b96c642eff",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.sleptNight(daysAgo:minutes:)": "71818a37a072325a"
+   }
+  },
+  {
+   "key": "func AnalysisSummaryTrendDirectionTests.testTheSummaryReportsADecliningWeek()",
+   "hash": "4e41dff54796eccf",
+   "does": "Generates a summary for a 5-hour night with the trend from priorWeek and asserts a 'Sleep trending down' key finding.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.sleptNight(daysAgo:minutes:)",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.priorWeek()",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.result(rmssd:)",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::func AnalysisSleepTrendInput.recentNights(before:in:)",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(from:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::func AnalysisSleepTrendInput.recentNights(before:in:)": "401b1ccceb3ab387",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::init AnalysisSleepInput(from:)": "59f6fee3b5af8655",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.keyFindings": "68644d42d3324f63",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.generate()": "886c28e6678bd645",
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::init AnalysisSummaryGenerator(result:session:recentSessions:selectedTags:sleep:sleepTrend:trainingContext:userAge:biologicalSex:currentReadiness:todayTrimp:liveLoadSnapshot:canonicalBaselineRMSSD:canonicalBaselineHR:referenceDate:)": "b7df17a4529f5624",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.priorWeek()": "4dbc5a65000fc7ac",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.result(rmssd:)": "1b0443b96c642eff",
+    "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.sleptNight(daysAgo:minutes:)": "71818a37a072325a",
     "EmuquTests/AnalysisSummaryTrendDirectionTests.swift::func AnalysisSummaryTrendDirectionTests.summary(earlier:)": "6db4385438e086f7"
    }
   }

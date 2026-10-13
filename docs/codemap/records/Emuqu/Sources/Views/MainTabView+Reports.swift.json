@@ -1,34 +1,22 @@
 {
  "file": "Emuqu/Sources/Views/MainTabView+Reports.swift",
- "hash": "9b956ff70b94d29c",
+ "hash": "4c8bfecfd4625376",
  "role": "MainTabView extension rendering the dashboard Send-report PDFs off the main actor — recovery, daily and workout, to tmp/emuqu-report-<epoch>.pdf — through ReportRenderer, the renders it shares with Reports → Browse (ReportsListView); and ReportBaselineNights, the baseline-night selection both use.",
  "types": [
-  "ReportBaselineNights: enum — before(_:archive:), the overnights strictly before a reported night, read until 60 are reliable",
+  "ReportBaselineNights: enum — before(_:archive:sleepSchedule:), the overnights strictly before a reported night, read until they hold 60 baseline nights (BaselineTracker.recoveryWindowNights)",
   "ReportRenderer: enum — the shared recovery/daily/workout PDF renders (renderRecovery, renderDaily, renderWorkout)",
-  "ReportRenderer.Profile: struct — maxHR/restingHR/LTHR/units/temperature unit bundle"
+  "ReportRenderer.Profile: struct — maxHR/restingHR/LTHR/units/sleep schedule/temperature unit bundle"
  ],
  "state": [
   "file:tmp/emuqu-report-<epoch seconds>.pdf"
  ],
  "toplevel": "",
- "flags": [
-  {
-   "kind": "duplicate",
-   "sev": "low",
-   "text": "ReportBaselineNights.count = 60 is a hand copy of DailyLoopAnalysis.baselineNightLimit (private) and WorkoutRecorder+Metrics.baselineNightLimit; changing one does not change the others.",
-   "evidence": [
-    "Emuqu/Sources/Views/MainTabView+Reports.swift:118",
-    "Emuqu/Sources/Analysis/DailyLoopAnalysis.swift:195",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift:364"
-   ],
-   "found": "first read, upheld on second"
-  }
- ],
+ "flags": [],
  "units": [
   {
    "key": "func MainTabView.renderReport(kind:inputs:liveLoadSnapshot:)",
-   "hash": "014c513daf60f1b0",
-   "does": "Dispatches by kind to the recovery/daily/workout renderer with a timestamped temp PDF URL and the inputs' ReportRenderer.Profile (HR settings, units, temperature unit); any thrown error becomes .failed(localizedDescription).",
+   "hash": "5fcd6235891893c0",
+   "does": "Dispatches by kind to the recovery/daily/workout renderer with a timestamped temp PDF URL and the inputs' ReportRenderer.Profile (HR settings, units, sleep schedule, temperature unit); any thrown error becomes .failed(localizedDescription).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MainTabView+Reports.swift::func MainTabView.renderRecoveryReport(_:to:load:)",
@@ -72,12 +60,12 @@
   },
   {
    "key": "func MainTabView.withFullSessions(_:kind:)",
-   "hash": "3b7e6c3374fd301b",
-   "does": "Inside the detached render: replaces the lightweight recovery/workout/pair sessions with full archive reads (falling back to the lightweight copy), and for a recovery or daily report re-reads the baseline nights from the whole archive — the overnights strictly before the reported night, read until 60 are reliable (ReportBaselineNights) — instead of the dashboard slice's reliable overnights, which included the reported night; a workout report keeps the passed list.",
+   "hash": "828853cad7c64772",
+   "does": "Inside the detached render: replaces the lightweight recovery/workout/pair sessions with full archive reads (falling back to the lightweight copy), and for a recovery or daily report re-reads the baseline nights from the whole archive — the overnights strictly before the reported night, read until they hold 60 baseline nights (ReportBaselineNights.before with the inputs' sleep schedule) — instead of the dashboard slice's reliable overnights, which included the reported night; a workout report keeps the passed list. Carries the sleep schedule through.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
-    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportBaselineNights.before(_:archive:)"
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportBaselineNights.before(_:archive:sleepSchedule:)"
    ],
    "reads": [
     "archive:SessionArchive.retrieve (full sessions)",
@@ -113,7 +101,7 @@
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "f0a309cc2b24de13",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "f6e8e8b63c776e74",
-    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportBaselineNights.before(_:archive:)": "1ff6f104c1019b50",
+    "Emuqu/Sources/Views/MainTabView+Reports.swift::func ReportBaselineNights.before(_:archive:sleepSchedule:)": "c8c4570546e3b00b",
     "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
    }
   },
@@ -236,13 +224,15 @@
    }
   },
   {
-   "key": "func ReportBaselineNights.before(_:archive:)",
-   "hash": "2f7dd5b39469efc8",
-   "does": "Overnight index entries dated strictly before the night, newest first, decoded lightweight (entries that fail to decode are skipped) until 60 (count) of them are reliable (isReliableForHRVAggregates), so the daily loop's baseline covers the same 60 reliable nights as the recovery score's. Shared by the Send-Report menu and Reports → Browse.",
+   "key": "func ReportBaselineNights.before(_:archive:sleepSchedule:)",
+   "hash": "0fe21a3f9819bab8",
+   "does": "Overnight index entries dated strictly before the night, newest first, decoded lightweight (entries that fail to decode are skipped), until they hold count (BaselineTracker.recoveryWindowNights, 60) baseline nights: distinct nightKeys before the reported night's with a session BaselineTracker.isBaselineCandidate admits. The daily loop selects its baseline from these with the score's rule, so it can reach the same 60 nights. Shared by the Send-Report menu and Reports → Browse.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isBaselineCandidate(_:)"
    ],
    "reads": [
     "archive:SessionArchive.entries",
@@ -251,24 +241,27 @@
    "writes": [],
    "branches": [
     {
-     "at": "+6",
-     "cond": "reliableCount < count",
-     "effect": "keep reading; stop at 60 reliable"
+     "at": "+7",
+     "cond": "baseline nights < count",
+     "effect": "keep reading; stop at 60 distinct baseline nights"
     },
     {
-     "at": "+7",
+     "at": "+8",
      "cond": "decode fails",
      "effect": "skipped"
     },
     {
-     "at": "+9",
-     "cond": "session reliable",
-     "effect": "counts toward the 60"
+     "at": "+11",
+     "cond": "night before the reported one and isBaselineCandidate",
+     "effect": "its nightKey counts toward the 60"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isBaselineCandidate(_:)": "9b2b167d3f241aed",
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)": "b52d1b79b4d7211e",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "ea9a72bd018fe66d",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6"
    }
@@ -301,14 +294,15 @@
   },
   {
    "key": "func ReportRenderer.recoveryPDFURL(for:recentOvernight:baselineStats:load:)",
-   "hash": "37c392c87401f094",
-   "does": "PDFReportGenerator.generateReportURL for the overnight with its frozen sleep and vitals snapshots, stored score breakdown/composite, the recent overnights, the given baseline and live load, comprehensive style, all sections; no sleep trend or HealthKit HR. Returns the generator's own temp URL, nil when it couldn't render.",
+   "hash": "09566fa67d17cf19",
+   "does": "PDFReportGenerator.generateReportURL for the overnight with its frozen sleep and vitals snapshots, the sleep trend of the archived nights before it in recentOvernight (nil when none), stored score breakdown/composite, the recent overnights, the given baseline and live load, comprehensive style, all sections; no HealthKit HR. Returns the generator's own temp URL, nil when it couldn't render.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator(config:settingsProvider:)",
     "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.SleepData(from:)",
     "Emuqu/Sources/Export/PDFReportGenerator.swift::init PDFReportGenerator.VitalsData(from:)",
-    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.generateReportURL(for:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)"
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.generateReportURL(for:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)",
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::func AnalysisSleepTrendInput.recentNights(before:in:)"
    ],
    "reads": [],
    "writes": [
@@ -317,6 +311,7 @@
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Analysis/AnalysisSleepInputs.swift::func AnalysisSleepTrendInput.recentNights(before:in:)": "401b1ccceb3ab387",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "25ff7cdb40a8ca69",
     "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.generateReportURL(for:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "778fffbb2cefce5c",
@@ -353,11 +348,11 @@
   },
   {
    "key": "func ReportRenderer.renderDaily(workout:track:overnight:recentOvernight:profile:load:to:)",
-   "hash": "829b21cc81d7f6a3",
-   "does": "Builds HolisticDailyReport for the workout and the night before it (track, recent overnights, profile HR settings, units, temperature unit, live load) and writes it to pdfURL.",
+   "hash": "4452bc82cc929665",
+   "does": "Builds HolisticDailyReport for the workout and the night before it (track, recent overnights, profile HR settings, units, sleep schedule, temperature unit, live load) and writes it to pdfURL.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:temperatureUnit:liveLoadSnapshot:config:)",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:sleepSchedule:temperatureUnit:liveLoadSnapshot:config:)",
     "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)"
    ],
    "reads": [],
@@ -368,7 +363,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)": "8e081b59989b2340",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:temperatureUnit:liveLoadSnapshot:config:)": "856be540285510d8",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::init HolisticDailyReport(workoutSession:workoutTrack:overnightSession:recentOvernightSessions:userMaxHR:userRestingHR:userLTHR:units:sleepSchedule:temperatureUnit:liveLoadSnapshot:config:)": "4efd68e54be1f713",
     "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "063a6053cf5ccc9d"
    }
   },

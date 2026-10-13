@@ -44,6 +44,8 @@ final class AssistantViewModel {
         didSet { composerState.update(canSend: !isStreaming && registry.activeProviderAvailable) }
     }
     var errorMessage: String?
+    /// Destructive tool calls waiting for the user's yes in this conversation.
+    let actionConfirmations = AssistantActionConfirmations()
 
     /// Narrow observable surface for the chat
     /// input bar. If the bar observed the full

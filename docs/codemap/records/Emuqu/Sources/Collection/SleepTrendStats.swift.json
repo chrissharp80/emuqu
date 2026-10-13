@@ -1,14 +1,147 @@
 {
  "file": "Emuqu/Sources/Collection/SleepTrendStats.swift",
- "hash": "9fa859af8f9b8035",
- "role": "Value type for multi-night sleep trend statistics returned by HealthKitManager sleep-trend analysis and consumed by morning results / PDF report.",
+ "hash": "80abf8fd68a5e1c7",
+ "role": "Value type for multi-night sleep trend statistics, and its construction from the sleep archived with recent overnight sessions (SleepTrendStats.recentNights); consumed by MorningResultsViewModel, the PDF report, the assistant context and the report renderer through AnalysisSleepTrendInput.",
  "types": [
   "SleepTrendStats: struct — averages + trend + nightsAnalyzed",
   "SleepTrendStats.SleepTrend: enum String — improving/declining/stable/insufficient ('insufficient data')"
  ],
  "state": [],
- "toplevel": "Struct and enum declarations only; no units.",
+ "toplevel": "Struct and enum declarations, plus an extension with the archive-based constructors.",
  "flags": [],
- "units": [],
+ "units": [
+  {
+   "key": "func SleepTrendStats.recentNights(before:in:days:)",
+   "hash": "c476bf8d30023c3e",
+   "does": "The trend over the nights in the `days` (default 7) before `session` (priorNights), or nil when there is none; the session's own night is excluded.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SleepTrendStats.swift::func SleepTrendStats.priorNights(before:in:days:)",
+    "Emuqu/Sources/Collection/SleepTrendStats.swift::init SleepTrendStats(nights:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no prior night with measured sleep",
+     "effect": "nil (callers read it as no trend)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepTrendStats.swift::func SleepTrendStats.priorNights(before:in:days:)": "8a32040ec56480e5",
+    "Emuqu/Sources/Collection/SleepTrendStats.swift::init SleepTrendStats(nights:)": "ac4a8abbbd7faa3b"
+   }
+  },
+  {
+   "key": "init SleepTrendStats(nights:)",
+   "hash": "c3c465c1e97afe25",
+   "does": "Averages newest-first nights: mean nightSleepMinutes, mean deep minutes over nights that have them (nil when none), mean measured efficiency (averageMeasuredEfficiency, nil when no wake was measured), nightsAnalyzed = count, and a direction from direction(_:) when there are two or more nights.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.averageMeasuredEfficiency(_:)",
+    "Emuqu/Sources/Collection/SleepTrendStats.swift::func SleepTrendStats.direction(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no night has deep minutes",
+     "effect": "averageDeepSleepMinutes nil"
+    },
+    {
+     "at": "+5",
+     "cond": "fewer than 2 nights",
+     "effect": "trend .insufficient"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.averageMeasuredEfficiency(_:)": "6ac5676e2d688831",
+    "Emuqu/Sources/Collection/SleepTrendStats.swift::func SleepTrendStats.direction(_:)": "e3515a2ea966f160",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29"
+   }
+  },
+  {
+   "key": "func SleepTrendStats.priorNights(before:in:days:)",
+   "hash": "9067dde7811d60eb",
+   "does": "Snapshots of overnight sessions (not the session itself or its linked segments) that started in the `days` before the session, with measured night sleep and not on the session's own sleep night; one per calendar night (the longest when a split night's segments each carry one), newest first.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "session type / id / linked segment",
+     "effect": "only other overnight sessions count"
+    },
+    {
+     "at": "+7",
+     "cond": "start time outside [session start - days, session start)",
+     "effect": "dropped"
+    },
+    {
+     "at": "+9",
+     "cond": "no night sleep, or same night as the session's own snapshot",
+     "effect": "dropped"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "0bfeccbb14d81def",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29"
+   }
+  },
+  {
+   "key": "func SleepTrendStats.direction(_:)",
+   "hash": "7523e093405429c8",
+   "does": "Compares the mean night sleep of the newer half (prefix of the newest-first list) with the older half: above +10 % improving, below -10 % declining, else stable (0 % when the older mean is 0).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SleepTrendStats.swift::func SleepTrendStats.averageMinutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "changePercent > 10",
+     "effect": ".improving"
+    },
+    {
+     "at": "+6",
+     "cond": "changePercent < -10",
+     "effect": ".declining"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepTrendStats.swift::func SleepTrendStats.averageMinutes(_:)": "caa94c39ace7a641"
+   }
+  },
+  {
+   "key": "func SleepTrendStats.averageMinutes(_:)",
+   "hash": "49d09451c5dfbdc2",
+   "does": "Mean nightSleepMinutes of a slice of nights (0 for an empty slice).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "98397cd69f11df29"
+   }
+  }
+ ],
  "deps": {}
 }

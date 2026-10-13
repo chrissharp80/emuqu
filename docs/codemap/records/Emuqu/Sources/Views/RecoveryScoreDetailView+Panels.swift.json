@@ -401,14 +401,15 @@
   },
   {
    "key": "var RecoveryScoreDetailView.captureRows",
-   "hash": "1bcde810b8049592",
-   "does": "Rows: session start, session end, beats recorded, beats analysed (cleanBeatCount), artifact rate, then the data-loss row.",
+   "hash": "d7d58d3a49a8c881",
+   "does": "Rows: session start, session end, beats recorded, beats analysed (cleanBeatCountText: '—' when unknown), artifact rate, then the data-loss row.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.formattedDate(_:)",
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.effectiveRRSeries",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.dataLossRow"
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::var RecoveryScoreDetailView.dataLossRow",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.cleanBeatCountText"
    ],
    "reads": [],
    "writes": [],
@@ -427,6 +428,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.cleanBeatCountText": "362fe52b148f6f4b",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Panels.swift::func RecoveryScoreDetailView.detailRow(_:value:)": "471064d87666a6a1",

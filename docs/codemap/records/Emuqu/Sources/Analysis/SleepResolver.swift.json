@@ -932,7 +932,7 @@
   {
    "key": "func SleepResolver.inferStagesFromRR(ctx:envelope:)",
    "hash": "052df70891d10da1",
-   "does": "Row 2: with session and >= 100 RR points, anchors at max(envelope start, detected HR onset — capped at 20 min by detectSleepOnset, wall-clock ms like the envelope offsets) and runs HRVSleepStageClassifier.classify to the envelope end, re-tagging the returned intervals' provenance .hrvDerived (the classifier builds them as .watch); [] otherwise.",
+   "does": "Row 2: with session and >= 100 RR points, anchors at max(envelope start, detected HR onset — detectSleepOnset gives none when the first drop is more than 20 min in, so the envelope start stands; wall-clock ms like the envelope offsets) and runs HRVSleepStageClassifier.classify to the envelope end, re-tagging the returned intervals' provenance .hrvDerived (the classifier builds them as .watch); [] otherwise.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
@@ -971,7 +971,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "da561724b018c059",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "d5f25d3b38744676",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "1db284c5abaa3a6e",
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "6d761b0522590a2a",
     "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "4cec6874d7fcb65a"
    }

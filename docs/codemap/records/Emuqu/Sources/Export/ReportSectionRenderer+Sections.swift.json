@@ -321,13 +321,14 @@
   },
   {
    "key": "func ReportSectionRenderer.drawSummaryHRStats(result:y:contentWidth:)",
-   "hash": "729efb47ff9f0406",
-   "does": "Fills a 50pt stats row and draws four boxes (Min HR, Avg HR, Max HR in bpm, SDNN in ms, from the analysis window) through drawStatBoxRow, 38pt tall at y+6; returns y+65.",
+   "hash": "83093a9163a88b9f",
+   "does": "Fills a 50pt stats row and draws four boxes (Min HR, Avg HR, Max HR in bpm, SDNN in ms, from the analysis window; min/max HR and SDNN marked '(estimate)' when the result holds them as estimates) through drawStatBoxRow, 38pt tall at y+6; returns y+65.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawStatBoxRow(_:y:boxWidth:boxHeight:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)"
    ],
    "reads": [
     "mem:LanguageManager.appBundle",
@@ -339,6 +340,7 @@
    "deps": {
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawStatBoxRow(_:y:boxWidth:boxHeight:)": "7103664dc82eeac5",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "9ce6a8a8008b890d",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "1bf17e24334cbbf7"
@@ -577,27 +579,20 @@
   },
   {
    "key": "func ReportSectionRenderer.drawTimeDomainSection(_:yPosition:in:pageRect:)",
-   "hash": "f5b377baadbad2d8",
-   "does": "Draws 'Time Domain HRV' heading and a grid of Mean NN, SDNN, RMSSD, pNN50, Mean HR, SDSD and (if present) HRV triangular index; returns y+8.",
+   "hash": "1477b37d615cf90e",
+   "does": "Draws 'Time Domain HRV' heading and the timeDomainGridMetrics grid for the result; returns y+8.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawCompactMetricsGrid(_:yPosition:pageRect:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func timeDomainGridMetrics(_:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
-    "mem:LanguageManager.appBundle",
-    "mem:LanguageManager.appLocale"
+    "mem:LanguageManager.appBundle"
    ],
    "writes": [],
-   "branches": [
-    {
-     "at": "+14",
-     "cond": "triangularIndex non-nil",
-     "effect": "appends 'HRV TI'; nil → omitted"
-    }
-   ],
+   "branches": [],
    "flags": [
     {
      "kind": "spec-mismatch",
@@ -612,10 +607,10 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func timeDomainGridMetrics(_:)": "32379e7f61a71e90",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawCompactMetricsGrid(_:yPosition:pageRect:)": "4c33342e0041fb55",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)": "26b21142858fa5f4",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
@@ -644,8 +639,8 @@
   },
   {
    "key": "func ReportSectionRenderer.drawNonlinearSection(_:yPosition:in:pageRect:)",
-   "hash": "8a82863b4e7bd291",
-   "does": "Draws 'Nonlinear HRV' heading and nonlinear grid; returns y+8.",
+   "hash": "09b2927a429e9462",
+   "does": "Draws 'Nonlinear HRV' heading and the nonlinear grid for the result; returns y+8.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)",
@@ -660,7 +655,7 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func nonlinearGridMetrics(_:)": "06e5b59f1162bc07",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func nonlinearGridMetrics(_:)": "c222f194c704e284",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawCompactMetricsGrid(_:yPosition:pageRect:)": "4c33342e0041fb55",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)": "26b21142858fa5f4",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
@@ -1633,12 +1628,42 @@
    }
   },
   {
-   "key": "func nonlinearGridMetrics(_:)",
-   "hash": "4543b180c5797abb",
-   "does": "Nonlinear grid rows: SD1, SD2, SD1/SD2 always; ApEn, SampEn, DFA α1, α2 when present.",
+   "key": "func timeDomainGridMetrics(_:)",
+   "hash": "3e9a9f444e92a12c",
+   "does": "Time-domain grid rows: Mean NN, SDNN, RMSSD, pNN50, Mean HR, SDSD (SDNN, pNN50 and SDSD marked '(estimate)' when the result holds them as estimates) and the HRV triangular index when present.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [
+    "mem:LanguageManager.appBundle",
+    "mem:LanguageManager.appLocale"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "triangularIndex non-nil",
+     "effect": "appends 'HRV TI'; nil → omitted"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
+   }
+  },
+  {
+   "key": "func nonlinearGridMetrics(_:)",
+   "hash": "86e7bda68810d21c",
+   "does": "Nonlinear grid rows: SD1, SD2, SD1/SD2 always (each marked '(estimate)' when the result holds it as one); ApEn, SampEn, DFA α1, α2 when present.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)"
    ],
    "reads": [
     "mem:LanguageManager.appLocale"
@@ -1646,28 +1671,29 @@
    "writes": [],
    "branches": [
     {
-     "at": "+7",
+     "at": "+8",
      "cond": "approxEntropy non-nil",
      "effect": "adds ApEn"
     },
     {
-     "at": "+10",
+     "at": "+11",
      "cond": "sampleEntropy non-nil",
      "effect": "adds SampEn"
     },
     {
-     "at": "+13",
+     "at": "+14",
      "cond": "dfaAlpha1 non-nil",
      "effect": "adds DFA α1"
     },
     {
-     "at": "+16",
+     "at": "+17",
      "cond": "dfaAlpha2 non-nil",
      "effect": "adds DFA α2"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
    }
   },
@@ -1721,12 +1747,13 @@
   },
   {
    "key": "func qualityGridMetrics(_:session:)",
-   "hash": "700927885fdee6d7",
-   "does": "Quality grid rows: recorded beats, analysis-window minutes ('—' when unknown/0), window clean beats, artifact %.",
+   "hash": "8519bacb8cb72ea6",
+   "does": "Quality grid rows: recorded beats, analysis-window minutes ('—' when unknown/0), window clean beats ('—' when unknown), artifact %.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.cleanBeatCountText"
    ],
    "reads": [
     "mem:LanguageManager.appBundle",
@@ -1758,6 +1785,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.cleanBeatCountText": "362fe52b148f6f4b",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"
    }

@@ -837,17 +837,19 @@
   },
   {
    "key": "var HRVDetailV2View.minAvgMaxStrip",
-   "hash": "d63c3bc1235d0152",
-   "does": "Four-cell strip: Min HR, Avg HR, Max HR (bpm) and SDNN (ms), each rounded to Int.",
+   "hash": "8ca7032916d90517",
+   "does": "Four-cell strip: Min HR, Avg HR, Max HR (bpm) and SDNN (ms), each rounded to Int; the Min/Max HR and SDNN labels carry '(estimate)' when the result holds them as estimates.",
    "entry": "SwiftUI view-tree evaluation (re-evaluated on every body recompute of HRVDetailV2View)",
    "calls": [
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.stripCell(label:value:unit:)"
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.stripCell(label:value:unit:)",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.stripCell(label:value:unit:)": "8ac0dfff869bc759"
    }
@@ -1080,20 +1082,28 @@
   },
   {
    "key": "var HRVDetailV2View.variabilityTrendRows",
-   "hash": "0d21f075d7fccc2a",
-   "does": "RMSSD row against rmssdComparison (the recovery baseline when present, labelled 'vs baseline') and SDNN row against trendAverages.sdnn; both higher-is-better.",
+   "hash": "7abd22ea7712ae9e",
+   "does": "RMSSD row against rmssdComparison (the recovery baseline when present, labelled 'vs baseline') and, when SDNN was measured, an SDNN row against trendAverages.sdnn; both higher-is-better.",
    "entry": "SwiftUI view-tree evaluation (re-evaluated on every body recompute of HRVDetailV2View)",
    "calls": [
     "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendRow(metric:today:avg:unit:higherIsBetter:againstBaseline:)",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.rmssdComparison"
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.rmssdComparison",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN"
    ],
    "reads": [
     "mem:HRVDetailV2View.trendAverages"
    ],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "measuredSDNN nil (estimate)",
+     "effect": "SDNN row omitted"
+    }
+   ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "6a822d05adef4c73",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.trendRow(metric:today:avg:unit:higherIsBetter:againstBaseline:)": "41623a585f3b8b4d",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.rmssdComparison": "cf357c9980790e8d"
@@ -1175,13 +1185,14 @@
   },
   {
    "key": "func HRVDetailV2View.averagesForTrend(archive:excluding:since:)",
-   "hash": "b72d12d6308e91fe",
-   "does": "Means over the archive index's reliable overnight entries (isReliableForHRVAggregates) dated on/after the cutoff, excluding this session: RMSSD, mean HR and stress index from the index entry, SDNN from each night's lightweight read (analysisResult.timeDomain.sdnn). Nil per metric when no night carries it.",
+   "hash": "1a9947d5dc1507d2",
+   "does": "Means over the archive index's reliable overnight entries (isReliableForHRVAggregates) dated on/after the cutoff, excluding this session: RMSSD, mean HR and stress index from the index entry, SDNN from each night's lightweight read (analysisResult.measuredSDNN, so estimates are left out). Nil per metric when no night carries it.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::func trendMean(_:)"
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::func trendMean(_:)",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN"
    ],
    "reads": [
     "mem:SessionArchive.entries",
@@ -1192,6 +1203,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "bee106d903239aef",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "6a822d05adef4c73",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "b08e7fb4ca5dd69e",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "8dd50c9f204fb5d6",

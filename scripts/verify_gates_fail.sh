@@ -197,7 +197,7 @@ check "empty_range/unguarded_loop" \
 check "empty_range/unguarded_count_arithmetic" \
     "./scripts/check_empty_range_loops.sh" \
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/NonlinearAnalysis.swift');s=p.read_text();o='        guard rr.count >= 2 else { return 0 }\n';assert s.count(o)>=1;p.write_text(s.replace(o,'',1))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/NonlinearAnalysis.swift');p.write_text(p.read_text()+'\nfunc plantedSum(_ xs: [Double]) -> Double {\n    var s = 0.0\n    for i in 0 ..< (xs.count - 1) { s += xs[i] }\n    return s\n}\n')"
 
 # File counts in MAINTAINERS.md drift, often by 50% or more, when nothing
 # checks them.
