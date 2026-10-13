@@ -428,6 +428,236 @@
    "deps": {
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.ImportedMetrics(rmssd:rmssdRaw:artifactPercent:source:sdnn:)": "0a035c17471c4079"
    }
+  },
+  {
+   "key": "func HRVSessionTests.roundTrip(_:)",
+   "hash": "694540ac7383597a",
+   "does": "Encodes a session and decodes it back with ISO-8601 dates, as an archive save and load would.",
+   "entry": null,
+   "calls": [
+    "ext:JSONEncoder.encode",
+    "ext:JSONDecoder.decode",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "b0ff6f536d9b6875"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.importedSession(source:result:)",
+   "hash": "fe091a0b1bb54911",
+   "does": "A complete session with the given analysis result and ImportedMetrics carrying `source`.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.ImportedMetrics(rmssd:rmssdRaw:artifactPercent:source:sdnn:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession.ImportedMetrics(rmssd:rmssdRaw:artifactPercent:source:sdnn:)": "0a035c17471c4079"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testLegacyEliteImportDecodesWithEveryDerivedMetricMarkedEstimated()",
+   "hash": "06a338f79af78a60",
+   "does": "Asserts a legacy Elite session (file-stated 300 beats and 50–100 bpm range) decodes with every EstimatedMetric except hrRange and beatCount marked, nil measured SDNN/pNN50, no ANS metrics or stress index, and RMSSD kept.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.withLegacyImportProvenance(source:)",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.legacyEliteImportResult(beats:minHR:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.withLegacyImportProvenance(source:)": "eba96be4c889210e",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50": "c6bd570c1d8742c7",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "6a822d05adef4c73",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "1e37d17d0cf0b483",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.importedSession(source:result:)": "7beb11d8b0ebbad0",
+    "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.roundTrip(_:)": "4b6d8958eb40cf64",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.legacyEliteImportResult(beats:minHR:maxHR:)": "35e17d21b1a9d7ca"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testLegacyEliteStandInBeatCountAndRangeAreMarkedEstimated()",
+   "hash": "c905ae968e6d3aac",
+   "does": "Asserts a legacy Elite result holding the importer's stand-ins (100 beats, 60–100 bpm) decodes with every EstimatedMetric marked, and one whose range is mean HR ±15% has hrRange marked but not beatCount.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.legacyEliteImportResult(beats:minHR:maxHR:)",
+    "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.roundTrip(_:)",
+    "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.importedSession(source:result:)",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "75ec424f441a2c51",
+    "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.importedSession(source:result:)": "7beb11d8b0ebbad0",
+    "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.roundTrip(_:)": "4b6d8958eb40cf64",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.legacyEliteImportResult(beats:minHR:maxHR:)": "35e17d21b1a9d7ca"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testLegacyEliteMarkerSurvivesASecondSave()",
+   "hash": "0ac5b0de55099c3b",
+   "does": "Asserts the marker a legacy Elite session gains on decode is the same after a second save and load.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.withLegacyImportProvenance(source:)",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.legacyEliteImportResult(beats:minHR:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.withLegacyImportProvenance(source:)": "eba96be4c889210e",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "1e37d17d0cf0b483",
+    "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.importedSession(source:result:)": "7beb11d8b0ebbad0",
+    "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.roundTrip(_:)": "4b6d8958eb40cf64",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.legacyEliteImportResult(beats:minHR:maxHR:)": "35e17d21b1a9d7ca"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testNewEliteImportKeepsItsOwnMarker()",
+   "hash": "ca8f7301c89b55ee",
+   "does": "Asserts an Elite session that already carries estimatedMetrics decodes with that marker unchanged, its measured SDNN and its ANS metrics.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.withLegacyImportProvenance(source:)",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.withLegacyImportProvenance(source:)": "eba96be4c889210e",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "6a822d05adef4c73",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "1e37d17d0cf0b483",
+    "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.importedSession(source:result:)": "7beb11d8b0ebbad0",
+    "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.roundTrip(_:)": "4b6d8958eb40cf64",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "c6360e6fb9ef3864"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testLegacyEliteImportDecodesWithoutItsScore()",
+   "hash": "6b73b8412c971f23",
+   "does": "Asserts a legacy Elite session saved with a recoveryScore and frozenReadiness decodes with both, and scoreBreakdown, nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.legacyEliteImportResult(beats:minHR:maxHR:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isLegacyEliteImport(source:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isLegacyEliteImport(source:)": "8e65d83bbf9eb543",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "1e37d17d0cf0b483",
+    "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.importedSession(source:result:)": "7beb11d8b0ebbad0",
+    "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.roundTrip(_:)": "4b6d8958eb40cf64",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.legacyEliteImportResult(beats:minHR:maxHR:)": "35e17d21b1a9d7ca"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testRecordedSessionUnderAnEliteSourceKeepsItsScore()",
+   "hash": "03aeda5455b55faa",
+   "does": "Asserts a recorded analysis under an Elite source (as a merge can leave it) keeps its recoveryScore through a save and load.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isLegacyEliteImport(source:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isLegacyEliteImport(source:)": "8e65d83bbf9eb543",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "1e37d17d0cf0b483",
+    "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.importedSession(source:result:)": "7beb11d8b0ebbad0",
+    "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.roundTrip(_:)": "4b6d8958eb40cf64",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "c6360e6fb9ef3864"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testOtherImportsAndRecordedSessionsDecodeUnmarked()",
+   "hash": "53bc8e01465a03ac",
+   "does": "Asserts a result of the legacy Elite shape under another import source decodes unmarked with SDNN and stress index kept.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.withLegacyImportProvenance(source:)",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.legacyEliteImportResult(beats:minHR:maxHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.withLegacyImportProvenance(source:)": "eba96be4c889210e",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "6a822d05adef4c73",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "1e37d17d0cf0b483",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.importedSession(source:result:)": "7beb11d8b0ebbad0",
+    "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.roundTrip(_:)": "4b6d8958eb40cf64",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.legacyEliteImportResult(beats:minHR:maxHR:)": "35e17d21b1a9d7ca"
+   }
+  },
+  {
+   "key": "func HRVSessionTests.testRecordedAnalysisUnderAnEliteSourceIsNotMarked()",
+   "hash": "65f3bdd5386f3f79",
+   "does": "Asserts a recorded analysis (SDSD != RMSSD) under an Elite source, as a merge can leave it, decodes unmarked with its SDNN and stress index.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.withLegacyImportProvenance(source:)",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.withLegacyImportProvenance(source:)": "eba96be4c889210e",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "6a822d05adef4c73",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "1e37d17d0cf0b483",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.importedSession(source:result:)": "7beb11d8b0ebbad0",
+    "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.roundTrip(_:)": "4b6d8958eb40cf64",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "c6360e6fb9ef3864"
+   }
   }
  ],
  "deps": {}

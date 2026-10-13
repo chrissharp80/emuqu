@@ -170,12 +170,13 @@
   },
   {
    "key": "func SessionStorageDiagnostic.analysisSummary(for:)",
-   "hash": "d24e91518a51f8fb",
-   "does": "Localized 'RMSSD x · SDNN y · Score z' summary of the decoded analysis; nil without analysisResult.",
+   "hash": "d8831511f902a8cd",
+   "does": "Localized 'RMSSD x · SDNN y · Score z' summary of the decoded analysis (SDNN marked '(estimate)' when it is one); nil without analysisResult.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.oneDecimal(_:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)"
    ],
    "reads": [],
    "writes": [],
@@ -194,6 +195,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.oneDecimal(_:)": "f4568972e2fc795d"
    }

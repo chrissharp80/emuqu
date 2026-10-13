@@ -85,6 +85,10 @@ final class SessionArchive: @unchecked Sendable {
     /// were moved aside and the in-memory index started empty), so the index
     /// does not list the sessions that file held. Same lock contract as `index`.
     var indexDecodeFailed = false
+    /// The `index.json` entries a newer build wrote that this build would
+    /// lose by re-encoding them, kept as read so `saveIndex` writes them back
+    /// (`IndexEntriesFromNewerBuild`). Same lock contract as `index`.
+    var newerBuildIndexEntries = IndexEntriesFromNewerBuild()
     /// The same for `deleted.json`: the in-memory tombstones are then only
     /// the ones with a recorded deletion time, until the file reads.
     var deletedIndexReadFailed = false
@@ -131,6 +135,7 @@ final class SessionArchive: @unchecked Sendable {
     func resetInMemoryStateAfterPurge() {
         archiveLock.lock()
         index = []
+        newerBuildIndexEntries = IndexEntriesFromNewerBuild()
         deletedSessionIds = []
         sortedEntriesCache = nil
         sessionIdLookup = nil

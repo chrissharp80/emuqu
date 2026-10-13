@@ -231,8 +231,8 @@
   },
   {
    "key": "§ Security Policy > Security Posture > Data sent to third-party AI providers",
-   "hash": "4a34e9e665e04844",
-   "does": "Hosted providers get the chat, saved facts, and a live-state block from renderLiveStateForCloud: the most recent session labelled by wake day (today, yesterday, or date and age; a non-overnight fallback session names its type — liveStateDayLabel) with score+tier, RMSSD, SDNN, mean HR, overnight HR nadir/mean, sleep duration+efficiency and the scoreMessage note; the previous session's score, RMSSD, mean HR; during a live workout the ambient location (road, cross street, locality, subdivision, administrative area, country, heading, speed, altitude, GPS accuracy, fix age — placeBits/motionBits); plus tool results. With Apple selected: Quick keeps typed turns on Apple; Auto sends classifier-flagged turns (sticky tier) to Grok then DeepSeek (consented, enabled, available), else Apple (TierProviderMapper.autoMapping/midTierProvider); Deep sends every turn to Grok then DeepSeek, else Apple (deepMapping); in all three, voice turns (appleVoiceBypass) and action requests landing on tool-less Apple (actionIntentOverride) go to the first consented cloud in registry order, staying on Apple if none; on model failure Quick allows only Apple, Auto/Deep any accepted model, Apple last (failureFallback). Manual and a hosted pick send every turn to the pick. AppleToolDispatcher bridges through CompactToolRouter/FactResolverRegistry; LLMCacheTelemetry is in-memory and normalises Anthropic cache_read_input_tokens, OpenAI cached_tokens / DeepSeek prompt_cache_hit_tokens, Gemini cachedContentTokenCount.",
+   "hash": "165576ad717d71df",
+   "does": "Hosted providers get the chat, saved facts, and a live-state block from renderLiveStateForCloud: the most recent session labelled by wake day (today, yesterday, or date and age; a non-overnight fallback session names its type — liveStateDayLabel) with score+tier, RMSSD, SDNN, mean HR, overnight HR nadir/mean, sleep duration+efficiency and the scoreMessage note; the previous session's score, RMSSD, mean HR; during a live workout the ambient location (road, cross street, locality, subdivision, administrative area, country, heading, speed, altitude, GPS accuracy, fix age — placeBits/motionBits); plus tool results. With Apple selected: Quick keeps typed turns on Apple; Auto sends classifier-flagged turns (sticky tier) to Grok then DeepSeek (consented, enabled, available), else Apple (TierProviderMapper.autoMapping/midTierProvider); Deep sends every turn to Grok then DeepSeek, else Apple (deepMapping); in all three, voice turns (appleVoiceBypass) and action requests landing on tool-less Apple (actionIntentOverride) go to the first consented cloud in registry order, staying on Apple if none; on model failure Quick allows only Apple, Auto/Deep any accepted model, Apple last (failureFallback). Manual and a hosted pick send every turn to the pick. AppleToolDispatcher bridges through CompactToolRouter/FactResolverRegistry; LLMCacheTelemetry is in-memory and normalises Anthropic cache_read_input_tokens, OpenAI cached_tokens / DeepSeek prompt_cache_hit_tokens, Gemini cachedContentTokenCount. Assistant actions that delete data: user_quote checks wording only, so memory remove/clear and contacts remove take two calls — the first returns an app-written question, the second runs only if the user's next message is a short explicit yes (AssistantActionConfirmations; another reply, a later turn or ten minutes cancels); remaining risk is a disguised question, and assistant.memory.restore undoes a wipe until the app quits (copy in memory only, dropped by Settings Forget and Delete All My Data).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)",
@@ -250,13 +250,19 @@
     "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.route(message:in:)",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.firstConsentedCloud(inputs:)",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.allowedFallbacks(_:under:)",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveStateDayLabel(_:now:)"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveStateDayLabel(_:now:)",
+    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift::func AssistantActionConfirmations.evaluate(action:target:turns:now:)",
+    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift::func AffirmationReply.isExplicitYes(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.restoreCleared()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift::func AffirmationReply.isExplicitYes(_:)": "12092e677243d970",
+    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift::func AssistantActionConfirmations.evaluate(action:target:turns:now:)": "91972d59b16b48b6",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.restoreCleared()": "a3a0fe945896087b",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveStateDayLabel(_:now:)": "1c86cd9245ba3d68",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)": "cc6577a7f3dcdd80",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift::func CompactToolRouter.dispatch(_:tool:selector:plain:parameterized:args:)": "40aaeeac82dc8d03",

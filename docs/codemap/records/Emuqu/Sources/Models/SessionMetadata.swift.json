@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Models/SessionMetadata.swift",
- "hash": "0a976524a089163c",
+ "hash": "c8eef8f56a6bd1b1",
  "role": "Core session data model: DeviceProvenance, SessionType, HRVDataQuality, HRVSession (40+ fields with hand-written Codable), OfflineSession, and the lightweight SessionArchiveEntry index record.",
  "types": [
   "DeviceProvenance: struct — source device/firmware/mode/app+OS version",
@@ -21,7 +21,8 @@
  "state": [
   "mem:HRVSession.currentSchemaVersion = 1",
   "mem:HRVSession.healthKitExportRetryCeiling = 5",
-  "mem:SessionArchiveEntry.currentSchemaVersion = 1"
+  "mem:SessionArchiveEntry.currentSchemaVersion = 1",
+  "mem:HRVSession.ImportedMetrics.eliteHRVSource = \"Elite HRV\""
  ],
  "toplevel": "Static lets above; HRVSession and SessionArchiveEntry have custom init(from:)/encode(to:); DeviceProvenance, DataSourceSummary, SleepSegmentMs, ImportedMetrics, OfflineSession use synthesized Codable. HRVSession.sourceSchemaVersion and SessionArchiveEntry.sourceSchemaVersion are transient (decoded, never encoded). The KeyedDecodingContainer extension at the end gives both decoders (and SleepStageInterval's) lenient enum reads.",
  "flags": [],
@@ -347,15 +348,17 @@
   },
   {
    "key": "init HRVSession(from:)",
-   "hash": "10d38045201da06c",
-   "does": "Decodes an HRVSession: required id/startDate/state, sessionType defaulting to .overnight, tags to [], sourceSchemaVersion from payloadSchemaVersion (stated version, or newer than this build when an enum case is unknown), skips rrSeries when decoder.userInfo[.skipRRSeries]==true, reads SessionState/SessionType/HRVDataQuality leniently (unknown case → .complete / .quick / .insufficient), migrates trainingSnapshot from analysisResult.trainingContext, validates perceivedReadiness, decodes morningFeelingTags via MorningFeelingTagArray; any other field's decode error throws.",
+   "hash": "d2769546b81b8735",
+   "does": "Decodes an HRVSession: required id/startDate/state, sessionType defaulting to .overnight, tags to [], sourceSchemaVersion from payloadSchemaVersion (stated version, or newer than this build when an enum case is unknown), skips rrSeries when decoder.userInfo[.skipRRSeries]==true, reads SessionState/SessionType/HRVDataQuality leniently (unknown case → .complete / .quick / .insufficient), marks a legacy Elite HRV import's analysis (analysisResult.withLegacyImportProvenance(source: importedMetrics?.source): estimated metrics named, fabricated ANS metrics dropped) and drops such a session's recoveryScore, frozenReadiness and scoreBreakdown (an RMSSD-made readiness, never a score the app computed), migrates trainingSnapshot from analysisResult.trainingContext, validates perceivedReadiness, decodes morningFeelingTags via MorningFeelingTagArray; any other field's decode error throws.",
    "entry": "Decodable synthesis use by JSONDecoder in SessionArchive/CloudKit paths",
    "calls": [
     "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.payloadSchemaVersion(in:)",
     "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnown(_:forKey:unknown:)",
     "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnownIfPresent(_:forKey:unknown:)",
     "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.validPerceivedReadiness(_:)",
-    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)"
+    "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isLegacyEliteImport(source:)",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.withLegacyImportProvenance(source:)"
    ],
    "reads": [],
    "writes": [],
@@ -386,19 +389,31 @@
      "effect": "empty tags"
     },
     {
-     "at": "+39",
+     "at": "+25",
+     "cond": "analysisResult nil (?.) / isLegacyEliteImport",
+     "effect": "nothing to mark; a legacy Elite result is remembered, gains estimatedMetrics and loses ansMetrics"
+    },
+    {
+     "at": "+41",
      "cond": "trainingSnapshot absent ?? analysisResult?.trainingContext",
      "effect": "legacy sessions take training context from the analysis result"
     },
     {
-     "at": "+46",
+     "at": "+48",
      "cond": "hrvDataQuality unknown",
      "effect": ".insufficient (excluded from HRV aggregates)"
+    },
+    {
+     "at": "+51",
+     "cond": "isLegacyEliteImport",
+     "effect": "recoveryScore, frozenReadiness and scoreBreakdown set to nil"
     }
    ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)": "95e5ec417e853349",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isLegacyEliteImport(source:)": "8e65d83bbf9eb543",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.withLegacyImportProvenance(source:)": "eba96be4c889210e",
     "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.payloadSchemaVersion(in:)": "2c4a5b6d31ace5f5",
     "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.validPerceivedReadiness(_:)": "56cd87cfab43101f",
     "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnown(_:forKey:unknown:)": "f1723a2f2e51bf9b",
@@ -734,19 +749,7 @@
      "effect": ".insufficient"
     }
    ],
-   "flags": [
-    {
-     "kind": "spec-mismatch",
-     "sev": "med",
-     "text": "The schema version is now kept (sourceSchemaVersion) instead of discarded, but nothing consults it: encode always writes version 1 and the index save (Archive+IndexIO) has no guard, so an index written by a newer build is still re-saved lossily.",
-     "evidence": [
-      "Emuqu/Sources/Models/SessionMetadata.swift:859",
-      "Emuqu/Sources/Models/SessionMetadata.swift:121",
-      "Emuqu/Sources/Models/SessionMetadata.swift:897"
-     ],
-     "found": "first read, upheld on second"
-    }
-   ],
+   "flags": [],
    "deps": {
     "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnownIfPresent(_:forKey:unknown:)": "c768f7a21d96a4b4",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "a5bf3abe9c530fa0",

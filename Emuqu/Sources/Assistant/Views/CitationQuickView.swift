@@ -69,7 +69,7 @@ struct CitationQuickView: View {
     @ViewBuilder
     private func hrvFields(_ result: HRVAnalysisResult) -> some View {
         LabeledContent(String(localized: "RMSSD", bundle: LanguageManager.appBundle)) { Text(String(format: "%.1f ms", locale: LanguageManager.appLocale, result.timeDomain.rmssd)) }
-        LabeledContent(String(localized: "SDNN", bundle: LanguageManager.appBundle)) { Text(String(format: "%.1f ms", locale: LanguageManager.appLocale, result.timeDomain.sdnn)) }
+        LabeledContent(String(localized: "SDNN", bundle: LanguageManager.appBundle)) { Text(result.markingEstimate(String(format: "%.1f ms", locale: LanguageManager.appLocale, result.timeDomain.sdnn), for: .sdnn)) }
         LabeledContent(String(localized: "Mean HR", bundle: LanguageManager.appBundle)) { Text(String(format: "%.0f bpm", locale: LanguageManager.appLocale, result.timeDomain.meanHR)) }
         if let stress = result.ansMetrics?.stressIndex {
             LabeledContent(String(localized: "Stress index", bundle: LanguageManager.appBundle)) { Text(String(format: "%.0f", locale: LanguageManager.appLocale, stress)) }

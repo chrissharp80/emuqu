@@ -846,10 +846,14 @@
   },
   {
    "key": "func MetricCompareToHistorySheet.timeDomainValue(for:result:)",
-   "hash": "6174e57b1b0d4f0a",
-   "does": "Time-domain metric by label.",
+   "hash": "478b02cdeb5f819e",
+   "does": "Time-domain metric by label; an estimated SDNN, SDSD, HR range/min/max, SD HR or pNN50 is nil (no point of history).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.measured(_:as:)",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -861,12 +865,12 @@
     {
      "at": "+4",
      "cond": "'SDNN'",
-     "effect": "td.sdnn"
+     "effect": "measuredSDNN (nil when estimated)"
     },
     {
      "at": "+5",
      "cond": "'SDSD'",
-     "effect": "td.sdsd"
+     "effect": "td.sdsd unless estimated"
     },
     {
      "at": "+6",
@@ -881,27 +885,27 @@
     {
      "at": "+8",
      "cond": "'HR range'",
-     "effect": "maxHR−minHR"
+     "effect": "maxHR−minHR unless the range is estimated"
     },
     {
      "at": "+9",
      "cond": "'SD HR'",
-     "effect": "td.sdHR"
+     "effect": "td.sdHR unless estimated"
     },
     {
      "at": "+10",
      "cond": "'Min HR'",
-     "effect": "td.minHR"
+     "effect": "td.minHR unless the range is estimated"
     },
     {
      "at": "+11",
      "cond": "'Max HR'",
-     "effect": "td.maxHR"
+     "effect": "td.maxHR unless the range is estimated"
     },
     {
      "at": "+12",
      "cond": "'pNN50'",
-     "effect": "td.pnn50"
+     "effect": "measuredPNN50 (nil when estimated)"
     },
     {
      "at": "+13",
@@ -915,7 +919,11 @@
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.measured(_:as:)": "4539da414e4ceaf5",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50": "c6bd570c1d8742c7",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "6a822d05adef4c73"
+   }
   },
   {
    "key": "func MetricCompareToHistorySheet.frequencyValue(for:result:)",
@@ -975,27 +983,29 @@
   },
   {
    "key": "func MetricCompareToHistorySheet.nonlinearValue(for:result:)",
-   "hash": "ba009bb716edab67",
-   "does": "Nonlinear metric by label.",
+   "hash": "d753871d4c185c97",
+   "does": "Nonlinear metric by label; an estimated SD1, SD2 or SD1/SD2 is nil.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.measured(_:as:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+2",
      "cond": "'SD1'",
-     "effect": "sd1"
+     "effect": "sd1 unless estimated"
     },
     {
      "at": "+3",
      "cond": "'SD2'",
-     "effect": "sd2"
+     "effect": "sd2 unless estimated"
     },
     {
      "at": "+4",
      "cond": "'SD1/SD2'",
-     "effect": "sd1Sd2Ratio"
+     "effect": "sd1Sd2Ratio unless estimated"
     },
     {
      "at": "+5",
@@ -1029,7 +1039,9 @@
     }
    ],
    "flags": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.measured(_:as:)": "4539da414e4ceaf5"
+   }
   },
   {
    "key": "func MetricCompareToHistorySheet.ansValue(for:result:)",
@@ -1085,10 +1097,12 @@
   },
   {
    "key": "func MetricCompareToHistorySheet.qualityValue(for:result:)",
-   "hash": "44bc9220461d3fac",
-   "does": "Quality metric by label.",
+   "hash": "9cc4e9fd677b86f6",
+   "does": "Quality metric by label; an unknown beat count is nil.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredCleanBeatCount"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -1100,7 +1114,7 @@
     {
      "at": "+3",
      "cond": "'Window beats'",
-     "effect": "Double(cleanBeatCount)"
+     "effect": "measuredCleanBeatCount as Double (nil when unknown)"
     },
     {
      "at": "+4",
@@ -1110,7 +1124,8 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc"
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredCleanBeatCount": "ee4a2ef206d35aab"
    }
   }
  ],

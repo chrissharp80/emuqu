@@ -177,11 +177,44 @@ final class UserFactsStore {
         persist()
     }
 
+    /// Erases every fact and any copy `clearKeepingBackup()` kept. This is the
+    /// path for a wipe the user made themselves (Settings, Delete All My
+    /// Data), so nothing is left behind.
     func clear() {
         facts = []
+        clearedBackup = []
         // Clearing is the one write that must not wait to read what it replaces.
         unreadableOnDisk = false
         persist()
+    }
+
+    /// The facts the assistant's last memory wipe removed. Held in memory
+    /// only, never written to disk, so it lasts until the app quits; enough
+    /// to undo a wipe right after it, without keeping a second copy of
+    /// health-adjacent notes at rest.
+    @ObservationIgnored private(set) var clearedBackup: [Fact] = []
+
+    /// Erases every fact like `clear()` but keeps them for `restoreCleared()`.
+    /// Returns how many facts were erased.
+    @discardableResult
+    func clearKeepingBackup() -> Int {
+        let previous = facts
+        clear()
+        clearedBackup = previous
+        return previous.count
+    }
+
+    /// Puts back the facts the last `clearKeepingBackup()` erased, next to any
+    /// saved since (deduped and capped as on load), and drops the copy.
+    /// Returns how many facts came back.
+    @discardableResult
+    func restoreCleared() -> Int {
+        guard !clearedBackup.isEmpty else { return 0 }
+        let before = facts.count
+        facts = Self.dedupedAndCapped(clearedBackup + facts)
+        clearedBackup = []
+        persist()
+        return facts.count - before
     }
 
     /// Renders the facts as a system-prompt block. Empty string when no facts.

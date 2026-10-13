@@ -135,10 +135,12 @@
   },
   {
    "key": "func CitationQuickView.hrvFields(_:)",
-   "hash": "fd656624cf8d4660",
-   "does": "Renders RMSSD and SDNN (%.1f ms), mean HR (%.0f bpm) and, when available, stress index (%.0f) and DFA α1 (%.2f), all formatted in the app locale.",
+   "hash": "8d84a31f36b70973",
+   "does": "Renders RMSSD and SDNN (%.1f ms; SDNN marked '(estimate)' when it is one), mean HR (%.0f bpm) and, when available, stress index (%.0f) and DFA α1 (%.2f), all formatted in the app locale.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -156,6 +158,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5"

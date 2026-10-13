@@ -724,6 +724,26 @@
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "2fbf5bcc47ef812f",
     "EmuquTests/TrendAnalysisTests.swift::func TrendAnalysisTests.createMockSession(daysAgo:rmssd:sdnn:meanHR:stressIndex:dfaAlpha1:)": "76e8ba7fd7373f4d"
    }
+  },
+  {
+   "key": "func TrendAnalysisTests.testEstimatedSDNNStaysOutOfTheSDNNTrendButRMSSDStays()",
+   "hash": "f73d157bad8d6d52",
+   "does": "Asserts that with one of four overnight sessions marking SDNN estimated, the RMSSD trend counts 4 readings, the SDNN trend 3, the newest point's sdnn is nil and the SDNN chart has 3 points.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/TrendAnalysisTests.swift::func TrendAnalysisTests.createMockSession(daysAgo:rmssd:sdnn:meanHR:stressIndex:dfaAlpha1:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.chartData(from:metric:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.analyze(sessions:period:)": "211a820e07506c98",
+    "Emuqu/Sources/Analysis/TrendAnalysis.swift::func TrendAnalyzer.chartData(from:metric:)": "5fb136ce6a6dff3a",
+    "EmuquTests/TrendAnalysisTests.swift::func TrendAnalysisTests.createMockSession(daysAgo:rmssd:sdnn:meanHR:stressIndex:dfaAlpha1:)": "76e8ba7fd7373f4d"
+   }
   }
  ],
  "deps": {}

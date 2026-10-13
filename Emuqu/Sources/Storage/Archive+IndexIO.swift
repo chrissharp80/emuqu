@@ -144,8 +144,9 @@ extension SessionArchive {
     /// corruption: the file is left where it is, `indexReadFailed` is set and
     /// the read is retried at `boot()` and before any save. Only bytes that
     /// read but do not decode are moved aside as unreadable. One entry that
-    /// does not decode on this build is skipped (`decodeIndex`), not the
-    /// whole index.
+    /// does not decode on this build is left out of `index` (`decodeIndex`),
+    /// not the whole index, and kept with the newer-schema ones in
+    /// `newerBuildIndexEntries` for `saveIndex` to write back.
     func loadIndex() {
         guard fileManager.fileExists(atPath: indexFile.path) else { return }
         let data: Data
@@ -157,7 +158,7 @@ extension SessionArchive {
             return
         }
         do {
-            index = try Self.decodeIndex(data)
+            (index, newerBuildIndexEntries) = try Self.decodeIndex(data)
             sortedEntriesCache = nil
             sessionIdLookup = nil
         } catch {
@@ -180,7 +181,8 @@ extension SessionArchive {
         do {
             let onDisk = try Self.decodeIndex(data)
             let known = Set(index.map(\.sessionId))
-            index += onDisk.filter { !known.contains($0.sessionId) && !deletedSessionIds.contains($0.sessionId) }
+            index += onDisk.entries.filter { !known.contains($0.sessionId) && !deletedSessionIds.contains($0.sessionId) }
+            newerBuildIndexEntries.merge(onDisk.newer)
             sortedEntriesCache = nil
             sessionIdLookup = nil
             debugLog("[Archive] index re-read after a failed launch read: \(index.count) sessions")
@@ -192,13 +194,21 @@ extension SessionArchive {
     }
 
     /// The index entries in `data`, each decoded on its own: an entry this
-    /// build cannot read (a session type or quality case a newer build added,
-    /// arriving through a shared container or a restore) is skipped and
-    /// logged, and the rest of the index still loads. Its session file stays
-    /// on disk for a build that can read it. Throws only when `data` is not
-    /// an index at all.
-    static func decodeIndex(_ data: Data) throws -> [SessionArchiveEntry] {
-        try sessionDecoder.decode([LenientIndexEntry].self, from: data).compactMap(\.entry)
+    /// build cannot read (a field or case a newer build added, arriving
+    /// through a shared container or a restore) is left out and logged, and
+    /// the rest of the index still loads. Its session file stays on disk for
+    /// a build that can read it. That entry, and one that decoded from a
+    /// schema newer than this build writes, come back in `newer` as the JSON
+    /// they were read as, so a save does not drop them or their newer fields.
+    /// Throws only when `data` is not an index at all.
+    static func decodeIndex(_ data: Data) throws -> (entries: [SessionArchiveEntry], newer: IndexEntriesFromNewerBuild) {
+        let decoded = try sessionDecoder.decode([LenientIndexEntry].self, from: data).map(\.entry)
+        let entries = decoded.compactMap { $0 }
+        guard decoded.contains(where: { $0?.isFromNewerSchema ?? true }) else { return (entries, IndexEntriesFromNewerBuild()) }
+        guard let objects = try JSONSerialization.jsonObject(with: data) as? [Any], objects.count == decoded.count else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        return (entries, try IndexEntriesFromNewerBuild(decoded: decoded, objects: objects))
     }
 
     /// The first save after a failed load writes a near-empty index over the
@@ -275,11 +285,14 @@ extension SessionArchive {
         try data.write(to: deletedIndexFile, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
     }
 
+    /// Entries a newer build wrote are written back as they were read
+    /// (`IndexEntriesFromNewerBuild.indexData`) rather than dropped or
+    /// re-encoded without the fields this build does not know.
     func saveIndex() throws {
         try mergeIndexThatFailedToLoad()
         sortedEntriesCache = nil
         sessionIdLookup = nil
-        let data = try Self.indexEncoder.encode(index)
+        let data = try newerBuildIndexEntries.indexData(for: index, deleted: deletedSessionIds)
         try data.write(to: indexFile, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
     }
 
@@ -446,6 +459,96 @@ extension SessionArchiveEntry {
             nocturnalDipPercent: mirror.dip, hrvDataQuality: session.hrvDataQuality,
             modifiedAt: session.modifiedAt
         )
+    }
+}
+
+/// The `index.json` entries a newer build wrote that this build would lose
+/// by re-encoding them, each kept as the JSON object it was read as:
+///
+///   • one that does not decode here at all. It is not in the in-memory
+///     index, so without this the next save wrote the file without it and
+///     the newer build lost the session from its list;
+///   • one that decodes but carries a `schemaVersion` above
+///     `SessionArchiveEntry.currentSchemaVersion`. Re-encoding it would drop
+///     every field this build does not know and stamp it with the older
+///     version.
+///
+/// The same rule as `ArchiveError.newerSchemaVersion` for session files: this
+/// build does not rewrite data a newer build owns. An entry this build
+/// replaces (re-archives, patches, merges) is written as this build built it,
+/// and one it deletes is not written back.
+struct IndexEntriesFromNewerBuild: Sendable {
+    struct Undecodable: Sendable {
+        /// The `sessionId` the object names, when it names a readable one.
+        let sessionId: UUID?
+        let json: Data
+    }
+
+    private(set) var undecodable: [Undecodable] = []
+    /// Newer-schema entries that decoded, by session id.
+    private(set) var newerSchema: [UUID: Data] = [:]
+
+    init() {}
+
+    /// `decoded[i]` is what `objects[i]` decoded to on this build, nil when
+    /// it did not. An object that is not valid JSON on its own (not an
+    /// object at all) is not an entry any build wrote, and is not kept.
+    init(decoded: [SessionArchiveEntry?], objects: [Any]) throws {
+        for (entry, object) in zip(decoded, objects) where entry?.isFromNewerSchema ?? true {
+            guard JSONSerialization.isValidJSONObject(object) else { continue }
+            let json = try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
+            if let entry {
+                newerSchema[entry.sessionId] = json
+            } else {
+                undecodable.append(Undecodable(sessionId: Self.sessionId(in: object), json: json))
+            }
+        }
+    }
+
+    private static func sessionId(in object: Any) -> UUID? {
+        ((object as? [String: Any])?["sessionId"] as? String).flatMap(UUID.init(uuidString:))
+    }
+
+    /// Adds `other`'s entries; one already held is kept as it is.
+    mutating func merge(_ other: IndexEntriesFromNewerBuild) {
+        let known = Set(undecodable.compactMap(\.sessionId))
+        undecodable += other.undecodable.filter { $0.sessionId.map { !known.contains($0) } ?? true }
+        newerSchema.merge(other.newerSchema) { current, _ in current }
+    }
+
+    /// The bytes of `index.json` for `index`: each entry still as a newer
+    /// build wrote it (its `sourceSchemaVersion` is still the newer one, so
+    /// this build has not replaced it) goes back as it was read, and each
+    /// undecodable entry whose session is neither listed in `index` nor in
+    /// `deleted` is appended. With nothing kept, the plain encoding.
+    func indexData(for index: [SessionArchiveEntry], deleted: Set<UUID>) throws -> Data {
+        let encoded = try SessionArchive.indexEncoder.encode(index)
+        guard !undecodable.isEmpty || !newerSchema.isEmpty,
+              var objects = try JSONSerialization.jsonObject(with: encoded) as? [Any] else { return encoded }
+        for (position, entry) in index.enumerated() where entry.isFromNewerSchema {
+            guard let json = newerSchema[entry.sessionId] else { continue }
+            objects[position] = try JSONSerialization.jsonObject(with: json)
+        }
+        objects += try undecodableObjects(notIn: index, deleted: deleted)
+        return try JSONSerialization.data(withJSONObject: objects, options: [.prettyPrinted, .sortedKeys])
+    }
+
+    /// An undecodable entry for a session this build now lists (an orphan
+    /// scan adopted its file) or deleted is not written back: the listed one
+    /// replaces it, and a deleted session must not come back.
+    private func undecodableObjects(notIn index: [SessionArchiveEntry], deleted: Set<UUID>) throws -> [Any] {
+        let superseded = Set(index.map(\.sessionId)).union(deleted)
+        return try undecodable
+            .filter { $0.sessionId.map { !superseded.contains($0) } ?? true }
+            .map { try JSONSerialization.jsonObject(with: $0.json) }
+    }
+}
+
+extension SessionArchiveEntry {
+    /// Decoded from an index entry a newer build wrote: re-encoding it here
+    /// would drop the fields this build does not know.
+    var isFromNewerSchema: Bool {
+        (sourceSchemaVersion ?? 0) > Self.currentSchemaVersion
     }
 }
 

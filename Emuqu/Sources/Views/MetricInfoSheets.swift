@@ -493,20 +493,21 @@ struct MetricCompareToHistorySheet: View {
     }
 
     /// Labels match the Engine Room grid (`HRVDetailV2View+Charts.swift`) and
-    /// the longer forms other screens use.
+    /// the longer forms other screens use. An estimated value is no point of
+    /// history (`HRVAnalysisResult.estimatedMetrics`).
     nonisolated private static func timeDomainValue(for label: String, result: HRVAnalysisResult) -> Double? {
         let td = result.timeDomain
         switch label {
         case "RMSSD": return td.rmssd
-        case "SDNN": return td.sdnn
-        case "SDSD": return td.sdsd
+        case "SDNN": return result.measuredSDNN
+        case "SDSD": return result.measured(td.sdsd, as: .sdsd)
         case "Mean RR": return td.meanRR
         case "Mean HR": return td.meanHR
-        case "HR range": return td.maxHR - td.minHR
-        case "SD HR": return td.sdHR
-        case "Min HR": return td.minHR
-        case "Max HR": return td.maxHR
-        case "pNN50": return td.pnn50
+        case "HR range": return result.measured(td.maxHR - td.minHR, as: .hrRange)
+        case "SD HR": return result.measured(td.sdHR, as: .sdHR)
+        case "Min HR": return result.measured(td.minHR, as: .hrRange)
+        case "Max HR": return result.measured(td.maxHR, as: .hrRange)
+        case "pNN50": return result.measuredPNN50
         case "HRV TI", "Triangular Index", "TINN": return td.triangularIndex
         default: return nil
         }
@@ -527,9 +528,9 @@ struct MetricCompareToHistorySheet: View {
 
     nonisolated private static func nonlinearValue(for label: String, result: HRVAnalysisResult) -> Double? {
         switch label {
-        case "SD1": return result.nonlinear.sd1
-        case "SD2": return result.nonlinear.sd2
-        case "SD1/SD2": return result.nonlinear.sd1Sd2Ratio
+        case "SD1": return result.measured(result.nonlinear.sd1, as: .sd1)
+        case "SD2": return result.measured(result.nonlinear.sd2, as: .sd2)
+        case "SD1/SD2": return result.measured(result.nonlinear.sd1Sd2Ratio, as: .sd1Sd2Ratio)
         case "DFA α1", "DFA α₁", "DFA alpha1": return result.nonlinear.dfaAlpha1
         case "DFA α2", "DFA α₂", "DFA alpha2": return result.nonlinear.dfaAlpha2
         case "α1 R²": return result.nonlinear.dfaAlpha1R2
@@ -554,7 +555,7 @@ struct MetricCompareToHistorySheet: View {
     nonisolated private static func qualityValue(for label: String, result: HRVAnalysisResult) -> Double? {
         switch label {
         case "Artifacts", "Artifact %": return result.artifactPercentage
-        case "Window beats": return Double(result.cleanBeatCount)
+        case "Window beats": return result.measuredCleanBeatCount.map { Double($0) }
         default: return nil
         }
     }

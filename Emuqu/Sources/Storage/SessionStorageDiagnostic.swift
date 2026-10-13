@@ -172,7 +172,7 @@ enum SessionStorageDiagnostic {
         guard let result = session.analysisResult else { return nil }
         var parts = [
             String(localized: "RMSSD \(oneDecimal(result.timeDomain.rmssd))", bundle: LanguageManager.appBundle),
-            String(localized: "SDNN \(oneDecimal(result.timeDomain.sdnn))", bundle: LanguageManager.appBundle)
+            result.markingEstimate(String(localized: "SDNN \(oneDecimal(result.timeDomain.sdnn))", bundle: LanguageManager.appBundle), for: .sdnn)
         ]
         if let score = session.recoveryScore {
             parts.append(String(localized: "Score \(oneDecimal(score))", bundle: LanguageManager.appBundle))

@@ -24,6 +24,7 @@ extension ArchiveMigrations {
         static let endDatesDone = "FlowRecovery.migration.endDates.v1.done"
         static let metricsDone = "FlowRecovery.migration.metrics.v1.done"
         static let sleepIndexDone = "FlowRecovery.migration.sleepIndexFields.v1.done"
+        static let legacyEliteIndexDone = "FlowRecovery.migration.legacyEliteIndex.v1.done"
     }
 
     /// Run the archive's data migrations in the background so they don't block
@@ -42,6 +43,7 @@ extension ArchiveMigrations {
         migrateEndDates()
         migrateMetrics()
         migrateSleepIndexFields()
+        migrateLegacyEliteImportIndex()
         removeDuplicates()
         relinkSameNightSessions()
     }
@@ -58,6 +60,45 @@ extension ArchiveMigrations {
             needsWork: { $0.sleepEnd == nil && $0.sleepSegmentCount == nil },
             patch: { Self.sleepIndexPatch(entry: $0, session: $1) }
         )
+    }
+
+    /// One-time migration: an Elite HRV import saved before
+    /// `HRVAnalysisResult.estimatedMetrics` existed put its RMSSD-made stress
+    /// index (and, in the first build, an RMSSD-made score) into its index
+    /// entry. Its session now decodes without them (`HRVSession.init(from:)`),
+    /// so the entry takes the session's values. An entry says nothing of its
+    /// source, so every overnight or quick entry carrying a stress index or a
+    /// score is read once; workouts and Breathe sessions were never Elite.
+    func migrateLegacyEliteImportIndex() {
+        runIndexMigration(
+            flag: MigrationFlag.legacyEliteIndexDone, label: "legacy Elite index migration",
+            needsWork: {
+                ($0.sessionType == .overnight || $0.sessionType == .quick)
+                    && ($0.stressIndex != nil || $0.recoveryScore != nil)
+            },
+            patch: { Self.legacyElitePatch(entry: $0, session: $1) }
+        )
+    }
+
+    /// The entry with the session's stress index and score, for an Elite
+    /// import whose entry still holds values the session no longer has; nil
+    /// for every other session.
+    private static func legacyElitePatch(
+        entry: SessionArchiveEntry, session: HRVSession
+    ) -> SessionArchiveEntry? {
+        guard session.importedMetrics?.source == HRVSession.ImportedMetrics.eliteHRVSource,
+              entry.stressIndex != session.stressIndex || entry.recoveryScore != session.recoveryScore
+        else { return nil }
+        return SessionArchiveEntry(
+            sessionId: entry.sessionId, date: entry.date, endDate: entry.endDate,
+            fileHash: entry.fileHash, filePath: entry.filePath,
+            recoveryScore: session.recoveryScore,
+            meanRMSSD: entry.meanRMSSD, meanHR: entry.meanHR,
+            stressIndex: session.stressIndex, meanSDNN: entry.meanSDNN,
+            tags: entry.tags, notes: entry.notes,
+            sessionType: entry.sessionType, linkedSessionIds: entry.linkedSessionIds,
+            sleepEnd: entry.sleepEnd, sleepSegmentCount: entry.sleepSegmentCount
+        ).mirroringSleepFields(from: session)
     }
 
     /// Phases 1 and 2 of a backfill: gather the entries `needsWork` picks

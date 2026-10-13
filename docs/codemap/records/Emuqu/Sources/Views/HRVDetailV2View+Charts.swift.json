@@ -751,13 +751,14 @@
   },
   {
    "key": "var HRVDetailV2View.timeDomainGrid",
-   "hash": "3ac2d5abd2d652e1",
-   "does": "Time-domain grid: Mean RR, SDNN, RMSSD, pNN50, SDSD, HR range (rounded min–max), Mean HR, SD HR, HRV TI ('—' when nil).",
+   "hash": "160b7d5368aee1cb",
+   "does": "Time-domain grid: Mean RR, SDNN, RMSSD, pNN50, SDSD, HR range (rounded min–max), Mean HR, SD HR, HRV TI ('—' when nil); SDNN, pNN50, SDSD, HR range and SD HR marked '(estimate)' when the result holds them as estimates.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.metricGrid(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)"
    ],
    "reads": [],
    "writes": [],
@@ -770,6 +771,7 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.metricGrid(_:)": "f96ac405d8d3d1f7"
@@ -837,12 +839,13 @@
   },
   {
    "key": "var HRVDetailV2View.nonlinearGrid",
-   "hash": "df6bd168a778a38e",
-   "does": "Nonlinear grid: SD1, SD2, SD1/SD2, DFA α1/α2, α1 R², SampEn, ApEn ('—' when nil).",
+   "hash": "450a7987902fb12c",
+   "does": "Nonlinear grid: SD1, SD2, SD1/SD2 (each marked '(estimate)' when it is one), DFA α1/α2, α1 R², SampEn, ApEn ('—' when nil).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.metricGrid(_:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)"
    ],
    "reads": [],
    "writes": [],
@@ -875,6 +878,7 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.metricGrid(_:)": "f96ac405d8d3d1f7"
    }
@@ -941,13 +945,14 @@
   },
   {
    "key": "var HRVDetailV2View.qualityGrid",
-   "hash": "a44da8aba90eb119",
-   "does": "Quality grid: window clean-beat count, artifact %, localized window classification ('—' when nil).",
+   "hash": "9aa85a46755626e6",
+   "does": "Quality grid: window clean-beat count ('—' when unknown), artifact %, localized window classification ('—' when nil).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.metricGrid(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
-    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.displayWindowClassification"
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.displayWindowClassification",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.cleanBeatCountText"
    ],
    "reads": [],
    "writes": [],
@@ -961,6 +966,7 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "1e5446d785cdc9fc",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.cleanBeatCountText": "362fe52b148f6f4b",
     "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.displayWindowClassification": "05705434f873a955",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "84e8fed0921754b5",
     "Emuqu/Sources/Views/HRVDetailV2View+Charts.swift::func HRVDetailV2View.metricGrid(_:)": "f96ac405d8d3d1f7"

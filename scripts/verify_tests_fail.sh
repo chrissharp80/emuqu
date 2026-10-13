@@ -388,12 +388,12 @@ mutate "met_crawl_floor_removed" "EmuquTests/METLookupTests" \
     "Emuqu/Sources/Collection/METLookup.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/METLookup.swift');s=p.read_text();o='        guard speedKmh.isFinite, speedKmh >= 1.2 else { return nil }';assert s.count(o)==1;p.write_text(s.replace(o,'        guard speedKmh.isFinite else { return nil }'))"
 
-# The onset clamp is needed in each of the three sibling detectors. Removing
-# it reinstates a 69-minute bogus onset that shrinks a 337-minute night to 268
-# and skews the score.
+# The onset-latency ceiling is needed in each of the three sibling detectors.
+# Removing it reinstates a 69-minute bogus onset that shrinks a 337-minute
+# night to 268 and skews the score.
 mutate "hr_sleep_onset_clamp_removed" "EmuquTests/HRSleepEstimatorTests" \
     "Emuqu/Sources/Collection/HRSleepEstimator.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/HRSleepEstimator.swift');s=p.read_text();o='        return min(sleepOnsetDetected, windowStart.addingTimeInterval(maxOnsetLatency))';assert s.count(o)==1;p.write_text(s.replace(o,'        return sleepOnsetDetected'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/HRSleepEstimator.swift');s=p.read_text();o='        return windowStart\n';assert s.count(o)==1;p.write_text(s.replace(o,'        return sleepOnsetDetected\n'))"
 
 # Taking the FIRST below-to-above crossing lets a bathroom trip at 1:30 AM be
 # read as final wake and the rest of the night discarded.

@@ -461,13 +461,13 @@ extension HRVDetailV2View {
         let td = result.timeDomain
         return metricGrid([
             ("Mean RR", String(format: "%.0f ms", locale: LanguageManager.appLocale, td.meanRR)),
-            ("SDNN", String(format: "%.1f ms", locale: LanguageManager.appLocale, td.sdnn)),
+            ("SDNN", result.markingEstimate(String(format: "%.1f ms", locale: LanguageManager.appLocale, td.sdnn), for: .sdnn)),
             ("RMSSD", String(format: "%.1f ms", locale: LanguageManager.appLocale, td.rmssd)),
-            ("pNN50", String(format: "%.1f%%", locale: LanguageManager.appLocale, td.pnn50)),
-            ("SDSD", String(format: "%.1f ms", locale: LanguageManager.appLocale, td.sdsd)),
-            ("HR range", String(localized: "\(Int(td.minHR.rounded()))–\(Int(td.maxHR.rounded())) bpm", bundle: LanguageManager.appBundle)),
+            ("pNN50", result.markingEstimate(String(format: "%.1f%%", locale: LanguageManager.appLocale, td.pnn50), for: .pnn50)),
+            ("SDSD", result.markingEstimate(String(format: "%.1f ms", locale: LanguageManager.appLocale, td.sdsd), for: .sdsd)),
+            ("HR range", result.markingEstimate(String(localized: "\(Int(td.minHR.rounded()))–\(Int(td.maxHR.rounded())) bpm", bundle: LanguageManager.appBundle), for: .hrRange)),
             ("Mean HR", String(localized: "\(Int(td.meanHR.rounded())) bpm", bundle: LanguageManager.appBundle)),
-            ("SD HR", String(format: "%.1f bpm", locale: LanguageManager.appLocale, td.sdHR)),
+            ("SD HR", result.markingEstimate(String(format: "%.1f bpm", locale: LanguageManager.appLocale, td.sdHR), for: .sdHR)),
             ("HRV TI", td.triangularIndex.map { String(format: "%.1f", locale: LanguageManager.appLocale, $0) } ?? "—")
         ])
     }
@@ -499,9 +499,9 @@ extension HRVDetailV2View {
     var nonlinearGrid: some View {
         let nl = result.nonlinear
         return metricGrid([
-            ("SD1", String(format: "%.1f ms", locale: LanguageManager.appLocale, nl.sd1)),
-            ("SD2", String(format: "%.1f ms", locale: LanguageManager.appLocale, nl.sd2)),
-            ("SD1/SD2", String(format: "%.2f", locale: LanguageManager.appLocale, nl.sd1Sd2Ratio)),
+            ("SD1", result.markingEstimate(String(format: "%.1f ms", locale: LanguageManager.appLocale, nl.sd1), for: .sd1)),
+            ("SD2", result.markingEstimate(String(format: "%.1f ms", locale: LanguageManager.appLocale, nl.sd2), for: .sd2)),
+            ("SD1/SD2", result.markingEstimate(String(format: "%.2f", locale: LanguageManager.appLocale, nl.sd1Sd2Ratio), for: .sd1Sd2Ratio)),
             ("DFA α1", nl.dfaAlpha1.map { String(format: "%.2f", locale: LanguageManager.appLocale, $0) } ?? "—"),
             ("DFA α2", nl.dfaAlpha2.map { String(format: "%.2f", locale: LanguageManager.appLocale, $0) } ?? "—"),
             ("α1 R²", nl.dfaAlpha1R2.map { String(format: "%.2f", locale: LanguageManager.appLocale, $0) } ?? "—"),
@@ -533,7 +533,7 @@ extension HRVDetailV2View {
     /// numbers are the RMSSD / α1 already in the grid.
     var qualityGrid: some View {
         metricGrid([
-            ("Window beats", "\(result.cleanBeatCount)"),
+            ("Window beats", result.cleanBeatCountText),
             ("Artifacts", String(format: "%.1f%%", locale: LanguageManager.appLocale, result.artifactPercentage)),
             ("Window classification", result.displayWindowClassification ?? "—")
         ])

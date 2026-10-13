@@ -372,7 +372,7 @@
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 5. processOvernightData() — The Main Pipeline",
-   "hash": "da0a286c2b5113c7",
+   "hash": "7d557d4c924dc8a6",
    "does": "Claims the morning pipeline: backup, build series, same-night merge only for overnights with sessionMergeMode != .off, skipping already-linked sessions and keeping only segments within the merge gap of the base chain (segmentsWithinGap; Default 4.5 h or Custom), artifact detection, verification, HealthKit sleep (cache-first via SleepDataCache, 14 entries, ±1 day, else bounded poll 15×2 s), sleep-stage classification, training load, window selection with Tier-1 ranking and wall-clock→t_ms translation, organized zones, HRV analysis, final session, recovery score, supersede same-night, archive. Code: RRCollector wrapper fetches training load first, then MorningProcessingService.run does backup → buildMergedSeries → artifacts/verify → sleep poll → window → analysis → vitals snapshot → insufficient-data gate → score → supersede; the wrapper archives via archiveForReview.",
    "entry": null,
    "calls": [
@@ -455,9 +455,9 @@
    }
   },
   {
-   "key": "§ Emuqu — Complete Data Flow Reference > 6. Recovery Score Calculation (scoring version v3.1.oct2026)",
-   "hash": "10263f8c033212ef",
-   "does": "no behavioural claim: section header naming scoring version v3.1.oct2026 (matches ScoringVersion.current).",
+   "key": "§ Emuqu — Complete Data Flow Reference > 6. Recovery Score Calculation (scoring version v3.2.oct2026)",
+   "hash": "86f7e9c7fbffc661",
+   "does": "no behavioural claim: section header naming scoring version v3.2.oct2026 (matches ScoringVersion.current).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -467,7 +467,7 @@
    "deps": {}
   },
   {
-   "key": "§ Emuqu — Complete Data Flow Reference > 6. Recovery Score Calculation (scoring version v3.1.oct2026) > RecoveryScoreCalculator (RecoveryScoreCalculator.swift)",
+   "key": "§ Emuqu — Complete Data Flow Reference > 6. Recovery Score Calculation (scoring version v3.2.oct2026) > RecoveryScoreCalculator (RecoveryScoreCalculator.swift)",
    "hash": "6e16bd2967380934",
    "does": "Claims the score is HRV+Sleep+Vitals with training load excluded; Tier 1 SWC band (z=-3→5, -1.5→25, -0.75→64, -0.5…+0.5→72, +1.5→90) plus DFA/RHR/CV/ANS adjustments and staleness penalty; Tier 2 sleep sub-weights 35/25/25/15, HRV 70/Sleep 30, dampened to 85/15 when z<-1 and sleep<50; Tier 3 60/25/15 with vitals mean of RHR (-10/SD), RR (-15/br/min beyond ±1, population 12-18 fallback, below 12 → 90), temp (≤0.3→100, ≤0.5→75, ≤1.0→50, >1.0→25, positive only); Respiratory/WristTemperature baseline caches with 30-day TTL; Comeback 80/20/0; SpO2 <95 % → −10. All numbers match ScoringWeights, scoringParametersV2 and ScoreDetailBuilder.buildTier2.",
    "entry": null,
@@ -511,13 +511,13 @@
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2f5772bdaa1b8b54",
     "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier2(_:sleep:)": "d11c9ae1d28d7e20",
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "0d8a08e676f447a9",
-    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func RespiratoryBaselineCache.read()": "1201e35fa21b8562",
-    "Emuqu/Sources/Storage/WristTemperatureBaselineCache.swift::func WristTemperatureBaselineCache.read()": "e0200c602a465aef"
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "9fb3a52f3db3c5c1",
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func RespiratoryBaselineCache.read()": "db728509d73fff33",
+    "Emuqu/Sources/Storage/WristTemperatureBaselineCache.swift::func WristTemperatureBaselineCache.read()": "aa43cc148dd3adbf"
    }
   },
   {
-   "key": "§ Emuqu — Complete Data Flow Reference > 6. Recovery Score Calculation (scoring version v3.1.oct2026) > Training Load (Load & Trajectory surface — does NOT feed the recovery score)",
+   "key": "§ Emuqu — Complete Data Flow Reference > 6. Recovery Score Calculation (scoring version v3.2.oct2026) > Training Load (Load & Trajectory surface — does NOT feed the recovery score)",
    "hash": "bc9247173ba1e7eb",
    "does": "Claims training load (Banister TRIMP, ATL 7 d / CTL 42 d / TSB, ACWR labels, Foster monotony banner when monotony > 2.0 AND strain > 200) is shown on Load & Trajectory / Training Detail and frozen into analysisResult.trainingContext, not the score.",
    "entry": null,
@@ -749,15 +749,15 @@
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 10. HR-Estimated Sleep (fallback)",
-   "hash": "04691649ef5e7d43",
-   "does": "Claims HR-estimated sleep runs only when HealthKit returns 0 minutes: RR-based estimateSleepFromHR first, then HealthKit HR over the window extended to the schedule end with 20-min smoothing, ≥ 8 bpm range, threshold max − 0.5·range, onset on 2 consecutive points (clamped), wake at end of last below-threshold block, ≥ 12 samples and ≥ 120 min; live sessions keep loading when nothing found; AutoSleepExtension is never constructed in production. Matches MorningResultsViewModel and HRSleepEstimator.",
+   "hash": "f2b722cb0e50a99d",
+   "does": "Claims HR-estimated sleep runs only when HealthKit returns 0 minutes: RR-based estimateSleepFromHR first, then HealthKit HR over the window extended to the schedule end with 20-min smoothing, ≥ 8 bpm range, threshold max − 0.5·range, onset on 2 consecutive points (kept within 20 min after bedtime, else bedtime), wake at end of last below-threshold block, ≥ 12 samples and ≥ 120 min; live sessions keep loading when nothing found; AutoSleepExtension is never constructed in production. Matches MorningResultsViewModel and HRSleepEstimator.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.resolveSleep(_:window:)",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.estimateSleepFallback(for:)",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrSleepThreshold(_:)",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.clampedSleepOnset(_:threshold:windowStart:)",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleSleepOnset(_:threshold:windowStart:)",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.sleepWake(_:threshold:)",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)"
    ],
@@ -766,11 +766,11 @@
    "branches": [],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.clampedSleepOnset(_:threshold:windowStart:)": "28342b913bf4cf73",
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)": "587065d915433525",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)": "80312c4bf28d1463",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.hrSleepThreshold(_:)": "8eeb970522a525e8",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.plausibleSleepOnset(_:threshold:windowStart:)": "4d252e0b67e586da",
     "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.sleepWake(_:threshold:)": "d98e3e3b3303abfc",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "e828c2c98f9aa86c",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "8fe746290d7bcd76",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.estimateSleepFallback(for:)": "edc7063b85dc483c",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.resolveSleep(_:window:)": "0e0ae3ddbea7fdb1"
    }
@@ -911,7 +911,7 @@
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 12. Key Files Reference",
-   "hash": "ff1a1ccac041dbc4",
+   "hash": "9933dcabcfa31718",
    "does": "Key-files table mapping pipeline responsibilities to files. All listed files exist, but several mappings are stale: gatherOvernightData is in RRCollector+OvernightGather.swift (not +OvernightStreaming), RRPoint creation is in PolarManager+Streaming.swift, and the HRVSession struct is declared in SessionMetadata.swift (HRVSession.swift holds decoding support).",
    "entry": null,
    "calls": [
@@ -948,8 +948,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "172cbbf9780d85bf",
-    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.gatherOvernightData()": "195c7a78169d9671"
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.appendStreamedBeat(rrMs:wallClockMs:hr:)": "7b4e5cf2bd983fa0",
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.gatherOvernightData()": "e21ccf4a0590777f"
    }
   },
   {

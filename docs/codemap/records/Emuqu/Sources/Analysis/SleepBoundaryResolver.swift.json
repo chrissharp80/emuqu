@@ -189,8 +189,8 @@
   },
   {
    "key": "func SleepBoundaryResolver.reconciledStart(healthKit:hrEstimate:hasDetailedStages:)",
-   "hash": "05659b9959539bb2",
-   "does": "Start reconciliation: if either side missing use whichever exists; within 15 min keep HK; otherwise take HR start unless HR is later and HK had detailed stages.",
+   "hash": "df7813248acac84c",
+   "does": "Start reconciliation: if either side is missing use whichever exists; when HealthKit has detailed stages (deep or REM) its start stands in both directions; otherwise HR's start replaces it when they differ by more than 15 min (boundaryDisagreementThresholdMs), else HK's.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -208,13 +208,13 @@
     },
     {
      "at": "+8",
-     "cond": "|hk − hr| > 15 min",
-     "effect": "false: hkStart"
+     "cond": "hasDetailedStages, or |hk − hr| <= 15 min",
+     "effect": "hkStart"
     },
     {
-     "at": "+10",
-     "cond": "hrWantsLater && hasDetailedStages",
-     "effect": "true: hkStart; false: hrStart"
+     "at": "+9",
+     "cond": "no detailed stages and |hk − hr| > 15 min",
+     "effect": "hrStart (earlier or later)"
     }
    ],
    "flags": [],
@@ -250,8 +250,8 @@
   },
   {
    "key": "func SleepBoundaryResolver.detectSleepOnset(in:)",
-   "hash": "2953680bd54666ae",
-   "does": "HR-drop onset detector: needs > 300 beats and >= 16 (OnsetDetection.minimumWindows) two-minute HR windows; ceiling = midpoint of the night's HR range; returns the first sustained drop (clamped to 20 min) or nil. The time is wall-clock ms from recording start (a beat's wallClockMs, or t_ms when it has none, as in H10 internal recordings). Used by SleepResolver.inferStagesFromRR, RRCollector+DeviceRecording and resolveFromHREstimation.",
+   "hash": "badc8e66e2a5abac",
+   "does": "HR-drop onset detector: needs > 300 beats and >= 16 (OnsetDetection.minimumWindows) two-minute HR windows; ceiling = midpoint of the night's HR range; returns the first sustained drop when it lies within the 20-min latency cap, or nil (logged 'onset undetermined') when there is no drop or the first one is past the cap. The time is wall-clock ms from recording start (a beat's wallClockMs, or t_ms when it has none, as in H10 internal recordings). Used by SleepResolver.inferStagesFromRR, RRCollector+DeviceRecording and resolveFromHREstimation, which each fall back to their recording/envelope start on nil.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.onsetHRWindows(_:)",
@@ -278,13 +278,13 @@
     },
     {
      "at": "+11",
-     "cond": "sustained drop found",
+     "cond": "plausible sustained drop found",
      "effect": "true: return onset; false: debug log, nil"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.firstSustainedDrop(in:ceiling:)": "4cce8f2e0ee52df1",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.firstSustainedDrop(in:ceiling:)": "bbdf7a47c5220b71",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.onsetHRWindows(_:)": "c8e6d9cdb3103456",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
@@ -346,10 +346,11 @@
   },
   {
    "key": "func SleepBoundaryResolver.firstSustainedDrop(in:ceiling:)",
-   "hash": "1375d08dd8ed18d3",
-   "does": "Scans windows 5..<count-10 for the first where 5-window mean HR before minus 10-window mean after exceeds 8 bpm and the after-mean is below the ceiling; returns that window time clamped to SleepConstants.maxHREstimatedOnsetLatencyMin (20 min).",
+   "hash": "6ea58ba9db46e969",
+   "does": "Scans windows 5..<count-10 for the first where the 5-window mean HR before minus the 10-window mean after exceeds 8 bpm and the after-mean is below the ceiling. That first drop is returned when SleepConstants.isPlausibleHROnsetLatency accepts its wall-clock time (<= 20 min), else nil: a later first drop is a misfire and no earlier candidate exists. Logs either outcome.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Utilities/Constants.swift::func SleepConstants.isPlausibleHROnsetLatency(wallClockMs:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -363,23 +364,17 @@
     {
      "at": "+7",
      "cond": "drop > 8 bpm && after < ceiling",
-     "effect": "false: continue; true: return min(time, 20 min)"
-    }
-   ],
-   "flags": [
+     "effect": "false: continue"
+    },
     {
-     "kind": "hack",
-     "sev": "med",
-     "text": "Any detected onset later than 20 min is replaced by exactly 20 min rather than rejected, so a night where the user genuinely lay awake an hour reports 20-min onset; in SleepResolver row 2 the pre-sleep awake windows after minute 20 are then classified as sleep.",
-     "evidence": [
-      "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift:279",
-      "Emuqu/Sources/Utilities/Constants.swift:258",
-      "Emuqu/Sources/Analysis/SleepResolver.swift:636"
-     ],
-     "found": "first read, upheld on second"
+     "at": "+11",
+     "cond": "first drop within the latency cap",
+     "effect": "true: its time; false: nil"
     }
    ],
+   "flags": [],
    "deps": {
+    "Emuqu/Sources/Utilities/Constants.swift::func SleepConstants.isPlausibleHROnsetLatency(wallClockMs:)": "53b82fffa0910db5",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "da81d7249b8affb9"
    }
   },

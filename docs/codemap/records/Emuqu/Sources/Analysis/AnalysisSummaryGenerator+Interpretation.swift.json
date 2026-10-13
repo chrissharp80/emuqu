@@ -622,13 +622,14 @@
   },
   {
    "key": "var AnalysisSummaryGenerator.causeContext",
-   "hash": "73c0022aba766cfc",
-   "does": "Builds CauseDetectionContext: RMSSD, stress/LF-HF/DFA (a missing one passed as the resting value 150/1.0/1.0 the rules expect as a number), pNN50, isGoodReading(rmssd:), isExcellentReading (stats.hasData, rmssd > 1.15×avgRMSSD and otherMarkersAreSettled), tags, trend stats, sleep, sleep trend, session and earlier sessions.",
+   "hash": "f93e53e7712c9542",
+   "does": "Builds CauseDetectionContext: RMSSD, stress/LF-HF/DFA (a missing one passed as the resting value 150/1.0/1.0 the rules expect as a number), pNN50 only when measured (measuredPNN50; nil for an estimate), isGoodReading(rmssd:), isExcellentReading (stats.hasData, rmssd > 1.15×avgRMSSD and otherMarkersAreSettled), tags, trend stats, sleep, sleep trend, session and earlier sessions.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::func AnalysisSummaryGenerator.isGoodReading(rmssd:)",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.otherMarkersAreSettled",
-    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.computeTrendStats(referenceDate:)"
+    "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.computeTrendStats(referenceDate:)",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50"
    ],
    "reads": [
     "mem:AnalysisSummaryGenerator.stats"
@@ -654,6 +655,11 @@
      "at": "+7",
      "cond": "dfaAlpha1 nil ('?? 1.0')",
      "effect": "1.0 passed to the rules"
+    },
+    {
+     "at": "+8",
+     "cond": "pNN50 marked estimated",
+     "effect": "nil passed; the training-load rule then does not fire"
     }
    ],
    "flags": [],
@@ -662,7 +668,9 @@
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator+Interpretation.swift::var AnalysisSummaryGenerator.otherMarkersAreSettled": "d0fd4af103634770",
     "Emuqu/Sources/Analysis/AnalysisSummaryGenerator.swift::func AnalysisSummaryGenerator.computeTrendStats(referenceDate:)": "583f5ff464eed5db",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50": "c6bd570c1d8742c7",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb",
+    "Emuqu/Sources/Views/TrendsV2View.swift::var TrendsV2View.BaselineStats.hasData": "58b3b540d9784f0e"
    }
   },
   {
@@ -1098,11 +1106,12 @@
   },
   {
    "key": "var AnalysisSummaryGenerator.ansBalanceFindings",
-   "hash": "4650cbed0a88cd0a",
-   "does": "LF/HF sentence: >3.0 high (softened when pNN50 > 25 and RMSSD >= 40), <0.5 low, within [0.8,1.5] usual range, otherwise none.",
+   "hash": "5e209166f2f71d84",
+   "does": "LF/HF sentence: >3.0 high (softened when pNN50 > 25 and RMSSD >= 40), <0.5 low, within [0.8,1.5] usual range, otherwise none. Strong vagal tone needs a measured pNN50 (an estimate counts as 0).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50"
    ],
    "reads": [
     "mem:NarrativeLanguage.isEnglish"
@@ -1110,43 +1119,50 @@
    "writes": [],
    "branches": [
     {
-     "at": "+4",
+     "at": "+3",
+     "cond": "measuredPNN50 nil (?? 0)",
+     "effect": "pNN50 treated as 0: not strong vagal tone"
+    },
+    {
+     "at": "+5",
      "cond": "lfHfRatio nil",
      "effect": "[]"
     },
     {
-     "at": "+5",
+     "at": "+6",
      "cond": "ratio > 3.0",
      "effect": "high-ratio sentence"
     },
     {
-     "at": "+6",
+     "at": "+7",
      "cond": "strong vagal tone",
      "effect": "'common sleep-stage variation'; else 'above usual resting range — deep breathing…'"
     },
     {
-     "at": "+11",
+     "at": "+12",
      "cond": "ratio < 0.5",
      "effect": "low ratio sentence"
     },
     {
-     "at": "+13",
+     "at": "+14",
      "cond": "0.8 <= ratio <= 1.5",
      "effect": "usual range sentence; else [] (0.5-0.8 and 1.5-3.0 silent)"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50": "c6bd570c1d8742c7",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
    }
   },
   {
    "key": "var AnalysisSummaryGenerator.heartRhythmFindings",
-   "hash": "dbb558ae27813775",
-   "does": "DFA α1 sentence: >1.35 accumulated fatigue; >1.2 fatigue unless strong vagal tone; [0.75,1.0] in reference range; [0.60,0.75) less organized; else none.",
+   "hash": "2536ee96a594f544",
+   "does": "DFA α1 sentence: >1.35 accumulated fatigue; >1.2 fatigue unless strong vagal tone; [0.75,1.0] in reference range; [0.60,0.75) less organized; else none. Strong vagal tone needs a measured pNN50 (an estimate counts as 0).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50"
    ],
    "reads": [
     "mem:NarrativeLanguage.isEnglish"
@@ -1154,38 +1170,44 @@
    "writes": [],
    "branches": [
     {
-     "at": "+4",
+     "at": "+3",
+     "cond": "measuredPNN50 nil (?? 0)",
+     "effect": "pNN50 treated as 0: not strong vagal tone"
+    },
+    {
+     "at": "+5",
      "cond": "dfaAlpha1 nil",
      "effect": "[]"
     },
     {
-     "at": "+5",
+     "at": "+6",
      "cond": "alpha > 1.35",
      "effect": "accumulated-fatigue sentence"
     },
     {
-     "at": "+7",
+     "at": "+8",
      "cond": "alpha > 1.2",
      "effect": "fatigue branch"
     },
     {
-     "at": "+8",
+     "at": "+9",
      "cond": "strong vagal tone",
      "effect": "'within normal variation'; else 'carrying some fatigue'"
     },
     {
-     "at": "+13",
+     "at": "+14",
      "cond": "0.75 <= alpha <= 1.0",
      "effect": "reference-range sentence"
     },
     {
-     "at": "+15",
+     "at": "+16",
      "cond": "0.60 <= alpha < 0.75",
      "effect": "less-organized sentence; else [] (1.0-1.2 and <0.60 silent)"
     }
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50": "c6bd570c1d8742c7",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
    }
   },
@@ -1236,17 +1258,23 @@
   },
   {
    "key": "var AnalysisSummaryGenerator.beatVariationFindings",
-   "hash": "06aedf915f1e61f3",
-   "does": "pNN50 sentence: <5 very low variation, >30 strong variation, else none.",
+   "hash": "228f799ce5bf44f4",
+   "does": "pNN50 sentence: none when pNN50 is an estimate; <5 very low variation, >30 strong variation, else none.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle"
+    "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50"
    ],
    "reads": [
     "mem:NarrativeLanguage.isEnglish"
    ],
    "writes": [],
    "branches": [
+    {
+     "at": "+1",
+     "cond": "measuredPNN50 nil (estimate)",
+     "effect": "returns []"
+    },
     {
      "at": "+2",
      "cond": "pnn50 < 5",
@@ -1260,6 +1288,7 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50": "c6bd570c1d8742c7",
     "Emuqu/Sources/Services/NarrativeLanguage.swift::var NarrativeLanguage.bundle": "7f8bbbb2152af7a5"
    }
   },

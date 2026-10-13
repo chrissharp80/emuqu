@@ -76,8 +76,8 @@ enum ContextBuilder {
         return titles
     }
 
-    /// Yesterday's sleep/training data lives on the session itself — we don't
-    /// have HK-derived inputs to pass, so this degrades to defaults. Today's
+    /// Yesterday's sleep/training data lives on the session itself, and its
+    /// sleep trend is the week of nights before it in `recentSessions`. Today's
     /// live training load is not passed: it describes now, not yesterday, so
     /// the generator reads the load frozen on yesterday's session instead.
     /// `baselineStats` is the baseline yesterday's night was scored against.
@@ -91,7 +91,7 @@ enum ContextBuilder {
             session: session,
             recentSessions: recentSessions,
             sleepInput: AnalysisSleepInput(from: session?.sleepSnapshot),
-            sleepTrend: nil,
+            sleepTrend: .recentNights(before: session, in: recentSessions),
             trainingContext: session?.trainingSnapshot,
             userSettings: userSettings,
             liveLoadSnapshot: nil,
@@ -459,8 +459,8 @@ extension ContextBuilder {
         result.map {
             AssistantContext.TimeDomainSnapshot(
                 rmssd: $0.timeDomain.rmssd,
-                sdnn: $0.timeDomain.sdnn,
-                pnn50: $0.timeDomain.pnn50,
+                sdnn: $0.measuredSDNN,
+                pnn50: $0.measuredPNN50,
                 meanRR: $0.timeDomain.meanRR,
                 meanHR: $0.timeDomain.meanHR
             )
@@ -482,9 +482,9 @@ extension ContextBuilder {
     ) -> AssistantContext.NonlinearSnapshot? {
         result.map {
             AssistantContext.NonlinearSnapshot(
-                sd1: $0.nonlinear.sd1,
-                sd2: $0.nonlinear.sd2,
-                sd1Sd2Ratio: $0.nonlinear.sd1Sd2Ratio,
+                sd1: $0.measured($0.nonlinear.sd1, as: .sd1),
+                sd2: $0.measured($0.nonlinear.sd2, as: .sd2),
+                sd1Sd2Ratio: $0.measured($0.nonlinear.sd1Sd2Ratio, as: .sd1Sd2Ratio),
                 dfaAlpha1: $0.nonlinear.dfaAlpha1,
                 dfaAlpha2: $0.nonlinear.dfaAlpha2,
                 sampleEntropy: $0.nonlinear.sampleEntropy

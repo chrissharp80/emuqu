@@ -236,6 +236,22 @@ hosted providers, and the same `MedicalQueryGuard` perimeter applies. Tool
 calls are resolved by reading local state on the device; the dispatch layer
 makes no network call.
 
+**Assistant actions that delete data.** Text the model reads (a web page, a
+search result, a pasted email) can steer which tools it calls, so a tool call
+is never the user's consent. The write actions require `user_quote`, the
+user's own words from their latest message, but that only checks wording: an
+injected instruction can make the model quote any span of the message.
+Forgetting a memory fact, clearing memory and removing a contact therefore
+take two calls. The first changes nothing and returns a question the app
+wrote; the second runs only if the user's very next message, which only the
+user can write, is a short, explicit yes
+([`AssistantActionConfirmations`](../Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift)).
+Any other reply, a later turn or ten minutes cancels the request. The
+remaining risk is a model that disguises the question so the user says yes
+to something else; a memory wipe made this way can be undone with
+`assistant.memory.restore` until the app quits (the copy is held in memory
+only, and Settings' Forget and Delete All My Data drop it).
+
 **Cache-hit telemetry.**
 [`LLMCacheTelemetry`](../Emuqu/Sources/Assistant/Facts/LLMCacheTelemetry.swift)
 records prompt-cache hit ratios per provider in memory only. The sample buffer

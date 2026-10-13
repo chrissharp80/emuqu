@@ -347,6 +347,7 @@ struct ReportsListView: View {
         let maxHR: Int
         let restingHR: Int
         let lthr: Int
+        let sleepSchedule: SleepSchedule
         var temperatureUnit: TemperatureUnit = .regionDefault
     }
 
@@ -367,6 +368,7 @@ struct ReportsListView: View {
             maxHR: settings.effectiveMaxHR,
             restingHR: settings.effectiveRestingHR,
             lthr: settings.effectiveLTHR,
+            sleepSchedule: settings.sleepSchedule,
             temperatureUnit: settings.temperatureUnit
         )
     }
@@ -417,7 +419,9 @@ struct ReportsListView: View {
             full.workout = archive.retrieveOrLog(inputs.workout.id) ?? inputs.workout
         }
         full.overnight = inputs.overnight.map { archive.retrieveOrLog($0.id) ?? $0 }
-        full.recentOvernight = ReportBaselineNights.before(inputs.overnight?.startDate ?? inputs.workout.startDate, archive: archive)
+        full.recentOvernight = ReportBaselineNights.before(
+            inputs.overnight?.startDate ?? inputs.workout.startDate, archive: archive, sleepSchedule: inputs.sleepSchedule
+        )
         return full
     }
 
@@ -437,7 +441,7 @@ struct ReportsListView: View {
     nonisolated private static func profile(_ inputs: GenerationInputs) -> ReportRenderer.Profile {
         ReportRenderer.Profile(
             maxHR: inputs.maxHR, restingHR: inputs.restingHR, lthr: inputs.lthr,
-            units: inputs.units, temperatureUnit: inputs.temperatureUnit
+            units: inputs.units, sleepSchedule: inputs.sleepSchedule, temperatureUnit: inputs.temperatureUnit
         )
     }
 

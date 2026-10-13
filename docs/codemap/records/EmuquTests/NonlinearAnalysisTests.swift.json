@@ -362,6 +362,230 @@
     "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.successiveDifferenceVariance(_:)": "5ae2c4a8d547b16b",
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
    }
+  },
+  {
+   "key": "func NonlinearAnalysisTests.contiguousPoints(_:from:)",
+   "hash": "4c5d19d91e475940",
+   "does": "Helper: RRPoints laid back to back from `start`, each t_ms the previous end.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "70ade174be9c061a"
+   }
+  },
+  {
+   "key": "func NonlinearAnalysisTests.flags(count:flagged:)",
+   "hash": "c0152084ec65e086",
+   "does": "Helper: artifact flags, technical artifact at the flagged indices and .clean elsewhere.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "index flagged",
+     "effect": "artifact flag; else .clean"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init ArtifactFlags(isArtifact:type:confidence:)": "3914d257d1ae0b4d"
+   }
+  },
+  {
+   "key": "func NonlinearAnalysisTests.series(_:)",
+   "hash": "9b1d67057eccb591",
+   "does": "Helper: wraps points in an RRSeries with a fresh session id.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func NonlinearAnalysisTests.nonlinear(_:flagged:)",
+   "hash": "f43dbc7e08d786c0",
+   "does": "Helper: NonlinearAnalyzer.computeNonlinear over all points with the given beats flagged, unwrapped (throws on nil).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeNonlinear(_:flags:windowStart:windowEnd:)",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.series(_:)",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.flags(count:flagged:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/NonlinearAnalysis.swift::func NonlinearAnalyzer.computeNonlinear(_:flags:windowStart:windowEnd:)": "9d2c4d7fa171ad67",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.flags(count:flagged:)": "922fb775bc5a993f",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.series(_:)": "6d367a595071a0ae"
+   }
+  },
+  {
+   "key": "func NonlinearAnalysisTests.constantBlocks()",
+   "hash": "b9bf1e3677fb44a2",
+   "does": "Helper: twenty 10-beat constant blocks alternating 800/900 ms, each followed by a flagged 1500 ms beat; returns the points and flagged indices.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.contiguousPoints(_:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each of 20 blocks",
+     "effect": "append 10 beats at 800 or 900 then one flagged 1500"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.contiguousPoints(_:from:)": "651a33668d929c6b"
+   }
+  },
+  {
+   "key": "func NonlinearAnalysisTests.testSD1IsZeroForConstantBlocksSeparatedByRemovedBeats()",
+   "hash": "735c067e4d1912b1",
+   "does": "Constant blocks separated by flagged beats: asserts SD1 == 0 (no pair across a removed beat), SD2 == sqrt(5000) (Brennan with Var 50²), and time-domain RMSSD == 0.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.constantBlocks()",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.nonlinear(_:flagged:)",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.series(_:)",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.flags(count:flagged:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "e9feb23813ac68ac",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.constantBlocks()": "6264d293c0ddd97e",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.flags(count:flagged:)": "922fb775bc5a993f",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.nonlinear(_:flagged:)": "303d943e54c671ee",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.series(_:)": "6d367a595071a0ae"
+   }
+  },
+  {
+   "key": "func NonlinearAnalysisTests.testSD1MatchesSDSDOverTheSameAdjacentPairs()",
+   "hash": "0f4794a5cdac92e1",
+   "does": "200 seeded beats (800±30) with 6 flagged: asserts SD1² == SDSD²·(n−1)/(2n) over the n originally adjacent clean pairs, tying SD1 to the time domain's pairs.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.contiguousPoints(_:from:)",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.nonlinear(_:flagged:)",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.series(_:)",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.flags(count:flagged:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "e9feb23813ac68ac",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.contiguousPoints(_:from:)": "651a33668d929c6b",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.flags(count:flagged:)": "922fb775bc5a993f",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.nonlinear(_:flagged:)": "303d943e54c671ee",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.series(_:)": "6d367a595071a0ae"
+   }
+  },
+  {
+   "key": "func NonlinearAnalysisTests.testSD1DoesNotPairBeatsAcrossARecordingBreak()",
+   "hash": "c556795bbb059d78",
+   "does": "800 ms and 900 ms constant runs a minute apart (a recording break): asserts SD1 == 0; back to back: SD1 > 1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.contiguousPoints(_:from:)",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.nonlinear(_:flagged:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.contiguousPoints(_:from:)": "651a33668d929c6b",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.nonlinear(_:flagged:)": "303d943e54c671ee"
+   }
+  },
+  {
+   "key": "func NonlinearAnalysisTests.testEntropyTemplatesDoNotSpanARemovedBeat()",
+   "hash": "bc667e4443a854fc",
+   "does": "Constant blocks separated by flagged beats: asserts sample and approximate entropy are 0 (templates stay inside a block).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.constantBlocks()",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.nonlinear(_:flagged:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.constantBlocks()": "6264d293c0ddd97e",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.nonlinear(_:flagged:)": "303d943e54c671ee"
+   }
+  },
+  {
+   "key": "func NonlinearAnalysisTests.testDFADoesNotBoxAcrossARecordingBreak()",
+   "hash": "3dfb29df23c89cc7",
+   "does": "Two 200-beat runs (800 and 950 ms base, sinusoidal) a minute apart: asserts nonlinear α1 equals DFAAnalyzer.compute(segments:) of the two runs and differs from the joined-series α1 by more than 0.1.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.contiguousPoints(_:from:)",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.nonlinear(_:flagged:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3d6177b087c41dc6",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(segments:alpha1Range:alpha2Range:)": "ed0dd2075262a171",
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "2bbbf5b564f0ad1b",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.contiguousPoints(_:from:)": "651a33668d929c6b",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.nonlinear(_:flagged:)": "303d943e54c671ee"
+   }
+  },
+  {
+   "key": "func NonlinearAnalysisTests.testDFAInterpolatesRemovedBeats()",
+   "hash": "c9056b7440bfa2fe",
+   "does": "300 sinusoidal beats with beats 50, 51, 120, 200 flagged (set to 1600 ms): asserts nonlinear α1 equals DFAAnalyzer.compute on the series with those beats linearly interpolated.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.contiguousPoints(_:from:)",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.nonlinear(_:flagged:)",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for each flagged index",
+     "effect": "set its RR to 1600"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "3d6177b087c41dc6",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.contiguousPoints(_:from:)": "651a33668d929c6b",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.nonlinear(_:flagged:)": "303d943e54c671ee"
+   }
   }
  ],
  "deps": {}

@@ -1,0 +1,180 @@
+{
+ "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift",
+ "hash": "7389e993648e96aa",
+ "role": "Destructive memory actions of the assistant namespace (clear, remove, restore) and DestructiveActionContext, the confirmation gate they share with assistant.contacts.remove.",
+ "types": [
+  "AssistantMemoryNamespace: extension — destructive-action cores",
+  "AssistantMemoryNamespace.DestructiveActionContext: struct (@MainActor) — confirmations store + transcript + now; .live reads AppDependencies"
+ ],
+ "state": [],
+ "toplevel": "Extension only; no top-level code.",
+ "flags": [],
+ "units": [
+  {
+   "key": "var AssistantMemoryNamespace.DestructiveActionContext.live",
+   "hash": "a21819b1aa9847b2",
+   "does": "Builds the live context: the current AssistantViewModel's actionConfirmations (the conversation's pending requests) and its transcript, now = Date().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.actionConfirmations",
+    "mem:AssistantViewModel.turns"
+   ],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "6d93847830e6d9e6",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "8049e4267167c453",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel": "683bce28accc5e69"
+   }
+  },
+  {
+   "key": "func AssistantMemoryNamespace.DestructiveActionContext.gate(action:target:question:)",
+   "hash": "d54201e474b5ec36",
+   "does": "Runs AssistantActionConfirmations.evaluate on the context transcript: nil when confirmed (the caller proceeds), confirmationRequired(question) when the request was recorded, .missing(invalidParameter) when there is no user message.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift::func AssistantActionConfirmations.evaluate(action:target:turns:now:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.confirmationRequired(_:)"
+   ],
+   "reads": [
+    "mem:AssistantActionConfirmations.pending"
+   ],
+   "writes": [
+    "mem:AssistantActionConfirmations.pending"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "evaluate outcome",
+     "effect": ".confirmed → nil; .awaitingConfirmation → confirmationRequired; .noUserMessage → missing(invalidParameter)"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift::func AssistantActionConfirmations.evaluate(action:target:turns:now:)": "91972d59b16b48b6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.confirmationRequired(_:)": "833b1e01446e337a"
+   }
+  },
+  {
+   "key": "func AssistantMemoryNamespace.confirmationRequired(_:)",
+   "hash": "fdc99392e3ce43e4",
+   "does": "Record {status:\"confirmation_required\", executed:false, ask_user:<app-written question>, next_step:<ask, end the reply, call again with the same arguments only on a plain yes>}.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantMemoryNamespace.clearAllMemory(store:context:)",
+   "hash": "0a67420e4f49f5db",
+   "does": "With no facts returns {cleared:false,count_before:0,note}. Otherwise gates on \"assistant.memory.clear\"/\"all\" with the question \"Delete all N saved memory facts?\"; once confirmed calls store.clearKeepingBackup() and returns {cleared:true,count_before,undo}.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gate(action:target:question:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clearKeepingBackup()"
+   ],
+   "reads": [
+    "mem:UserFactsStore.facts",
+    "mem:AssistantActionConfirmations.pending"
+   ],
+   "writes": [
+    "mem:UserFactsStore.facts",
+    "mem:UserFactsStore.clearedBackup",
+    "mem:AssistantActionConfirmations.pending",
+    "file:AppGroup/Assistant/user_facts.json (UserFactsStore)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "store has no facts",
+     "effect": "returns cleared:false without asking"
+    },
+    {
+     "at": "+6",
+     "cond": "gate returned a result (not yet confirmed)",
+     "effect": "returns it, nothing erased; else clears with backup"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clearKeepingBackup()": "1b6a85f4e2098bc8",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gate(action:target:question:)": "fbfac5e6137413ea"
+   }
+  },
+  {
+   "key": "func AssistantMemoryNamespace.removeMemoryFact(id:store:context:)",
+   "hash": "c9d2b377f6b9e742",
+   "does": "Finds the fact by id (missing notRecorded when absent), gates on \"assistant.memory.remove\"/id with the question naming the fact text; once confirmed calls store.remove(id) and returns {removed:true,id,text}.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gate(action:target:question:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)"
+   ],
+   "reads": [
+    "mem:UserFactsStore.facts",
+    "mem:AssistantActionConfirmations.pending"
+   ],
+   "writes": [
+    "mem:UserFactsStore.facts",
+    "mem:AssistantActionConfirmations.pending",
+    "file:AppGroup/Assistant/user_facts.json (UserFactsStore)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no fact with that id",
+     "effect": "returns missing notRecorded"
+    },
+    {
+     "at": "+5",
+     "cond": "gate returned a result (not yet confirmed)",
+     "effect": "returns it, nothing removed; else removes"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)": "a1d2e06cffd32051",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gate(action:target:question:)": "fbfac5e6137413ea"
+   }
+  },
+  {
+   "key": "func AssistantMemoryNamespace.restoreClearedMemory(store:)",
+   "hash": "a6abc4212f9b798f",
+   "does": "Missing notRecorded when store.clearedBackup is empty; otherwise store.restoreCleared() and returns {restored,count}.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.restoreCleared()"
+   ],
+   "reads": [
+    "mem:UserFactsStore.clearedBackup",
+    "mem:UserFactsStore.facts"
+   ],
+   "writes": [
+    "mem:UserFactsStore.facts",
+    "mem:UserFactsStore.clearedBackup",
+    "file:AppGroup/Assistant/user_facts.json (UserFactsStore)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no backup",
+     "effect": "returns missing notRecorded; else restores"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.restoreCleared()": "a3a0fe945896087b"
+   }
+  }
+ ],
+ "deps": {}
+}

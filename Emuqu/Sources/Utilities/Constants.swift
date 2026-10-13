@@ -254,12 +254,29 @@ enum SleepConstants {
     /// Ceiling for HR-estimated sleep-onset latency (minutes from recording
     /// start). The recording starts at bedtime, so onset can't plausibly be an
     /// hour of lying awake — typical sleep-onset latency is 10-20 min (>30 min
-    /// is clinically prolonged). Clamps the HR estimator, which otherwise reads
+    /// is clinically prolonged). Bounds the HR estimators, which otherwise read
     /// the light→deep transition (~1 h) as the moment of falling asleep. See
-    /// `HealthKitManager.estimateSleepFromHR`.
+    /// `HRSleepEstimator` and `SleepBoundaryResolver.detectSleepOnset`.
     /// SOL clamp 20 min: typical adult SOL 10–20 min, >30 clinically prolonged
     /// — Ohayon et al., Sleep 2004;27(7):1255-73; AASM/ICSD-3.
+    ///
+    /// A detection past the ceiling is not moved to it. Every detector already
+    /// returns its FIRST qualifying onset, so there is no earlier candidate to
+    /// fall back on, and minute 20 was a fabricated value reported as if
+    /// detected (a genuine hour awake read as 20 min; the awake windows after
+    /// minute 20 were staged as sleep). Such a detection is evidence the
+    /// detector misfired, so onset is undetermined: the caller falls back to
+    /// the recording (in-bed) start, where `SleepData.sleepLatencyMinutes`
+    /// reads nil — latency unknown, not 0 and not 20.
     static let maxHREstimatedOnsetLatencyMin: Int = 20
+
+    /// Whether an HR-detected onset `latencyMs` after the recording start, on
+    /// the wall clock, is within `maxHREstimatedOnsetLatencyMin`. The one test
+    /// every HR onset detector applies, so all three measure the cap the same
+    /// way.
+    static func isPlausibleHROnsetLatency(wallClockMs latencyMs: Int64) -> Bool {
+        latencyMs <= Int64(maxHREstimatedOnsetLatencyMin) * 60_000
+    }
 
     /// Minimum fraction of the SHORTER of {recording span, sleep span} that the
     /// two must overlap before a HealthKit sleep block can be auto-attached to a

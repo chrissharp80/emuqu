@@ -276,6 +276,7 @@ final class CloudSessionPayloadHealthReadingsTests: XCTestCase {
         result.overnightMinHR = 48
         result.overnightMaxHR = 80
         result.overnightMeanHR = 56
+        result.estimatedMetrics = [EstimatedMetric.sdsd.rawValue]
         return result
     }
 

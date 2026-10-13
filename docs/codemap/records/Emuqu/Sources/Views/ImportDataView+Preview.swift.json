@@ -482,15 +482,21 @@
   },
   {
    "key": "func ImportDataView.eliteSessionRow(_:)",
-   "hash": "735fe2caa547a139",
-   "does": "Row: date, RMSSD and beat count of an Elite summary.",
+   "hash": "35d3b35ab323ccc3",
+   "does": "Row: date, RMSSD and, when the summary has one, the beat count of an Elite summary.",
    "entry": "SwiftUI view builder",
    "calls": [
     "Emuqu/Sources/Views/ImportDataView+Actions.swift::func ImportDataView.formatDate(_:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "session.beatCount nil",
+     "effect": "beat count omitted"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572",

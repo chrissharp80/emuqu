@@ -41,13 +41,13 @@
   },
   {
    "key": "func DeepDiveReportRenderer.drawTimeDomainMetrics(result:session:pageNumber:yPosition:in:pageRect:)",
-   "hash": "683f5840c76ff8ff",
-   "does": "Draws the \"Time Domain Metrics\" subsection: reserves 80pt (page break if needed), draws the heading, then one metric block per row from timeDomainRows (RMSSD, SDNN, Mean RR/HR, pNN50, SDSD, optional triangular index).",
+   "hash": "aeab86fd3dddba7d",
+   "does": "Draws the \"Time Domain Metrics\" subsection: reserves 80pt (page break if needed), draws the heading, then one metric block per row from timeDomainRows(result:) (RMSSD, SDNN, Mean RR/HR, pNN50, SDSD, optional triangular index; estimated ones marked and not read).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func timeDomainRows(td:session:bundle:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func timeDomainRows(result:session:bundle:)",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
@@ -55,7 +55,7 @@
    "writes": [],
    "branches": [
     {
-     "at": "+13",
+     "at": "+12",
      "cond": "for each time-domain row",
      "effect": "draws each row via drawMetricWithExplanation, threading y; rows absent (nil triangular index) were already dropped by compactMap"
     }
@@ -64,7 +64,7 @@
    "deps": {
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "66c8176e95b924cb",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "44b64bb0ee8a94da",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func timeDomainRows(td:session:bundle:)": "025af269cdede632",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func timeDomainRows(result:session:bundle:)": "06f36aa19e0bd05c",
     "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)": "79c97b709effdb63",
     "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
@@ -110,14 +110,14 @@
   },
   {
    "key": "func DeepDiveReportRenderer.drawNonlinearMetrics(result:pageNumber:yPosition:in:pageRect:)",
-   "hash": "5b57934950e4074e",
-   "does": "Draws the \"Nonlinear Dynamics\" subsection: 80pt reserve, heading, an explanatory paragraph framing nonlinear metrics as context not a verdict, then each nonlinear row (SD1, SD2, SD1/SD2, optional DFA α1/α2, sample and approximate entropy).",
+   "hash": "c157d4c3f8532d0c",
+   "does": "Draws the \"Nonlinear Dynamics\" subsection: 80pt reserve, heading, an explanatory paragraph framing nonlinear metrics as context not a verdict, then each row from nonlinearRows(result:) (SD1, SD2, SD1/SD2 — marked and not read when estimated —, optional DFA α1/α2, sample and approximate entropy).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.nonlinearRows(nl:bundle:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.nonlinearRows(result:bundle:)",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
@@ -125,7 +125,7 @@
    "writes": [],
    "branches": [
     {
-     "at": "+16",
+     "at": "+15",
      "cond": "for each nonlinear row",
      "effect": "draws each row block, threading y"
     }
@@ -135,16 +135,16 @@
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawMetricWithExplanation(_:y:contentWidth:pageNumber:context:pageRect:)": "66c8176e95b924cb",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawSubsectionHeading(_:yPosition:pageRect:)": "44b64bb0ee8a94da",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.drawWrappedText(_:style:y:contentWidth:pageNumber:context:pageRect:)": "491eb379bc9a571e",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.nonlinearRows(nl:bundle:)": "45d83a0c8df65c26",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.nonlinearRows(result:bundle:)": "0238101947e02da4",
     "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::func DeepDiveReportRenderer.ensureSpace(needed:y:pageNumber:context:pageRect:)": "79c97b709effdb63",
     "Emuqu/Sources/Export/DeepDiveReportRenderer.swift::var DeepDiveReportRenderer.config": "57667dee19578898",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
   },
   {
-   "key": "func DeepDiveReportRenderer.nonlinearRows(nl:bundle:)",
-   "hash": "bb57bd1544071cb5",
-   "does": "Builds the nonlinear metric rows in order SD1, SD2, SD1/SD2, DFA α1, DFA α2, sample entropy, approximate entropy, dropping the optional ones that are nil.",
+   "key": "func DeepDiveReportRenderer.nonlinearRows(result:bundle:)",
+   "hash": "e19e09224912bdef",
+   "does": "Builds the nonlinear metric rows in order SD1, SD2, SD1/SD2 (each through estimable: marked as an estimate with no reading when the result says so), DFA α1, DFA α2, sample entropy, approximate entropy, dropping the optional ones that are nil.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func sd1Row(nl:bundle:)",
@@ -153,7 +153,8 @@
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func dfaAlpha1Row(nl:bundle:)",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func dfaAlpha2Row(nl:bundle:)",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func DeepDiveReportRenderer.sampleEntropyRow(nl:bundle:)",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func approxEntropyRow(nl:bundle:)"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func approxEntropyRow(nl:bundle:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func estimable(_:as:in:)"
    ],
    "reads": [],
    "writes": [],
@@ -164,6 +165,7 @@
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func approxEntropyRow(nl:bundle:)": "d2651980a1e9e6b6",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func dfaAlpha1Row(nl:bundle:)": "5c389406d2ef5dd1",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func dfaAlpha2Row(nl:bundle:)": "b44918e9d731cbf2",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func estimable(_:as:in:)": "03d187165ed3bb48",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func sd1Row(nl:bundle:)": "cd30581587b1347e",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func sd1Sd2RatioRow(nl:bundle:)": "0e99a628770149d3",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func sd2Row(nl:bundle:)": "fc6c1768074a532a"
@@ -723,9 +725,9 @@
    "deps": {}
   },
   {
-   "key": "func timeDomainRows(td:session:bundle:)",
-   "hash": "5774ee16d900b032",
-   "does": "Builds time-domain rows RMSSD, SDNN, Mean RR/HR, pNN50, SDSD, triangular index (dropped when nil).",
+   "key": "func timeDomainRows(result:session:bundle:)",
+   "hash": "f83d4eb5f76ce84a",
+   "does": "Builds time-domain rows RMSSD, SDNN, Mean RR/HR, pNN50, SDSD, triangular index (dropped when nil); SDNN, pNN50 and SDSD go through estimable, so an estimate is marked and not read against bands.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func rmssdRow(td:session:bundle:)",
@@ -733,19 +735,45 @@
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func meanRRRow(td:session:bundle:)",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func pnn50Row(td:session:bundle:)",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func sdsdRow(td:session:bundle:)",
-    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func triangularIndexRow(td:session:bundle:)"
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func triangularIndexRow(td:session:bundle:)",
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func estimable(_:as:in:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func estimable(_:as:in:)": "03d187165ed3bb48",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func meanRRRow(td:session:bundle:)": "f88858b48643dc94",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func pnn50Row(td:session:bundle:)": "f4693b4d94656ca9",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func rmssdRow(td:session:bundle:)": "557da32f909b6928",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func sdnnRow(td:session:bundle:)": "8cddf9bdea6b8413",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func sdsdRow(td:session:bundle:)": "e2f1efe45e9e452d",
     "Emuqu/Sources/Export/DeepDiveReportRenderer+Pages.swift::func triangularIndexRow(td:session:bundle:)": "ffa7b8d5a511c6ec"
+   }
+  },
+  {
+   "key": "func estimable(_:as:in:)",
+   "hash": "6be0f468a4368608",
+   "does": "Returns the metric row unchanged when `result` does not mark `estimated`; otherwise a copy with the value marked '(estimate)' (markingEstimate) and no interpretation.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "metric not estimated",
+     "effect": "returns the row as is"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "75ec424f441a2c51",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f"
    }
   },
   {

@@ -306,7 +306,7 @@ STEP 10: Build final session
 
 STEP 11: Compute recovery score
   recoveryScore = computeRecoveryScore(session, analysisResult)
-  → Uses RecoveryScoreCalculator (scoring version v3.1.oct2026)
+  → Uses RecoveryScoreCalculator (scoring version v3.2.oct2026)
   → Tier 1: HRV-only (ln(RMSSD) z-score, SWC band model)
   → Tier 2: HRV + Sleep (sleep present, vitals absent)
   → Tier 3: HRV + Sleep + Vitals (full-signal day, 60/25/15)
@@ -327,7 +327,7 @@ OUTPUT: finalSession with all analysis
 
 ---
 
-## 6. Recovery Score Calculation (scoring version v3.1.oct2026)
+## 6. Recovery Score Calculation (scoring version v3.2.oct2026)
 
 ### RecoveryScoreCalculator (RecoveryScoreCalculator.swift)
 
@@ -596,7 +596,7 @@ MorningResultsViewModel loads sleep for the session
               └→ 20-min rolling-average smoothing
               └→ Require HR range ≥ 8 BPM (else bail)
               └→ threshold = maxHR − (maxHR−minHR)×0.5
-              └→ onset = first 2 consecutive points below threshold (latency-clamped)
+              └→ onset = first 2 consecutive points below threshold (≤ 20 min after bedtime, else bedtime)
               └→ wake  = end of the LAST continuous below-threshold block
               └→ Require ≥ 12 samples and ≥ 120 min, else nil
           └→ still nil, and the session is live → keep the loading state
@@ -760,7 +760,7 @@ any. Nothing else reduces the set.
 | `RRCollector+MorningProcessing.swift` | **processOvernightData** — main analysis pipeline, supersedeSameNightSession |
 | `RRCollector+DeviceRecording.swift` | fetchTrainingLoadIfEnabled, device-only recording |
 | `MorningProcessingService.swift` | Delegated implementation of processOvernightData pipeline |
-| `RecoveryScoreCalculator.swift` | Recovery score: HRV + Sleep + Vitals tiers (v3.1.oct2026; training load on parallel surface) |
+| `RecoveryScoreCalculator.swift` | Recovery score: HRV + Sleep + Vitals tiers (v3.2.oct2026; training load on parallel surface) |
 | `HRVSleepStageClassifier.swift` | Full sleep stage classification from RR data |
 | `SleepMergingPipeline.swift` | Sleep stage merging and HRV-enhanced Watch stage augmentation |
 | `SleepBoundaryResolver.swift` | Consolidated sleep boundary resolution (HealthKit → HR-based → recording bounds) |

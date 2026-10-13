@@ -203,6 +203,27 @@ final class WorkoutExportersTests: XCTestCase {
         XCTAssertEqual(values, [101, 177])
     }
 
+    /// The indoor table's `seconds_from_start` is wall-clock time, like the
+    /// GPS table's: a sample after a ten-minute pause sits ten minutes later
+    /// than its pause-excluded offset.
+    func testCSVIndoorSecondsFromStartAreWallClockAfterAPause() {
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        var session = HRVSession(startDate: start, sessionType: .workout)
+        session.endDate = start.addingTimeInterval(700)
+        var metadata = WorkoutMetadata(sport: .treadmill)
+        metadata.samples = [
+            WorkoutSample(offsetSec: 10, heartRate: 101),
+            WorkoutSample(offsetSec: 20, heartRate: 177)
+        ]
+        metadata.pauseSpans = [WorkoutPauseSpan(atElapsed: 15, seconds: 600)]
+        session.workoutMetadata = metadata
+
+        let csv = CSVExporter.export(session: session, track: [])
+
+        XCTAssertTrue(csv.contains("\n10,101,"))
+        XCTAssertTrue(csv.contains("\n620,177,"))
+    }
+
     func testWallClockSecondsAddThePausesBeforeTheActiveSecond() {
         var metadata = WorkoutMetadata(sport: .run)
         XCTAssertEqual(metadata.wallClockSeconds(forActiveOffset: 20), 20)

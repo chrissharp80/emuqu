@@ -75,3 +75,60 @@ final class AnalysisSummaryTrendDirectionTests: XCTestCase {
         XCTAssertFalse(report.probableCauses.contains { $0.cause == "Upward Trend" })
     }
 }
+
+// MARK: - Sleep trend from archived nights
+
+/// The sleep trend the summary, the report and the assistant read was never
+/// set (`MorningResultsViewModel.sleepTrendStats` had no writer, the other
+/// callers passed nil), so every multi-night sleep finding was dead. It is now
+/// built from the sleep archived with the nights before the session.
+extension AnalysisSummaryTrendDirectionTests {
+    private func sleptNight(daysAgo: Int, minutes: Int) -> HRVSession {
+        var session = night(daysAgo: daysAgo, rmssd: 40)
+        session.sleepSnapshot = SleepData(
+            date: session.endDate ?? session.startDate, totalSleepMinutes: minutes, inBedMinutes: minutes + 30,
+            awakeMinutes: 30, sleepEfficiency: 90, boundarySource: .healthKit
+        )
+        return session
+    }
+
+    /// Three 5-hour nights after three 8-hour ones, a shorter duplicate of one
+    /// night, a quick reading with sleep on it, and a night outside the week.
+    private func priorWeek() -> [HRVSession] {
+        var quick = HRVSession(startDate: today.addingTimeInterval(-2 * 86_400), sessionType: .quick)
+        quick.sleepSnapshot = sleptNight(daysAgo: 2, minutes: 600).sleepSnapshot
+        let nights = [1, 2, 3].map { sleptNight(daysAgo: $0, minutes: 300) }
+            + [4, 5, 6].map { sleptNight(daysAgo: $0, minutes: 480) }
+        return nights + [sleptNight(daysAgo: 1, minutes: 200), quick, sleptNight(daysAgo: 9, minutes: 480)]
+    }
+
+    func testTheTrendIsBuiltFromTheWeekOfArchivedNightsBeforeTheSession() throws {
+        let stats = try XCTUnwrap(SleepTrendStats.recentNights(before: sleptNight(daysAgo: 0, minutes: 300), in: priorWeek()))
+        XCTAssertEqual(stats.nightsAnalyzed, 6)
+        XCTAssertEqual(stats.averageSleepMinutes, 390, accuracy: 1e-9)
+        XCTAssertEqual(stats.trend, .declining)
+        XCTAssertEqual(try XCTUnwrap(stats.averageEfficiency), 90, accuracy: 1e-9)
+    }
+
+    func testNoArchivedNightMeansNoTrend() {
+        XCTAssertNil(SleepTrendStats.recentNights(before: sleptNight(daysAgo: 0, minutes: 300), in: []))
+        XCTAssertNil(AnalysisSleepTrendInput.recentNights(before: nil, in: priorWeek()))
+    }
+
+    func testTheMorningReportReadsTheTrend() {
+        let tonight = sleptNight(daysAgo: 0, minutes: 300)
+        let vm = MorningResultsViewModel(session: tonight, result: result(rmssd: 40), recentSessions: priorWeek())
+        XCTAssertEqual(vm.sleepTrendStats?.nightsAnalyzed, 6)
+    }
+
+    func testTheSummaryReportsADecliningWeek() {
+        let tonight = sleptNight(daysAgo: 0, minutes: 300)
+        let recent = priorWeek()
+        let summary = AnalysisSummaryGenerator(
+            result: result(rmssd: 40), session: tonight, recentSessions: recent,
+            sleep: AnalysisSleepInput(from: tonight.sleepSnapshot),
+            sleepTrend: .recentNights(before: tonight, in: recent)
+        ).generate()
+        XCTAssertTrue(summary.keyFindings.contains { $0.contains("Sleep trending down") })
+    }
+}

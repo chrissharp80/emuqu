@@ -303,10 +303,8 @@ final class RawRRBackup: @unchecked Sendable {
             id: sessionId, captureDate: captureDate ?? existing?.captureDate ?? Date(), deviceId: deviceId,
             points: points, hash: try Self.integrityHash(of: points)
         )
-        let fileName = "\(sessionId.uuidString)_\(Int(Date().timeIntervalSince1970)).json"
-        try Self.writeEntry(entry, to: backupDirectory.appendingPathComponent(fileName), sessionId: sessionId)
         // The old files go only once the new row is on disk.
-        try reindex(sessionId: sessionId, entry: entry, fileName: fileName, beatCount: points.count, replacing: existing)
+        let fileName = try writeOneShot(entry, replacing: existing)
         cleanupAppendFiles(for: sessionId)
         removeReplacedFile(existing?.fileName, keeping: fileName)
         if points.count < 100 {
@@ -841,5 +839,28 @@ extension RawRRBackup {
         indexLock.lock()
         defer { indexLock.unlock() }
         return index.contains { abs($0.captureDate.timeIntervalSince(date)) <= window }
+    }
+
+    /// Writes `entry` under a file name no earlier write used, then indexes it.
+    ///
+    /// Names were once whole-second timestamps, so two backups of a session in
+    /// one second shared a file: when the second's index save threw, the
+    /// rollback put back the old row (same name, old hash) over the new bytes,
+    /// and the backup then failed its hash check and dropped out of every
+    /// listing. A fresh name leaves the restored row and its file intact; the
+    /// new file, which nothing indexes, is removed.
+    private func writeOneShot(_ entry: BackupEntry, replacing existing: BackupIndex?) throws -> String {
+        let fileName = OneShotBackupName.make(for: entry.id, at: Date()) { name in
+            name == existing?.fileName || fileManager.fileExists(atPath: backupDirectory.appendingPathComponent(name).path)
+        }
+        let url = backupDirectory.appendingPathComponent(fileName)
+        try Self.writeEntry(entry, to: url, sessionId: entry.id)
+        do {
+            try reindex(sessionId: entry.id, entry: entry, fileName: fileName, beatCount: entry.points.count, replacing: existing)
+        } catch {
+            _ = attempt("RawRRBackup.removeUnindexedBackup") { try fileManager.removeItem(at: url) }
+            throw error
+        }
+        return fileName
     }
 }

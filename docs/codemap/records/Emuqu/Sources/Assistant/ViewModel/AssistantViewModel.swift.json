@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift",
- "hash": "d69cb76a78ca7326",
+ "hash": "54618d6902c9fa4f",
  "role": "Main-actor @Observable chat view model shared by typed chat and voice: holds turns, streaming state, consent/queued sends, cached fact registry/tool schema, and the public chat actions (send, cancel, clear, export, regenerate, remember, refresh context). ComposerState is the narrow observable the input bar binds to.",
  "types": [
   "ComposerState: class (@Observable @MainActor) — canSend + returnedDraft for the chat input bar",
@@ -38,7 +38,8 @@
   "notif:UIApplication.didBecomeActiveNotification (observed)",
   "mem:AssistantViewModel.pendingConsentRequest.regenerate (a held regeneration rather than a new message)",
   "file:<tmp>/EmuquChat-<epoch>.md (export; at most one kept: removeChatExports deletes older ones and runs on Clear)",
-  "static AssistantViewModel.chatExportPrefix = \"EmuquChat-\""
+  "static AssistantViewModel.chatExportPrefix = \"EmuquChat-\"",
+  "mem:AssistantViewModel.actionConfirmations (AssistantActionConfirmations: destructive tool calls awaiting the user's yes in this conversation)"
  ],
  "toplevel": "AssistantViewModel.shared is created lazily on first access (static let) via init with default AppDependencies-resolved deps; no other instantiation exists in the repo. composerState = ComposerState() and sessionState = RoutingSessionState() are stored-property initializers; chatExportPrefix is a static let.",
  "flags": [],

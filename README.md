@@ -66,7 +66,7 @@ The complete feature list is in [`docs/FEATURES.md`](docs/FEATURES.md).
   tests on synthetic and recorded series.
 - **Honesty about the number.** No wearable's composite recovery score has
   been validated against outcomes, and the app says so. Scoring is versioned
-  (`v3.1.oct2026`), the version is stored with every score and shown on the
+  (`v3.2.oct2026`), the version is stored with every score and shown on the
   score-detail screen, and every heuristic
   is listed with its evidence status in
   [`Tools/science_register/register.json`](Tools/science_register/register.json).

@@ -283,4 +283,108 @@ final class HRVSessionTests: XCTestCase {
         XCTAssertEqual(decoded.sdnn, 55.0)
         XCTAssertEqual(decoded.source, "Elite HRV")
     }
+
+    // MARK: - Legacy Elite HRV imports
+
+    /// A session as an earlier build wrote it: the result has no
+    /// `estimatedMetrics` key at all.
+    private func roundTrip(_ session: HRVSession) throws -> HRVSession {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(HRVSession.self, from: encoder.encode(session))
+    }
+
+    private func importedSession(source: String, result: HRVAnalysisResult) -> HRVSession {
+        HRVSession(
+            id: UUID(), startDate: Date(timeIntervalSince1970: 1_700_000_000), endDate: nil, state: .complete,
+            rrSeries: nil, analysisResult: result, artifactFlags: nil,
+            importedMetrics: HRVSession.ImportedMetrics(rmssd: 45, rmssdRaw: 45, artifactPercent: 0, source: source)
+        )
+    }
+
+    func testLegacyEliteImportDecodesWithEveryDerivedMetricMarkedEstimated() throws {
+        let legacy = importedSession(source: "Elite HRV", result: SnapshotFixtures.legacyEliteImportResult())
+        XCTAssertNil(legacy.analysisResult?.estimatedMetrics, "Fixture is the pre-provenance shape")
+
+        let decoded = try roundTrip(legacy)
+        let result = try XCTUnwrap(decoded.analysisResult)
+
+        let derived = EstimatedMetric.allCases.filter { $0 != .hrRange && $0 != .beatCount }
+        XCTAssertEqual(Set(result.estimatedMetrics ?? []), Set(derived.map(\.rawValue)), "The file's own beat count and HR range are kept")
+        XCTAssertNil(result.measuredSDNN)
+        XCTAssertNil(result.measuredPNN50)
+        XCTAssertNil(result.ansMetrics, "The old importer's stress index was made from RMSSD")
+        XCTAssertNil(decoded.stressIndex)
+        XCTAssertEqual(result.timeDomain.rmssd, 45.0, "RMSSD was Elite HRV's own value and is kept")
+    }
+
+    /// The old importer's stand-ins: 100 beats and a 60–100 bpm range, or a
+    /// range of mean HR ±15%.
+    func testLegacyEliteStandInBeatCountAndRangeAreMarkedEstimated() throws {
+        let defaults = SnapshotFixtures.legacyEliteImportResult(beats: 100, minHR: 60, maxHR: 100)
+        let fromDefaults = try XCTUnwrap(try roundTrip(importedSession(source: "Elite HRV", result: defaults)).analysisResult)
+        XCTAssertEqual(Set(fromDefaults.estimatedMetrics ?? []), Set(EstimatedMetric.allCases.map(\.rawValue)))
+
+        let meanRR = 900.0
+        let derived = SnapshotFixtures.legacyEliteImportResult(minHR: 60_000 / (meanRR * 1.15), maxHR: 60_000 / (meanRR * 0.85))
+        let fromMeanHR = try XCTUnwrap(try roundTrip(importedSession(source: "Elite HRV", result: derived)).analysisResult)
+        XCTAssertTrue(fromMeanHR.isEstimated(.hrRange))
+        XCTAssertFalse(fromMeanHR.isEstimated(.beatCount))
+    }
+
+    func testLegacyEliteMarkerSurvivesASecondSave() throws {
+        let once = try roundTrip(importedSession(source: "Elite HRV", result: SnapshotFixtures.legacyEliteImportResult()))
+        let twice = try roundTrip(once)
+        XCTAssertEqual(twice.analysisResult?.estimatedMetrics, once.analysisResult?.estimatedMetrics)
+    }
+
+    func testNewEliteImportKeepsItsOwnMarker() throws {
+        var result = SnapshotFixtures.analysisResult()
+        result.estimatedMetrics = [EstimatedMetric.sdsd.rawValue]
+
+        let decoded = try roundTrip(importedSession(source: "Elite HRV", result: result))
+
+        XCTAssertEqual(decoded.analysisResult?.estimatedMetrics, [EstimatedMetric.sdsd.rawValue])
+        XCTAssertEqual(decoded.analysisResult?.measuredSDNN, 54.0, "The file's SDNN is a measurement")
+        XCTAssertNotNil(decoded.analysisResult?.ansMetrics)
+    }
+
+    /// The first Elite importer also stored an RMSSD-made readiness as the
+    /// session's score; it goes with the analysis it was made from.
+    func testLegacyEliteImportDecodesWithoutItsScore() throws {
+        var legacy = importedSession(source: "Elite HRV", result: SnapshotFixtures.legacyEliteImportResult())
+        legacy.recoveryScore = 6.5
+        legacy.frozenReadiness = 6.5
+
+        let decoded = try roundTrip(legacy)
+
+        XCTAssertNil(decoded.recoveryScore)
+        XCTAssertNil(decoded.frozenReadiness)
+        XCTAssertNil(decoded.scoreBreakdown)
+    }
+
+    func testRecordedSessionUnderAnEliteSourceKeepsItsScore() throws {
+        var merged = importedSession(source: "Elite HRV", result: SnapshotFixtures.analysisResult())
+        merged.recoveryScore = 7.1
+
+        XCTAssertEqual(try roundTrip(merged).recoveryScore, 7.1)
+    }
+
+    func testOtherImportsAndRecordedSessionsDecodeUnmarked() throws {
+        let other = try roundTrip(importedSession(source: "test", result: SnapshotFixtures.legacyEliteImportResult()))
+        XCTAssertNil(other.analysisResult?.estimatedMetrics)
+        XCTAssertEqual(other.analysisResult?.measuredSDNN, 81)
+        XCTAssertEqual(other.stressIndex, 18.2)
+    }
+
+    /// A recorded night that took an Elite import's `importedMetrics` in a
+    /// merge keeps its own analysis: RR analysis never stores SDSD == RMSSD.
+    func testRecordedAnalysisUnderAnEliteSourceIsNotMarked() throws {
+        let merged = try roundTrip(importedSession(source: "Elite HRV", result: SnapshotFixtures.analysisResult()))
+        XCTAssertNil(merged.analysisResult?.estimatedMetrics)
+        XCTAssertEqual(merged.analysisResult?.measuredSDNN, 54.0)
+        XCTAssertEqual(merged.stressIndex, 120)
+    }
 }

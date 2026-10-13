@@ -1,6 +1,6 @@
 {
  "file": "EmuquTests/RRDataImporterTests.swift",
- "hash": "1b6b25e3b324469a",
+ "hash": "6fb1aade291fc0ac",
  "role": "XCTest suite for RRDataImporter parsing: Elite HRV / Emuqu multi-session detection, seconds→ms conversion, JSON/CSV/plain-text parsers including the CSV range-check asymmetries, Elite HRV summary parsing, crafted-timestamp rejection in multi-session exports, validate's one-week span limit, error text, date parsing, createSession and quoted CSV lines.",
  "types": [
   "RRDataImporterTests: class — XCTestCase for RRDataImporter"
@@ -8,7 +8,8 @@
  "state": [
   "savedDefaultTimeZone: static OSAllocatedUnfairLock<TimeZone?> holding the process time zone during the class",
   "importer: RRDataImporter() per test instance",
-  "mem:NSTimeZone.default (set to UTC for the class, restored in class tearDown)"
+  "mem:NSTimeZone.default (set to UTC for the class, restored in class tearDown)",
+  "eliteNewFormat / eliteOldFormat: private static String fixtures — one-row Elite HRV CSVs in the newer (with Sdnn/Pnn50, HR) and older (with RR extremes) layouts"
  ],
  "toplevel": "Class-level setUp/tearDown pin NSTimeZone.default to UTC and restore it; a fresh RRDataImporter is a stored property per test.",
  "flags": [],
@@ -722,6 +723,201 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)": "2eb0d3f9d4cf9d8a"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testEliteNewFormatReadsTheFilesSDNNAndPNN50()",
+   "hash": "41a8d539d7c6668d",
+   "does": "Asserts a new-format row's SDNN 55.1 and pNN50 18.2 are parsed, used as the session's timeDomain values, reported by measuredSDNN/measuredPNN50 and not marked estimated, while hrRange, SDSD and SD2 are marked (no RR extremes stated).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)": "d67169d3f312e020",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)": "2e325dd5af2d0727",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "75ec424f441a2c51",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50": "c6bd570c1d8742c7",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "6a822d05adef4c73"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testEliteOldFormatMarksWhatTheFileDoesNotState()",
+   "hash": "f3a7792d9bd168f0",
+   "does": "Asserts an old-format row keeps RMSSD 45.2, has sdnn/pnn50 nil and rrRangeStated, and its session marks SDNN/pNN50 estimated (measured values nil) but not the HR range, has no ANS metrics or stress index, and carries the Elite source.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "869a7cb20146b68d",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)": "d67169d3f312e020",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)": "2e325dd5af2d0727",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "75ec424f441a2c51",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50": "c6bd570c1d8742c7",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "6a822d05adef4c73",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "37f85ac5c8deb0fb"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testEliteRowWithNoHeartRateIsSkippedNotGivenOne()",
+   "hash": "4560ad94510237eb",
+   "does": "Asserts a new-format file whose only row has neither a mean HR nor RR extremes throws (every row skipped) instead of importing a made-up heart rate.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVRow(columns:indices:rmssdIdx:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteRRBounds(columns:indices:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteRRBounds(columns:indices:)": "1b3c6a64a40ba2b9",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVRow(columns:indices:rmssdIdx:)": "537d94ce39396273",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)": "2e325dd5af2d0727"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testEliteRowWithNoBeatCountGetsNoMadeUpCount()",
+   "hash": "3587c2882b2491f9",
+   "does": "Asserts an old-format row without n_rr (and no duration/HR) parses with beatCount nil and imports as a session marking .beatCount, with no measured clean beat count, '—' as its text, endDate equal to startDate and no '100' in its note.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredCleanBeatCount",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.cleanBeatCountText"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)": "a45900270f8fedb2",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)": "2e325dd5af2d0727",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "75ec424f441a2c51",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.cleanBeatCountText": "362fe52b148f6f4b",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredCleanBeatCount": "ee4a2ef206d35aab"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testEliteRowWithABeatCountKeepsIt()",
+   "hash": "2678e0de3180bd6a",
+   "does": "Asserts an old-format row's n_rr 300 is kept, not marked, and gives 300 x (1 - 3.2%) clean beats.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredCleanBeatCount"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)": "a45900270f8fedb2",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)": "2e325dd5af2d0727",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isEstimated(_:)": "75ec424f441a2c51",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredCleanBeatCount": "ee4a2ef206d35aab"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testEstimatedValueIsMarkedForDisplayAndMeasuredOneIsNot()",
+   "hash": "4a3376361dc7388c",
+   "does": "Asserts markingEstimate appends a bracketed marker to an estimated SDNN (old format) and leaves a measured one (new format) unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)": "d67169d3f312e020",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)": "2e325dd5af2d0727",
+    "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "929f3b15bf2d6a7f"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testEstimatedMetricsStayOutOfTheAssistantsHRVRecord()",
+   "hash": "0e39cae8cfc8fc32",
+   "does": "Asserts HRVNamespace.hrvRecord for an old-format Elite session keeps rmssd_ms and the stated HR range but drops sdnn_ms, pnn50_percent, sdsd_ms, sd_hr_bpm, sd1_ms, sd2_ms and sd1_sd2_ratio.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.hrvRecord(for:archive:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sleep.swift::func HRVNamespace.hrvRecord(for:archive:)": "a1e070fdc556992c",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)": "d67169d3f312e020",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)": "2e325dd5af2d0727"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testEstimatedSDNNIsNoPointOnTheSDNNTrendChart()",
+   "hash": "d82e5d998e79d39a",
+   "does": "Asserts TrendsV2View.metricValue(.sdnn) is nil for an estimated SDNN and 55.1 for the file's own, while RMSSD stays 45.2.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass (@MainActor)",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.metricValue(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.createAnalyzedSession(from:originalFileName:)": "d67169d3f312e020",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.parseEliteHRVSummary(_:fileName:)": "2e325dd5af2d0727",
+    "Emuqu/Sources/Views/TrendsV2View+Charts.swift::func TrendsV2View.metricValue(_:in:)": "75749a35805cb439"
+   }
+  },
+  {
+   "key": "func RRDataImporterTests.testResolveEliteHRVColumns_newFormatSDNNAndPNN50()",
+   "hash": "2fc51c141571eb2e",
+   "does": "Asserts resolveEliteHRVColumns maps new-format headers to rmssd 5, pnn50 7, sdnn 8 and hr 3 (lnrmssd and nn50 unmapped).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.resolveEliteHRVColumns(headers:)",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteField(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.eliteField(for:)": "7d53eb2169b9e0a0",
+    "Emuqu/Sources/Import/RRDataImporter+EliteHRV.swift::func RRDataImporter.resolveEliteHRVColumns(headers:)": "ef3f87dc6ad989d8"
    }
   },
   {

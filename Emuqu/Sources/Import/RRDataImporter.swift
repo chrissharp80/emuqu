@@ -76,10 +76,18 @@ final class RRDataImporter: Sendable {
             let rmssd: Double
             let rmssdRaw: Double
             let artifactPercent: Double
-            let beatCount: Int
+            /// Nil when the file states neither a beat count nor duration and HR.
+            let beatCount: Int?
             let rrMin: Double
             let rrMax: Double
             let fileName: String
+            /// The file's own SDNN (ms) and pNN50 (%), nil when it has no
+            /// such column or the cell is unreadable.
+            let sdnn: Double?
+            let pnn50: Double?
+            /// Whether `rrMin` and `rrMax` are both stated by the file rather
+            /// than derived from mean HR or defaulted.
+            let rrRangeStated: Bool
         }
 
         let sessions: [SessionSummary]

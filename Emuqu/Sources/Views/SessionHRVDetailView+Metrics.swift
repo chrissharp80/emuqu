@@ -37,13 +37,13 @@ extension SessionHRVDetailView {
     private var timeDomainGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
             metricCell(label: String(localized: "Mean RR", bundle: LanguageManager.appBundle), value: Self.measured("%.0f", result.timeDomain.meanRR, unit: Self.msUnit))
-            metricCell(label: "SDNN", value: Self.measured("%.1f", result.timeDomain.sdnn, unit: Self.msUnit))
+            metricCell(label: "SDNN", value: result.markingEstimate(Self.measured("%.1f", result.timeDomain.sdnn, unit: Self.msUnit), for: .sdnn))
             metricCell(label: "RMSSD", value: Self.measured("%.1f", result.timeDomain.rmssd, unit: Self.msUnit))
-            metricCell(label: "pNN50", value: String(format: "%.1f%%", locale: LanguageManager.appLocale, result.timeDomain.pnn50))
-            metricCell(label: "SDSD", value: Self.measured("%.1f", result.timeDomain.sdsd, unit: Self.msUnit))
-            metricCell(label: String(localized: "HR Range", bundle: LanguageManager.appBundle), value: String(format: "%.0f-%.0f", locale: LanguageManager.appLocale, result.timeDomain.minHR, result.timeDomain.maxHR))
+            metricCell(label: "pNN50", value: result.markingEstimate(String(format: "%.1f%%", locale: LanguageManager.appLocale, result.timeDomain.pnn50), for: .pnn50))
+            metricCell(label: "SDSD", value: result.markingEstimate(Self.measured("%.1f", result.timeDomain.sdsd, unit: Self.msUnit), for: .sdsd))
+            metricCell(label: String(localized: "HR Range", bundle: LanguageManager.appBundle), value: result.markingEstimate(String(format: "%.0f-%.0f", locale: LanguageManager.appLocale, result.timeDomain.minHR, result.timeDomain.maxHR), for: .hrRange))
             metricCell(label: String(localized: "Mean HR", bundle: LanguageManager.appBundle), value: Self.measured("%.0f", result.timeDomain.meanHR, unit: Self.bpmUnit))
-            metricCell(label: String(localized: "SD HR", bundle: LanguageManager.appBundle), value: Self.measured("%.1f", result.timeDomain.sdHR, unit: Self.bpmUnit))
+            metricCell(label: String(localized: "SD HR", bundle: LanguageManager.appBundle), value: result.markingEstimate(Self.measured("%.1f", result.timeDomain.sdHR, unit: Self.bpmUnit), for: .sdHR))
             if let tri = result.timeDomain.triangularIndex {
                 metricCell(label: "HRV TI", value: String(format: "%.1f", locale: LanguageManager.appLocale, tri))
             }
@@ -95,9 +95,9 @@ extension SessionHRVDetailView {
 
     private var nonlinearGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-            metricCell(label: "SD1", value: Self.measured("%.1f", result.nonlinear.sd1, unit: Self.msUnit))
-            metricCell(label: "SD2", value: Self.measured("%.1f", result.nonlinear.sd2, unit: Self.msUnit))
-            metricCell(label: "SD1/SD2", value: String(format: "%.3f", locale: LanguageManager.appLocale, result.nonlinear.sd1Sd2Ratio))
+            metricCell(label: "SD1", value: result.markingEstimate(Self.measured("%.1f", result.nonlinear.sd1, unit: Self.msUnit), for: .sd1))
+            metricCell(label: "SD2", value: result.markingEstimate(Self.measured("%.1f", result.nonlinear.sd2, unit: Self.msUnit), for: .sd2))
+            metricCell(label: "SD1/SD2", value: result.markingEstimate(String(format: "%.3f", locale: LanguageManager.appLocale, result.nonlinear.sd1Sd2Ratio), for: .sd1Sd2Ratio))
             if let dfa1 = result.nonlinear.dfaAlpha1 {
                 metricCell(label: "DFA α1", value: String(format: "%.2f", locale: LanguageManager.appLocale, dfa1))
             }
@@ -163,7 +163,7 @@ extension SessionHRVDetailView {
 
     private var dataQualityGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-            metricCell(label: String(localized: "Window Beats", bundle: LanguageManager.appBundle), value: "\(result.cleanBeatCount)")
+            metricCell(label: String(localized: "Window Beats", bundle: LanguageManager.appBundle), value: result.cleanBeatCountText)
             metricCell(label: String(localized: "Artifacts", bundle: LanguageManager.appBundle), value: String(format: "%.1f%%", locale: LanguageManager.appLocale, result.artifactPercentage))
         }
     }

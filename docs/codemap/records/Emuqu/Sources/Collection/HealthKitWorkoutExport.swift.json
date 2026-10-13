@@ -1,18 +1,19 @@
 {
  "file": "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift",
- "hash": "466c08f6e6dd1c56",
- "role": "Exports a finished Emuqu workout HRVSession to HealthKit as an HKWorkout via HKWorkoutBuilder, with per-tick heart rate (opt-in, not Apple-sourced), distance and active-energy sample series and an optional GPS route.",
+ "hash": "863c2a8352eb77a4",
+ "role": "Exports a finished Emuqu workout HRVSession to HealthKit as an HKWorkout via HKWorkoutBuilder, with per-tick heart rate (opt-in, not Apple-sourced), distance and active-energy sample series placed on the wall clock around pauses, pause/resume workout events, and an optional GPS route.",
  "types": [
   "HealthKitWorkoutExport: enum — namespace of static export + pure sample builders",
   "HealthKitWorkoutExport.SampleOptions: struct — body weight + which series to write",
-  "HealthKitWorkoutExport.ExportError: enum (LocalizedError) — missingRequiredFields / authorizationNotGranted / workoutNotSaved"
+  "HealthKitWorkoutExport.ExportError: enum (LocalizedError) — missingRequiredFields / authorizationNotGranted / workoutNotSaved",
+  "WorkoutWallClock: struct — start date + pause spans sorted by atElapsed; maps active (pause-excluded) seconds to wall-clock Dates, tick intervals that never span a pause, and pause start/resume moments"
  ],
  "state": [
   "mem:HealthKitWorkoutExport.mlOxygenPerKgPerMET = 3.5 (private static let)",
   "mem:HealthKitWorkoutExport.mlOxygenPerKcal = 200.0 (private static let)",
   "mem:HealthKitWorkoutExport.minimumKcalPerSample = 0.01 (private static let)"
  ],
- "toplevel": "Constants for the ACSM kcal formula (lines 192-195). No other top-level code.",
+ "toplevel": "Constants for the ACSM kcal formula (lines 219-224). After the enum, the file-scope struct WorkoutWallClock (stored startDate and sorted pauseSpans, no other top-level code).",
  "flags": [],
  "units": [
   {
@@ -126,29 +127,39 @@
   },
   {
    "key": "func HealthKitWorkoutExport.saveWorkout(metadata:startDate:endDate:samples:store:)",
-   "hash": "c5f38d9b452502e0",
-   "does": "Creates an HKWorkoutBuilder with the sport's configuration on the local device, begins collection at start, adds sample series, ends collection at end and finishes the workout; returns the saved HKWorkout.",
+   "hash": "06f04eefeccfbfe5",
+   "does": "Creates an HKWorkoutBuilder with the sport's configuration on the local device, builds a WorkoutWallClock from startDate and metadata.pauseSpans, begins collection at start, adds the sample series on that clock, adds a pause/resume HKWorkoutEvent pair per pause (so Health's duration leaves pauses out), ends collection at end and finishes the workout; returns the saved HKWorkout.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.workoutConfiguration(for:)",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.addSampleSeries(metadata:startDate:options:store:to:)",
-    "ext:HKWorkoutBuilder.beginCollection/endCollection/finishWorkout"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::init WorkoutWallClock(startDate:pauseSpans:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.addSampleSeries(metadata:clock:options:store:to:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.pauseEvents(of:endDate:)",
+    "ext:HKWorkoutBuilder.beginCollection/addWorkoutEvents/endCollection/finishWorkout"
    ],
    "reads": [],
    "writes": [
-    "hk:HKWorkout"
+    "hk:HKWorkout",
+    "hk:HKWorkoutEvent (pause/resume, via the builder)"
    ],
    "branches": [
     {
-     "at": "+12",
+     "at": "+11",
+     "cond": "no pause events (no pauses, or all began at/after endDate)",
+     "effect": "addWorkoutEvents not called; otherwise the events are added (a throw fails the export)"
+    },
+    {
+     "at": "+15",
      "cond": "finishWorkout() returns nil",
      "effect": "throws ExportError.workoutNotSaved; otherwise returns the workout"
     }
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.addSampleSeries(metadata:startDate:options:store:to:)": "9e5ccdcc6d47992b",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.workoutConfiguration(for:)": "23d5a2ecca8cc3af"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.addSampleSeries(metadata:clock:options:store:to:)": "96de4db245e255a2",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.pauseEvents(of:endDate:)": "36d488b202403d5a",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.workoutConfiguration(for:)": "23d5a2ecca8cc3af",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::init WorkoutWallClock(startDate:pauseSpans:)": "0178746b65427069"
    }
   },
   {
@@ -202,14 +213,14 @@
    }
   },
   {
-   "key": "func HealthKitWorkoutExport.addSampleSeries(metadata:startDate:options:store:to:)",
-   "hash": "32ec6f04a71a24eb",
-   "does": "Builds up to three sample batches (heart rate, distance, active energy) and adds each non-empty batch whose type is writable to the builder; unwritable types are skipped and logged.",
+   "key": "func HealthKitWorkoutExport.addSampleSeries(metadata:clock:options:store:to:)",
+   "hash": "d393e1a42c872b09",
+   "does": "Builds up to three sample batches (heart rate, distance, active energy) placed on the given WorkoutWallClock and adds each non-empty batch whose type is writable to the builder; unwritable types are skipped and logged.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(of:startDate:)",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:startDate:)",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:startDate:bodyWeightKg:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(of:clock:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.isWritable(_:in:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "ext:HKWorkoutBuilder.addSamples"
@@ -254,9 +265,9 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:startDate:bodyWeightKg:)": "fe9b08b2b96ddd7f",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:startDate:)": "26d0edf873b2ae91",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(of:startDate:)": "5153529c7d5a9985",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)": "d065c0f4a6598842",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)": "206a9695fa8cb5f8",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(of:clock:)": "3f103baa7632d736",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.isWritable(_:in:)": "38ac7c08de4b893a",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.writesHeartRate(with:)": "a442d2da6a9bf345",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "832c4ee32f6110e2",
@@ -278,12 +289,57 @@
    "deps": {}
   },
   {
-   "key": "func HealthKitWorkoutExport.heartRateSamples(of:startDate:)",
-   "hash": "42c287d294df9f68",
-   "does": "Heart rate samples for a workout, skipping the offsets listed in metadata.healthKitHROffsets (rows read from Apple Health).",
+   "key": "func HealthKitWorkoutExport.pauseEvents(of:endDate:)",
+   "hash": "ae8eb4f5b5fe9836",
+   "does": "Turns the clock's pauses into HKWorkoutEvents: a zero-length .pause at each pause's start and a .resume where the workout went on. Pauses that began at or after endDate are dropped (the builder takes no event outside the workout); a pause still running at endDate gets no resume, so the builder counts it as paused to the end.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:startDate:skipping:)"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.pauses()",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.workoutEvent(_:at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "pause start >= endDate",
+     "effect": "pause dropped, no events for it"
+    },
+    {
+     "at": "+2",
+     "cond": "resume moment < endDate",
+     "effect": "emits .pause then .resume; otherwise only .pause"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.workoutEvent(_:at:)": "fc08f799bf7aee5a",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.pauses()": "8ca537ade9d27d9f"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExport.workoutEvent(_:at:)",
+   "hash": "bb7021695612db90",
+   "does": "Builds an HKWorkoutEvent of the given type at a moment (zero-duration DateInterval, no metadata).",
+   "entry": null,
+   "calls": [
+    "ext:HKWorkoutEvent.init(type:dateInterval:metadata:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.date(atActiveOffset:)": "9815efd2aba796bc"
+   }
+  },
+  {
+   "key": "func HealthKitWorkoutExport.heartRateSamples(of:clock:)",
+   "hash": "3c83ae88e7b07f93",
+   "does": "Heart rate samples for a workout on the given wall clock, skipping the offsets listed in metadata.healthKitHROffsets (rows read from Apple Health).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:clock:skipping:)"
    ],
    "reads": [],
    "writes": [],
@@ -296,15 +352,16 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:startDate:skipping:)": "79b834772888730c"
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.heartRateSamples(from:clock:skipping:)": "b4240a8878503ec0"
    }
   },
   {
-   "key": "func HealthKitWorkoutExport.heartRateSamples(from:startDate:skipping:)",
-   "hash": "f32270bf7297a857",
-   "does": "Maps WorkoutSamples with heart rate (and not in the skip set) to instantaneous HKQuantitySamples in count/min at startDate+offset; nil factory results dropped.",
+   "key": "func HealthKitWorkoutExport.heartRateSamples(from:clock:skipping:)",
+   "hash": "ed07a8620104821c",
+   "does": "Maps WorkoutSamples with heart rate (and not in the skip set) to instantaneous HKQuantitySamples in count/min at each tick's wall-clock moment (clock.date(atActiveOffset:): start + offset + pauses that began before it); nil factory results dropped.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.date(atActiveOffset:)",
     "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)"
    ],
    "reads": [],
@@ -323,17 +380,19 @@
    ],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.date(atActiveOffset:)": "9815efd2aba796bc",
     "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88"
    }
   },
   {
-   "key": "func HealthKitWorkoutExport.distanceSamples(from:sport:startDate:)",
-   "hash": "ab3354a4ccb72a95",
-   "does": "Builds delta-distance samples for sports with a Health distance type: ticks sorted by offset, each increase over the last cumulative distance becomes a sample spanning from where the previous written delta ended (the workout start for the first) to this tick, so a delta that built up over non-advancing ticks covers all of them.",
+   "key": "func HealthKitWorkoutExport.distanceSamples(from:sport:clock:)",
+   "hash": "79a16b97ae38b85a",
+   "does": "Builds delta-distance samples for sports with a Health distance type: ticks sorted by offset, each increase over the last cumulative distance becomes a sample spanning from where the previous written delta ended (the workout start for the first) to this tick, so a delta that built up over non-advancing ticks covers all of them. The span is placed on the wall clock by clock.interval(fromActiveOffset:to:), so it never crosses a pause: one a pause interrupted starts at that pause's resume.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.interval(fromActiveOffset:to:)",
     "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)"
    ],
    "reads": [],
@@ -360,7 +419,7 @@
      "effect": "tick skipped; otherwise lastDistance updated and the span start moves to this tick"
     },
     {
-     "at": "+21",
+     "at": "+20",
      "cond": "factory returned a sample",
      "effect": "appended; nil (invalid interval/value) dropped"
     }
@@ -369,6 +428,7 @@
    "deps": {
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.distanceType(for:)": "c6d0d1c31de553b0",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.interval(fromActiveOffset:to:)": "ccbfff2ab170f70f",
     "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88"
    }
   },
@@ -401,12 +461,13 @@
    "deps": {}
   },
   {
-   "key": "func HealthKitWorkoutExport.activeEnergySamples(from:startDate:bodyWeightKg:)",
-   "hash": "716638a00ce8c64a",
-   "does": "Builds per-tick active-energy samples: kcal = METs × 3.5 × bodyWeightKg × minutes / 200 over the interval since the previous tick (since the workout start for the first tick), skipping non-positive/non-finite METs and windows ≤ 0.01 kcal.",
+   "key": "func HealthKitWorkoutExport.activeEnergySamples(from:clock:bodyWeightKg:)",
+   "hash": "9e8e00a882017ee7",
+   "does": "Builds per-tick active-energy samples: kcal = METs × 3.5 × bodyWeightKg × minutes / 200 over the active seconds since the previous tick (since the workout start for the first tick), skipping non-positive/non-finite METs and windows ≤ 0.01 kcal. Each sample is placed on the wall clock by clock.interval(fromActiveOffset:to:), so it never crosses a pause (one a pause interrupted starts at the resume).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.interval(fromActiveOffset:to:)",
     "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)"
    ],
    "reads": [],
@@ -438,7 +499,7 @@
      "effect": "tick skipped; otherwise sample built"
     },
     {
-     "at": "+22",
+     "at": "+21",
      "cond": "factory returned a sample",
      "effect": "appended; nil dropped"
     }
@@ -450,8 +511,8 @@
      "text": "Active energy written to Health is computed per tick interval (ticks with nil/<=0 METs add nothing), while the in-app calories card computes avg METs x activeDuration in WorkoutStatsCards+Cards.estimatedCaloriesDisplay, so the two totals differ whenever ticks lack METs or have gaps. The file header now says so; making them agree means changing the card (outside this file).",
      "evidence": [
       "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift:19",
-      "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift:279",
-      "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift:281",
+      "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift:316",
+      "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift:319",
       "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:125",
       "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift:134"
      ],
@@ -460,6 +521,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.inTimeOrder(_:)": "b0a7b59109847524",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.interval(fromActiveOffset:to:)": "ccbfff2ab170f70f",
     "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)": "6323d8e5c5080b88",
     "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "99b5dc9d71b51468"
    }
@@ -606,6 +668,70 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "501f328e9f569572"
    }
+  },
+  {
+   "key": "init WorkoutWallClock(startDate:pauseSpans:)",
+   "hash": "6cb6b57da67fbe71",
+   "does": "Stores the start date and the pause spans (nil = none) sorted by the active second each pause began at.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "pauseSpans nil",
+     "effect": "no pauses: the clock is start + active offset"
+    }
+   ],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutWallClock.date(atActiveOffset:)",
+   "hash": "daa7c87b44247844",
+   "does": "Wall-clock Date of an active (pause-excluded) second: start + offset + the lengths of every pause that began before it (a tick at the second a pause began maps to the pause start). Same rule as WorkoutMetadata.wallClockSeconds(forActiveOffset:).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutWallClock.interval(fromActiveOffset:to:)",
+   "hash": "5d3f40d5c89aa77a",
+   "does": "Wall-clock (start, end) of a quantity built up between two active seconds. End is date(atActiveOffset: end). When a pause began in [start, end) the interval starts at the last such pause's resume (end moment minus the active seconds after that pause), so it never spans a pause and the amount from before the pause is put after it; otherwise it starts at date(atActiveOffset: start).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.date(atActiveOffset:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no pause began in [start, end)",
+     "effect": "returns (date(start), date(end)); otherwise starts at the last such pause's resume"
+    }
+   ],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func WorkoutWallClock.date(atActiveOffset:)": "9815efd2aba796bc"
+   }
+  },
+  {
+   "key": "func WorkoutWallClock.pauses()",
+   "hash": "5803cbb0200f05c6",
+   "does": "Each pause as wall-clock (start, end): start = start date + atElapsed + the lengths of the pauses before it in order, end = start + its length; pauses at the same active second follow one another.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {}
   }
  ],
  "deps": {}

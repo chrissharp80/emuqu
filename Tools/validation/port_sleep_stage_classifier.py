@@ -12,12 +12,23 @@ Ported line by line from, all at commit e028039:
 Per-window features call the ported DFAAnalyzer.compute (port_dfa.py) and
 FrequencyDomainAnalyzer.computeFromCleanPairs (port_frequency_domain.py).
 
+Later sync (the gap fix in HRVSleepStageClassifier.swift, after 99f28e6): RMSSD
+differences only valid beats adjacent in the recording and not split by a
+recording break (TimeDomainAnalyzer.isRecordingBreak, t_ms rule only: the input
+has no wall clock); alpha1 and LF/HF run on the window's longest break-free
+stretch, alpha1 with invalid beats linearly interpolated
+(port_live_dfa_clean._interpolate) and withheld above 6 % interpolated; LF/HF
+beats are timed on the beat-sum clock from the stretch start, as the Swift code
+has done since before this sync (the e028039 port used the input t_ms). The
+RESULTS.md numbers were produced before this sync and have not been re-run.
+
 Input: rr_points = list of (t_ms, rr_ms) ints, t_ms monotonic, ms since recording start.
 Times are kept in ms since recording start instead of Date objects.
 """
 import math
 import port_dfa
 import port_frequency_domain as fd
+import port_live_dfa_clean as lc
 
 WINDOW_MS = 5 * 60 * 1000
 MIN_POINTS = 10
@@ -26,6 +37,7 @@ MIN_WINDOWS = 6
 MIN_BEATS_DFA = 64
 MIN_TIME_BEFORE_REM_MS = 60 * 60 * 1000
 RR_MIN, RR_MAX = 300, 2000
+RECORDING_BREAK_TOLERANCE_MS = 2000
 
 DEEP_T, REM_T, AWAKE_T = 0.60, 0.63, 0.80
 DEEP_EARLY_END, DEEP_MID_END, DEEP_MID_BONUS, DEEP_LATE_BONUS = 0.4, 0.6, 0.4, 0.15
@@ -56,29 +68,92 @@ def root_mean_square(vals):
     return math.sqrt(sum(v * v for v in vals) / len(vals))
 
 
-def window_variability(valid, avg):
+def window_variability(valid, avg, follows_previous=None):
+    """follows_previous[i]: valid[i] came straight after valid[i - 1] in the
+    recording. RMSSD only differences those pairs (all of them when None)."""
     if len(valid) <= 1:
         return 0.0, 0.0, 0.0
-    diffs = [valid[i] - valid[i - 1] for i in range(1, len(valid))]
+    diffs = [valid[i] - valid[i - 1] for i in range(1, len(valid))
+             if follows_previous is None or follows_previous[i]]
     var = sum((v - avg) ** 2 for v in valid) / len(valid)
     sdnn = math.sqrt(var)
     return root_mean_square(diffs), sdnn, (sdnn / avg if avg > 0 else 0.0)
 
 
+def is_recording_break(prev, nxt):
+    """TimeDomainAnalyzer.isRecordingBreak on (t_ms, rr_ms) points (no wall
+    clock in the port's input): a pause > one RR + 2 s after prev's end."""
+    return nxt[0] - (prev[0] + prev[1]) > prev[1] + RECORDING_BREAK_TOLERANCE_MS
+
+
+def window_beats(points):
+    """SleepWindowBeats: validity mask, indices after a recording break, valid
+    indices, per valid beat whether it follows the previous one, and the
+    break-free stretches (index ranges)."""
+    valid_mask = [is_valid_rr(int(rr)) for (_, rr) in points]
+    breaks = [i for i in range(1, len(points)) if is_recording_break(points[i - 1], points[i])]
+    vidx = [i for i in range(len(points)) if valid_mask[i]]
+    follows = [k > 0 and vidx[k] == vidx[k - 1] + 1 and vidx[k] not in breaks for k in range(len(vidx))]
+    stretches, start = [], 0
+    for b in breaks:
+        stretches.append(range(start, b))
+        start = b
+    if start < len(points):
+        stretches.append(range(start, len(points)))
+    longest = max(stretches, key=len) if stretches else None  # first on a tie, like Swift max(by:)
+    return valid_mask, vidx, follows, longest
+
+
+def interpolated_stretch(points, valid_mask, stretch):
+    """The longest stretch from its first valid beat to its last, invalid beats
+    linearly interpolated (LiveDFAAnalyzer.interpolatingArtifacts); returns
+    (values, corrected_count) or None."""
+    if stretch is None:
+        return None
+    inside = [i for i in stretch if valid_mask[i]]
+    if not inside:
+        return None
+    span = range(inside[0], inside[-1] + 1)
+    invalid = [not valid_mask[i] for i in span]
+    return lc._interpolate([float(points[i][1]) for i in span], invalid), sum(invalid)
+
+
+def window_alpha1(points, valid_mask, stretch):
+    series = interpolated_stretch(points, valid_mask, stretch)
+    if series is None or len(series[0]) < MIN_BEATS_DFA:
+        return None
+    if lc.corrected_fraction(*series) > lc.MAX_CORRECTED_FRACTION:
+        return None
+    r = port_dfa.compute(series[0])
+    return r["alpha1"] if r else None
+
+
+def window_frequency(points, valid_mask, stretch):
+    """LF/HF on the longest stretch; each valid beat timed at its midpoint on the
+    beat-sum clock from the stretch's start (invalid intervals included)."""
+    if stretch is None:
+        return None
+    elapsed, times, rrs = 0.0, [], []
+    for i in stretch:
+        rr = float(points[i][1])
+        if valid_mask[i]:
+            times.append((elapsed + rr / 2.0) / 1000.0)
+            rrs.append(rr)
+        elapsed += rr
+    return fd.compute_from_clean_pairs(times, rrs)
+
+
 def feature_window(points, ws, we):
     if len(points) < MIN_POINTS:
         return None
-    valid = [float(rr) for (_, rr) in points if is_valid_rr(int(rr))]
+    valid_mask, vidx, follows, longest = window_beats(points)
+    valid = [float(points[i][1]) for i in vidx]
     if len(valid) < MIN_VALID:
         return None
     avg = sum(valid) / len(valid)
-    rmssd, sdnn, cv = window_variability(valid, avg)
-    a1 = None
-    if len(valid) >= MIN_BEATS_DFA:
-        r = port_dfa.compute(valid)
-        a1 = r["alpha1"] if r else None
-    vp = [(t, rr) for (t, rr) in points if is_valid_rr(rr)]
-    freq = fd.compute_from_clean_pairs([(t + rr / 2.0) / 1000.0 for (t, rr) in vp], [float(rr) for (_, rr) in vp])
+    rmssd, sdnn, cv = window_variability(valid, avg, follows)
+    a1 = window_alpha1(points, valid_mask, longest)
+    freq = window_frequency(points, valid_mask, longest)
     return dict(start_ms=ws, end_ms=we, midpoint_ms=ws + WINDOW_MS // 2, hr=60000.0 / avg,
                 rmssd=rmssd, sdnn=sdnn, hrCV=cv, dfaAlpha1=a1,
                 lfHfRatio=freq["lfHfRatio"] if freq else None, hfPower=freq["hf"] if freq else None)

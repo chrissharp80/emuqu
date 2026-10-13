@@ -33,25 +33,98 @@ enum DFAAnalyzer {
         alpha1Range: ClosedRange<Int> = HRVConstants.DFA.alpha1ScaleMin ... HRVConstants.DFA.alpha1ScaleMax,
         alpha2Range: ClosedRange<Int> = HRVConstants.DFA.alpha2ScaleMin ... HRVConstants.DFA.alpha2ScaleMax
     ) -> DFAResult? {
+        compute(segments: [rr], alpha1Range: alpha1Range, alpha2Range: alpha2Range)
+    }
+
+    /// DFA over a window whose removed beats are interpolated and whose
+    /// recording breaks split it (`interpolatedSegments`). A window with no
+    /// removed beat and no break gives exactly `compute(_:)` on its beats.
+    static func compute(window: CleanBeatWindow) -> DFAResult? {
+        compute(segments: interpolatedSegments(window))
+    }
+
+    /// DFA over contiguous segments of one recording: the profile is the
+    /// cumulative sum over all of them, but every box lies inside one
+    /// segment, so no box spans the join between two (`computeFluctuation`).
+    /// Box sizes run up to a quarter of the longest segment. One segment is
+    /// the textbook single-series DFA.
+    static func compute(
+        segments: [[Double]],
+        alpha1Range: ClosedRange<Int> = HRVConstants.DFA.alpha1ScaleMin ... HRVConstants.DFA.alpha1ScaleMax,
+        alpha2Range: ClosedRange<Int> = HRVConstants.DFA.alpha2ScaleMin ... HRVConstants.DFA.alpha2ScaleMax
+    ) -> DFAResult? {
+        let rr = Array(segments.joined())
         guard rr.count >= HRVConstants.DFA.alpha2ScaleMax else { return nil }
         let integrated = integratedSeries(rr)
-        // Logarithmically-spaced box sizes per the PhysioNet reference
-        // implementation (Peng et al. 1995). Log spacing keeps the log-log
-        // regression domain evenly represented, avoiding the bias toward
-        // smaller scales that linear spacing introduces.
-        let maxBox = rr.count / 4
+        let ranges = segmentRanges(segments)
+        // Log-spaced box sizes per the PhysioNet reference implementation
+        // (Peng et al. 1995), which keeps the log-log fit evenly represented.
+        let maxBox = (segments.map(\.count).max() ?? 0) / 4
         let alpha1Sizes = logSpacedBoxSizes(from: alpha1Range.lowerBound, through: min(alpha1Range.upperBound, maxBox))
         let alpha2Sizes = logSpacedBoxSizes(from: alpha2Range.lowerBound, through: min(alpha2Range.upperBound, maxBox))
         guard alpha1Sizes.count >= 3 else { return nil }
-        let alpha1Fluctuations = alpha1Sizes.map { computeFluctuation(integrated, boxSize: $0) }
+        let alpha1Fluctuations = alpha1Sizes.map { computeFluctuation(integrated, boxSize: $0, segments: ranges) }
         guard let alpha1Fit = logLogRegression(sizes: alpha1Sizes, fluctuations: alpha1Fluctuations) else { return nil }
-        let alpha2 = alpha2Exponent(integrated: integrated, sizes: alpha2Sizes, beatCount: rr.count)
-        return DFAResult(
-            alpha1: alpha1Fit.slope,
-            alpha2: alpha2?.value,
-            alpha1R2: alpha1Fit.r2,
-            alpha2R2: alpha2?.r2
-        )
+        let alpha2 = alpha2Exponent(integrated: integrated, sizes: alpha2Sizes, segments: ranges)
+        return DFAResult(alpha1: alpha1Fit.slope, alpha2: alpha2?.value, alpha1R2: alpha1Fit.r2, alpha2R2: alpha2?.r2)
+    }
+
+    /// The window's beats as DFA input: split at every recording break, and
+    /// with each run of removed beats inside a segment replaced by linear
+    /// interpolation between the kept beats either side of it, one value per
+    /// removed beat.
+    ///
+    /// Removed beats are interpolated, not dropped, because DFA works in
+    /// beat index: dropping one makes its neighbours adjacent and shifts every
+    /// later beat into another box. Interpolation is the Kubios correction
+    /// (Lipponen & Tarvainen, J Med Eng Technol 2019;43:173-181) and the one
+    /// `LiveDFAAnalyzer.cleanRRForDFA` already applies to live α1. A break
+    /// is not interpolated: it can last minutes, and the beats either side of
+    /// it are not neighbours at all, so the series is split there instead.
+    /// Removed beats before a segment's first kept beat or after its last
+    /// have one neighbour only and are left out.
+    static func interpolatedSegments(_ window: CleanBeatWindow) -> [[Double]] {
+        var segments: [[Double]] = []
+        var current: [Double] = []
+        for k in window.rr.indices {
+            if k > 0, spansBreak(window, at: k) {
+                segments.append(current)
+                current = []
+            } else if k > 0 {
+                let missing = window.indices[k] - window.indices[k - 1] - 1
+                current += interpolation(from: window.rr[k - 1], to: window.rr[k], missing: missing)
+            }
+            current.append(window.rr[k])
+        }
+        if !current.isEmpty { segments.append(current) }
+        return segments
+    }
+
+    /// Whether a recording break separates beat `k - 1` from beat `k`: some
+    /// series index after the first, up to the second, follows a break.
+    private static func spansBreak(_ window: CleanBeatWindow, at k: Int) -> Bool {
+        let previous = window.indices[k - 1]
+        let next = window.indices[k]
+        guard next > previous else { return true }
+        return ((previous + 1) ... next).contains { window.breaks.contains($0) }
+    }
+
+    /// `missing` values evenly spaced strictly between `left` and `right`.
+    private static func interpolation(from left: Double, to right: Double, missing: Int) -> [Double] {
+        guard missing > 0 else { return [] }
+        let steps = Double(missing + 1)
+        return (1 ... missing).map { left + (right - left) * Double($0) / steps }
+    }
+
+    /// Each segment's index range in the joined series.
+    private static func segmentRanges(_ segments: [[Double]]) -> [Range<Int>] {
+        var ranges: [Range<Int>] = []
+        var start = 0
+        for segment in segments {
+            ranges.append(start ..< start + segment.count)
+            start += segment.count
+        }
+        return ranges
     }
 
     /// Step 1: integrate the series — the cumulative sum of deviations from the
@@ -73,10 +146,10 @@ enum DFAAnalyzer {
     private static func alpha2Exponent(
         integrated: [Double],
         sizes alpha2Sizes: [Int],
-        beatCount: Int
+        segments: [Range<Int>]
     ) -> (value: Double, r2: Double)? {
-        guard alpha2Sizes.count >= 3, beatCount >= HRVConstants.MinimumBeats.forDFA else { return nil }
-        let fluctuations = alpha2Sizes.map { computeFluctuation(integrated, boxSize: $0) }
+        guard alpha2Sizes.count >= 3, integrated.count >= HRVConstants.MinimumBeats.forDFA else { return nil }
+        let fluctuations = alpha2Sizes.map { computeFluctuation(integrated, boxSize: $0, segments: segments) }
         return logLogRegression(sizes: alpha2Sizes, fluctuations: fluctuations).map { (value: $0.slope, r2: $0.r2) }
     }
 
@@ -104,15 +177,19 @@ enum DFAAnalyzer {
         return sizes
     }
 
-    /// Compute RMS fluctuation for a given box size
-    private static func computeFluctuation(_ integrated: [Double], boxSize: Int) -> Double {
-        let numBoxes = integrated.count / boxSize
-        guard numBoxes > 0 else { return 0 }
+    /// RMS fluctuation for a given box size: non-overlapping boxes laid from
+    /// the start of each segment, none spanning two segments; 0 when no
+    /// segment holds a whole box (the log-log fit then leaves the size out).
+    private static func computeFluctuation(_ integrated: [Double], boxSize: Int, segments: [Range<Int>]) -> Double {
         var totalFluctuation: Double = 0
-        for boxIdx in 0 ..< numBoxes {
-            let start = boxIdx * boxSize
-            totalFluctuation += detrendedSumOfSquares(integrated[start ..< (start + boxSize)])
+        var numBoxes = 0
+        for segment in segments {
+            for start in stride(from: segment.lowerBound, through: segment.upperBound - boxSize, by: boxSize) {
+                totalFluctuation += detrendedSumOfSquares(integrated[start ..< (start + boxSize)])
+                numBoxes += 1
+            }
         }
+        guard numBoxes > 0 else { return 0 }
         return sqrt(totalFluctuation / Double(numBoxes * boxSize))
     }
 

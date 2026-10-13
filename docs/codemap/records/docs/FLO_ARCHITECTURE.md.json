@@ -957,13 +957,15 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 14. UserFactsStore — Cross-session memory",
-   "hash": "e66cd2c1551c433b",
-   "does": "Claims UserFactsStore persists Assistant/user_facts.json with add (case-normalized dedupe), remove, clear, systemPromptBlock. Matches UserFactsStore.swift:63.",
+   "hash": "c55c01bb288fd568",
+   "does": "Claims UserFactsStore persists Assistant/user_facts.json with add (case-normalized dedupe), remove, clear (erases everything including the backup), clearKeepingBackup/restoreCleared (the assistant's wipe and its undo, copy in memory until the app quits), systemPromptBlock. Matches UserFactsStore.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clearKeepingBackup()",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.restoreCleared()",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.systemPromptBlock()"
    ],
    "reads": [],
@@ -972,8 +974,10 @@
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "771ed72e2ca4a97f",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()": "f364b3b25daf067d",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()": "c1ab054c2b1bffd2",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clearKeepingBackup()": "1b6a85f4e2098bc8",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)": "a1d2e06cffd32051",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.restoreCleared()": "a3a0fe945896087b",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.systemPromptBlock()": "e99358f299bba406"
    }
   },
@@ -995,17 +999,21 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 14. UserFactsStore — Cross-session memory > 14.2 Model-driven memory",
-   "hash": "77a180816e5d7443",
-   "does": "Claims assistant.memory.add/.remove/.clear actions let the model edit memory (allowedActionNames includes assistant_memory_*).",
+   "hash": "e8e89b26bc318f11",
+   "does": "Claims assistant.memory.add/.remove/.clear/.restore actions let the model edit memory (allowedActionNames includes assistant_memory_*); .remove/.clear (and contacts.remove) record a pending request and return an app-written question on the first call, running when the same call returns after the user's explicit yes (AssistantActionConfirmations); .restore undoes the last confirmed clear.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)"
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)",
+    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift::func AssistantActionConfirmations.evaluate(action:target:turns:now:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.restoreClearedMemory(store:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "flags": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift::func AssistantActionConfirmations.evaluate(action:target:turns:now:)": "91972d59b16b48b6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.restoreClearedMemory(store:)": "3035dc3a3e17a195",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)": "923c2c42ab3aa043"
    }
   },

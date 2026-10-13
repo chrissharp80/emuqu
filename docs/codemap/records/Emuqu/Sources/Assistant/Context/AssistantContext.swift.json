@@ -110,14 +110,15 @@
   },
   {
    "key": "func AssistantContext.todayLiveStateLine(now:)",
-   "hash": "3d0512a84703ea5f",
-   "does": "Builds the first live-state line from `today`: day label plus recovery /100 with tier, RMSSD/SDNN/mean HR, overnight nadir/mean HR, sleep h/m with efficiency clause, and score message; nil when no today session or no data bits beyond the label.",
+   "hash": "637ae4cee1185daa",
+   "does": "Builds the first live-state line from `today`: day label plus recovery /100 with tier, RMSSD, SDNN (sdnnClause: left out when not measured) and mean HR, overnight nadir/mean HR, sleep h/m with efficiency clause, and score message; nil when no today session or no data bits beyond the label.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveStateDayLabel(_:now:)",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func sleepEfficiencyClause(_:)"
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func sleepEfficiencyClause(_:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.sdnnClause(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -140,7 +141,7 @@
     {
      "at": "+7",
      "cond": "timeDomain present",
-     "effect": "append HRV RMSSD/SDNN/mean HR"
+     "effect": "append HRV RMSSD, SDNN when measured, mean HR"
     },
     {
      "at": "+10",
@@ -165,9 +166,10 @@
    ],
    "flags": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "4b09e0431d20aa06",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.displayScore(_:)": "df038a321f56f948",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "8600689936b05a6c",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveStateDayLabel(_:now:)": "1c86cd9245ba3d68",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.sdnnClause(_:)": "910f25b372d620e7",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func sleepEfficiencyClause(_:)": "ab06c7cb12674120",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.totalSleepMinutes(in:)": "89a73025d946f183"
@@ -814,15 +816,39 @@
   },
   {
    "key": "func AssistantContext.hrvLine(_:)",
-   "hash": "5c2f2acc466972ca",
-   "does": "Formats 'HRV: RMSSD x.xms, SDNN y.yms, mean HR zbpm' — the line today's and yesterday's blocks share.",
+   "hash": "6c7e19071c9dd43c",
+   "does": "Formats 'HRV: RMSSD x.xms, SDNN y.yms, mean HR zbpm' — the line today's and yesterday's blocks share; the SDNN part is left out when the snapshot has no measured SDNN.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.sdnnClause(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "flags": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.sdnnClause(_:)": "910f25b372d620e7",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
+   }
+  },
+  {
+   "key": "func AssistantContext.sdnnClause(_:)",
+   "hash": "aa0e31341ae9f79c",
+   "does": "'SDNN y.yms, ' for a snapshot with a measured SDNN; empty string when sdnn is nil (an estimate).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "td.sdnn nil (?? \"\")",
+     "effect": "empty clause"
+    }
+   ],
    "flags": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func formatNum(_:_:)": "2f9c90f69b420546"
