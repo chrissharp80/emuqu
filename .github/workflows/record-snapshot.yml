@@ -1,0 +1,63 @@
+name: Record Snapshot
+
+# Temporary: re-records the MorningFeelingBadge snapshot reference on a macOS
+# runner and commits it to the pull request's branch. Remove this file once
+# the reference is committed.
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  record-snapshot:
+    name: record-snapshot
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      HEAD_REF: ${{ github.head_ref }}
+      REFERENCE: EmuquTests/__Snapshots__/badge-morning-feeling.raw
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app
+
+      - name: Resolve simulator destination
+        id: destination
+        run: echo "value=$(./scripts/select_simulator_destination.sh Emuqu Emuqu.xcodeproj)" >> "$GITHUB_OUTPUT"
+
+      # SnapshotTesting reads SNAPSHOT_RECORD from the test runner's
+      # environment; xcodebuild forwards TEST_RUNNER_-prefixed variables to it
+      # with the prefix stripped. A recording run always fails its test, so the
+      # exit status is ignored and the reference file is checked instead.
+      - name: Record MorningFeelingBadge snapshot
+        env:
+          SNAPSHOT_RECORD: "1"
+          TEST_RUNNER_SNAPSHOT_RECORD: "1"
+          DESTINATION: ${{ steps.destination.outputs.value }}
+        run: |
+          set -uo pipefail
+          xcodebuild test \
+            -project Emuqu.xcodeproj \
+            -scheme Emuqu \
+            -destination "$DESTINATION" \
+            -parallel-testing-enabled NO \
+            -only-testing:EmuquTests/ComponentSnapshotTests/testMorningFeelingBadgeRenders \
+            || echo "xcodebuild exited non-zero (expected for a recording run)"
+          if git diff --quiet -- "$REFERENCE"; then
+            echo "::error::$REFERENCE did not change; the snapshot was not re-recorded."
+            exit 1
+          fi
+
+      - name: Commit and push reference
+        run: |
+          set -euo pipefail
+          git config user.name "Chris Sharp"
+          git config user.email "chrissharp80@gmail.com"
+          git add -- "$REFERENCE"
+          git commit -m "Re-record MorningFeelingBadge snapshot"
+          git push origin "HEAD:$HEAD_REF"
