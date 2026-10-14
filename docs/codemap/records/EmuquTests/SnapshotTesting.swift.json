@@ -1,7 +1,7 @@
 {
  "file": "EmuquTests/SnapshotTesting.swift",
- "hash": "05ea666fdabf4924",
- "role": "In-repo snapshot harness: renders a SwiftUI view to RGBA via ImageRenderer at fixed size/scale/light/en_US, rejects blank renders, and compares against gzipped raw references in EmuquTests/__Snapshots__ with per-channel and drawn-fraction tolerances; SNAPSHOT_RECORD=1 rewrites references and fails.",
+ "hash": "945bf6a577e6bc3c",
+ "role": "In-repo snapshot harness: renders a SwiftUI view to RGBA via ImageRenderer at fixed size/scale/light/en_US/America-Chicago time zone, rejects blank renders, and compares against gzipped raw references in EmuquTests/__Snapshots__ with per-channel and drawn-fraction tolerances; SNAPSHOT_RECORD=1 rewrites references and fails.",
  "types": [
   "SnapshotTesting: enum — harness constants",
   "SnapshotTesting: extension — render/isBlank",
@@ -14,6 +14,7 @@
   "SnapshotTesting.scale = 1",
   "SnapshotTesting.channelTolerance = 8",
   "SnapshotTesting.drawnFractionTolerance = 0.02",
+  "SnapshotTesting.timeZone = America/Chicago (.gmt if the identifier fails to resolve)",
   "file:EmuquTests/__Snapshots__/<name>.raw (\"WxH\\n\" header + zlib RGBA)",
   "env:SNAPSHOT_RECORD"
  ],
@@ -21,38 +22,43 @@
  "units": [
   {
    "key": "func SnapshotTesting.render(_:size:)",
-   "hash": "2e480372bd3b839f",
-   "does": "Renders the view framed to `size` on systemBackground in light mode, en_US locale, LTR via ImageRenderer at scale 1, then draws the CGImage into an sRGB premultiplied-last RGBA buffer; returns (pixels,width,height) or nil on any failure.",
+   "hash": "24bed1437606b637",
+   "does": "Sets the process default time zone (NSTimeZone.default) to SnapshotTesting.timeZone for the duration of the call and restores the host's on exit; renders the view framed to `size` on systemBackground in light mode, en_US locale, SnapshotTesting.timeZone, LTR via ImageRenderer at scale 1, then draws the CGImage into an sRGB premultiplied-last RGBA buffer; returns (pixels,width,height) or nil on any failure.",
    "entry": null,
    "calls": [
     "ext:SwiftUI.ImageRenderer",
     "ext:CoreGraphics.CGContext"
    ],
-   "reads": [],
-   "writes": [],
+   "reads": [
+    "SnapshotTesting.timeZone",
+    "NSTimeZone.default"
+   ],
+   "writes": [
+    "NSTimeZone.default (set for the render, restored by defer on every return)"
+   ],
    "branches": [
     {
-     "at": "+15",
+     "at": "+19",
      "cond": "renderer.cgImage is nil",
      "effect": "returns nil (caller fails 'view failed to render'); else continues"
     },
     {
-     "at": "+19",
+     "at": "+23",
      "cond": "width>0 and height>0",
      "effect": "false: returns nil; true: continues"
     },
     {
-     "at": "+22",
+     "at": "+26",
      "cond": "sRGB CGColorSpace creation fails",
      "effect": "returns nil; else continues"
     },
     {
-     "at": "+25",
+     "at": "+29",
      "cond": "CGContext creation over the buffer fails",
      "effect": "closure returns false; else draws image and returns true"
     },
     {
-     "at": "+34",
+     "at": "+38",
      "cond": "drew is false",
      "effect": "returns nil; else returns the pixel tuple"
     }
@@ -251,7 +257,7 @@
     "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "53b148fe7d5c46b7",
     "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.compare(_:_:)": "ed447edc42aca9d2",
     "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.isBlank(_:)": "d0bcb807a2954878",
-    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "9f2353b0e0fb7b2a",
+    "EmuquTests/SnapshotTesting.swift::func SnapshotTesting.render(_:size:)": "1f3775ecacdaab75",
     "EmuquTests/SnapshotTesting.swift::var SnapshotTesting.Difference.fraction": "05794d5bc257953a"
    }
   }

@@ -44,14 +44,23 @@ enum SnapshotTesting {
     /// absorb a change to a fifth of the card and report it as unchanged — a
     /// gate loose enough to miss what it exists to catch.
     static let drawnFractionTolerance = 0.02
+
+    /// The time zone every reference was recorded in. A view that shows a
+    /// clock time or an hour axis (the sleep hypnogram) would otherwise
+    /// render the fixture's instants in the host's zone, so a reference
+    /// recorded in Chicago would fail on a UTC runner.
+    static let timeZone = TimeZone(identifier: "America/Chicago") ?? .gmt
 }
 
 // MARK: - Rendering
 
 extension SnapshotTesting {
     /// Render a view to raw RGBA bytes at a fixed size and scale, in light
-    /// mode with the en_US locale, whatever the host is set to: references
-    /// are recorded that way.
+    /// mode with the en_US locale and in `timeZone`, whatever the host is set
+    /// to: references are recorded that way. The process default zone is
+    /// switched for the render too (and restored after it), because views
+    /// format times through `Calendar.current` and `DateFormatter`, which
+    /// read it rather than the SwiftUI environment.
     ///
     /// `ImageRenderer`, not `UIHostingController.layer.render(in:)`. The first
     /// version of this harness used the hosting-view layer and produced five
@@ -64,12 +73,16 @@ extension SnapshotTesting {
         _ view: some View,
         size: CGSize = defaultSize
     ) -> (pixels: [UInt8], width: Int, height: Int)? {
+        let hostTimeZone = NSTimeZone.default
+        NSTimeZone.default = timeZone
+        defer { NSTimeZone.default = hostTimeZone }
         let renderer = ImageRenderer(
             content: view
                 .frame(width: size.width, height: size.height)
                 .background(Color(.systemBackground))
                 .environment(\.colorScheme, .light)
                 .environment(\.locale, Locale(identifier: "en_US"))
+                .environment(\.timeZone, timeZone)
                 .environment(\.layoutDirection, .leftToRight)
         )
         renderer.scale = scale

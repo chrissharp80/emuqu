@@ -30,11 +30,18 @@ enum HelpLocalization {
     /// in `localized` knows it is already translated and passes it through
     /// instead of looking it up again. The text itself carries no marker, so
     /// a consumer that never localizes sees exactly what a reader would.
+    ///
+    /// A result identical to the template (no token in it, in English) is
+    /// not remembered: it is a table key, and remembering it would make every
+    /// later `string` of that key skip the lookup — handing out English after
+    /// a switch to another language, and never recording the key again.
     static func format(_ englishTemplate: String, _ values: [String: String]) -> String {
         let filled = values.reduce(string(englishTemplate)) { text, entry in
             text.replacingOccurrences(of: "{\(entry.key)}", with: entry.value)
         }
-        formattedTexts.withLock { _ = $0.insert(filled) }
+        if filled != englishTemplate {
+            formattedTexts.withLock { _ = $0.insert(filled) }
+        }
         return filled
     }
 
