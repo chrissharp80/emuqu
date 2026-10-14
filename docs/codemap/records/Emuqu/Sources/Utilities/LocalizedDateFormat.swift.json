@@ -22,13 +22,13 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)": "cfa5f10145ca4bf2"
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)": "7f4eb1d08313d8de"
    }
   },
   {
    "key": "func LocalizedDateFormat.formatter(template:)",
-   "hash": "c97ee1a7ac771e1e",
-   "does": "Returns a cached DateFormatter for (LanguageManager.appLocale, TimeZone.current, template), creating it with setLocalizedDateFormatFromTemplate on a miss.",
+   "hash": "d1bce820404886cc",
+   "does": "Returns a cached DateFormatter for (LanguageManager.appLocale, NSTimeZone.default, template), creating it with that locale and zone and setLocalizedDateFormatFromTemplate on a miss.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
@@ -36,7 +36,8 @@
    ],
    "reads": [
     "mem:LocalizedDateFormat.cache",
-    "mem:LanguageManager.shared.locale"
+    "mem:LanguageManager.shared.locale",
+    "mem:NSTimeZone.default"
    ],
    "writes": [
     "mem:LocalizedDateFormat.cache"
