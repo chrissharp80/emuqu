@@ -9,7 +9,10 @@ import os
 /// order, the separators and the clock. Formatters are cached per template,
 /// language and time zone, so a chart that labels every hour does not build one
 /// per label, and a time-zone change after travel gets a fresh formatter
-/// (a `DateFormatter` keeps the zone it was created with).
+/// (a `DateFormatter` keeps the zone it was created with). The zone is the
+/// process default (`NSTimeZone.default`): the system zone unless something
+/// sets one, and the zone `Calendar.current` and a plain `DateFormatter` use,
+/// so a label and the hour it marks are always in the same zone.
 enum LocalizedDateFormat {
     /// Unchecked because `DateFormatter` is not `Sendable`. Formatting from
     /// several threads is safe (Apple documents `DateFormatter` as
@@ -23,7 +26,7 @@ enum LocalizedDateFormat {
 
     static func formatter(template: String) -> DateFormatter {
         let locale = LanguageManager.appLocale
-        let timeZone = TimeZone.current
+        let timeZone = NSTimeZone.default
         let key = "\(locale.identifier)|\(timeZone.identifier)|\(template)"
         return cache.withLockUnchecked { cache in
             if let cached = cache[key] { return cached }

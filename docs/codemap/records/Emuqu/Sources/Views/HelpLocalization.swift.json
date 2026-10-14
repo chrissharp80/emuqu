@@ -46,8 +46,8 @@
   },
   {
    "key": "func HelpLocalization.format(_:_:)",
-   "hash": "dbda5d0a8c213a40",
-   "does": "Translates an English {token} template via string(), substitutes each values entry for '{key}', remembers the result in formattedTexts (so the later localized pass passes it through untouched) and returns it with no marker character.",
+   "hash": "46e458d95e0ad022",
+   "does": "Translates an English {token} template via string(), substitutes each values entry for '{key}' and returns the result with no marker character; a result that differs from the template is remembered in formattedTexts (so the later localized pass passes it through untouched).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)",
@@ -57,7 +57,13 @@
    "writes": [
     "mem:HelpLocalization.formattedTexts"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "filled text differs from englishTemplate",
+     "effect": "inserts it into formattedTexts; a result equal to the template (a table key) is not remembered, so later string() calls of that key still look it up and record it"
+    }
+   ],
    "deps": {
     "Emuqu/Sources/Views/HelpLocalization.swift::func HelpLocalization.string(_:)": "5ee10a30f392e2ae"
    }
