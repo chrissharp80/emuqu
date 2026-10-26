@@ -22,6 +22,16 @@ enum UITestLaunchArguments {
     /// Recent strip and History has its entry point.
     static var seedsArchive: Bool { isPresent("-UITests-SeedArchive") }
 
+    /// True when any `-UITests-` argument is present, so system prompts a
+    /// test cannot dismiss (the App Store rating request) stay out of runs.
+    static var isUITestRun: Bool {
+        #if DEBUG
+            return CommandLine.arguments.contains { $0.hasPrefix("-UITests-") }
+        #else
+            return false
+        #endif
+    }
+
     private static func isPresent(_ argument: String) -> Bool {
         #if DEBUG
             return CommandLine.arguments.contains(argument)

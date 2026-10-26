@@ -81,7 +81,7 @@
    ],
    "deps": {
     "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "b1f9dd22a7942cf9",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "2bdb6538b60ed768"
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "699ce5740e639a1f"
    }
   },
   {
@@ -112,7 +112,7 @@
    "deps": {
     "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.coordinate": "5e3b153088f74923",
     "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "b1f9dd22a7942cf9",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "2bdb6538b60ed768"
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "699ce5740e639a1f"
    }
   },
   {
@@ -160,7 +160,7 @@
    "deps": {
     "Emuqu/Sources/Services/BreadcrumbStore.swift::var BreadcrumbFix.coordinate": "5e3b153088f74923",
     "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "b1f9dd22a7942cf9",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "2bdb6538b60ed768",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "699ce5740e639a1f",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
@@ -208,32 +208,37 @@
   },
   {
    "key": "func UITestFind.row(in:identifier:label:timeout:)",
-   "hash": "3401f425ba3ceca5",
-   "does": "Polls until timeout across six candidate queries (buttons/cells/otherElements/staticTexts by identifier, then buttons/cells whose label CONTAINS[c] label) and returns the first that exists; if none by the deadline returns app.buttons[identifier].",
+   "hash": "20071776f8a6faaf",
+   "does": "Polls until timeout across six candidate queries (buttons/cells/otherElements/staticTexts by identifier, then buttons/cells whose label CONTAINS[c] label and whose identifier is not one of the tab bar buttons' identifiers) and returns the first that exists; if none by the deadline returns app.buttons[identifier].",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+16",
+     "at": "+5",
+     "cond": "label fallback",
+     "effect": "excludes elements whose identifier matches a tab bar button, so a row label like \"Flo\" never resolves to the Flo tab"
+    },
+    {
+     "at": "+21",
      "cond": "repeat-while: deadline not passed",
      "effect": "keep polling all candidates (busy loop with no sleep)"
     },
     {
-     "at": "+17",
+     "at": "+22",
      "cond": "for each candidate closure",
      "effect": "evaluate candidate"
     },
     {
-     "at": "+19",
+     "at": "+24",
      "cond": "candidate exists",
      "effect": "return it immediately"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "2bdb6538b60ed768",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "699ce5740e639a1f",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
@@ -330,7 +335,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
     "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)": "f13a0015c7559097",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "311e9724e309046e",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "708946feb8b3ec09",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
@@ -384,7 +389,7 @@
    "deps": {
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
     "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)": "f13a0015c7559097",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "311e9724e309046e",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "708946feb8b3ec09",
     "EmuquUITests/EmuquUITests.swift::func UITestLaunch.toMainUI(_:timeout:)": "41bb3923e9a887c8",
     "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "20fdac3cec598901",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
@@ -569,7 +574,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.dismissOneGate(_:gates:)": "dbbe11e27bfd3f39",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.dismissOneGate(_:gates:)": "bc396f8bec53c2ac",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
@@ -585,30 +590,37 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "2bdb6538b60ed768"
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "699ce5740e639a1f"
    }
   },
   {
    "key": "func UITestLaunch.element(_:gate:)",
-   "hash": "919b3c8690013df8",
-   "does": "Resolves all buttons matching the identifier from one snapshot and returns the first, or app.buttons[identifier] when none match.",
+   "hash": "8ac2d9839deb3efb",
+   "does": "Resolves all buttons matching the identifier from one snapshot and returns the first whose frame midX lies inside the app's width (the page in view of the paged onboarding), else the first match, else app.buttons[identifier].",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "no matches",
-     "effect": "?? fallback: app.buttons[identifier] (non-existent query)"
+     "at": "+4",
+     "cond": "a match is horizontally on screen",
+     "effect": "return it"
+    },
+    {
+     "at": "+5",
+     "cond": "none on screen",
+     "effect": "?? first match, then app.buttons[identifier] (non-existent query)"
     }
    ],
-   "deps": {}
+   "deps": {
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "b1f9dd22a7942cf9"
+   }
   },
   {
    "key": "func UITestLaunch.dismissOneGate(_:gates:)",
-   "hash": "3610baf968701146",
-   "does": "For each gate identifier: skips missing buttons; if the button is disabled, swipes the disclaimer's scroll view (disclaimer.scroll, else first scroll view) up to 8 times until enabled; taps the first enabled, safely hittable gate and returns true. Returns false when nothing was tapped.",
+   "hash": "e5665493fea294c5",
+   "does": "For each gate identifier: skips missing buttons; if the button is disabled, swipes the disclaimer's scroll view (disclaimer.scroll, else first scroll view) up to 8 times until enabled; if enabled but not safely hittable (below the fold at large text sizes), swipes the scroll view containing that button up to 6 times; taps the first enabled, safely hittable gate and returns true. Returns false when nothing was tapped.",
    "entry": null,
    "calls": [
     "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)",
@@ -649,6 +661,11 @@
     },
     {
      "at": "+22",
+     "cond": "button enabled but not safely hittable",
+     "effect": "swipe up the scroll view that contains a button with this identifier, up to 6 times while still not hittable; skipped when no such scroll view exists"
+    },
+    {
+     "at": "+33",
      "cond": "button enabled and safely hittable",
      "effect": "tap, return true; else next gate"
     }
@@ -656,7 +673,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
     "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)": "f13a0015c7559097",
-    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "2bdb6538b60ed768"
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "699ce5740e639a1f"
    }
   },
   {
@@ -1052,7 +1069,7 @@
    "deps": {
     "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()": "cbec98dc1ba29d0d",
     "EmuquUITests/EmuquUITests.swift::func EmuquUITests.openSettings()": "5f75757393f3d6d6",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "311e9724e309046e",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "708946feb8b3ec09",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
@@ -1128,7 +1145,7 @@
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
     "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()": "cbec98dc1ba29d0d",
     "EmuquUITests/EmuquUITests.swift::func EmuquUITests.openSettings()": "5f75757393f3d6d6",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "311e9724e309046e",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "708946feb8b3ec09",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
@@ -1332,7 +1349,7 @@
     "EmuquUITests/EmuquUITests.swift::func EmuquUITests.dismissModalIfPresent()": "cbec98dc1ba29d0d",
     "EmuquUITests/EmuquUITests.swift::func EmuquUITests.openSettings()": "5f75757393f3d6d6",
     "EmuquUITests/EmuquUITests.swift::func EmuquUITests.waitForTabBar(timeout:)": "1d0e0f6bcc3d32a8",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "311e9724e309046e",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "708946feb8b3ec09",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
