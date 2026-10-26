@@ -469,7 +469,7 @@ extension WorkoutStatsCards {
             Text(String(localized: "Keep your strap on for \(formatMMSS(remaining)) more", bundle: LanguageManager.appBundle))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.textPrimary)
-            Text(String(localized: "Capturing your heart rate recovery — drops at +1 min and +2 min after you stopped. Walk back to the car / sit on the porch and let the strap finish.", bundle: LanguageManager.appBundle))
+            Text(String(localized: "Capturing your heart rate recovery — drops at +1 min and +2 min after you stopped. Stand or sit still and let the strap finish.", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
