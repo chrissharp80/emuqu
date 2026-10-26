@@ -9,9 +9,10 @@
  ],
  "state": [
   "launch arg: -UITests-ForcePaywall (UITestLaunchArguments.swift:18)",
-  "launch arg: -UITests-SeedArchive (UITestLaunchArguments.swift:23)"
+  "launch arg: -UITests-SeedArchive (UITestLaunchArguments.swift:23)",
+  "launch arg prefix: -UITests- (any argument, read by isUITestRun)"
  ],
- "toplevel": "UITestArchiveSeed and its generator are wrapped in #if DEBUG (lines 34-106) so they do not exist in Release; UITestLaunchArguments exists in Release but isPresent returns false there (line 29).",
+ "toplevel": "UITestArchiveSeed and its generator are wrapped in #if DEBUG (lines 44-116) so they do not exist in Release; UITestLaunchArguments exists in Release but isPresent returns false there (line 29).",
  "units": [
   {
    "key": "var UITestLaunchArguments.forcesPaywall",
@@ -42,6 +43,25 @@
    "deps": {
     "Emuqu/Sources/Services/UITestLaunchArguments.swift::func UITestLaunchArguments.isPresent(_:)": "ebd1a43f652620ce"
    }
+  },
+  {
+   "key": "var UITestLaunchArguments.isUITestRun",
+   "hash": "7ee7d14fce49ab00",
+   "does": "Debug: true when any launch argument starts with -UITests-; Release: always false. Keeps the App Store rating request out of UI-test runs.",
+   "entry": "read by ReviewPromptOnAppear.requestIfEligible",
+   "calls": [],
+   "reads": [
+    "launch args (CommandLine.arguments)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "#if DEBUG",
+     "effect": "scans CommandLine.arguments for the -UITests- prefix; Release returns false"
+    }
+   ],
+   "deps": {}
   },
   {
    "key": "func UITestLaunchArguments.isPresent(_:)",

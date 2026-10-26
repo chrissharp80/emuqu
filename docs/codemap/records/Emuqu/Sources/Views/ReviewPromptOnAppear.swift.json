@@ -1,0 +1,66 @@
+{
+ "file": "Emuqu/Sources/Views/ReviewPromptOnAppear.swift",
+ "hash": "0b79d537144e9295",
+ "role": "ViewModifier that asks the system for an App Store rating on appear when ReviewPromptPolicy allows it; applied to the dashboard's top sentinel.",
+ "types": [
+  "ReviewPromptOnAppear: struct (ViewModifier) — inputs isActive, baselineNights, hasScore; environment requestReview (StoreKit)"
+ ],
+ "state": [
+  "ud:reviewPrompt.lastRequestedVersion, ud:reviewPrompt.lastRequestedDate (read and written by requestIfEligible)"
+ ],
+ "toplevel": "Applied in DashboardV2View.dashboardTopSentinel with the dashboard's isActive, baselineNights and displayedScore != nil.",
+ "units": [
+  {
+   "key": "func ReviewPromptOnAppear.body(content:)",
+   "hash": "b1d0631e85b6b2ff",
+   "does": "Returns the content with an onAppear that calls requestIfEligible.",
+   "entry": "SwiftUI",
+   "calls": [
+    "Emuqu/Sources/Views/ReviewPromptOnAppear.swift::func ReviewPromptOnAppear.requestIfEligible()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Views/ReviewPromptOnAppear.swift::func ReviewPromptOnAppear.requestIfEligible()": "f3ac779c54f725a4"
+   }
+  },
+  {
+   "key": "func ReviewPromptOnAppear.requestIfEligible()",
+   "hash": "3a3b0ed8982a4017",
+   "does": "Reads the app version and the stored last-asked version/date; if isActive, this is not a UI-test run and ReviewPromptPolicy.shouldRequest allows it, after 2 s stores the version and date and calls the system requestReview action (the system may show nothing).",
+   "entry": "called from body's onAppear",
+   "calls": [
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.isUITestRun",
+    "Emuqu/Sources/Models/ReviewPromptPolicy.swift::func ReviewPromptPolicy.shouldRequest(baselineNights:hasScore:currentVersion:lastRequestedVersion:lastRequestedDate:now:)"
+   ],
+   "reads": [
+    "ud:reviewPrompt.lastRequestedVersion",
+    "ud:reviewPrompt.lastRequestedDate",
+    "Info.plist CFBundleShortVersionString"
+   ],
+   "writes": [
+    "ud:reviewPrompt.lastRequestedVersion",
+    "ud:reviewPrompt.lastRequestedDate"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "not isActive OR UI-test run OR shouldRequest false",
+     "effect": "returns without asking"
+    },
+    {
+     "at": "+11",
+     "cond": "otherwise",
+     "effect": "after 2 s: stores version and date, calls requestReview()"
+    }
+   ],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquMain.main()": "2166d16247e6a43a",
+    "Emuqu/Sources/Models/ReviewPromptPolicy.swift::func ReviewPromptPolicy.shouldRequest(baselineNights:hasScore:currentVersion:lastRequestedVersion:lastRequestedDate:now:)": "6cddbc35bfc51616",
+    "Emuqu/Sources/Services/UITestLaunchArguments.swift::var UITestLaunchArguments.isUITestRun": "9e9cee7d1e9e7a3e"
+   }
+  }
+ ],
+ "deps": {}
+}
