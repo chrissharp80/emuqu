@@ -261,6 +261,7 @@ struct DashboardV2View: View {
     private var dashboardTopSentinel: some View {
         Color.clear.frame(height: 0).id("dashboardTopHidden")
             .onAppear { onDashboardAppear() }
+            .modifier(ReviewPromptOnAppear(isActive: isActive, baselineNights: baselineNights, hasScore: displayedScore != nil))
             .onReceive(NotificationCenter.default.publisher(for: .pendingScoreChangeWritten)) {
                 applyPendingScoreChange($0)
             }
