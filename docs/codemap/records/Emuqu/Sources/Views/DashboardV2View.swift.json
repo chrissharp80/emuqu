@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Views/DashboardV2View.swift",
  "hash": "d01d23a3db36dd82",
- "role": "Dashboard home tab view: hero score ring, verdict, Today's Loop, feeling chip, 4 metric chips, Recent strip; owns navigation to the metric detail screens, banners, Day-14 celebration and cold-start seeding from UIStateCache / index seed.",
+ "role": "Dashboard home tab view: hero score ring, verdict, Today's Loop, feeling chip, 4 metric chips, Recent strip; owns navigation to the metric detail screens, banners, Day-14 celebration, the App Store rating request (ReviewPromptOnAppear) and cold-start seeding from UIStateCache / index seed.",
  "types": [
   "DashboardV2View: struct (View) — dashboard root",
   "DashboardV2View.ChipTarget: enum — navigation destinations hrv/sleep/vitals/load/history/readiness"
@@ -277,7 +277,7 @@
     "Emuqu/Sources/Views/DashboardV2View+Chips.swift::func DashboardV2View.refreshDashboard()": "af3851fdab986533",
     "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.scrollToTop(_:)": "7da0283f0c0070d7",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.dashboardStack": "7cd0215f00ab442d",
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.dashboardTopSentinel": "a9cad188bf340d97"
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.dashboardTopSentinel": "1d80d36490e7b096"
    }
   },
   {
@@ -299,12 +299,15 @@
   },
   {
    "key": "var DashboardV2View.dashboardTopSentinel",
-   "hash": "42237318f24a1799",
-   "does": "Zero-height sentinel: onAppear → onDashboardAppear; observes .pendingScoreChangeWritten → applyPendingScoreChange.",
+   "hash": "398ca546ce34d1f1",
+   "does": "Zero-height sentinel: onAppear → onDashboardAppear; applies ReviewPromptOnAppear (isActive, baselineNights, displayedScore != nil) for the App Store rating request; observes .pendingScoreChangeWritten → applyPendingScoreChange.",
    "entry": "SwiftUI onAppear and NotificationCenter publisher (.pendingScoreChangeWritten posted by PendingScoreChange.write)",
    "calls": [
     "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.onDashboardAppear()",
-    "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.applyPendingScoreChange(_:)"
+    "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.applyPendingScoreChange(_:)",
+    "Emuqu/Sources/Views/ReviewPromptOnAppear.swift::func ReviewPromptOnAppear.body(content:)",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.displayedScore"
    ],
    "reads": [
     "notif:pendingScoreChangeWritten"
@@ -313,7 +316,10 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.applyPendingScoreChange(_:)": "1aeac828b08ab0a8",
-    "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.onDashboardAppear()": "5c1d91d2c4b9da29"
+    "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.onDashboardAppear()": "5c1d91d2c4b9da29",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.baselineNights": "b5e8b8ea0d62a99a",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.displayedScore": "acbdebbf6a8768d8",
+    "Emuqu/Sources/Views/ReviewPromptOnAppear.swift::func ReviewPromptOnAppear.body(content:)": "5e146552db70e25d"
    }
   },
   {

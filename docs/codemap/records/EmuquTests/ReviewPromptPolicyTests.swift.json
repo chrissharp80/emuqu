@@ -1,0 +1,105 @@
+{
+ "file": "EmuquTests/ReviewPromptPolicyTests.swift",
+ "hash": "cf418f240b536369",
+ "role": "Unit tests for ReviewPromptPolicy.shouldRequest: night threshold, score required, once per version, 120-day spacing.",
+ "types": [
+  "ReviewPromptPolicyTests: XCTestCase"
+ ],
+ "state": [
+  "fixed now = 1_800_000_000 s since 1970"
+ ],
+ "toplevel": "Helper ask(...) defaults to an eligible case (5 nights, score shown, version 1.0.2, never asked) so each test changes one input.",
+ "units": [
+  {
+   "key": "func ReviewPromptPolicyTests.ask(nights:hasScore:version:lastVersion:lastDate:)",
+   "hash": "f7b78a3003b9fcc3",
+   "does": "Calls shouldRequest with the given inputs (defaults: minimumScoredNights nights, score shown, version 1.0.2, never asked) at the fixed now.",
+   "entry": "called by the test methods",
+   "calls": [
+    "Emuqu/Sources/Models/ReviewPromptPolicy.swift::func ReviewPromptPolicy.shouldRequest(baselineNights:hasScore:currentVersion:lastRequestedVersion:lastRequestedDate:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/ReviewPromptPolicy.swift::func ReviewPromptPolicy.shouldRequest(baselineNights:hasScore:currentVersion:lastRequestedVersion:lastRequestedDate:now:)": "6cddbc35bfc51616"
+   }
+  },
+  {
+   "key": "func ReviewPromptPolicyTests.testAsksOnceEnoughScoredNightsAndAScore()",
+   "hash": "7faa5f78ba81ad55",
+   "does": "Asserts the default eligible case returns true.",
+   "entry": "XCTest",
+   "calls": [
+    "EmuquTests/ReviewPromptPolicyTests.swift::func ReviewPromptPolicyTests.ask(nights:hasScore:version:lastVersion:lastDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ReviewPromptPolicyTests.swift::func ReviewPromptPolicyTests.ask(nights:hasScore:version:lastVersion:lastDate:)": "2585f78690b783f9"
+   }
+  },
+  {
+   "key": "func ReviewPromptPolicyTests.testWaitsForEnoughScoredNights()",
+   "hash": "0285d0324ee6fb4c",
+   "does": "Asserts one night short of minimumScoredNights returns false.",
+   "entry": "XCTest",
+   "calls": [
+    "EmuquTests/ReviewPromptPolicyTests.swift::func ReviewPromptPolicyTests.ask(nights:hasScore:version:lastVersion:lastDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ReviewPromptPolicyTests.swift::func ReviewPromptPolicyTests.ask(nights:hasScore:version:lastVersion:lastDate:)": "2585f78690b783f9"
+   }
+  },
+  {
+   "key": "func ReviewPromptPolicyTests.testNeedsAScoreOnScreen()",
+   "hash": "f50d369b2b5cf45f",
+   "does": "Asserts hasScore false returns false.",
+   "entry": "XCTest",
+   "calls": [
+    "EmuquTests/ReviewPromptPolicyTests.swift::func ReviewPromptPolicyTests.ask(nights:hasScore:version:lastVersion:lastDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ReviewPromptPolicyTests.swift::func ReviewPromptPolicyTests.ask(nights:hasScore:version:lastVersion:lastDate:)": "2585f78690b783f9"
+   }
+  },
+  {
+   "key": "func ReviewPromptPolicyTests.testAsksAtMostOncePerVersion()",
+   "hash": "2329c248a28729a6",
+   "does": "Asserts a prior ask in the same version returns false even 400 days later.",
+   "entry": "XCTest",
+   "calls": [
+    "EmuquTests/ReviewPromptPolicyTests.swift::func ReviewPromptPolicyTests.ask(nights:hasScore:version:lastVersion:lastDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ReviewPromptPolicyTests.swift::func ReviewPromptPolicyTests.ask(nights:hasScore:version:lastVersion:lastDate:)": "2585f78690b783f9"
+   }
+  },
+  {
+   "key": "func ReviewPromptPolicyTests.testWaitsBetweenRequestsAcrossVersions()",
+   "hash": "74232ac9f76ae69a",
+   "does": "Asserts a prior ask in another version 119 days ago returns false and one exactly 120 days ago returns true.",
+   "entry": "XCTest",
+   "calls": [
+    "EmuquTests/ReviewPromptPolicyTests.swift::func ReviewPromptPolicyTests.ask(nights:hasScore:version:lastVersion:lastDate:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ReviewPromptPolicyTests.swift::func ReviewPromptPolicyTests.ask(nights:hasScore:version:lastVersion:lastDate:)": "2585f78690b783f9"
+   }
+  }
+ ],
+ "deps": {}
+}

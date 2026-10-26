@@ -353,7 +353,12 @@ enum UITestFind {
         label: String,
         timeout: TimeInterval = UITestTiming.s(8)
     ) -> XCUIElement {
-        let byLabel = NSPredicate(format: "label CONTAINS[c] %@", label)
+        // The label fallback must not reach the tab bar. A Settings row that a
+        // lazy list has not built yet is found by neither identifier, and the
+        // tab bar's "Flo" button then matched the label search for the "Flo"
+        // row: the test opened the Flo tab and its first-run sheet instead.
+        let tabIdentifiers = app.tabBars.buttons.allElementsBoundByIndex.map(\.identifier)
+        let byLabel = NSPredicate(format: "label CONTAINS[c] %@ AND NOT (identifier IN %@)", label, tabIdentifiers)
         let candidates: [() -> XCUIElement] = [
             { app.buttons[identifier] },
             { app.cells[identifier] },
@@ -722,9 +727,15 @@ enum UITestLaunch {
     /// from here entirely: `dismissOneGate` already runs `isSafelyHittable`
     /// before tapping, so reading `.frame` twice bought nothing and supplied
     /// the throwing call.
+    /// The paged onboarding keeps its neighbouring pages in the hierarchy, so
+    /// one identifier can match a button per page. Prefer the one on the page
+    /// in view, whose frame is horizontally inside the app; a page's buttons
+    /// can still be below the fold, which `dismissOneGate` scrolls to.
     private static func element(_ app: XCUIApplication, gate identifier: String) -> XCUIElement {
         let matches = app.buttons.matching(identifier: identifier).allElementsBoundByIndex
-        return matches.first ?? app.buttons[identifier]
+        let width = app.frame.width
+        let inView = matches.first { $0.exists && $0.frame.midX > 0 && $0.frame.midX < width }
+        return inView ?? matches.first ?? app.buttons[identifier]
     }
 
     /// Dismisses at most one gate. Returns whether anything was tapped.
@@ -745,6 +756,17 @@ enum UITestLaunch {
                 guard scrollView.exists else { continue }
                 for _ in 0 ..< 8 where !button.isEnabled {
                     scrollView.swipeUp()
+                }
+            }
+            // At the largest text sizes an onboarding page's buttons sit below
+            // the fold of its scroll view. A person scrolls down to them, so
+            // the walk does too, on the scroll view that holds this button.
+            if button.isEnabled, !UITestFind.isSafelyHittable(button, in: app) {
+                let page = app.scrollViews.containing(.button, identifier: identifier).firstMatch
+                if page.exists {
+                    for _ in 0 ..< 6 where !UITestFind.isSafelyHittable(button, in: app) {
+                        page.swipeUp()
+                    }
                 }
             }
             // `UITestFind.isSafelyHittable` rather than a bare `isHittable`:
