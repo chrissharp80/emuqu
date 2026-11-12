@@ -173,7 +173,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()": "fe764b74903fe308",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()": "432fda2fb1468ab1",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.pauseOvernightStreaming()": "0feb0f5a78537026"
    }
   },
@@ -232,12 +232,13 @@
   },
   {
    "key": "func RecordView.discardRecording(startOver:)",
-   "hash": "6ca72000cc52a939",
-   "does": "In a MainActor Task: sets isDiscarding (cleared when the task ends), clears fetchFailed, then discards the recording in progress: collector.discardOvernightRecording() when overnight streaming (discarded = it returned an outcome), else collector.discardDeviceRecording() (discarded = it returned true). When startOver, the discard succeeded and the recorder is not back in a pause, starts a fresh recording with startOvernightRecording().",
+   "hash": "86ac924fa15a3207",
+   "does": "In a MainActor Task: sets isDiscarding (cleared when the task ends), clears fetchFailed, then discards the recording in progress: collector.control.discardOvernightRecording() when overnight streaming (discarded = it returned an outcome), else collector.control.discardDeviceRecording() (discarded = it returned true). When startOver, the discard succeeded and the recorder is not back in a pause, starts a fresh recording with startOvernightRecording().",
    "entry": "Discard / Discard and Start Over in the Record screen's discard confirmation (RecordPanels.discardConfirmActions) via the panels closure.",
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.discardOvernightRecording()",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.discardDeviceRecording()",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardOvernightRecording()",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardDeviceRecording()",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startOvernightRecording()"
    ],
    "reads": [
@@ -261,19 +262,21 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardDeviceRecording()": "ac79719d246287d0",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardOvernightRecording()": "ba01ab1660ae0826",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.discardDeviceRecording()": "d8fb41b26fae4981",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.discardOvernightRecording()": "2b5ba4718ccb9567",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startOvernightRecording()": "102151158fd99ab0"
    }
   },
   {
    "key": "func RecordView.discardPausedNight()",
-   "hash": "e7838f3cf1cda934",
-   "does": "In a MainActor Task: sets isDiscarding (cleared when the task ends) and awaits collector.discardPausedRecording().",
+   "hash": "6ecea1b7031c5ad0",
+   "does": "In a MainActor Task: sets isDiscarding (cleared when the task ends) and awaits collector.control.discardPausedRecording().",
    "entry": "Discard Night in the Record screen's paused-state discard confirmation (RecordPanels.discardConfirmActions) via the panels closure.",
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.discardPausedRecording()"
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardPausedRecording()"
    ],
    "reads": [],
    "writes": [
@@ -281,7 +284,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.discardPausedRecording()": "acb51de8af5ef3f2"
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardPausedRecording()": "b4d1d30a28d0b7e9",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997"
    }
   },
   {
@@ -352,7 +356,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopOvernightStreaming()": "58ce1d84a7650bdc",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopOvernightStreaming()": "3867ffa449b8c959",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.stopOvernightStreaming()": "ee06838a39537c65",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.applyStopOutcome(_:navigateOnSuccess:)": "29b0c68fda108f03"
    }
@@ -384,7 +388,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.stopSession()": "c3389363b07bb35a",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.stopSession()": "aaeebe4b253032ba",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::func RRCollector.stopSession()": "99fe00abef91710a",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.applyStopOutcome(_:navigateOnSuccess:)": "29b0c68fda108f03",

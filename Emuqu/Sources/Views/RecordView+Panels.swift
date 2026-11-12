@@ -342,15 +342,22 @@ extension RecordPanels {
         if streamingLifecycle.isPaused {
             Button(String(localized: "Discard Night", bundle: LanguageManager.appBundle), role: .destructive) { discardPausedNight() }
         } else {
-            Button(String(localized: "Discard", bundle: LanguageManager.appBundle), role: .destructive) { discardRecording(false) }
-            if canStartOverAfterDiscard {
-                Button(String(localized: "Discard and Start Over", bundle: LanguageManager.appBundle), role: .destructive) { discardRecording(true) }
-            }
+            recordingDiscardActions
         }
         Button(role: .cancel) {} label: {
             Text(streamingLifecycle.isPaused
                 ? String(localized: "Cancel", bundle: LanguageManager.appBundle)
                 : String(localized: "Keep Recording", bundle: LanguageManager.appBundle))
+        }
+    }
+
+    /// The choices for a recording in progress: Discard, and Discard and
+    /// Start Over when the recording stands alone.
+    @ViewBuilder
+    private var recordingDiscardActions: some View {
+        Button(String(localized: "Discard", bundle: LanguageManager.appBundle), role: .destructive) { discardRecording(false) }
+        if canStartOverAfterDiscard {
+            Button(String(localized: "Discard and Start Over", bundle: LanguageManager.appBundle), role: .destructive) { discardRecording(true) }
         }
     }
 

@@ -317,9 +317,8 @@ extension OvernightStreamingCoordinator {
         // reconnect and download come first, and without an assertion a
         // trip to the home screen suspends the app mid-download. On expiry
         // the work is suspended, not cut short; it resumes on return.
-        let bgTask = BackgroundTaskAssertion(name: "OvernightStop")
+        let bgTask = BackgroundTaskAssertion.forRecordingStop(named: "OvernightStop")
         defer { bgTask.end() }
-        PersistedRecordingState.markStopRequested()
         await endDeviceRecordingArming()
         let (baseSession, streamingPoints, reconnectCount) = await stopStreamingInfrastructure()
         await backupStreamingData(streamingPoints, sessionId: baseSession.id)

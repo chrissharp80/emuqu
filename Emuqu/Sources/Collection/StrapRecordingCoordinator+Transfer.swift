@@ -230,6 +230,12 @@ extension StrapRecordingCoordinator {
     /// that a download follows waits for the file to finalize. A recording
     /// whose beats the session saved from the stream (`streamHoldsIt`) goes on
     /// the download record.
+    ///
+    /// A deadline (`StrapDeadline.race`) that has already given up on this
+    /// stop cancels the task but cannot cancel the strap's status query, whose
+    /// late answer resumes it. Acting on it would stop the strap after the
+    /// caller moved on, possibly ending a recording started since, so a
+    /// cancelled stop sends nothing.
     func stopH10Recording(
         api: any StrapRadio, deviceId: String, awaitFinalize: Bool, showsProgress: Bool, cancellable: Bool,
         streamHoldsIt: Bool
@@ -240,11 +246,6 @@ extension StrapRecordingCoordinator {
             while: { !cancellable || !manager.fetchCancelled },
             perform: { try await h10RecordingStatus(api: api, deviceId: deviceId) }
         )
-        // A deadline (`StrapDeadline.race`) that has already given up on this
-        // stop cancels the task but cannot cancel the strap's status query,
-        // whose late answer resumes here. Acting on it would stop the strap
-        // after the caller moved on, possibly ending a recording started
-        // since, so a cancelled stop sends nothing.
         try Task.checkCancellation()
         guard status.ongoing else {
             applyStatus(ongoing: false)

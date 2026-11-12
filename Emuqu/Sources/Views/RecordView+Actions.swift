@@ -91,9 +91,9 @@ extension RecordView {
             fetchFailed = false
             let discarded: Bool
             if streamingLifecycle.isOvernightStreaming {
-                discarded = await collector.discardOvernightRecording() != nil
+                discarded = await collector.control.discardOvernightRecording() != nil
             } else {
-                discarded = await collector.discardDeviceRecording()
+                discarded = await collector.control.discardDeviceRecording()
             }
             guard startOver, discarded, !streamingLifecycle.isPaused else { return }
             startOvernightRecording()
@@ -104,7 +104,7 @@ extension RecordView {
         Task { @MainActor in
             isDiscarding = true
             defer { isDiscarding = false }
-            await collector.discardPausedRecording()
+            await collector.control.discardPausedRecording()
         }
     }
 
