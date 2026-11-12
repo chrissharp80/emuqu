@@ -122,13 +122,12 @@
   },
   {
    "key": "func DeviceRecordingSession.stopSession()",
-   "hash": "39842cb0257e5145",
-   "does": "Stop (and Retry): requires connection; then holds a background-task assertion (\"DeviceRecordingStop\") until it returns and marks the persisted recording record stop-requested; resolves the session the recording belongs to, downloads the strap recording made since its start (attended budget), and assembles it; a failed download yields a failed session.",
+   "hash": "48c350d4c4d40f2a",
+   "does": "Stop (and Retry): requires connection; then holds a background-task assertion from BackgroundTaskAssertion.forRecordingStop (\"DeviceRecordingStop\") until it returns and marks the persisted recording record stop-requested; resolves the session the recording belongs to, downloads the strap recording made since its start (attended budget), and assembles it; a failed download yields a failed session.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::init BackgroundTaskAssertion(name:onExpire:)",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.forRecordingStop(named:)",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()",
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.markStopRequested(at:)",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.resolveBaseSession()",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecording(recordedSince:budget:)",
@@ -165,7 +164,6 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.markStopRequested(at:)": "3c41dc492a6c215b",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()": "8f47b0bb11661dc9",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecording(recordedSince:budget:)": "b768a31f1c827607",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.assembleDownloadedSession(_:placement:)": "ee6e1cea850c7598",
@@ -175,7 +173,7 @@
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()": "12e7c44b52c0986c",
-    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::init BackgroundTaskAssertion(name:onExpire:)": "b9d2438378adf1ed"
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.forRecordingStop(named:)": "c3840e6ca84c5e4e"
    }
   },
   {

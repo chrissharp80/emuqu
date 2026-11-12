@@ -68,7 +68,7 @@ final class RecordingDiscardTests: XCTestCase {
         let session = HRVSession(sessionType: .overnight)
         try startRecording(session, on: collector)
 
-        let outcome = await collector.discardOvernightRecording()
+        let outcome = await collector.control.discardOvernightRecording()
 
         XCTAssertEqual(outcome, CollectorSessionControl.DiscardOutcome(strapCopyKept: false))
         XCTAssertFalse(collector.isOvernightStreaming)
@@ -82,7 +82,7 @@ final class RecordingDiscardTests: XCTestCase {
 
     func testDiscardWithNothingRecordingDoesNothing() async {
         let collector = makeCollector()
-        let outcome = await collector.discardOvernightRecording()
+        let outcome = await collector.control.discardOvernightRecording()
         XCTAssertNil(outcome)
     }
 
@@ -93,7 +93,7 @@ final class RecordingDiscardTests: XCTestCase {
         segment.linkedSessionIds = [parent.id]
         try startRecording(segment, on: collector)
 
-        _ = await collector.discardOvernightRecording()
+        _ = await collector.control.discardOvernightRecording()
 
         XCTAssertTrue(collector.isPaused)
         XCTAssertEqual(collector.pausedSession?.id, parent.id)
@@ -111,7 +111,7 @@ final class RecordingDiscardTests: XCTestCase {
         collector.isPaused = true
         collector.recordingPhase = .paused(sessionId: second.id)
 
-        await collector.discardPausedRecording()
+        await collector.control.discardPausedRecording()
 
         XCTAssertFalse(isArchived(first.id))
         XCTAssertFalse(isArchived(second.id))
@@ -129,7 +129,7 @@ final class RecordingDiscardTests: XCTestCase {
         collector.pausedSession = paused
         collector.isPaused = true
 
-        await collector.discardPausedRecording()
+        await collector.control.discardPausedRecording()
 
         XCTAssertTrue(isArchived(finished.id), "a finished night is never discarded from a pause")
         XCTAssertFalse(isArchived(paused.id))

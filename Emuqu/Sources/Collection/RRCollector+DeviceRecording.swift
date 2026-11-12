@@ -88,9 +88,8 @@ extension DeviceRecordingSession {
             throw RRCollector.CollectorError.notConnected
         }
         // The download runs from the tap; see `stopOvernightStreaming`.
-        let bgTask = BackgroundTaskAssertion(name: "DeviceRecordingStop")
+        let bgTask = BackgroundTaskAssertion.forRecordingStop(named: "DeviceRecordingStop")
         defer { bgTask.end() }
-        PersistedRecordingState.markStopRequested()
         let base = resolveBaseSession()
         collector.polarManager.beginTransfer()
         let recording: StrapRecording

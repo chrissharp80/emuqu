@@ -658,21 +658,19 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.discardConfirmActions": "4cb3bea0b5d5269c",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.discardConfirmActions": "dab7f200d93ce049",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled": "a0b24694be6cc5b0"
    }
   },
   {
    "key": "var RecordPanels.discardConfirmActions",
-   "hash": "e8f0f3e75056cefd",
-   "does": "Confirmation dialog buttons: when paused, 'Discard Night' (discardPausedNight closure); otherwise 'Discard' (discardRecording(false)) and, when canStartOverAfterDiscard, 'Discard and Start Over' (discardRecording(true)); always a cancel button, labelled 'Cancel' when paused and 'Keep Recording' otherwise.",
+   "hash": "201c3cfd7e643a54",
+   "does": "Confirmation dialog buttons: when paused, 'Discard Night' (discardPausedNight closure); otherwise recordingDiscardActions; always a cancel button, labelled 'Cancel' when paused and 'Keep Recording' otherwise.",
    "entry": "Dialog button actions.",
    "calls": [
     "closure:RecordPanels.discardPausedNight set by RecordView.panels → RecordView.discardPausedNight",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.discardPausedNight()",
-    "closure:RecordPanels.discardRecording set by RecordView.panels → RecordView.discardRecording(startOver:)",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.discardRecording(startOver:)",
-    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.canStartOverAfterDiscard"
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.recordingDiscardActions"
    ],
    "reads": [
     "mem:StreamingLifecycle.isPaused"
@@ -682,23 +680,42 @@
     {
      "at": "+1",
      "cond": "streamingLifecycle.isPaused",
-     "effect": "Discard Night only; else Discard (+ optional Start Over)"
+     "effect": "Discard Night; else recordingDiscardActions"
     },
     {
-     "at": "+5",
-     "cond": "canStartOverAfterDiscard",
-     "effect": "adds Discard and Start Over"
-    },
-    {
-     "at": "+9",
+     "at": "+6",
      "cond": "streamingLifecycle.isPaused",
      "effect": "cancel label 'Cancel'; else 'Keep Recording'"
     }
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.discardPausedNight()": "6990b52a5d1b65fb",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.discardRecording(startOver:)": "2f0144154de15c50",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.discardPausedNight()": "80d9a9ce95f413ee",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.recordingDiscardActions": "2db5c658922f42be"
+   }
+  },
+  {
+   "key": "var RecordPanels.recordingDiscardActions",
+   "hash": "d84f0ddde02b26dc",
+   "does": "Dialog buttons for a recording in progress: 'Discard' (discardRecording(false)) and, when canStartOverAfterDiscard, 'Discard and Start Over' (discardRecording(true)).",
+   "entry": "Dialog button actions.",
+   "calls": [
+    "closure:RecordPanels.discardRecording set by RecordView.panels → RecordView.discardRecording(startOver:)",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.discardRecording(startOver:)",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.canStartOverAfterDiscard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "canStartOverAfterDiscard",
+     "effect": "adds Discard and Start Over"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.discardRecording(startOver:)": "7bff8b86c4aed2b5",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.canStartOverAfterDiscard": "29c26c4fb55df73b"
    }
   },
