@@ -38,6 +38,11 @@ extension CollectorSessionControl {
     /// just starting) are saved with their raw RR data so the user can resume.
     func pauseOvernightStreaming() async -> HRVSession? {
         guard collector.isOvernightStreaming else { return nil }
+        // The gather downloads from the strap before anything is saved; see
+        // `stopOvernightStreaming` for why the assertion starts here.
+        let bgTask = BackgroundTaskAssertion(name: "OvernightPause")
+        defer { bgTask.end() }
+        PersistedRecordingState.markStopRequested()
         // Before anything stops: the arming loop must not run during the
         // gather's download.
         await collector.overnightStreaming.endDeviceRecordingArming()

@@ -329,7 +329,8 @@ enum SleepMergingPipeline {
         recordingEnd: Date,
         config: SleepMergingConfig,
         rrPoints: [RRPoint]? = nil,
-        autoSleepExtension: SleepResolver.AutoSleepExtension? = nil
+        autoSleepExtension: SleepResolver.AutoSleepExtension? = nil,
+        rrStart: Date? = nil
     ) -> SleepData {
         let safeRecordingEnd = recordingEnd > recordingStart
             ? recordingEnd
@@ -344,7 +345,8 @@ enum SleepMergingPipeline {
             enhanceWithRR: config.enhanceWithRR,
             autoSleepExtension: autoSleepExtension,
             fallbackDate: samples.first?.startDate ?? recordingStart,
-            splitGapMinutes: config.awakeGapSplitMinutes
+            splitGapMinutes: config.awakeGapSplitMinutes,
+            rrStart: rrStart
         )
         return SleepResolver.resolve(ctx).sleepData
     }

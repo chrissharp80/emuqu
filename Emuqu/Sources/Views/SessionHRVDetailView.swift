@@ -126,9 +126,9 @@ struct SessionHRVDetailView: View {
 
     private var hrStatsRow: some View {
         HStack(spacing: 8) {
-            hrStatCard(title: result.markingEstimate(String(localized: "Min", bundle: LanguageManager.appBundle), for: .hrRange), value: result.timeDomain.minHR, unit: Self.bpmUnit, color: AppTheme.sage)
-            hrStatCard(title: String(localized: "Avg", bundle: LanguageManager.appBundle), value: result.timeDomain.meanHR, unit: Self.bpmUnit, color: AppTheme.terracotta)
-            hrStatCard(title: result.markingEstimate(String(localized: "Max", bundle: LanguageManager.appBundle), for: .hrRange), value: result.timeDomain.maxHR, unit: Self.bpmUnit, color: AppTheme.dustyRose)
+            hrStatCard(title: result.markingEstimate(String(localized: "Min", bundle: LanguageManager.appBundle), for: .hrRange), value: result.recordingMinHR, unit: Self.bpmUnit, color: AppTheme.sage)
+            hrStatCard(title: String(localized: "Avg", bundle: LanguageManager.appBundle), value: result.recordingMeanHR, unit: Self.bpmUnit, color: AppTheme.terracotta)
+            hrStatCard(title: result.markingEstimate(String(localized: "Max", bundle: LanguageManager.appBundle), for: .hrRange), value: result.recordingMaxHR, unit: Self.bpmUnit, color: AppTheme.dustyRose)
             hrStatCard(title: result.markingEstimate(String(localized: "SDNN", bundle: LanguageManager.appBundle), for: .sdnn), value: result.timeDomain.sdnn, unit: Self.msUnit, color: AppTheme.sdnnColor)
         }
     }
@@ -172,20 +172,22 @@ struct SessionHRVDetailView: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(String(localized: "Heart rate over time chart", bundle: LanguageManager.appBundle))
                 .accessibilityValue(String(
-                    localized: "Range \(minHRRounded) to \(maxHRRounded) beats per minute, mean \(Int(result.timeDomain.meanHR.rounded()))", bundle: LanguageManager.appBundle
+                    localized: "Range \(minHRRounded) to \(maxHRRounded) beats per minute, mean \(Int(result.recordingMeanHR.rounded()))", bundle: LanguageManager.appBundle
                 ))
         }
         .zenCard()
     }
 
-    /// Rounded like the stat tiles and the metrics grid ("%.0f"), so the
-    /// same screen never shows 54 here and 55 there.
+    /// The whole recording's range, as the chart below it plots and the stat
+    /// tiles above show, rounded like the tiles ("%.0f") so the same screen
+    /// never shows 54 here and 55 there. The metrics grid's "HR Range" is the
+    /// analysis window's and is labelled as part of that grid.
     private var minHRRounded: Int {
-        Int(result.timeDomain.minHR.rounded())
+        Int(result.recordingMinHR.rounded())
     }
 
     private var maxHRRounded: Int {
-        Int(result.timeDomain.maxHR.rounded())
+        Int(result.recordingMaxHR.rounded())
     }
 
     // MARK: - Tachogram

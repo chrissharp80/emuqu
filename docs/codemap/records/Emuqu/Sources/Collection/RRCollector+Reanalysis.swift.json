@@ -762,7 +762,7 @@
    "does": "Fetches HealthKit sleep for the session window (with RR points); returns it only when it has night sleep and plausibly overlaps the recording.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)"
    ],
@@ -788,8 +788,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "c9a11fa7babc8205",
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "77e23c3d71c4740e",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)": "da5ab94142f0949e",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "0937b2fc06093e13",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5"
@@ -1065,7 +1065,7 @@
    "does": "HealthKit sleep for a pulled session, gated on night sleep > 0 and plausible overlap.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)"
    ],
@@ -1091,8 +1091,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "c9a11fa7babc8205",
-    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "77e23c3d71c4740e",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)": "da5ab94142f0949e",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "0937b2fc06093e13",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5"

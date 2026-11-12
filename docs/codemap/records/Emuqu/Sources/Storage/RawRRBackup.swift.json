@@ -1,9 +1,9 @@
 {
  "file": "Emuqu/Sources/Storage/RawRRBackup.swift",
- "hash": "83ffd4617253c01f",
+ "hash": "8ceb389d9848e1a4",
  "role": "Crash-safety net for raw RR beats: writes every recording's beats to RRBackup/ in the App Group container (one-shot encrypted single-file JSON, or append-only header+JSONL via RawRRBackup+Streaming.swift), keeps a JSON index of backups, and serves retrieve/list/discard/purge/reconcile APIs to recovery, archive and diagnostics code.",
  "types": [
-  "RawRRBackup: class (@unchecked Sendable) — raw RR backup store; extended by an in-file extension (holdsBackup, writeOneShot), RawRRBackup+Streaming.swift, RawRRBackup+IndexRecovery.swift and SessionStorageDiagnostic.swift",
+  "RawRRBackup: class (@unchecked Sendable) — raw RR backup store; extended by two in-file extensions (holdsBackup, writeOneShot; fileprivate backupFileSize), RawRRBackup+Streaming.swift, RawRRBackup+IndexRecovery.swift and SessionStorageDiagnostic.swift",
   "RawRRBackup.BackupEntry: struct (Codable) — decoded backup (id, captureDate, deviceId, points, hash)",
   "RawRRBackup.BackupHeader: struct (Codable) — header file of the append-only format",
   "RawRRBackup.BackupIndex: struct (Codable) — index row (fileName for one-shot, backedUpCount for append-only, archived flag, lastBackupTime) with schemaVersion key",
@@ -104,16 +104,17 @@
   },
   {
    "key": "func RawRRBackup.terminationForensicsSummary(for:)",
-   "hash": "92613a7a850a6bcd",
-   "does": "Static lockless read of one session's backup index row straight from disk (directory from the same resolveBackupDirectory() the running store uses), plus the points file size, for CrashLogManager.recordTermination's forensics report; nil when the row is missing.",
+   "hash": "caf04292643d1d17",
+   "does": "Static lockless read of one session's backup index row straight from disk (directory from the same resolveBackupDirectory() the running store uses), plus the size of the file holding the beats (backupFileSize: the indexed whole-night file, else the append-only points file), for CrashLogManager.recordTermination's forensics report; nil when the row is missing.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resolveBackupDirectory()",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.storedIndexEntry(for:in:)",
-    "ext:FileManager.attributesOfItem"
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backupFileSize(of:sessionId:in:fileManager:)"
    ],
    "reads": [
     "file:RRBackup/backup_index.json",
+    "file:RRBackup/<indexed fileName> (size)",
     "file:RRBackup/<uuid>_points.jsonl (size)"
    ],
    "writes": [],
@@ -121,11 +122,11 @@
     {
      "at": "+3",
      "cond": "index row for sessionId found",
-     "effect": "true: build TerminationForensicsSummary (pointsFileSize nil if attributes fail); false: return nil"
+     "effect": "true: build TerminationForensicsSummary (pointsFileSize nil if neither file has a size); false: return nil"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "f5744989c4d6ef9c",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backupFileSize(of:sessionId:in:fileManager:)": "cf8b16da855cf1ab",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resolveBackupDirectory()": "a5da7aa92e627195",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.storedIndexEntry(for:in:)": "3c51e35069f878d6"
    }
@@ -1297,6 +1298,43 @@
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.writeEntry(_:to:sessionId:)": "361104a7856cd9e9",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
+  },
+  {
+   "key": "func RawRRBackup.backupFileSize(of:sessionId:in:fileManager:)",
+   "hash": "6d6a39d10feb9349",
+   "does": "Fileprivate static: returns the byte size of the first of [index entry's fileName (the whole-night file a stop writes), <uuid>_points.jsonl (the append-only file while recording)] that exists in the backup directory and reports a size; nil when neither does.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.attributesOfItem"
+   ],
+   "reads": [
+    "file:RRBackup/<indexed fileName> (size)",
+    "file:RRBackup/<uuid>_points.jsonl (size)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "entry.fileName nil",
+     "effect": "only the points file is tried"
+    },
+    {
+     "at": "+6",
+     "cond": "attributes unreadable (file missing)",
+     "effect": "next candidate"
+    },
+    {
+     "at": "+7",
+     "cond": "size present",
+     "effect": "returns it"
+    },
+    {
+     "at": "+9",
+     "cond": "no candidate had a size",
+     "effect": "nil"
+    }
+   ],
+   "deps": {}
   }
  ],
  "deps": {}

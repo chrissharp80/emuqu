@@ -1,0 +1,211 @@
+{
+ "file": "EmuquTests/OvernightEndingRecordTests.swift",
+ "hash": "4c59b3c55f713c27",
+ "role": "@MainActor tests of how a recording's end is kept and used: PersistedRecordingState.markStopRequested and decoding without stopRequestedAt, CrashLogManager.terminationCauseBlock wording with and without a stop time, and SessionAcceptanceService.sleepToFreeze choosing between the fetched and morning nights.",
+ "types": [
+  "OvernightEndingRecordTests: class — @MainActor XCTestCase"
+ ],
+ "state": [
+  "ud:RRCollector.persistedRecordingState (UserDefaults.standard: isolated per test by isolateFromHostRecordingState)"
+ ],
+ "toplevel": "No stored properties.",
+ "units": [
+  {
+   "key": "func OvernightEndingRecordTests.setUp()",
+   "hash": "315d3b0152681764",
+   "does": "Calls super.setUp, then isolateFromHostRecordingState(): each test starts with no persisted recording state, and the host's is put back in teardown.",
+   "entry": "XCTest per-test setUp",
+   "calls": [
+    "EmuquTests/StrapRecoveryFlowTests.swift::func XCTestCase.isolateFromHostRecordingState()"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:RRCollector.persistedRecordingState (UserDefaults.standard)",
+    "ud:legacy activeRecording* keys (UserDefaults.standard)",
+    "ud:RRCollector.dismissedInterruptedSessionIds (UserDefaults.standard)",
+    "mem:AppDependencies.current"
+   ],
+   "branches": [],
+   "deps": {
+    "EmuquTests/StrapRecoveryFlowTests.swift::func XCTestCase.isolateFromHostRecordingState()": "19a75a8617e2e0b0"
+   }
+  },
+  {
+   "key": "func OvernightEndingRecordTests.testMarkStopRequestedKeepsTheRecordingAndAddsTheTime()",
+   "hash": "abfa77905ca4a3a4",
+   "does": "Saves a persisted recording, marks it stop-requested at start+6 h and asserts the loaded record keeps its session id, start and device-backup flag and carries that stopRequestedAt.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.save(_:)",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.markStopRequested(at:)",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()"
+   ],
+   "reads": [
+    "ud:RRCollector.persistedRecordingState"
+   ],
+   "writes": [
+    "ud:RRCollector.persistedRecordingState"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()": "286e8ca1bed4c447",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.markStopRequested(at:)": "3c41dc492a6c215b",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.save(_:)": "dcd8c1803354ac04",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.stopRequestedAt(for:)": "5e0063b99148b188"
+   }
+  },
+  {
+   "key": "func OvernightEndingRecordTests.testMarkStopRequestedWithNoRecordingWritesNothing()",
+   "hash": "9e69498e2fd76f7c",
+   "does": "With no persisted recording, markStopRequested leaves load() nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.markStopRequested(at:)",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()"
+   ],
+   "reads": [
+    "ud:RRCollector.persistedRecordingState"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()": "286e8ca1bed4c447",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.markStopRequested(at:)": "3c41dc492a6c215b"
+   }
+  },
+  {
+   "key": "func OvernightEndingRecordTests.testARecordWithoutTheStopTimeStillLoads()",
+   "hash": "5e8929ded8dd5af8",
+   "does": "Decodes a PersistedRecordingState JSON without stopRequestedAt and asserts it decodes with stopRequestedAt nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "ext:JSONDecoder.decode"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.stopRequestedAt(for:)": "5e0063b99148b188"
+   }
+  },
+  {
+   "key": "func OvernightEndingRecordTests.testReportDoesNotBlameIOSForAnUnknownCause()",
+   "hash": "c2690813dcd08296",
+   "does": "Asserts terminationCauseBlock(stopRequestedAt: nil) does not say 'terminated by iOS' and mentions the app switcher and 'still running'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.terminationCauseBlock(stopRequestedAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.terminationCauseBlock(stopRequestedAt:)": "3705d8332e8dd43b"
+   }
+  },
+  {
+   "key": "func OvernightEndingRecordTests.testReportSaysTheRecordingHadAlreadyBeenEnded()",
+   "hash": "4fe45f902df58b02",
+   "does": "Asserts terminationCauseBlock(stopRequestedAt:) with a time contains 'The recording had been ended at' and does not contain 'user', since an automatic pause sets the same time.",
+   "entry": "XCTest.",
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.terminationCauseBlock(stopRequestedAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.terminationCauseBlock(stopRequestedAt:)": "3705d8332e8dd43b"
+   }
+  },
+  {
+   "key": "func OvernightEndingRecordTests.night(minutes:)",
+   "hash": "a13d86bb8d684c2b",
+   "does": "Test helper: an hrEstimated SleepData dated now with the given total and in-bed minutes, no awake time, efficiency 90.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925"
+   }
+  },
+  {
+   "key": "func OvernightEndingRecordTests.testATimedOutFetchKeepsTheMorningNight()",
+   "hash": "5a7e2d9ea9e17018",
+   "does": "Asserts sleepToFreeze(fetched: nil, morning: 400 min) keeps the 400-minute morning night.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OvernightEndingRecordTests.swift::func OvernightEndingRecordTests.night(minutes:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepToFreeze(fetched:morning:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepToFreeze(fetched:morning:)": "6413b67cdc295229",
+    "EmuquTests/OvernightEndingRecordTests.swift::func OvernightEndingRecordTests.night(minutes:)": "04d345aac607c57c"
+   }
+  },
+  {
+   "key": "func OvernightEndingRecordTests.testAnEmptyFetchKeepsTheMorningNight()",
+   "hash": "f42e0fce83c77c2d",
+   "does": "Asserts sleepToFreeze(fetched: 0 min, morning: 400 min) keeps the 400-minute morning night.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OvernightEndingRecordTests.swift::func OvernightEndingRecordTests.night(minutes:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepToFreeze(fetched:morning:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepToFreeze(fetched:morning:)": "6413b67cdc295229",
+    "EmuquTests/OvernightEndingRecordTests.swift::func OvernightEndingRecordTests.night(minutes:)": "04d345aac607c57c"
+   }
+  },
+  {
+   "key": "func OvernightEndingRecordTests.testAFetchedNightReplacesTheMorningNight()",
+   "hash": "093fafad9a519d3f",
+   "does": "Asserts sleepToFreeze(fetched: 450 min, morning: 400 min) returns the 450-minute fetched night.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OvernightEndingRecordTests.swift::func OvernightEndingRecordTests.night(minutes:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepToFreeze(fetched:morning:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepToFreeze(fetched:morning:)": "6413b67cdc295229",
+    "EmuquTests/OvernightEndingRecordTests.swift::func OvernightEndingRecordTests.night(minutes:)": "04d345aac607c57c"
+   }
+  },
+  {
+   "key": "func OvernightEndingRecordTests.testAnEmptyFetchIsKeptWhenTheMorningHadNothing()",
+   "hash": "453fa81bb606130e",
+   "does": "Asserts sleepToFreeze(fetched: 0 min, morning: nil) returns the 0-minute fetched night.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/OvernightEndingRecordTests.swift::func OvernightEndingRecordTests.night(minutes:)",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepToFreeze(fetched:morning:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.sleepToFreeze(fetched:morning:)": "6413b67cdc295229",
+    "EmuquTests/OvernightEndingRecordTests.swift::func OvernightEndingRecordTests.night(minutes:)": "04d345aac607c57c"
+   }
+  }
+ ],
+ "deps": {}
+}

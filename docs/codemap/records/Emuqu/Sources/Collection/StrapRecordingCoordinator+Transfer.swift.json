@@ -425,14 +425,14 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopH10Recording(api:deviceId:awaitFinalize:showsProgress:cancellable:streamHoldsIt:)": "89dbdd0ac91ad065",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopH10Recording(api:deviceId:awaitFinalize:showsProgress:cancellable:streamHoldsIt:)": "58196bc9228c9e5e",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopVeritySenseIfRecording(api:deviceId:showsProgress:)": "c1aa7ac050fbcda4"
    }
   },
   {
    "key": "func StrapRecordingCoordinator.stopH10Recording(api:deviceId:awaitFinalize:showsProgress:cancellable:streamHoldsIt:)",
-   "hash": "4acd3959d2508fc2",
-   "does": "The one H10 stop: optionally shows progress, reads the H10 recording status once the feature is usable (loop aborts on Cancel when cancellable), and if a recording is ongoing sets .stopping, sends stopRecording, marks state stopped with the start parsed from the entry id, optionally writes the ledger (streamHoldsIt) and optionally waits for that entry's file to be listed. Returns true if it stopped something.",
+   "hash": "fde23e655aac6104",
+   "does": "The one H10 stop: optionally shows progress, reads the H10 recording status once the feature is usable (loop aborts on Cancel when cancellable), throws CancellationError if the task was cancelled by the time the status returns (nothing sent to the strap), and if a recording is ongoing sets .stopping, sends stopRecording, marks state stopped with the start parsed from the entry id, optionally writes the ledger (streamHoldsIt) and optionally waits for that entry's file to be listed. Returns true if it stopped something.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager+Discovery.swift::func PolarManager.updateProgress(_:progress:attempt:maxAttempts:message:)",
@@ -460,22 +460,27 @@
      "effect": "progress .stopping 5% \"Checking recording status...\"; else silent"
     },
     {
-     "at": "+10",
+     "at": "+15",
+     "cond": "task cancelled after the status read",
+     "effect": "throws CancellationError; no stop sent, no state change"
+    },
+    {
+     "at": "+16",
      "cond": "status.ongoing is false",
      "effect": "applyStatus(ongoing:false) (clears isRecordingOnDevice, moves a settled .recording to .idle) and returns false"
     },
     {
-     "at": "+15",
+     "at": "+21",
      "cond": "showsProgress",
      "effect": "progress .stopping 10% \"Stopping recording...\""
     },
     {
-     "at": "+19",
+     "at": "+25",
      "cond": "streamHoldsIt and the entry id parsed to a start date",
      "effect": "ledger marks the recording downloaded; otherwise no ledger write"
     },
     {
-     "at": "+20",
+     "at": "+26",
      "cond": "awaitFinalize",
      "effect": "polls the listing until the stopped recording's entry appears (awaitH10FileFinalize); else returns immediately"
     }
@@ -691,7 +696,7 @@
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "912200aadd216e98",
     "Emuqu/Sources/Collection/StrapDeadline.swift::func StrapDeadline.race(seconds:timeout:operation:)": "8d202b4b5ef89477",
-    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopH10Recording(api:deviceId:awaitFinalize:showsProgress:cancellable:streamHoldsIt:)": "89dbdd0ac91ad065",
+    "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.stopH10Recording(api:deviceId:awaitFinalize:showsProgress:cancellable:streamHoldsIt:)": "58196bc9228c9e5e",
     "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.shouldStopDeviceRecording(deviceType:hasAPI:hasDeviceId:isRecordingOnDevice:)": "7e8c68285a88c935",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLogExternal(_:cause:file:line:)": "c08b307347bf7c10"
    }

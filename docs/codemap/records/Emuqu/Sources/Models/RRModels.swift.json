@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Models/RRModels.swift",
- "hash": "1a17f37daca2c9f4",
+ "hash": "af4297fadfed244b",
  "role": "Core RR-interval and HRV-result model types: the beat point/series with timing helpers, artifact flags, time/frequency/nonlinear/ANS metric structs, training-context snapshot, the persisted HRVAnalysisResult, and localisation of its stored English window classification/selection-reason strings.",
  "types": [
   "RRPoint: struct — one RR beat (t_ms cumulative start, rr_ms, optional wallClockMs and device HR), Codable/Equatable",
@@ -17,6 +17,7 @@
   "HRVAnalysisResult: struct — complete persisted analysis for a window incl. window-selection provenance, overnight HR summary and estimatedMetrics (raw EstimatedMetric names an importer filled without a measurement)",
   "HRVAnalysisResult.TimeRange: struct — Codable ms range for organized-recovery zones",
   "EstimatedMetric: enum String — sdnn, pnn50, sdsd, sdHR, hrRange, sd1, sd2, sd1Sd2Ratio, beatCount (unknown count, 0 stored)",
+  "HRVAnalysisResult: extension — the reading's displayed heart rate over the whole recording (recordingMeanHR/MinHR/MaxHR, window fallback)",
   "HRVAnalysisResult: extension — estimated-metric provenance (isEstimated, measured values, legacy Elite marking, display marker)",
   "HRVAnalysisResult: extension — display (localized) window classification and selection reason",
   "WindowSelectionReasonText: enum — parses WindowSelector's English reason strings back into numbers and re-renders them localized",
@@ -671,6 +672,57 @@
     "Emuqu/Sources/Collection/HealthDataTypes.swift::var HealthWorkoutSummary.typeDescription": "01f126cccb021e92",
     "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var HealthKitManager.WorkoutSummary.userScaledLoad": "919b0c34f3cd4748"
    }
+  },
+  {
+   "key": "var HRVAnalysisResult.recordingMeanHR",
+   "hash": "58957ba717668779",
+   "does": "The heart rate shown as the reading's average (Avg HR / Mean HR on the report, chart and session screens): overnightMeanHR, the whole-recording mean with artifact beats excluded; timeDomain.meanHR (the analysis-window mean) when overnightMeanHR is nil (results saved before it was kept).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overnightMeanHR non-nil",
+     "effect": "whole-recording mean; else window mean"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var HRVAnalysisResult.recordingMinHR",
+   "hash": "324ce67121818c2b",
+   "does": "The whole recording's lowest heart rate (overnightMinHR, the lowest 30-second rolling mean); timeDomain.minHR when overnightMinHR is nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overnightMinHR non-nil",
+     "effect": "whole-recording min; else window min"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var HRVAnalysisResult.recordingMaxHR",
+   "hash": "eb3b384b7af9d078",
+   "does": "The whole recording's highest heart rate (overnightMaxHR); timeDomain.maxHR when overnightMaxHR is nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "overnightMaxHR non-nil",
+     "effect": "whole-recording max; else window max"
+    }
+   ],
+   "deps": {}
   },
   {
    "key": "func HRVAnalysisResult.isEstimated(_:)",

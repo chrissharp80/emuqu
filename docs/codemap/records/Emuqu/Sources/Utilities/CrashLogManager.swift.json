@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Utilities/CrashLogManager.swift",
- "hash": "015e662309adeee6",
- "role": "Singleton that installs uncaught-exception and fatal-signal handlers at launch, keeps crash/termination reports as text files in the App Group container, builds SIGKILL termination reports on the next launch, and exports/clears them for Settings and Delete-All-My-Data.",
+ "hash": "5f50c1eab37f7e57",
+ "role": "Singleton that installs uncaught-exception and fatal-signal handlers at launch, keeps crash/termination reports as text files in the App Group container, builds termination reports for a recording that outlived its process on the next launch, and exports/clears them for Settings and Delete-All-My-Data.",
  "types": [
   "CrashLogManager: class (final, Sendable) — crash/termination report writer and reader",
   "MemoryTraceSummary: struct — peak/final/average memory, peak thermal and warning count for a memory-trace window",
@@ -15,10 +15,9 @@
   "file:<AppGroup>/exception_log.txt (uncaught NSException report)",
   "file:<AppGroup>/previous_crash.txt (promoted / termination report)",
   "file:tmp/Emuqu_Crash_<yyyyMMdd_HHmmss>.txt (export)",
-  "static terminationCauseBlock (report text)",
   "static noBackupIndexExplanation (report text)"
  ],
- "toplevel": "Stored lets crashLogFileName/exceptionLogFileName/previousCrashFileName and launchDate; static installedInstance lock; static report text constants terminationCauseBlock and noBackupIndexExplanation. File-level structs MemoryTraceSummary and MemoryTraceSample follow the class. No #if blocks.",
+ "toplevel": "Stored lets crashLogFileName/exceptionLogFileName/previousCrashFileName and launchDate; static installedInstance lock; static report text constant noBackupIndexExplanation. File-level structs MemoryTraceSummary and MemoryTraceSample follow the class. No #if blocks.",
  "units": [
   {
    "key": "var CrashLogManager.crashLogURL",
@@ -246,20 +245,23 @@
   },
   {
    "key": "func CrashLogManager.recordTermination(sessionId:sessionStart:sessionType:)",
-   "hash": "122743b7f634caf6",
-   "does": "Builds a termination report (session info, SIGKILL cause text, RawRRBackup forensics, memory/thermal context) for an orphaned recording session and writes it, PHI-scrubbed, to previous_crash.txt, appended after any older uncleared report.",
+   "hash": "4792a498e96883f6",
+   "does": "Builds a termination report (session info, cause text from terminationCauseBlock with the persisted stopRequestedAt for this session, RawRRBackup forensics, memory/thermal context) for an orphaned recording session and writes it, PHI-scrubbed, to previous_crash.txt, appended after any older uncleared report.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashLog",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.previousCrashPredates(_:)",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.sessionInfoBlock(sessionId:sessionStart:sessionType:)",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.stopRequestedAt(for:)",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.terminationCauseBlock(stopRequestedAt:)",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.forensicsBlock(sessionId:sessionStart:)",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.diagnosticContextBlock()",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.writeTerminationReport(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
-    "file:previous_crash.txt"
+    "file:previous_crash.txt",
+    "ud:UserDefaultsKeys.persistedRecordingState"
    ],
    "writes": [
     "file:previous_crash.txt"
@@ -276,6 +278,8 @@
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.forensicsBlock(sessionId:sessionStart:)": "c02915bfa7bc2b50",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.previousCrashPredates(_:)": "d27db834a905e7e0",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.sessionInfoBlock(sessionId:sessionStart:sessionType:)": "b47d0326aeff52e0",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.stopRequestedAt(for:)": "5e0063b99148b188",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.terminationCauseBlock(stopRequestedAt:)": "3705d8332e8dd43b",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.writeTerminationReport(_:)": "d8390fbfd88eb4ba",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::var CrashLogManager.previousCrashLog": "880d93efa788a4f4",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
@@ -358,6 +362,52 @@
    }
   },
   {
+   "key": "func CrashLogManager.stopRequestedAt(for:)",
+   "hash": "9e0f11df2eee6a4d",
+   "does": "Private static: loads PersistedRecordingState and returns its stopRequestedAt when the record belongs to sessionId; nil when there is no record, it is another session's, or the user had not ended it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()"
+   ],
+   "reads": [
+    "ud:UserDefaultsKeys.persistedRecordingState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no record or sessionId differs",
+     "effect": "nil; else the record's stopRequestedAt"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()": "286e8ca1bed4c447",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
+   }
+  },
+  {
+   "key": "func CrashLogManager.terminationCauseBlock(stopRequestedAt:)",
+   "hash": "38f50e6a9ee45d44",
+   "does": "Static: the CAUSE section of a termination report. States the app ended while a recording session was active, then either 'The recording had been ended at <time>; the app closed while the night was still being saved.' (naming no one, since the user's stop and the app's own automatic pause record the same time) or 'The recording was still running when the app closed.'; explains that no signal or exception was caught, which fits both closing from the app switcher and iOS ending the app (background time expiry, memory pressure, thermal shutdown), which cannot be told apart afterwards; and that this is not a code crash.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.reportDateFormatter(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "stopRequestedAt non-nil",
+     "effect": "ended-at line with yyyy-MM-dd HH:mm:ss Z time; else still-running line"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.reportDateFormatter(_:)": "337d17041865a66b",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.stopRequestedAt(for:)": "5e0063b99148b188"
+   }
+  },
+  {
    "key": "func CrashLogManager.forensicsBlock(sessionId:sessionStart:)",
    "hash": "f9dfd5849cc9925d",
    "does": "Wraps formatRecordingForensics output in a 'RECORDING FORENSICS' section.",
@@ -369,7 +419,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.formatRecordingForensics(sessionId:sessionStart:)": "154b77c6609e26ea"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.formatRecordingForensics(sessionId:sessionStart:)": "f22733d3f968f553"
    }
   },
   {
@@ -530,8 +580,8 @@
   },
   {
    "key": "func CrashLogManager.formatRecordingForensics(sessionId:sessionStart:)",
-   "hash": "669be6b4f0b1f004",
-   "does": "Looks up RawRRBackup's termination forensics for the session and formats estimated death time, duration, beat counts, backup size and archive status; returns noBackupIndexExplanation when no index entry exists.",
+   "hash": "20068e6936da7edf",
+   "does": "Looks up RawRRBackup's termination forensics for the session and formats the last backup write time (the app was still running then and ended at or after it), recording time to that write, beat counts, backup size and archive status; returns noBackupIndexExplanation when no index entry exists.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.terminationForensicsSummary(for:)",
@@ -557,16 +607,16 @@
     {
      "at": "+6",
      "cond": "summary.isArchived",
-     "effect": "'Already folded…' vs 'Not yet folded… SessionRecoveryService should pick it up'"
+     "effect": "'Already folded…' vs 'Not yet folded… listed under Settings → iCloud & Data → Recover Lost Sessions'"
     },
     {
      "at": "+14",
      "cond": "backedUpCount nil",
-     "effect": "'(legacy single-file format)'"
+     "effect": "'(whole-night file, written at stop)'"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.terminationForensicsSummary(for:)": "4e8c602562811623",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.terminationForensicsSummary(for:)": "619b1bfa9e3675f2",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.byteDescription(_:)": "0c9c139782727141",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.elapsedDescription(from:to:)": "7a57555a44422778",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.reportDateFormatter(_:)": "337d17041865a66b"

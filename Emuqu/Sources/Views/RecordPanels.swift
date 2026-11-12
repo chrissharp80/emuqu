@@ -31,6 +31,10 @@ struct RecordPanels {
     let resumeRecording: () -> Void
     let finalizeFromPause: () -> Void
     let stopAndFetch: () -> Void
+    /// Ends the recording in progress without keeping it; `true` starts a
+    /// new one straight after.
+    let discardRecording: (_ startOver: Bool) -> Void
+    let discardPausedNight: () -> Void
     let startStreaming: (Int) -> Void
     let stopStreaming: () -> Void
 
@@ -38,6 +42,8 @@ struct RecordPanels {
     @Binding var selectedTags: Set<ReadingTag>
     @Binding var sessionNotes: String
     @Binding var fetchFailed: Bool
+    @Binding var showingDiscardConfirm: Bool
+    let isDiscarding: Bool
 
     let breathingAudio: BreathingAudioManager
 }

@@ -326,6 +326,16 @@ If you wake up in the middle of the night and want to go back to sleep later:
 
 **Auto-finalize:** If the strap's battery drops to 5% or lower while paused, the night finalizes automatically. A disconnect while paused doesn't end it — reconnect the strap to resume. If the app is killed mid-pause, pause state is restored from disk on next launch.
 
+**Discarding a Recording:**
+
+If you started a recording you don't want (you started too early, or the strap was on wrong), tap **"Discard Recording"** under the recording controls and confirm:
+
+- **Discard** ends the recording and keeps nothing from it: no score, no saved session, no crash-recovery backup and no iCloud backup. When the strap was also recording to its own memory, that copy is cleared too.
+- **Discard and Start Over** does the same, then starts a fresh recording straight away.
+- **Keep Recording** closes the prompt and changes nothing.
+
+Discarding a resumed segment removes only that segment; the paused night it continued returns, with Resume and Done. On a paused night, **Discard Night** removes the paused night and the segments it was built from. If the strap's own copy can't be cleared (it is out of range, for example), the app says so; that copy is saved to Lost Sessions when the next recording starts rather than being lost.
+
 **Getting Results:**
 - When you're ready, tap **"Get Reading"**
 - The app analyzes your data and finds the best 5-minute analysis window
@@ -1635,8 +1645,9 @@ Recover sessions that have raw backups but aren't in the main archive.
 | **RMSSD** | Root Mean Square of Successive Differences. Primary HRV metric indicating parasympathetic activity. Higher = better recovery. | 40-100+ ms (age-dependent) |
 | **SDNN** | Standard Deviation of NN intervals. Overall variability measure. | 50-100+ ms |
 | **pNN50** | Percentage of successive intervals differing >50ms. | >20% |
-| **Mean HR** | Average heart rate during analysis window. | Varies by fitness |
-| **Min/Max HR** | Lowest and highest heart rate during recording. | -- |
+| **Avg HR** | Average heart rate over the whole recording, beats the artifact filter rejected left out. This is the Avg HR at the top of the report, on the overnight chart and in the session details. | Varies by fitness |
+| **Min/Max HR** | Lowest and highest heart rate over the whole recording. Min is the lowest 30-second average, so one long beat can't set it. | -- |
+| **Mean HR** (time-domain metrics) | Average heart rate in the analysis window the score is taken from: about five and a half minutes of calm sleep. Sleep HR, resting heart rate and your heart-rate baseline use this number, so nights compare like with like. | Varies by fitness |
 
 ### Frequency Domain Metrics
 | Metric | Description |

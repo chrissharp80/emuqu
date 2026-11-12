@@ -162,7 +162,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawSummaryHRStats(result:y:contentWidth:)": "e935600632341c94",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawSummaryHRStats(result:y:contentWidth:)": "496e88336ae3333a",
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawSummaryHero(result:rating:ans:compositeScore:y:contentWidth:in:)": "02d946695844abb6",
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.heroHRVRating(_:baselineRMSSD:)": "35fa60a419bde4b6",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "613fc1ee098a7dd3"
@@ -307,8 +307,8 @@
   },
   {
    "key": "func ReportSectionRenderer.drawSummaryHRStats(result:y:contentWidth:)",
-   "hash": "83093a9163a88b9f",
-   "does": "Fills a 50pt stats row and draws four boxes (Min HR, Avg HR, Max HR in bpm, SDNN in ms, from the analysis window; min/max HR and SDNN marked '(estimate)' when the result holds them as estimates) through drawStatBoxRow, 38pt tall at y+6; returns y+65.",
+   "hash": "4b34136104999ecd",
+   "does": "Fills a 50pt stats row and draws four boxes through drawStatBoxRow, 38pt tall at y+6: Min HR, Avg HR and Max HR in bpm over the whole recording (recordingMinHR / recordingMeanHR / recordingMaxHR, which fall back to the analysis window for older results) and SDNN in ms from the analysis window; min/max HR and SDNN marked '(estimate)' when the result holds them as estimates. Returns y+65.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawStatBoxRow(_:y:boxWidth:boxHeight:)",
@@ -326,6 +326,9 @@
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawStatBoxRow(_:y:boxWidth:boxHeight:)": "9b8557ac8f4ff26e",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "613fc1ee098a7dd3",
     "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "c516da654be58b2a",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMaxHR": "45a2b0fc490c4c6a",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMeanHR": "340f01a3ede11a45",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMinHR": "0151038a8fb4e432",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
     "Emuqu/Sources/Views/ContributorChip.swift::var ContributorChip.accentColor": "4e2f95ef405541d6"

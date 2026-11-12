@@ -399,10 +399,17 @@ struct OvernightChartsView<InterChartContent: View>: View {
         }
     }
 
+    /// The night's average, the same whole-recording mean the report's
+    /// "Avg HR" shows, so the two never disagree; the chart's own mean over
+    /// its plotted samples for a result saved before that mean was kept.
+    private var nightAverageHR: Double {
+        result.overnightMeanHR ?? overnightStats.avgHR
+    }
+
     private var avgHRCard: some View {
         OvernightStatCard(
             title: String(localized: "Avg HR", bundle: LanguageManager.appBundle),
-            value: String(format: "%.0f", locale: LanguageManager.appLocale, overnightStats.avgHR),
+            value: String(format: "%.0f", locale: LanguageManager.appLocale, nightAverageHR),
             unit: String(localized: "bpm", bundle: LanguageManager.appBundle),
             subtitle: String(localized: "overnight", bundle: LanguageManager.appBundle),
             color: AppTheme.terracotta
@@ -549,7 +556,7 @@ struct OvernightChartsView<InterChartContent: View>: View {
             )
             .frame(height: 180)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(String(localized: "Heart rate chart. Range \(Int(overnightStats.minHR)) to \(Int(overnightStats.maxHR)) bpm. Nadir \(Int(overnightStats.nadirHR)) bpm at \(overnightStats.nadirTimeFormatted). Average \(Int(overnightStats.avgHR)) bpm.", bundle: LanguageManager.appBundle))
+            .accessibilityLabel(String(localized: "Heart rate chart. Range \(Int(overnightStats.minHR)) to \(Int(overnightStats.maxHR)) bpm. Nadir \(Int(overnightStats.nadirHR)) bpm at \(overnightStats.nadirTimeFormatted). Average \(Int(nightAverageHR.rounded())) bpm.", bundle: LanguageManager.appBundle))
 
             // Legend
             hrChartLegend

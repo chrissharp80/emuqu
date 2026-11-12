@@ -240,6 +240,12 @@ extension StrapRecordingCoordinator {
             while: { !cancellable || !manager.fetchCancelled },
             perform: { try await h10RecordingStatus(api: api, deviceId: deviceId) }
         )
+        // A deadline (`StrapDeadline.race`) that has already given up on this
+        // stop cancels the task but cannot cancel the strap's status query,
+        // whose late answer resumes here. Acting on it would stop the strap
+        // after the caller moved on, possibly ending a recording started
+        // since, so a cancelled stop sends nothing.
+        try Task.checkCancellation()
         guard status.ongoing else {
             applyStatus(ongoing: false)
             return false

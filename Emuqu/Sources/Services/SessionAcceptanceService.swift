@@ -171,12 +171,18 @@ final class SessionAcceptanceService {
     /// completes.
     /// A failed sleep fetch is not fatal to acceptance — the score is computed
     /// without it — but it must leave a trace.
+    ///
+    /// The search runs over the whole night, but the beats count from when the
+    /// strap started (`rrStart`); without it, a night with no Watch had its
+    /// beat-estimated sleep laid out from the bedtime window's start instead,
+    /// shifting the night by however long before the strap that window opens.
     nonisolated private static func sleepOrNil(
-        _ hk: any HealthKitServiceProtocol, from fetchStart: Date, to fetchEnd: Date, rrPoints: [RRPoint]?
+        _ hk: any HealthKitServiceProtocol, from fetchStart: Date, to fetchEnd: Date,
+        rrPoints: [RRPoint]?, rrStart: Date
     ) async -> SleepData? {
         do {
             return try await hk.fetchSleepData(
-                for: fetchStart, recordingEnd: fetchEnd, rrPoints: rrPoints
+                for: fetchStart, recordingEnd: fetchEnd, rrPoints: rrPoints, rrStart: rrStart
             )
         } catch {
             debugLog("[SessionAcceptanceService] Sleep fetch failed: \(error)")
@@ -193,7 +199,9 @@ final class SessionAcceptanceService {
     ) async -> (SleepData?, RecoveryVitals?) {
         let hk = healthKit
         let raced = await runWithTimeout(seconds: 10) {
-            let fetched = await Self.sleepOrNil(hk, from: fetchStart, to: fetchEnd, rrPoints: rrPoints)
+            let fetched = await Self.sleepOrNil(
+                hk, from: fetchStart, to: fetchEnd, rrPoints: rrPoints, rrStart: sessionStart
+            )
             // Credit the day-before's qualifying nap toward 24 h sleep, as the
             // morning pass did for the score shown before acceptance.
             let napMinutes = await hk.fetchDaytimeNapMinutes(nightAnchoredAt: sessionStart)
@@ -312,8 +320,20 @@ final class SessionAcceptanceService {
             sessionStart: session.startDate,
             sessionEnd: sessionEnd
         )
-        session.sleepSnapshot = sleepData
-        session.vitalsSnapshot = vitals?.withStrapNocturnalRHR(session.analysisResult?.timeDomain.meanHR)
+        session.sleepSnapshot = Self.sleepToFreeze(fetched: sleepData, morning: session.sleepSnapshot)
+        if let vitals {
+            session.vitalsSnapshot = vitals.withStrapNocturnalRHR(session.analysisResult?.timeDomain.meanHR)
+        }
+    }
+
+    /// The night acceptance freezes. A fetch that timed out, failed or found
+    /// no sleep (Health holding only "in bed" samples resolves to an empty
+    /// night) keeps the morning pass's snapshot, which was resolved from the
+    /// same recording. Replacing it with nothing made the dashboard fall back
+    /// to an older night's sleep and vitals.
+    nonisolated static func sleepToFreeze(fetched: SleepData?, morning: SleepData?) -> SleepData? {
+        guard let fetched, fetched.nightSleepMinutes > 0 || morning == nil else { return morning }
+        return fetched
     }
 
     /// The composite breakdown for this session. `training` is passed along
@@ -485,7 +505,7 @@ final class SessionAcceptanceService {
             rrPoints: session.rrSeries?.points, fetchStart: fetchStart, fetchEnd: fetchEnd,
             sessionStart: session.startDate, sessionEnd: sessionEnd
         )
-        if let sleepData { session.sleepSnapshot = sleepData }
+        session.sleepSnapshot = Self.sleepToFreeze(fetched: sleepData, morning: session.sleepSnapshot)
         if let vitals { session.vitalsSnapshot = vitals.withStrapNocturnalRHR(result.timeDomain.meanHR) }
     }
 

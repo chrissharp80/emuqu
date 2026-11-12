@@ -52,6 +52,17 @@ enum SleepResolver {
         let fallbackDate: Date
         /// Split-gap threshold captured into SleepData for display-only segment splits.
         let splitGapMinutes: Int
+        /// When the strap recording the RR beats started: their offsets count
+        /// from here. Nil means the session start. A caller that searches a
+        /// wider window than the recording (acceptance reads the whole night
+        /// from the bedtime schedule) passes the real start, so beats are not
+        /// placed as if the strap had started when the search window opens.
+        var rrStart: Date?
+    }
+
+    /// The instant RR offsets count from.
+    private static func rrAnchor(_ ctx: Context) -> Date? {
+        ctx.rrStart ?? ctx.sessionBounds?.start
     }
 
     /// Post-session sleep envelope (e.g. native HealthKit sleep samples
@@ -134,9 +145,12 @@ enum SleepResolver {
     // MARK: - Entry Point
 
     /// Resolve sleep for the given context. Dispatches to one of four pure
-    /// resolvers keyed on (has session?, has Watch?).
+    /// resolvers keyed on (has session?, has Watch sleep?). Samples that
+    /// record no sleep at all (only "in bed", or only awake) are not a Watch
+    /// night: taking row 1 for them resolved an empty night and threw away
+    /// the strap's own estimate.
     static func resolve(_ ctx: Context) -> Resolution {
-        switch (ctx.sessionBounds != nil, ctx.watchSamples.isEmpty) {
+        switch (ctx.sessionBounds != nil, !hasSleepSamples(ctx.watchSamples)) {
         case (true, false): resolveSessionAndWatch(ctx)
         case (true, true): resolveSessionOnly(ctx)
         case (false, false): resolveWatchOnly(ctx)
@@ -628,6 +642,14 @@ enum SleepResolver {
         return .watch
     }
 
+    /// Whether any sample records sleep, as opposed to time in bed or awake.
+    private static func hasSleepSamples(_ samples: [HKCategorySample]) -> Bool {
+        samples.contains { sample in
+            guard let stage = mapHKValueToStage(sample.value) else { return false }
+            return stage != .awake
+        }
+    }
+
     private static func mapHKValueToStage(_ value: Int) -> HealthKitManager.SleepStage? {
         switch value {
         case HKCategoryValueSleepAnalysis.asleepDeep.rawValue: .deep
@@ -650,7 +672,7 @@ enum SleepResolver {
     ) -> [HealthKitManager.SleepStageInterval] {
         guard ctx.enhanceWithRR, ctx.rrPoints.count >= 100 else { return watchStages }
         guard let first = envelope.first, let last = envelope.last else { return watchStages }
-        guard let recordingStart = ctx.sessionBounds?.start else { return watchStages }
+        guard let recordingStart = rrAnchor(ctx) else { return watchStages }
         let sleepStartMs = MillisecondOffset.between(first.start, and: recordingStart, fallback: 0)
         let sleepEndMs = MillisecondOffset.between(last.end, and: recordingStart, fallback: 0)
         guard sleepEndMs > sleepStartMs else { return watchStages }
@@ -684,7 +706,7 @@ enum SleepResolver {
         ctx: Context,
         envelope: [DateInterval]
     ) -> [HealthKitManager.SleepStageInterval] {
-        guard let sessionStart = ctx.sessionBounds?.start, ctx.rrPoints.count >= 100,
+        guard let sessionStart = rrAnchor(ctx), ctx.rrPoints.count >= 100,
               let first = envelope.first, let last = envelope.last else { return [] }
         let envelopeStartMs = MillisecondOffset.between(first.start, and: sessionStart, fallback: 0)
         let sleepEndMs = MillisecondOffset.between(last.end, and: sessionStart, fallback: 0)
@@ -748,7 +770,7 @@ enum SleepResolver {
         ctx: Context,
         sleepStages: [HealthKitManager.SleepStageInterval]
     ) -> Date? {
-        ctx.linkedSessionBounds.map(\.start).min() ?? ctx.sessionBounds?.start ?? sleepStages.map(\.start).min()
+        ctx.rrStart ?? ctx.linkedSessionBounds.map(\.start).min() ?? ctx.sessionBounds?.start ?? sleepStages.map(\.start).min()
     }
 
     /// Deep and REM minutes. A night whose source staged it (any deep or REM
