@@ -246,12 +246,16 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
             resumeRecording: {},
             finalizeFromPause: {},
             stopAndFetch: {},
+            discardRecording: { _ in },
+            discardPausedNight: {},
             startStreaming: { _ in },
             stopStreaming: {},
             extendedCaptureMode: .constant(.both),
             selectedTags: .constant([]),
             sessionNotes: .constant(""),
             fetchFailed: .constant(false),
+            showingDiscardConfirm: .constant(false),
+            isDiscarding: false,
             breathingAudio: BreathingAudioManager()
         )
     }

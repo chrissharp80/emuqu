@@ -165,6 +165,11 @@ final class RRCollector {
         try control.resumeOvernightStreaming(linkedSessionId: linkedSessionId)
     }
     func finalizeFromPause() { control.finalizeFromPause() }
+    func discardOvernightRecording() async -> CollectorSessionControl.DiscardOutcome? {
+        await control.discardOvernightRecording()
+    }
+    func discardPausedRecording() async { await control.discardPausedRecording() }
+    func discardDeviceRecording() async -> Bool { await control.discardDeviceRecording() }
     func persistPausedSessionState(sessionId: UUID) { control.persistPausedSessionState(sessionId: sessionId) }
     func clearPausedSessionState() { control.clearPausedSessionState() }
     func restorePausedStateIfNeeded() { control.restorePausedStateIfNeeded() }

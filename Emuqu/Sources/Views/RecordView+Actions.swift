@@ -80,6 +80,34 @@ extension RecordView {
         collector.finalizeFromPause()
     }
 
+    /// Ends the recording in progress without keeping anything from it. The
+    /// overnight stream and the strap-only recording each have their own
+    /// discard; `startOver` starts a fresh recording once the discard has
+    /// finished, so the new night never inherits the old one's strap copy.
+    func discardRecording(startOver: Bool) {
+        Task { @MainActor in
+            isDiscarding = true
+            defer { isDiscarding = false }
+            fetchFailed = false
+            let discarded: Bool
+            if streamingLifecycle.isOvernightStreaming {
+                discarded = await collector.discardOvernightRecording() != nil
+            } else {
+                discarded = await collector.discardDeviceRecording()
+            }
+            guard startOver, discarded, !streamingLifecycle.isPaused else { return }
+            startOvernightRecording()
+        }
+    }
+
+    func discardPausedNight() {
+        Task { @MainActor in
+            isDiscarding = true
+            defer { isDiscarding = false }
+            await collector.discardPausedRecording()
+        }
+    }
+
     func startLinkedRecording(linkedTo session: HRVSession) {
         Task {
             do {

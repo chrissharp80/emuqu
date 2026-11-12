@@ -407,9 +407,9 @@
    }
   },
   {
-   "key": "func SleepMergingPipeline.processForRecording(samples:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:)",
-   "hash": "b3c5d563c48f9f53",
-   "does": "Recording-scoped sleep: builds a SleepResolver.Context from samples, recording bounds (widened to the overnight window end when end <= start), config window, RR points, auto-sleep extension and split gap, and returns SleepResolver.resolve(ctx).sleepData.",
+   "key": "func SleepMergingPipeline.processForRecording(samples:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:rrStart:)",
+   "hash": "3c684e2bcc8ddd18",
+   "does": "Recording-scoped sleep: builds a SleepResolver.Context from samples, recording bounds (widened to the overnight window end when end <= start), config window, RR points, auto-sleep extension, split gap and rrStart (when the strap recording the beats started; nil = recording start), and returns SleepResolver.resolve(ctx).sleepData.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)"
@@ -418,25 +418,25 @@
    "writes": [],
    "branches": [
     {
-     "at": "+8",
+     "at": "+9",
      "cond": "recordingEnd > recordingStart",
      "effect": "uses recordingEnd; otherwise max(config.overnightWindowEnd, recordingStart+60s)"
     },
     {
-     "at": "+16",
+     "at": "+17",
      "cond": "rrPoints nil (??)",
      "effect": "passes []"
     },
     {
-     "at": "+20",
+     "at": "+21",
      "cond": "samples empty (?? on samples.first?.startDate)",
      "effect": "fallbackDate = recordingStart; otherwise first sample's startDate"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "7c655ba9e01d2483",
-    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "248d2d6037a937bb"
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowStart(relativeTo:)": "54265da0046fd3e1"
    }
   }
  ],

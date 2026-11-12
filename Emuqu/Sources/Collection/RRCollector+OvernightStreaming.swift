@@ -313,6 +313,13 @@ extension OvernightStreamingCoordinator {
     /// the blocking `fallbackToDeviceFetch`.
     func stopOvernightStreaming() async -> HRVSession? {
         guard collector.isOvernightStreaming else { return nil }
+        // From the tap on, not only once analysis starts: the strap stop,
+        // reconnect and download come first, and without an assertion a
+        // trip to the home screen suspends the app mid-download. On expiry
+        // the work is suspended, not cut short; it resumes on return.
+        let bgTask = BackgroundTaskAssertion(name: "OvernightStop")
+        defer { bgTask.end() }
+        PersistedRecordingState.markStopRequested()
         await endDeviceRecordingArming()
         let (baseSession, streamingPoints, reconnectCount) = await stopStreamingInfrastructure()
         await backupStreamingData(streamingPoints, sessionId: baseSession.id)

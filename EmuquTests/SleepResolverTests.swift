@@ -81,7 +81,8 @@ final class SleepResolverTests: XCTestCase {
         watchSamples: [HKCategorySample] = [],
         rrPoints: [RRPoint] = [],
         enhanceWithRR: Bool = false,
-        autoSleepExtension: SleepResolver.AutoSleepExtension? = nil
+        autoSleepExtension: SleepResolver.AutoSleepExtension? = nil,
+        rrStart: Date? = nil
     ) -> SleepResolver.Context {
         SleepResolver.Context(
             sessionBounds: sessionBounds,
@@ -92,8 +93,20 @@ final class SleepResolverTests: XCTestCase {
             enhanceWithRR: enhanceWithRR,
             autoSleepExtension: autoSleepExtension,
             fallbackDate: bedtime,
-            splitGapMinutes: 20
+            splitGapMinutes: 20,
+            rrStart: rrStart
         )
+    }
+
+    /// Eight hours of beats at about 55 bpm, offsets counted from the strap start.
+    private func eightHoursOfBeats() -> [RRPoint] {
+        var points: [RRPoint] = []
+        var offset: Int64 = 0
+        for _ in 0 ..< 26_000 {
+            points.append(RRPoint(t_ms: offset, rr_ms: 1090))
+            offset += 1090
+        }
+        return points
     }
 
     // MARK: - Tests
@@ -701,5 +714,35 @@ final class SleepResolverTests: XCTestCase {
         let samples = [makeHKSample(.awake, from: 60, to: 70), makeHKSample(.asleepCore, from: 70, to: 420)]
         let sleep = SleepResolver.resolve(makeContext(sessionBounds: nil, watchSamples: samples)).sleepData
         XCTAssertEqual(sleep.inBedMinutes, 360)
+    }
+}
+
+// MARK: - No-Watch nights
+
+extension SleepResolverTests {
+
+    // Health holding only "in bed" for the night is not a Watch night: the
+    // strap's own estimate resolves it, instead of an empty row-1 night.
+    func test_inBedOnlySamples_resolveFromTheStrap() {
+        let (_, bounds) = makeSession(startMin: 0, endMin: 480)
+        let ctx = makeContext(
+            sessionBounds: bounds, watchSamples: [makeHKSample(.inBed, from: 0, to: 480)], rrPoints: eightHoursOfBeats()
+        )
+        let sleep = SleepResolver.resolve(ctx).sleepData
+        XCTAssertGreaterThan(sleep.nightSleepMinutes, 0)
+        XCTAssertTrue(sleep.boundarySource == .hrEstimated || sleep.boundarySource == .healthKitHREstimated)
+    }
+
+    // Acceptance searches the whole night from the bedtime window, which opens
+    // before the strap started. The beats count from the strap start, so the
+    // estimated night must sit there, not two hours earlier at the window start.
+    func test_rrStart_placesEstimatedSleepFromTheStrapStart() {
+        let searchWindow = DateInterval(start: t(-120), end: t(480))
+        let ctx = makeContext(sessionBounds: searchWindow, rrPoints: eightHoursOfBeats(), rrStart: t(0))
+        let sleep = SleepResolver.resolve(ctx).sleepData
+        let sleepStart = try? XCTUnwrap(sleep.sleepStart)
+        XCTAssertNotNil(sleepStart)
+        if let sleepStart { XCTAssertGreaterThanOrEqual(sleepStart, t(0)) }
+        XCTAssertEqual(sleep.inBedStart, t(0))
     }
 }

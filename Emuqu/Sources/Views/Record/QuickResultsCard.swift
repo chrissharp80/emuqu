@@ -87,7 +87,7 @@ struct QuickResultsCard: View {
             v2Stat(label: "RMSSD", value: String(Int(result.timeDomain.rmssd.rounded())), unit: Self.msUnit)
             v2Stat(
                 label: String(localized: "Avg HR", bundle: LanguageManager.appBundle),
-                value: String(Int(result.timeDomain.meanHR.rounded())),
+                value: String(Int(result.recordingMeanHR.rounded())),
                 unit: String(localized: "bpm", bundle: LanguageManager.appBundle)
             )
             if let r = result.ansMetrics?.readinessScore {

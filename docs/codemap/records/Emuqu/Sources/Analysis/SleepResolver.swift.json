@@ -1,10 +1,10 @@
 {
  "file": "Emuqu/Sources/Analysis/SleepResolver.swift",
- "hash": "0d1fd2190896f1ec",
- "role": "Pure sleep resolution for one night from (recording session?, Watch samples?): row 1 Watch stages clipped to session envelope (+AutoSleep extension, optional HRV augmentation), row 2 RR-inferred stages, row 3 Watch-only clipped to bedtime window, row 4 empty. Produces SleepData with totals, stages, segments.",
+ "hash": "f0828cddfaf639ae",
+ "role": "Pure sleep resolution for one night from (recording session?, Watch samples recording sleep?): row 1 Watch stages clipped to session envelope (+AutoSleep extension, optional HRV augmentation), row 2 RR-inferred stages, row 3 Watch-only clipped to bedtime window, row 4 empty. Samples with only in-bed or awake values count as no Watch. Produces SleepData with totals, stages, segments.",
  "types": [
   "SleepResolver: enum — namespace",
-  "Context: struct — pre-fetched inputs",
+  "Context: struct — pre-fetched inputs; optional rrStart is when the strap recording the RR beats started (nil = session start)",
   "AutoSleepExtension: struct — post-session sleep bounds + stages",
   "Resolution: struct (Equatable, custom ==) — sleepData (export to HealthKit is decided downstream from sleepData.boundarySource)",
   "Resolution.Summary / StageContent / SegmentContent: private structs (Equatable) — content of a resolution compared by =="
@@ -14,6 +14,23 @@
  ],
  "toplevel": "Static constant; Resolution has a hand-written == comparing every SleepData total and boundary, and each stage interval and segment by content (not by interval id).",
  "units": [
+  {
+   "key": "func SleepResolver.rrAnchor(_:)",
+   "hash": "bd9b90727f20d8a4",
+   "does": "The instant RR offsets count from: ctx.rrStart, else the session start, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "rrStart ?? sessionBounds?.start",
+     "effect": "rrStart set: it; else session start; neither: nil"
+    }
+   ],
+   "deps": {}
+  },
   {
    "key": "func SleepResolver.Resolution.==(lhs:rhs:)",
    "hash": "3d69966b998bc061",
@@ -48,7 +65,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "c487e09379888380",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inBedStart(ctx:sleepStages:)": "462c31feab84c606",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inBedStart(ctx:sleepStages:)": "b1313059a7250728",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb"
    }
   },
@@ -82,10 +99,11 @@
   },
   {
    "key": "func SleepResolver.resolve(_:)",
-   "hash": "24cc3de9008b9187",
-   "does": "Dispatches on (sessionBounds != nil, watchSamples non-empty) to rows 1-4.",
+   "hash": "d343851ab0154ddf",
+   "does": "Dispatches on (sessionBounds != nil, no Watch sleep) to rows 1-4. 'No Watch sleep' means hasSleepSamples is false: no samples, or only in-bed/awake samples, so such a night takes row 2 (session) or row 4 (no session).",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.hasSleepSamples(_:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveSessionAndWatch(_:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveSessionOnly(_:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveWatchOnly(_:)",
@@ -96,22 +114,22 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "switch (has session, no Watch)",
+     "cond": "switch (has session, !hasSleepSamples)",
      "effect": "dispatch"
     },
     {
      "at": "+2",
-     "cond": "session + Watch",
+     "cond": "session + Watch sleep",
      "effect": "row 1"
     },
     {
      "at": "+3",
-     "cond": "session, no Watch",
+     "cond": "session, no Watch sleep",
      "effect": "row 2"
     },
     {
      "at": "+4",
-     "cond": "no session, Watch",
+     "cond": "no session, Watch sleep",
      "effect": "row 3"
     },
     {
@@ -121,9 +139,10 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.hasSleepSamples(_:)": "bdfbdd9f701a4484",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveEmpty(_:)": "e304338cb41a92b7",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveSessionAndWatch(_:)": "b25a09f8b1fec4c9",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveSessionOnly(_:)": "f31455c090aa3be8",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveSessionAndWatch(_:)": "a1f782c02acdc940",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveSessionOnly(_:)": "7f8661c0d5ce43f0",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolveWatchOnly(_:)": "a46b75c6cb6f3298"
    }
   },
@@ -744,6 +763,32 @@
    "deps": {}
   },
   {
+   "key": "func SleepResolver.hasSleepSamples(_:)",
+   "hash": "2080b99b91f62bd6",
+   "does": "True when any sample maps (via mapHKValueToStage) to a stage other than awake; in-bed and unmapped values and awake samples alone give false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mapHKValueToStage(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "value has no stage (in bed etc.)",
+     "effect": "not sleep"
+    },
+    {
+     "at": "+3",
+     "cond": "stage != .awake",
+     "effect": "sleep: true for the whole set"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.mapHKValueToStage(_:)": "c2ab55fb0fd155a3"
+   }
+  },
+  {
    "key": "func SleepResolver.mapHKValueToStage(_:)",
    "hash": "c175dc2d51fca643",
    "does": "HK sleep value → stage.",
@@ -787,10 +832,11 @@
   },
   {
    "key": "func SleepResolver.maybeAugment(_:ctx:envelope:)",
-   "hash": "f1f24d842f8e39ef",
-   "does": "Row 1 HRV augmentation: when enabled with >= 100 RR points and a session, runs HRVSleepStageClassifier.augment over the envelope span (ms from session start); returns augmented intervals only when at least one epoch changed.",
+   "hash": "504b159149a0ebbb",
+   "does": "Row 1 HRV augmentation: when enabled with >= 100 RR points and an RR anchor (rrAnchor: rrStart, else session start), runs HRVSleepStageClassifier.augment over the envelope span (ms from that anchor); returns augmented intervals only when at least one epoch changed.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.rrAnchor(_:)",
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augment(watchIntervals:rrPoints:sleepStartMs:sleepEndMs:recordingStart:)"
    ],
@@ -809,7 +855,7 @@
     },
     {
      "at": "+7",
-     "cond": "session start exists",
+     "cond": "rrAnchor non-nil",
      "effect": "false: unchanged"
     },
     {
@@ -825,16 +871,18 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift::func HRVSleepStageClassifier.augment(watchIntervals:rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "c166da0bf0496e60",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.rrAnchor(_:)": "6599183a381dd503",
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43",
     "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "1a9a72f64eabce05"
    }
   },
   {
    "key": "func SleepResolver.inferStagesFromRR(ctx:envelope:)",
-   "hash": "052df70891d10da1",
-   "does": "Row 2: with session and >= 100 RR points, anchors at max(envelope start, detected HR onset — detectSleepOnset gives none when the first drop is more than 20 min in, so the envelope start stands; wall-clock ms like the envelope offsets) and runs HRVSleepStageClassifier.classify to the envelope end, re-tagging the returned intervals' provenance .hrvDerived (the classifier builds them as .watch); [] otherwise.",
+   "hash": "7e4fd8345300226f",
+   "does": "Row 2: with an RR anchor (rrAnchor: rrStart, else session start) and >= 100 RR points, anchors at max(envelope start, detected HR onset — detectSleepOnset gives none when the first drop is more than 20 min in, so the envelope start stands; wall-clock ms from the RR anchor like the envelope offsets) and runs HRVSleepStageClassifier.classify to the envelope end, re-tagging the returned intervals' provenance .hrvDerived (the classifier builds them as .watch); [] otherwise.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.rrAnchor(_:)",
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)",
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)"
@@ -844,7 +892,7 @@
    "branches": [
     {
      "at": "+4",
-     "cond": "session, rr >= 100, envelope non-empty",
+     "cond": "rrAnchor non-nil, rr >= 100, envelope non-empty",
      "effect": "false: []"
     },
     {
@@ -871,6 +919,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "f2889828692e6b90",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "574a0263e53dfb77",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.rrAnchor(_:)": "6599183a381dd503",
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43",
     "EmuquTests/SleepChartSnapshotTests.swift::func SleepChartSnapshotTests.stageIntervals()": "1a9a72f64eabce05"
    }
@@ -895,7 +944,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "c487e09379888380",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.buildSegments(stages:splitGapMinutes:)": "715a243ac1dc9bf7",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inBedStart(ctx:sleepStages:)": "462c31feab84c606",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inBedStart(ctx:sleepStages:)": "b1313059a7250728",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.stageTotals(_:)": "96ef59c125c3337c",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.totalMinutes(_:)": "65fbfa0850ac9426",
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.efficiencyPercent(sleep:inBed:)": "2d061fa425f61f22",
@@ -904,8 +953,8 @@
   },
   {
    "key": "func SleepResolver.inBedStart(ctx:sleepStages:)",
-   "hash": "d8ea2e332e66056d",
-   "does": "inBedStart = earliest linked recording start, else session start, else earliest sleep stage. Never the envelope: without a recording it is the bedtime search window (opens 2 h before bedtime), which is not a time in bed; SleepData.sleepLatencyMinutes reads this when the night has no stages.",
+   "hash": "1ac290c035affec9",
+   "does": "inBedStart = ctx.rrStart when set, else earliest linked recording start, else session start, else earliest sleep stage. Never the envelope: without a recording it is the bedtime search window (opens 2 h before bedtime), which is not a time in bed; SleepData.sleepLatencyMinutes reads this when the night has no stages.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -913,8 +962,8 @@
    "branches": [
     {
      "at": "+4",
-     "cond": "linkedSessionBounds.min start ?? sessionBounds?.start ?? min stage start",
-     "effect": "rows 1-2: recording start; rows 3-4: earliest sleep stage (no latency)"
+     "cond": "rrStart ?? linkedSessionBounds.min start ?? sessionBounds?.start ?? min stage start",
+     "effect": "rrStart given: strap start; rows 1-2: recording start; rows 3-4: earliest sleep stage (no latency)"
     }
    ],
    "deps": {}

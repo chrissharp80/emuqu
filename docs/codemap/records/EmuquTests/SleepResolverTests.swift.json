@@ -1,14 +1,14 @@
 {
  "file": "EmuquTests/SleepResolverTests.swift",
- "hash": "3b8a1af7b335c6f1",
- "role": "Proof suite for SleepResolver: the four-row decision matrix (session+Watch, session only, Watch only, empty), envelope clipping edge cases, AutoSleep back-to-bed and pause/resume merging, cross-source overlap resolution, iPhone early-guess filter, time-in-bed derivation and SleepData time-in-bed repair.",
+ "hash": "1da517f139e18154",
+ "role": "Proof suite for SleepResolver: the four-row decision matrix (session+Watch, session only, Watch only, empty), in-bed-only samples resolving from the strap, rrStart anchoring of RR-estimated sleep, envelope clipping edge cases, AutoSleep back-to-bed and pause/resume merging, cross-source overlap resolution, iPhone early-guess filter, time-in-bed derivation and SleepData time-in-bed repair.",
  "types": [
   "SleepResolverTests: class — XCTestCase for SleepResolver and SleepData time-in-bed helpers"
  ],
  "state": [
   "bedtime: fixed 2026-01-15 22:00 UTC built via TestDate.from"
  ],
- "toplevel": "The `bedtime` stored-property initializer builds 2026-01-15 22:00 UTC with a Gregorian calendar via TestDate.from (EmuquTests/TestDate.swift:17).",
+ "toplevel": "The `bedtime` stored-property initializer builds 2026-01-15 22:00 UTC with a Gregorian calendar via TestDate.from (EmuquTests/TestDate.swift:17). A trailing extension holds the no-Watch-night tests (in-bed-only samples, rrStart anchoring).",
  "units": [
   {
    "key": "let SleepResolverTests.bedtime",
@@ -109,9 +109,9 @@
    }
   },
   {
-   "key": "func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
-   "hash": "fd3f221c0d873e30",
-   "does": "Builds a SleepResolver.Context with the given bounds/samples/RR/enhance/extension, bedtime window 22–06, fallbackDate bedtime and splitGapMinutes 20.",
+   "key": "func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
+   "hash": "8afb3ad7a1e81f6d",
+   "does": "Builds a SleepResolver.Context with the given bounds/samples/RR/enhance/extension/rrStart, bedtime window 22–06, fallbackDate bedtime and splitGapMinutes 20.",
    "entry": null,
    "calls": [
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeBedtimeWindow()"
@@ -120,7 +120,7 @@
    "writes": [],
    "branches": [
     {
-     "at": "+10",
+     "at": "+11",
      "cond": "linkedBounds is empty",
      "effect": "true: uses [sessionBounds] or [] when sessionBounds is nil (map ?? []); false: uses linkedBounds"
     }
@@ -131,6 +131,19 @@
    }
   },
   {
+   "key": "func SleepResolverTests.eightHoursOfBeats()",
+   "hash": "716031ff770fcc69",
+   "does": "Test helper: 26,000 RR points of 1090 ms (about 55 bpm, about 7.9 h) with offsets from 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd"
+   }
+  },
+  {
    "key": "func SleepResolverTests.test01_row1_cleanNight()",
    "hash": "ea50519ac54a2b74",
    "does": "Row 1: session 0–510 with Watch core 15–495; asserts 480 sleep min, 0 awake.",
@@ -138,7 +151,7 @@
    "calls": [
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
    ],
@@ -147,9 +160,9 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "c487e09379888380",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "010d22d1e203aba7",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "f891c42ee35e67cb",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "0760ea7fe03570ed"
    }
@@ -162,7 +175,7 @@
    "calls": [
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
    ],
@@ -170,9 +183,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "010d22d1e203aba7",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "f891c42ee35e67cb",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "0760ea7fe03570ed"
    }
@@ -185,7 +198,7 @@
    "calls": [
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)",
@@ -196,10 +209,10 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "c487e09379888380",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "a25102dd7955c053",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "010d22d1e203aba7",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "f891c42ee35e67cb",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "0760ea7fe03570ed",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "76998306380400b6",
@@ -214,7 +227,7 @@
    "calls": [
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)"
@@ -223,9 +236,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "010d22d1e203aba7",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "f891c42ee35e67cb",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "0760ea7fe03570ed",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "f5cfa44b0dbe97b9"
@@ -239,7 +252,7 @@
    "calls": [
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
    ],
@@ -247,9 +260,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "010d22d1e203aba7",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "f891c42ee35e67cb",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "0760ea7fe03570ed"
    }
@@ -261,7 +274,7 @@
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
    ],
@@ -269,9 +282,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "010d22d1e203aba7",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "f891c42ee35e67cb"
    }
   },
@@ -281,7 +294,7 @@
    "does": "Row 4 nothing: asserts 0 sleep, 0 awake.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
    ],
@@ -290,9 +303,9 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "c487e09379888380",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "010d22d1e203aba7"
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736"
    }
   },
   {
@@ -303,7 +316,7 @@
    "calls": [
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
    ],
@@ -311,9 +324,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "010d22d1e203aba7",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "f891c42ee35e67cb",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "0760ea7fe03570ed"
    }
@@ -326,7 +339,7 @@
    "calls": [
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
    ],
@@ -334,9 +347,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "010d22d1e203aba7",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "f891c42ee35e67cb",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "0760ea7fe03570ed"
    }
@@ -429,7 +442,7 @@
    "calls": [
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
    ],
@@ -437,9 +450,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "010d22d1e203aba7",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "f891c42ee35e67cb",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "0760ea7fe03570ed"
    }
@@ -452,7 +465,7 @@
    "calls": [
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
     "ext:HealthKit.HKCategorySample"
@@ -461,9 +474,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "010d22d1e203aba7",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "0760ea7fe03570ed",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "f5cfa44b0dbe97b9"
    }
@@ -476,7 +489,7 @@
    "calls": [
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
    ],
@@ -485,9 +498,9 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "c487e09379888380",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "010d22d1e203aba7",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "f891c42ee35e67cb",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "0760ea7fe03570ed"
    }
@@ -500,7 +513,7 @@
    "calls": [
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
    ],
@@ -508,10 +521,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "3161593fbc6e5971",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "010d22d1e203aba7",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "f891c42ee35e67cb",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "f5cfa44b0dbe97b9"
    }
@@ -524,7 +536,7 @@
    "calls": [
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.Resolution.==(lhs:rhs:)"
@@ -534,9 +546,9 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.Resolution.==(lhs:rhs:)": "d0647aedc22ee68b",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "010d22d1e203aba7",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "f891c42ee35e67cb",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "0760ea7fe03570ed"
    }
@@ -549,7 +561,7 @@
    "calls": [
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)",
@@ -559,10 +571,10 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "a25102dd7955c053",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "010d22d1e203aba7",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "f891c42ee35e67cb",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "0760ea7fe03570ed",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "76998306380400b6",
@@ -666,7 +678,7 @@
    "calls": [
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)"
    ],
    "reads": [],
@@ -679,9 +691,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "010d22d1e203aba7",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "f891c42ee35e67cb",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "0760ea7fe03570ed",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "f5cfa44b0dbe97b9"
@@ -695,7 +707,7 @@
    "calls": [
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)",
@@ -714,10 +726,10 @@
    "deps": {
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.Resolution.==(lhs:rhs:)": "d0647aedc22ee68b",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "c487e09379888380",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "a25102dd7955c053",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "010d22d1e203aba7",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "f891c42ee35e67cb",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "0760ea7fe03570ed",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeStage(_:from:to:anchor:provenance:)": "76998306380400b6",
@@ -817,7 +829,7 @@
    "calls": [
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
    ],
@@ -826,9 +838,9 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "c487e09379888380",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "010d22d1e203aba7",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "f891c42ee35e67cb",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "0760ea7fe03570ed"
    }
@@ -906,7 +918,7 @@
    "calls": [
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
    ],
@@ -915,9 +927,9 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.awakeMinutes(_:)": "c487e09379888380",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "010d22d1e203aba7",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "f891c42ee35e67cb",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "0760ea7fe03570ed"
    }
@@ -972,16 +984,69 @@
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
-    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:)": "010d22d1e203aba7",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736",
     "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "f891c42ee35e67cb"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test_inBedOnlySamples_resolveFromTheStrap()",
+   "hash": "d2d45315f015d398",
+   "does": "Session 0–480 with only an in-bed sample 0–480 and eight hours of beats: asserts resolve gives night sleep > 0 with an HR-estimated boundary source (row 2, not an empty row-1 night).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.eightHoursOfBeats()",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.eightHoursOfBeats()": "99cdafc653f8dea4",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeHKSample(_:from:to:)": "f891c42ee35e67cb",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeSession(startMin:endMin:)": "0760ea7fe03570ed"
+   }
+  },
+  {
+   "key": "func SleepResolverTests.test_rrStart_placesEstimatedSleepFromTheStrapStart()",
+   "hash": "349667ce301603b3",
+   "does": "Session bounds = a search window t(-120)–t(480) with rrStart t(0) and eight hours of beats, no Watch: asserts the resolved sleepStart exists and is at or after t(0) and inBedStart is t(0).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.eightHoursOfBeats()",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "sleepStart unwrapped",
+     "effect": "asserts it is >= t(0)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inBedStart(ctx:sleepStages:)": "b1313059a7250728",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.eightHoursOfBeats()": "99cdafc653f8dea4",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.makeContext(sessionBounds:linkedBounds:watchSamples:rrPoints:enhanceWithRR:autoSleepExtension:rrStart:)": "364b0553030eb736",
+    "EmuquTests/SleepResolverTests.swift::func SleepResolverTests.t(_:from:)": "f5cfa44b0dbe97b9"
    }
   }
  ],

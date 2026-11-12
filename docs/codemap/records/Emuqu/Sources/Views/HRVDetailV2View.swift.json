@@ -320,7 +320,7 @@
     "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.autonomicCapacityCard": "7cfc614970418f41",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.beatConsistencySectionIfEnabled": "474241b4088a24f3",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.heroSection": "35e25bcc35a8837a",
-    "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.minAvgMaxStrip": "e571beefad104149",
+    "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.minAvgMaxStrip": "d81a46eeccabf5fc",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::var HRVDetailV2View.trendAnalysisSection": "f429d3393d2b4c36"
    }
   },
@@ -799,8 +799,8 @@
   },
   {
    "key": "var HRVDetailV2View.minAvgMaxStrip",
-   "hash": "8ca7032916d90517",
-   "does": "Four-cell strip: Min HR, Avg HR, Max HR (bpm) and SDNN (ms), each rounded to Int; the Min/Max HR and SDNN labels carry '(estimate)' when the result holds them as estimates.",
+   "hash": "0f961198a4469e6e",
+   "does": "Four-cell strip: Min HR, Avg HR, Max HR (bpm, over the whole recording: recordingMinHR / recordingMeanHR / recordingMaxHR, window values for older results) and SDNN (ms, analysis window), each rounded to Int; the Min/Max HR and SDNN labels carry '(estimate)' when the result holds them as estimates.",
    "entry": "SwiftUI view-tree evaluation (re-evaluated on every body recompute of HRVDetailV2View)",
    "calls": [
     "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.stripCell(label:value:unit:)",
@@ -811,6 +811,9 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "c516da654be58b2a",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMaxHR": "45a2b0fc490c4c6a",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMeanHR": "340f01a3ede11a45",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMinHR": "0151038a8fb4e432",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/HRVDetailV2View.swift::func HRVDetailV2View.stripCell(label:value:unit:)": "ddf50152a15aecaa"
    }

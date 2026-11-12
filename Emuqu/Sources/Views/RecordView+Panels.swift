@@ -268,6 +268,8 @@ extension RecordPanels {
         }
 
         finishFromPauseButton
+
+        discardButton
     }
 
     private var finishFromPauseButton: some View {
@@ -308,6 +310,55 @@ extension RecordPanels {
         .disabled(isActionDisabled)
         .accessibilityLabel(String(localized: "Pause and Resume Later", bundle: LanguageManager.appBundle))
         .accessibilityHint(String(localized: "Pause the recording so you can continue it later", bundle: LanguageManager.appBundle))
+
+        discardButton
+    }
+
+    /// Discard for the recording in progress, the paused night, or the strap's
+    /// own recording. Nothing is removed until the user confirms.
+    private var discardButton: some View {
+        Button(role: .destructive) {
+            showingDiscardConfirm = true
+        } label: {
+            Label(String(localized: "Discard Recording", bundle: LanguageManager.appBundle), systemImage: "trash")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .disabled(isActionDisabled || isDiscarding)
+        .accessibilityHint(String(localized: "End this recording without saving it", bundle: LanguageManager.appBundle))
+        .confirmationDialog(
+            String(localized: "Discard this recording?", bundle: LanguageManager.appBundle),
+            isPresented: $showingDiscardConfirm,
+            titleVisibility: .visible
+        ) {
+            discardConfirmActions
+        } message: {
+            Text(String(localized: "Nothing from it is saved: no score and no backup. This can't be undone.", bundle: LanguageManager.appBundle))
+        }
+    }
+
+    @ViewBuilder
+    private var discardConfirmActions: some View {
+        if streamingLifecycle.isPaused {
+            Button(String(localized: "Discard Night", bundle: LanguageManager.appBundle), role: .destructive) { discardPausedNight() }
+        } else {
+            Button(String(localized: "Discard", bundle: LanguageManager.appBundle), role: .destructive) { discardRecording(false) }
+            if canStartOverAfterDiscard {
+                Button(String(localized: "Discard and Start Over", bundle: LanguageManager.appBundle), role: .destructive) { discardRecording(true) }
+            }
+        }
+        Button(role: .cancel) {} label: {
+            Text(streamingLifecycle.isPaused
+                ? String(localized: "Cancel", bundle: LanguageManager.appBundle)
+                : String(localized: "Keep Recording", bundle: LanguageManager.appBundle))
+        }
+    }
+
+    /// A resumed segment returns to its paused night when discarded, so a
+    /// fresh start would leave that night behind; it is offered only for a
+    /// recording that stands alone.
+    private var canStartOverAfterDiscard: Bool {
+        sessionState.currentSession?.linkedSessionIds?.isEmpty ?? true
     }
 
     private var imUpButton: some View {
@@ -376,6 +427,8 @@ extension RecordPanels {
         .disabled(isActionDisabled)
         .accessibilityLabel(String(localized: "Wake Up — get results", bundle: LanguageManager.appBundle))
         .accessibilityHint(String(localized: "Stop the device recording and download data for analysis", bundle: LanguageManager.appBundle))
+
+        discardButton
     }
 
     @ViewBuilder

@@ -129,7 +129,7 @@ struct MetricExplanationPopover: View {
         ) },
         "Mean HR": { (
             String(localized: "Mean Heart Rate", bundle: LanguageManager.appBundle),
-            String(localized: "Your average heart rate across the entire measurement period in beats per minute.", bundle: LanguageManager.appBundle),
+            String(localized: "Your average heart rate, in beats per minute, during the analysis window the score is taken from: about five and a half minutes of calm sleep. The overnight chart shows the whole night's average.", bundle: LanguageManager.appBundle),
             String(localized: "Awake at rest: about 60–80 bpm for adults. Asleep: about 45–65 bpm. Lower in endurance athletes.", bundle: LanguageManager.appBundle)
         ) },
         "SD HR": { (

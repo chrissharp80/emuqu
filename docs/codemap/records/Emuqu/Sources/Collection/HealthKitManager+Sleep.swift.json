@@ -65,18 +65,18 @@
    }
   },
   {
-   "key": "func SleepHealthQueries.processOffMain(_:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:)",
-   "hash": "74dbc3c6181e8b69",
-   "does": "Runs SleepMergingPipeline.processForRecording(samples, recordingStart, recordingEnd, config, rrPoints, autoSleepExtension) in a detached userInitiated Task and returns its SleepData.",
+   "key": "func SleepHealthQueries.processOffMain(_:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:rrStart:)",
+   "hash": "77fdf3ff9dc744cc",
+   "does": "Runs SleepMergingPipeline.processForRecording(samples, recordingStart, recordingEnd, config, rrPoints, autoSleepExtension, rrStart) in a detached userInitiated Task and returns its SleepData.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.processForRecording(samples:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:)"
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.processForRecording(samples:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:rrStart:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.processForRecording(samples:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:)": "a9330457d83e65ac"
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.processForRecording(samples:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:rrStart:)": "014d3d907f4138f9"
    }
   },
   {
@@ -91,7 +91,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414"
    }
   },
   {
@@ -137,14 +137,14 @@
    }
   },
   {
-   "key": "func SleepHealthQueries.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
-   "hash": "32f3d4bc6af8427e",
-   "does": "Per-recording sleep, always resolved through the recording's own pipeline: reads non-own sleep samples for the recording's schedule window (end extended to the AutoSleep extension end), builds config from settings, processes off-main with SleepMergingPipeline, rejects results that don't plausibly belong to the recording (returns .empty), warms SleepDataCache (for other readers) and returns the result. A sample read that times out throws queryTimedOut instead of resolving the night without the Watch. Protocol witness via HealthKitManager.fetchSleepData.",
+   "key": "func SleepHealthQueries.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)",
+   "hash": "6205fcb4fce3062f",
+   "does": "Per-recording sleep, always resolved through the recording's own pipeline: reads non-own sleep samples for the recording's schedule window (end extended to the AutoSleep extension end), builds config from settings, processes off-main with SleepMergingPipeline (passing rrStart, when the strap recording the beats started for a search range wider than the recording; nil = recordingStart), rejects results that don't plausibly belong to the recording (returns .empty), warms SleepDataCache (for other readers) and returns the result. A sample read that times out throws queryTimedOut instead of resolving the night without the Watch. Protocol witness via HealthKitManager.fetchSleepData.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.querySleepSamples(recordingStart:recordingEnd:)",
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingConfig.fromSettings(recordingStart:settingsManager:)",
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.processOffMain(_:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:)",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.processOffMain(_:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func plausibleForRecording(_:recordingStart:recordingEnd:autoSleepExtension:)",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.warmSleepCache(_:rrPoints:autoSleepExtension:)",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable"
@@ -157,28 +157,28 @@
    ],
    "branches": [
     {
-     "at": "+6",
+     "at": "+7",
      "cond": "HealthKit unavailable",
      "effect": "throws HealthKitError.notAvailable"
     },
     {
-     "at": "+9",
+     "at": "+10",
      "cond": "autoSleepExtension nil",
      "effect": "?? recordingEnd — query ends at recordingEnd; otherwise max(recordingEnd, extension end)"
     },
     {
-     "at": "+10",
+     "at": "+11",
      "cond": "sample query throws (HealthKit error or queryTimedOut)",
      "effect": "error propagates to the caller"
     },
     {
-     "at": "+16",
+     "at": "+17",
      "cond": "plausibleForRecording false (sleep >0, no extension, doesn't overlap recording)",
      "effect": "returns SleepData.empty; else warms cache and returns resolved"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.processOffMain(_:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:)": "f3443727c5b1e87f",
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.processOffMain(_:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:rrStart:)": "15cde6567a317e2c",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.querySleepSamples(recordingStart:recordingEnd:)": "572bcc701fa22dab",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.warmSleepCache(_:rrPoints:autoSleepExtension:)": "25528ca5bd673b8c",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func plausibleForRecording(_:recordingStart:recordingEnd:autoSleepExtension:)": "3e015a782586355b",

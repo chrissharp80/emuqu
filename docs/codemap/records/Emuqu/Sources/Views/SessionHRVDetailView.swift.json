@@ -86,8 +86,8 @@
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "f982489dcaac4121",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.trendSection": "c4581ba2e038d01e",
-    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.heartRateChartSection": "a99690e69c3fb16f",
-    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrStatsRow": "ac9871964160a803",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.heartRateChartSection": "c58fe904c0b5495d",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrStatsRow": "90cd35c8133ac34c",
     "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrvHeroSection": "ceb84226f680d414"
    }
   },
@@ -213,8 +213,8 @@
   },
   {
    "key": "var SessionHRVDetailView.hrStatsRow",
-   "hash": "8d9ebdc4b13c4df6",
-   "does": "Four stat tiles: Min, Avg, Max HR (bpm) and SDNN (ms); the Min/Max and SDNN titles carry '(estimate)' when the result holds them as estimates.",
+   "hash": "f497811f701e590f",
+   "does": "Four stat tiles: Min, Avg, Max HR (bpm, over the whole recording: recordingMinHR / recordingMeanHR / recordingMaxHR) and SDNN (ms, analysis window); the Min/Max and SDNN titles carry '(estimate)' when the result holds them as estimates.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SessionHRVDetailView.swift::func SessionHRVDetailView.hrStatCard(title:value:unit:color:)",
@@ -229,6 +229,9 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "c516da654be58b2a",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMaxHR": "45a2b0fc490c4c6a",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMeanHR": "340f01a3ede11a45",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMinHR": "0151038a8fb4e432",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.bpmUnit": "f37728cd62344cfa",
     "Emuqu/Sources/Views/SessionHRVDetailView+Metrics.swift::var SessionHRVDetailView.msUnit": "cbbdc489facd134e",
@@ -255,8 +258,8 @@
   },
   {
    "key": "var SessionHRVDetailView.heartRateChartSection",
-   "hash": "6d01364c19a07d51",
-   "does": "Card 'Heart Rate Over Time' with a rounded min-max bpm label (minHRRounded / maxHRRounded, matching the %.0f stat tiles) and a 150pt HeartRateChartView whose accessibility value uses the same rounded range and rounded mean.",
+   "hash": "5420f5dfad1d6f47",
+   "does": "Card 'Heart Rate Over Time' with a rounded min-max bpm label (minHRRounded / maxHRRounded, the whole recording's range, matching the %.0f stat tiles) and a 150pt HeartRateChartView whose accessibility value uses the same rounded range and the rounded whole-recording mean.",
    "entry": null,
    "calls": [
     "dyn:View.body → Emuqu/Sources/Views/MorningResultsCharts.swift:348",
@@ -270,9 +273,10 @@
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMeanHR": "340f01a3ede11a45",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.maxHRRounded": "ea54ce6426352bb7",
-    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.minHRRounded": "b7481544842a4000",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.maxHRRounded": "5d331bb6fa0aac70",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.minHRRounded": "207117fa4fb76929",
     "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "e4d2d4a7dacc0d53",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.terracottaText": "a97b4b25212e5466",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
@@ -280,25 +284,29 @@
   },
   {
    "key": "var SessionHRVDetailView.minHRRounded",
-   "hash": "384ad7158b5a3df0",
-   "does": "result.timeDomain.minHR rounded to the nearest whole bpm.",
+   "hash": "d7fae7c6aa47b3a3",
+   "does": "result.recordingMinHR (the whole recording's minimum, the window minimum for older results) rounded to the nearest whole bpm.",
    "entry": "SwiftUI evaluates it as part of the parent view's body",
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMinHR": "0151038a8fb4e432"
+   }
   },
   {
    "key": "var SessionHRVDetailView.maxHRRounded",
-   "hash": "883dd7b307f75a74",
-   "does": "result.timeDomain.maxHR rounded to the nearest whole bpm.",
+   "hash": "ee277a8e897ba3fa",
+   "does": "result.recordingMaxHR (the whole recording's maximum, the window maximum for older results) rounded to the nearest whole bpm.",
    "entry": "SwiftUI evaluates it as part of the parent view's body",
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMaxHR": "45a2b0fc490c4c6a"
+   }
   },
   {
    "key": "var SessionHRVDetailView.tachogramSection",

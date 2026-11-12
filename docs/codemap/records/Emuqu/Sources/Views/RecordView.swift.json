@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/RecordView.swift",
- "hash": "76972836ced7493e",
+ "hash": "79bd3f3570bbfbe9",
  "role": "The Record tab's root SwiftUI view: owns all Record-tab @State, lays out the section stack, presents tag picker / pre-score prompt / morning and quick results covers, routes errors and overnight auto-acceptance, and hosts the interrupted-workout strap-recovery card.",
  "types": [
   "RecordView: struct (View) — Record tab root; observes DeviceStatus/StreamingLifecycle/SessionState/MorningCoordination/SettingsManager from the environment",
@@ -9,7 +9,7 @@
  ],
  "state": [
   "@State selectedTags: Set<ReadingTag> (view-local, lost when view is recreated)",
-  "@State showingTagPicker, sessionNotes, showingError (private), morningPresentation, quickPresentation, pendingMorningPresentation, fetchFailed, isRetrying, sleepEditSaveFailed, quickDiscardFailed",
+  "@State showingTagPicker, sessionNotes, showingError (private), morningPresentation, quickPresentation, pendingMorningPresentation, fetchFailed, isRetrying, showingDiscardConfirm, isDiscarding, sleepEditSaveFailed, quickDiscardFailed",
   "@State selectedSessionType: SessionType? = .overnight",
   "@State cachedRecentSessions: [HRVSession]",
   "@State isRecoveringWorkout, workoutRecoverMessage (private), interruptedWorkoutId: UUID?",

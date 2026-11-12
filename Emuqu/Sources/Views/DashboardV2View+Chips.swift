@@ -423,7 +423,7 @@ extension DashboardV2View {
         var lines: [String] = [String(localized: "Emuqu — \(date)", bundle: LanguageManager.appBundle)]
         if let score = displayedScore { lines.append(String(localized: "Recovery: \(score)", bundle: LanguageManager.appBundle)) }
         lines.append(String(localized: "RMSSD: \(Int(result.timeDomain.rmssd.rounded())) ms", bundle: LanguageManager.appBundle))
-        lines.append(String(localized: "Mean HR: \(Int(result.timeDomain.meanHR.rounded())) bpm", bundle: LanguageManager.appBundle))
+        lines.append(String(localized: "Mean HR: \(Int(result.recordingMeanHR.rounded())) bpm", bundle: LanguageManager.appBundle))
         if let alpha1 = result.nonlinear.dfaAlpha1 {
             lines.append(String(format: "DFA α1: %.2f", locale: .current, alpha1))
         }

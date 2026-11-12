@@ -536,8 +536,10 @@ Consolidated resolver with fallback chain:
 
 ### Sleep Query Window
 
-`fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)` queries the recording's own
-boundaries. There is no display-vs-analysis mode switch: an earlier `extendForDisplay` flag
+`fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)` queries the recording's own
+boundaries. `rrStart` is when the strap recording the beats started, for a caller whose search
+range is wider than the recording (night acceptance searches the whole night from the bedtime
+window); beat-estimated sleep is placed from it, and nil means the recording start. There is no display-vs-analysis mode switch: an earlier `extendForDisplay` flag
 (false = exact boundaries, true = extend to 2pm next day) is described in older notes but does
 not exist in the code. The only thing that widens the query is a supplied `autoSleepExtension`,
 which — see below — nothing currently supplies.

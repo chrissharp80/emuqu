@@ -185,7 +185,7 @@
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindBatteryAndReconnect()": "b3c47cdc5e17c7f6",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.mergeParentSessionData(data:)": "93e1ecac6f7366ab",
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()": "3bf64ac9656569a1",
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()": "d29e4a8761c908f7"
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()": "fe764b74903fe308"
    }
   },
   {
@@ -922,21 +922,21 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Sleep Pipeline > Sleep Query Window",
-   "hash": "e53e8bc53ea1c065",
-   "does": "Claims fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:) queries the recording's own boundaries with no display-vs-analysis switch; extendForDisplay does not exist; only a supplied autoSleepExtension widens the query. Code: fetchSleepData exists in SleepHealthQueries/HealthKitManager; no 'extendForDisplay' symbol exists in Swift sources; SleepMergingPipeline.processForRecording defaults autoSleepExtension to nil.",
+   "hash": "dbdd6c3e5f97d9cf",
+   "does": "Claims fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:) queries the recording's own boundaries with no display-vs-analysis switch; rrStart is when the strap recording the beats started, for a caller searching wider than the recording (night acceptance searches the whole night from the bedtime window), beat-estimated sleep is placed from it, nil means the recording start; extendForDisplay does not exist; only a supplied autoSleepExtension widens the query. Code: fetchSleepData exists in SleepHealthQueries/HealthKitManager with rrStart; SessionAcceptanceService.sleepOrNil passes the session start; no 'extendForDisplay' symbol exists in Swift sources; SleepMergingPipeline.processForRecording defaults autoSleepExtension and rrStart to nil.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.processForRecording(samples:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:)"
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.processForRecording(samples:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:rrStart:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "0838ad87e9693fbc",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "c9a11fa7babc8205",
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.processForRecording(samples:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:)": "a9330457d83e65ac"
+    "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)": "43099365020dbe02",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)": "da5ab94142f0949e",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.processForRecording(samples:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:rrStart:)": "014d3d907f4138f9"
    }
   },
   {
@@ -945,7 +945,7 @@
    "does": "Claims two-path staging 'in SleepMergingPipeline': path 1 augments Watch stages with RR features per 5-minute epoch when augmentation is enabled, repainting only overridden epochs; path 2 classifies from RR alone when no Watch stages, needing >=100 RR points and valid boundaries; enableHRVSleepAugmentation controls only augmentation. Code: SleepMergingPipeline.processForRecording delegates to SleepResolver.resolve; SleepResolver.maybeAugment guards ctx.enhanceWithRR && rrPoints.count>=100 and returns the Watch intervals with only overridden epochs; inferStagesFromRR requires >=100 points and does not read the toggle, anchoring at SleepBoundaryResolver.detectSleepOnset.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.processForRecording(samples:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.processForRecording(samples:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.maybeAugment(_:ctx:envelope:)",
     "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inferStagesFromRR(ctx:envelope:)",
@@ -956,10 +956,10 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.classify(rrPoints:sleepStartMs:sleepEndMs:recordingStart:)": "f2889828692e6b90",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inferStagesFromRR(ctx:envelope:)": "7a240281c4863d44",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.maybeAugment(_:ctx:envelope:)": "1d889b52439dc5b3",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "df6aa44e7de0d7ad",
-    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.processForRecording(samples:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:)": "a9330457d83e65ac"
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inferStagesFromRR(ctx:envelope:)": "929b2dbaa0385be6",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.maybeAugment(_:ctx:envelope:)": "35ca84025fe983ac",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.resolve(_:)": "e32877b88574a414",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.processForRecording(samples:recordingStart:recordingEnd:config:rrPoints:autoSleepExtension:rrStart:)": "014d3d907f4138f9"
    }
   },
   {

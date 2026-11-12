@@ -24,11 +24,14 @@ protocol HealthKitServiceProtocol: Sendable {
     /// When rrPoints are provided, HR analysis validates HealthKit boundaries and computes RMSSD quality metrics.
     /// When autoSleepExtension is provided, the resolver treats the session
     /// and the extension as a two-interval envelope (gap between is excluded from totals).
+    /// `rrStart` is when the strap recording the beats started, for a search
+    /// range wider than the recording; nil means `recordingStart`.
     func fetchSleepData(
         for recordingStart: Date,
         recordingEnd: Date,
         rrPoints: [RRPoint]?,
-        autoSleepExtension: SleepResolver.AutoSleepExtension?
+        autoSleepExtension: SleepResolver.AutoSleepExtension?,
+        rrStart: Date?
     ) async throws -> SleepData
 
     /// Total qualifying daytime-nap sleep (minutes) for the waking day leading
@@ -83,7 +86,7 @@ extension HealthKitServiceProtocol {
     ) async throws -> SleepData {
         try await fetchSleepData(
             for: recordingStart, recordingEnd: recordingEnd,
-            rrPoints: nil, autoSleepExtension: nil
+            rrPoints: nil, autoSleepExtension: nil, rrStart: nil
         )
     }
 
@@ -94,7 +97,32 @@ extension HealthKitServiceProtocol {
     ) async throws -> SleepData {
         try await fetchSleepData(
             for: recordingStart, recordingEnd: recordingEnd,
-            rrPoints: rrPoints, autoSleepExtension: nil
+            rrPoints: rrPoints, autoSleepExtension: nil, rrStart: nil
+        )
+    }
+
+    /// A search range wider than the recording, with the beats' own start.
+    func fetchSleepData(
+        for searchStart: Date,
+        recordingEnd: Date,
+        rrPoints: [RRPoint]?,
+        rrStart: Date
+    ) async throws -> SleepData {
+        try await fetchSleepData(
+            for: searchStart, recordingEnd: recordingEnd,
+            rrPoints: rrPoints, autoSleepExtension: nil, rrStart: rrStart
+        )
+    }
+
+    func fetchSleepData(
+        for recordingStart: Date,
+        recordingEnd: Date,
+        rrPoints: [RRPoint]?,
+        autoSleepExtension: SleepResolver.AutoSleepExtension?
+    ) async throws -> SleepData {
+        try await fetchSleepData(
+            for: recordingStart, recordingEnd: recordingEnd,
+            rrPoints: rrPoints, autoSleepExtension: autoSleepExtension, rrStart: nil
         )
     }
 

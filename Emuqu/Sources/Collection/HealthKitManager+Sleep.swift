@@ -50,12 +50,12 @@ extension SleepHealthQueries {
     /// beats — detached, because this type is main-actor isolated.
     nonisolated private static func processOffMain(
         _ samples: [HKCategorySample], recordingStart: Date, recordingEnd: Date, config: SleepMergingConfig,
-        rrPoints: [RRPoint]?, autoSleepExtension: SleepResolver.AutoSleepExtension?
+        rrPoints: [RRPoint]?, autoSleepExtension: SleepResolver.AutoSleepExtension?, rrStart: Date?
     ) async -> SleepData {
         await Task.detached(priority: .userInitiated) {
             SleepMergingPipeline.processForRecording(
                 samples: samples, recordingStart: recordingStart, recordingEnd: recordingEnd,
-                config: config, rrPoints: rrPoints, autoSleepExtension: autoSleepExtension
+                config: config, rrPoints: rrPoints, autoSleepExtension: autoSleepExtension, rrStart: rrStart
             )
         }.value
     }
@@ -111,7 +111,8 @@ extension SleepHealthQueries {
         for recordingStart: Date,
         recordingEnd: Date,
         rrPoints: [RRPoint]? = nil,
-        autoSleepExtension: SleepResolver.AutoSleepExtension? = nil
+        autoSleepExtension: SleepResolver.AutoSleepExtension? = nil,
+        rrStart: Date? = nil
     ) async throws -> SleepData {
         guard manager.isHealthKitAvailable else { throw HealthKitManager.HealthKitError.notAvailable }
         // When an AutoSleep extension is present, pull samples through the
@@ -121,7 +122,7 @@ extension SleepHealthQueries {
         let config = SleepMergingConfig.fromSettings(recordingStart: recordingStart)
         let resolved = await Self.processOffMain(
             samples, recordingStart: recordingStart, recordingEnd: recordingEnd,
-            config: config, rrPoints: rrPoints, autoSleepExtension: autoSleepExtension
+            config: config, rrPoints: rrPoints, autoSleepExtension: autoSleepExtension, rrStart: rrStart
         )
         guard plausibleForRecording(resolved, recordingStart: recordingStart, recordingEnd: recordingEnd, autoSleepExtension: autoSleepExtension) else {
             return .empty

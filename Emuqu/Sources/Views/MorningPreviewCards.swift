@@ -37,7 +37,7 @@ enum MorningPreviewCards {
             readiness(result)
             MetricPreviewCard(
                 title: String(localized: "HR", bundle: LanguageManager.appBundle),
-                value: String(format: "%.0f", locale: LanguageManager.appLocale, result.timeDomain.meanHR),
+                value: String(format: "%.0f", locale: LanguageManager.appLocale, result.recordingMeanHR),
                 unit: String(localized: "bpm", bundle: LanguageManager.appBundle),
                 color: AppTheme.accent
             )

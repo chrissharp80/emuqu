@@ -51,7 +51,7 @@
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::func QuickResultsCard.verdictText(_:)": "ad5cea168c3bc2b4",
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.quickResultsDoneButton": "d39cd95a7282fed5",
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.quickResultsHeader": "6a15d0dcfda24b98",
-    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.quickResultsMetrics": "1404f17216b1decc",
+    "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.quickResultsMetrics": "053a9958faab150d",
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.ringMetric": "980eab0c029c5ff1",
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.ringState": "6010252d42a59736",
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::var QuickResultsCard.scoredVerdict": "e495f67ea0a90ca5",
@@ -188,8 +188,8 @@
   },
   {
    "key": "var QuickResultsCard.quickResultsMetrics",
-   "hash": "09110c596481088a",
-   "does": "Three stat tiles: RMSSD (ms, rounded), Avg HR (bpm, rounded), and Readiness (x.x /10) when ANS readiness exists else SDNN (ms; its label marked '(estimate)' when it is one).",
+   "hash": "fb7f0ab4b2384c17",
+   "does": "Three stat tiles: RMSSD (ms, rounded), Avg HR (bpm, rounded; the whole-recording mean recordingMeanHR, the window mean for older results), and Readiness (x.x /10) when ANS readiness exists else SDNN (ms; its label marked '(estimate)' when it is one).",
    "entry": "SwiftUI subview",
    "calls": [
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::func QuickResultsCard.v2Stat(label:value:unit:)",
@@ -210,6 +210,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f",
     "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.markingEstimate(_:for:)": "c516da654be58b2a",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMeanHR": "340f01a3ede11a45",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
     "Emuqu/Sources/Views/Record/QuickResultsCard.swift::func QuickResultsCard.v2Stat(label:value:unit:)": "631e92fd69ba8114",

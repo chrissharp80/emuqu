@@ -26,11 +26,12 @@ extension HealthKitManager {
         for recordingStart: Date,
         recordingEnd: Date,
         rrPoints: [RRPoint]? = nil,
-        autoSleepExtension: SleepResolver.AutoSleepExtension? = nil
+        autoSleepExtension: SleepResolver.AutoSleepExtension? = nil,
+        rrStart: Date? = nil
     ) async throws -> SleepData {
         try await sleepQueries.fetchSleepData(
             for: recordingStart, recordingEnd: recordingEnd,
-            rrPoints: rrPoints, autoSleepExtension: autoSleepExtension
+            rrPoints: rrPoints, autoSleepExtension: autoSleepExtension, rrStart: rrStart
         )
     }
 
