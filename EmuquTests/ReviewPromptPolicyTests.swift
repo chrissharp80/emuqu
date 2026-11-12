@@ -23,6 +23,14 @@ final class ReviewPromptPolicyTests: XCTestCase {
         XCTAssertTrue(ask())
     }
 
+    /// The third night: the app has worked more than once, and someone who
+    /// stops before a fifth night has still been asked.
+    func testAsksFromTheThirdScoredNight() {
+        XCTAssertEqual(ReviewPromptPolicy.minimumScoredNights, 3)
+        XCTAssertTrue(ask(nights: 3))
+        XCTAssertFalse(ask(nights: 2))
+    }
+
     func testWaitsForEnoughScoredNights() {
         XCTAssertFalse(ask(nights: ReviewPromptPolicy.minimumScoredNights - 1))
     }
