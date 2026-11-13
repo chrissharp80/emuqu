@@ -530,20 +530,21 @@
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recordingState": "912200aadd216e98",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.idleStateButtons": "a0a7249eb846ee84",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled": "a0b24694be6cc5b0",
-    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.legacyRecordingButtons": "7316eecc14e7d210",
-    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.pausedStateButtons": "82fa0314b11df4a0",
-    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.streamingStateButtons": "0059bcd23f693565"
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.legacyRecordingButtons": "833833509550ce98",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.pausedStateButtons": "4396f7d394743961",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.streamingStateButtons": "8369a9b158027469"
    }
   },
   {
    "key": "var RecordPanels.pausedStateButtons",
-   "hash": "4338f8596f350a0f",
-   "does": "Paused set: paused score preview, Resume button, 'Reconnect device to resume' when not connected, and Done.",
+   "hash": "bcbe2bbc556f374d",
+   "does": "Paused set: paused score preview, Resume button, 'Reconnect device to resume' when not connected, Done, and Discard Recording.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.pausedScorePreview",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.resumeButton",
-    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.finishFromPauseButton"
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.finishFromPauseButton",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.discardButton"
    ],
    "reads": [
     "mem:DeviceStatus.connectionState"
@@ -559,6 +560,7 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.discardButton": "6b344d3a471c1948",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.finishFromPauseButton": "50374a9f28f6d37b",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.pausedScorePreview": "7afcca1661dcddff",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.resumeButton": "0037b733cc5f3bb4",
@@ -607,15 +609,16 @@
   },
   {
    "key": "var RecordPanels.streamingStateButtons",
-   "hash": "1513ddc4688887a8",
-   "does": "Overnight-streaming set: connection/battery warning, I'm Up, and 'Pause & Resume Later' (pauseRecording closure, disabled while busy).",
+   "hash": "adfb746a85c3c9bb",
+   "does": "Overnight-streaming set: connection/battery warning, I'm Up, 'Pause & Resume Later' (pauseRecording closure, disabled while busy) and Discard Recording.",
    "entry": "Button action for pause.",
    "calls": [
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.connectionLostWarning",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.imUpButton",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled",
     "closure:RecordPanels.pauseRecording set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.pauseRecording",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.pauseRecording()"
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.pauseRecording()",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.discardButton"
    ],
    "reads": [],
    "writes": [],
@@ -625,9 +628,115 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.pauseRecording()": "ff0a80a3b96c820a",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.connectionLostWarning": "8ba2392c80c2d87d",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.discardButton": "6b344d3a471c1948",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.imUpButton": "f8dd3537f86ffc91",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled": "a0b24694be6cc5b0"
    }
+  },
+  {
+   "key": "var RecordPanels.discardButton",
+   "hash": "2fe14a70bbb1034d",
+   "does": "Bordered destructive 'Discard Recording' button (trash icon) that sets showingDiscardConfirm; disabled while isActionDisabled or isDiscarding. Hosts the 'Discard this recording?' confirmation dialog (title visible) whose actions are discardConfirmActions and whose message says nothing is saved, no score and no backup, and that it can't be undone.",
+   "entry": "Button tap sets the binding; SwiftUI presents the confirmation dialog.",
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.discardConfirmActions"
+   ],
+   "reads": [
+    "mem:RecordView.isDiscarding",
+    "mem:RecordView.showingDiscardConfirm"
+   ],
+   "writes": [
+    "mem:RecordView.showingDiscardConfirm"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "isActionDisabled || isDiscarding",
+     "effect": "button disabled"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.discardConfirmActions": "dab7f200d93ce049",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled": "a0b24694be6cc5b0"
+   }
+  },
+  {
+   "key": "var RecordPanels.discardConfirmActions",
+   "hash": "201c3cfd7e643a54",
+   "does": "Confirmation dialog buttons: when paused, 'Discard Night' (discardPausedNight closure); otherwise recordingDiscardActions; always a cancel button, labelled 'Cancel' when paused and 'Keep Recording' otherwise.",
+   "entry": "Dialog button actions.",
+   "calls": [
+    "closure:RecordPanels.discardPausedNight set by RecordView.panels → RecordView.discardPausedNight",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.discardPausedNight()",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.recordingDiscardActions"
+   ],
+   "reads": [
+    "mem:StreamingLifecycle.isPaused"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "streamingLifecycle.isPaused",
+     "effect": "Discard Night; else recordingDiscardActions"
+    },
+    {
+     "at": "+6",
+     "cond": "streamingLifecycle.isPaused",
+     "effect": "cancel label 'Cancel'; else 'Keep Recording'"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.discardPausedNight()": "80d9a9ce95f413ee",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.recordingDiscardActions": "2db5c658922f42be"
+   }
+  },
+  {
+   "key": "var RecordPanels.recordingDiscardActions",
+   "hash": "d84f0ddde02b26dc",
+   "does": "Dialog buttons for a recording in progress: 'Discard' (discardRecording(false)) and, when canStartOverAfterDiscard, 'Discard and Start Over' (discardRecording(true)).",
+   "entry": "Dialog button actions.",
+   "calls": [
+    "closure:RecordPanels.discardRecording set by RecordView.panels → RecordView.discardRecording(startOver:)",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.discardRecording(startOver:)",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.canStartOverAfterDiscard"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "canStartOverAfterDiscard",
+     "effect": "adds Discard and Start Over"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.discardRecording(startOver:)": "7bff8b86c4aed2b5",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.canStartOverAfterDiscard": "29c26c4fb55df73b"
+   }
+  },
+  {
+   "key": "var RecordPanels.canStartOverAfterDiscard",
+   "hash": "9dfb94957877aafd",
+   "does": "True when the current session (sessionState.currentSession) has no linked sessions or there is no current session; false for a resumed segment, which returns to its paused night when discarded.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SessionState.currentSession"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "linkedSessionIds nil/empty or no session",
+     "effect": "true; else false"
+    }
+   ],
+   "deps": {}
   },
   {
    "key": "var RecordPanels.imUpButton",
@@ -713,13 +822,14 @@
   },
   {
    "key": "var RecordPanels.legacyRecordingButtons",
-   "hash": "7abca2ac0a46dc9b",
-   "does": "'Wake Up - Get Results' button for device/internal recording calling stopAndFetch.",
+   "hash": "6855403703a39e4f",
+   "does": "'Wake Up - Get Results' button for device/internal recording calling stopAndFetch, then Discard Recording.",
    "entry": "Button action.",
    "calls": [
     "closure:RecordPanels.stopAndFetch set by RecordView.panels (RecordView+PanelForwarding.swift:12) → RecordView.stopAndFetch",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopAndFetch()",
-    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled"
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.discardButton"
    ],
    "reads": [],
    "writes": [],
@@ -727,8 +837,9 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.stopAndFetch()": "e1e39ea7e6df9863",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.discardButton": "6b344d3a471c1948",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.isActionDisabled": "a0b24694be6cc5b0",
-    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b"
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "d415f592739ab39a"
    }
   },
   {
@@ -975,7 +1086,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "dcc084a0adcf0b2b",
-    "Emuqu/Sources/Views/MorningPreviewCards.swift::func MorningPreviewCards.metrics(_:)": "d30f39645ce48d29"
+    "Emuqu/Sources/Views/MorningPreviewCards.swift::func MorningPreviewCards.metrics(_:)": "4245b10b405826c6"
    }
   },
   {

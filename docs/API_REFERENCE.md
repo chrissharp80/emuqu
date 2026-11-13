@@ -2139,7 +2139,8 @@ protocol HealthKitServiceProtocol {
     func fetchLastNightSleep(relativeTo: Date) async throws -> SleepData
     func fetchSleepData(
         for recordingStart: Date, recordingEnd: Date,
-        rrPoints: [RRPoint]?, autoSleepExtension: SleepResolver.AutoSleepExtension?
+        rrPoints: [RRPoint]?, autoSleepExtension: SleepResolver.AutoSleepExtension?,
+        rrStart: Date?
     ) async throws -> SleepData
     func fetchSleepTrend(days: Int) async throws -> [SleepData]
     func estimateSleepFromHealthKitHR(

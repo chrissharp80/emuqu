@@ -29,6 +29,8 @@ struct RecordView: View {
     @State var pendingMorningPresentation: ResultsPresentation?
     @State var fetchFailed = false
     @State var isRetrying = false
+    @State var showingDiscardConfirm = false
+    @State var isDiscarding = false
     /// Sleep timeline edit failed to persist (see
     /// DashboardV2View.sleepEditSaveFailed).
     @State var sleepEditSaveFailed = false

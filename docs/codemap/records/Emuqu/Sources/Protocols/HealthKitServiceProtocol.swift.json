@@ -11,17 +11,17 @@
  "toplevel": "HealthKitManager declares conformance (bottom of file). Protocol also requires the nonisolated property isHealthKitAvailable. Authorization, sleep observers, trends, exports and dashboard queries are not requirements; callers use HealthKitManager directly.",
  "units": [
   {
-   "key": "requirement HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
-   "hash": "e8b94a07d775d5fe",
-   "does": "Protocol requirement fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:): resolves sleep for a recording window, optionally validated by RR and with an auto-sleep extension envelope.",
-   "entry": "Protocol requirement; witnesses: HealthKitManager (concrete), MockHealthKitService (:73). Dispatched through the protocol by the extension conveniences (HealthKitServiceProtocol.swift:131,141) used by SessionAcceptanceService, MorningProcessingService, ReanalysisService and SleepBoundaryResolver.",
+   "key": "requirement HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)",
+   "hash": "58ae84637914dc46",
+   "does": "Protocol requirement fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:): resolves sleep for a recording window, optionally validated by RR, with an auto-sleep extension envelope, and with rrStart (when the strap recording the beats started, for a search range wider than the recording; nil = recordingStart).",
+   "entry": "Protocol requirement; witnesses: HealthKitManager (concrete, HealthKitManager+SleepQueryForwarding.swift), MockHealthKitService. Dispatched through the protocol by the extension conveniences in this file, used by SessionAcceptanceService, MorningProcessingService, ReanalysisService and SleepBoundaryResolver.",
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "c9a11fa7babc8205",
-    "EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "76ce110c532e559d"
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)": "da5ab94142f0949e",
+    "EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)": "c95e1671956e4082"
    }
   },
   {
@@ -137,32 +137,62 @@
   },
   {
    "key": "func HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:)",
-   "hash": "cbd35b7e0417793c",
-   "does": "Convenience: fetchSleepData with rrPoints nil and autoSleepExtension nil.",
+   "hash": "a39c99fab4650721",
+   "does": "Convenience: fetchSleepData with rrPoints, autoSleepExtension and rrStart nil.",
    "entry": "Called by SleepBoundaryResolver.swift:293 through the protocol.",
    "calls": [
-    "dyn:HealthKitServiceProtocol.fetchSleepData(4-arg) -> Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:25 | MockHealthKitService"
+    "dyn:HealthKitServiceProtocol.fetchSleepData(5-arg) -> Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:25 | MockHealthKitService"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "2b333cdb2ea40b31"
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)": "918ac2d69d8563e8"
    }
   },
   {
    "key": "func HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:)",
-   "hash": "c1fa417bd517592a",
-   "does": "Convenience: fetchSleepData with given rrPoints and autoSleepExtension nil.",
+   "hash": "87953830419eb658",
+   "does": "Convenience: fetchSleepData with given rrPoints, autoSleepExtension nil and rrStart nil.",
    "entry": "Called through the protocol by SessionAcceptanceService.swift:161,466, MorningProcessingService+Sleep.swift:156, +Merging.swift:449, ReanalysisService+Sleep.swift:58.",
    "calls": [
-    "dyn:HealthKitServiceProtocol.fetchSleepData(4-arg) -> Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:25 | MockHealthKitService"
+    "dyn:HealthKitServiceProtocol.fetchSleepData(5-arg) -> Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:25 | MockHealthKitService"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "2b333cdb2ea40b31"
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)": "918ac2d69d8563e8"
+   }
+  },
+  {
+   "key": "func HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:rrStart:)",
+   "hash": "789841c953861537",
+   "does": "Convenience for a search range wider than the recording: fetchSleepData(for: searchStart, recordingEnd, rrPoints, autoSleepExtension nil, rrStart) so RR offsets count from the beats' own start.",
+   "entry": "Called through the protocol by SessionAcceptanceService.sleepOrNil(_:from:to:rrPoints:rrStart:).",
+   "calls": [
+    "dyn:HealthKitServiceProtocol.fetchSleepData(5-arg) -> Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:25 | MockHealthKitService"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)": "918ac2d69d8563e8"
+   }
+  },
+  {
+   "key": "func HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
+   "hash": "b14020eebc50d3e6",
+   "does": "Convenience: fetchSleepData with the given rrPoints and autoSleepExtension and rrStart nil.",
+   "entry": "The four-argument form for callers holding the protocol type; no app code calls it with an AutoSleep extension at present.",
+   "calls": [
+    "dyn:HealthKitServiceProtocol.fetchSleepData(5-arg) -> Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift:25 | MockHealthKitService"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)": "918ac2d69d8563e8"
    }
   },
   {

@@ -34,6 +34,25 @@
    }
   },
   {
+   "key": "func BackgroundTaskAssertion.forRecordingStop(named:)",
+   "hash": "47bb01a04fa199df",
+   "does": "Static: begins a BackgroundTaskAssertion with the given name and marks the persisted recording record stop-requested (PersistedRecordingState.markStopRequested), so a launch that finds the record knows the process ended while the night was being saved; returns the assertion. Used by the overnight stop, the pause and the strap-only stop.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::init BackgroundTaskAssertion(name:onExpire:)",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.markStopRequested(at:)"
+   ],
+   "reads": [],
+   "writes": [
+    "UserDefaults:persistedRecordingState (stopRequestedAt)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.markStopRequested(at:)": "3c41dc492a6c215b",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::init BackgroundTaskAssertion(name:onExpire:)": "b9d2438378adf1ed"
+   }
+  },
+  {
    "key": "func BackgroundTaskAssertion.end()",
    "hash": "cff70202f87e28f6",
    "does": "Ends the background task through the token (no-op when already ended).",

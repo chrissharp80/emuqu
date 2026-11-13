@@ -1413,15 +1413,15 @@
   },
   {
    "key": "§ Emuqu — API Reference > Protocols",
-   "hash": "05fec28f2a305bb2",
-   "does": "HealthKitServiceProtocol (@MainActor, abridged): availability, authorization, sleep observation, sleep fetches, HR-based sleep estimate, daytime RHR, HR samples, recovery vitals, VO2max, training load/metrics, workout-in-range, exports; states only one protocol exists (PolarManagerProtocol, SessionRepositoryProtocol, AnalysisServiceProtocol deleted, MAINTAINERS.md 5.7). All listed members exist (HealthKitServiceProtocol.swift:9-117); the three deleted protocols are absent from the repo.",
+   "hash": "c3a1cf7e7e760746",
+   "does": "HealthKitServiceProtocol (@MainActor, abridged): availability, authorization, sleep observation, sleep fetches (fetchSleepData shown with its rrStart parameter), HR-based sleep estimate, daytime RHR, HR samples, recovery vitals, VO2max, training load/metrics, workout-in-range, exports; states only one protocol exists (PolarManagerProtocol, SessionRepositoryProtocol, AnalysisServiceProtocol deleted, MAINTAINERS.md 5.7). All listed members exist (HealthKitServiceProtocol.swift); the three deleted protocols are absent from the repo.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.requestAuthorization()",
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.startObservingSleepData()",
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.stopObservingSleepData()",
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.fetchLastNightSleep(relativeTo:)",
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.fetchSleepTrend(days:)",
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)",
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.fetchDaytimeRestingHR(for:)",
@@ -1439,21 +1439,11 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.calculateTrainingLoad(relativeTo:)": "e0cd0d81cefb55e1",
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.calculateTrainingMetrics(forMorningReading:)": "ba101c65df993392",
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.estimateSleepFromHealthKitHR(windowStart:windowEnd:minimumSamples:minimumSleepMinutes:)": "d8670d41c0ccbb98",
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.exportSessionMetrics(from:)": "ca9ade822a9f008e",
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.exportSleepToHealthKit(sleepData:sessionId:)": "a6243a24ee768c87",
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.fetchDaytimeRestingHR(for:)": "7bc28061f8c625f3",
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.fetchHeartRateSamples(from:to:)": "329378ff80595610",
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.fetchLastNightSleep(relativeTo:)": "9cf516af684baa86",
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.fetchRecoveryVitals(relativeTo:)": "7b43666080521d99",
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "2b333cdb2ea40b31",
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.fetchSleepTrend(days:)": "805cf3abe46f6048",
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.fetchVO2Max()": "a2f84ad32cce2323",
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.hasWorkoutInRange(from:to:)": "a39b0165dc4e696b",
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.requestAuthorization()": "105589c0c9a51d1c",
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.startObservingSleepData()": "bde1f370d8ce18c1",
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.stopObservingSleepData()": "ab6e1e96c2dd0884"
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)": "918ac2d69d8563e8"
    }
   },
   {

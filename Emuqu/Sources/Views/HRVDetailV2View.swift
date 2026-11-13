@@ -468,9 +468,9 @@ struct HRVDetailV2View: View {
 
     private var minAvgMaxStrip: some View {
         HStack(spacing: 8) {
-            stripCell(label: result.markingEstimate(String(localized: "Min HR", bundle: LanguageManager.appBundle), for: .hrRange), value: String(Int(result.timeDomain.minHR.rounded())), unit: "bpm")
-            stripCell(label: String(localized: "Avg HR", bundle: LanguageManager.appBundle), value: String(Int(result.timeDomain.meanHR.rounded())), unit: "bpm")
-            stripCell(label: result.markingEstimate(String(localized: "Max HR", bundle: LanguageManager.appBundle), for: .hrRange), value: String(Int(result.timeDomain.maxHR.rounded())), unit: "bpm")
+            stripCell(label: result.markingEstimate(String(localized: "Min HR", bundle: LanguageManager.appBundle), for: .hrRange), value: String(Int(result.recordingMinHR.rounded())), unit: "bpm")
+            stripCell(label: String(localized: "Avg HR", bundle: LanguageManager.appBundle), value: String(Int(result.recordingMeanHR.rounded())), unit: "bpm")
+            stripCell(label: result.markingEstimate(String(localized: "Max HR", bundle: LanguageManager.appBundle), for: .hrRange), value: String(Int(result.recordingMaxHR.rounded())), unit: "bpm")
             stripCell(label: result.markingEstimate("SDNN", for: .sdnn), value: String(Int(result.timeDomain.sdnn.rounded())), unit: "ms")
         }
     }

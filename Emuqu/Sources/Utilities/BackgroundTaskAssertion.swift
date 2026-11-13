@@ -27,6 +27,16 @@ final class BackgroundTaskAssertion {
         }
     }
 
+    /// The assertion a recording's stop holds from the tap: it also records on
+    /// the persisted recording that the recording has been ended, so a launch
+    /// that finds the record knows the process ended while the night was being
+    /// saved rather than while it was recording.
+    static func forRecordingStop(named name: String) -> BackgroundTaskAssertion {
+        let assertion = BackgroundTaskAssertion(name: name)
+        PersistedRecordingState.markStopRequested()
+        return assertion
+    }
+
     /// Idempotent: the second call — expiration then completion, or the
     /// reverse — does nothing.
     func end() {

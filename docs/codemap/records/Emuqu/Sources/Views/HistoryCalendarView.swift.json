@@ -1490,7 +1490,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.overnightDetailRow(session:result:)": "086158c0eec14cd1",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.overnightDetailRow(session:result:)": "678f7748b7426f77",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.sessionRowHeader(_:)": "d2941caada682295",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.workoutDetailRow(meta:)": "184e7c63e3a9733a",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
@@ -1635,8 +1635,8 @@
   },
   {
    "key": "func DaySummarySheet.overnightDetailRow(session:result:)",
-   "hash": "6ad19224802dceeb",
-   "does": "Overnight detail row: RMSSD in ms, recovery score as historyDisplayScore(score).composite (legacy ms-scale scores scaled as the History row does), mean HR in bpm when > 0.",
+   "hash": "5f23c134a3984003",
+   "does": "Overnight detail row: RMSSD in ms, recovery score as historyDisplayScore(score).composite (legacy ms-scale scores scaled as the History row does), mean HR in bpm (the whole-recording mean, recordingMeanHR) when > 0.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.detailField(label:value:)",
@@ -1653,13 +1653,14 @@
     },
     {
      "at": "+6",
-     "cond": "meanHR > 0",
+     "cond": "recordingMeanHR > 0",
      "effect": "true: show Mean HR; false: omit"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.composite(key:description:valueType:dependencies:resolve:)": "524cd20e7b5f0cba",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMeanHR": "340f01a3ede11a45",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.detailField(label:value:)": "d06bcab1847e8ec7",
     "Emuqu/Sources/Views/HistoryView.swift::func historyDisplayScore(_:)": "f8c8c98fe9f15865"

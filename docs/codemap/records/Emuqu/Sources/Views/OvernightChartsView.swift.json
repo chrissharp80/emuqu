@@ -323,7 +323,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightHRSection": "ed70a9413ba0e6ba",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightHRSection": "8d53b070a88c2db4",
     "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightHRVSection": "5779924af69a83fa",
     "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStatsSection": "eaff8ac028bbe017"
    }
@@ -612,18 +612,37 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.avgHRCard": "70398c65aef4bcdf",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.avgHRCard": "ed9114ddd06c823b",
     "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrNadirCard": "31d433a203ff11ea",
     "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.peakHRVCard": "6ed8bdb66d8aae48"
    }
   },
   {
+   "key": "var OvernightChartsView.nightAverageHR",
+   "hash": "b5753d59b45a3544",
+   "does": "The night's average heart rate for the card and the chart's accessibility label: result.overnightMeanHR (the same whole-recording mean as the report's Avg HR), or overnightStats.avgHR (the chart's trimmed mean over its plotted samples) when the result predates it.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "result.overnightMeanHR non-nil",
+     "effect": "whole-recording mean; else chart trimmed mean"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "4e86b8eeac43ffe3"
+   }
+  },
+  {
    "key": "var OvernightChartsView.avgHRCard",
-   "hash": "8f0317fff39328ae",
-   "does": "Avg HR card (trimmed mean).",
+   "hash": "a3b5350e8bc36c47",
+   "does": "Avg HR card, subtitle 'overnight', showing nightAverageHR (%.0f bpm).",
    "entry": "SwiftUI view body evaluation (called from the parent view's body)",
    "calls": [
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats"
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.nightAverageHR"
    ],
    "reads": [],
    "writes": [],
@@ -631,7 +650,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "4e86b8eeac43ffe3"
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.nightAverageHR": "cc684a2dda8733d6"
    }
   },
   {
@@ -901,8 +920,8 @@
   },
   {
    "key": "var OvernightChartsView.overnightHRSection",
-   "hash": "0ad9d307cc3b1ecb",
-   "does": "HR section card: header, OvernightHRChartCanvas (180pt, accessibility summary) and legend.",
+   "hash": "d179aa0e03462c25",
+   "does": "HR section card: header, OvernightHRChartCanvas (180pt, accessibility summary with range, nadir and nightAverageHR) and legend.",
    "entry": "SwiftUI view body evaluation (called from the parent view's body)",
    "calls": [
     "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrSectionHeader",
@@ -917,6 +936,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrChartLegend": "5638e16fc91b2767",
     "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrSectionHeader": "7986dcaa1f2248f3",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.nightAverageHR": "cc684a2dda8733d6",
     "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightStats": "4e86b8eeac43ffe3",
     "Emuqu/Sources/Views/Theme.swift::func View.zenCard()": "e4d2d4a7dacc0d53"
    }

@@ -875,8 +875,8 @@
   },
   {
    "key": "func DashboardV2View.copyHeroDataToClipboard()",
-   "hash": "8b0c3fd4a4b66a3d",
-   "does": "Copies date, recovery score, RMSSD, mean HR and DFA α1 of the overnight session as plain text to a local-only pasteboard and toasts \"Copied.\"",
+   "hash": "7b4795417533ff86",
+   "does": "Copies date, recovery score, RMSSD, mean HR (the whole-recording mean, recordingMeanHR) and DFA α1 of the overnight session as plain text to a local-only pasteboard and toasts \"Copied.\"",
    "entry": "hero context menu \"Copy data\"",
    "calls": [
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete",
@@ -906,11 +906,13 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMeanHR": "340f01a3ede11a45",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.displayedScore": "acbdebbf6a8768d8",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "b92aed75b0ecc3d2",
-    "Emuqu/Sources/Views/Utilities/PasteboardWriter.swift::func PasteboardWriter.copy(_:)": "a12c9d25bbfb5cf8"
+    "Emuqu/Sources/Views/Utilities/PasteboardWriter.swift::func PasteboardWriter.copy(_:)": "a12c9d25bbfb5cf8",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.nonlinear(_:flagged:)": "74b253b4ff4a78e2"
    }
   },
   {

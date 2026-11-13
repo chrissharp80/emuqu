@@ -24,7 +24,8 @@ final class MockHealthKitService: HealthKitServiceProtocol {
         for _: Date,
         recordingEnd _: Date,
         rrPoints _: [RRPoint]?,
-        autoSleepExtension _: SleepResolver.AutoSleepExtension?
+        autoSleepExtension _: SleepResolver.AutoSleepExtension?,
+        rrStart _: Date?
     ) async throws -> SleepData {
         .empty
     }

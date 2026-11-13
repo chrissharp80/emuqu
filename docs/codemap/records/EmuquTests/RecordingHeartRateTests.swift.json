@@ -1,0 +1,64 @@
+{
+ "file": "EmuquTests/RecordingHeartRateTests.swift",
+ "hash": "f652a27c9f3730ff",
+ "role": "Tests that the report's average, minimum and maximum heart rate read the whole recording, and fall back to the analysis window for results saved without it.",
+ "types": [],
+ "state": [],
+ "toplevel": "",
+ "units": [
+  {
+   "key": "func RecordingHeartRateTests.result(windowMeanHR:)",
+   "hash": "c31841d8f6d41396",
+   "does": "Builds an HRVAnalysisResult with the given analysis-window mean HR and no whole-recording stats.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "c59f8f5cc7f523b9"
+   }
+  },
+  {
+   "key": "func RecordingHeartRateTests.testTheAverageIsTheWholeRecordingWhenItIsKnown()",
+   "hash": "d4cd7808b270ebfe",
+   "does": "Asserts recordingMeanHR/MinHR/MaxHR return overnightMeanHR/MinHR/MaxHR (73/58/112) while timeDomain.meanHR stays the window's 64.",
+   "entry": "XCTest.",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMeanHR",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMinHR",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMaxHR"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMaxHR": "45a2b0fc490c4c6a",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMeanHR": "340f01a3ede11a45",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMinHR": "0151038a8fb4e432",
+    "EmuquTests/RecordingHeartRateTests.swift::func RecordingHeartRateTests.result(windowMeanHR:)": "ffd4e7931c145a86"
+   }
+  },
+  {
+   "key": "func RecordingHeartRateTests.testAnOlderResultFallsBackToTheWindow()",
+   "hash": "cdcdc3478f48fe0b",
+   "does": "Asserts that with no whole-recording stats recordingMeanHR/MinHR/MaxHR equal the analysis window's mean, min and max.",
+   "entry": "XCTest.",
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMeanHR",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMinHR",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMaxHR"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMaxHR": "45a2b0fc490c4c6a",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMeanHR": "340f01a3ede11a45",
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMinHR": "0151038a8fb4e432",
+    "EmuquTests/RecordingHeartRateTests.swift::func RecordingHeartRateTests.result(windowMeanHR:)": "ffd4e7931c145a86"
+   }
+  }
+ ],
+ "deps": {}
+}

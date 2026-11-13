@@ -1,0 +1,333 @@
+{
+ "file": "Emuqu/Sources/Collection/RRCollector+Discard.swift",
+ "hash": "8867e121721a29ea",
+ "role": "CollectorSessionControl extension that ends a recording keeping nothing: discards an in-progress overnight stream (returning to its paused parent for a resumed segment), a paused night with its chain of paused ancestors, or a strap-only recording, removing the crash-recovery and iCloud live backups and, where this night armed it, the strap's own copy.",
+ "types": [
+  "CollectorSessionControl.DiscardOutcome: struct (Equatable) — strapCopyKept: the strap's copy of a discarded overnight recording could not be cleared"
+ ],
+ "state": [
+  "static strapCopyKeptReason (user-facing error text)"
+ ],
+ "toplevel": "DiscardOutcome struct and the static strapCopyKeptReason string; everything else is in units.",
+ "units": [
+  {
+   "key": "func CollectorSessionControl.discardOvernightRecording()",
+   "hash": "a0c512999fe1634e",
+   "does": "Ends the in-progress overnight stream keeping nothing: logs, ends device-recording arming, notes whether this night armed the strap (overnightDeviceBackupActive), stops streaming without gathering (stopStreamingWithoutKeeping), clears the strap's internal recording only when this night armed it, removes the session's raw RR backup and iCloud live backup, clears the persisted recording record, returns the recorder to the paused parent (first linked session) when that is an archived paused session or to idle otherwise, sets lastError to PolarError.fetchFailed(strapCopyKeptReason) when the strap copy could not be cleared, notifies archive observers and returns DiscardOutcome(strapCopyKept:). No session is scored or archived.",
+   "entry": "Through RRCollector.discardOvernightRecording() from the Record screen's Discard confirmation (RecordView.discardRecording(startOver:)).",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.endDeviceRecordingArming()",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.stopStreamingWithoutKeeping()",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.clearStrapCopy()",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.removeKeptCopies(of:)",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.returnToParentPauseOrIdle(parentId:)",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()"
+   ],
+   "reads": [
+    "mem:RRCollector.isOvernightStreaming",
+    "mem:RRCollector.currentSession",
+    "mem:RRCollector.overnightDeviceBackupActive"
+   ],
+   "writes": [
+    "mem:RRCollector.lastError",
+    "ud:UserDefaultsKeys.persistedRecordingState",
+    "file:RRBackup/<uuid>*",
+    "ck:live backup records (via CloudKitLiveBackupManager)",
+    "ble:H10 stop/clear stored exercises",
+    "notif:.flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not overnight streaming",
+     "effect": "returns nil, nothing changed"
+    },
+    {
+     "at": "+7",
+     "cond": "strapArmed (overnightDeviceBackupActive before the stop)",
+     "effect": "true: clearStrapCopy (strapCopyKept = it failed); false: strap untouched, strapCopyKept false"
+    },
+    {
+     "at": "+8",
+     "cond": "currentSession nil",
+     "effect": "no backups removed"
+    },
+    {
+     "at": "+10",
+     "cond": "parent id from linkedSessionIds.first",
+     "effect": "resumed segment of a paused night: back to that pause; else idle"
+    },
+    {
+     "at": "+11",
+     "cond": "strapCopyKept",
+     "effect": "lastError = fetchFailed(strapCopyKeptReason)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.clearStrapCopy()": "7eafc1817839d4ff",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.removeKeptCopies(of:)": "84e65f7b2e4b6810",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.returnToParentPauseOrIdle(parentId:)": "481fe4b8a8f30dcd",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.stopStreamingWithoutKeeping()": "3e9ca5056bd0fd0f",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "5eae42c737d4ab45",
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.endDeviceRecordingArming()": "0dce982272449f6a",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "0f40f13f892158e2",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func CollectorSessionControl.discardPausedRecording()",
+   "hash": "51019984ec6179e0",
+   "does": "Discards the paused night: for the paused session and each paused ancestor in its chain (pausedChain), deletes it from the archive (attempt-logged) and removes its raw RR backup and iCloud live backup; then resetSession (which also clears the persisted pause keys) and notifies archive observers. The strap is not touched.",
+   "entry": "Through RRCollector.discardPausedRecording() from the Record screen's paused-state Discard confirmation (RecordView.discardPausedNight()).",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.pausedChain(from:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.removeKeptCopies(of:)",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()"
+   ],
+   "reads": [
+    "mem:RRCollector.pausedSession"
+   ],
+   "writes": [
+    "archive:SessionArchive.delete",
+    "file:RRBackup/<uuid>*",
+    "ck:live backup records (via CloudKitLiveBackupManager)",
+    "ud:RRCollector.pausedSessionId",
+    "notif:.flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no pausedSession or its state is not .paused",
+     "effect": "returns, nothing changed"
+    },
+    {
+     "at": "+3",
+     "cond": "each id in the paused chain",
+     "effect": "archive delete + backups removed"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.pausedChain(from:)": "4cb454c47a2c0f9c",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.removeKeptCopies(of:)": "84e65f7b2e4b6810",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "dcc084a0adcf0b2b",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "2d1dbd705fabf7be",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+   }
+  },
+  {
+   "key": "func CollectorSessionControl.discardDeviceRecording()",
+   "hash": "4b0884a0b8f9d61d",
+   "does": "Discards a strap-only recording: logs, asks PolarManager.discardStoredExercises (stops a running strap recording and removes every stored one). On failure logs a warning, sets lastError and returns false leaving the session and its backups as they were. On success removes the session's raw RR backup and iCloud live backup, clears the persisted recording record, resetSession and returns true.",
+   "entry": "Through RRCollector.discardDeviceRecording() from the Record screen's Discard confirmation for a strap-only recording (RecordView.discardRecording(startOver:)).",
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.discardStoredExercises()",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.removeKeptCopies(of:)",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()"
+   ],
+   "reads": [
+    "mem:RRCollector.currentSession"
+   ],
+   "writes": [
+    "mem:RRCollector.lastError",
+    "ble:H10 stop/clear stored exercises",
+    "file:RRBackup/<uuid>*",
+    "ck:live backup records (via CloudKitLiveBackupManager)",
+    "ud:UserDefaultsKeys.persistedRecordingState"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "discardStoredExercises throws",
+     "effect": "log, lastError = error, return false"
+    },
+    {
+     "at": "+10",
+     "cond": "currentSession nil",
+     "effect": "no backups removed"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.discardStoredExercises()": "3573d844510e730b",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.removeKeptCopies(of:)": "84e65f7b2e4b6810",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "5eae42c737d4ab45",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "2d1dbd705fabf7be",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func CollectorSessionControl.stopStreamingWithoutKeeping()",
+   "hash": "895e9a22028f1fc3",
+   "does": "The streaming teardown without keeping the beats: reads streamingHoursForBattery, stops the streaming timer and the diagnostics sampler, clears isStreamingMode, stops PolarManager streaming, records the hours for the battery estimate, clears isOvernightStreaming, overnightDeviceBackupActive, deviceStatus.isStreaming and isCollecting, empties collectedPoints, zeroes streamingElapsedSeconds and clears morningStatus. No gather, no saving status, no analysis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::var RRCollector.streamingHoursForBattery",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.stopStreamingTimer()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.stopSamplingAfterRecording()",
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreaming()",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.recordRecordingHours(_:)"
+   ],
+   "reads": [
+    "mem:RRCollector.sessionStartTime",
+    "mem:RRCollector.streamingElapsedSeconds"
+   ],
+   "writes": [
+    "mem:RRCollector.isStreamingMode",
+    "mem:RRCollector.isOvernightStreaming",
+    "mem:RRCollector.overnightDeviceBackupActive",
+    "mem:DeviceStatus.isStreaming",
+    "mem:RRCollector.isCollecting",
+    "mem:RRCollector.collectedPoints",
+    "mem:RRCollector.streamingElapsedSeconds",
+    "mem:RRCollector.morningStatus",
+    "ud:polar.batteryUsage.*.<id>"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreaming()": "06bd1b7d86805579",
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.recordRecordingHours(_:)": "568275b6e254e507",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.collectedPoints": "afead9ad3142686a",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "f52c78dcfaca1b83",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isStreamingMode": "66ead1532c972b74",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.morningStatus": "0e3fa7b6eee80a18",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "0859f035285ce410",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::var RRCollector.streamingHoursForBattery": "69a5a33ca359c57b",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.stopStreamingTimer()": "532ccb28601b7cab",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.stopSamplingAfterRecording()": "d65f5e972e70d00c"
+   }
+  },
+  {
+   "key": "func CollectorSessionControl.clearStrapCopy()",
+   "hash": "8779f8c63d1d8d6c",
+   "does": "Calls PolarManager.discardStoredExercises to stop and clear the strap's internal recording; returns false when that succeeds and true (the strap still holds it) after logging a warning when it throws.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.discardStoredExercises()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ble:H10 stop/clear stored exercises"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "discardStoredExercises throws",
+     "effect": "log warning, return true; else false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.discardStoredExercises()": "3573d844510e730b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func CollectorSessionControl.removeKeptCopies(of:)",
+   "hash": "507668c549f1342a",
+   "does": "Removes one session's crash-recovery raw RR backup (RawRRBackup.discardBackup, attempt-logged) and awaits CloudKitSyncManager.deleteLiveBackup for its iCloud live backup.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.discardBackup(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.deleteLiveBackup(sessionId:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:RRBackup/<uuid>*",
+    "file:RRBackup/backup_index.json",
+    "ck:live backup records (via CloudKitLiveBackupManager)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.deleteLiveBackup(sessionId:)": "6b93b9c581d7f854",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.discardBackup(_:)": "5d3f8470abd2a4ff",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+   }
+  },
+  {
+   "key": "func CollectorSessionControl.returnToParentPauseOrIdle(parentId:)",
+   "hash": "02a7fc8f9f1f2326",
+   "does": "When parentId names an archived session in .paused state: resetSession, persists the paused-session keys for it, and restores the paused UI state (pausedSession and currentSession = parent, isPaused, pausedBeatCount = its beat count, recordingPhase .paused(parentId)). Otherwise resetSession only (idle).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.persistPausedSessionState(sessionId:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [
+    "mem:RRCollector.pausedSession",
+    "mem:RRCollector.currentSession",
+    "mem:RRCollector.isPaused",
+    "mem:RRCollector.pausedBeatCount",
+    "mem:RRCollector.recordingPhase",
+    "ud:RRCollector.pausedSessionId",
+    "ud:pausedSessionUsesDeviceBackup"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "parentId set, retrievable and .paused",
+     "effect": "restore the paused state and return"
+    },
+    {
+     "at": "+11",
+     "cond": "otherwise",
+     "effect": "resetSession (idle)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedBeatCount": "981597ffe5f37737",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "dcc084a0adcf0b2b",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.persistPausedSessionState(sessionId:)": "1c3555b9bdc254a6",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "2d1dbd705fabf7be",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96"
+   }
+  },
+  {
+   "key": "func CollectorSessionControl.pausedChain(from:)",
+   "hash": "3d8430f8b75d0b2a",
+   "does": "Returns [paused.id] followed by each ancestor reached through linkedSessionIds.first while it is archived and .paused, newest first; stops at the first ancestor that is missing or not paused and at an id already in the chain.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "next id exists, not already in chain, retrievable and .paused",
+     "effect": "append and follow its first link; else stop"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96"
+   }
+  }
+ ],
+ "deps": {}
+}
