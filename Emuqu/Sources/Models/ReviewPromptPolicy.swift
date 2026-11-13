@@ -16,7 +16,7 @@ import Foundation
 /// Clock-free: the caller passes `now` and the stored state.
 /// Regression coverage lives in `ReviewPromptPolicyTests`.
 enum ReviewPromptPolicy {
-    static let minimumScoredNights = 5
+    static let minimumScoredNights = 3
     static let minimumDaysBetweenRequests = 120
 
     static let lastVersionKey = "reviewPrompt.lastRequestedVersion"

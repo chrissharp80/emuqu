@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Models/ReviewPromptPolicy.swift",
- "hash": "832ec725005c945a",
+ "hash": "610e6fed222fb92d",
  "role": "Pure, clock-free rule for when the dashboard may ask the system for an App Store rating.",
  "types": [
   "ReviewPromptPolicy: enum — thresholds, UserDefaults key names and shouldRequest(...)"
@@ -8,14 +8,14 @@
  "state": [
   "ud:reviewPrompt.lastRequestedVersion (static lastVersionKey; written by ReviewPromptOnAppear.requestIfEligible)",
   "ud:reviewPrompt.lastRequestedDate (static lastDateKey; same writer)",
-  "static minimumScoredNights 5, minimumDaysBetweenRequests 120"
+  "static minimumScoredNights 3, minimumDaysBetweenRequests 120"
  ],
  "toplevel": "Only the enum; no stored state of its own. Callers read and write the two UserDefaults keys and pass the values in.",
  "units": [
   {
    "key": "func ReviewPromptPolicy.shouldRequest(baselineNights:hasScore:currentVersion:lastRequestedVersion:lastRequestedDate:now:)",
    "hash": "3a541e7982d0e9b5",
-   "does": "Returns true when baselineNights >= 5, a score is shown, the stored last-asked version differs from currentVersion, and the last ask (if any) is at least 120 days before now.",
+   "does": "Returns true when baselineNights >= 3, a score is shown, the stored last-asked version differs from currentVersion, and the last ask (if any) is at least 120 days before now.",
    "entry": "called from ReviewPromptOnAppear.requestIfEligible and ReviewPromptPolicyTests",
    "calls": [],
    "reads": [],
