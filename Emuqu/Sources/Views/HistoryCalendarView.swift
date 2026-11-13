@@ -889,8 +889,8 @@ private struct DaySummarySheet: View {
             if let score = session.recoveryScore {
                 detailField(label: String(localized: "Recovery", bundle: LanguageManager.appBundle), value: "\(historyDisplayScore(score).composite)")
             }
-            if result.timeDomain.meanHR > 0 {
-                detailField(label: String(localized: "Mean HR", bundle: LanguageManager.appBundle), value: "\(Int(result.timeDomain.meanHR.rounded())) bpm")
+            if result.recordingMeanHR > 0 {
+                detailField(label: String(localized: "Mean HR", bundle: LanguageManager.appBundle), value: "\(Int(result.recordingMeanHR.rounded())) bpm")
             }
             Spacer()
         }

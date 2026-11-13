@@ -237,11 +237,13 @@ extension HealthWriteAndObserve {
 
     /// RHR: one per night, from the overnight reading only.
     ///
-    /// The app's resting heart rate is the overnight one (Help: "Your
-    /// overnight heart rate from the strap's analysis window"). The median of
-    /// a two-minute quick reading or a nap is a heart rate, not a resting
-    /// heart rate, so those write none, and exporting one removes any
-    /// resting heart rate already in Health under its identity.
+    /// Resting heart rate is an overnight measure: the median of a two-minute
+    /// quick reading or a nap is a heart rate, not a resting heart rate, so
+    /// those write none, and exporting one removes any resting heart rate
+    /// already in Health under its identity. Health receives the whole
+    /// night's median, not the analysis-window mean the app shows as the
+    /// night's heart rate (Help: "from the strap's analysis window"), so the
+    /// two can differ by a few beats per minute.
     ///
     /// Only the nocturnal median is written. The session minimum used to
     /// stand in when it was missing, and a single lowest beat is not a resting

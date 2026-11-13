@@ -659,6 +659,31 @@ enum EstimatedMetric: String, CaseIterable, Sendable {
 }
 
 extension HRVAnalysisResult {
+    /// The heart rate shown as the reading's average ("Avg HR", "Mean HR"):
+    /// the mean over the whole recording, artifact beats excluded, as every
+    /// mainstream sleep tracker shows it. A result saved before the whole-
+    /// recording mean was kept falls back to the analysis-window mean.
+    /// Baseline comparisons (sleep HR, resting HR, trends) keep using
+    /// `timeDomain.meanHR`, the window mean the baseline is built from.
+    var recordingMeanHR: Double {
+        overnightMeanHR ?? timeDomain.meanHR
+    }
+
+    /// The lowest heart rate over the whole recording (the lowest 30-second
+    /// rolling mean, so one long beat cannot set it), shown beside
+    /// `recordingMeanHR`; the analysis window's minimum for an older result.
+    var recordingMinHR: Double {
+        overnightMinHR ?? timeDomain.minHR
+    }
+
+    /// The highest heart rate over the whole recording, shown beside
+    /// `recordingMeanHR`; the analysis window's maximum for an older result.
+    var recordingMaxHR: Double {
+        overnightMaxHR ?? timeDomain.maxHR
+    }
+}
+
+extension HRVAnalysisResult {
     func isEstimated(_ metric: EstimatedMetric) -> Bool {
         estimatedMetrics?.contains(metric.rawValue) == true
     }

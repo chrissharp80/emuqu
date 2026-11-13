@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Collection/PersistedRecordingState.swift",
- "hash": "0822333a843d8e3d",
- "role": "Single Codable UserDefaults record of an in-progress recording (session id, start, type, phase, device-backup flag) used for crash/interruption recovery, plus the set of session ids whose 'Session Interrupted' alert the user dismissed, and migration from the legacy 3-key format.",
+ "hash": "044b4ce60ac21df4",
+ "role": "Single Codable UserDefaults record of an in-progress recording (session id, start, type, phase, device-backup flag, and stopRequestedAt once the user has ended it while it is still being saved) used for crash/interruption recovery and termination reports, plus the set of session ids whose 'Session Interrupted' alert the user dismissed, and migration from the legacy 3-key format.",
  "types": [
   "PersistedRecordingState: struct (Codable, Equatable) — persisted recording slot"
  ],
@@ -88,6 +88,34 @@
    "deps": {
     "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clearLegacy()": "4c304e176a44c1e5",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func PersistedRecordingState.markStopRequested(at:)",
+   "hash": "ac3165a86b6dccce",
+   "does": "Loads the persisted record and, when one exists, sets stopRequestedAt to the given date (default now) and saves it, keeping every other field; does nothing when no recording is persisted.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.save(_:)"
+   ],
+   "reads": [
+    "ud:UserDefaultsKeys.persistedRecordingState"
+   ],
+   "writes": [
+    "ud:UserDefaultsKeys.persistedRecordingState"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no persisted record",
+     "effect": "returns without writing"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()": "286e8ca1bed4c447",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.save(_:)": "dcd8c1803354ac04",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.stopRequestedAt(for:)": "5e0063b99148b188"
    }
   },
   {

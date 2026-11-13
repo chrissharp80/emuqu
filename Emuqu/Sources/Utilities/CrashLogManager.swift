@@ -120,7 +120,7 @@ final class CrashLogManager: Sendable {
         }
         let report = [
             sessionInfoBlock(sessionId: sessionId, sessionStart: sessionStart, sessionType: sessionType),
-            Self.terminationCauseBlock,
+            Self.terminationCauseBlock(stopRequestedAt: Self.stopRequestedAt(for: sessionId)),
             forensicsBlock(sessionId: sessionId, sessionStart: sessionStart),
             diagnosticContextBlock()
         ].joined(separator: "\n\n")
@@ -172,19 +172,42 @@ final class CrashLogManager: Sendable {
         """
     }
 
-    /// Why a SIGKILL is not a code crash, said in the report itself.
-    private static let terminationCauseBlock = """
-        --------------------------------------------------------------------------------
-        CAUSE
-        --------------------------------------------------------------------------------
+    /// When this recording had already been ended (by the user, or by the
+    /// app's own pause when the strap could not be reached), from the
+    /// persisted record that outlived the process; nil when it had not.
+    private static func stopRequestedAt(for sessionId: UUID) -> Date? {
+        guard let state = PersistedRecordingState.load(), state.sessionId == sessionId else { return nil }
+        return state.stopRequestedAt
+    }
 
-        The app was terminated by iOS while a recording session was active.
-        No signal or exception was caught — this indicates a SIGKILL from iOS, typically
-        caused by: background execution time expiry, memory pressure, or thermal shutdown.
+    /// What the next launch can and cannot know about the end of the process.
+    /// iOS kills a background app with SIGKILL, and closing the app from the
+    /// app switcher ends it the same way, so the report names both and does
+    /// not claim one. A recording that had already been ended is said to be
+    /// so, with the time, since that rules out an interruption of the
+    /// recording. Who ended it is not recorded, so the report does not say.
+    static func terminationCauseBlock(stopRequestedAt: Date?) -> String {
+        let stopLine: String
+        if let stopRequestedAt {
+            let time = reportDateFormatter("yyyy-MM-dd HH:mm:ss Z").string(from: stopRequestedAt)
+            stopLine = "The recording had been ended at \(time); the app closed while the night was still being saved."
+        } else {
+            stopLine = "The recording was still running when the app closed."
+        }
+        return """
+            --------------------------------------------------------------------------------
+            CAUSE
+            --------------------------------------------------------------------------------
 
-        This is NOT a code crash. The persisted recording state survived and was detected
-        on the next app launch.
-        """
+            The app ended while a recording session was active. \(stopLine)
+            No signal or exception was caught. That happens when the app is closed from the
+            app switcher, and when iOS ends it (background time expiry, memory pressure,
+            thermal shutdown); the two cannot be told apart afterwards.
+
+            This is NOT a code crash. The persisted recording state survived and was detected
+            on the next app launch.
+            """
+    }
 
     /// Forensics from the RawRRBackup index for THIS
     /// session ID. Answers two questions: WHEN did the crash
@@ -343,13 +366,13 @@ final class CrashLogManager: Sendable {
         let lastBackupStr = summary.lastBackupTime.map { isoFormatter.string(from: $0) } ?? "(never — no incremental write completed)"
         let archiveStatus = summary.isArchived
             ? "✓ Already folded into a finalized HRVSession — recovery complete."
-            : "⚠ Not yet folded into a session. Backup file is intact on disk; SessionRecoveryService should pick it up on next dashboard open."
+            : "⚠ Not yet folded into a session. The backup is on disk and listed under Settings → iCloud & Data → Recover Lost Sessions."
         return """
-        Estimated time of termination: \(lastBackupStr)
-          (= last successful incremental backup write before the process was killed)
-        Recording duration before kill: \(elapsedDescription(from: sessionStart, to: summary.lastBackupTime))
-        Beats claimed in header:        \(summary.beatCount)
-        Beats written to backup file:   \(summary.backedUpCount.map { "\($0)" } ?? "(legacy single-file format)")
+        Last backup write:              \(lastBackupStr)
+          (the app was still running then; it ended at or after this time)
+        Recording time to last backup:  \(elapsedDescription(from: sessionStart, to: summary.lastBackupTime))
+        Beats in backup:                \(summary.beatCount)
+        Beats written to backup file:   \(summary.backedUpCount.map { "\($0)" } ?? "(whole-night file, written at stop)")
         Backup file size on disk:       \(byteDescription(summary.pointsFileSize))
         Archive status:                 \(archiveStatus)
         """

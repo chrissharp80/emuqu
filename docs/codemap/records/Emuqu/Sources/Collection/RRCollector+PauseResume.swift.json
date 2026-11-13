@@ -77,10 +77,12 @@
   },
   {
    "key": "func CollectorSessionControl.pauseOvernightStreaming()",
-   "hash": "6b151e85de3054d1",
-   "does": "Pause: ends the arming loop, captures the original session, gathers the night (stream stop, backup, strap download, source choice); analyses and archives it as .paused when there is enough data, else saves a short paused session with the raw beats.",
+   "hash": "52bea13780bc62ba",
+   "does": "Pause: holds a background-task assertion from BackgroundTaskAssertion.forRecordingStop (\"OvernightPause\") until it returns and marks the persisted recording record stop-requested; ends the arming loop, captures the original session, gathers the night (stream stop, backup, strap download, source choice); analyses and archives it as .paused when there is enough data, else saves a short paused session with the raw beats.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.forRecordingStop(named:)",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()",
     "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.endDeviceRecordingArming()",
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.gatherOvernightData()",
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseWithFullAnalysis(data:)",
@@ -88,9 +90,12 @@
    ],
    "reads": [
     "mem:RRCollector.isOvernightStreaming",
-    "mem:RRCollector.currentSession"
+    "mem:RRCollector.currentSession",
+    "ud:UserDefaultsKeys.persistedRecordingState"
    ],
-   "writes": [],
+   "writes": [
+    "ud:UserDefaultsKeys.persistedRecordingState"
+   ],
    "branches": [
     {
      "at": "+1",
@@ -98,12 +103,12 @@
      "effect": "return nil"
     },
     {
-     "at": "+10",
+     "at": "+15",
      "cond": "currentSession nil",
      "effect": "original = HRVSession()"
     },
     {
-     "at": "+12",
+     "at": "+17",
      "cond": "gather returned data",
      "effect": "full analysis path; else short-recording path"
     }
@@ -116,6 +121,8 @@
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseWithFullAnalysis(data:)": "0b87f929b693779e",
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseWithShortRecording(originalSession:)": "7be9cd031899ed9d",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()": "12e7c44b52c0986c",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.forRecordingStop(named:)": "c3840e6ca84c5e4e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },

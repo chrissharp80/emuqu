@@ -14,6 +14,11 @@ struct PersistedRecordingState: Codable, Equatable {
     /// Whether device internal backup is enabled for overnight streaming.
     /// Persisted so pause/resume across app restarts preserves the user's capture mode choice.
     let useDeviceInternalBackup: Bool?
+    /// When the user ended the recording (I'm Up, Pause, Wake Up). Set while
+    /// the night is still being saved; a record that survives to the next
+    /// launch with this set ended after the user had already stopped it, so
+    /// the termination report can say so instead of guessing at the cause.
+    var stopRequestedAt: Date?
 
     private static let storageKey = UserDefaultsKeys.persistedRecordingState
     /// The "Dismiss" action on the
@@ -71,6 +76,14 @@ struct PersistedRecordingState: Codable, Equatable {
         // user's lifetime of recordings.
         UserDefaults.standard.removeObject(forKey: dismissedKey)
         debugLog("[PersistedRecordingState] Cleared")
+    }
+
+    /// Records that the user has ended the recording, keeping everything
+    /// else. Does nothing when no recording is persisted.
+    static func markStopRequested(at date: Date = Date()) {
+        guard var state = load() else { return }
+        state.stopRequestedAt = date
+        save(state)
     }
 
     // MARK: - Dismissal tracking

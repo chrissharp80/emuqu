@@ -21,10 +21,11 @@ extension RecordView {
             startLinkedRecording: { startLinkedRecording(linkedTo: $0) },
             pauseRecording: { pauseRecording() }, resumeRecording: { resumeRecording() },
             finalizeFromPause: { finalizeFromPause() }, stopAndFetch: { stopAndFetch() },
+            discardRecording: { discardRecording(startOver: $0) }, discardPausedNight: { discardPausedNight() },
             startStreaming: { startStreaming(seconds: $0) }, stopStreaming: { stopStreaming() },
             extendedCaptureMode: $extendedCaptureMode,
             selectedTags: $selectedTags, sessionNotes: $sessionNotes,
-            fetchFailed: $fetchFailed,
+            fetchFailed: $fetchFailed, showingDiscardConfirm: $showingDiscardConfirm, isDiscarding: isDiscarding,
             breathingAudio: breathingAudio
         )
     }

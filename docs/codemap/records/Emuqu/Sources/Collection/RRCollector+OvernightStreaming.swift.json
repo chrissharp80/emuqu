@@ -439,10 +439,12 @@
   },
   {
    "key": "func OvernightStreamingCoordinator.stopOvernightStreaming()",
-   "hash": "f1553cc47f3826de",
-   "does": "Morning stop: ends arming, tears down streaming and publishes the saving state, backs up the beats, scores the night (scoreStoppedNight: the device-fetch fallback when streaming is short, else download/merge/score) and then disconnects a Verity Sense whichever way the night ended.",
+   "hash": "ce97f165ba42ed3b",
+   "does": "Morning stop: from the tap, holds a background-task assertion from BackgroundTaskAssertion.forRecordingStop (\"OvernightStop\") until it returns and marks the persisted recording record stop-requested; ends arming, tears down streaming and publishes the saving state, backs up the beats, scores the night (scoreStoppedNight: the device-fetch fallback when streaming is short, else download/merge/score) and then disconnects a Verity Sense whichever way the night ended.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.forRecordingStop(named:)",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()",
     "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.endDeviceRecordingArming()",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopStreamingInfrastructure()",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.backupStreamingData(_:sessionId:)",
@@ -451,9 +453,12 @@
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.disconnectVeritySenseAfterNight(isVeritySense:)"
    ],
    "reads": [
-    "mem:RRCollector.isOvernightStreaming"
+    "mem:RRCollector.isOvernightStreaming",
+    "ud:UserDefaultsKeys.persistedRecordingState"
    ],
-   "writes": [],
+   "writes": [
+    "ud:UserDefaultsKeys.persistedRecordingState"
+   ],
    "branches": [
     {
      "at": "+1",
@@ -468,7 +473,9 @@
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.disconnectVeritySenseAfterNight(isVeritySense:)": "3e7ad95dbc1029c9",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.isVeritySenseDevice(_:)": "7649133f1a60846e",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.scoreStoppedNight(baseSession:streamingPoints:reconnectCount:isVeritySense:)": "3ad19740fb8b1dd5",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopStreamingInfrastructure()": "80eaad4f2265b36e"
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopStreamingInfrastructure()": "87322161f3e616d8",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()": "12e7c44b52c0986c",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.forRecordingStop(named:)": "c3840e6ca84c5e4e"
    }
   },
   {
@@ -658,7 +665,7 @@
    "does": "One HealthKit sleep fetch: found when nightSleepMinutes > 0, retry otherwise or on any error except HK errorDatabaseInaccessible, which aborts.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes"
    ],
    "reads": [
@@ -684,7 +691,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "c9a11fa7babc8205",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)": "da5ab94142f0949e",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",

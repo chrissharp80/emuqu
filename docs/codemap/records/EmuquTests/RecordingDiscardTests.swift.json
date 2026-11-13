@@ -1,0 +1,302 @@
+{
+ "file": "EmuquTests/RecordingDiscardTests.swift",
+ "hash": "9b48883637c00da7",
+ "role": "@MainActor tests of discarding a recording in progress through RRCollector over a temp-directory SessionArchive: an overnight stream leaves no session, backup or recording marker; nothing happens when nothing records; a discarded resumed segment returns to its paused night; a paused night is removed with its paused ancestors but not a finished night it links to.",
+ "types": [
+  "RecordingDiscardTests: class — @MainActor XCTestCase over RRCollector.discardOvernightRecording/discardPausedRecording"
+ ],
+ "state": [
+  "directory: lazy temp dir RecordingDiscardTests-<UUID>",
+  "archive: lazy SessionArchive(directory:) under that dir",
+  "ud:RRCollector.persistedRecordingState (UserDefaults.standard: isolated per test by isolateFromHostRecordingState, written by startRecording)"
+ ],
+ "toplevel": "Lazy stored properties create a per-test temp directory and SessionArchive.",
+ "units": [
+  {
+   "key": "func RecordingDiscardTests.setUp()",
+   "hash": "315d3b0152681764",
+   "does": "Calls super.setUp, then isolateFromHostRecordingState(): each test starts with no persisted recording state, and the host's is put back in teardown.",
+   "entry": "XCTest per-test setUp",
+   "calls": [
+    "EmuquTests/StrapRecoveryFlowTests.swift::func XCTestCase.isolateFromHostRecordingState()"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:RRCollector.persistedRecordingState (UserDefaults.standard)",
+    "ud:legacy activeRecording* keys (UserDefaults.standard)",
+    "ud:RRCollector.dismissedInterruptedSessionIds (UserDefaults.standard)",
+    "mem:AppDependencies.current"
+   ],
+   "branches": [],
+   "deps": {
+    "EmuquTests/StrapRecoveryFlowTests.swift::func XCTestCase.isolateFromHostRecordingState()": "19a75a8617e2e0b0"
+   }
+  },
+  {
+   "key": "func RecordingDiscardTests.tearDown()",
+   "hash": "f9cb517912842767",
+   "does": "Deletes the temp archive directory (a missing one is ignored), then calls super.tearDown.",
+   "entry": "XCTest runner: async tearDown after each test",
+   "calls": [
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/RecordingDiscardTests-<UUID>"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "catch from removeItem",
+     "effect": "error swallowed (no directory when nothing was archived)"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func RecordingDiscardTests.makeCollector()",
+   "hash": "b01f68576ddae311",
+   "does": "Test helper: RRCollector.withoutCloudAcceptance over a fresh PolarManager and the temp archive.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func RRCollector.withoutCloudAcceptance(polarManager:archive:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func RRCollector.withoutCloudAcceptance(polarManager:archive:)": "4fe7c17cd279048e"
+   }
+  },
+  {
+   "key": "func RecordingDiscardTests.beats(_:)",
+   "hash": "a20db80cbf681105",
+   "does": "Test helper: count RR points one second apart alternating 990/1010 ms.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "even index",
+     "effect": "990 ms; odd 1010 ms"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd"
+   }
+  },
+  {
+   "key": "func RecordingDiscardTests.startRecording(_:on:)",
+   "hash": "dde4b0a034af6ed1",
+   "does": "Test helper: puts the collector in the overnight-streaming state (currentSession, isOvernightStreaming, isStreamingMode, isCollecting, recordingPhase .overnightStreaming), persists the recording marker and writes a 300-beat raw backup for the session.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.beats(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RRCollector.currentSession",
+    "mem:RRCollector.isOvernightStreaming",
+    "mem:RRCollector.isStreamingMode",
+    "mem:RRCollector.isCollecting",
+    "mem:RRCollector.recordingPhase",
+    "ud:RRCollector.persistedRecordingState",
+    "file:RRBackup/<uuid>*"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "f52c78dcfaca1b83",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isStreamingMode": "66ead1532c972b74",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)": "819342ac0cbfaaea",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "ae82a55eb0903175",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.beats(_:)": "c0bfa6b2da1c254d"
+   }
+  },
+  {
+   "key": "func RecordingDiscardTests.pausedNight(linkedTo:)",
+   "hash": "700a484c398ab4e0",
+   "does": "Test helper: archives (skipSameNightMerge) a one-hour .paused overnight session started three hours ago with 200 beats, linked to the given parent id when one is passed, and returns it.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.beats(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/RecordingDiscardTests-<UUID>"
+   ],
+   "branches": [
+    {
+     "at": "+9",
+     "cond": "parent nil",
+     "effect": "no linked sessions"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.beats(_:)": "c0bfa6b2da1c254d"
+   }
+  },
+  {
+   "key": "func RecordingDiscardTests.isArchived(_:)",
+   "hash": "e56de4fb839fd329",
+   "does": "Test helper: whether the temp archive's entries contain the session id.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6"
+   }
+  },
+  {
+   "key": "func RecordingDiscardTests.testDiscardEndsTheRecordingAndKeepsNothing()",
+   "hash": "7bdd6c14347f625d",
+   "does": "Starts an overnight recording, discards it and asserts outcome strapCopyKept false, streaming and collecting off, no current session, phase .idle, no persisted recording state, no raw backup and nothing archived.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.makeCollector()",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.startRecording(_:on:)",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardOvernightRecording()",
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backedUpBeatCount(_:)",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.isArchived(_:)"
+   ],
+   "reads": [
+    "ud:RRCollector.persistedRecordingState"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()": "286e8ca1bed4c447",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardOvernightRecording()": "ba01ab1660ae0826",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "f52c78dcfaca1b83",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backedUpBeatCount(_:)": "874b09505f026a95",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.isArchived(_:)": "adfbc8ad30231539",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.makeCollector()": "e55055300f326c04",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.startRecording(_:on:)": "cf626c24ee2adf8c"
+   }
+  },
+  {
+   "key": "func RecordingDiscardTests.testDiscardWithNothingRecordingDoesNothing()",
+   "hash": "9fb7184e516aeda3",
+   "does": "Asserts discardOvernightRecording on an idle collector returns nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.makeCollector()",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardOvernightRecording()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardOvernightRecording()": "ba01ab1660ae0826",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.makeCollector()": "e55055300f326c04"
+   }
+  },
+  {
+   "key": "func RecordingDiscardTests.testDiscardingAResumedSegmentReturnsToItsPausedNight()",
+   "hash": "8d5d206fb6ee941c",
+   "does": "Archives a paused night, starts a segment linked to it, discards the segment and asserts the collector is paused on the parent (pausedSession, phase .paused(parent)), the parent stays archived and the segment's raw backup is gone.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.makeCollector()",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.pausedNight(linkedTo:)",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.startRecording(_:on:)",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardOvernightRecording()",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.isArchived(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backedUpBeatCount(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardOvernightRecording()": "ba01ab1660ae0826",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "dcc084a0adcf0b2b",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backedUpBeatCount(_:)": "874b09505f026a95",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.isArchived(_:)": "adfbc8ad30231539",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.makeCollector()": "e55055300f326c04",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.pausedNight(linkedTo:)": "107f416b8dda3749",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.startRecording(_:on:)": "cf626c24ee2adf8c"
+   }
+  },
+  {
+   "key": "func RecordingDiscardTests.testDiscardingAPausedNightRemovesItAndTheSegmentsItWasBuiltFrom()",
+   "hash": "7df6bb771182c98f",
+   "does": "Archives two chained paused nights, puts the collector paused on the second, discards the paused night and asserts both are gone from the archive, the collector is not paused, has no paused session and is .idle.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.makeCollector()",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.pausedNight(linkedTo:)",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardPausedRecording()",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.isArchived(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardPausedRecording()": "b4d1d30a28d0b7e9",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "dcc084a0adcf0b2b",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.isArchived(_:)": "adfbc8ad30231539",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.makeCollector()": "e55055300f326c04",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.pausedNight(linkedTo:)": "107f416b8dda3749"
+   }
+  },
+  {
+   "key": "func RecordingDiscardTests.testDiscardingAPausedNightLeavesAFinishedNightItWasLinkedTo()",
+   "hash": "bc89628417cabd2d",
+   "does": "Archives a .complete night and a paused night linked to it, discards the paused night and asserts the complete night stays archived and the paused one is gone.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.makeCollector()",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.pausedNight(linkedTo:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardPausedRecording()",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.isArchived(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardPausedRecording()": "b4d1d30a28d0b7e9",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "dcc084a0adcf0b2b",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.isArchived(_:)": "adfbc8ad30231539",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.makeCollector()": "e55055300f326c04",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.pausedNight(linkedTo:)": "107f416b8dda3749"
+   }
+  }
+ ],
+ "deps": {}
+}

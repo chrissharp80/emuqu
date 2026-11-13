@@ -203,9 +203,9 @@ extension ReportSectionRenderer {
 
         let boxWidth = contentWidth / 4
         let hrStats: [(String, String, UIColor)] = [
-            (String(localized: "Min HR", bundle: LanguageManager.appBundle), result.markingEstimate(String(format: "%.0f bpm", locale: LanguageManager.appLocale, result.timeDomain.minHR), for: .hrRange), config.secondaryColor),
-            (String(localized: "Avg HR", bundle: LanguageManager.appBundle), String(format: "%.0f bpm", locale: LanguageManager.appLocale, result.timeDomain.meanHR), config.accentColor),
-            (String(localized: "Max HR", bundle: LanguageManager.appBundle), result.markingEstimate(String(format: "%.0f bpm", locale: LanguageManager.appLocale, result.timeDomain.maxHR), for: .hrRange), UIColor(red: 0.8, green: 0.4, blue: 0.5, alpha: 1)),
+            (String(localized: "Min HR", bundle: LanguageManager.appBundle), result.markingEstimate(String(format: "%.0f bpm", locale: LanguageManager.appLocale, result.recordingMinHR), for: .hrRange), config.secondaryColor),
+            (String(localized: "Avg HR", bundle: LanguageManager.appBundle), String(format: "%.0f bpm", locale: LanguageManager.appLocale, result.recordingMeanHR), config.accentColor),
+            (String(localized: "Max HR", bundle: LanguageManager.appBundle), result.markingEstimate(String(format: "%.0f bpm", locale: LanguageManager.appLocale, result.recordingMaxHR), for: .hrRange), UIColor(red: 0.8, green: 0.4, blue: 0.5, alpha: 1)),
             ("SDNN", result.markingEstimate(String(format: "%.1f ms", locale: LanguageManager.appLocale, result.timeDomain.sdnn), for: .sdnn), config.primaryColor)
         ]
         drawStatBoxRow(hrStats, y: y + 6, boxWidth: boxWidth, boxHeight: statsHeight - 12)

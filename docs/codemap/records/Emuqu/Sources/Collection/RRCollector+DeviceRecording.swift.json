@@ -122,10 +122,12 @@
   },
   {
    "key": "func DeviceRecordingSession.stopSession()",
-   "hash": "0bb7ea0e2ef85b65",
-   "does": "Stop (and Retry): requires connection, resolves the session the recording belongs to, downloads the strap recording made since its start (attended budget), and assembles it; a failed download yields a failed session.",
+   "hash": "48c350d4c4d40f2a",
+   "does": "Stop (and Retry): requires connection; then holds a background-task assertion from BackgroundTaskAssertion.forRecordingStop (\"DeviceRecordingStop\") until it returns and marks the persisted recording record stop-requested; resolves the session the recording belongs to, downloads the strap recording made since its start (attended budget), and assembles it; a failed download yields a failed session.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.forRecordingStop(named:)",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.resolveBaseSession()",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecording(recordedSince:budget:)",
@@ -136,25 +138,27 @@
    ],
    "reads": [
     "mem:PolarManager.connectionState",
-    "ble:H10 recording"
+    "ble:H10 recording",
+    "ud:UserDefaultsKeys.persistedRecordingState"
    ],
    "writes": [
     "ble:H10 stop/download",
-    "mem:SessionState"
+    "mem:SessionState",
+    "ud:UserDefaultsKeys.persistedRecordingState"
    ],
    "branches": [
     {
      "at": "+1",
      "cond": "strap not connected",
-     "effect": "throws notConnected"
+     "effect": "throws notConnected (no assertion, no stop mark)"
     },
     {
-     "at": "+9",
+     "at": "+13",
      "cond": "fetchRecording throws",
-     "effect": "returns makeFailedSession; persisted marker untouched"
+     "effect": "returns makeFailedSession; persisted marker otherwise untouched (stopRequestedAt stays set)"
     },
     {
-     "at": "+10",
+     "at": "+14",
      "cond": "no base session",
      "effect": "failed session built from a new HRVSession() (fresh id, start now)"
     }
@@ -167,7 +171,9 @@
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.placement(for:base:)": "ec14f1fb166f80c4",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.resolveBaseSession()": "8578c57125b0b40c",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a"
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()": "12e7c44b52c0986c",
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.forRecordingStop(named:)": "c3840e6ca84c5e4e"
    }
   },
   {
@@ -593,7 +599,7 @@
    "does": "Fetches HealthKit sleep over the last 24 h (with the beats for onset detection) and returns sleep start minus the beats' sleep-onset offset; nil when HealthKit has no sleep start or the fetch throws.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)"
    ],
    "reads": [
@@ -613,8 +619,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "d0309f14481839ab",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "c9a11fa7babc8205",
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.detectSleepOnset(in:)": "574a0263e53dfb77",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)": "da5ab94142f0949e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5"
    }
@@ -676,7 +682,7 @@
    "does": "Fetches HealthKit sleep for the recording span and converts sleep start/end and (split nights) segments to session-relative ms.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)",
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.segmentsRelative(to:sleepData:)"
    ],
@@ -697,11 +703,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:)": "c9a11fa7babc8205",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)": "da5ab94142f0949e",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.segmentsRelative(to:sleepData:)": "bdad14f90d58e877",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.sleepEnd(of:)": "3161593fbc6e5971",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "a25102dd7955c053",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "532ac87707a256ac",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5"
    }
   },

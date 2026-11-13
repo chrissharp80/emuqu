@@ -565,21 +565,29 @@
   },
   {
    "key": "§ Emuqu User Manual > Record Tab > Extended Recording (Overnight / Multi-Hour)",
-   "hash": "cd7899610d9e1b37",
-   "does": "Claims extended recording flow: Morning tag auto-added when ending 4-10 AM; pause runs a full analysis and saves; Continue Recovery card within merge window; auto-finalize at strap battery <= 5% while paused; best 5-minute window; report opens automatically; H10 upload refines score; Verity disconnects. Verified Morning-tag hour gate 4..<10 (RecordView+Results.swift:176).",
+   "hash": "50598cee37304bba",
+   "does": "Claims extended recording flow: Morning tag auto-added when ending 4-10 AM; pause runs a full analysis and saves; Continue Recovery card within merge window; auto-finalize at strap battery <= 5% while paused; best 5-minute window; report opens automatically; H10 upload refines score; Verity disconnects. Verified Morning-tag hour gate 4..<10 (RecordView+Results.swift:176). Discarding a Recording: Discard Recording under the controls with a confirmation offering Discard (nothing kept: no score, session, crash-recovery or iCloud backup; the strap's own copy cleared when it was recording one), Discard and Start Over, Keep Recording; a discarded resumed segment returns to its paused night; Discard Night on a paused night removes it and the segments it was built from; a strap copy that cannot be cleared is reported and goes to Lost Sessions at the next start. Verified against RecordPanels.discardButton/discardConfirmActions and CollectorSessionControl.discardOvernightRecording/discardPausedRecording.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.body",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.imUpButton",
     "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.body",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::init MorningResultsViewModel(session:result:recentSessions:settingsManager:healthKit:)"
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::init MorningResultsViewModel(session:result:recentSessions:settingsManager:healthKit:)",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.discardButton",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.discardConfirmActions",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardOvernightRecording()",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardPausedRecording()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardOvernightRecording()": "ba01ab1660ae0826",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardPausedRecording()": "b4d1d30a28d0b7e9",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::init MorningResultsViewModel(session:result:recentSessions:settingsManager:healthKit:)": "3328bd556097b83d",
     "Emuqu/Sources/Views/Record/StreamingLiveView.swift::var StreamingProgressPanel.body": "601bbcd1af80d376",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.discardButton": "6b344d3a471c1948",
+    "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.discardConfirmActions": "dab7f200d93ce049",
     "Emuqu/Sources/Views/RecordView+Panels.swift::var RecordPanels.imUpButton": "f8dd3537f86ffc91",
     "Emuqu/Sources/Views/RecordingStatusViews.swift::var OvernightStreamingStatus.body": "d7c90b30178309d3"
    }
@@ -1535,7 +1543,7 @@
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.hrvDetailLink": "bd75d921cf06c4fd",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.primaryMetricsSections": "c544de6dcda5deac",
     "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.heroHRVLabel": "7c426c0dc4374d29",
-    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrStatsRow": "ac9871964160a803",
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrStatsRow": "90cd35c8133ac34c",
     "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrvHeroSection": "ceb84226f680d414",
     "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvCategory(_:baseline:)": "3cd4aa76dcac5807",
     "Emuqu/Sources/Views/Theme.swift::func AppTheme.hrvLabel(_:baseline:)": "427792bdf513d94a"
@@ -1697,7 +1705,7 @@
     "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.chartSections": "17d188dcbb5f5f61",
     "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrSectionHeader": "7986dcaa1f2248f3",
     "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.hrvSectionHeader": "47be770b0c9acf9f",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightHRSection": "ed70a9413ba0e6ba",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightHRSection": "8d53b070a88c2db4",
     "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightHRVSection": "5779924af69a83fa",
     "Emuqu/Sources/Views/OvernightChartsView.swift::var OvernightChartsView.overnightSummaryHeader": "f3cdee2207901a19",
     "Emuqu/Sources/Views/OvernightHRVChartCanvas.swift::var OvernightHRVChartCanvas.analyzeHereLabel": "cde8200dc39df77e"
@@ -3002,8 +3010,8 @@
   },
   {
    "key": "§ Emuqu User Manual > HRV Metrics Explained > Time Domain Metrics",
-   "hash": "3581193c3d6555ff",
-   "does": "Educational table: RMSSD 40-100+ ms, SDNN 50-100+ ms, pNN50 >20% 'good values'. Reference ranges, not app behaviour.",
+   "hash": "f6ec119a02e89fed",
+   "does": "Educational table: RMSSD 40-100+ ms, SDNN 50-100+ ms, pNN50 >20% 'good values'; Avg HR is the whole recording's average with rejected beats left out (report header, overnight chart, session details); Min/Max HR are the whole recording's, Min being the lowest 30-second average; Mean HR in the time-domain metrics is the analysis-window average (about five and a half minutes of calm sleep) that sleep HR, resting HR and the heart-rate baseline use. Verified against HRVAnalysisResult.recordingMeanHR/recordingMinHR/recordingMaxHR and attachOvernightHRStats.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)",
@@ -3015,10 +3023,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeHRStatistics(series:flags:windowStart:windowEnd:)": "7c72c210409bd511",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "ae5a1983d1c7500d",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.metrics(cleanRR:diffs:hrStats:)": "34a2ca171394d522",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rollingWindowHRSamples(series:flags:windowStart:windowEnd:)": "c0f6804bf63e9e66"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rollingWindowHRSamples(series:flags:windowStart:windowEnd:)": "346a1e207c699814"
    }
   },
   {
@@ -3132,12 +3139,12 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.supersedeSameNightSession(newSession:)": "2349093567695f83",
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()": "d29e4a8761c908f7",
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseWithFullAnalysis(data:)": "271ae4b815102f92",
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseWithShortRecording(originalSession:)": "a6bc27d06eb7ff61",
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)": "fd3252e0154e3022",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.mergeGap(mode:seconds:)": "fc37e5f1dff51905",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.sameNightSegments(baseSession:points:sleepSchedule:mergeGap:)": "b70004b39f7abeb1",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()": "432fda2fb1468ab1",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseWithFullAnalysis(data:)": "0b87f929b693779e",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseWithShortRecording(originalSession:)": "7be9cd031899ed9d",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)": "0740b26b052a6720",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.mergeGap(mode:seconds:)": "2e660c842d5f5a67",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.sameNightSegments(baseSession:points:sleepSchedule:mergeGap:)": "f6976f680e1de839",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.supersedeSameNightSession(newSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)": "2d5616b0193482db",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.pauseRecording()": "ff0a80a3b96c820a",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.resumeRecording()": "d22e4d610978b814",

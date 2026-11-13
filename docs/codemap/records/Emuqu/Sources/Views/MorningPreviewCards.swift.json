@@ -27,8 +27,8 @@
   },
   {
    "key": "func MorningPreviewCards.metrics(_:)",
-   "hash": "6642f47c14c0cb37",
-   "does": "Builds three metric cards: RMSSD (ms, %.0f), the optional readiness card, and mean HR (bpm, %.0f), formatted with the app locale.",
+   "hash": "e0a2f57417a3cca4",
+   "does": "Builds three metric cards: RMSSD (ms, %.0f), the optional readiness card, and HR (bpm, %.0f, the whole-recording mean recordingMeanHR), formatted with the app locale.",
    "entry": "Called from RecordView+Results.swift:12 and RecordView+Panels.swift:514 inside SwiftUI bodies",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
@@ -39,6 +39,7 @@
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.recordingMeanHR": "340f01a3ede11a45",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
     "Emuqu/Sources/Views/MorningPreviewCards.swift::func MorningPreviewCards.readiness(_:)": "0390f0adf23c749c",

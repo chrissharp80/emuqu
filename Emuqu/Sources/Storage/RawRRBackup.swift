@@ -194,12 +194,11 @@ final class RawRRBackup: @unchecked Sendable {
         let fm = FileManager.default
         let backupDirectory = Self.resolveBackupDirectory()
         guard let entry = Self.storedIndexEntry(for: sessionId, in: backupDirectory) else { return nil }
-        let pointsURL = backupDirectory.appendingPathComponent("\(sessionId.uuidString)_points.jsonl")
         return TerminationForensicsSummary(
             lastBackupTime: entry.lastBackupTime,
             beatCount: entry.beatCount,
             backedUpCount: entry.backedUpCount,
-            pointsFileSize: (try? fm.attributesOfItem(atPath: pointsURL.path)).flatMap { ($0[.size] as? NSNumber)?.int64Value },
+            pointsFileSize: backupFileSize(of: entry, sessionId: sessionId, in: backupDirectory, fileManager: fm),
             isArchived: entry.archived
         )
     }
@@ -862,5 +861,23 @@ extension RawRRBackup {
             throw error
         }
         return fileName
+    }
+}
+
+extension RawRRBackup {
+    /// The size of whichever file holds the session's beats: the append-only
+    /// points file while recording, or the whole-night file a stop writes
+    /// (which replaces the append files, so reading only the points file
+    /// reported a saved night as missing).
+    fileprivate static func backupFileSize(
+        of entry: BackupIndex, sessionId: UUID, in backupDirectory: URL, fileManager fm: FileManager
+    ) -> Int64? {
+        let candidates = [entry.fileName, "\(sessionId.uuidString)_points.jsonl"].compactMap { $0 }
+        for name in candidates {
+            let path = backupDirectory.appendingPathComponent(name).path
+            guard let attributes = try? fm.attributesOfItem(atPath: path) else { continue }
+            if let size = (attributes[.size] as? NSNumber)?.int64Value { return size }
+        }
+        return nil
     }
 }
