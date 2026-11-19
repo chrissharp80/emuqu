@@ -204,14 +204,14 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedRecording(_:)": "17a976d101f7836a",
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedWorkout(_:)": "97a37ab88e1c120e"
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedRecording(_:)": "841338b706e0a5a9",
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoverInterruptedWorkout(_:)": "291cb39cf63a2dda"
    }
   },
   {
    "key": "func EmuquApp.recoverInterruptedWorkout(_:)",
-   "hash": "053fac4cc885c38e",
-   "does": "Workout recovery: if auto-recovery already archived it returns that message; else WorkoutRecoveryService.recover from archive/raw backup/CloudKit, clears persisted recording state regardless of outcome, and returns failure text or the outcome summary + archive note.",
+   "hash": "52a217dc14046a59",
+   "does": "Workout recovery: if auto-recovery already archived it returns that message; else WorkoutRecoveryService.recover from archive/raw backup/CloudKit. Returns failure text when nothing was rebuilt; otherwise clears the persisted recording state only when the outcome was archived, and returns the outcome summary + archive note (saved, or not saved with the backup kept).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.savedByAutoRecovery(_:)",
@@ -235,16 +235,22 @@
      "effect": "returns saved message"
     },
     {
-     "at": "+13",
+     "at": "+12",
      "cond": "recover returned nil",
-     "effect": "returns could-not-recover text (state already cleared, backup kept)"
+     "effect": "returns could-not-recover text; persisted state kept, so the next launch offers it again"
+    },
+    {
+     "at": "+15",
+     "cond": "outcome.wasArchived",
+     "effect": "clears persisted recording state; when false it is kept and the not-saved note is shown"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingStatePublic()": "c3879d679c388d48",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingStatePublic()": "a512c5e01802946f",
     "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.recoveredWorkoutSaveNote(wasArchived:)": "e686841a8993464c",
     "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.savedByAutoRecovery(_:)": "2b4fd1e12506dc15",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.recover(sessionId:reason:archive:rawBackup:cloudSyncManager:savedRouteStore:settingsManager:unitsPreference:strapRRPoints:overrideRRPoints:discardBackupsOnAccept:overrideTrack:autoTrimOverride:overrideDistanceMeters:)": "86143be1b3e7f1cf"
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.recover(sessionId:reason:archive:rawBackup:cloudSyncManager:savedRouteStore:settingsManager:unitsPreference:strapRRPoints:overrideRRPoints:discardBackupsOnAccept:overrideTrack:autoTrimOverride:overrideDistanceMeters:)": "86143be1b3e7f1cf",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
    }
   },
   {
@@ -301,8 +307,8 @@
   },
   {
    "key": "func EmuquApp.recoverInterruptedRecording(_:)",
-   "hash": "459ad523571f2930",
-   "does": "Recovers an HRV/overnight session from the raw RR backup into the archive, clears persisted state, returns success or failure text.",
+   "hash": "1a0122b03aabc737",
+   "does": "Recovers an HRV/overnight session from the raw RR backup into the archive; on success clears persisted state and returns saved text, on failure keeps the persisted state and returns failure text.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromBackup(_:)",
@@ -317,15 +323,16 @@
    ],
    "branches": [
     {
-     "at": "+3",
+     "at": "+1",
      "cond": "recoverFromBackup returned nil",
-     "effect": "returns could-not-recover text; else saved text"
+     "effect": "returns could-not-recover text with persisted state kept; else clears it and returns saved text"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingStatePublic()": "c3879d679c388d48",
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromBackup(_:)": "1817386ae5c64a63"
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingStatePublic()": "a512c5e01802946f",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromBackup(_:)": "1817386ae5c64a63",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
    }
   },
   {
