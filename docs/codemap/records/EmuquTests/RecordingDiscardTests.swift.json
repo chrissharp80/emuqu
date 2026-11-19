@@ -1,7 +1,7 @@
 {
  "file": "EmuquTests/RecordingDiscardTests.swift",
  "hash": "9b48883637c00da7",
- "role": "@MainActor tests of discarding a recording in progress through RRCollector over a temp-directory SessionArchive: an overnight stream leaves no session, backup or recording marker; nothing happens when nothing records; a discarded resumed segment returns to its paused night; a paused night is removed with its paused ancestors but not a finished night it links to.",
+ "role": "@MainActor tests of discarding a recording in progress through RRCollector over a temp-directory SessionArchive: an overnight stream leaves no session, backup or recording marker; nothing happens when nothing records; a discarded resumed segment returns to its paused night; a paused night is removed with its paused ancestors but not a finished night it links to; a paused night the archive cannot delete stays archived and paused, with the error shown.",
  "types": [
   "RecordingDiscardTests: class — @MainActor XCTestCase over RRCollector.discardOvernightRecording/discardPausedRecording"
  ],
@@ -262,7 +262,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardPausedRecording()": "b4d1d30a28d0b7e9",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardPausedRecording()": "7a82c6c6c8265199",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "dcc084a0adcf0b2b",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997",
@@ -288,7 +288,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardPausedRecording()": "b4d1d30a28d0b7e9",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardPausedRecording()": "7a82c6c6c8265199",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "dcc084a0adcf0b2b",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
@@ -296,6 +296,58 @@
     "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.makeCollector()": "e55055300f326c04",
     "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.pausedNight(linkedTo:)": "107f416b8dda3749"
    }
+  },
+  {
+   "key": "func RecordingDiscardTests.testAPausedNightTheArchiveCannotDeleteStaysPaused()",
+   "hash": "a561f3c028573ad2",
+   "does": "Archives a paused night and puts the collector in its pause, blocks the archive's deleted-index writes so every delete fails, discards the paused night and asserts it is still archived, the collector is still paused on it (pausedSession, recordingPhase) and lastError is set.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.makeCollector()",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.pausedNight(linkedTo:)",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.blockDeletedIndexWrites()",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardPausedRecording()",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.isArchived(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardPausedRecording()": "7a82c6c6c8265199",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "dcc084a0adcf0b2b",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.blockDeletedIndexWrites()": "ff4d4d8c197cbf79",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.isArchived(_:)": "adfbc8ad30231539",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.makeCollector()": "e55055300f326c04",
+    "EmuquTests/RecordingDiscardTests.swift::func RecordingDiscardTests.pausedNight(linkedTo:)": "107f416b8dda3749"
+   }
+  },
+  {
+   "key": "func RecordingDiscardTests.blockDeletedIndexWrites()",
+   "hash": "637ca37740d83215",
+   "does": "Test helper: replaces the test archive's deleted-session index file (deleted.json) with a non-empty directory, so the archive's atomic write of that index fails and every SessionArchive.delete in the test throws and rolls back.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.fileExists",
+    "ext:FileManager.removeItem",
+    "ext:FileManager.createDirectory",
+    "ext:Data.write"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/RecordingDiscardTests-<UUID>/deleted.json"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "deleted.json already exists",
+     "effect": "removed before the directory is created"
+    }
+   ],
+   "deps": {}
   }
  ],
  "deps": {}

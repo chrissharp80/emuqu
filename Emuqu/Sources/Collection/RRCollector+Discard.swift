@@ -46,15 +46,38 @@ extension CollectorSessionControl {
     /// segments it was resumed from, with their recovery and iCloud backups.
     /// The strap is not touched: a paused night's strap part was downloaded or
     /// rescued at pause, and the next start rescues anything left.
+    ///
+    /// A segment's backups go only once the archive has let it go. When a
+    /// delete fails the discard stops there, that segment and the older ones
+    /// keep their backups, and the error is shown: if nothing was deleted the
+    /// pause stays as it was, otherwise the recorder returns to the pause of
+    /// the segment that is left, so Discard can be tapped again.
     func discardPausedRecording() async {
         guard let paused = collector.pausedSession, paused.state == .paused else { return }
         debugLog("[RRCollector] 🗑 Discarding paused night \(paused.id.uuidString.prefix(8))")
         for id in pausedChain(from: paused) {
-            _ = attempt("discard.archiveDelete") { try collector.archive.delete(id) }
+            do {
+                try collector.archive.delete(id)
+            } catch {
+                return keepPauseAfterFailedDelete(of: id, pausedId: paused.id, error: error)
+            }
             await removeKeptCopies(of: id)
         }
         collector.resetSession()
         collector.notifyArchiveChanged()
+    }
+
+    /// A paused segment the archive would not delete: the discard stops with
+    /// it still archived and its backups kept. The paused session itself
+    /// stays paused as it was; an older segment, whose newer ones are gone,
+    /// becomes the pause. The error is shown either way.
+    private func keepPauseAfterFailedDelete(of id: UUID, pausedId: UUID, error: Error) {
+        debugLog("[RRCollector] ⚠️ Could not discard paused segment \(id.uuidString.prefix(8)): \(error)", level: .warning)
+        if id != pausedId {
+            returnToParentPauseOrIdle(parentId: id)
+            collector.notifyArchiveChanged()
+        }
+        collector.lastError = error
     }
 
     /// Discards a strap-only recording: stops the strap and clears its copy,

@@ -134,4 +134,33 @@ final class RecordingDiscardTests: XCTestCase {
         XCTAssertTrue(isArchived(finished.id), "a finished night is never discarded from a pause")
         XCTAssertFalse(isArchived(paused.id))
     }
+
+    func testAPausedNightTheArchiveCannotDeleteStaysPaused() async throws {
+        let collector = makeCollector()
+        let paused = try pausedNight()
+        collector.pausedSession = paused
+        collector.currentSession = paused
+        collector.isPaused = true
+        collector.recordingPhase = .paused(sessionId: paused.id)
+        try blockDeletedIndexWrites()
+
+        await collector.control.discardPausedRecording()
+
+        XCTAssertTrue(isArchived(paused.id), "the archive refused the delete")
+        XCTAssertTrue(collector.isPaused, "a night still in the archive stays paused, so Discard can be tapped again")
+        XCTAssertEqual(collector.pausedSession?.id, paused.id)
+        XCTAssertEqual(collector.recordingPhase, .paused(sessionId: paused.id))
+        XCTAssertNotNil(collector.lastError, "the failed discard is shown")
+    }
+
+    /// Puts a directory where the archive writes its deleted-session index, so
+    /// every delete in this test's archive fails and rolls back.
+    private func blockDeletedIndexWrites() throws {
+        let deletedIndex = archive.deletedIndexFile
+        if FileManager.default.fileExists(atPath: deletedIndex.path) {
+            try FileManager.default.removeItem(at: deletedIndex)
+        }
+        try FileManager.default.createDirectory(at: deletedIndex, withIntermediateDirectories: true)
+        try Data("blocked".utf8).write(to: deletedIndex.appendingPathComponent("blocker"))
+    }
 }
