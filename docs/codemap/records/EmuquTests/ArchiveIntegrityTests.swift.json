@@ -406,13 +406,16 @@
    }
   },
   {
-   "key": "func ArchiveIntegrityTests.testDiscardingTheTrashRemovesALeftoverFileOfADeletedSession()",
-   "hash": "b04838641a02f0ac",
-   "does": "Archives one session, writes a stray <id>.json for an id not in the index, calls discardTrashed for both, and asserts the stray file is gone while the archived session still reads.",
+   "key": "func ArchiveIntegrityTests.testDiscardingTheTrashRemovesOnlyALeftoverFileOfATombstonedSession()",
+   "hash": "ec97b8ed770eec35",
+   "does": "Archives one session, tombstones a second id and leaves <id>.json files for it and for an untombstoned id; after discardTrashed on all three asserts only the tombstoned leftover is gone and the archived session still reads. Forgets the tombstone afterwards.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.markAsDeleted(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.unmarkAsDeleted(_:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
    ],
@@ -422,14 +425,39 @@
    ],
    "writes": [
     "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json, deleted.json, Trash/)",
-    "kc:EncryptionManager archive key"
+    "kc:EncryptionManager archive key",
+    "ud:archive.deletionTimes (UserDefaults.standard: recorded then forgotten)"
    ],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "f7997155f08460b2",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.markAsDeleted(_:)": "a58f4705e0507267",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.unmarkAsDeleted(_:)": "cb64d5b6258c5088",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
     "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testDiscardingTheTrashKeepsALeftoverFileWhileTheIndexIsUnread()",
+   "hash": "b4df5e73548e6c8c",
+   "does": "Seeds the temp archive folder with an undecodable index.json, a deleted.json tombstoning an id and that id's <id>.json; after discardTrashed asserts the index is incomplete and the file is kept.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.hasCompleteIndex"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json, deleted.json, Trash/)"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json, deleted.json, Trash/)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.hasCompleteIndex": "4d992f398d9be95b",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "f7997155f08460b2"
    }
   },
   {

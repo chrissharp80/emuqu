@@ -137,18 +137,21 @@ extension OneShotBackupName {
             : Int64((entry.lastBackupTime?.timeIntervalSince1970 ?? 0) * 1000)
     }
 
-    /// The newest plain one-shot backup of the session written after the
-    /// indexed one (a process killed between that write and its index save)
-    /// that holds at least as many beats, decoded; nil when there is none.
-    /// `backup()` would take it, so the repair adopts it rather than leave
-    /// the fuller night where no listing or recovery reads it.
-    static func newerPlaintextBackup(than entry: RawRRBackup.BackupIndex, in directory: URL) throws -> RawRRBackup.BackupEntry? {
-        try plaintextFiles(of: entry.id, in: directory, except: entry.fileName)
-            .filter { writtenMs($0.lastPathComponent) > indexedMs(entry) }
-            .sorted { writtenMs($0.lastPathComponent) > writtenMs($1.lastPathComponent) }
-            .lazy
-            .compactMap { url in attempt("RawRRBackup.readNewerFile") { try RawRRBackup.decodeLegacyBackup(at: url) } }
-            .first { $0.points.count >= (entry.backedUpCount ?? entry.beatCount) }
+    /// The fullest one-shot backup of the session the index does not name,
+    /// plain or encrypted, written after the indexed one (a process killed
+    /// between that write and its index save) and holding at least as many
+    /// beats, decoded; nil when there is none. `backup()` would take it, so
+    /// the repair adopts it. Nil too when the row's write time or beat count
+    /// is unknown (a row rebuilt from a header): every file would then look
+    /// newer, and the uncounted points file would be replaced.
+    static func fullerUnindexedBackup(than entry: RawRRBackup.BackupIndex, in directory: URL) throws -> RawRRBackup.BackupEntry? {
+        let indexedBeats = entry.backedUpCount ?? (entry.fileName != nil ? entry.beatCount : nil)
+        guard indexedMs(entry) > 0, let indexedBeats else { return nil }
+        return try files(of: entry.id, in: directory)
+            .filter { $0.lastPathComponent != entry.fileName && writtenMs($0.lastPathComponent) > indexedMs(entry) }
+            .compactMap { url in attempt("RawRRBackup.readUnindexedFile") { try RawRRBackup.decodeLegacyBackup(at: url) } }
+            .filter { $0.id == entry.id && $0.points.count >= indexedBeats }
+            .max { $0.points.count < $1.points.count }
     }
 
     /// Whether `url`, a one-shot file the index does not name, was provably

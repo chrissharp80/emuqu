@@ -401,14 +401,13 @@ final class RawRRBackup: @unchecked Sendable {
         }
     }
 
-    /// A backup leaves the queue once none of its one-shot files is plaintext:
-    /// a newer, fuller one is adopted, the indexed one rewritten encrypted, and
-    /// a plain one the index does not name removed once provably replaced
-    /// (`OneShotBackupName.isSuperseded`); else it stays queued.
+    /// A backup leaves the queue once no one-shot file of it is plaintext: a
+    /// fuller one is adopted, the indexed one re-encrypted, an unindexed plain
+    /// one removed once provably replaced (`isSuperseded`); else it stays queued.
     func reencryptBackup(_ sessionId: UUID) {
         do {
             try mergeIndexIfLaunchReadFailed()
-            try adoptNewerBackup(sessionId)
+            adoptFullerBackup(sessionId)
             let entry = existingIndexEntry(sessionId)
             let stale = try OneShotBackupName.plaintextFiles(of: sessionId, in: backupDirectory, except: entry?.fileName)
             let superseded = stale.filter { OneShotBackupName.isSuperseded($0, by: entry) }
@@ -427,12 +426,17 @@ final class RawRRBackup: @unchecked Sendable {
         }
     }
 
-    /// A newer, fuller plain file the index missed becomes the backup through
-    /// `backup()`, under its rules (`OneShotBackupName.newerPlaintextBackup`).
-    private func adoptNewerBackup(_ sessionId: UUID) throws {
-        guard let indexed = existingIndexEntry(sessionId),
-              let newer = try OneShotBackupName.newerPlaintextBackup(than: indexed, in: backupDirectory) else { return }
-        try backup(points: newer.points, sessionId: sessionId, deviceId: newer.deviceId, captureDate: newer.captureDate)
+    /// The fullest unindexed one-shot file becomes the backup through `backup()`,
+    /// archived flag kept; a failure is logged and the repair goes on.
+    private func adoptFullerBackup(_ sessionId: UUID) {
+        do {
+            guard let indexed = existingIndexEntry(sessionId),
+                  let fuller = try OneShotBackupName.fullerUnindexedBackup(than: indexed, in: backupDirectory) else { return }
+            try backup(points: fuller.points, sessionId: sessionId, deviceId: fuller.deviceId, captureDate: fuller.captureDate)
+            if indexed.archived { markAsArchived(sessionId) }
+        } catch {
+            debugLog("[RawRRBackup] adopting a fuller backup of \(sessionId.uuidString.prefix(8)) failed: \(error)", level: .warning)
+        }
     }
 
     /// Encode one backup entry, reporting whether encryption actually happened.
@@ -817,17 +821,14 @@ final class RawRRBackup: @unchecked Sendable {
         debugLog("[RawRRBackup] Purged \(toRemove.count) old archived backups")
     }
 
-    /// Remove every one-shot file of the session, indexed or not (no listing
-    /// reaches an unindexed one, which would outlive it), and the append pair.
+    /// Remove the indexed file, the unindexed one-shot files it provably
+    /// replaced (a fuller or uncountable one is kept), and the append pair.
     private func removeBackupFiles(for entry: BackupIndex) {
         let oneShots = attempt("RawRRBackup.listOneShots") { try OneShotBackupName.files(of: entry.id, in: backupDirectory) } ?? []
         let indexed = entry.fileName.map { [backupDirectory.appendingPathComponent($0)] } ?? []
-        for url in Set(indexed + oneShots) where fileManager.fileExists(atPath: url.path) {
-            do {
-                try fileManager.removeItem(at: url)
-            } catch {
-                debugLog("[RawRRBackup] ⚠️ Failed to remove backup file \(url.lastPathComponent): \(error)")
-            }
+        let replaced = oneShots.filter { $0.lastPathComponent != entry.fileName && OneShotBackupName.isSuperseded($0, by: entry) }
+        for url in indexed + replaced where fileManager.fileExists(atPath: url.path) {
+            attempt("RawRRBackup.removeBackupFile") { try fileManager.removeItem(at: url) }
         }
         cleanupAppendFiles(for: entry.id)
     }

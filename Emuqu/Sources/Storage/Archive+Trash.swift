@@ -107,20 +107,32 @@ extension ArchiveStore {
         }
     }
 
-    /// Removes the Trash file and, for a session no longer in the index, a
-    /// `<id>.json` a failed delete left in the archive folder: once the
-    /// tombstone is forgotten the orphan scan would adopt that file back. A
-    /// session then neither in the index nor in quarantine has no file left
-    /// here, so a re-encryption entry for it has nothing left to repair and
-    /// is cleared.
+    /// Removes the Trash file and, for a deleted session, the `<id>.json` a
+    /// failed delete left in the archive folder (`removeLeftover`). All under
+    /// `archiveLock`, so a write of the session between the index check and a
+    /// removal cannot have its file deleted. A session then not in the index
+    /// whose file this removed, or which is tombstoned, and which has no
+    /// quarantined copy, leaves the re-encryption queue; an id with neither a
+    /// copy nor a tombstone stays queued (it may be another archive's).
     func discardTrashed(_ id: UUID) {
-        guard !exists(id) else {
-            removeQuietly(trashURL(for: id), id: id)
-            return
-        }
+        archive.archiveLock.lock()
+        defer { archive.archiveLock.unlock() }
+        let hadTrashFile = archive.fileManager.fileExists(atPath: trashURL(for: id).path)
+        guard removeQuietly(trashURL(for: id), id: id), entryById(id) == nil else { return }
+        let tombstoned = archive.deletedSessionIds.contains(id)
+        guard removeLeftover(of: id, tombstoned: tombstoned) else { return }
+        if hadTrashFile || tombstoned, parkedCopies(of: id)?.isEmpty == true { PendingEncryptionLedger.clear(id) }
+    }
+
+    /// The `<id>.json` a failed delete left in the archive folder, removed
+    /// only for a tombstoned id while the index is complete: otherwise it may
+    /// be the session's live file. True when no such file remains. Caller
+    /// holds `archiveLock`.
+    private func removeLeftover(of id: UUID, tombstoned: Bool) -> Bool {
         let leftover = archive.archiveDirectory.appendingPathComponent("\(id.uuidString).json")
-        guard removeQuietly(trashURL(for: id), id: id), removeQuietly(leftover, id: id) else { return }
-        if parkedCopies(of: id)?.isEmpty == true { PendingEncryptionLedger.clear(id) }
+        guard archive.fileManager.fileExists(atPath: leftover.path) else { return true }
+        guard tombstoned, !archive.indexReadFailed, !archive.indexDecodeFailed else { return false }
+        return removeQuietly(leftover, id: id)
     }
 
     /// Removes `url` if it is there; false (logged) when the removal failed.
