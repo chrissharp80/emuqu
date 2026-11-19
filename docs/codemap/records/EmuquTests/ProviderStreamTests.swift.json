@@ -1,11 +1,16 @@
 {
  "file": "EmuquTests/ProviderStreamTests.swift",
- "hash": "da2154ef7a61e468",
- "role": "Two XCTest suites: ProviderStreamTests checks ProviderStream.make's error mapping (URLError → .network / .cancelled, CancellationError → .cancelled, provider and unrelated errors pass through), normal event delivery, and that a consumer leaving cancels the operation; OpenAICompatibleReasoningTests checks the reasoning fields OpenAICompatibleStreamer.requestFor writes for DeepSeek (thinking disabled), OpenAI (reasoning_effort none) and Grok (neither).",
+ "hash": "8829eb4d33847162",
+ "role": "XCTest suites over the cloud providers' streams: ProviderStreamTests checks ProviderStream.make's error mapping (URLError → .network / .cancelled, CancellationError → .cancelled, provider and unrelated errors pass through), normal event delivery, and that a consumer leaving cancels the operation; OpenAICompatibleReasoningTests checks the reasoning fields OpenAICompatibleStreamer.requestFor writes for DeepSeek (thinking disabled), OpenAI (reasoning_effort none) and Grok (neither); OpenAICompatibleEndOfStreamTests, GeminiEndOfStreamTests and AnthropicEndOfStreamTests replay in-memory SSE lines through each provider's consumeSSE (via SSEReplay) and check how a reply ends: a clean close without the terminal signal is a dropped connection, the terminal signal completes, a malformed event throws, a token-cap stop ends with '…', a safety stop is a blocked reply, a cut or unparseable tool call is never emitted, and a mid-stream server failure is the overloaded modelUnavailable.",
  "types": [
   "ProviderStreamTests: class — XCTestCase over ProviderStream",
   "ProviderStreamTests.Unrelated: private enum Error — a non-provider error",
-  "OpenAICompatibleReasoningTests: class — XCTestCase over OpenAICompatibleStreamer.requestFor body JSON"
+  "OpenAICompatibleReasoningTests: class — XCTestCase over OpenAICompatibleStreamer.requestFor body JSON",
+  "SSEReplay: enum — replays SSE lines through a provider line reader inside ProviderStream.make and records the outcome",
+  "SSEReplay.Outcome: struct — text, tool names and inputs, whether .done arrived, and the error",
+  "OpenAICompatibleEndOfStreamTests: class — XCTestCase over OpenAICompatibleStreamer.consumeSSE",
+  "GeminiEndOfStreamTests: class — XCTestCase over GeminiProvider.consumeSSE",
+  "AnthropicEndOfStreamTests: class — XCTestCase over AnthropicProvider.consumeSSE"
  ],
  "state": [],
  "toplevel": "",
@@ -362,6 +367,822 @@
     "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.requestFor(_:apiKey:)": "d52529df719c6906",
     "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.toolRoundMessages(_:)": "a1250c88c7a53436",
     "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleReasoningTests.body(for:)": "2a2e0d959773808e"
+   }
+  },
+  {
+   "key": "var SSEReplay.Outcome.asProviderError",
+   "hash": "ad9f03b0c4db64bd",
+   "does": "The recorded error as an AIProviderError, or nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "var SSEReplay.Outcome.invalidResponseMessage",
+   "hash": "7a905d7ab090b268",
+   "does": "The message of an .invalidResponse error, or nil for any other outcome.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.asProviderError"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "error is not .invalidResponse",
+     "effect": "nil"
+    }
+   ],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.asProviderError": "ec2fd3e735557dac"
+   }
+  },
+  {
+   "key": "var SSEReplay.Outcome.isNetworkError",
+   "hash": "e4c8c9b53c2a17f5",
+   "does": "True when the recorded error is AIProviderError.network.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.asProviderError"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "error is not .network",
+     "effect": "false"
+    }
+   ],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.asProviderError": "ec2fd3e735557dac"
+   }
+  },
+  {
+   "key": "var SSEReplay.Outcome.isModelUnavailable",
+   "hash": "3f24ce1b408ee276",
+   "does": "True when the recorded error is AIProviderError.modelUnavailable.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.asProviderError"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "error is not .modelUnavailable",
+     "effect": "false"
+    }
+   ],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.asProviderError": "ec2fd3e735557dac"
+   }
+  },
+  {
+   "key": "func SSEReplay.lines(_:)",
+   "hash": "ab45f43b9ddb8945",
+   "does": "Returns an AsyncStream<String> that yields the given lines in order and then finishes, standing in for a response's line sequence.",
+   "entry": null,
+   "calls": [
+    "ext:AsyncStream.init"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each line",
+     "effect": "yielded"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func SSEReplay.run(_:)",
+   "hash": "ca635247c13c58f9",
+   "does": "Runs a provider line-reader operation inside ProviderStream.make (so thrown errors are mapped as in the app), drains the stream and returns an Outcome: concatenated text deltas, each tool call's name and input, whether .done arrived, and the error the stream finished with.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each event",
+     "effect": "recorded by case"
+    },
+    {
+     "at": "+7",
+     "cond": ".textDelta",
+     "effect": "appended to text"
+    },
+    {
+     "at": "+9",
+     "cond": ".toolUse",
+     "effect": "name and input recorded"
+    },
+    {
+     "at": "+12",
+     "cond": ".usage",
+     "effect": "ignored"
+    },
+    {
+     "at": "+14",
+     "cond": ".done",
+     "effect": "endedWithDone = true"
+    },
+    {
+     "at": "+18",
+     "cond": "stream threw",
+     "effect": "error recorded"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)": "2e9dd013a0b15db6",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "08722a68117b042e",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)": "baa234c133b6664d",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.event(_:_:)": "77d9bd56fa2ec600",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.text(_:finish:)": "674d7be9a6608374"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleEndOfStreamTests.replay(_:provider:)",
+   "hash": "b997ca36f1994322",
+   "does": "Replays the lines through OpenAICompatibleStreamer.consumeSSE for the given provider (default .openai) and returns the outcome.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.run(_:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.consumeSSE(_:providerID:continuation:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.consumeSSE(_:providerID:continuation:)": "b6ce5e3389e5ec6e",
+    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)": "8965c0bed0b1cf6e",
+    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.run(_:)": "9ed275e41694e309"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleEndOfStreamTests.textChunk(_:finish:)",
+   "hash": "dff755653a1717d1",
+   "does": "Builds a data: chunk whose choices[0] carries a content delta and the given finish_reason (null when nil).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "finish nil",
+     "effect": "null; else the quoted reason"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func OpenAICompatibleEndOfStreamTests.toolFragment(_:finish:)",
+   "hash": "4ce22fcee2e6f87b",
+   "does": "Builds a data: chunk carrying a get_sleep tool_calls fragment at index 0 with the given (escaped) arguments text and finish_reason.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "finish nil",
+     "effect": "null; else the quoted reason"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func OpenAICompatibleEndOfStreamTests.testCleanEOFWithoutATerminalSignalIsADroppedConnection()",
+   "hash": "00b6a553be0ad087",
+   "does": "A text chunk followed by a clean close (no finish_reason, no [DONE]) delivers the text, no .done, and a .network error.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.textChunk(_:finish:)",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.isNetworkError"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)": "018a8067a10ed8e7",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.textChunk(_:finish:)": "674d7be9a6608374",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.isNetworkError": "3d5afd4a92dbe4a5"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleEndOfStreamTests.testDoneSentinelCompletesTheReply()",
+   "hash": "be79df223b600532",
+   "does": "Text, a stop finish_reason and [DONE] finish with .done and no error.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.textChunk(_:finish:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)": "018a8067a10ed8e7",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.textChunk(_:finish:)": "674d7be9a6608374"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleEndOfStreamTests.testFinishReasonWithoutDoneCompletesTheReply()",
+   "hash": "73f858203dbfb4c7",
+   "does": "A DeepSeek chunk with finish_reason stop and no [DONE] still completes with .done.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.textChunk(_:finish:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)": "018a8067a10ed8e7",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.textChunk(_:finish:)": "674d7be9a6608374"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleEndOfStreamTests.testCommentsAndBlankLinesAreIgnored()",
+   "hash": "3e1dc27fe349f43e",
+   "does": "Keep-alive comments, blank lines and an event: line around the payloads are skipped; the reply completes with its text.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.textChunk(_:finish:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)": "018a8067a10ed8e7",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.textChunk(_:finish:)": "674d7be9a6608374"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleEndOfStreamTests.testMalformedEventThrows()",
+   "hash": "174594ec1e008290",
+   "does": "A truncated JSON payload throws 'malformed OpenAI stream event'; a non-object payload on Grok throws 'malformed xAI stream event'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.textChunk(_:finish:)",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)": "018a8067a10ed8e7",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.textChunk(_:finish:)": "674d7be9a6608374",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage": "8f7ad88b295bce1b"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleEndOfStreamTests.testLengthStopEndsWithTheTruncationMarker()",
+   "hash": "52680df790b5069d",
+   "does": "A length finish reason ends the text with '…' and still completes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.textChunk(_:finish:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)": "018a8067a10ed8e7",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.textChunk(_:finish:)": "674d7be9a6608374"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleEndOfStreamTests.testContentFilterIsABlockedReply()",
+   "hash": "56a01d1bbab32131",
+   "does": "A content_filter finish reason throws 'ChatGPT blocked the reply (content_filter)' and no .done.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.textChunk(_:finish:)",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)": "018a8067a10ed8e7",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.textChunk(_:finish:)": "674d7be9a6608374",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage": "8f7ad88b295bce1b"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleEndOfStreamTests.testToolCallCutByALengthStopDoesNotRun()",
+   "hash": "c3ea2831d33072a7",
+   "does": "A tool call whose arguments are open when a length stop arrives emits no .toolUse and throws .invalidResponse.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.toolFragment(_:finish:)",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)": "018a8067a10ed8e7",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.toolFragment(_:finish:)": "3cf8ab36b7ba5bd1",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage": "8f7ad88b295bce1b"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleEndOfStreamTests.testUnparseableToolArgumentsAtDoneDoNotRun()",
+   "hash": "ffeade62f62aa31a",
+   "does": "Tool arguments that do not parse when [DONE] flushes them emit no .toolUse and throw 'tool call get_sleep arrived with incomplete arguments'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.toolFragment(_:finish:)",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)": "018a8067a10ed8e7",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.toolFragment(_:finish:)": "3cf8ab36b7ba5bd1",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage": "8f7ad88b295bce1b"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleEndOfStreamTests.testCompleteToolCallIsEmitted()",
+   "hash": "5faf22dbf2627c6b",
+   "does": "Fragments that assemble to {\"days\":7} with a tool_calls finish reason emit one get_sleep .toolUse with that input.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.toolFragment(_:finish:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)": "018a8067a10ed8e7",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.toolFragment(_:finish:)": "3cf8ab36b7ba5bd1"
+   }
+  },
+  {
+   "key": "func OpenAICompatibleEndOfStreamTests.testServerFailureMidStreamIsOverloaded()",
+   "hash": "2ff4431101097fd8",
+   "does": "A mid-stream server_error object and DeepSeek's insufficient_system_resource stop both finish with .modelUnavailable.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.textChunk(_:finish:)",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.isModelUnavailable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)": "018a8067a10ed8e7",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.textChunk(_:finish:)": "674d7be9a6608374",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.isModelUnavailable": "e105151f245a31a1"
+   }
+  },
+  {
+   "key": "func GeminiEndOfStreamTests.replay(_:)",
+   "hash": "535b0d6499b314f0",
+   "does": "Replays the lines through GeminiProvider.consumeSSE and returns the outcome.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.run(_:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)": "ab650c787fa1a396",
+    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)": "8965c0bed0b1cf6e",
+    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.run(_:)": "9ed275e41694e309"
+   }
+  },
+  {
+   "key": "func GeminiEndOfStreamTests.chunk(text:finish:)",
+   "hash": "45661abd0cd823fc",
+   "does": "Builds a data: chunk whose candidate carries one text part and, when given, a finishReason.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "finish nil",
+     "effect": "no finishReason field"
+    }
+   ],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.text(_:finish:)": "674d7be9a6608374"
+   }
+  },
+  {
+   "key": "func GeminiEndOfStreamTests.testCleanEOFWithoutAFinishReasonIsADroppedConnection()",
+   "hash": "dfc4df8057826171",
+   "does": "A text chunk followed by a clean close with no finishReason delivers the text, no .done, and a .network error.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.chunk(text:finish:)",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.isNetworkError"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.chunk(text:finish:)": "67ba4c2906549842",
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)": "cf41e587b2d8564d",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.isNetworkError": "3d5afd4a92dbe4a5"
+   }
+  },
+  {
+   "key": "func GeminiEndOfStreamTests.testStopCompletesTheReply()",
+   "hash": "4c0061c9f8d533e3",
+   "does": "Comment and blank lines are skipped; chunks ending with finishReason STOP complete with .done and the joined text.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.chunk(text:finish:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.chunk(text:finish:)": "67ba4c2906549842",
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)": "cf41e587b2d8564d"
+   }
+  },
+  {
+   "key": "func GeminiEndOfStreamTests.testMalformedEventThrows()",
+   "hash": "1dd7f6f7aa707d19",
+   "does": "A truncated JSON payload throws 'malformed Google stream event' and no .done.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.chunk(text:finish:)",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.chunk(text:finish:)": "67ba4c2906549842",
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)": "cf41e587b2d8564d",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage": "8f7ad88b295bce1b"
+   }
+  },
+  {
+   "key": "func GeminiEndOfStreamTests.testMaxTokensEndsWithTheTruncationMarker()",
+   "hash": "b380191e72bffe79",
+   "does": "A MAX_TOKENS finish reason ends the text with '…' and completes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.chunk(text:finish:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.chunk(text:finish:)": "67ba4c2906549842",
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)": "cf41e587b2d8564d"
+   }
+  },
+  {
+   "key": "func GeminiEndOfStreamTests.testSafetyStopIsABlockedReply()",
+   "hash": "50cf490d4663ab4e",
+   "does": "For each of SAFETY, RECITATION, BLOCKLIST, PROHIBITED_CONTENT and SPII: throws 'Gemini blocked the reply (<reason>)', the blocked chunk's text is not shown, and no .done.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.chunk(text:finish:)",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.chunk(text:finish:)": "67ba4c2906549842",
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)": "cf41e587b2d8564d",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage": "8f7ad88b295bce1b"
+   }
+  },
+  {
+   "key": "func GeminiEndOfStreamTests.testMalformedFunctionCallDoesNotRunATool()",
+   "hash": "3fd1d6d318623f66",
+   "does": "A MALFORMED_FUNCTION_CALL finish reason emits no .toolUse and throws 'Gemini sent a malformed function call'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.chunk(text:finish:)",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.chunk(text:finish:)": "67ba4c2906549842",
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)": "cf41e587b2d8564d",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage": "8f7ad88b295bce1b"
+   }
+  },
+  {
+   "key": "func GeminiEndOfStreamTests.testFunctionCallWithAFinishReasonIsEmitted()",
+   "hash": "ae94689b80d690b3",
+   "does": "A functionCall part in a STOP chunk emits one get_sleep .toolUse and completes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.chunk(text:finish:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.chunk(text:finish:)": "67ba4c2906549842",
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)": "cf41e587b2d8564d"
+   }
+  },
+  {
+   "key": "func GeminiEndOfStreamTests.testServerFailureMidStreamIsOverloaded()",
+   "hash": "c7cb6b7d3bbfe86b",
+   "does": "A mid-stream error object with code 503 finishes with .modelUnavailable.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.chunk(text:finish:)",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.isModelUnavailable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.chunk(text:finish:)": "67ba4c2906549842",
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)": "cf41e587b2d8564d",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.isModelUnavailable": "e105151f245a31a1"
+   }
+  },
+  {
+   "key": "func AnthropicEndOfStreamTests.replay(_:)",
+   "hash": "62d7711727190ea8",
+   "does": "Replays the lines through AnthropicProvider.consumeSSE and returns the outcome.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.run(_:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "a396c16f9e9c8f51",
+    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)": "8965c0bed0b1cf6e",
+    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.run(_:)": "9ed275e41694e309"
+   }
+  },
+  {
+   "key": "func AnthropicEndOfStreamTests.sseEvent(_:_:)",
+   "hash": "54d5eda41d30c591",
+   "does": "Builds one SSE event: an event: line, a data: line and the blank separator.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func AnthropicEndOfStreamTests.textEvent(_:)",
+   "hash": "80b008369be62392",
+   "does": "Builds a content_block_delta event carrying a text_delta.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.sseEvent(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.sseEvent(_:_:)": "77d9bd56fa2ec600"
+   }
+  },
+  {
+   "key": "func AnthropicEndOfStreamTests.stop(_:)",
+   "hash": "46786328f607285f",
+   "does": "Builds a message_delta event with the given stop_reason and output usage, then message_stop.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.sseEvent(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.sseEvent(_:_:)": "77d9bd56fa2ec600"
+   }
+  },
+  {
+   "key": "func AnthropicEndOfStreamTests.toolBlock(input:)",
+   "hash": "100f616e1bab8f12",
+   "does": "Builds a get_sleep tool_use block: content_block_start, one input_json_delta with the given (escaped) input, and content_block_stop.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.sseEvent(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.sseEvent(_:_:)": "77d9bd56fa2ec600"
+   }
+  },
+  {
+   "key": "func AnthropicEndOfStreamTests.testCleanEOFWithoutMessageStopIsADroppedConnection()",
+   "hash": "733b3b874b9b733b",
+   "does": "A text delta followed by a clean close with no message_stop delivers the text, no .done, and a .network error.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textEvent(_:)",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.isNetworkError"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)": "43ceccab35b5aded",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textEvent(_:)": "2e33b365dfe56d9a",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.isNetworkError": "3d5afd4a92dbe4a5"
+   }
+  },
+  {
+   "key": "func AnthropicEndOfStreamTests.testMessageStopCompletesTheReply()",
+   "hash": "15d46cd2145b143d",
+   "does": "A comment line and a ping are ignored; text then end_turn and message_stop complete with .done.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textEvent(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.stop(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.sseEvent(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)": "43ceccab35b5aded",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.sseEvent(_:_:)": "77d9bd56fa2ec600",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.stop(_:)": "62f573dbbf617221",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textEvent(_:)": "2e33b365dfe56d9a"
+   }
+  },
+  {
+   "key": "func AnthropicEndOfStreamTests.testMalformedEventThrows()",
+   "hash": "5ad9e8027b2e4011",
+   "does": "A truncated JSON payload and a JSON array payload both throw 'malformed Anthropic stream event'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textEvent(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.stop(_:)",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)": "43ceccab35b5aded",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.stop(_:)": "62f573dbbf617221",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textEvent(_:)": "2e33b365dfe56d9a",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage": "8f7ad88b295bce1b"
+   }
+  },
+  {
+   "key": "func AnthropicEndOfStreamTests.testMaxTokensEndsWithTheTruncationMarker()",
+   "hash": "55862c223eb0aca2",
+   "does": "A max_tokens stop ends the text with '…'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textEvent(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.stop(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)": "43ceccab35b5aded",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.stop(_:)": "62f573dbbf617221",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textEvent(_:)": "2e33b365dfe56d9a"
+   }
+  },
+  {
+   "key": "func AnthropicEndOfStreamTests.testRefusalIsABlockedReply()",
+   "hash": "9222341cf33e9760",
+   "does": "A refusal stop throws 'Claude blocked the reply (refusal)' and no .done.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textEvent(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.stop(_:)",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)": "43ceccab35b5aded",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.stop(_:)": "62f573dbbf617221",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textEvent(_:)": "2e33b365dfe56d9a",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage": "8f7ad88b295bce1b"
+   }
+  },
+  {
+   "key": "func AnthropicEndOfStreamTests.testTruncatedToolInputDoesNotRun()",
+   "hash": "5594e9b49e77ebe3",
+   "does": "A tool block closed with input cut by max_tokens emits no .toolUse and throws 'tool call get_sleep arrived with incomplete arguments'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.toolBlock(input:)",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.stop(_:)",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)": "43ceccab35b5aded",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.stop(_:)": "62f573dbbf617221",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.toolBlock(input:)": "83d219c649ceffde",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage": "8f7ad88b295bce1b"
+   }
+  },
+  {
+   "key": "func AnthropicEndOfStreamTests.testCompleteToolInputIsEmitted()",
+   "hash": "82bd34230bfbdf01",
+   "does": "A tool block with complete input emits one get_sleep .toolUse with that input and completes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.toolBlock(input:)",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.stop(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)": "43ceccab35b5aded",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.stop(_:)": "62f573dbbf617221",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.toolBlock(input:)": "83d219c649ceffde"
+   }
+  },
+  {
+   "key": "func AnthropicEndOfStreamTests.testOverloadedErrorEventIsOverloaded()",
+   "hash": "22103803e927e0eb",
+   "does": "An overloaded_error event finishes with .modelUnavailable, not raw vendor text.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.sseEvent(_:_:)",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.isModelUnavailable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)": "43ceccab35b5aded",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.sseEvent(_:_:)": "77d9bd56fa2ec600",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.isModelUnavailable": "e105151f245a31a1"
    }
   }
  ],

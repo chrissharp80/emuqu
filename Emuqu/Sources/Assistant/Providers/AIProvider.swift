@@ -292,7 +292,9 @@ enum AIStreamEvent: Sendable {
     case textDelta(String)
     /// The model requested a tool call. `inputJSON` is the complete args
     /// object as a JSON string. Providers accumulate partial input deltas
-    /// internally and emit this event only once per call, fully formed.
+    /// internally and emit this event only once per call, fully formed: a
+    /// call whose arguments do not parse as a JSON object is never emitted,
+    /// and the stream throws instead.
     case toolUse(id: String, name: String, inputJSON: String)
     /// Usage accounting. `cachedInputTokens` and `cacheCreationInputTokens`
     /// are provider-aware fields used for cache-hit telemetry:
@@ -567,14 +569,76 @@ enum ProviderHTTP {
         }
     }
 
-    /// An `{"error":{...}}` object that arrives as a stream chunk after a 200
-    /// (OpenAI-compatible and Gemini both do this when a reply fails
-    /// mid-stream), as the error the chat layer acts on. Nil for an ordinary
-    /// chunk.
-    static func streamFailure(in json: [String: Any]) -> AIProviderError? {
+    /// The "try again" text for a provider whose servers are overloaded or
+    /// failing (HTTP 5xx, or the same condition reported mid-stream).
+    static func overloadedMessage(for provider: ProviderID) -> String {
+        let bundle = LanguageManager.appBundle
+        return switch provider {
+        case .anthropic: String(localized: "Anthropic is overloaded right now. Try again in a moment.", bundle: bundle)
+        case .gemini: String(localized: "Gemini is overloaded right now. Try again in a moment.", bundle: bundle)
+        case .apple, .openai, .grok, .deepseek:
+            String(localized: "\(provider.displayName) is overloaded right now. Try again in a moment.", bundle: bundle)
+        }
+    }
+
+    /// Error `type`s a vendor sends in a mid-stream error object for a
+    /// failure on its own side: OpenAI's `server_error`, Anthropic's
+    /// `overloaded_error` (HTTP 529) and `api_error` (HTTP 500).
+    private static let serverFailureTypes: Set<String> = ["server_error", "overloaded_error", "api_error"]
+
+    /// An `{"error":{...}}` object that arrives in the stream after a 200
+    /// (OpenAI-compatible and Gemini send it as a chunk, Anthropic as an
+    /// `error` event), as the error the chat layer acts on. Nil for an
+    /// ordinary chunk.
+    ///
+    /// A failure on the vendor's side maps as `statusError` maps a 5xx, so
+    /// the same condition reads the same before and after the stream
+    /// opened: a numeric `code` of 500–599 (Gemini's envelope) or a type in
+    /// `serverFailureTypes` becomes `.modelUnavailable(overloadedMessage)`.
+    /// Anything else is `.invalidResponse` with the vendor's message.
+    static func streamFailure(in json: [String: Any], provider: ProviderID) -> AIProviderError? {
         guard let error = json["error"] as? [String: Any] else { return nil }
+        let serverCode = (error["code"] as? Int).map { (500...599).contains($0) } ?? false
+        let serverType = (error["type"] as? String).map { serverFailureTypes.contains($0) } ?? false
+        if serverCode || serverType { return .modelUnavailable(overloadedMessage(for: provider)) }
         let message = error["message"] as? String ?? "stream error"
         return .invalidResponse(redactAPIKeys(message))
+    }
+
+    /// One SSE `data:` payload as a JSON object. A payload that is not JSON,
+    /// or is JSON but not an object, means the stream is broken: it becomes
+    /// an `AIProviderError` the chat layer can fall back from, never a
+    /// skipped event, because a skipped event can drop text or a tool call
+    /// from the middle of a reply.
+    static func eventObject(_ data: Data, provider: ProviderID) throws -> [String: Any] {
+        let malformed = AIProviderError.invalidResponse("malformed \(provider.vendorName) stream event")
+        let object: Any
+        do {
+            object = try JSONSerialization.jsonObject(with: data)
+        } catch {
+            throw malformed
+        }
+        guard let json = object as? [String: Any] else { throw malformed }
+        return json
+    }
+
+    /// The error for a reply the provider's safety system stopped: Gemini's
+    /// safety finish reasons, the OpenAI-compatible `content_filter`, and
+    /// Anthropic's `refusal`. Same case and wording as Gemini's blocked
+    /// prompt, so every cloud provider's safety stop ends the same way: as
+    /// an error, never as a reply that reads as complete.
+    static func blockedReply(by provider: ProviderID, reason: String) -> AIProviderError {
+        .invalidResponse("\(provider.displayName) blocked the reply (\(reason))")
+    }
+
+    /// True when `text` parses as a JSON object: a tool call's arguments in
+    /// full, not a fragment the stream cut short.
+    static func isJSONObject(_ text: String) -> Bool {
+        do {
+            return try JSONSerialization.jsonObject(with: Data(text.utf8)) is [String: Any]
+        } catch {
+            return false
+        }
     }
 
     /// The composed prompt cut at `AssistantSystemPrompt.Composed.cacheSplitMarker`:
@@ -642,6 +706,11 @@ protocol AIProvider {
     ///
     /// The returned stream emits `.textDelta` or `.toolUse` chunks as they
     /// arrive, then optionally a `.usage` event, then `.done` (or throws).
+    /// A cloud provider yields `.done` only after the vendor's own end-of-reply
+    /// signal; a stream that closes without one was cut and throws
+    /// `URLError(.networkConnectionLost)`, which `ProviderStream` turns into
+    /// `.network`. A reply cut at the token cap ends with a "…" text delta,
+    /// and a safety stop throws `ProviderHTTP.blockedReply`.
     func send(
         messages: [ChatTurn],
         model: ModelOption,

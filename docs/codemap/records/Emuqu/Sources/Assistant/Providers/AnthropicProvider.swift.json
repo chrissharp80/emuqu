@@ -21,7 +21,7 @@
   "net:https://api.anthropic.com/v1/messages (sent through ProviderHTTP.streamSession)",
   "kc:APIKeyStore service com.chrissharp.flowrecovery.assistant.apikey account anthropic"
  ],
- "toplevel": "id is a stored let .anthropic. RequestBody and nested types declare Encodable conformances; ContentBlock/CachedContentBlock/SystemBlock.CacheControl/ToolDecl encoders live in extensions at the file end. max_tokens is hard-coded 2048 at stream(); a reply stopped by it (or paused by the server web search) ends with '…' (messageDelta). The URL session, error-body draining, error-envelope parsing and status mapping are ProviderHTTP's.",
+ "toplevel": "id is a stored let .anthropic. RequestBody and nested types declare Encodable conformances; ContentBlock/CachedContentBlock/SystemBlock.CacheControl/ToolDecl encoders live in extensions at the file end. max_tokens is hard-coded 2048 at stream(); a reply stopped by it (or paused by the server web search) ends with '…', and a refusal throws a blocked reply (messageDelta). The URL session, error-body draining, error-envelope parsing and status mapping are ProviderHTTP's.",
  "units": [
   {
    "key": "var AnthropicProvider.availableModels",
@@ -306,7 +306,7 @@
   },
   {
    "key": "func AnthropicProvider.stream(messages:model:contextRendered:systemPrompt:tools:toolRounds:continuation:)",
-   "hash": "ba8dbd1f0776802e",
+   "hash": "efcff186cbac25c0",
    "does": "Performs one Claude request: reads the key from the keychain, builds history, system blocks, live-state splice and tool declarations, POSTs with max_tokens 2048 and stream true over ProviderHTTP.streamSession, throws mapped errors for non-2xx, then parses the SSE stream into the continuation (consumeSSE throws when the stream ends before message_stop; a reply stopped at the token cap ends with '…').",
    "entry": null,
    "calls": [
@@ -323,7 +323,8 @@
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.throwForStatus(_:bytes:)",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)",
     "ext:URLSession.bytes(for:)",
-    "ext:Task.checkCancellation"
+    "ext:Task.checkCancellation",
+    "ext:URLSession.AsyncBytes.lines"
    ],
    "reads": [
     "kc:APIKeyStore service com.chrissharp.flowrecovery.assistant.apikey account anthropic",
@@ -353,15 +354,16 @@
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.key(for:)": "1d2a4ac58caeb322",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::let ProviderHTTP.streamSession": "755d0d1ab8a8cbe4",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.cacheAwareSystemBlocks(_:)": "24f5467acd330c46",
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "801a9149f99527f0",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "a396c16f9e9c8f51",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.makeRequest(url:apiKey:body:)": "78754869ee6292c4",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.toolDeclarations(for:)": "694da6020f5247ea",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.buildMessageHistory(messages:toolRounds:)": "0df5d5d18ee8183d",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.spliceLiveState(_:into:systemBlocks:)": "4c6c402553ec99ee",
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.throwForStatus(_:bytes:)": "af6971ded0c037a3",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.throwForStatus(_:bytes:)": "f24d18d9a8f56666",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore": "9644ad4752275337"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore": "9644ad4752275337",
+    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)": "8965c0bed0b1cf6e"
    }
   },
   {
@@ -408,25 +410,21 @@
   },
   {
    "key": "func AnthropicProvider.handle(eventName:data:state:continuation:)",
-   "hash": "9eda5ddf897a4ced",
-   "does": "Dispatches one SSE data payload (parsed by eventObject, which turns malformed JSON into AIProviderError.invalidResponse) by its type, falling back to the SSE event name: tracks tool_use blocks, emits text/tool events, handles message_delta (stop reason + usage), records start usage, finishes on message_stop, throws on error events.",
+   "hash": "2d9fd9fdf6371c39",
+   "does": "Dispatches one SSE data payload (parsed by ProviderHTTP.eventObject, which throws AIProviderError.invalidResponse for a payload that is not a JSON object) by its type, falling back to the SSE event name: tracks tool_use blocks, emits text/tool events (closeBlock throws for tool input that does not parse), handles message_delta (stop reason + usage; throws on refusal), records start usage, finishes on message_stop, throws on error events (ProviderHTTP.streamFailure: overloaded_error / api_error become the overloaded modelUnavailable).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.eventObject(_:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.eventObject(_:provider:)",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.openBlock(_:into:)",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.handleDelta(_:openToolUses:continuation:)",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.closeBlock(_:openToolUses:continuation:)",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.messageDelta(_:state:continuation:)",
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.finishMessage(_:continuation:)"
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.finishMessage(_:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.streamFailure(in:provider:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
-    {
-     "at": "+6",
-     "cond": "payload is valid JSON but not an object",
-     "effect": "returns silently (malformed JSON throws invalidResponse from eventObject)"
-    },
     {
      "at": "+7",
      "cond": "type ?? eventName ?? \"\"",
@@ -445,12 +443,12 @@
     {
      "at": "+12",
      "cond": "content_block_stop",
-     "effect": "closeBlock"
+     "effect": "closeBlock (throws for unparseable tool input)"
     },
     {
      "at": "+14",
      "cond": "message_delta",
-     "effect": "messageDelta (stop reason, final usage)"
+     "effect": "messageDelta (stop reason, final usage; throws on refusal)"
     },
     {
      "at": "+16",
@@ -465,12 +463,12 @@
     {
      "at": "+20",
      "cond": "error",
-     "effect": "throws invalidResponse(error.message)"
+     "effect": "throws streamFailure's error"
     },
     {
-     "at": "+21",
-     "cond": "error.message missing",
-     "effect": "uses \"Anthropic stream error\""
+     "at": "+22",
+     "cond": "no error object",
+     "effect": "throws invalidResponse('Anthropic stream error')"
     },
     {
      "at": "+23",
@@ -479,39 +477,22 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.closeBlock(_:openToolUses:continuation:)": "87b1d65bfb3f0296",
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.eventObject(_:)": "81f0bbe3fd498df6",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.eventObject(_:provider:)": "df8778803c546b39",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.streamFailure(in:provider:)": "c730c10bedc5489d",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.closeBlock(_:openToolUses:continuation:)": "4fe8a7c4e587e4cd",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.finishMessage(_:continuation:)": "53740fd7b781cb77",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.handleDelta(_:openToolUses:continuation:)": "cfbdc340c5f5d3a6",
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.messageDelta(_:state:continuation:)": "24dcbb963777058c",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.messageDelta(_:state:continuation:)": "d2525215504c7072",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.openBlock(_:into:)": "eef43de2f8e6c20b"
    }
   },
   {
-   "key": "func AnthropicProvider.eventObject(_:)",
-   "hash": "b0de36f092e607db",
-   "does": "Parses one SSE data payload as a JSON object (nil when it is JSON but not an object); malformed JSON throws AIProviderError.invalidResponse('malformed Anthropic stream event') so the chat layer can fall back, rather than a raw Cocoa error.",
-   "entry": null,
-   "calls": [
-    "ext:JSONSerialization.jsonObject(with:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "JSONSerialization throws",
-     "effect": "throws invalidResponse"
-    }
-   ],
-   "deps": {}
-  },
-  {
    "key": "func AnthropicProvider.messageDelta(_:state:continuation:)",
-   "hash": "f31435450afe5992",
-   "does": "message_delta: when delta.stop_reason is max_tokens (token cap) or pause_turn (server web search paused), logs a warning and yields a '…' text delta so the incomplete reply does not read as finished; then flushes usage with the final counters.",
+   "hash": "927f999b7a4f8022",
+   "does": "message_delta: a refusal stop_reason throws ProviderHTTP.blockedReply(by: .anthropic), as the other providers' safety stops do; when delta.stop_reason is max_tokens (token cap) or pause_turn (server web search paused), logs a warning and yields a '…' text delta so the incomplete reply does not read as finished; then flushes usage with the final counters.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.blockedReply(by:reason:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.flushUsage(_:final:to:)"
    ],
@@ -520,13 +501,20 @@
    "branches": [
     {
      "at": "+6",
+     "cond": "stop_reason is refusal",
+     "effect": "throws blockedReply"
+    },
+    {
+     "at": "+7",
      "cond": "stop_reason is max_tokens or pause_turn",
      "effect": "logs and yields '…'; else nothing extra"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.blockedReply(by:reason:)": "a07a0155639855b7",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.flushUsage(_:final:to:)": "235406e06fc8fde4",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textDelta(_:)": "2e33b365dfe56d9a"
    }
   },
   {
@@ -616,10 +604,12 @@
   },
   {
    "key": "func AnthropicProvider.closeBlock(_:openToolUses:continuation:)",
-   "hash": "db383628c1ac891a",
-   "does": "On content_block_stop for an open tool block, removes it and yields .toolUse with its accumulated JSON (\"{}\" when empty).",
+   "hash": "b8fc9ebbb522f6c8",
+   "does": "On content_block_stop for an open tool block, removes it; its accumulated input (\"{}\" when empty) must parse as a JSON object (ProviderHTTP.isJSONObject), else it throws .invalidResponse and the call is never emitted (a max_tokens stop inside the arguments); otherwise yields .toolUse.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.isJSONObject(_:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -632,21 +622,29 @@
      "at": "+8",
      "cond": "inputJSON empty",
      "effect": "args \"{}\"; else accumulated JSON"
+    },
+    {
+     "at": "+9",
+     "cond": "input is not a JSON object",
+     "effect": "throws .invalidResponse('tool call <name> arrived with incomplete arguments')"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.isJSONObject(_:)": "6a9e26d5fc9f1953"
+   }
   },
   {
    "key": "func AnthropicProvider.throwForStatus(_:bytes:)",
-   "hash": "fbb8fadc7de3f03c",
-   "does": "Drains up to 4096 bytes of an error body (ProviderHTTP.errorBody), redacts keys, throws outOfCredit when ProviderAccountReply detects credit exhaustion, otherwise throws ProviderHTTP.statusError with the parsed error.message (or the body's first 300 chars) and the localized 'Anthropic is overloaded' sentence for 5xx.",
+   "hash": "59d974cd7cceb2e4",
+   "does": "Drains up to 4096 bytes of an error body (ProviderHTTP.errorBody), redacts keys, throws outOfCredit when ProviderAccountReply detects credit exhaustion, otherwise throws ProviderHTTP.statusError with the parsed error.message (or the body's first 300 chars) and ProviderHTTP.overloadedMessage(.anthropic) ('Anthropic is overloaded…') for 5xx.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorBody(_:)",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.isCreditExhausted(status:body:)",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.statusError(_:message:overloaded:)",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.overloadedMessage(for:)"
    ],
    "reads": [
     "net:api.anthropic.com error body"
@@ -673,9 +671,9 @@
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.isCreditExhausted(status:body:)": "132b59eb8e966828",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorBody(_:)": "a687cba664e39621",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "db217136d3ed0694",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.overloadedMessage(for:)": "17c60e6299c39e16",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.statusError(_:message:overloaded:)": "8b93e6a53d290b7b",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)": "2461162d36fc3850",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)": "2461162d36fc3850"
    }
   },
   {
