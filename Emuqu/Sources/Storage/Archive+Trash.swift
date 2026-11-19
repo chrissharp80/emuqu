@@ -107,18 +107,32 @@ extension ArchiveStore {
         }
     }
 
-    /// Removes the Trash file. A session then neither in the index nor in
-    /// quarantine has no file left here, so a re-encryption entry for it has
-    /// nothing left to repair and is cleared.
+    /// Removes the Trash file and, for a session no longer in the index, a
+    /// `<id>.json` a failed delete left in the archive folder: once the
+    /// tombstone is forgotten the orphan scan would adopt that file back. A
+    /// session then neither in the index nor in quarantine has no file left
+    /// here, so a re-encryption entry for it has nothing left to repair and
+    /// is cleared.
     func discardTrashed(_ id: UUID) {
-        let url = trashURL(for: id)
-        guard archive.fileManager.fileExists(atPath: url.path) else { return }
-        do {
-            try archive.fileManager.removeItem(at: url)
-        } catch {
-            debugLog("[Archive] ⚠️ Could not empty trashed session \(id.uuidString.prefix(8)): \(error)", level: .warning)
+        guard !exists(id) else {
+            removeQuietly(trashURL(for: id), id: id)
             return
         }
-        if !exists(id), parkedCopies(of: id)?.isEmpty == true { PendingEncryptionLedger.clear(id) }
+        let leftover = archive.archiveDirectory.appendingPathComponent("\(id.uuidString).json")
+        guard removeQuietly(trashURL(for: id), id: id), removeQuietly(leftover, id: id) else { return }
+        if parkedCopies(of: id)?.isEmpty == true { PendingEncryptionLedger.clear(id) }
+    }
+
+    /// Removes `url` if it is there; false (logged) when the removal failed.
+    @discardableResult
+    private func removeQuietly(_ url: URL, id: UUID) -> Bool {
+        guard archive.fileManager.fileExists(atPath: url.path) else { return true }
+        do {
+            try archive.fileManager.removeItem(at: url)
+            return true
+        } catch {
+            debugLog("[Archive] ⚠️ Could not remove \(url.lastPathComponent) of deleted session \(id.uuidString.prefix(8)): \(error)", level: .warning)
+            return false
+        }
     }
 }

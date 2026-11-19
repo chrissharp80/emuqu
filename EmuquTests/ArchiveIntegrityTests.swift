@@ -273,6 +273,24 @@ final class ArchiveIntegrityTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: archiveDirectory.appendingPathComponent("\(session.id.uuidString).json").path))
     }
 
+    /// A deleted session's file a failed delete left in the archive folder is
+    /// removed with its Trash copy: once the tombstone is forgotten the
+    /// orphan scan would adopt it back. An archived session's file is not.
+    func testDiscardingTheTrashRemovesALeftoverFileOfADeletedSession() throws {
+        let kept = createTestSession()
+        testSessionIds.append(kept.id)
+        _ = try archive.archive(kept)
+        let deletedId = UUID()
+        let leftover = archiveDirectory.appendingPathComponent("\(deletedId.uuidString).json")
+        try Data("{}".utf8).write(to: leftover)
+
+        archive.discardTrashed(deletedId)
+        archive.discardTrashed(kept.id)
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: leftover.path))
+        XCTAssertEqual(try archive.retrieve(kept.id)?.id, kept.id)
+    }
+
     // MARK: - Unreadable index files
 
     /// An index that does not decode and cannot be moved aside is left as it

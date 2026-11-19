@@ -455,23 +455,63 @@ final class RawRRBackupTests: XCTestCase {
         XCTAssertEqual(try backup.retrieve(sessionId)?.points.count, 50)
     }
 
-    /// A plaintext file written after the indexed backup (a process killed
-    /// between a new write and its index save) may hold the most of the
-    /// night: it is kept, and the session stays queued.
-    func testReencryptionKeepsANewerUnindexedPlaintextFile() throws {
+    /// A fuller plaintext file written after the indexed backup (a process
+    /// killed between that write and its index save) becomes the backup, so
+    /// listings and recovery read the most complete night, and the file the
+    /// index missed is then retired.
+    func testReencryptionAdoptsANewerFullerUnindexedFile() throws {
         let sessionId = UUID()
         defer { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
-        try backup.backup(points: makePoints(count: 50), sessionId: sessionId)
-        let newerMs = Int64(Date().timeIntervalSince1970 * 1000) + 60_000
-        let newer = backup.backupDirectory.appendingPathComponent("\(sessionId.uuidString)_\(newerMs).json")
-        defer { XCTAssertNoThrow(try FileManager.default.removeItem(at: newer)) }
-        try plainBackupFile(sessionId: sessionId, beats: 80).write(to: newer)
-        PendingEncryptionLedger.record(sessionId, in: .rawBackup)
+        let newer = try writeUnindexedFile(sessionId: sessionId, indexedBeats: 50, beats: 80, offsetMs: 1)
 
         backup.reencryptBackup(sessionId)
 
-        XCTAssertEqual(try RawRRBackup.decodeLegacyBackup(at: newer).points.count, 80)
+        XCTAssertEqual(try backup.retrieve(sessionId)?.points.count, 80)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: newer.path))
+        if EncryptionManager.shared.isAvailable {
+            XCTAssertFalse(PendingEncryptionLedger.pending(in: .rawBackup).contains(sessionId))
+        }
+    }
+
+    /// A newer file holding fewer beats is neither adopted (`backup()` never
+    /// replaces a fuller backup) nor removed (it is not older, so not provably
+    /// replaced): it is kept, and the session stays queued.
+    func testReencryptionKeepsANewerSmallerUnindexedFile() throws {
+        let sessionId = UUID()
+        defer { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
+        let newer = try writeUnindexedFile(sessionId: sessionId, indexedBeats: 50, beats: 30, offsetMs: 1)
+
+        backup.reencryptBackup(sessionId)
+
+        XCTAssertEqual(try RawRRBackup.decodeLegacyBackup(at: newer).points.count, 30)
+        XCTAssertEqual(try backup.retrieve(sessionId)?.points.count, 50)
         XCTAssertTrue(PendingEncryptionLedger.pending(in: .rawBackup).contains(sessionId))
+    }
+
+    /// Discarding a backup removes every one-shot file of its session, not
+    /// only the indexed one: an unindexed copy would otherwise stay on disk.
+    func testDiscardRemovesEveryOneShotFileOfTheSession() throws {
+        let sessionId = UUID()
+        defer { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
+        _ = try writeUnindexedFile(sessionId: sessionId, indexedBeats: 50, beats: 30, offsetMs: 1)
+        _ = try writeUnindexedFile(sessionId: sessionId, indexedBeats: nil, beats: 20, offsetMs: -1_000)
+
+        try backup.discardBackup(sessionId)
+
+        XCTAssertEqual(try OneShotBackupName.files(of: sessionId, in: backup.backupDirectory), [])
+    }
+
+    /// Backs up `indexedBeats` points (when given), then writes a plain,
+    /// unindexed one-shot file of `beats` points stamped `offsetMs` after the
+    /// indexed file, and queues the session. Returns the file.
+    private func writeUnindexedFile(sessionId: UUID, indexedBeats: Int?, beats: Int, offsetMs: Int64) throws -> URL {
+        if let indexedBeats { try backup.backup(points: makePoints(count: indexedBeats), sessionId: sessionId) }
+        let indexedName = try XCTUnwrap(backup.index.first { $0.id == sessionId }?.fileName)
+        let stamp = OneShotBackupName.writtenMs(indexedName) + offsetMs
+        let url = backup.backupDirectory.appendingPathComponent("\(sessionId.uuidString)_\(stamp).json")
+        try plainBackupFile(sessionId: sessionId, beats: beats).write(to: url)
+        PendingEncryptionLedger.record(sessionId, in: .rawBackup)
+        return url
     }
 
     /// A one-shot backup file of `beats` points, written as plain JSON.

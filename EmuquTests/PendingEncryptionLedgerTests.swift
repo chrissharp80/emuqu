@@ -250,6 +250,28 @@ final class PendingEncryptionLedgerTests: XCTestCase {
         XCTAssertTrue(archive.exists(session.id))
     }
 
+    /// An indexed session whose file went to the Trash as plaintext (a delete
+    /// racing the repair) leaves the queue only with that copy encrypted.
+    func testRepairEncryptsTheTrashCopyBeforeClearingAnEntryWhoseFileMoved() throws {
+        let archive = try makeArchive()
+        var session = HRVSession(startDate: Date(timeIntervalSince1970: 1_790_000_000), sessionType: .quick)
+        session.endDate = session.startDate.addingTimeInterval(300)
+        _ = try archive.archive(session)
+        let file = archive.archiveDirectory.appendingPathComponent("\(session.id.uuidString).json")
+        let trashed = archive.store.trashDirectory.appendingPathComponent("\(session.id.uuidString).session")
+        try FileManager.default.createDirectory(at: archive.store.trashDirectory, withIntermediateDirectories: true)
+        try FileManager.default.removeItem(at: file)
+        try SessionArchive.sessionEncoder.encode(session).write(to: trashed)
+        PendingEncryptionLedger.record(session.id)
+
+        reencryptPendingSessions(in: archive)
+
+        if EncryptionManager.shared.isAvailable {
+            XCTAssertTrue(SessionArchive.looksEncrypted(try Data(contentsOf: trashed)))
+            XCTAssertFalse(PendingEncryptionLedger.pending.contains(session.id))
+        }
+    }
+
     /// A plaintext copy in the Trash is encrypted in place, and still
     /// restores.
     func testRepairEncryptsAPlaintextCopyInTheTrash() throws {

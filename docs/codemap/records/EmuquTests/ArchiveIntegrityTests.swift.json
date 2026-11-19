@@ -406,6 +406,33 @@
    }
   },
   {
+   "key": "func ArchiveIntegrityTests.testDiscardingTheTrashRemovesALeftoverFileOfADeletedSession()",
+   "hash": "b04838641a02f0ac",
+   "does": "Archives one session, writes a stray <id>.json for an id not in the index, calls discardTrashed for both, and asserts the stray file is gone while the archived session still reads.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json, deleted.json, Trash/)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json, deleted.json, Trash/)",
+    "kc:EncryptionManager archive key"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "f7997155f08460b2",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d"
+   }
+  },
+  {
    "key": "func ArchiveIntegrityTests.testAnUndecodableIndexThatCannotBeSetAsideIsNotWrittenOver()",
    "hash": "4b2be76f9d3d85ea",
    "does": "Writes undecodable index.json into the temp archive folder and occupies every set-aside name, then asserts archiving a session throws, index.json keeps its bytes and the archive reports an incomplete index.",

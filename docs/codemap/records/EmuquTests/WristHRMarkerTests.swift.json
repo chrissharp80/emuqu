@@ -217,6 +217,24 @@
    }
   },
   {
+   "key": "func WristHRMarkerTests.testFiniteValuesOnlyCarriesEveryField()",
+   "hash": "d8c3011a70c17e59",
+   "does": "Builds a WorkoutSample with every field set and finite; asserts it has 9 stored properties (Mirror) so a new field forces finiteValuesOnly to be updated, and that finiteValuesOnly returns it unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::var WorkoutSample.finiteValuesOnly",
+    "ext:Mirror"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::var WorkoutSample.finiteValuesOnly": "7e65abae37dc65d0"
+   }
+  },
+  {
    "key": "func WristHRMarkerTests.testCrashBackupWritesAgainAfterAPurgeThatFoundNoFolder()",
    "hash": "fb2985cabec9857b",
    "does": "Backs up three samples, deletes the backup folder (as the purge's sweep does), calls purgeAll, then backs up the same session again and asserts the write happened and all three samples come back.",
