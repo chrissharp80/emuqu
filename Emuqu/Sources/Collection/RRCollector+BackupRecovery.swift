@@ -135,6 +135,12 @@ extension SessionRecoveryCoordinator {
     /// preferring the H10's complete on-device recording when the strap is
     /// connected. Routed here from `recoverFromBackup` for workout-type
     /// backups; the HRV path can't reconstruct GPS / distance / TRIMP.
+    ///
+    /// Returns the session only once it is in the archive. A rebuild whose
+    /// archive write failed returns nil, as the HRV path does, with no review
+    /// card and no archive-change signal: every caller reads a returned
+    /// session as recovered and saved. Its backups are kept, so it can still
+    /// be recovered from Lost Sessions.
     private func recoverWorkoutFromBackup(_ sessionId: UUID) async -> HRVSession? {
         let outcome = await WorkoutRecoveryService.recover(
             sessionId: sessionId,
@@ -144,7 +150,7 @@ extension SessionRecoveryCoordinator {
             cloudSyncManager: collector.cloudSyncManager,
             strapRRPoints: await strapRecordingForWorkoutRecovery(sessionId: sessionId)
         )
-        guard let outcome else { return nil }
+        guard let outcome, outcome.wasArchived else { return nil }
         await MainActor.run {
             collector.archiveSignal.notifyChanged()
             // Surface for review/trim instead of silently keeping a
@@ -181,13 +187,14 @@ extension SessionRecoveryCoordinator {
     /// no strap re-pull needed (the merged data is in the archived session).
     ///
     /// Refuses to trim into nothing — fewer than 30 beats isn't a workout. In
-    /// that case the recovered workout is kept as it was, untrimmed, and marked
-    /// reviewed like a save, so the card doesn't come back for the same session.
-    /// A rebuild that fails leaves the card up and the session unreviewed, so
-    /// the trim can be saved again instead of being dropped.
+    /// that case (a session no longer in the archive counts as none) the
+    /// recovered workout is kept as it was, untrimmed, and marked reviewed
+    /// like a save, so the card doesn't come back for the same session.
+    /// An archived session that cannot be read, or a rebuild that fails or
+    /// is not archived, leaves the card up and the session unreviewed, so the
+    /// trim can be saved again instead of being dropped.
     func retrimRecoveredWorkout(sessionId: UUID, endSec: Double) async {
-        let clipped = collector.archive.retrieveOrLog(sessionId)?.rrSeries?.points
-            .filter { $0.t_ms <= Int64(endSec * 1000) } ?? []
+        guard let clipped = archivedBeats(of: sessionId, upTo: endSec) else { return }
         guard clipped.count >= 30 else { return closeRecoveredWorkoutReview(sessionId) }
         let outcome = await WorkoutRecoveryService.recover(
             sessionId: sessionId, reason: .appCrashed,
@@ -195,12 +202,25 @@ extension SessionRecoveryCoordinator {
             overrideRRPoints: clipped,
             discardBackupsOnAccept: true // user confirmed — safe to clean up
         )
-        guard outcome != nil else {
+        guard let outcome, outcome.wasArchived else {
             debugLog("[Recovery] Trim of recovered workout \(sessionId.uuidString.prefix(8)) failed — keeping the review card", level: .error)
             return
         }
         collector.archiveSignal.notifyChanged()
         closeRecoveredWorkoutReview(sessionId)
+    }
+
+    /// The archived workout's beats up to `endSec`: none when the session is
+    /// no longer in the archive or has no beats, nil (logged) when the
+    /// archive could not read it.
+    private func archivedBeats(of sessionId: UUID, upTo endSec: Double) -> [RRPoint]? {
+        do {
+            return try collector.archive.retrieve(sessionId)?.rrSeries?.points
+                .filter { $0.t_ms <= Int64(endSec * 1000) } ?? []
+        } catch {
+            debugLog("[Recovery] Could not read recovered workout \(sessionId.uuidString.prefix(8)) to trim it — keeping the review card: \(error)", level: .error)
+            return nil
+        }
     }
 
     /// The session is marked reviewed, so its card does not come back, and
@@ -238,33 +258,37 @@ extension SessionRecoveryCoordinator {
     ///      over the workout window (the Watch/iPhone log distance continuously,
     ///      no GPS or workout needed) → restores the DISTANCE number even when
     ///      no route exists. This is the "the app knows my steps" path.
+    /// Either rebuild that is not archived reports `.failed`; a found route
+    /// that could not be saved does not fall back to the distance path.
     func recoverRouteFromAppleWatch(sessionId: UUID) async -> WatchRouteRecoveryResult {
         guard let session = collector.archive.retrieveOrLog(sessionId), let series = session.rrSeries else { return .failed }
         let start = session.startDate
         let end = session.endDate ?? start
-        if let route = await collector.healthKit.fetchWorkoutRoute(from: start, to: end), route.count >= 2,
-           let outcome = await recoverWorkout(sessionId: sessionId, points: series.points, track: route) {
+        if let route = await collector.healthKit.fetchWorkoutRoute(from: start, to: end), route.count >= 2 {
+            guard let rebuilt = await recoverWorkout(sessionId: sessionId, points: series.points, track: route) else { return .failed }
             await MainActor.run { collector.archiveSignal.notifyChanged() }
-            return .recovered(distanceMeters: outcome.session.workoutMetadata?.distanceMeters ?? 0)
+            return .recovered(distanceMeters: rebuilt.workoutMetadata?.distanceMeters ?? 0)
         }
         let hkDistance = await collector.healthKit.fetchPassiveDistanceMeters(from: start, to: end)
         // Only worth rewriting when HealthKit meaningfully beats what we recorded.
         guard hkDistance > (session.workoutMetadata?.distanceMeters ?? 0) + 50 else { return .noRoute }
-        guard let outcome = await recoverWorkout(sessionId: sessionId, points: series.points, distanceMeters: hkDistance)
+        guard let rebuilt = await recoverWorkout(sessionId: sessionId, points: series.points, distanceMeters: hkDistance)
         else { return .failed }
         await MainActor.run { collector.archiveSignal.notifyChanged() }
-        return .distanceOnly(distanceMeters: outcome.session.workoutMetadata?.distanceMeters ?? hkDistance)
+        return .distanceOnly(distanceMeters: rebuilt.workoutMetadata?.distanceMeters ?? hkDistance)
     }
 
     /// Rebuild the workout with whichever override we recovered. `track` also
     /// discards the on-disk backups, since a full route supersedes them.
+    /// Returns the rebuilt session only once it is archived; nil when nothing
+    /// could be rebuilt or the archive write failed.
     private func recoverWorkout(
         sessionId: UUID,
         points: [RRPoint],
         track: [CLLocation]? = nil,
         distanceMeters: Double? = nil
-    ) async -> WorkoutRecoveryService.Outcome? {
-        await WorkoutRecoveryService.recover(
+    ) async -> HRVSession? {
+        let outcome = await WorkoutRecoveryService.recover(
             sessionId: sessionId,
             reason: .appCrashed,
             archive: collector.archive,
@@ -275,6 +299,8 @@ extension SessionRecoveryCoordinator {
             overrideTrack: track,
             overrideDistanceMeters: distanceMeters
         )
+        guard let outcome, outcome.wasArchived else { return nil }
+        return outcome.session
     }
 
     enum StrapAugmentResult {
@@ -303,7 +329,7 @@ extension SessionRecoveryCoordinator {
             sessionId: sessionId, reason: .appCrashed,
             archive: collector.archive, rawBackup: collector.rawBackup, cloudSyncManager: collector.cloudSyncManager,
             overrideRRPoints: merged, autoTrimOverride: true
-        ) else { return .failed }
+        ), outcome.wasArchived else { return .failed }
         await MainActor.run { collector.archiveSignal.notifyChanged() }
         let dur = (outcome.session.endDate ?? outcome.session.startDate).timeIntervalSince(outcome.session.startDate)
         return .merged(durationSec: dur, beats: outcome.session.rrSeries?.points.count ?? merged.count)
@@ -502,9 +528,11 @@ extension SessionRecoveryCoordinator {
     /// the Lost Sessions disk-list (which lists on-disk partials, never the
     /// strap, and can't surface a strap-only session). Keyed off the
     /// persisted recording state so it targets EXACTLY the crashed workout,
-    /// not a pile of old backups. Returns the recovered session, or nil when
-    /// there's nothing to recover (no interrupted workout, or neither the
-    /// strap nor disk has usable data — e.g. strap not connected).
+    /// not a pile of old backups. Returns the recovered session once it is
+    /// archived, or nil when there's nothing to recover (no interrupted
+    /// workout, or neither the strap nor disk has usable data — e.g. strap
+    /// not connected) or the archive write failed. Only an archived recovery
+    /// clears the crash marker.
     func recoverInterruptedWorkoutFromStrap() async -> HRVSession? {
         guard let sessionId = await findInterruptedWorkoutSessionId() else { return nil }
         let session = await recoverWorkoutFromBackup(sessionId)
@@ -532,6 +560,8 @@ extension SessionRecoveryCoordinator {
     /// short window the persisted flag is LEFT set, so the manual "Recover
     /// workout from strap" card still offers it (and the user can recover
     /// disk-only, or wait until the strap is next connected to get the merge).
+    /// A recovery whose archive write fails leaves the flag set and the
+    /// attempt counted, so the manual card still offers the workout.
     func autoRecoverInterruptedWorkoutOnLaunch() async {
         // The flagged workout is registered before the backup scan awaits:
         // the launch alert's Save waits on it and must find it running.
