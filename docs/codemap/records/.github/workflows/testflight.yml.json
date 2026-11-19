@@ -38,9 +38,9 @@
   },
   {
    "key": "job deploy",
-   "hash": "bd30ce37e084318b",
-   "does": "macOS-26 job (timeout 60) that archives, exports and uploads the app to TestFlight; needs quality-gate.",
-   "entry": "GitHub Actions job in testflight.yml, after quality-gate.",
+   "hash": "2d7d16f8b12adc90",
+   "does": "macOS-26 job (timeout 60) that archives, exports and uploads the app to TestFlight; needs quality-gate. Runs in the testflight environment, so it reads that environment's secrets, only main may deploy to it, and the run waits for the owner's approval before any step starts.",
+   "entry": "GitHub Actions job in testflight.yml, after quality-gate and an approval on the testflight environment.",
    "calls": [
     ".github/workflows/testflight.yml::step deploy/Checkout",
     ".github/workflows/testflight.yml::step deploy/Select Xcode",

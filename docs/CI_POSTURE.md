@@ -228,7 +228,9 @@ fails a raise that has no written justification.
 - Every pull request and push to `main`: `gates.yml` and `ci.yml` (`unit`).
 - `testflight.yml` calls `ci.yml` as a reusable workflow at scope `full`, so a
   release cannot be cut without the full suite, UI target included, passing
-  first.
+  first. Its deploy job runs in the `testflight` environment: only `main` can
+  deploy to it, the owner has to approve each run, and the signing and App
+  Store Connect secrets live there.
 - `security.yml` (CodeQL) is run on demand when a security pass is wanted.
 
 ## What this posture does *not* claim
@@ -240,16 +242,18 @@ fails a raise that has no written justification.
   a UI flow can reach `main` and is caught at the latest by the release gate.
   `make ci` runs the full suite locally, which is a discipline, not an
   enforcement.
-- **The macOS jobs are not required checks.** `main` requires only the Linux
-  `gates.yml` job. A red `ci.yml` run on a pull request is visible on the pull
-  request but does not block the merge by itself.
+- **The UI target is not a required check.** `main` requires the Linux
+  `gates.yml` job and the four macOS jobs that run at scope `unit` (lint and
+  budgets, strict concurrency, Thread Sanitizer, tests with coverage), against
+  a branch that is up to date with `main`. The UI flows and the full coverage
+  floors are not part of that and run only at scope `full`.
 
 ## For reviewers
 
 The macOS build, the unit suite and Thread Sanitizer run on every pull request
 and every push to `main`; the UI target runs on demand and before a release.
-`main` is protected by one required check, the Linux `gates.yml` job; nothing
-that needs macOS is required.
+`main` requires five checks to pass on a branch that is up to date with it:
+the Linux `gates.yml` job and the four macOS `ci.yml` jobs.
 
 For a fast, factual snapshot of what is enforced — every ceiling, every
 zero-tolerance counter, and where each is written down:
@@ -268,10 +272,9 @@ run on the pull request, or on the commit for a push to `main`. Its run summary
 has one line per macOS job with the scope and the result. For the UI target
 and the full coverage floors, ask for a run at scope `full`.
 
-If your finding is *"the macOS jobs should be required checks on `main`"*, the
-sequence is: the jobs run on every pull request → a record of green runs →
-then require them. The Linux `gates.yml` job went through that sequence and is
-required; the macOS jobs are at the first step.
+If your finding is *"the macOS jobs should be required checks on `main`"*, they
+are. Each went through the same sequence as the Linux `gates.yml` job: run on
+every pull request, build a record of green runs, then become required.
 
 `sbom.spdx.json` covers the app and its 11
 resolved packages with versions, commit SHAs, Package URLs and licences, and

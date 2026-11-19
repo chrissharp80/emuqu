@@ -29,6 +29,9 @@ jobs:
     if: needs.quality-gate.result == 'success' && github.repository_owner == 'chrissharp80'
     runs-on: macos-26
     timeout-minutes: 60
+    # The signing and App Store Connect secrets live in this environment, which
+    # only main can deploy to and which waits for the owner's approval.
+    environment: testflight
 
     steps:
       - name: Checkout
