@@ -945,7 +945,7 @@ Chart labels adapt to context: "Overnight Summary" / "Heart Rate Overnight" / "H
 
 ### Notes Section
 - Text field for session notes
-- Notes and tag changes are saved when you tap **Done** or close the report (a swipe down included)
+- Notes and tag changes are saved when you tap **Done** or close the report (a swipe down included). **Discard** throws the reading away, and its tag and note changes with it
 
 ### Action Buttons
 - **"Email Report"**: Choose the sections; Emuqu builds a PDF report and attaches it to a new email:

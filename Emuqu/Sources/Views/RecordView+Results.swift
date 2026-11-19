@@ -132,14 +132,18 @@ extension RecordView {
     /// The archive rewrite (decrypt, encode, write) runs off the main actor.
     /// A failure on the reading still awaiting acceptance is expected (it may
     /// not be archived yet) and only logged: acceptance archives the
-    /// in-memory copy, which holds these tags. Any other reading is already
-    /// archived and is not saved again, so a failure loses the edit and is
-    /// reported (`tagSaveFailureMessage`), as History reports its own.
+    /// in-memory copy, which holds these tags. So is a reading the archive no
+    /// longer holds (discarded or deleted meanwhile): there is nothing left to
+    /// tag. Any other reading is archived and is not saved again, so a
+    /// failure loses the edit and is reported (`tagSaveFailureMessage`), as
+    /// History reports its own.
     func writeTagsToArchive(_ id: UUID, tags: [ReadingTag], notes: String?) async {
         let acceptanceSavesTags = sessionState.needsAcceptance && sessionState.currentSession?.id == id
         let archive = collector.archive
         do {
             try await Task.detached { try archive.updateTags(id, tags: tags, notes: notes) }.value
+        } catch SessionArchive.ArchiveError.fileNotFound, SessionArchive.ArchiveError.sessionWasDeleted {
+            debugLog("[RecordView] Tags not written: \(id.uuidString.prefix(8)) is not in the archive")
         } catch {
             debugLog("[RecordView] Tags not written to the archive for \(id.uuidString.prefix(8)): \(error)")
             guard !acceptanceSavesTags else { return }

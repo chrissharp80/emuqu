@@ -430,8 +430,8 @@
   },
   {
    "key": "var MorningResultsView.doneButton",
-   "hash": "245b3b22967fc89f",
-   "does": "Button that calls saveTagsAndNotesIfChanged() (hands changed tags/notes to onUpdateTags when provided), then onDiscard(). Label/icon/colour is 'Done' (checkmark) when onDelete exists, else 'Discard' (xmark, terracotta).",
+   "hash": "194ac922b10619f4",
+   "does": "Button labelled 'Done' (checkmark) when onDelete exists, else 'Discard' (xmark, terracotta). Done hands changed tags/notes to onUpdateTags (saveTagsAndNotesIfChanged); Discard drops them instead, recording the current edits as handled (savedTagsAndNotes) so neither the button nor the sheet's onDisappear hands a save off for a reading about to be rejected or deleted. Then calls onDiscard().",
    "entry": "Button action on user tap",
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.saveTagsAndNotesIfChanged()",
@@ -439,16 +439,26 @@
     "Emuqu/Sources/Views/Theme.swift::var ButtonStyle.zenSecondary",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [],
-   "writes": [],
+   "reads": [
+    "mem:MorningResultsViewModel.selectedTags",
+    "mem:MorningResultsViewModel.notes"
+   ],
+   "writes": [
+    "mem:MorningResultsView.savedTagsAndNotes (Discard)"
+   ],
    "branches": [
     {
-     "at": "+5",
+     "at": "+2",
+     "cond": "onDelete != nil",
+     "effect": "true → saveTagsAndNotesIfChanged; false → savedTagsAndNotes = current edits (dropped, not handed off)"
+    },
+    {
+     "at": "+9",
      "cond": "onDelete != nil",
      "effect": "true → 'Done'/checkmark; false → 'Discard'/xmark"
     },
     {
-     "at": "+7",
+     "at": "+11",
      "cond": "onDelete != nil",
      "effect": "true → primary text colour; false → terracotta"
     }
