@@ -94,11 +94,6 @@ extension EmuquApp {
     ///     iCloud as a complete (but flagged "Estimated") workout.
     ///   • HRV / overnight sessions use the existing `recoverFromBackup`
     ///     path, which only knows about RR.
-    ///
-    /// The persisted recording state is cleared only once the session is in
-    /// the archive. When nothing was saved it stays, so the next launch offers
-    /// the session again (and launch auto-recovery can retry a workout with
-    /// the strap); Dismiss still stops the prompt.
     func recoverInterruptedSession() {
         guard let info = interruptedSessionAlert else { return }
         interruptedSessionAlert = nil
@@ -124,10 +119,10 @@ extension EmuquApp {
             rawBackup: collector.rawBackup,
             cloudSyncManager: syncManager
         )
+        collector.clearPersistedRecordingStatePublic()
         guard let outcome else {
             return String(localized: "Could not recover the workout. The backup data may be incomplete. Check Settings → iCloud & Data → Recover Lost Sessions for manual recovery.", bundle: languageManager.bundle)
         }
-        if outcome.wasArchived { collector.clearPersistedRecordingStatePublic() }
         return outcome.summaryLine + " " + recoveredWorkoutSaveNote(wasArchived: outcome.wasArchived)
     }
 
@@ -150,10 +145,11 @@ extension EmuquApp {
     }
 
     private func recoverInterruptedRecording(_ info: InterruptedSessionInfo) async -> String {
-        guard await collector.recoverFromBackup(info.sessionId) != nil else {
+        let recovered = await collector.recoverFromBackup(info.sessionId)
+        collector.clearPersistedRecordingStatePublic()
+        guard recovered != nil else {
             return String(localized: "Could not recover the session. The backup data may be incomplete. Check Settings → iCloud & Data → Recover Lost Sessions for manual recovery.", bundle: languageManager.bundle)
         }
-        collector.clearPersistedRecordingStatePublic()
         return String(localized: "\(info.sessionType.displayName) session saved to your archive.", bundle: languageManager.bundle)
     }
 
