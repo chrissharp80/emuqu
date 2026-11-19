@@ -146,7 +146,9 @@ extension SessionArchive {
     /// read but do not decode are moved aside as unreadable. One entry that
     /// does not decode on this build is left out of `index` (`decodeIndex`),
     /// not the whole index, and kept with the newer-schema ones in
-    /// `newerBuildIndexEntries` for `saveIndex` to write back.
+    /// `newerBuildIndexEntries` for `saveIndex` to write back. Bytes that
+    /// cannot be moved aside either are handled as a failed read, so no save
+    /// writes over them until they are.
     func loadIndex() {
         guard fileManager.fileExists(atPath: indexFile.path) else { return }
         let data: Data
@@ -165,15 +167,15 @@ extension SessionArchive {
             debugLog("Failed to decode archive index: \(error)", level: .error)
             index = []
             indexDecodeFailed = true
-            preserveUnreadableIndex()
+            indexReadFailed = !preserveUnreadableIndex()
         }
     }
 
     /// Read the index that failed to load at launch and merge it into the
     /// in-memory one, which holds only what was written since. Throws while
-    /// the file still cannot be read, so a save never writes the near-empty
-    /// in-memory list over the only list of the user's sessions. Caller holds
-    /// `archiveLock`.
+    /// the file still cannot be read, or does not decode and cannot be moved
+    /// aside, so a save never writes the near-empty in-memory list over the
+    /// only list of the user's sessions. Caller holds `archiveLock`.
     func mergeIndexThatFailedToLoad() throws {
         guard indexReadFailed else { return }
         let data = try Data(contentsOf: indexFile)
@@ -189,7 +191,10 @@ extension SessionArchive {
         } catch {
             debugLog("Failed to decode archive index on retry: \(error)", level: .error)
             indexDecodeFailed = true
-            preserveUnreadableIndex()
+            guard preserveUnreadableIndex() else {
+                indexReadFailed = true
+                throw error
+            }
         }
     }
 
@@ -216,19 +221,21 @@ extension SessionArchive {
     /// unreadable file is moved aside first — a rename works even when the
     /// bytes cannot be read — and the session files themselves stay put, so
     /// the orphan scan at the end of `boot()` adopts every one of them back.
-    private func preserveUnreadableIndex() {
+    /// False when the move failed and the file is still in place.
+    private func preserveUnreadableIndex() -> Bool {
         let aside = indexFile.deletingLastPathComponent()
             .appendingPathComponent("\(indexFile.lastPathComponent).unreadable_\(Int(Date().timeIntervalSince1970))")
-        if attempt("Archive.preserveIndex", { try fileManager.moveItem(at: indexFile, to: aside) }) != nil {
-            debugLog("[Archive] unreadable index moved to \(aside.lastPathComponent); sessions will be re-adopted from their files", level: .warning)
-        }
+        guard attempt("Archive.preserveIndex", { try fileManager.moveItem(at: indexFile, to: aside) }) != nil else { return false }
+        debugLog("[Archive] unreadable index moved to \(aside.lastPathComponent); sessions will be re-adopted from their files", level: .warning)
+        return true
     }
 
     /// A read error (the file locked by data protection) is not corruption,
     /// as for the index: the file stays where it is, the deletion times kept
     /// beside it stand in, and `deletedIndexReadFailed` makes the next save
     /// (or `boot()`) read it again and merge it first. Only bytes that read
-    /// but do not decode are set aside.
+    /// but do not decode are set aside; when that move fails they are handled
+    /// as a failed read too, so no save writes over them until they move.
     func loadDeletedIndex() {
         guard fileManager.fileExists(atPath: deletedIndexFile.path) else { return }
         let data: Data
@@ -243,15 +250,15 @@ extension SessionArchive {
         do {
             deletedSessionIds = try Self.decodeDeletedIds(data)
         } catch {
-            setAsideUnreadableDeletedIndex(error)
+            deletedIndexReadFailed = !setAsideUnreadableDeletedIndex(error)
             deletedSessionIds = ArchiveStore.idsWithRecordedDeletionTime()
         }
     }
 
     /// Read the deleted list that failed to load and merge it into the
-    /// in-memory one. Throws while the file still cannot be read, so a save
-    /// never writes the partial list over the full one. Caller holds
-    /// `archiveLock`.
+    /// in-memory one. Throws while the file still cannot be read, or does not
+    /// decode and cannot be moved aside, so a save never writes the partial
+    /// list over the full one. Caller holds `archiveLock`.
     func mergeDeletedIndexThatFailedToLoad() throws {
         guard deletedIndexReadFailed else { return }
         let data = try Data(contentsOf: deletedIndexFile)
@@ -259,7 +266,10 @@ extension SessionArchive {
         do {
             deletedSessionIds.formUnion(try Self.decodeDeletedIds(data))
         } catch {
-            setAsideUnreadableDeletedIndex(error)
+            guard setAsideUnreadableDeletedIndex(error) else {
+                deletedIndexReadFailed = true
+                throw error
+            }
         }
     }
 
@@ -271,11 +281,12 @@ extension SessionArchive {
     /// one-entry list over every tombstone the pull relies on, and sessions
     /// the user deleted would download again. The file is set aside; the
     /// caller rebuilds the list from the deletion times kept beside it.
-    private func setAsideUnreadableDeletedIndex(_ error: Error) {
+    /// False when the move failed and the file is still in place.
+    private func setAsideUnreadableDeletedIndex(_ error: Error) -> Bool {
         debugLog("Failed to decode deleted index: \(error) — rebuilding from recorded deletion times", level: .error)
         let aside = deletedIndexFile.deletingLastPathComponent()
             .appendingPathComponent("\(deletedIndexFile.lastPathComponent).unreadable_\(Int(Date().timeIntervalSince1970))")
-        _ = attempt("Archive.preserveDeletedIndex") { try fileManager.moveItem(at: deletedIndexFile, to: aside) }
+        return attempt("Archive.preserveDeletedIndex") { try fileManager.moveItem(at: deletedIndexFile, to: aside) } != nil
     }
 
     func saveDeletedIndex() throws {

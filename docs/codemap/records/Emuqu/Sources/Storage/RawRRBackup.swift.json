@@ -174,7 +174,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.createBackupDirectoryIfNeeded()": "0bf04292867594af",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.loadIndex()": "c1d8091298c16316",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.loadIndex()": "68e2c5b5099f4d82",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.logUnarchivedCount()": "da4177d90f0f1484",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reencryptPendingBackups()": "adb9e6a4a9583739",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resolveBackupDirectory()": "a5da7aa92e627195"
@@ -258,15 +258,16 @@
   },
   {
    "key": "func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)",
-   "hash": "ef76276364dc0837",
-   "does": "One-shot backup: refuses empty points; via replaceableIndexEntry merges an index the launch could not read (throws while unreadable) and refuses to replace an existing backup with more beats; builds the entry (captureDate = caller's, else the existing row's, else now; integrityHash); writeOneShot writes it under a never-reused <uuid>_<ms>.json name and replaces and saves the index row (on a failed save the previous row is restored and the new file removed); only then deletes the session's append-only files and the previous one-shot file (removeReplacedFile; the names always differ now). Returns the entry.",
+   "hash": "05f49fbbc6804eb8",
+   "does": "One-shot backup: refuses empty points; via replaceableIndexEntry merges an index the launch could not read (throws while unreadable) and refuses to replace an existing backup with more beats; builds the entry (captureDate = caller's, else the existing row's, else now; integrityHash); notes whether the session was queued for re-encryption; writeOneShot writes it under a never-reused <uuid>_<ms>.json name and replaces and saves the index row (on a failed save the previous row is restored and the new file removed); only then deletes the session's append-only files and the previous one-shot file (removeReplacedFile, which queues the session again when a possibly-plaintext old file will not go). Returns the entry.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.replaceableIndexEntry(_:newCount:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.integrityHash(of:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.writeOneShot(_:replacing:)",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.cleanupAppendFiles(for:)",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.removeReplacedFile(_:keeping:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.removeReplacedFile(_:keeping:of:wasPending:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
@@ -300,20 +301,21 @@
      "effect": "captureDate ?? existing.captureDate ?? Date(): caller value wins, else the existing row's date, else now"
     },
     {
-     "at": "+10",
+     "at": "+11",
      "cond": "writeOneShot throws (write or index save)",
      "effect": "throws; old files and old row kept and consistent; the new file is removed when only the save failed"
     },
     {
-     "at": "+13",
+     "at": "+14",
      "cond": "points.count < 100",
      "effect": "logs the small backup; otherwise silent"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "c7d52a25233a7067",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.cleanupAppendFiles(for:)": "c7feae654a46ce2a",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.integrityHash(of:)": "1fb3ccef498336b3",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.removeReplacedFile(_:keeping:)": "f8eb3fe5a63b4b46",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.removeReplacedFile(_:keeping:of:wasPending:)": "af9238b247fbc274",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.replaceableIndexEntry(_:newCount:)": "9188a8b218e88bf6",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.writeOneShot(_:replacing:)": "a313702bb5811011",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
@@ -381,31 +383,34 @@
    }
   },
   {
-   "key": "func RawRRBackup.removeReplacedFile(_:keeping:)",
-   "hash": "d7e430de70d3b28b",
-   "does": "Deletes the previous one-shot backup file that the new backup replaced; no-op when there was none or it has the same name.",
+   "key": "func RawRRBackup.removeReplacedFile(_:keeping:of:wasPending:)",
+   "hash": "e45869b9657e645b",
+   "does": "Deletes the one-shot file a new backup replaced (nil or the same name: nothing to do). A failed removal is logged, and when the session was queued for re-encryption before the write (so the old file may be plaintext, while the encrypted write cleared the entry) the session is recorded again, so reencryptBackup removes it.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "ext:FileManager.removeItem"
    ],
    "reads": [],
    "writes": [
-    "file:RRBackup/<old>.json (deleted)"
+    "file:RRBackup/<uuid>_<stamp>.json (previous one-shot file, deleted)",
+    "ud:storage.pendingReencryption.rawBackupIDs"
    ],
    "branches": [
     {
      "at": "+1",
-     "cond": "old name exists and differs from current",
-     "effect": "false: return; true: remove"
+     "cond": "no previous file, or the same name",
+     "effect": "return"
     },
     {
      "at": "+4",
-     "cond": "removeItem throws",
-     "effect": "catch: log warning, file stays orphaned on disk"
+     "cond": "removal failed",
+     "effect": "log; queue the session again when wasPending"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "e6099c40e631f44d",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -435,7 +440,7 @@
    "deps": {
     "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "293d00b425d37802",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "c7d52a25233a7067",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reencryptBackup(_:)": "39e60e61a232bcd4",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reencryptBackup(_:)": "cf2ff55ea5e98532",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
@@ -443,42 +448,83 @@
   },
   {
    "key": "func RawRRBackup.reencryptBackup(_:)",
-   "hash": "2dcf513ceb330ca1",
-   "does": "For one pending id: if its index row has no one-shot fileName, clears it from the ledger; otherwise decodes the file and rewrites it via writeEntry (encrypted and written → ledger cleared; a failed write leaves it queued).",
+   "hash": "1827669c1551a41c",
+   "does": "For one pending id, on appendQueue: merges an index the launch could not read, then lists the session's one-shot files other than the indexed one that are still plain JSON. With an index row, removes those superseded plaintext files; then a one-shot row is rewritten via writeEntry (encrypted and written → ledger cleared) and a streaming row clears the ledger. Without a row (discarded, or a file a crash left unindexed) the ledger is cleared only when no such plaintext file exists, which is kept. Any throw (index still unreadable, listing, removal, decode, write) is logged and leaves the id queued.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.mergeIndexIfLaunchReadFailed()",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.existingIndexEntry(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.plaintextOneShots(of:except:)",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.decodeLegacyBackup(at:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.writeEntry(_:to:sessionId:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.removeItem"
    ],
    "reads": [
     "mem:RawRRBackup.index",
+    "mem:RawRRBackup.indexReadFailed",
+    "file:RRBackup/backup_index.json",
     "file:RRBackup/<uuid>_<t>.json"
    ],
    "writes": [
     "file:RRBackup/<uuid>_<t>.json",
+    "file:RRBackup/<uuid>_<t>.json (superseded plaintext, deleted)",
+    "mem:RawRRBackup.index",
     "ud:storage.pendingReencryption.rawBackupIDs"
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "index row with fileName exists",
-     "effect": "false: ledger.clear and return; true: rewrite"
+     "at": "+5",
+     "cond": "session has an index row",
+     "effect": "remove every superseded plaintext one-shot file"
     },
     {
-     "at": "+8",
-     "cond": "decode or write throws",
-     "effect": "catch: log warning; writeEntry kept it queued for the next launch"
+     "at": "+6",
+     "cond": "a one-shot file is indexed",
+     "effect": "rewrite it via writeEntry"
+    },
+    {
+     "at": "+9",
+     "cond": "streaming row, or no row and no plaintext file found",
+     "effect": "clear the ledger; otherwise (no row, plaintext file kept) left queued"
+    },
+    {
+     "at": "+12",
+     "cond": "index unreadable, or listing/removal/decode/write throws",
+     "effect": "log warning; left queued (writeEntry keeps it queued on a failed write)"
     }
    ],
    "deps": {
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "a68d8c6c5a265e3c",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.mergeIndexIfLaunchReadFailed()": "123e4bfce1021a16",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.decodeLegacyBackup(at:)": "3c9f14b13a29d54b",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.existingIndexEntry(_:)": "0fa9fb70533d1f5f",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.plaintextOneShots(of:except:)": "4a307605b68a5163",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.writeEntry(_:to:sessionId:)": "361104a7856cd9e9",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func RawRRBackup.plaintextOneShots(of:except:)",
+   "hash": "fc70cd8ed46b0c01",
+   "does": "Lists the backup directory and returns the URLs of the session's one-shot files (OneShotBackupName.parse id matches) other than `current` whose bytes do not start with the encrypted 'FR' prefix (read memory-mapped). Throws when the listing or a read fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.parse(_:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)",
+    "ext:FileManager.contentsOfDirectory",
+    "ext:Data(contentsOf:options:)"
+   ],
+   "reads": [
+    "file:RRBackup/ (listing)",
+    "file:RRBackup/<uuid>_<t>.json"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)": "d617abae8ea527b1",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.parse(_:)": "ef97a1a3f041353b"
    }
   },
   {
@@ -849,7 +895,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "945cdc584e3809ca",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "1ed5ce210ad55f70",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.isDue(lastBackup:interval:)": "1b5ce68001689e81",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }

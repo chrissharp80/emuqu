@@ -287,6 +287,29 @@
    }
   },
   {
+   "key": "func ArchiveMigrationParityTests.testQuarantineNeverReplacesAnEarlierCopy()",
+   "hash": "f9f88cc3a4d2074f",
+   "does": "Asserts unusedQuarantineURL gives a session's own name in an empty quarantine folder, and a different, unused name once a file holds it; that parkedCopies lists the one quarantined copy; and that the stamped name counts as a pending plaintext copy for the protection walk.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.unusedQuarantineURL(for:in:fileManager:)",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.parkedCopies(of:)",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func isPendingPlaintextSessionFile(_:pending:)"
+   ],
+   "reads": [
+    "file:ArchiveMigrationParityTests-<uuid> temp archive directory (QuarantinedDuplicates/)"
+   ],
+   "writes": [
+    "file:ArchiveMigrationParityTests-<uuid> temp archive directory (QuarantinedDuplicates/<uuid>.json)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.unusedQuarantineURL(for:in:fileManager:)": "82d6b5f14e8955e3",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func isPendingPlaintextSessionFile(_:pending:)": "57fd87f67445a47e",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.parkedCopies(of:)": "824b945ef63af701"
+   }
+  },
+  {
    "key": "func ArchiveMigrationParityTests.makeCompletedSession()",
    "hash": "b133e9c9ded47428",
    "does": "Returns an overnight HRVSession starting 8 h ago and ending now, with no RR data or analysis.",

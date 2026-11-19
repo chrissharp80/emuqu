@@ -11,8 +11,8 @@
  "units": [
   {
    "key": "func RawRRBackup.recoverIndexFromFiles()",
-   "hash": "3ff5d1fc6fab0ed7",
-   "does": "Renames the undecodable index to backup_index.json.unreadable_<ts>, lists the backup directory, builds entries from *_header.json files and from one-shot files (latest per session, excluding ids already found via headers), logs counts and returns them.",
+   "hash": "cd63f067e7ce4c22",
+   "does": "Renames the undecodable index to backup_index.json.unreadable_<ts>, lists the backup directory, builds entries from *_header.json files and from one-shot files (latest per session, excluding ids already found via headers), logs counts and returns them with replaceable = whether the rename succeeded (false: the file is still at indexFile and must not be saved over).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
@@ -37,12 +37,17 @@
      "at": "+4",
      "cond": "directory listing failed",
      "effect": "?? [] → returns no entries (index becomes empty)"
+    },
+    {
+     "at": "+3",
+     "cond": "rename failed",
+     "effect": "replaceable=false (logged by attempt)"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.latestOneShotPerSession(_:)": "fd5b5faa19ff30f8",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.latestOneShotPerSession(_:)": "466edc9b1b48101d",
     "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.recoveredEntry(fromHeaderNamed:)": "47dd3752796189b8",
-    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.recoveredEntry(fromOneShotNamed:)": "34f4424a9b68b1de",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.recoveredEntry(fromOneShotNamed:)": "090dc62f3eb5027d",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }

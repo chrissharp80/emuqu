@@ -302,10 +302,11 @@ final class RawRRBackup: @unchecked Sendable {
             id: sessionId, captureDate: captureDate ?? existing?.captureDate ?? Date(), deviceId: deviceId,
             points: points, hash: try Self.integrityHash(of: points)
         )
+        let wasPending = PendingEncryptionLedger.pending(in: .rawBackup).contains(sessionId)
         // The old files go only once the new row is on disk.
         let fileName = try writeOneShot(entry, replacing: existing)
         cleanupAppendFiles(for: sessionId)
-        removeReplacedFile(existing?.fileName, keeping: fileName)
+        removeReplacedFile(existing?.fileName, keeping: fileName, of: sessionId, wasPending: wasPending)
         if points.count < 100 {
             debugLog("[RawRRBackup] Backed up \(points.count) beats for session \(sessionId.uuidString.prefix(8))")
         }
@@ -375,13 +376,17 @@ final class RawRRBackup: @unchecked Sendable {
     }
 
     /// The one-shot file a new backup replaced. Its index row is gone, so
-    /// left on disk it was out of reach of Trash, discard and purge.
-    private func removeReplacedFile(_ old: String?, keeping current: String) {
+    /// left on disk it was out of reach of Trash, discard and purge. One that
+    /// will not go while it may be plaintext (the session was queued before
+    /// the write that cleared it) queues the session again, and
+    /// `reencryptBackup` removes it.
+    private func removeReplacedFile(_ old: String?, keeping current: String, of sessionId: UUID, wasPending: Bool) {
         guard let old, old != current else { return }
         do {
             try fileManager.removeItem(at: backupDirectory.appendingPathComponent(old))
         } catch {
             debugLog("[RawRRBackup] ⚠️ Failed to remove replaced backup \(old): \(error)")
+            if wasPending { PendingEncryptionLedger.record(sessionId, in: .rawBackup) }
         }
     }
 
@@ -398,20 +403,35 @@ final class RawRRBackup: @unchecked Sendable {
         }
     }
 
-    /// A backup that is gone, or no longer a one-shot file, leaves the queue;
-    /// one that cannot be read or rewritten yet stays for the next launch
-    /// (`writeEntry` keeps it queued when its write fails).
-    private func reencryptBackup(_ sessionId: UUID) {
-        guard let fileName = existingIndexEntry(sessionId)?.fileName else {
-            PendingEncryptionLedger.clear(sessionId, in: .rawBackup)
-            return
-        }
-        let url = backupDirectory.appendingPathComponent(fileName)
+    /// A backup leaves the queue once none of its one-shot files is plaintext:
+    /// the indexed one rewritten encrypted (`writeEntry` clears it), and a
+    /// plain one the index no longer names, which a newer backup replaced,
+    /// removed. With no index row such a file is kept, and so is the entry.
+    /// Anything not yet readable, listable or writable, the index file
+    /// included, leaves it queued for the next launch.
+    func reencryptBackup(_ sessionId: UUID) {
         do {
-            try Self.writeEntry(try Self.decodeLegacyBackup(at: url), to: url, sessionId: sessionId)
+            try mergeIndexIfLaunchReadFailed()
+            let entry = existingIndexEntry(sessionId)
+            let stale = try plaintextOneShots(of: sessionId, except: entry?.fileName)
+            for url in stale where entry != nil { try fileManager.removeItem(at: url) }
+            if let fileName = entry?.fileName {
+                let url = backupDirectory.appendingPathComponent(fileName)
+                try Self.writeEntry(try Self.decodeLegacyBackup(at: url), to: url, sessionId: sessionId)
+            } else if entry != nil || stale.isEmpty {
+                PendingEncryptionLedger.clear(sessionId, in: .rawBackup)
+            }
         } catch {
             debugLog("[RawRRBackup] re-encryption deferred for \(sessionId.uuidString.prefix(8)): \(error)", level: .warning)
         }
+    }
+
+    /// One-shot files of `sessionId`, other than `current`, in plain JSON.
+    private func plaintextOneShots(of sessionId: UUID, except current: String?) throws -> [URL] {
+        try fileManager.contentsOfDirectory(atPath: backupDirectory.path)
+            .filter { $0 != current && OneShotBackupName.parse($0)?.id == sessionId }
+            .map { backupDirectory.appendingPathComponent($0) }
+            .filter { try !ArchiveStore.looksEncrypted(Data(contentsOf: $0, options: .alwaysMapped)) }
     }
 
     /// Encode one backup entry, reporting whether encryption actually happened.

@@ -13,10 +13,12 @@ import Foundation
 extension RawRRBackup {
     /// Moves the undecodable index aside — a rename works even when the bytes
     /// cannot be read — and lists every backup that can still be identified.
-    func recoverIndexFromFiles() -> [BackupIndex] {
+    /// `replaceable` is false when the move failed: the file is still at
+    /// `indexFile`, and the caller keeps every save from writing over it.
+    func recoverIndexFromFiles() -> (entries: [BackupIndex], replaceable: Bool) {
         let aside = indexFile.deletingLastPathComponent()
             .appendingPathComponent("\(indexFile.lastPathComponent).unreadable_\(Int(Date().timeIntervalSince1970))")
-        _ = attempt("RawRRBackup.preserveIndex") { try fileManager.moveItem(at: indexFile, to: aside) }
+        let movedAside = attempt("RawRRBackup.preserveIndex") { try fileManager.moveItem(at: indexFile, to: aside) } != nil
         let names = attempt("RawRRBackup.listForRecovery") {
             try fileManager.contentsOfDirectory(atPath: backupDirectory.path)
         } ?? []
@@ -26,7 +28,7 @@ extension RawRRBackup {
             .filter { !headerIds.contains($0.id) }
         let entries = fromHeaders + oneShots
         debugLog("[RawRRBackup] index unreadable — rebuilt \(fromHeaders.count) entries from headers, \(oneShots.count) from one-shot files", level: .warning)
-        return entries
+        return (entries, movedAside)
     }
 
     /// Not marked archived: a backup listed in Lost Sessions that turns out to

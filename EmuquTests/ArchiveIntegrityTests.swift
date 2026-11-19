@@ -228,6 +228,65 @@ final class ArchiveIntegrityTests: XCTestCase {
         XCTAssertNil(retrieved)
     }
 
+    /// A session the Trash cannot take (here a file stands where its folder
+    /// goes) stays archived and the delete throws. The file was deleted
+    /// instead, losing the copy a restore brings back.
+    func testADeleteTheTrashCannotTakeLeavesTheSessionArchived() throws {
+        let session = createTestSession()
+        testSessionIds.append(session.id)
+        _ = try archive.archive(session)
+        XCTAssertTrue(FileManager.default.createFile(atPath: archive.store.trashDirectory.path, contents: Data()))
+
+        XCTAssertThrowsError(try archive.delete(session.id))
+
+        XCTAssertTrue(archive.exists(session.id))
+        XCTAssertFalse(archive.wasIntentionallyDeleted(session.id))
+        XCTAssertEqual(try archive.retrieve(session.id)?.id, session.id)
+    }
+
+    // MARK: - Unreadable index files
+
+    /// An index that does not decode and cannot be moved aside is left as it
+    /// is: the next save throws instead of writing a near-empty list over it.
+    func testAnUndecodableIndexThatCannotBeSetAsideIsNotWrittenOver() throws {
+        let indexFile = archiveDirectory.appendingPathComponent("index.json")
+        let unreadable = Data("not an index".utf8)
+        try FileManager.default.createDirectory(at: archiveDirectory, withIntermediateDirectories: true)
+        try unreadable.write(to: indexFile)
+        try occupySetAsideNames(of: indexFile)
+
+        XCTAssertThrowsError(try archive.archive(createTestSession()))
+
+        XCTAssertEqual(try Data(contentsOf: indexFile), unreadable)
+        XCTAssertFalse(archive.hasCompleteIndex)
+    }
+
+    /// The same for the deleted list, whose loss let iCloud bring deleted
+    /// sessions back.
+    func testAnUndecodableDeletedListThatCannotBeSetAsideIsNotWrittenOver() throws {
+        let deletedFile = archiveDirectory.appendingPathComponent("deleted.json")
+        let unreadable = Data("not a list".utf8)
+        try FileManager.default.createDirectory(at: archiveDirectory, withIntermediateDirectories: true)
+        try unreadable.write(to: deletedFile)
+        try occupySetAsideNames(of: deletedFile)
+
+        XCTAssertThrowsError(try archive.unmarkAsDeleted(UUID()))
+
+        XCTAssertEqual(try Data(contentsOf: deletedFile), unreadable)
+    }
+
+    /// Puts a folder at every name the set-aside of `file` can take from a
+    /// second ago to half a minute ahead, so its move fails.
+    private func occupySetAsideNames(of file: URL) throws {
+        let now = Int(Date().timeIntervalSince1970)
+        for second in (now - 1) ... (now + 30) {
+            let name = "\(file.lastPathComponent).unreadable_\(second)"
+            try FileManager.default.createDirectory(
+                at: file.deletingLastPathComponent().appendingPathComponent(name), withIntermediateDirectories: false
+            )
+        }
+    }
+
     // MARK: - Tag and Notes Management
 
     /// Test updating tags

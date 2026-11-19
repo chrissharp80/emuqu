@@ -699,6 +699,10 @@ extension ArchiveStore {
     /// (a real user report), grepping the log for
     /// `[Archive] delete:` will say whether the deletion was a user
     /// action / migration / sync conflict and exactly when it ran.
+    ///
+    /// When the file cannot be moved to the Trash, the session goes back into
+    /// the index and the error is thrown: the file is still in place, and the
+    /// caller tells the user the delete did not happen.
     func delete(_ id: UUID) throws {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
@@ -708,7 +712,14 @@ extension ArchiveStore {
         let scoreStr = entry.recoveryScore.map { String(format: "%.1f", $0) } ?? "nil"
         debugLog("[Archive] delete: \(id.uuidString.prefix(8)) date=\(entry.date) type=\(entry.sessionType.rawValue) score=\(scoreStr)", level: .warning)
         try dropFromIndex(entry)
-        moveToTrash(archive.resolveFileURL(for: entry), id: id)
+        do {
+            try moveToTrash(archive.resolveFileURL(for: entry), id: id)
+        } catch {
+            debugLog("[Archive] ⚠️ Could not move session \(id.uuidString.prefix(8)) to the trash; keeping it: \(error)", level: .warning)
+            undoDrop(entry)
+            attempt("Archive.delete.restoreIndex") { try archive.saveIndex() }
+            throw error
+        }
     }
 
     /// Remove from the active archive.index (in-memory) then persist both indexes,
@@ -728,14 +739,22 @@ extension ArchiveStore {
             try archive.saveDeletedIndex()
             try archive.saveIndex()
         } catch {
-            archive.index.append(entry)
-            archive.deletedSessionIds.remove(entry.sessionId)
-            Self.forgetDeletionTime(entry.sessionId)
-            archive.sortedEntriesCache = nil
-            archive.sessionIdLookup = nil
-            attempt("Archive.delete.rollbackTombstone") { try archive.saveDeletedIndex() }
+            undoDrop(entry)
             throw error
         }
+    }
+
+    /// Put a dropped entry back in memory, untombstone it and rewrite the
+    /// tombstone list without it. Saved before the index, so a failed index
+    /// save leaves a file that is neither listed nor tombstoned, which the
+    /// next launch's orphan scan adopts back.
+    private func undoDrop(_ entry: SessionArchiveEntry) {
+        archive.index.append(entry)
+        archive.deletedSessionIds.remove(entry.sessionId)
+        Self.forgetDeletionTime(entry.sessionId)
+        archive.sortedEntriesCache = nil
+        archive.sessionIdLookup = nil
+        attempt("Archive.delete.rollbackTombstone") { try archive.saveDeletedIndex() }
     }
 
     /// Check if a session was intentionally deleted by the user

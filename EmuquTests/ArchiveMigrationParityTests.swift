@@ -206,6 +206,28 @@ final class ArchiveMigrationParityTests: XCTestCase {
         XCTAssertEqual(after?.fileHash, before?.fileHash, "Only the index entry changes")
     }
 
+    // MARK: - Quarantine
+
+    /// A duplicate whose name is already taken in quarantine (an earlier run
+    /// retired the same session) gets a name of its own; the earlier copy was
+    /// deleted to make room, before the move had succeeded.
+    func testQuarantineNeverReplacesAnEarlierCopy() throws {
+        let quarantine = archiveDirectory.appendingPathComponent("QuarantinedDuplicates", isDirectory: true)
+        try FileManager.default.createDirectory(at: quarantine, withIntermediateDirectories: true)
+        let id = UUID()
+        let source = archiveDirectory.appendingPathComponent("\(id.uuidString).json")
+
+        let first = ArchiveMigrations.unusedQuarantineURL(for: source, in: quarantine, fileManager: .default)
+        try Data("earlier".utf8).write(to: first)
+        let second = ArchiveMigrations.unusedQuarantineURL(for: source, in: quarantine, fileManager: .default)
+
+        XCTAssertEqual(first.lastPathComponent, "\(id.uuidString).json")
+        XCTAssertNotEqual(second.lastPathComponent, first.lastPathComponent)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: second.path))
+        XCTAssertEqual(archive.store.parkedCopies(of: id)?.count, 1)
+        XCTAssertTrue(isPendingPlaintextSessionFile("QuarantinedDuplicates/\(second.lastPathComponent)", pending: [id]))
+    }
+
     // MARK: - Helpers
 
     /// Coverage limit: these sessions are synthesised, not loaded from disk, so

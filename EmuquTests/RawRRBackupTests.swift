@@ -379,4 +379,98 @@ final class RawRRBackupTests: XCTestCase {
         try backup.backup(points: makePoints(count: 80), sessionId: sessionId, captureDate: start)
         XCTAssertEqual(try backup.retrieve(sessionId)?.captureDate, start)
     }
+
+    // MARK: - A points file that will not open
+
+    /// A points file gone from disk is written again with every point so
+    /// far, not the new batch alone, so the count the index stores is what
+    /// the file holds.
+    func testAMissingPointsFileIsRewrittenWithTheWholeNight() throws {
+        let sessionId = UUID()
+        try backup.appendBackup(points: makePoints(count: 50), sessionId: sessionId)
+        try FileManager.default.removeItem(at: backup.pointsURL(for: sessionId))
+
+        try backup.appendBackup(points: makePoints(count: 80), sessionId: sessionId)
+
+        XCTAssertEqual(try backup.retrieve(sessionId)?.points.count, 80)
+        XCTAssertEqual(backup.index.first { $0.id == sessionId }?.backedUpCount, 80)
+    }
+
+    /// A points file that neither opens nor reads (here a folder in its
+    /// place) is set aside under a sibling name, and the night is written
+    /// again in full beside it.
+    func testAnUnreadablePointsFileIsSetAsideAndTheNightWrittenAgain() throws {
+        let sessionId = UUID()
+        let pointsURL = backup.pointsURL(for: sessionId)
+        try backup.appendBackup(points: makePoints(count: 50), sessionId: sessionId)
+        try FileManager.default.removeItem(at: pointsURL)
+        try FileManager.default.createDirectory(at: pointsURL, withIntermediateDirectories: false)
+
+        try backup.appendBackup(points: makePoints(count: 80), sessionId: sessionId)
+
+        XCTAssertEqual(backup.corruptedSiblingNames(of: pointsURL).count, 1)
+        XCTAssertEqual(try backup.retrieve(sessionId)?.points.count, 80)
+    }
+
+    /// Two set-asides in the same second take two names; one-second names
+    /// collided and the second move failed.
+    func testSettingAsideTwiceInOneMomentKeepsBothFiles() throws {
+        let sessionId = UUID()
+        let pointsURL = backup.pointsURL(for: sessionId)
+        defer { backup.cleanupAppendFiles(for: sessionId) }
+
+        for _ in 0 ..< 2 {
+            try Data("{}\n".utf8).write(to: pointsURL)
+            try backup.preserveCorruptedPointsFile(at: pointsURL, sessionId: sessionId)
+        }
+
+        XCTAssertEqual(backup.corruptedSiblingNames(of: pointsURL).count, 2)
+    }
+
+    /// A set-aside that fails throws, so the caller writes nothing over the
+    /// file and does not advance the index.
+    func testAFailedSetAsideThrows() {
+        let sessionId = UUID()
+        XCTAssertThrowsError(try backup.preserveCorruptedPointsFile(at: backup.pointsURL(for: sessionId), sessionId: sessionId))
+    }
+
+    // MARK: - Re-encryption queue
+
+    /// A plaintext one-shot file a newer backup replaced is removed by the
+    /// repair before the session leaves the queue.
+    func testReencryptionRemovesASupersededPlaintextFile() throws {
+        let sessionId = UUID()
+        defer { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
+        try backup.backup(points: makePoints(count: 50), sessionId: sessionId)
+        let stale = backup.backupDirectory.appendingPathComponent("\(sessionId.uuidString)_1000000000000.json")
+        try Data("{}".utf8).write(to: stale)
+        PendingEncryptionLedger.record(sessionId, in: .rawBackup)
+
+        backup.reencryptBackup(sessionId)
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: stale.path))
+        if EncryptionManager.shared.isAvailable {
+            XCTAssertFalse(PendingEncryptionLedger.pending(in: .rawBackup).contains(sessionId))
+        }
+        XCTAssertEqual(try backup.retrieve(sessionId)?.points.count, 50)
+    }
+
+    /// A plaintext one-shot file no index row names may be the only copy of
+    /// a night (a crash between its write and its row): it is kept, and so
+    /// is its queue entry.
+    func testReencryptionKeepsAnUnindexedPlaintextFileQueued() throws {
+        let sessionId = UUID()
+        let orphan = backup.backupDirectory.appendingPathComponent("\(sessionId.uuidString)_1000000000000.json")
+        defer {
+            PendingEncryptionLedger.clear(sessionId, in: .rawBackup)
+            XCTAssertNoThrow(try FileManager.default.removeItem(at: orphan))
+        }
+        try Data("{}".utf8).write(to: orphan)
+        PendingEncryptionLedger.record(sessionId, in: .rawBackup)
+
+        backup.reencryptBackup(sessionId)
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: orphan.path))
+        XCTAssertTrue(PendingEncryptionLedger.pending(in: .rawBackup).contains(sessionId))
+    }
 }
