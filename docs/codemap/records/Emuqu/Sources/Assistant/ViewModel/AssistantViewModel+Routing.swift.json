@@ -374,19 +374,19 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "db217136d3ed0694",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.consentGateAllowsDispatch(provider:voiceMode:)": "71ef29af1a6b5d05",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.reserveAssistantPlaceholderTurn(provider:model:tier:)": "caf49cc95b47c101",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.routeTurnAndLogOverride()": "11927a0e1a2f8438",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runDispatchedTurn(provider:model:voiceMode:turnID:generation:)": "d27847d5d73fbf07",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runDispatchedTurn(provider:model:voiceMode:turnID:generation:)": "e49b3622301bf0ac",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router": "595bc400ab38a743",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.unavailableMessage(for:)": "0978ef80e2cdeecf"
    }
   },
   {
    "key": "func AssistantTurnRouter.runDispatchedTurn(provider:model:voiceMode:turnID:generation:)",
-   "hash": "42bd7c6072d9897a",
-   "does": "Dispatch task body: refresh training metrics, assemble context/tools, compose the system prompt (toolMode = tools non-empty), run the stream under the error policy, drop an empty assistant turn; then, if the generation is still current, finishCurrentTurn (Apple dispatcher release + post-stream effects); finally finishStream, which may drain a send queued during the stream. Checking the generation before finishStream keeps a queued send's dispatch from making this completed turn look stale.",
+   "hash": "f0511dff3d21a63a",
+   "does": "Dispatch task body: refresh training metrics, assemble context/tools, compose the system prompt (toolMode = tools non-empty), run the stream under the error policy, drop an empty assistant turn; then, if the generation is still current, report an empty reply when the turn was dropped (reportEmptyReply) and finishCurrentTurn (Apple dispatcher release + post-stream effects); finally finishStream, which may drain a send queued during the stream. Checking the generation before finishStream keeps a queued send's dispatch from making this completed turn look stale.",
    "entry": "Task created in AssistantTurnRouter.dispatch() (Routing:245)",
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.refreshPreFlightMetrics()",
@@ -396,7 +396,8 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dropEmptyAssistantTurn(_:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.finishCurrentTurn(provider:turnID:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.finishStream(generation:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.reportEmptyReply()"
    ],
    "reads": [
     "mem:AssistantViewModel.streamGeneration"
@@ -406,18 +407,54 @@
     {
      "at": "+18",
      "cond": "streamGeneration still this turn's (no Stop, no newer send)",
-     "effect": "finishCurrentTurn; else skip it (a cancelled/superseded turn gets no post-stream effects)."
+     "effect": "the steps below; else skip them (a cancelled/superseded turn gets no post-stream effects and no empty-reply error)."
+    },
+    {
+     "at": "+19",
+     "cond": "the empty assistant turn was dropped",
+     "effect": "reportEmptyReply"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.assembleContextAndTools(provider:model:)": "f70445efa100496a",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.composeSystemPromptForTurn(rendered:voiceMode:toolMode:)": "2bd88afd1be6e1fe",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dropEmptyAssistantTurn(_:)": "0edb86b01c10cdd8",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dropEmptyAssistantTurn(_:)": "8a2dced836dac806",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.finishCurrentTurn(provider:turnID:)": "f60a191bae8e8faa",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.refreshPreFlightMetrics()": "593d387d4ee295ff",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.reportEmptyReply()": "f5f0666dbcb4eb7f",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runStreamWithErrorPolicy(_:)": "4717b77a611a1b22",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "4418043899d6c1da",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.finishStream(generation:)": "b8ac2a61fe69d99a"
+   }
+  },
+  {
+   "key": "func AssistantTurnRouter.reportEmptyReply()",
+   "hash": "bd27c1f97d010605",
+   "does": "For a current-generation turn that left no text: when no error explains it (errorMessage nil) and the task is not cancelled, logs a warning and sets errorMessage to 'No answer came back from the AI. Try asking again.', so the chat banner shows it and voice mode speaks its recovery line instead of going silent.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:String(localized:bundle:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "ext:Task.isCancelled"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.errorMessage"
+   ],
+   "writes": [
+    "mem:AssistantViewModel.errorMessage"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "an error is already set, or the task is cancelled",
+     "effect": "returns; else sets errorMessage"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "db217136d3ed0694",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -449,8 +486,8 @@
   },
   {
    "key": "func AssistantTurnRouter.dropEmptyAssistantTurn(_:)",
-   "hash": "68bfc3bcbe6b8f66",
-   "does": "Removes the reserved assistant turn and saves when it still exists and its text is blank.",
+   "hash": "e08898b2b4df8a66",
+   "does": "Removes the reserved assistant turn and saves when it still exists and its text is blank; returns whether it removed the turn.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)",
@@ -467,7 +504,7 @@
     {
      "at": "+1",
      "cond": "turn missing OR not assistant OR has text",
-     "effect": "return; else remove and save"
+     "effect": "returns false; else removes, saves and returns true"
     }
    ],
    "deps": {

@@ -364,7 +364,7 @@ final class AnthropicProvider: AIProvider, Sendable {
         if let http = response as? HTTPURLResponse, !(200 ... 299).contains(http.statusCode) {
             try await Self.throwForStatus(http.statusCode, bytes: bytes)
         }
-        try await Self.consumeSSE(bytes, continuation: continuation)
+        try await Self.consumeSSE(bytes.lines, continuation: continuation)
     }
 
     /// Accumulator for a streaming tool_use content block. Anthropic sends
@@ -416,49 +416,41 @@ final class AnthropicProvider: AIProvider, Sendable {
         state: inout StreamState,
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) throws {
-        guard let json = try eventObject(data) else { return }
+        let json = try ProviderHTTP.eventObject(data, provider: .anthropic)
         switch (json["type"] as? String) ?? eventName ?? "" {
         case "content_block_start":
             openBlock(json, into: &state.openToolUses)
         case "content_block_delta":
             handleDelta(json, openToolUses: &state.openToolUses, continuation: continuation)
         case "content_block_stop":
-            closeBlock(json, openToolUses: &state.openToolUses, continuation: continuation)
+            try closeBlock(json, openToolUses: &state.openToolUses, continuation: continuation)
         case "message_delta":
-            messageDelta(json, state: &state, continuation: continuation)
+            try messageDelta(json, state: &state, continuation: continuation)
         case "message_start":
             state.startUsage = (json["message"] as? [String: Any])?["usage"] as? [String: Any]
         case "message_stop":
             finishMessage(&state, continuation: continuation)
         case "error":
-            let message = (json["error"] as? [String: Any])?["message"] as? String ?? "Anthropic stream error"
-            throw AIProviderError.invalidResponse(message)
+            throw ProviderHTTP.streamFailure(in: json, provider: .anthropic)
+                ?? AIProviderError.invalidResponse("Anthropic stream error")
         default:
             break // ping — ignore
         }
     }
 
-    /// One SSE `data:` payload as a JSON object. Malformed JSON is the
-    /// stream's fault, not the device's, so it becomes an `AIProviderError`
-    /// the chat layer can fall back from rather than a raw Cocoa error.
-    static func eventObject(_ data: Data) throws -> [String: Any]? {
-        do {
-            return try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        } catch {
-            throw AIProviderError.invalidResponse("malformed Anthropic stream event")
-        }
-    }
-
-    /// `message_delta`: the final usage, and the stop reason. A reply that
-    /// stopped at the token cap (`max_tokens`) or paused mid server-tool
-    /// turn (`pause_turn`) is incomplete, so it is logged and ends with an
+    /// `message_delta`: the final usage, and the stop reason. A `refusal`
+    /// is the model's safety stop and throws `ProviderHTTP.blockedReply`, as
+    /// the other providers' safety stops do. A reply that stopped at the
+    /// token cap (`max_tokens`) or paused mid server-tool turn
+    /// (`pause_turn`) is incomplete, so it is logged and ends with an
     /// ellipsis rather than reading as a finished answer.
     static func messageDelta(
         _ json: [String: Any],
         state: inout StreamState,
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
-    ) {
+    ) throws {
         let reason = (json["delta"] as? [String: Any])?["stop_reason"] as? String
+        if reason == "refusal" { throw ProviderHTTP.blockedReply(by: .anthropic, reason: "refusal") }
         if let reason, reason == "max_tokens" || reason == "pause_turn" {
             debugLog("[Anthropic] reply stopped early: stop_reason=\(reason)", level: .warning)
             continuation.yield(.textDelta("…"))
@@ -521,15 +513,23 @@ final class AnthropicProvider: AIProvider, Sendable {
 
     /// `content_block_stop` — a completed `tool_use` block becomes a `.toolUse`
     /// event. An empty accumulator means the tool takes no arguments.
+    ///
+    /// The block closes before `message_delta` says why the reply stopped,
+    /// so a `max_tokens` stop in the middle of the arguments shows here as
+    /// input that does not parse as a JSON object. That call is not
+    /// emitted: the round throws `.invalidResponse` and the tool never runs.
     static func closeBlock(
         _ json: [String: Any],
         openToolUses: inout [Int: PendingToolUse],
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
-    ) {
+    ) throws {
         guard let index = json["index"] as? Int,
               let pending = openToolUses.removeValue(forKey: index)
         else { return }
         let args = pending.inputJSON.isEmpty ? "{}" : pending.inputJSON
+        guard ProviderHTTP.isJSONObject(args) else {
+            throw AIProviderError.invalidResponse("tool call \(pending.name) arrived with incomplete arguments")
+        }
         continuation.yield(.toolUse(id: pending.id, name: pending.name, inputJSON: args))
     }
 
@@ -544,7 +544,7 @@ final class AnthropicProvider: AIProvider, Sendable {
         throw ProviderHTTP.statusError(
             status,
             message: ProviderHTTP.errorMessage(from: collected) ?? String(bodyText.prefix(300)),
-            overloaded: String(localized: "Anthropic is overloaded right now. Try again in a moment.", bundle: LanguageManager.appBundle)
+            overloaded: ProviderHTTP.overloadedMessage(for: .anthropic)
         )
     }
 }

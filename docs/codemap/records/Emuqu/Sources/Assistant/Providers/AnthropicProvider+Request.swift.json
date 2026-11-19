@@ -117,12 +117,11 @@
   },
   {
    "key": "func AnthropicProvider.consumeSSE(_:continuation:)",
-   "hash": "82a5fb966975a0a8",
-   "does": "Reads the SSE byte stream line by line: blank line resets the event name, \"event:\" lines record it, \"data:\" payloads are passed to handle(); checks task cancellation per line. A stream that ends before message_stop was cut, and throws URLError(.networkConnectionLost) (ProviderStream maps it to a fallbackable .network) instead of passing a truncated reply as complete.",
+   "hash": "b1fee9130ece1084",
+   "does": "Reads a reply's SSE line sequence (the URL session's lines, or a test's) line by line: blank line resets the event name, \"event:\" lines record it, \"data:\" payloads are passed to handle(); checks task cancellation per line. A stream that ends before message_stop was cut, and throws URLError(.networkConnectionLost) (ProviderStream maps it to a fallbackable .network) instead of passing a truncated reply as complete.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.handle(eventName:data:state:continuation:)",
-    "ext:URLSession.AsyncBytes.lines",
     "ext:Task.checkCancellation"
    ],
    "reads": [
@@ -162,7 +161,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.handle(eventName:data:state:continuation:)": "9cf14f6e92438cca"
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.handle(eventName:data:state:continuation:)": "cd668b2f3711d45b"
    }
   }
  ],

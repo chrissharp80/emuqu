@@ -104,8 +104,8 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 3. Turn Lifecycle > 3.3 `dispatch()` — `AssistantViewModel+Routing.swift`",
-   "hash": "d6e5d939e2a5e662",
-   "does": "Claims dispatch() on AssistantTurnRouter routes, re-checks key/consent, reserves a placeholder turn, bumps streamGeneration and starts runDispatchedTurn, which refreshes metrics, assembles context (Apple compactRender, others none; truncateForSend; ToolRetriever targetK 40; trimTools), composes the prompt, runs the stream with error policy (guardrail refusals shown; fallbackable errors go to handleFallbackableFailure, which cuts orderedFallbackProviders to TurnRouter.failureFallback and shows PickedModelFailure when nothing is allowed, or the original error when every fallback fails), drops an empty turn, and if still the current generation clears the Apple registry and applies CoachVoiceGuard + background fact extraction, then finishStream(generation:) dispatches a queued message. Matches AssistantViewModel+Routing.swift:286-314,650-712.",
+   "hash": "5049019de44c191a",
+   "does": "Claims dispatch() on AssistantTurnRouter routes, re-checks key/consent, reserves a placeholder turn, bumps streamGeneration and starts runDispatchedTurn, which refreshes metrics, assembles context (Apple compactRender, others none; truncateForSend; ToolRetriever targetK 40; trimTools), composes the prompt, runs the stream with error policy (guardrail refusals shown; fallbackable errors go to handleFallbackableFailure, which cuts orderedFallbackProviders to TurnRouter.failureFallback and shows PickedModelFailure when nothing is allowed, or the original error when every fallback fails), drops an empty turn, and if still the current generation sets the 'No answer came back from the AI' error for a dropped turn with no error set that was not stopped (reportEmptyReply, so voice speaks its recovery line), clears the Apple registry and applies CoachVoiceGuard + background fact extraction, then finishStream(generation:) dispatches a queued message. Matches AssistantViewModel+Routing.swift:286-346,670-733.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()",
@@ -124,7 +124,8 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.composeSystemPromptForTurn(rendered:voiceMode:toolMode:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dropEmptyAssistantTurn(_:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.finishCurrentTurn(provider:turnID:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.finishStream(generation:)"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.finishStream(generation:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.reportEmptyReply()"
    ],
    "reads": [],
    "writes": [],
@@ -135,13 +136,14 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.assembleContextAndTools(provider:model:)": "f70445efa100496a",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.composeSystemPromptForTurn(rendered:voiceMode:toolMode:)": "2bd88afd1be6e1fe",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()": "9ae5cc4573f169ef",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dropEmptyAssistantTurn(_:)": "0edb86b01c10cdd8",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dropEmptyAssistantTurn(_:)": "8a2dced836dac806",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.finishCurrentTurn(provider:turnID:)": "f60a191bae8e8faa",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.handleFallbackableFailure(_:attempt:)": "a5f6164e328e6746",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.refreshPreFlightMetrics()": "593d387d4ee295ff",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.reportEmptyReply()": "f5f0666dbcb4eb7f",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.reserveAssistantPlaceholderTurn(provider:model:tier:)": "caf49cc95b47c101",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.routeTurnAndLogOverride()": "11927a0e1a2f8438",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runDispatchedTurn(provider:model:voiceMode:turnID:generation:)": "d27847d5d73fbf07",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runDispatchedTurn(provider:model:voiceMode:turnID:generation:)": "e49b3622301bf0ac",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runStreamWithErrorPolicy(_:)": "4717b77a611a1b22",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.finishStream(generation:)": "b8ac2a61fe69d99a",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.orderedFallbackProviders(after:)": "a52875ed68367c9d",

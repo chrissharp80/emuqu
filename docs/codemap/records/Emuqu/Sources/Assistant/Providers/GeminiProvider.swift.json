@@ -1,12 +1,13 @@
 {
  "file": "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift",
- "hash": "6937bcd777df0fd9",
- "role": "Google Gemini AIProvider: model catalog, request body types, SSE streaming of generateContent with function calling, thought-signature round-trip and HTTP error mapping.",
+ "hash": "8a12f6ad0aa01045",
+ "role": "Google Gemini AIProvider: model catalog, request body types, SSE streaming of generateContent with function calling (a reply is complete only after a candidate's finishReason; MAX_TOKENS ends with '…', safety stops are blocked replies, a malformed function call or event throws), thought-signature round-trip and HTTP error mapping.",
  "types": [
   "GeminiProvider: class — AIProvider for Gemini (Sendable)",
   "GeminiProvider.RequestBody: struct — Encodable generateContent body (systemInstruction, contents, tools)",
   "RequestBody.Part/FunctionCall/FunctionResponse/Content/SystemInstruction/Tool/FunctionDeclaration: structs — wire shapes",
-  "extension GeminiProvider.RequestBody.FunctionDeclaration — CodingKeys + custom encode that omits empty parameters"
+  "extension GeminiProvider.RequestBody.FunctionDeclaration — CodingKeys + custom encode that omits empty parameters",
+  "GeminiProvider.StreamState: struct — per-request SSE state (tool-use counter, last usage, finished)"
  ],
  "state": [
   "mem:GeminiProvider.models (static catalog: gemini-3.5-flash-lite, gemini-3.8-flash default, gemini-3.1-pro-preview)",
@@ -72,7 +73,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.stream(messages:model:contextRendered:systemPrompt:tools:toolRounds:continuation:)": "5a7a48a19e1ada45",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.stream(messages:model:contextRendered:systemPrompt:tools:toolRounds:continuation:)": "ed5318fc82cb3603",
     "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "08722a68117b042e"
    }
   },
@@ -248,8 +249,8 @@
   },
   {
    "key": "func GeminiProvider.stream(messages:model:contextRendered:systemPrompt:tools:toolRounds:continuation:)",
-   "hash": "ccb2d349dfa08bf0",
-   "does": "Reads the Gemini key from Keychain, splits the system prompt at the cache marker (ProviderHTTP.splitOnCacheMarker: stable half → systemInstruction, variable half + contextRendered → ProviderHTTP.liveStateEnvelope on the last user turn), builds tool declarations, POSTs via ProviderHTTP.streamSession, maps non-2xx to errors, parses the SSE stream (which throws on an error or blocked-prompt chunk), then yields .done.",
+   "hash": "3591ae2a1d9a8ead",
+   "does": "Reads the Gemini key from Keychain, splits the system prompt at the cache marker (ProviderHTTP.splitOnCacheMarker: stable half → systemInstruction, variable half + contextRendered → ProviderHTTP.liveStateEnvelope on the last user turn), builds tool declarations, POSTs via ProviderHTTP.streamSession, maps non-2xx to errors, then consumes the SSE body's lines (consumeSSE yields .done only after a finishReason and throws for a cut, malformed, blocked or failed reply).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.key(for:)",
@@ -264,6 +265,7 @@
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(text:)",
     "ext:URLSession.bytes(for:)",
+    "ext:URLSession.AsyncBytes.lines",
     "ext:Task.checkCancellation"
    ],
    "reads": [
@@ -291,14 +293,15 @@
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.splitOnCacheMarker(_:)": "c484c39a3bf962e3",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::let ProviderHTTP.streamSession": "755d0d1ab8a8cbe4",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.buildContents(messages:toolRounds:liveStateBlock:)": "f55ee02505c471d4",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)": "fd471a8af25a9e35",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)": "ab650c787fa1a396",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.makeRequest(url:apiKey:body:)": "a85a659d63cd1b4e",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.streamEndpoint(for:)": "4f76cde6f5eaecff",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.throwForStatus(_:bytes:)": "4ded941c2ef86845",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.throwForStatus(_:bytes:)": "3fcbabd0a28a7378",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.toolDeclarations(for:)": "296c82f7094c0347",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(text:)": "4a5c1ff08179dc8a",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015",
+    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)": "8965c0bed0b1cf6e"
    }
   },
   {
@@ -338,58 +341,144 @@
   },
   {
    "key": "func GeminiProvider.consumeSSE(_:continuation:)",
-   "hash": "77e2e2cbee68d43e",
-   "does": "Reads SSE lines, parses each data: JSON chunk; an {\"error\":...} chunk (ProviderHTTP.streamFailure) or a blocked-prompt chunk (blockedPrompt) throws, so a failed or blocked reply reaches the chat as an AIProviderError rather than an empty success; otherwise yields text deltas / synthesized tool uses per content part, keeps the last usageMetadata and yields one .usage after the stream ends.",
+   "hash": "2c3c847b8b34593a",
+   "does": "Reads a reply's SSE line sequence (the URL session's lines, or a test's): each non-empty data: payload is parsed by ProviderHTTP.eventObject (a payload that is not a JSON object throws) and handled by handleChunk (which throws on an error object, a blocked prompt or a failing finish reason). After the stream it yields one .usage from the last usageMetadata; then, when no candidate carried a finishReason, the stream was cut and it throws URLError(.networkConnectionLost) (a fallbackable .network via ProviderStream); otherwise it yields .done.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.streamFailure(in:)",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.blockedPrompt(in:)",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.contentParts(in:)",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.yieldPart(_:counter:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.eventObject(_:provider:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.handleChunk(_:state:continuation:)",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.yieldUsage(_:to:)",
-    "ext:URLSession.AsyncBytes.lines",
-    "ext:JSONSerialization.jsonObject"
+    "ext:Task.checkCancellation"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+8",
-     "cond": "for each line of the byte stream",
-     "effect": "loop; network errors propagate as thrown errors."
+     "at": "+5",
+     "cond": "for each line",
+     "effect": "loop; sequence errors propagate."
     },
     {
-     "at": "+10",
-     "cond": "line starts with \"data:\"",
-     "effect": "processed; otherwise skipped."
+     "at": "+7",
+     "cond": "line is not data:",
+     "effect": "skipped"
     },
     {
-     "at": "+12",
-     "cond": "payload non-empty, UTF-8 and parses to a JSON object",
-     "effect": "processed; otherwise the chunk is skipped silently."
+     "at": "+9",
+     "cond": "payload empty",
+     "effect": "skipped"
     },
     {
-     "at": "+15",
-     "cond": "chunk is an error object or a blocked prompt",
-     "effect": "throws that AIProviderError"
-    },
-    {
-     "at": "+16",
-     "cond": "for each content part in candidates[0]",
-     "effect": "yieldPart emits text or tool use."
-    },
-    {
-     "at": "+19",
-     "cond": "chunk has usageMetadata dict",
-     "effect": "lastUsage replaced; ?? keeps previous lastUsage when absent."
+     "at": "+14",
+     "cond": "no candidate carried a finishReason",
+     "effect": "throws URLError(.networkConnectionLost); otherwise yields .done"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.streamFailure(in:)": "0759d12a0fdb3f97",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.eventObject(_:provider:)": "df8778803c546b39",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.handleChunk(_:state:continuation:)": "492a1d50bcf3cb5c",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.yieldUsage(_:to:)": "e1e51f6f8a363a72"
+   }
+  },
+  {
+   "key": "func GeminiProvider.handleChunk(_:state:continuation:)",
+   "hash": "46f77d444dbb452b",
+   "does": "One parsed chunk: an {\"error\":...} object (ProviderHTTP.streamFailure, the overloaded modelUnavailable for a 5xx code) or a blocked prompt (blockedPrompt) throws; a finish reason that ends the reply as a failure (stopFailure: safety stops, malformed function call) throws before the chunk's parts are shown; otherwise each content part becomes a text delta or a synthesized tool use (yieldPart), a MAX_TOKENS stop logs and yields a '…' text delta, any finish reason marks the reply finished, and the chunk's usageMetadata replaces the held one.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.streamFailure(in:provider:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.blockedPrompt(in:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.finishReason(in:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.stopFailure(_:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.contentParts(in:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.yieldPart(_:counter:continuation:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "error object or blocked prompt",
+     "effect": "throws"
+    },
+    {
+     "at": "+7",
+     "cond": "finish reason is a failure",
+     "effect": "throws stopFailure's error"
+    },
+    {
+     "at": "+8",
+     "cond": "for each content part",
+     "effect": "yieldPart"
+    },
+    {
+     "at": "+11",
+     "cond": "MAX_TOKENS",
+     "effect": "logs and yields '…'"
+    },
+    {
+     "at": "+15",
+     "cond": "any finish reason",
+     "effect": "state.finished = true"
+    },
+    {
+     "at": "+16",
+     "cond": "chunk has usageMetadata",
+     "effect": "replaces lastUsage; ?? keeps the previous one"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.streamFailure(in:provider:)": "c730c10bedc5489d",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.blockedPrompt(in:)": "5906398717690c49",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.contentParts(in:)": "ff235124f086d0c7",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.finishReason(in:)": "698cfc1a6535a837",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.stopFailure(_:)": "450b4b809a251961",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.yieldPart(_:counter:continuation:)": "dd5b3c96e00740cd",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.yieldUsage(_:to:)": "e1e51f6f8a363a72"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textDelta(_:)": "2e33b365dfe56d9a"
+   }
+  },
+  {
+   "key": "func GeminiProvider.finishReason(in:)",
+   "hash": "f1b2aa23c8b98fa9",
+   "does": "Returns candidates[0].finishReason, or nil while the reply is still coming.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func GeminiProvider.stopFailure(_:)",
+   "hash": "20fbdb827386d2f9",
+   "does": "Maps a finish reason to the error it ends the reply with: SAFETY, RECITATION, BLOCKLIST, PROHIBITED_CONTENT and SPII to ProviderHTTP.blockedReply(by: .gemini), MALFORMED_FUNCTION_CALL to .invalidResponse('Gemini sent a malformed function call'); nil for STOP, MAX_TOKENS and any other reason.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.blockedReply(by:reason:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "a safety reason",
+     "effect": "blockedReply"
+    },
+    {
+     "at": "+4",
+     "cond": "MALFORMED_FUNCTION_CALL",
+     "effect": ".invalidResponse"
+    },
+    {
+     "at": "+6",
+     "cond": "any other reason",
+     "effect": "nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.blockedReply(by:reason:)": "a07a0155639855b7"
    }
   },
   {
@@ -502,15 +591,16 @@
   },
   {
    "key": "func GeminiProvider.throwForStatus(_:bytes:)",
-   "hash": "523831fd726ff901",
-   "does": "Drains up to 4096 bytes of the error body (ProviderHTTP.errorBody), redacts API keys, throws .outOfCredit(.gemini) when the body/status indicate exhausted credit, .authFailed for a 400 whose body names API_KEY_INVALID (Gemini's answer to a bad key), otherwise ProviderHTTP.statusError with the parsed error.message (or the body's first 300 chars) and the localized 'Gemini is overloaded' sentence for 5xx.",
+   "hash": "dac7c9bd98269485",
+   "does": "Drains up to 4096 bytes of the error body (ProviderHTTP.errorBody), redacts API keys, throws .outOfCredit(.gemini) when the body/status indicate exhausted credit, .authFailed for a 400 whose body names API_KEY_INVALID (Gemini's answer to a bad key), otherwise ProviderHTTP.statusError with the parsed error.message (or the body's first 300 chars) and ProviderHTTP.overloadedMessage(.gemini) ('Gemini is overloaded…') for 5xx.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorBody(_:)",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.isCreditExhausted(status:body:)",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.statusError(_:message:overloaded:)",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.overloadedMessage(for:)"
    ],
    "reads": [],
    "writes": [],
@@ -540,9 +630,9 @@
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.isCreditExhausted(status:body:)": "132b59eb8e966828",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorBody(_:)": "a687cba664e39621",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "db217136d3ed0694",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.overloadedMessage(for:)": "17c60e6299c39e16",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.statusError(_:message:overloaded:)": "8b93e6a53d290b7b",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)": "2461162d36fc3850",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)": "2461162d36fc3850"
    }
   },
   {

@@ -277,8 +277,7 @@ final class GeminiProvider: AIProvider, Sendable {
         if let http = response as? HTTPURLResponse, !(200 ... 299).contains(http.statusCode) {
             try await Self.throwForStatus(http.statusCode, bytes: bytes)
         }
-        try await Self.consumeSSE(bytes, continuation: continuation)
-        continuation.yield(.done)
+        try await Self.consumeSSE(bytes.lines, continuation: continuation)
     }
 
     private static func toolDeclarations(for tools: [ToolSpec]) -> [RequestBody.Tool]? {
@@ -305,32 +304,95 @@ final class GeminiProvider: AIProvider, Sendable {
         return request
     }
 
+    /// Per-request SSE state. `toolUseCounter` numbers the synthesised call
+    /// ids. Every chunk repeats the running `usageMetadata`; only the last
+    /// one is the request's total, so it is held here and recorded once,
+    /// after the stream. `finished` records that a candidate carried a
+    /// `finishReason`, so a stream cut before it is not taken for a complete
+    /// reply.
+    struct StreamState {
+        var toolUseCounter = 0
+        var lastUsage: [String: Any]?
+        var finished = false
+    }
+
+    /// Reads the SSE lines of one reply, then records usage and yields
+    /// `.done`. The reply is complete only when a candidate carried a
+    /// `finishReason`; a stream that closes before one was cut, like an
+    /// Anthropic stream without `message_stop`, and throws
+    /// `URLError(.networkConnectionLost)` (a dropped connection in
+    /// `ProviderStream`).
+    ///
+    /// Only `data:` lines are read; comments, blank lines and `event:` lines
+    /// are skipped. Takes the line sequence rather than the URL session's
+    /// bytes so tests can feed it a reply.
+    static func consumeSSE<Lines: AsyncSequence>(
+        _ lines: Lines,
+        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+    ) async throws where Lines.Element == String {
+        var state = StreamState()
+        for try await line in lines {
+            try Task.checkCancellation()
+            guard line.hasPrefix("data:") else { continue }
+            let payload = line.dropFirst("data:".count).trimmingCharacters(in: .whitespaces)
+            guard !payload.isEmpty else { continue }
+            let json = try ProviderHTTP.eventObject(Data(payload.utf8), provider: .gemini)
+            try handleChunk(json, state: &state, continuation: continuation)
+        }
+        yieldUsage(state.lastUsage, to: continuation)
+        guard state.finished else { throw URLError(.networkConnectionLost) }
+        continuation.yield(.done)
+    }
+
+    /// One chunk: an error object or a blocked prompt throws; a finish
+    /// reason that ends the reply as a failure throws (`stopFailure`) before
+    /// the chunk's parts are shown; otherwise each part becomes a text delta
+    /// or a tool call, and a `MAX_TOKENS` stop ends the text with "…", as
+    /// Anthropic's `max_tokens` does.
+    ///
     /// Gemini emits functionCall parts atomically — the whole call is in
     /// one part, not streamed. We synthesise a stable ID from the call's
     /// index since Gemini doesn't supply one, and append the part's
     /// `thoughtSignature` when present (see `signatureSeparator`).
-    private static func consumeSSE(
-        _ bytes: URLSession.AsyncBytes,
+    private static func handleChunk(
+        _ json: [String: Any],
+        state: inout StreamState,
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
-    ) async throws {
-        var toolUseCounter = 0
-        // Every chunk repeats the running usageMetadata; only the last one is
-        // the request's total, so it is recorded once, after the stream.
-        var lastUsage: [String: Any]?
-        for try await line in bytes.lines {
-            try Task.checkCancellation()
-            guard line.hasPrefix("data:") else { continue }
-            let payload = line.dropFirst("data:".count).trimmingCharacters(in: .whitespaces)
-            guard !payload.isEmpty, let data = payload.data(using: .utf8),
-                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-            else { continue }
-            if let failure = ProviderHTTP.streamFailure(in: json) ?? blockedPrompt(in: json) { throw failure }
-            for part in Self.contentParts(in: json) {
-                yieldPart(part, counter: &toolUseCounter, continuation: continuation)
-            }
-            lastUsage = json["usageMetadata"] as? [String: Any] ?? lastUsage
+    ) throws {
+        if let failure = ProviderHTTP.streamFailure(in: json, provider: .gemini) ?? blockedPrompt(in: json) { throw failure }
+        let reason = finishReason(in: json)
+        if let reason, let failure = stopFailure(reason) { throw failure }
+        for part in Self.contentParts(in: json) {
+            yieldPart(part, counter: &state.toolUseCounter, continuation: continuation)
         }
-        yieldUsage(lastUsage, to: continuation)
+        if reason == "MAX_TOKENS" {
+            debugLog("[Gemini] reply stopped early: finishReason=MAX_TOKENS", level: .warning)
+            continuation.yield(.textDelta("…"))
+        }
+        if reason != nil { state.finished = true }
+        state.lastUsage = json["usageMetadata"] as? [String: Any] ?? state.lastUsage
+    }
+
+    /// `candidates[0].finishReason`, or nil while the reply is still coming.
+    private static func finishReason(in json: [String: Any]) -> String? {
+        (json["candidates"] as? [[String: Any]])?.first?["finishReason"] as? String
+    }
+
+    /// The error a finish reason ends the reply with, or nil when it ends
+    /// normally (`STOP`, `MAX_TOKENS` and any other reason). The safety
+    /// stops (`SAFETY`, `RECITATION`, `BLOCKLIST`, `PROHIBITED_CONTENT`,
+    /// `SPII`) are `ProviderHTTP.blockedReply`; `MALFORMED_FUNCTION_CALL`
+    /// means the model's tool call could not be parsed, so it is an invalid
+    /// response and no tool runs.
+    private static func stopFailure(_ reason: String) -> AIProviderError? {
+        switch reason {
+        case "SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII":
+            return ProviderHTTP.blockedReply(by: .gemini, reason: reason)
+        case "MALFORMED_FUNCTION_CALL":
+            return AIProviderError.invalidResponse("Gemini sent a malformed function call")
+        default:
+            return nil
+        }
     }
 
     /// A chunk that says the prompt was blocked (`promptFeedback.blockReason`
@@ -406,7 +468,7 @@ final class GeminiProvider: AIProvider, Sendable {
         throw ProviderHTTP.statusError(
             status,
             message: ProviderHTTP.errorMessage(from: collected) ?? String(bodyText.prefix(300)),
-            overloaded: String(localized: "Gemini is overloaded right now. Try again in a moment.", bundle: LanguageManager.appBundle)
+            overloaded: ProviderHTTP.overloadedMessage(for: .gemini)
         )
     }
 }

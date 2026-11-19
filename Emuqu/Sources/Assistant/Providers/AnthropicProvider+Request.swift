@@ -128,13 +128,17 @@ extension AnthropicProvider {
     /// We track open blocks by index and emit .toolUse on stop. A stream that
     /// ends before `message_stop` was cut: it is reported as a dropped
     /// connection, not delivered as a complete reply.
-    static func consumeSSE(
-        _ bytes: URLSession.AsyncBytes,
+    ///
+    /// Only `data:` payloads are parsed; comment lines (`:` keep-alives) are
+    /// skipped. Takes the line sequence rather than the URL session's bytes
+    /// so tests can feed it a reply.
+    static func consumeSSE<Lines: AsyncSequence>(
+        _ lines: Lines,
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
-    ) async throws {
+    ) async throws where Lines.Element == String {
         var lastEventName: String?
         var state = StreamState()
-        for try await line in bytes.lines {
+        for try await line in lines {
             try Task.checkCancellation()
             if line.isEmpty {
                 lastEventName = nil

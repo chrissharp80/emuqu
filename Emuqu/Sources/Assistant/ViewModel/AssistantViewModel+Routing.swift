@@ -300,9 +300,27 @@ extension AssistantTurnRouter {
             systemPrompt: systemPrompt, tools: assembled.tools,
             factRegistry: assembled.factRegistry, turnID: turnID, voiceMode: voiceMode
         ))
-        dropEmptyAssistantTurn(turnID)
-        if owner.streamGeneration == generation { finishCurrentTurn(provider: provider, turnID: turnID) }
+        let droppedEmptyTurn = dropEmptyAssistantTurn(turnID)
+        if owner.streamGeneration == generation {
+            if droppedEmptyTurn { reportEmptyReply() }
+            finishCurrentTurn(provider: provider, turnID: turnID)
+        }
         await owner.tools.finishStream(generation: generation)
+    }
+
+    /// A current-generation turn that left no text. When no error explains
+    /// it (a failure already set `errorMessage`) and the turn was not
+    /// stopped, the reply came back empty: the banner says so, and voice
+    /// mode, which speaks its recovery line only when `errorMessage` is
+    /// set, tells the user instead of going silent. Grok's empty turns
+    /// never get here: `GrokQuirkPolicy` gives them substitute text first.
+    private func reportEmptyReply() {
+        guard owner.errorMessage == nil, !Task.isCancelled else { return }
+        debugLog("[Assistant] turn ended with no reply text and no error", level: .warning)
+        owner.errorMessage = String(
+            localized: "No answer came back from the AI. Try asking again.",
+            bundle: LanguageManager.appBundle
+        )
     }
 
     /// The end of a turn that is still the current generation: release the
@@ -314,15 +332,17 @@ extension AssistantTurnRouter {
     }
 
     /// Removes the reserved assistant turn when the round ended with no text
-    /// (Stop before the first token, a safety block with no parts, a round
-    /// with neither text nor a tool call). An empty assistant message in the
-    /// history is rejected by Anthropic and Gemini on the next send.
-    private func dropEmptyAssistantTurn(_ turnID: UUID) {
+    /// (Stop before the first token, a failure before the first token, a
+    /// round with neither text nor a tool call). An empty assistant message
+    /// in the history is rejected by Anthropic and Gemini on the next send.
+    /// Returns true when it removed the turn.
+    private func dropEmptyAssistantTurn(_ turnID: UUID) -> Bool {
         guard let index = owner.liveTurnIndex(for: turnID),
               owner.turns[index].role == .assistant,
-              owner.turns[index].text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+              owner.turns[index].text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
         owner.turns.remove(at: index)
         owner.store.save(owner.turns)
+        return true
     }
 
     // MARK: - Dispatch stages

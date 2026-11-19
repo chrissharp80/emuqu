@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Assistant/Providers/AIProvider.swift",
- "hash": "765a4666d4c3c2c6",
- "role": "Shared vocabulary of the assistant's provider layer: ProviderID identity/branding, ModelOption catalog entries, ChatTurn transcript model (with hand-written tolerant decoder), ToolSpec/ToolExchange tool-use types, AIStreamEvent stream events, API-key redaction, AIProviderError (fallback/guardrail policy + user text), ProviderAccountReply credit/purchase detection, ProviderHTTP (the cloud streamers' shared URL session, error-body/envelope/status mapping, mid-stream error chunks, cache-marker split and <live_state> envelope), the AIProvider protocol and AnyJSON encoder.",
+ "hash": "81fe5cdd1a182826",
+ "role": "Shared vocabulary of the assistant's provider layer: ProviderID identity/branding, ModelOption catalog entries, ChatTurn transcript model (with hand-written tolerant decoder), ToolSpec/ToolExchange tool-use types, AIStreamEvent stream events, API-key redaction, AIProviderError (fallback/guardrail policy + user text), ProviderAccountReply credit/purchase detection, ProviderHTTP (the cloud streamers' shared URL session, error-body/envelope/status mapping, the per-provider overloaded text, mid-stream error objects, SSE event parsing, the safety-stop error, tool-argument JSON check, cache-marker split and <live_state> envelope), the AIProvider protocol and AnyJSON encoder.",
  "types": [
   "ProviderID: enum — the six AI backends (apple, anthropic, openai, gemini, grok, deepseek) with display/vendor/symbol/privacy URL",
   "ModelOption: struct — one selectable model (apiID, context window, per-MTok prices, default flag)",
@@ -23,7 +23,8 @@
  "state": [
   "mem:ProviderAccountReply.creditMarkers (private static let, 9 lowercase phrases)",
   "mem:ProviderAccountReply.purchaseMarkers (private static let, 10 lowercase phrases)",
-  "mem:ProviderHTTP.streamSession (one URLSession: waitsForConnectivity, 30 s request / 180 s resource timeouts, 4 connections per host, no URL cache)"
+  "mem:ProviderHTTP.streamSession (one URLSession: waitsForConnectivity, 30 s request / 180 s resource timeouts, 4 connections per host, no URL cache)",
+  "mem:ProviderHTTP.serverFailureTypes (private static let: server_error, overloaded_error, api_error)"
  ],
  "toplevel": "Conformances: ProviderID String/Codable/CaseIterable/Identifiable; ModelOption Codable/Hashable/Identifiable/Sendable; AssistantSubsystem String/Codable; ChatTurn Codable (synthesized encode, custom decode)/Identifiable/Hashable/Sendable with stored default localOnly=false; ToolSpec Hashable/Codable/Sendable; AIStreamEvent.usage has default 0 for cache fields; AIProviderError LocalizedError.",
  "units": [
@@ -679,25 +680,127 @@
    "deps": {}
   },
   {
-   "key": "func ProviderHTTP.streamFailure(in:)",
-   "hash": "e19baa6055f2b4c7",
-   "does": "For a stream chunk that is an {\"error\":{...}} object (OpenAI-compatible and Gemini streams send one when a reply fails mid-stream after a 200), returns .invalidResponse with the redacted error message ('stream error' when it has none); nil for an ordinary chunk.",
+   "key": "func ProviderHTTP.overloadedMessage(for:)",
+   "hash": "bdd8a143e383da02",
+   "does": "Returns the localized 'try again' sentence for a provider whose servers are overloaded or failing: the catalogued 'Anthropic is overloaded…' and 'Gemini is overloaded…' sentences for those two, and '<displayName> is overloaded right now. Try again in a moment.' for the others.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)"
+    "ext:String(localized:bundle:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "chunk has no error object",
-     "effect": "returns nil"
+     "at": "+3",
+     "cond": "provider is .anthropic",
+     "effect": "'Anthropic is overloaded…'"
+    },
+    {
+     "at": "+4",
+     "cond": "provider is .gemini",
+     "effect": "'Gemini is overloaded…'"
+    },
+    {
+     "at": "+5",
+     "cond": "any other provider",
+     "effect": "'<displayName> is overloaded…'"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+   }
+  },
+  {
+   "key": "func ProviderHTTP.streamFailure(in:provider:)",
+   "hash": "aa99f5d01a2a237c",
+   "does": "For a stream payload carrying an {\"error\":{...}} object (an OpenAI-compatible or Gemini chunk, an Anthropic error event), returns the error the chat acts on: .modelUnavailable(overloadedMessage(provider)) when the error is the vendor's own failure (numeric code 500-599, or type server_error / overloaded_error / api_error), the same mapping statusError gives a 5xx; otherwise .invalidResponse with the redacted error.message ('stream error' when absent). Nil when the payload has no error object.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.overloadedMessage(for:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)"
+   ],
+   "reads": [
+    "mem:ProviderHTTP.serverFailureTypes"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no error object",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+4",
+     "cond": "code 500-599 or a server-failure type",
+     "effect": "returns .modelUnavailable(overloadedMessage)"
+    },
+    {
+     "at": "+5",
+     "cond": "error.message missing",
+     "effect": "'stream error'; returns .invalidResponse(redacted message)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.overloadedMessage(for:)": "17c60e6299c39e16",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)": "2461162d36fc3850"
    }
+  },
+  {
+   "key": "func ProviderHTTP.eventObject(_:provider:)",
+   "hash": "70127feb8c44bd69",
+   "does": "Parses one SSE data payload as a JSON object. A payload that is not JSON, or is JSON but not an object, throws .invalidResponse('malformed <vendorName> stream event') so a broken event fails the stream instead of being skipped.",
+   "entry": null,
+   "calls": [
+    "ext:JSONSerialization.jsonObject(with:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "payload is not JSON",
+     "effect": "throws .invalidResponse('malformed <vendor> stream event')"
+    },
+    {
+     "at": "+8",
+     "cond": "JSON but not an object",
+     "effect": "throws the same error; otherwise returns the object"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName": "986602b3b3fdcd71"
+   }
+  },
+  {
+   "key": "func ProviderHTTP.blockedReply(by:reason:)",
+   "hash": "89db85627f7748ed",
+   "does": "Returns .invalidResponse('<displayName> blocked the reply (<reason>)'), the error every cloud provider ends a safety stop with (Gemini safety finish reasons, OpenAI-compatible content_filter, Anthropic refusal).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func ProviderHTTP.isJSONObject(_:)",
+   "hash": "2acb5e311b6f5d88",
+   "does": "True when the text parses as a JSON object (a tool call's complete arguments); false for a fragment, a non-object or anything that does not parse.",
+   "entry": null,
+   "calls": [
+    "ext:JSONSerialization.jsonObject(with:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "text does not parse",
+     "effect": "returns false"
+    }
+   ],
+   "deps": {}
   },
   {
    "key": "func ProviderHTTP.splitOnCacheMarker(_:)",
