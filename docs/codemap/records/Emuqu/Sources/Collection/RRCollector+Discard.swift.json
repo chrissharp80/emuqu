@@ -81,14 +81,14 @@
   },
   {
    "key": "func CollectorSessionControl.discardPausedRecording()",
-   "hash": "51019984ec6179e0",
-   "does": "Discards the paused night: for the paused session and each paused ancestor in its chain (pausedChain), deletes it from the archive (attempt-logged) and removes its raw RR backup and iCloud live backup; then resetSession (which also clears the persisted pause keys) and notifies archive observers. The strap is not touched.",
+   "hash": "b1e7a87c1354e332",
+   "does": "Discards the paused night: for the paused session and each paused ancestor in its chain (pausedChain), newest first, deletes it from the archive and only then removes its raw RR backup and iCloud live backup; then resetSession (which also clears the persisted pause keys) and notifies archive observers. When a delete throws it stops there (that segment and older ones keep their backups, no resetSession) and hands over to keepPauseAfterFailedDelete, which leaves or re-enters the pause and sets lastError. The strap is not touched.",
    "entry": "Through RRCollector.discardPausedRecording() from the Record screen's paused-state Discard confirmation (RecordView.discardPausedNight()).",
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.pausedChain(from:)",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.keepPauseAfterFailedDelete(of:pausedId:error:)",
     "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.removeKeptCopies(of:)",
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()",
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()"
@@ -101,6 +101,7 @@
     "file:RRBackup/<uuid>*",
     "ck:live backup records (via CloudKitLiveBackupManager)",
     "ud:RRCollector.pausedSessionId",
+    "mem:RRCollector.lastError",
     "notif:.flowRecoveryArchiveChanged"
    ],
    "branches": [
@@ -112,18 +113,52 @@
     {
      "at": "+3",
      "cond": "each id in the paused chain",
-     "effect": "archive delete + backups removed"
+     "effect": "archive delete, then backups removed"
+    },
+    {
+     "at": "+6",
+     "cond": "archive.delete throws",
+     "effect": "returns keepPauseAfterFailedDelete(of: id, pausedId: paused.id, error:) without removing that id's or older ids' backups"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.keepPauseAfterFailedDelete(of:pausedId:error:)": "f73f7b688df703fb",
     "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.pausedChain(from:)": "4cb454c47a2c0f9c",
     "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.removeKeptCopies(of:)": "84e65f7b2e4b6810",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "dcc084a0adcf0b2b",
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "2d1dbd705fabf7be",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func CollectorSessionControl.keepPauseAfterFailedDelete(of:pausedId:error:)",
+   "hash": "0056f046414880d1",
+   "does": "After a paused segment's archive delete failed: logs a warning; when the failed segment is not the paused session itself, returnToParentPauseOrIdle re-enters that (still archived) segment's pause and archive observers are notified; then sets lastError to the error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.returnToParentPauseOrIdle(parentId:)",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:RRCollector.lastError",
+    "notif:.flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "id != pausedId",
+     "effect": "returnToParentPauseOrIdle(parentId: id) and notify; otherwise the pause is left as it was"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.returnToParentPauseOrIdle(parentId:)": "481fe4b8a8f30dcd",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
