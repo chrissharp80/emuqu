@@ -293,7 +293,7 @@
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.splitOnCacheMarker(_:)": "c484c39a3bf962e3",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::let ProviderHTTP.streamSession": "755d0d1ab8a8cbe4",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.buildContents(messages:toolRounds:liveStateBlock:)": "f55ee02505c471d4",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)": "ab650c787fa1a396",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)": "e74fe87ea9a72eba",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.makeRequest(url:apiKey:body:)": "a85a659d63cd1b4e",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.streamEndpoint(for:)": "4f76cde6f5eaecff",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.throwForStatus(_:bytes:)": "3fcbabd0a28a7378",
@@ -341,8 +341,8 @@
   },
   {
    "key": "func GeminiProvider.consumeSSE(_:continuation:)",
-   "hash": "2c3c847b8b34593a",
-   "does": "Reads a reply's SSE line sequence (the URL session's lines, or a test's): each non-empty data: payload is parsed by ProviderHTTP.eventObject (a payload that is not a JSON object throws) and handled by handleChunk (which throws on an error object, a blocked prompt or a failing finish reason). After the stream it yields one .usage from the last usageMetadata; then, when no candidate carried a finishReason, the stream was cut and it throws URLError(.networkConnectionLost) (a fallbackable .network via ProviderStream); otherwise it yields .done.",
+   "hash": "53d121ea6bcf8367",
+   "does": "Reads a reply's SSE line sequence (the URL session's lines, or a test's): each non-empty data: payload is parsed by ProviderHTTP.eventObject (a payload that is not a JSON object throws) and handled by handleChunk (which throws on an error object, a blocked prompt or a failing finish reason). After the stream it yields one .usage from the last usageMetadata; then a cancelled task throws CancellationError, so Stop reads as cancellation; then, when no candidate carried a finishReason, the stream was cut and it throws URLError(.networkConnectionLost) (a fallbackable .network via ProviderStream); otherwise it yields .done.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.eventObject(_:provider:)",
@@ -367,6 +367,11 @@
      "at": "+9",
      "cond": "payload empty",
      "effect": "skipped"
+    },
+    {
+     "at": "+14",
+     "cond": "task cancelled when the sequence ended",
+     "effect": "throws CancellationError"
     },
     {
      "at": "+14",
@@ -433,10 +438,9 @@
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.blockedPrompt(in:)": "5906398717690c49",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.contentParts(in:)": "ff235124f086d0c7",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.finishReason(in:)": "698cfc1a6535a837",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.stopFailure(_:)": "450b4b809a251961",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.stopFailure(_:)": "6fdae9748b3c7257",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.yieldPart(_:counter:continuation:)": "dd5b3c96e00740cd",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textDelta(_:)": "2e33b365dfe56d9a"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -452,19 +456,17 @@
   },
   {
    "key": "func GeminiProvider.stopFailure(_:)",
-   "hash": "20fbdb827386d2f9",
-   "does": "Maps a finish reason to the error it ends the reply with: SAFETY, RECITATION, BLOCKLIST, PROHIBITED_CONTENT and SPII to ProviderHTTP.blockedReply(by: .gemini), MALFORMED_FUNCTION_CALL to .invalidResponse('Gemini sent a malformed function call'); nil for STOP, MAX_TOKENS and any other reason.",
+   "hash": "389163396f058733",
+   "does": "Maps a finish reason to the error it ends the reply with: SAFETY, RECITATION, BLOCKLIST, PROHIBITED_CONTENT and SPII to AIProviderError.blockedReply(provider: .gemini, reason:) (not fallbackable), MALFORMED_FUNCTION_CALL to .invalidResponse('Gemini sent a malformed function call'); nil for STOP, MAX_TOKENS and any other reason.",
    "entry": null,
-   "calls": [
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.blockedReply(by:reason:)"
-   ],
+   "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+2",
      "cond": "a safety reason",
-     "effect": "blockedReply"
+     "effect": ".blockedReply"
     },
     {
      "at": "+4",
@@ -477,9 +479,7 @@
      "effect": "nil"
     }
    ],
-   "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.blockedReply(by:reason:)": "a07a0155639855b7"
-   }
+   "deps": {}
   },
   {
    "key": "func GeminiProvider.blockedPrompt(in:)",

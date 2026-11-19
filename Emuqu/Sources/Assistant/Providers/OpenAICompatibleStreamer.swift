@@ -353,6 +353,8 @@ enum OpenAICompatibleStreamer {
     /// an Anthropic stream without `message_stop`: it throws
     /// `URLError(.networkConnectionLost)`, which `ProviderStream` reports as
     /// a dropped connection, and any open tool-call fragments are not run.
+    /// A cancelled task whose sequence ended cleanly throws
+    /// `CancellationError` first, so Stop reads as cancellation.
     ///
     /// Only `data:` lines are read; comments (`:` keep-alives), blank lines
     /// and `event:` lines are skipped. Takes the line sequence rather than
@@ -374,6 +376,7 @@ enum OpenAICompatibleStreamer {
             }
             try handleChunk(payload, providerID: providerID, state: &state, continuation: continuation)
         }
+        try Task.checkCancellation()
         guard state.finishReason != nil else { throw URLError(.networkConnectionLost) }
         try finishReply(&state, continuation: continuation)
     }
@@ -405,7 +408,9 @@ enum OpenAICompatibleStreamer {
     }
 
     /// The `choices[0]` half of a chunk: a text delta, tool-call fragments,
-    /// and the finish reason when the chunk carries one.
+    /// and the finish reason when the chunk carries one. Only the first
+    /// finish reason is acted on: a server that repeats it in a later chunk
+    /// must not add a second "…" or flush twice.
     private static func handleChoice(
         _ json: [String: Any],
         providerID: ProviderID,
@@ -421,7 +426,7 @@ enum OpenAICompatibleStreamer {
                 accumulate(tc, into: &state.openToolCalls)
             }
         }
-        if let reason = first["finish_reason"] as? String {
+        if let reason = first["finish_reason"] as? String, state.finishReason == nil {
             try applyFinishReason(reason, providerID: providerID, state: &state, continuation: continuation)
         }
     }
@@ -433,7 +438,7 @@ enum OpenAICompatibleStreamer {
     ///     Anthropic's `max_tokens` does. Tool-call arguments still open
     ///     were cut, so the round fails rather than run them.
     ///   • `content_filter`: the vendor's safety filter stopped the reply,
-    ///     which throws `ProviderHTTP.blockedReply`.
+    ///     which throws `AIProviderError.blockedReply`.
     ///   • `insufficient_system_resource` (DeepSeek): the server cut the
     ///     reply for lack of capacity, which throws the same overloaded
     ///     error as a 5xx.
@@ -455,7 +460,7 @@ enum OpenAICompatibleStreamer {
             }
             continuation.yield(.textDelta("…"))
         case "content_filter":
-            throw ProviderHTTP.blockedReply(by: providerID, reason: reason)
+            throw AIProviderError.blockedReply(provider: providerID, reason: reason)
         case "insufficient_system_resource":
             throw AIProviderError.modelUnavailable(ProviderHTTP.overloadedMessage(for: providerID))
         default:

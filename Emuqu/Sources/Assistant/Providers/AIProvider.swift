@@ -363,6 +363,12 @@ enum AIProviderError: LocalizedError {
     case outOfCredit(ProviderID)
     case cancelled
     case unknown(String)
+    /// A cloud provider's safety system stopped the reply: Gemini's safety
+    /// finish reasons, the OpenAI-compatible `content_filter`, Anthropic's
+    /// `refusal`. `reason` is the vendor's stop reason, kept for the log.
+    /// Like Apple's guardrail, it is shown as it is and never handed to
+    /// another provider.
+    case blockedReply(provider: ProviderID, reason: String)
 
     /// True when this error came from Apple Intelligence's safety
     /// filter. A refusal is shown to the user as it is and never re-sent
@@ -374,12 +380,20 @@ enum AIProviderError: LocalizedError {
         return false
     }
 
+    /// True for a cloud vendor's safety stop (`.blockedReply`). The
+    /// fallback chain stops on it instead of trying the next vendor.
+    var isBlockedReply: Bool {
+        if case .blockedReply = self { return true }
+        return false
+    }
+
     /// True when this error is something the user can
     /// reasonably expect another provider to handle. Auth / credit /
     /// rate-limit / model-not-found / network failures all qualify
-    /// (the issue is with the provider, not the request). Cancellation
-    /// and guardrail violations don't (cancellation is intentional; a
-    /// safety refusal stands and is not routed around). Used by the
+    /// (the issue is with the provider, not the request). Cancellation,
+    /// guardrail violations and blocked replies don't (cancellation is
+    /// intentional; a safety refusal, Apple's or a cloud vendor's, stands
+    /// and is not routed around). Used by the
     /// generic fallback chain in `AssistantViewModel.send`.
     var isFallbackable: Bool {
         switch self {
@@ -391,7 +405,7 @@ enum AIProviderError: LocalizedError {
             // the chat. If the same error comes back from all
             // fallbacks, the user sees the original.
             return true
-        case .guardrailViolation, .cancelled:
+        case .guardrailViolation, .blockedReply, .cancelled:
             return false
         }
     }
@@ -416,6 +430,8 @@ enum AIProviderError: LocalizedError {
         case let .modelUnavailable(msg): Self.vendorText(msg) { msg }
         case let .outOfCredit(p): Self.outOfCreditMessage(p)
         case .cancelled: String(localized: "Request cancelled.", bundle: bundle)
+        case let .blockedReply(provider, _):
+            String(localized: "\(provider.displayName) declined to answer this. Try asking it another way.", bundle: bundle)
         case let .unknown(msg): Self.vendorText(msg) { msg }
         }
     }
@@ -622,15 +638,6 @@ enum ProviderHTTP {
         return json
     }
 
-    /// The error for a reply the provider's safety system stopped: Gemini's
-    /// safety finish reasons, the OpenAI-compatible `content_filter`, and
-    /// Anthropic's `refusal`. Same case and wording as Gemini's blocked
-    /// prompt, so every cloud provider's safety stop ends the same way: as
-    /// an error, never as a reply that reads as complete.
-    static func blockedReply(by provider: ProviderID, reason: String) -> AIProviderError {
-        .invalidResponse("\(provider.displayName) blocked the reply (\(reason))")
-    }
-
     /// True when `text` parses as a JSON object: a tool call's arguments in
     /// full, not a fragment the stream cut short.
     static func isJSONObject(_ text: String) -> Bool {
@@ -710,7 +717,7 @@ protocol AIProvider {
     /// signal; a stream that closes without one was cut and throws
     /// `URLError(.networkConnectionLost)`, which `ProviderStream` turns into
     /// `.network`. A reply cut at the token cap ends with a "…" text delta,
-    /// and a safety stop throws `ProviderHTTP.blockedReply`.
+    /// and a safety stop throws `AIProviderError.blockedReply`.
     func send(
         messages: [ChatTurn],
         model: ModelOption,

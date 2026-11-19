@@ -664,6 +664,9 @@ extension AssistantTurnRouter {
     /// A safety refusal (`AIProviderError.isAppleGuardrail`) is shown as the
     /// answer and never re-sent to another provider: the Foundation Models
     /// acceptable-use terms forbid circumventing the framework's guardrails.
+    /// A cloud vendor's safety stop (`.blockedReply`) is treated the same
+    /// way: it reaches `handleStreamFailure`, which keeps any text already
+    /// shown and puts the refusal in the banner.
     /// Only failures that say nothing about the content (context overflow,
     /// model unavailable, network, auth, no credit) may move on to another
     /// provider, through `handleFallbackableFailure`, as far as the routing

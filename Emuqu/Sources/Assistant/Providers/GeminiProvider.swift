@@ -321,7 +321,8 @@ final class GeminiProvider: AIProvider, Sendable {
     /// `finishReason`; a stream that closes before one was cut, like an
     /// Anthropic stream without `message_stop`, and throws
     /// `URLError(.networkConnectionLost)` (a dropped connection in
-    /// `ProviderStream`).
+    /// `ProviderStream`). A cancelled task whose sequence ended cleanly
+    /// throws `CancellationError` first, so Stop reads as cancellation.
     ///
     /// Only `data:` lines are read; comments, blank lines and `event:` lines
     /// are skipped. Takes the line sequence rather than the URL session's
@@ -340,6 +341,7 @@ final class GeminiProvider: AIProvider, Sendable {
             try handleChunk(json, state: &state, continuation: continuation)
         }
         yieldUsage(state.lastUsage, to: continuation)
+        try Task.checkCancellation()
         guard state.finished else { throw URLError(.networkConnectionLost) }
         continuation.yield(.done)
     }
@@ -381,13 +383,13 @@ final class GeminiProvider: AIProvider, Sendable {
     /// The error a finish reason ends the reply with, or nil when it ends
     /// normally (`STOP`, `MAX_TOKENS` and any other reason). The safety
     /// stops (`SAFETY`, `RECITATION`, `BLOCKLIST`, `PROHIBITED_CONTENT`,
-    /// `SPII`) are `ProviderHTTP.blockedReply`; `MALFORMED_FUNCTION_CALL`
+    /// `SPII`) are `AIProviderError.blockedReply`; `MALFORMED_FUNCTION_CALL`
     /// means the model's tool call could not be parsed, so it is an invalid
     /// response and no tool runs.
     private static func stopFailure(_ reason: String) -> AIProviderError? {
         switch reason {
         case "SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII":
-            return ProviderHTTP.blockedReply(by: .gemini, reason: reason)
+            return AIProviderError.blockedReply(provider: .gemini, reason: reason)
         case "MALFORMED_FUNCTION_CALL":
             return AIProviderError.invalidResponse("Gemini sent a malformed function call")
         default:

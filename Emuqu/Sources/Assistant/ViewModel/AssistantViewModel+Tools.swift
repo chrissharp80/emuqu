@@ -602,7 +602,9 @@ extension AssistantToolRunner {
     /// Apple Intelligence"); it MUST match where the visible text came from.
     /// On failure the fallback's own partial text is cut back to what voice
     /// already spoke, so a failed fallback never leaves its text under the
-    /// primary provider's badge.
+    /// primary provider's badge. A fallback's safety stop (`.blockedReply`)
+    /// ends the chain and is shown, as the primary's would be, rather than
+    /// sending the request on to the next vendor.
     ///
     /// Each fallback gets the history re-cut to ITS budget
     /// (`fallbackOutbound`), not the primary's: an Apple primary's 1,200-token
@@ -632,10 +634,25 @@ extension AssistantToolRunner {
         } catch is CancellationError {
             return true // user-cancelled — treat as resolved
         } catch {
+            return await endFailedFallback(error, provider: provider, turnID: turnID)
+        }
+    }
+
+    /// A fallback that threw. Its partial text is cut back to what voice
+    /// already spoke either way. A safety stop (`.blockedReply`) ends the
+    /// chain as the primary's would: it is shown through
+    /// `handleStreamFailure` and true is returned, so the request is never
+    /// sent on to the next vendor. Any other failure is logged and returns
+    /// false, which moves on to the next fallback.
+    private func endFailedFallback(_ error: Error, provider: AIProvider, turnID: UUID) async -> Bool {
+        discardUnspokenPartialText(turnID: turnID)
+        guard let blocked = error as? AIProviderError, blocked.isBlockedReply else {
             debugLog("[Assistant] fallback \(provider.id.rawValue) also failed: \(error.localizedDescription)")
-            discardUnspokenPartialText(turnID: turnID)
             return false
         }
+        debugLog("[Assistant] fallback \(provider.id.rawValue) ended the chain: \(blocked.localizedDescription)")
+        await handleStreamFailure(error: blocked, turnID: turnID)
+        return true
     }
 
     /// The history before the reserved turn, truncated to `provider`'s own

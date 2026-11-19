@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Assistant/Providers/AIProvider.swift",
- "hash": "81fe5cdd1a182826",
- "role": "Shared vocabulary of the assistant's provider layer: ProviderID identity/branding, ModelOption catalog entries, ChatTurn transcript model (with hand-written tolerant decoder), ToolSpec/ToolExchange tool-use types, AIStreamEvent stream events, API-key redaction, AIProviderError (fallback/guardrail policy + user text), ProviderAccountReply credit/purchase detection, ProviderHTTP (the cloud streamers' shared URL session, error-body/envelope/status mapping, the per-provider overloaded text, mid-stream error objects, SSE event parsing, the safety-stop error, tool-argument JSON check, cache-marker split and <live_state> envelope), the AIProvider protocol and AnyJSON encoder.",
+ "hash": "c3fc32e8db4b8dba",
+ "role": "Shared vocabulary of the assistant's provider layer: ProviderID identity/branding, ModelOption catalog entries, ChatTurn transcript model (with hand-written tolerant decoder), ToolSpec/ToolExchange tool-use types, AIStreamEvent stream events, API-key redaction, AIProviderError (fallback/guardrail/blocked-reply policy + user text), ProviderAccountReply credit/purchase detection, ProviderHTTP (the cloud streamers' shared URL session, error-body/envelope/status mapping, the per-provider overloaded text, mid-stream error objects, SSE event parsing, tool-argument JSON check, cache-marker split and <live_state> envelope), the AIProvider protocol and AnyJSON encoder.",
  "types": [
   "ProviderID: enum — the six AI backends (apple, anthropic, openai, gemini, grok, deepseek) with display/vendor/symbol/privacy URL",
   "ModelOption: struct — one selectable model (apiID, context window, per-MTok prices, default flag)",
@@ -13,7 +13,7 @@
   "ToolSpec.Property: struct — one schema property",
   "ToolExchange: struct — a completed tool call + serialized result replayed in continuation requests",
   "AIStreamEvent: enum — textDelta/toolUse/usage/done stream events",
-  "AIProviderError: enum (LocalizedError) — provider failure taxonomy with isFallbackable/isAppleGuardrail and localized messages",
+  "AIProviderError: enum (LocalizedError) — provider failure taxonomy (blockedReply: a cloud vendor's safety stop) with isFallbackable/isAppleGuardrail/isBlockedReply and localized messages",
   "ProviderAccountReply: enum — string heuristics for credit-exhausted and purchase-prompt vendor replies",
   "ProviderHTTP: enum — HTTP plumbing shared by AnthropicProvider, GeminiProvider and OpenAICompatibleStreamer",
   "AIProvider: protocol — backend interface (id, models, key need, availability, tool cap, streaming send)",
@@ -396,9 +396,26 @@
    "deps": {}
   },
   {
+   "key": "var AIProviderError.isBlockedReply",
+   "hash": "2aadb67d82edda23",
+   "does": "True for .blockedReply (a cloud vendor's safety stop); read by the fallback chain, which stops on it instead of trying the next vendor.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "case is .blockedReply",
+     "effect": "true; else false"
+    }
+   ],
+   "deps": {}
+  },
+  {
    "key": "var AIProviderError.isFallbackable",
-   "hash": "425fbf11c3f8a758",
-   "does": "Fallback policy: true for missingKey/authFailed/rateLimited/network/modelUnavailable/outOfCredit and also invalidResponse/unsupportedOS/unknown; false for guardrailViolation and cancelled. Read by AssistantViewModel+Routing.swift:632 to walk the fallback chain.",
+   "hash": "5d57ad20315c3d55",
+   "does": "Fallback policy: true for missingKey/authFailed/rateLimited/network/modelUnavailable/outOfCredit and also invalidResponse/unsupportedOS/unknown; false for guardrailViolation, blockedReply and cancelled (a safety refusal, Apple's or a cloud vendor's, is never routed around). Read by AssistantViewModel+Routing.swift:632 to walk the fallback chain.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -416,7 +433,7 @@
     },
     {
      "at": "+10",
-     "cond": "guardrailViolation, cancelled",
+     "cond": "guardrailViolation, blockedReply, cancelled",
      "effect": "false"
     }
    ],
@@ -439,7 +456,7 @@
   },
   {
    "key": "var AIProviderError.errorDescription",
-   "hash": "eab44a8bbdb1b57c",
+   "hash": "d524a511dea0c236",
    "does": "LocalizedError text for each case, localized from LanguageManager.appBundle; vendor-supplied text in invalidResponse/modelUnavailable/unknown passes through vendorText, which replaces purchase prompts.",
    "entry": "LocalizedError.errorDescription — read via localizedDescription by the chat error banner",
    "calls": [
@@ -503,6 +520,11 @@
     },
     {
      "at": "+13",
+     "cond": "blockedReply(provider, _)",
+     "effect": "\"<displayName> declined to answer this. Try asking it another way.\" (the vendor's reason is not shown)"
+    },
+    {
+     "at": "+15",
      "cond": "unknown(msg)",
      "effect": "vendorText(msg) else msg"
     }
@@ -771,17 +793,6 @@
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName": "986602b3b3fdcd71"
    }
-  },
-  {
-   "key": "func ProviderHTTP.blockedReply(by:reason:)",
-   "hash": "89db85627f7748ed",
-   "does": "Returns .invalidResponse('<displayName> blocked the reply (<reason>)'), the error every cloud provider ends a safety stop with (Gemini safety finish reasons, OpenAI-compatible content_filter, Anthropic refusal).",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {}
   },
   {
    "key": "func ProviderHTTP.isJSONObject(_:)",

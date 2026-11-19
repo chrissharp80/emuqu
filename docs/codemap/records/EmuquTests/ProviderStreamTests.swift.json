@@ -1,7 +1,7 @@
 {
  "file": "EmuquTests/ProviderStreamTests.swift",
- "hash": "8829eb4d33847162",
- "role": "XCTest suites over the cloud providers' streams: ProviderStreamTests checks ProviderStream.make's error mapping (URLError → .network / .cancelled, CancellationError → .cancelled, provider and unrelated errors pass through), normal event delivery, and that a consumer leaving cancels the operation; OpenAICompatibleReasoningTests checks the reasoning fields OpenAICompatibleStreamer.requestFor writes for DeepSeek (thinking disabled), OpenAI (reasoning_effort none) and Grok (neither); OpenAICompatibleEndOfStreamTests, GeminiEndOfStreamTests and AnthropicEndOfStreamTests replay in-memory SSE lines through each provider's consumeSSE (via SSEReplay) and check how a reply ends: a clean close without the terminal signal is a dropped connection, the terminal signal completes, a malformed event throws, a token-cap stop ends with '…', a safety stop is a blocked reply, a cut or unparseable tool call is never emitted, and a mid-stream server failure is the overloaded modelUnavailable.",
+ "hash": "405748723a8650b5",
+ "role": "XCTest suites over the cloud providers' streams: ProviderStreamTests checks ProviderStream.make's error mapping (URLError → .network / .cancelled, CancellationError → .cancelled, provider and unrelated errors pass through), normal event delivery, and that a consumer leaving cancels the operation; OpenAICompatibleReasoningTests checks the reasoning fields OpenAICompatibleStreamer.requestFor writes for DeepSeek (thinking disabled), OpenAI (reasoning_effort none) and Grok (neither); OpenAICompatibleEndOfStreamTests, GeminiEndOfStreamTests and AnthropicEndOfStreamTests replay in-memory SSE lines through each provider's consumeSSE (via SSEReplay) and check how a reply ends: a clean close without the terminal signal is a dropped connection, the terminal signal completes, a malformed event throws, a token-cap stop ends with '…', a safety stop is a non-fallbackable .blockedReply, a repeated finish reason adds one '…', a cut or unparseable tool call is never emitted, and a mid-stream server failure is the overloaded modelUnavailable. EndOfStreamCancellationTests checks that each reader, cancelled before its lines end cleanly, throws CancellationError rather than a dropped connection.",
  "types": [
   "ProviderStreamTests: class — XCTestCase over ProviderStream",
   "ProviderStreamTests.Unrelated: private enum Error — a non-provider error",
@@ -10,7 +10,8 @@
   "SSEReplay.Outcome: struct — text, tool names and inputs, whether .done arrived, and the error",
   "OpenAICompatibleEndOfStreamTests: class — XCTestCase over OpenAICompatibleStreamer.consumeSSE",
   "GeminiEndOfStreamTests: class — XCTestCase over GeminiProvider.consumeSSE",
-  "AnthropicEndOfStreamTests: class — XCTestCase over AnthropicProvider.consumeSSE"
+  "AnthropicEndOfStreamTests: class — XCTestCase over AnthropicProvider.consumeSSE",
+  "EndOfStreamCancellationTests: class — XCTestCase over the three consumeSSE readers under cancellation"
  ],
  "state": [],
  "toplevel": "",
@@ -80,7 +81,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isFallbackable": "d013db8ccf81b1c5",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isFallbackable": "282db2562f4830f6",
     "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)": "2e9dd013a0b15db6",
     "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "08722a68117b042e",
     "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)": "baa234c133b6664d",
@@ -198,6 +199,31 @@
     "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "08722a68117b042e",
     "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)": "baa234c133b6664d",
     "EmuquTests/ProviderStreamTests.swift::func ProviderStreamTests.failure(thrown:)": "ece5e457020aae57"
+   }
+  },
+  {
+   "key": "func ProviderStreamTests.testBlockedReplyIsNotFallbackable()",
+   "hash": "c305830cc02f7537",
+   "does": "For every cloud provider, .blockedReply is not fallbackable, is a blocked reply and is not Apple's guardrail.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isFallbackable",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isBlockedReply",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isAppleGuardrail"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each cloud provider",
+     "effect": "asserts"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isAppleGuardrail": "75ee050d9dc31acc",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isBlockedReply": "95de7c208812608e",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isFallbackable": "282db2562f4830f6"
    }
   },
   {
@@ -402,6 +428,27 @@
    }
   },
   {
+   "key": "var SSEReplay.Outcome.blockedReply",
+   "hash": "31d338017865dfbc",
+   "does": "'<providerID>: <reason>' when the recorded error is .blockedReply, else nil.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.asProviderError"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "error is not .blockedReply",
+     "effect": "nil"
+    }
+   ],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.asProviderError": "ec2fd3e735557dac"
+   }
+  },
+  {
    "key": "var SSEReplay.Outcome.isNetworkError",
    "hash": "e4c8c9b53c2a17f5",
    "does": "True when the recorded error is AIProviderError.network.",
@@ -528,7 +575,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.consumeSSE(_:providerID:continuation:)": "b6ce5e3389e5ec6e",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.consumeSSE(_:providerID:continuation:)": "9f74985f618acaab",
     "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)": "8965c0bed0b1cf6e",
     "EmuquTests/ProviderStreamTests.swift::func SSEReplay.run(_:)": "9ed275e41694e309"
    }
@@ -674,14 +721,31 @@
    }
   },
   {
+   "key": "func OpenAICompatibleEndOfStreamTests.testRepeatedLengthStopAddsOneMarker()",
+   "hash": "aba17442ee10632b",
+   "does": "A length finish reason repeated in a later chunk still ends the text with a single '…'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.textChunk(_:finish:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)": "018a8067a10ed8e7",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.textChunk(_:finish:)": "674d7be9a6608374"
+   }
+  },
+  {
    "key": "func OpenAICompatibleEndOfStreamTests.testContentFilterIsABlockedReply()",
-   "hash": "56a01d1bbab32131",
-   "does": "A content_filter finish reason throws 'ChatGPT blocked the reply (content_filter)' and no .done.",
+   "hash": "52755aefdc986f13",
+   "does": "A content_filter finish reason throws .blockedReply(openai, content_filter) and no .done.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)",
     "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.textChunk(_:finish:)",
-    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage"
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.blockedReply"
    ],
    "reads": [],
    "writes": [],
@@ -689,13 +753,13 @@
    "deps": {
     "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)": "018a8067a10ed8e7",
     "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.textChunk(_:finish:)": "674d7be9a6608374",
-    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage": "8f7ad88b295bce1b"
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.blockedReply": "16010666bd820a08"
    }
   },
   {
    "key": "func OpenAICompatibleEndOfStreamTests.testToolCallCutByALengthStopDoesNotRun()",
-   "hash": "c3ea2831d33072a7",
-   "does": "A tool call whose arguments are open when a length stop arrives emits no .toolUse and throws .invalidResponse.",
+   "hash": "4a610a45c0e951b3",
+   "does": "A tool call whose arguments are open when a length stop arrives emits no .toolUse and throws .invalidResponse('the reply hit its length limit inside a tool call').",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.replay(_:provider:)",
@@ -780,7 +844,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)": "ab650c787fa1a396",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)": "e74fe87ea9a72eba",
     "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)": "8965c0bed0b1cf6e",
     "EmuquTests/ProviderStreamTests.swift::func SSEReplay.run(_:)": "9ed275e41694e309"
    }
@@ -878,13 +942,13 @@
   },
   {
    "key": "func GeminiEndOfStreamTests.testSafetyStopIsABlockedReply()",
-   "hash": "50cf490d4663ab4e",
-   "does": "For each of SAFETY, RECITATION, BLOCKLIST, PROHIBITED_CONTENT and SPII: throws 'Gemini blocked the reply (<reason>)', the blocked chunk's text is not shown, and no .done.",
+   "hash": "110fc66e6d9afbae",
+   "does": "For each of SAFETY, RECITATION, BLOCKLIST, PROHIBITED_CONTENT and SPII: throws .blockedReply(gemini, <reason>), the blocked chunk's text is not shown, and no .done.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)",
     "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.chunk(text:finish:)",
-    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage"
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.blockedReply"
    ],
    "reads": [],
    "writes": [],
@@ -892,13 +956,13 @@
    "deps": {
     "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.chunk(text:finish:)": "67ba4c2906549842",
     "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)": "cf41e587b2d8564d",
-    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage": "8f7ad88b295bce1b"
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.blockedReply": "16010666bd820a08"
    }
   },
   {
    "key": "func GeminiEndOfStreamTests.testMalformedFunctionCallDoesNotRunATool()",
-   "hash": "3fd1d6d318623f66",
-   "does": "A MALFORMED_FUNCTION_CALL finish reason emits no .toolUse and throws 'Gemini sent a malformed function call'.",
+   "hash": "98d514fb99197691",
+   "does": "A MALFORMED_FUNCTION_CALL chunk that also carries a get_sleep functionCall part emits no .toolUse and throws 'Gemini sent a malformed function call'.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)",
@@ -964,7 +1028,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "a396c16f9e9c8f51",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "7f624a8dd0c86b76",
     "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)": "8965c0bed0b1cf6e",
     "EmuquTests/ProviderStreamTests.swift::func SSEReplay.run(_:)": "9ed275e41694e309"
    }
@@ -1107,14 +1171,14 @@
   },
   {
    "key": "func AnthropicEndOfStreamTests.testRefusalIsABlockedReply()",
-   "hash": "9222341cf33e9760",
-   "does": "A refusal stop throws 'Claude blocked the reply (refusal)' and no .done.",
+   "hash": "678bf0caf09cb1d9",
+   "does": "A refusal stop throws .blockedReply(anthropic, refusal) and no .done.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)",
     "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textEvent(_:)",
     "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.stop(_:)",
-    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage"
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.blockedReply"
    ],
    "reads": [],
    "writes": [],
@@ -1123,7 +1187,7 @@
     "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)": "43ceccab35b5aded",
     "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.stop(_:)": "62f573dbbf617221",
     "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textEvent(_:)": "2e33b365dfe56d9a",
-    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage": "8f7ad88b295bce1b"
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.blockedReply": "16010666bd820a08"
    }
   },
   {
@@ -1183,6 +1247,55 @@
     "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)": "43ceccab35b5aded",
     "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.sseEvent(_:_:)": "77d9bd56fa2ec600",
     "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.isModelUnavailable": "e105151f245a31a1"
+   }
+  },
+  {
+   "key": "func EndOfStreamCancellationTests.errorFromCancelledReader(_:)",
+   "hash": "40f4544b451823ea",
+   "does": "Runs a reader in a task that cancels itself before reading (UnsafeCurrentTask.cancel) and returns what the task threw, or nil.",
+   "entry": null,
+   "calls": [
+    "ext:AsyncThrowingStream.makeStream",
+    "ext:withUnsafeCurrentTask"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+11",
+     "cond": "task threw",
+     "effect": "returns the error; else nil"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func EndOfStreamCancellationTests.testCancelledReaderEndsAsCancellation()",
+   "hash": "0fc8853a923e47cd",
+   "does": "For the OpenAI-compatible, Gemini and Anthropic readers fed an empty, cleanly ending line sequence in a cancelled task, the error is CancellationError, not a dropped connection.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func EndOfStreamCancellationTests.errorFromCancelledReader(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.consumeSSE(_:providerID:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each reader",
+     "effect": "asserts CancellationError"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "7f624a8dd0c86b76",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)": "e74fe87ea9a72eba",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.consumeSSE(_:providerID:continuation:)": "9f74985f618acaab",
+    "EmuquTests/ProviderStreamTests.swift::func EndOfStreamCancellationTests.errorFromCancelledReader(_:)": "2b625dceda9dee1b",
+    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)": "8965c0bed0b1cf6e"
    }
   }
  ],

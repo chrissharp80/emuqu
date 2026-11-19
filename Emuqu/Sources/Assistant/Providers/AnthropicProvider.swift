@@ -439,7 +439,7 @@ final class AnthropicProvider: AIProvider, Sendable {
     }
 
     /// `message_delta`: the final usage, and the stop reason. A `refusal`
-    /// is the model's safety stop and throws `ProviderHTTP.blockedReply`, as
+    /// is the model's safety stop and throws `AIProviderError.blockedReply`, as
     /// the other providers' safety stops do. A reply that stopped at the
     /// token cap (`max_tokens`) or paused mid server-tool turn
     /// (`pause_turn`) is incomplete, so it is logged and ends with an
@@ -450,7 +450,7 @@ final class AnthropicProvider: AIProvider, Sendable {
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) throws {
         let reason = (json["delta"] as? [String: Any])?["stop_reason"] as? String
-        if reason == "refusal" { throw ProviderHTTP.blockedReply(by: .anthropic, reason: "refusal") }
+        if reason == "refusal" { throw AIProviderError.blockedReply(provider: .anthropic, reason: "refusal") }
         if let reason, reason == "max_tokens" || reason == "pause_turn" {
             debugLog("[Anthropic] reply stopped early: stop_reason=\(reason)", level: .warning)
             continuation.yield(.textDelta("…"))

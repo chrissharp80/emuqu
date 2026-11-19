@@ -65,6 +65,17 @@ final class ProviderStreamTests: XCTestCase {
         XCTAssertEqual(other as? Unrelated, .failure)
     }
 
+    /// A cloud vendor's safety stop stands, like Apple's guardrail: it is
+    /// never handed to another provider.
+    func testBlockedReplyIsNotFallbackable() {
+        for provider in [ProviderID.anthropic, .openai, .gemini, .grok, .deepseek] {
+            let blocked = AIProviderError.blockedReply(provider: provider, reason: "SAFETY")
+            XCTAssertFalse(blocked.isFallbackable, "\(provider)")
+            XCTAssertTrue(blocked.isBlockedReply)
+            XCTAssertFalse(blocked.isAppleGuardrail)
+        }
+    }
+
     func testEventsThenNormalFinish() async throws {
         let stream = ProviderStream.make { continuation in
             continuation.yield(.textDelta("hi"))
@@ -158,6 +169,12 @@ enum SSEReplay {
         var invalidResponseMessage: String? {
             guard case let .invalidResponse(message) = asProviderError else { return nil }
             return message
+        }
+
+        /// "<provider>: <reason>" for a `.blockedReply`, or nil.
+        var blockedReply: String? {
+            guard case let .blockedReply(provider, reason) = asProviderError else { return nil }
+            return "\(provider.rawValue): \(reason)"
         }
 
         var isNetworkError: Bool {
@@ -267,16 +284,24 @@ final class OpenAICompatibleEndOfStreamTests: XCTestCase {
         XCTAssertTrue(outcome.endedWithDone)
     }
 
+    /// A server that repeats the finish reason in a later chunk gets one
+    /// marker, not two.
+    func testRepeatedLengthStopAddsOneMarker() async {
+        let outcome = await replay([textChunk("Your HRV was", finish: "length"), textChunk("", finish: "length"), "data: [DONE]"])
+        XCTAssertNil(outcome.error)
+        XCTAssertEqual(outcome.text, "Your HRV was…")
+    }
+
     func testContentFilterIsABlockedReply() async {
         let outcome = await replay([textChunk("Partial", finish: "content_filter"), "data: [DONE]"])
-        XCTAssertEqual(outcome.invalidResponseMessage, "ChatGPT blocked the reply (content_filter)")
+        XCTAssertEqual(outcome.blockedReply, "openai: content_filter")
         XCTAssertFalse(outcome.endedWithDone)
     }
 
     func testToolCallCutByALengthStopDoesNotRun() async {
         let outcome = await replay([toolFragment(#"{"days":"#), toolFragment("", finish: "length"), "data: [DONE]"])
         XCTAssertTrue(outcome.toolNames.isEmpty)
-        XCTAssertNotNil(outcome.invalidResponseMessage)
+        XCTAssertEqual(outcome.invalidResponseMessage, "the reply hit its length limit inside a tool call")
     }
 
     func testUnparseableToolArgumentsAtDoneDoNotRun() async {
@@ -348,14 +373,15 @@ final class GeminiEndOfStreamTests: XCTestCase {
     func testSafetyStopIsABlockedReply() async {
         for reason in ["SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII"] {
             let outcome = await replay([chunk(text: "Partial "), chunk(text: "hidden", finish: reason)])
-            XCTAssertEqual(outcome.invalidResponseMessage, "Gemini blocked the reply (\(reason))")
+            XCTAssertEqual(outcome.blockedReply, "gemini: \(reason)")
             XCTAssertEqual(outcome.text, "Partial ", "the blocked chunk's text must not be shown")
             XCTAssertFalse(outcome.endedWithDone)
         }
     }
 
     func testMalformedFunctionCallDoesNotRunATool() async {
-        let outcome = await replay([#"data: {"candidates":[{"content":{"role":"model","parts":[]},"finishReason":"MALFORMED_FUNCTION_CALL"}]}"#])
+        let call = #"{"functionCall":{"name":"get_sleep","args":{"days":7}}}"#
+        let outcome = await replay([#"data: {"candidates":[{"content":{"role":"model","parts":[\#(call)]},"finishReason":"MALFORMED_FUNCTION_CALL"}]}"#])
         XCTAssertTrue(outcome.toolNames.isEmpty)
         XCTAssertEqual(outcome.invalidResponseMessage, "Gemini sent a malformed function call")
     }
@@ -432,7 +458,7 @@ final class AnthropicEndOfStreamTests: XCTestCase {
 
     func testRefusalIsABlockedReply() async {
         let outcome = await replay(textEvent("Partial") + stop("refusal"))
-        XCTAssertEqual(outcome.invalidResponseMessage, "Claude blocked the reply (refusal)")
+        XCTAssertEqual(outcome.blockedReply, "anthropic: refusal")
         XCTAssertFalse(outcome.endedWithDone)
     }
 
@@ -456,5 +482,39 @@ final class AnthropicEndOfStreamTests: XCTestCase {
     func testOverloadedErrorEventIsOverloaded() async {
         let outcome = await replay(sseEvent("error", #"{"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}"#))
         XCTAssertTrue(outcome.isModelUnavailable, "\(String(describing: outcome.error))")
+    }
+}
+
+/// Stop cancels the reader's task. A reader whose lines then end cleanly
+/// reports cancellation, not a dropped connection.
+final class EndOfStreamCancellationTests: XCTestCase {
+    /// Runs `read` in a task that is cancelled before it reads anything,
+    /// and returns what it threw.
+    private func errorFromCancelledReader(
+        _ read: @escaping @Sendable (ProviderStream.Continuation) async throws -> Void
+    ) async -> Error? {
+        let (_, continuation) = AsyncThrowingStream<AIStreamEvent, Error>.makeStream()
+        let reader = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            try await read(continuation)
+        }
+        do {
+            try await reader.value
+            return nil
+        } catch {
+            return error
+        }
+    }
+
+    func testCancelledReaderEndsAsCancellation() async {
+        let readers: [(String, @Sendable (ProviderStream.Continuation) async throws -> Void)] = [
+            ("openai", { try await OpenAICompatibleStreamer.consumeSSE(SSEReplay.lines([]), providerID: .openai, continuation: $0) }),
+            ("gemini", { try await GeminiProvider.consumeSSE(SSEReplay.lines([]), continuation: $0) }),
+            ("anthropic", { try await AnthropicProvider.consumeSSE(SSEReplay.lines([]), continuation: $0) })
+        ]
+        for (name, read) in readers {
+            let error = await errorFromCancelledReader(read)
+            XCTAssertTrue(error is CancellationError, "\(name): \(String(describing: error))")
+        }
     }
 }
