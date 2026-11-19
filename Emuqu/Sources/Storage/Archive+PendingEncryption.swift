@@ -118,8 +118,8 @@ private func reencryptOne(_ id: UUID, in archive: SessionArchive) {
 /// refreshed because the bytes on disk change.
 ///
 /// An index entry whose file is gone (`fileNotFound`) has no plaintext left
-/// here to repair, and leaves the ledger; its Trash and quarantine copies were
-/// handled before this runs (`reencryptOne`). Any other failed read leaves it
+/// there, and leaves the ledger once every parked copy is encrypted
+/// (`clearOnceParkedCopiesAreEncrypted`). Any other failed read leaves it
 /// queued for the next launch: most often a launch in the background while the
 /// device is locked, when the file's protection class keeps it closed.
 /// Clearing it there would leave the plaintext on disk with nothing left to
@@ -130,7 +130,7 @@ private func reencryptArchived(_ id: UUID, in archive: SessionArchive) {
         guard let found = try archive.retrieveLightweight(id) else { return }
         session = found
     } catch SessionArchive.ArchiveError.fileNotFound {
-        PendingEncryptionLedger.clear(id)
+        clearOnceParkedCopiesAreEncrypted(id, in: archive)
         return
     } catch {
         debugLog("[Archive] re-encryption deferred for \(id.uuidString.prefix(8)) — file not readable yet: \(error)", level: .warning)
@@ -145,6 +145,16 @@ private func reencryptArchived(_ id: UUID, in archive: SessionArchive) {
     } catch {
         debugLog("[Archive] re-encryption failed for \(id.uuidString.prefix(8)): \(error)", level: .error)
     }
+}
+
+/// Clear the entry of an indexed session whose file is gone, once every
+/// parked copy is encrypted. A delete can move the file into the Trash after
+/// `reencryptOne` handled the parked copies, so they are handled again here;
+/// one that cannot be listed or rewritten keeps the entry queued.
+private func clearOnceParkedCopiesAreEncrypted(_ id: UUID, in archive: SessionArchive) {
+    guard let parked = archive.store.parkedCopies(of: id),
+          parked.allSatisfy({ reencryptParkedCopy($0, id: id, in: archive) }) else { return }
+    PendingEncryptionLedger.clear(id)
 }
 
 /// Rewrite a Trash or quarantine copy encrypted, in place, unless it already

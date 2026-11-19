@@ -113,13 +113,42 @@ enum OneShotBackupName {
 }
 
 extension OneShotBackupName {
+    /// Every one-shot file of `sessionId` in `directory`, indexed or not.
+    /// Throws when the listing fails.
+    static func files(of sessionId: UUID, in directory: URL) throws -> [URL] {
+        try FileManager.default.contentsOfDirectory(atPath: directory.path)
+            .filter { parse($0)?.id == sessionId }
+            .map { directory.appendingPathComponent($0) }
+    }
+
     /// One-shot files of `sessionId` in `directory`, other than `current`,
     /// still in plain JSON. Throws when the listing or a read fails.
     static func plaintextFiles(of sessionId: UUID, in directory: URL, except current: String?) throws -> [URL] {
-        try FileManager.default.contentsOfDirectory(atPath: directory.path)
-            .filter { $0 != current && parse($0)?.id == sessionId }
-            .map { directory.appendingPathComponent($0) }
+        try files(of: sessionId, in: directory)
+            .filter { $0.lastPathComponent != current }
             .filter { try !ArchiveStore.looksEncrypted(Data(contentsOf: $0, options: .alwaysMapped)) }
+    }
+
+    /// When the indexed backup was written, in ms: its one-shot file's stamp,
+    /// or a streaming backup's last append; 0 when neither is known.
+    static func indexedMs(_ entry: RawRRBackup.BackupIndex) -> Int64 {
+        entry.fileName != nil
+            ? writtenMs(entry.fileName)
+            : Int64((entry.lastBackupTime?.timeIntervalSince1970 ?? 0) * 1000)
+    }
+
+    /// The newest plain one-shot backup of the session written after the
+    /// indexed one (a process killed between that write and its index save)
+    /// that holds at least as many beats, decoded; nil when there is none.
+    /// `backup()` would take it, so the repair adopts it rather than leave
+    /// the fuller night where no listing or recovery reads it.
+    static func newerPlaintextBackup(than entry: RawRRBackup.BackupIndex, in directory: URL) throws -> RawRRBackup.BackupEntry? {
+        try plaintextFiles(of: entry.id, in: directory, except: entry.fileName)
+            .filter { writtenMs($0.lastPathComponent) > indexedMs(entry) }
+            .sorted { writtenMs($0.lastPathComponent) > writtenMs($1.lastPathComponent) }
+            .lazy
+            .compactMap { url in attempt("RawRRBackup.readNewerFile") { try RawRRBackup.decodeLegacyBackup(at: url) } }
+            .first { $0.points.count >= (entry.backedUpCount ?? entry.beatCount) }
     }
 
     /// Whether `url`, a one-shot file the index does not name, was provably
@@ -130,10 +159,7 @@ extension OneShotBackupName {
     /// or a date to compare, and one that does not decode are not replaced.
     static func isSuperseded(_ url: URL, by entry: RawRRBackup.BackupIndex?) -> Bool {
         guard let entry else { return false }
-        let indexedMs = entry.fileName != nil
-            ? writtenMs(entry.fileName)
-            : Int64((entry.lastBackupTime?.timeIntervalSince1970 ?? 0) * 1000)
-        guard writtenMs(url.lastPathComponent) < indexedMs,
+        guard writtenMs(url.lastPathComponent) < indexedMs(entry),
               let beats = attempt("RawRRBackup.readReplacedFile", { try RawRRBackup.decodeLegacyBackup(at: url).points.count })
         else { return false }
         return beats <= (entry.backedUpCount ?? entry.beatCount)

@@ -725,9 +725,10 @@ extension ArchiveStore {
     /// A deletion made on another device: out of the index with a tombstone,
     /// as `delete` does, but the file is removed rather than kept in the
     /// Trash, since that device holds the restore. The delete does not depend
-    /// on the file: one that is already gone, or will not go (logged), leaves
-    /// the deletion in place, and the tombstone keeps the orphan scan from
-    /// adopting a file left behind.
+    /// on the file: one that is already gone leaves the deletion in place, and
+    /// one that will not go is moved into the Trash instead, where expiry
+    /// (`discardTrashed`) removes it. Left in the archive folder, the orphan
+    /// scan would adopt it back once its tombstone was forgotten.
     func deleteWithoutTrash(_ id: UUID) throws {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
@@ -735,8 +736,10 @@ extension ArchiveStore {
         debugLog("[Archive] delete (deleted on another device): \(id.uuidString.prefix(8)) date=\(entry.date) type=\(entry.sessionType.rawValue)", level: .warning)
         try dropFromIndex(entry)
         let fileURL = archive.resolveFileURL(for: entry)
-        guard archive.fileManager.fileExists(atPath: fileURL.path) else { return }
-        attempt("Archive.deleteWithoutTrash.removeFile") { try archive.fileManager.removeItem(at: fileURL) }
+        guard archive.fileManager.fileExists(atPath: fileURL.path),
+              attempt("Archive.deleteWithoutTrash.removeFile", { try archive.fileManager.removeItem(at: fileURL) }) == nil
+        else { return }
+        attempt("Archive.deleteWithoutTrash.moveToTrash") { try moveToTrash(fileURL, id: id) }
     }
 
     /// Remove from the active archive.index (in-memory) then persist both indexes,

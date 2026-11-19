@@ -375,11 +375,9 @@ final class RawRRBackup: @unchecked Sendable {
         if encoded.encrypted { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
     }
 
-    /// The one-shot file a new backup replaced. Its index row is gone, so
-    /// left on disk it was out of reach of Trash, discard and purge. One that
-    /// will not go while it may be plaintext (the session was queued before
-    /// the write that cleared it) queues the session again, and
-    /// `reencryptBackup` removes it.
+    /// The one-shot file a new backup replaced. One that will not go while it
+    /// may be plaintext (the session was queued before the write that cleared
+    /// it) queues the session again, and `reencryptBackup` removes it.
     private func removeReplacedFile(_ old: String?, keeping current: String, of sessionId: UUID, wasPending: Bool) {
         guard let old, old != current else { return }
         do {
@@ -404,14 +402,13 @@ final class RawRRBackup: @unchecked Sendable {
     }
 
     /// A backup leaves the queue once none of its one-shot files is plaintext:
-    /// the indexed one rewritten encrypted (`writeEntry` clears it), and a
-    /// plain one the index does not name removed when the indexed backup
-    /// provably replaced it (`OneShotBackupName.isSuperseded`). Any other
-    /// plain file is kept, and so is the entry. Anything not yet readable,
-    /// listable or writable, the index file included, leaves it queued.
+    /// a newer, fuller one is adopted, the indexed one rewritten encrypted, and
+    /// a plain one the index does not name removed once provably replaced
+    /// (`OneShotBackupName.isSuperseded`); else it stays queued.
     func reencryptBackup(_ sessionId: UUID) {
         do {
             try mergeIndexIfLaunchReadFailed()
+            try adoptNewerBackup(sessionId)
             let entry = existingIndexEntry(sessionId)
             let stale = try OneShotBackupName.plaintextFiles(of: sessionId, in: backupDirectory, except: entry?.fileName)
             let superseded = stale.filter { OneShotBackupName.isSuperseded($0, by: entry) }
@@ -428,6 +425,14 @@ final class RawRRBackup: @unchecked Sendable {
         } catch {
             debugLog("[RawRRBackup] re-encryption deferred for \(sessionId.uuidString.prefix(8)): \(error)", level: .warning)
         }
+    }
+
+    /// A newer, fuller plain file the index missed becomes the backup through
+    /// `backup()`, under its rules (`OneShotBackupName.newerPlaintextBackup`).
+    private func adoptNewerBackup(_ sessionId: UUID) throws {
+        guard let indexed = existingIndexEntry(sessionId),
+              let newer = try OneShotBackupName.newerPlaintextBackup(than: indexed, in: backupDirectory) else { return }
+        try backup(points: newer.points, sessionId: sessionId, deviceId: newer.deviceId, captureDate: newer.captureDate)
     }
 
     /// Encode one backup entry, reporting whether encryption actually happened.
@@ -784,12 +789,7 @@ final class RawRRBackup: @unchecked Sendable {
         let entry = index.first { $0.id == sessionId }
         indexLock.unlock()
         guard let entry else { return }
-
-        if let fileName = entry.fileName {
-            let filePath = backupDirectory.appendingPathComponent(fileName)
-            _ = attempt("RawRRBackup.remove") { try fileManager.removeItem(at: filePath) }
-        }
-        cleanupAppendFiles(for: entry.id)
+        removeBackupFiles(for: entry)
 
         indexLock.lock()
         index.removeAll { $0.id == sessionId }
@@ -817,13 +817,16 @@ final class RawRRBackup: @unchecked Sendable {
         debugLog("[RawRRBackup] Purged \(toRemove.count) old archived backups")
     }
 
-    /// Remove both the legacy single file and the append-only pair.
+    /// Remove every one-shot file of the session, indexed or not (no listing
+    /// reaches an unindexed one, which would outlive it), and the append pair.
     private func removeBackupFiles(for entry: BackupIndex) {
-        if let fileName = entry.fileName {
+        let oneShots = attempt("RawRRBackup.listOneShots") { try OneShotBackupName.files(of: entry.id, in: backupDirectory) } ?? []
+        let indexed = entry.fileName.map { [backupDirectory.appendingPathComponent($0)] } ?? []
+        for url in Set(indexed + oneShots) where fileManager.fileExists(atPath: url.path) {
             do {
-                try fileManager.removeItem(at: backupDirectory.appendingPathComponent(fileName))
+                try fileManager.removeItem(at: url)
             } catch {
-                debugLog("[RawRRBackup] ⚠️ Failed to remove legacy backup \(entry.id.uuidString.prefix(8)): \(error)")
+                debugLog("[RawRRBackup] ⚠️ Failed to remove backup file \(url.lastPathComponent): \(error)")
             }
         }
         cleanupAppendFiles(for: entry.id)

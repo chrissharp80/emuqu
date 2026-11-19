@@ -165,6 +165,19 @@ final class WristHRMarkerTests: XCTestCase {
         XCTAssertNoThrow(try SessionArchive.sessionEncoder.encode(recovered.samples))
     }
 
+    /// `finiteValuesOnly` rebuilds a sample field by field through an init
+    /// whose parameters default to nil, so a field added to `WorkoutSample`
+    /// and not carried over there would silently become nil. This fails
+    /// until the new field is carried over and the count updated.
+    func testFiniteValuesOnlyCarriesEveryField() {
+        let sample = WorkoutSample(
+            offsetSec: 7, heartRate: 140, distanceMeters: 1_000, paceSecPerKm: 300, cadenceStepsPerMin: 170,
+            altitudeMeters: 12, alpha1: 0.8, mets: 9, powerWatts: 250
+        )
+        XCTAssertEqual(Mirror(reflecting: sample).children.count, 9, "WorkoutSample gained a field: carry it over in finiteValuesOnly")
+        XCTAssertEqual(sample.finiteValuesOnly, sample)
+    }
+
     /// "Delete All My Data" removes the backup folder before `purgeAll`
     /// runs. The purge still forgets what it had written and makes the folder
     /// again, so the next workout is backed up from its first row.
