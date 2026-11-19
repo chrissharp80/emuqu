@@ -162,6 +162,25 @@ final class ReanalysisServiceTests: XCTestCase {
         XCTAssertEqual(try archive.retrieve(session.id)?.sleepSnapshot?.nightSleepMinutes, 300)
     }
 
+    // MARK: - Unlinking a segment
+
+    /// A linked segment that can be read is unlinked: the parent drops the
+    /// link and the call reports true, which is what lets the report take the
+    /// segment off its list.
+    func testUnlinkingALinkedSegmentDropsTheLinkAndReportsTrue() throws {
+        let segment = HRVSession(
+            id: UUID(), startDate: nightStart.addingTimeInterval(2 * 3600), endDate: nightStart.addingTimeInterval(3 * 3600),
+            state: .complete, sessionType: .overnight, rrSeries: nil, analysisResult: nil, artifactFlags: nil
+        )
+        var parent = overnight()
+        parent.linkedSessionIds = [segment.id]
+        try archive.archive(segment)
+        try archive.archive(parent)
+
+        XCTAssertTrue(makeService().unlinkSegment(segmentId: segment.id, fromSession: parent.id))
+        XCTAssertNil(try archive.retrieve(parent.id)?.linkedSessionIds)
+    }
+
     // MARK: - Re-score vitals
 
     /// A snapshot written without the strap swap (an iCloud backfill stores

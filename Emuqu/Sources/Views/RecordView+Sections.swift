@@ -88,12 +88,12 @@ extension RecordView {
     }
 
     /// Step 2: Connection Section (any session type that records from the strap)
-    /// Hidden during: overnight streaming, morning acceptance, device fetch, or processing
+    /// Hidden during: overnight streaming, morning acceptance, or morning
+    /// processing (which includes the strap download, `.fetchingDevice`)
     @ViewBuilder
     var connectionSection: some View {
         if selectedSessionType != nil, !streamingLifecycle.isOvernightStreaming,
-           !sessionState.needsAcceptance, !morningCoordination.isDeviceFetchInProgress,
-           morningCoordination.morningStatus == nil {
+           !sessionState.needsAcceptance, morningCoordination.morningStatus == nil {
             let needsConnection = [SessionType.overnight, .nap, .quick].contains(selectedSessionType)
             if needsConnection, !deviceStatus.isStreaming {
                 ConnectionPanel(polarManager: collector.polarManager, collector: collector, selectedSessionType: selectedSessionType)
@@ -336,7 +336,7 @@ extension RecordView {
 
     func morningCover(_ presentation: ResultsPresentation) -> some View {
         NavigationStack {
-            morningResultsWithAlert(presentation)
+            withTagSaveFailureAlert(morningResultsWithAlert(presentation), shown: true)
                 .toolbar { morningDoneToolbar }
         }
     }
@@ -405,7 +405,7 @@ extension RecordView {
 
     func quickCover(_ presentation: ResultsPresentation) -> some View {
         NavigationStack {
-            quickResults(presentation)
+            withTagSaveFailureAlert(quickResults(presentation), shown: true)
                 .toolbar { quickDoneToolbar }
                 .alert(String(localized: "Couldn't delete this reading. Try again.", bundle: LanguageManager.appBundle), isPresented: $quickDiscardFailed) {
                     quickDiscardFailedActions

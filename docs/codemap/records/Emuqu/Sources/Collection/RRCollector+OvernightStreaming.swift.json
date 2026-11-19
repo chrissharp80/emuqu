@@ -142,7 +142,7 @@
     "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.launchDeviceRecordingLoop()": "08641994d55f883f",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func DeviceProvenance.streaming(from:)": "75333fdfabc78b0c",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.logOvernightStreamingStart(session:sessionType:)": "467f44066248b4bb",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.resetOvernightStreamingState(session:)": "15f1d3aa28909b60",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.resetOvernightStreamingState(session:)": "e82c74de45c18ad9",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.startOvernightHealthKitObservers()": "772b1582686a565b",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.startOvernightStreamingTimer()": "fee4a94f0eb53824",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
@@ -155,8 +155,8 @@
   },
   {
    "key": "func OvernightStreamingCoordinator.resetOvernightStreamingState(session:)",
-   "hash": "16639ac4b63c65da",
-   "does": "Resets collector state for a new overnight session: currentSession, empty points, start time, streaming/overnight/collecting flags, recordingPhase .overnightStreaming, unbounded target, counters zeroed, fetch/backup/ending flags cleared, deviceFetchPolicy .automatic, and lastError cleared (an earlier session's error is not this night's).",
+   "hash": "ca42860d7ac7c8ac",
+   "does": "Resets collector state for a new overnight session: currentSession, empty points, start time, streaming/overnight/collecting flags, recordingPhase .overnightStreaming, unbounded target, counters zeroed, backup/ending flags cleared, deviceFetchPolicy .automatic, and lastError cleared (an earlier session's error is not this night's).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -172,7 +172,6 @@
     "mem:RRCollector.isCollecting",
     "mem:RRCollector.pausedBeatCount",
     "mem:RRCollector.lastSeenReconnectCount",
-    "mem:RRCollector.isDeviceFetchInProgress",
     "mem:RRCollector.overnightDeviceBackupActive",
     "mem:RRCollector.isOvernightEnding",
     "mem:RRCollector.deviceFetchPolicy",
@@ -182,7 +181,6 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.collectedPoints": "afead9ad3142686a",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "f52c78dcfaca1b83",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isDeviceFetchInProgress": "a2d1375216d6d970",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isStreamingMode": "66ead1532c972b74",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
@@ -473,7 +471,7 @@
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.disconnectVeritySenseAfterNight(isVeritySense:)": "3e7ad95dbc1029c9",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.isVeritySenseDevice(_:)": "7649133f1a60846e",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.scoreStoppedNight(baseSession:streamingPoints:reconnectCount:isVeritySense:)": "3ad19740fb8b1dd5",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopStreamingInfrastructure()": "87322161f3e616d8",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopStreamingInfrastructure()": "7118bb68655824f9",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()": "12e7c44b52c0986c",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.forRecordingStop(named:)": "c3840e6ca84c5e4e"
    }
@@ -858,8 +856,8 @@
   },
   {
    "key": "func OvernightStreamingCoordinator.stopStreamingInfrastructure()",
-   "hash": "2a40772ca37e0429",
-   "does": "Clears isDeviceFetchInProgress, stops timer and sampler, clears isStreamingMode before stopping streaming, captures base session/reconnect count/elapsed hours (streamingHoursForBattery: wall clock since the session start, tick count without one), stops PolarManager streaming and publishes the saving state; returns (base, beats, reconnects). Shared by the morning stop and the pause's gather.",
+   "hash": "ed699d2f3dc5b759",
+   "does": "Stops timer and sampler, clears isStreamingMode before stopping streaming, captures base session/reconnect count/elapsed hours (streamingHoursForBattery: wall clock since the session start, tick count without one), stops PolarManager streaming and publishes the saving state; returns (base, beats, reconnects). Shared by the morning stop and the pause's gather.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.stopStreamingTimer()",
@@ -875,19 +873,17 @@
     "mem:RRCollector.sessionStartTime"
    ],
    "writes": [
-    "mem:RRCollector.isDeviceFetchInProgress",
     "mem:RRCollector.isStreamingMode"
    ],
    "branches": [
     {
-     "at": "+7",
+     "at": "+4",
      "cond": "currentSession nil",
      "effect": "base = HRVSession()"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.stopStreaming()": "06bd1b7d86805579",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isDeviceFetchInProgress": "a2d1375216d6d970",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isStreamingMode": "66ead1532c972b74",
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.publishGatherSavingState(streamingPoints:elapsedHours:)": "baaabba0160ffb4d",
     "Emuqu/Sources/Collection/RRCollector+Streaming.swift::var RRCollector.streamingHoursForBattery": "69a5a33ca359c57b",

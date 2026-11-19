@@ -40,7 +40,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.acceptSession()": "c78ce579b466ba72",
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.acceptSession()": "d8f3cad6c16f3e7f",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.rejectSession()": "934cd4dfc89f5418"
    }
   },
@@ -115,14 +115,13 @@
   },
   {
    "key": "var RecordView.connectionSection",
-   "hash": "7e4fae00089a76be",
-   "does": "Shows ConnectionPanel when a type is selected, not overnight streaming, not awaiting acceptance, no device fetch, no morning status, the type needs a strap (overnight/nap/quick — always true for the selectable types) and not already streaming.",
+   "hash": "311741b257097795",
+   "does": "Shows ConnectionPanel when a type is selected, not overnight streaming, not awaiting acceptance, no morning status (which covers the strap download, .fetchingDevice), the type needs a strap (overnight/nap/quick — always true for the selectable types) and not already streaming.",
    "entry": null,
    "calls": [],
    "reads": [
     "mem:StreamingLifecycle.isOvernightStreaming",
     "mem:SessionState.needsAcceptance",
-    "mem:MorningCoordination.isDeviceFetchInProgress",
     "mem:MorningCoordination.morningStatus",
     "mem:DeviceStatus.isStreaming"
    ],
@@ -130,17 +129,16 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "type selected && !overnightStreaming && !needsAcceptance && !isDeviceFetchInProgress && morningStatus == nil",
-     "effect": "false: nothing; true: evaluate line 96 (isDeviceFetchInProgress is always false in production)"
+     "cond": "type selected && !overnightStreaming && !needsAcceptance && morningStatus == nil",
+     "effect": "false: nothing; true: evaluate the strap check"
     },
     {
-     "at": "+6",
+     "at": "+5",
      "cond": "needsConnection && !deviceStatus.isStreaming",
      "effect": "true: ConnectionPanel; false: nothing"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isDeviceFetchInProgress": "a2d1375216d6d970",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.morningStatus": "0e3fa7b6eee80a18",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "b611e0c61d35d899"
@@ -612,7 +610,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "2d1dbd705fabf7be"
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "aaa4636d68fbc6ce"
    }
   },
   {
@@ -643,10 +641,11 @@
   },
   {
    "key": "func RecordView.morningCover(_:)",
-   "hash": "252670be36a496c5",
-   "does": "NavigationStack wrapping the morning results (with sleep-edit alert) and a Done toolbar.",
+   "hash": "1992e0c77d4a1814",
+   "does": "NavigationStack wrapping the morning results (with sleep-edit alert and the tag-save failure alert, always shown here) and a Done toolbar.",
    "entry": "fullScreenCover(item: $morningPresentation) content.",
    "calls": [
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.withTagSaveFailureAlert(_:shown:)",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.morningResultsWithAlert(_:)",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.morningDoneToolbar"
    ],
@@ -654,6 +653,7 @@
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.withTagSaveFailureAlert(_:shown:)": "52cf0eb3686ad21e",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.morningResultsWithAlert(_:)": "ddc084a01aee17b5",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.morningDoneToolbar": "5383d9434c15af02"
    }
@@ -717,11 +717,11 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeAtPosition(_:targetMs:)": "c48db2045ab27323",
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeSession(_:method:)": "e351483fb9f399fe",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.unlinkSegment(segmentId:fromSession:)": "4d7b559cc74765cb",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.unlinkSegment(segmentId:fromSession:)": "cb9b8e39eb673b4d",
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "dd89e7bdb872b231",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)": "083d7e30ca95aee7",
-    "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "ea9f986d8f72c9fd",
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.saveReportTags(_:notes:sessionId:)": "f565445ef52c7bdc",
+    "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "77c1bc60f515191c",
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.saveReportTags(_:notes:sessionId:)": "8a0800271063ee54",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.adjustMorningSleep(_:for:)": "b141a9237b5f344a",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.applyManualMorningResult(_:to:)": "7fd0d3a9f04a67d3",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.dismissMorningReading()": "4a52c5031c6078d5"
@@ -815,15 +815,16 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.acceptSession()": "c78ce579b466ba72"
+    "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.acceptSession()": "d8f3cad6c16f3e7f"
    }
   },
   {
    "key": "func RecordView.quickCover(_:)",
-   "hash": "514a65b9a738caef",
-   "does": "NavigationStack wrapping quick results with a Done toolbar and the 'Couldn't delete this reading' alert bound to quickDiscardFailed.",
+   "hash": "762a1123e77386a7",
+   "does": "NavigationStack wrapping quick results (with the tag-save failure alert, always shown here) with a Done toolbar and the 'Couldn't delete this reading' alert bound to quickDiscardFailed.",
    "entry": "fullScreenCover(item: $quickPresentation) content.",
    "calls": [
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.withTagSaveFailureAlert(_:shown:)",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickResults(_:)",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.quickDoneToolbar",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.quickDiscardFailedActions",
@@ -838,6 +839,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.withTagSaveFailureAlert(_:shown:)": "52cf0eb3686ad21e",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickResults(_:)": "060cd06c41e3b1f8",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.quickDiscardFailedActions": "aef9880214f380f2",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.quickDoneToolbar": "1a8a995375b00d3e"
@@ -876,8 +878,8 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "dd89e7bdb872b231",
-    "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "ea9f986d8f72c9fd",
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.saveReportTags(_:notes:sessionId:)": "f565445ef52c7bdc",
+    "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "77c1bc60f515191c",
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.saveReportTags(_:notes:sessionId:)": "8a0800271063ee54",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.discardQuickReading(_:)": "c7211ebeec6e3870"
    }
   },

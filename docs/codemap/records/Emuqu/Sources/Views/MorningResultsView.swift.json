@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/MorningResultsView.swift",
- "hash": "30d3dd76c8336f5e",
+ "hash": "9a6b00ef3b01be48",
  "role": "The Recovery Report screen for one session (morning results / history detail): hero score, readiness, HRV/sleep cards, training load, overnight charts with the window picker, data-source card, summary, tags and actions; sheets for score explainer, PDF preview and mail; delete/reanalyze/unlink dialogs; lifecycle hydration and archive/sleep refresh.",
  "types": [
   "LinkedSegmentInfo: struct — id/start/end of one split-night segment",
@@ -10,16 +10,16 @@
  ],
  "state": [
   "mem:MorningResultsView.recentSessionsContextLimit = 28 (static; used by RecordView+Results/+Sections, HistoryView, ImportDataView)",
-  "@State vm: MorningResultsViewModel; exportURL, emailURL, showingReanalyzeConfirmation, isManualWindowMode, manualResult, showReportSectionPicker, showEmailSectionPicker, showingDeleteConfirmation, showingUnlinkConfirmation, pendingUnlinkSegmentId, removedSegmentIds, exportErrorMessage, savedTagsAndNotes, manualPickMessage, strapMergeWorking, strapMergeMessage, showingScoreExplainer, sleepAdjustedHere (view-local)",
+  "@State vm: MorningResultsViewModel; exportURL, emailURL, showingReanalyzeConfirmation, isManualWindowMode, manualResult, showReportSectionPicker, showEmailSectionPicker, showingDeleteConfirmation, showingUnlinkConfirmation, pendingUnlinkSegmentId, removedSegmentIds, segmentUnlinkFailed, exportErrorMessage, savedTagsAndNotes, manualPickMessage, strapMergeWorking, strapMergeMessage, showingScoreExplainer, sleepAdjustedHere (view-local)",
   "@ScaledMetric scoreRingSize 180, heroScoreFontSize 56, metricValueFontSize 32",
   "@Environment dependencies, RRCollector, MorningCoordination, ArchiveSignal, accessibilityReduceMotion"
  ],
- "toplevel": "Stored callbacks onDiscard/onDelete/onReanalyze/onUpdateTags/onReanalyzeAt/onApplyManualResult/onUpdateSleep/onAdjustSleep/onUnlinkSegment and linkedSegments are set by the init; IdentifiableURL.id is a new UUID per wrapper.",
+ "toplevel": "Stored callbacks onDiscard/onDelete/onReanalyze/onUpdateTags/onReanalyzeAt/onApplyManualResult/onUpdateSleep/onAdjustSleep/onUnlinkSegment (returns whether the unlink was stored) and linkedSegments are set by the init; IdentifiableURL.id is a new UUID per wrapper.",
  "units": [
   {
    "key": "init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)",
-   "hash": "d8cc934173303717",
-   "does": "Stores all inputs and callbacks and creates the MorningResultsViewModel(session:result:recentSessions:) as @State.",
+   "hash": "d7be411970553d7b",
+   "does": "Stores all inputs and callbacks (onUnlinkSegment returns whether the unlink was stored) and creates the MorningResultsViewModel(session:result:recentSessions:) as @State.",
    "entry": "Called by RecordView+Sections, HistoryView, ImportDataView and BigScreenSnapshotTests.",
    "calls": [
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::init MorningResultsViewModel(session:result:recentSessions:settingsManager:healthKit:)"
@@ -74,9 +74,9 @@
    "deps": {
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.recoveryBreakdown()": "147f75a265476634",
     "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.resultsStack(_:)": "c6889a1a6512320a",
-    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.withDialogs(_:)": "e8861c7ba7a3ae57",
+    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.withDialogs(_:)": "1657a732dbffe099",
     "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.withExportHandling(_:)": "07e7edc631ad05e2",
-    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.withLifecycle(_:)": "878c152234dcae68",
+    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.withLifecycle(_:)": "380290b19461d550",
     "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.withSheets(_:)": "1730419b306081c8"
    }
   },
@@ -653,8 +653,8 @@
   },
   {
    "key": "func MorningResultsView.withDialogs(_:)",
-   "hash": "cec3cd24957fe004",
-   "does": "Attaches Delete Reading, Re-analyze Session and Remove Segment confirmation dialogs.",
+   "hash": "4072bd2d574d482e",
+   "does": "Wraps content in the segment-unlink failure alert, then attaches Delete Reading, Re-analyze Session and Remove Segment confirmation dialogs.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.deleteReadingActions",
@@ -662,19 +662,40 @@
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reanalyzeActions",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reanalyzeMessage",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.removeSegmentActions",
-    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.removeSegmentMessage"
+    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.removeSegmentMessage",
+    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.withSegmentUnlinkFailedAlert(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.withSegmentUnlinkFailedAlert(_:)": "09b12510d188c10e",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.deleteReadingActions": "3f35106c5cbce902",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.deleteReadingMessage": "06f93566ac86af7a",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reanalyzeActions": "1683569177e3f196",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reanalyzeMessage": "b32d5f95f9d4e431",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.removeSegmentActions": "984ccfb5af476c97",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.removeSegmentMessage": "66c1397d40626055"
+   }
+  },
+  {
+   "key": "func MorningResultsView.withSegmentUnlinkFailedAlert(_:)",
+   "hash": "fc680d13273806e5",
+   "does": "Attaches the \"Couldn't remove this segment. Try again.\" alert with an OK button, presented while segmentUnlinkFailed is true (set by unlinkPendingSegment when the unlink was not stored).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:MorningResultsView.segmentUnlinkFailed"
+   ],
+   "writes": [
+    "mem:MorningResultsView.segmentUnlinkFailed (alert dismissal)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -749,31 +770,41 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.unlinkPendingSegment()": "b2111b0c014498f0"
+    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.unlinkPendingSegment()": "163cba85a17ef666"
    }
   },
   {
    "key": "func MorningResultsView.unlinkPendingSegment()",
-   "hash": "c683e78bff950f13",
-   "does": "Hides the pending segment (animated unless Reduce Motion), calls onUnlinkSegment and clears the pending id.",
+   "hash": "b222e1be9b4cf80f",
+   "does": "Clears the pending segment id and calls onUnlinkSegment with it. Only when that reports the unlink stored is the segment hidden from the list (animated unless Reduce Motion); otherwise it stays listed and segmentUnlinkFailed raises the \"couldn't remove\" alert.",
    "entry": null,
    "calls": [
     "closure:onUnlinkSegment — collector.unlinkSegment(segmentId:fromSession:) from RecordView+Sections / HistoryView"
    ],
-   "reads": [],
+   "reads": [
+    "mem:MorningResultsView.pendingUnlinkSegmentId"
+   ],
    "writes": [
-    "archive:linked segments (via onUnlinkSegment)"
+    "archive:linked segments (via onUnlinkSegment)",
+    "mem:MorningResultsView.pendingUnlinkSegmentId",
+    "mem:MorningResultsView.segmentUnlinkFailed",
+    "mem:MorningResultsView.removedSegmentIds"
    ],
    "branches": [
     {
      "at": "+1",
-     "cond": "pendingUnlinkSegmentId != nil",
-     "effect": "true: unlink; false: nothing"
+     "cond": "pendingUnlinkSegmentId nil",
+     "effect": "return, nothing unlinked"
     },
     {
-     "at": "+2",
+     "at": "+3",
+     "cond": "onUnlinkSegment nil or returned false",
+     "effect": "segmentUnlinkFailed = true and return; the segment stays listed"
+    },
+    {
+     "at": "+7",
      "cond": "reduceMotion",
-     "effect": "nil animation vs easeInOut 0.2 s"
+     "effect": "nil animation vs easeInOut 0.2 s while inserting into removedSegmentIds"
     }
    ],
    "deps": {}
@@ -793,8 +824,8 @@
   },
   {
    "key": "func MorningResultsView.withLifecycle(_:)",
-   "hash": "3cdf07b7d4556677",
-   "does": "Adds .task hydrateAndLoad and onChange observers: device fetch finished and sleepDataVersion -> refetch sleep; archiveSignal.version -> vm.applyExternalArchiveUpdate; and onDisappear -> saveTagsAndNotesIfChanged, so tag/note edits survive a swipe-dismiss or a parent's own Done.",
+   "hash": "1c65c8715aa7ea16",
+   "does": "Adds .task hydrateAndLoad and onChange observers: sleepDataVersion -> refetch sleep; archiveSignal.version -> vm.applyExternalArchiveUpdate; and onDisappear -> saveTagsAndNotesIfChanged, so tag/note edits survive a swipe-dismiss or a parent's own Done.",
    "entry": "SwiftUI lifecycle (task, onChange, onDisappear)",
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.hydrateAndLoad()",
@@ -803,20 +834,12 @@
     "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.saveTagsAndNotesIfChanged()"
    ],
    "reads": [
-    "mem:MorningCoordination.isDeviceFetchInProgress",
     "mem:MorningCoordination.sleepDataVersion",
     "mem:ArchiveSignal.version"
    ],
    "writes": [],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "inProgress (new value) true",
-     "effect": "return; only refetch when the device fetch finished"
-    }
-   ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isDeviceFetchInProgress": "a2d1375216d6d970",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.sleepDataVersion": "5af31be207fd7d67",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.applyExternalArchiveUpdate()": "6f8dd5f18b597238",
     "Emuqu/Sources/Views/MorningResultsView+Actions.swift::func MorningResultsView.saveTagsAndNotesIfChanged()": "2c5f703bd5447e26",

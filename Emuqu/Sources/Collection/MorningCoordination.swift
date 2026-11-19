@@ -18,9 +18,6 @@ final class MorningCoordination {
     /// Progress of the morning overnight processing pipeline, or nil when idle.
     var morningStatus: RRCollector.MorningProcessingStatus?
 
-    /// True while the background H10 internal-memory fetch is in progress.
-    var isDeviceFetchInProgress: Bool = false
-
     /// A just-recovered interrupted workout awaiting the user's review/trim,
     /// or nil when there's nothing to review. Set after a crash recovery so
     /// the user can confirm the duration (and trim off any tail the strap

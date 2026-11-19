@@ -307,6 +307,9 @@ private struct EmailContactsSection: View {
     @State private var newEmail: String = ""
     @State private var newNotes: String = ""
     @State private var showInvalidEmail = false
+    /// An add or delete the store could not save (the contacts file cannot
+    /// be read yet); the list is unchanged and the form keeps its entry.
+    @State private var showSaveFailed = false
 
     var body: some View {
         Section {
@@ -334,6 +337,9 @@ private struct EmailContactsSection: View {
             Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
         } message: {
             Text(String(localized: "Enter an address with '@' and a domain (e.g. coach@team.com).", bundle: LanguageManager.appBundle))
+        }
+        .alert(String(localized: "Your change couldn't be saved. Try again.", bundle: LanguageManager.appBundle), isPresented: $showSaveFailed) {
+            Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
         }
     }
 
@@ -431,21 +437,25 @@ private struct EmailContactsSection: View {
             showInvalidEmail = true
             return
         }
-        store.add(EmailContact(
-            name: name,
-            email: email,
-            notes: notes.isEmpty ? nil : notes
-        ))
+        // The form is cleared only once the contact is saved; otherwise the
+        // entry stays for another try.
+        guard store.add(EmailContact(name: name, email: email, notes: notes.isEmpty ? nil : notes)) else {
+            showSaveFailed = true
+            return
+        }
         newName = ""
         newEmail = ""
         newNotes = ""
     }
 
+    /// A delete the store could not save leaves the contact listed, and says so.
     private func deleteContacts(at offsets: IndexSet) {
         let list = sortedContacts
+        var allRemoved = true
         for idx in offsets where list.indices.contains(idx) {
-            store.remove(id: list[idx].id)
+            if !store.remove(id: list[idx].id) { allRemoved = false }
         }
+        if !allRemoved { showSaveFailed = true }
     }
 }
 

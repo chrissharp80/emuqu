@@ -549,15 +549,15 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.stopStreamingSession()": "be73d91403ece112",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.stopStreamingSession()": "88216ae44333d382",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.stopStreamingSession()": "3efb0b2423a2272e",
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.persistTagsAndNotes(for:)": "33c63d50b5d929aa"
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.persistTagsAndNotes(for:)": "3f7a6583025dbe7f"
    }
   },
   {
    "key": "func RecordView.acceptSession()",
-   "hash": "5e18b21b422572eb",
-   "does": "Save for a reading awaiting acceptance (Save button, morning sheet Done, Continue to Dashboard): Task persists tags/notes onto the current session, accepts it in the collector (error logged only), then clears tags, notes and selectedSessionType.",
+   "hash": "a0d51702f2352505",
+   "does": "Save for a reading awaiting acceptance (Save button, morning sheet Done, Continue to Dashboard): Task persists tags/notes onto the current session, accepts it in the collector, then clears tags, notes and selectedSessionType. When acceptance fails the selection is kept (the reading still awaits acceptance and the pipeline has set lastError), so Save again writes the same tags and notes; when there was no complete session to accept the selection is cleared as after a save.",
    "entry": "Save button in RecordView.acceptanceButtons (RecordView+Sections.swift:34)",
    "calls": [
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.persistTagsAndNotes(for:)",
@@ -582,15 +582,20 @@
     },
     {
      "at": "+5",
-     "cond": "catch from acceptSession",
-     "effect": "error logged here; a runAcceptance failure was already written to lastError by the pipeline (RRCollector+Acceptance.swift:15) so the Error alert shows; noSessionToAccept is not surfaced; tags/notes are cleared either way (already applied to currentSession in memory)"
+     "cond": "acceptSession threw noSessionToAccept",
+     "effect": "logged; falls through to clear the selection"
+    },
+    {
+     "at": "+7",
+     "cond": "acceptSession threw anything else",
+     "effect": "logged and return: tags, notes and session type kept; the pipeline already set lastError, so the Error alert shows"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.acceptSession()": "7e9c09414b14c39e",
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.acceptSession()": "f362c4967d2e9405",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.persistTagsAndNotes(for:)": "33c63d50b5d929aa"
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.persistTagsAndNotes(for:)": "3f7a6583025dbe7f"
    }
   },
   {

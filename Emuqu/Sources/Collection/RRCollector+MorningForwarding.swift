@@ -53,7 +53,7 @@ extension RRCollector {
         await morning.computeRecoveryScore(for: session, from: analysisResult)
     }
 
-    func updateCompositeRecoveryScore(for session: HRVSession, exportMetrics: Bool = false) async {
+    func updateCompositeRecoveryScore(for session: HRVSession, exportMetrics: Bool = false) async -> Bool {
         await morning.updateCompositeRecoveryScore(for: session, exportMetrics: exportMetrics)
     }
 

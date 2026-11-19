@@ -12,9 +12,11 @@ import Foundation
 /// the same state machine seen from two directions, and the bindings republish
 /// exactly what those two change.
 ///
-/// The Combine sinks below capture `[weak collector]`: they are stored in the
-/// collector's own `cancellables`, so a strong capture would be a cycle and a
-/// weak one is exactly right — each no-ops once the collector is gone.
+/// The bindings' observation handlers hold the collector weakly
+/// (`[weak owner = collector]`, and `ObservationLoop` holds its owner weakly):
+/// they outlive the call that registers them, so a strong capture would keep
+/// the collector alive, and a weak one is exactly right — each no-ops once the
+/// collector is gone.
 ///
 /// ## Ownership
 ///

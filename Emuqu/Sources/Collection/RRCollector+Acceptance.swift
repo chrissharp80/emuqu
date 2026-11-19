@@ -55,8 +55,12 @@ extension MorningSessionPipeline {
     ///   (if the user has HealthKit export enabled). Pass `true` only from the "final"
     ///   acceptance path (auto-accept, dismiss overnight) — not from intermediate updates
     ///   like background device refinement — to avoid duplicate HealthKit samples.
-    func updateCompositeRecoveryScore(for session: HRVSession, exportMetrics: Bool = false) async {
-        guard let result = session.analysisResult else { return }
+    /// - Returns: `true` when the session was re-archived. `false` when it has
+    ///   no analysis result or the write failed: nothing was stored, so changes
+    ///   carried on `session` (the auto-accept's pre-night tags and notes) did
+    ///   not reach the archive.
+    func updateCompositeRecoveryScore(for session: HRVSession, exportMetrics: Bool = false) async -> Bool {
+        guard let result = session.analysisResult else { return false }
 
         let settings = collector.settingsManager.settings
         let trainingContext = await scoringTrainingContext(result: result, sessionEnd: session.endDate ?? session.startDate)
@@ -75,6 +79,7 @@ extension MorningSessionPipeline {
         if updated {
             await MainActor.run { collector.archiveSignal.notifyChanged() }
         }
+        return updated
     }
 
     /// Clear acceptance UI state — for overnight sessions that are already
@@ -87,7 +92,6 @@ extension MorningSessionPipeline {
         collector.recordingPhase = .idle
         collector.verificationResult = nil
         collector.recoveryWindow = nil
-        collector.isDeviceFetchInProgress = false
         collector.healthKit.stopObservingSleepData()
     }
 

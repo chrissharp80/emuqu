@@ -121,10 +121,6 @@ extension RRCollector {
         get { morningCoordination.morningStatus }
         set { morningCoordination.morningStatus = newValue }
     }
-    var isDeviceFetchInProgress: Bool {
-        get { morningCoordination.isDeviceFetchInProgress }
-        set { morningCoordination.isDeviceFetchInProgress = newValue }
-    }
     var sleepDataVersion: Int {
         get { morningCoordination.sleepDataVersion }
         set { morningCoordination.sleepDataVersion = newValue }

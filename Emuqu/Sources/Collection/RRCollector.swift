@@ -1,4 +1,3 @@
-import Combine
 import Foundation
 import os
 
@@ -114,15 +113,14 @@ final class RRCollector {
         set { streamingTimerBox.withLockUnchecked { $0 = newValue } }
     }
     var sessionStartTime: Date?
-    var cancellables = Set<AnyCancellable>()
 
     /// Tokens for the block-based NotificationCenter observers
     /// registered in `+Reanalysis` (rescore listener + CloudKit snapshot
     /// backfill). Stored so `deinit` can remove them; discarding the
     /// `addObserver` return value leaks the observer (and the captured
-    /// `self`) in tests/previews that build many collectors.
-    /// Combine subscriptions in `cancellables` auto-cancel on dealloc, but
-    /// block observers do not — they must be removed explicitly.
+    /// `self`) in tests/previews that build many collectors. Block
+    /// observers are not released with the collector — they must be
+    /// removed explicitly.
     @ObservationIgnored let notificationObservers = NotificationTokens()
     var lastSeenReconnectCount: Int = 0
     /// The current (as-of-today) training load. Never holds a past day's:
@@ -190,7 +188,6 @@ final class RRCollector {
     let sleepBoundaryResolver: SleepBoundaryResolver
     let settingsManager: SettingsManager
     let cloudSyncManager: CloudKitSyncManager
-    let backgroundAudioManager: BackgroundAudioManager
     let acceptanceService: SessionAcceptanceService
     let morningProcessingService: MorningProcessingService
     let archiveSignal: ArchiveSignal
@@ -676,7 +673,7 @@ final class RRCollector {
         )
     }
 
-    // spec:long-function Twenty injected dependencies, one assignment each,
+    // spec:long-function Nineteen injected dependencies, one assignment each,
     // with `?? Self.makeX(...)` resolving the ones the caller left nil. The
     // three services with non-trivial construction live in static factories;
     // what is left is pure assignment with no branching and nothing
@@ -685,9 +682,9 @@ final class RRCollector {
     // mechanically. Post-assignment wiring already lives in
     // `wireCollaborators()`.
     /// Create an RRCollector with injected dependencies (for testing). Any
-    /// left out resolve to the app's own: the settings, CloudKit sync and
-    /// background-audio managers are the shared instances, so a test that
-    /// must not touch them injects its own.
+    /// left out resolve to the app's own: the settings and CloudKit sync
+    /// managers are the shared instances, so a test that must not touch them
+    /// injects its own.
     init(
         polarManager: PolarManager,
         healthKit: HealthKitManager,
@@ -698,7 +695,6 @@ final class RRCollector {
         baselineTracker: BaselineTracker = BaselineTracker(),
         settingsManager: SettingsManager = AppDependencies.current.app.settingsManager,
         cloudSyncManager: CloudKitSyncManager? = nil,
-        backgroundAudioManager: BackgroundAudioManager? = nil,
         reconciliation: ReconciliationManager? = nil,
         analysisPipeline: HRVAnalysisPipeline? = nil,
         sleepBoundaryResolver: SleepBoundaryResolver? = nil,
@@ -725,7 +721,6 @@ final class RRCollector {
         self.sessionState = sessionState ?? SessionState()
         let resolvedCloudSyncManager = cloudSyncManager ?? AppDependencies.current.storage.cloudKitSyncManager
         self.cloudSyncManager = resolvedCloudSyncManager
-        self.backgroundAudioManager = backgroundAudioManager ?? AppDependencies.current.collection.backgroundAudioManager
         self.reconciliation = reconciliation ?? ReconciliationManager(archive: archive)
         let resolvedPipeline = analysisPipeline ?? Self.makePipeline(
             artifactDetector: artifactDetector, windowSelector: windowSelector, healthKit: healthKit
@@ -748,7 +743,7 @@ final class RRCollector {
 
     /// The three services the collector builds when the caller does not inject
     /// one. Kept out of the initializer — each is a wiring decision with its
-    /// own argument list, and inline they would dominate the 20-parameter
+    /// own argument list, and inline they would dominate the 19-parameter
     /// `init`.
     private static func makePipeline(
         artifactDetector: ArtifactDetector,
@@ -869,9 +864,8 @@ final class RRCollector {
     // Leak guard. RRCollector installs a `streamingTimer` and
     // block-based NotificationCenter observers (in `+Reanalysis`); without
     // teardown every collector built in a test/preview leaks its
-    // timer and observers (and the `self` they captured). Combine
-    // subscriptions in `cancellables` clean themselves up on dealloc; the
-    // timer and block observers must be released by hand.
+    // timer and observers (and the `self` they captured); both must be
+    // released by hand.
     // A timer is invalidated on the thread whose run loop it was scheduled
     // on (the main one); deinit can run elsewhere, so it hops there.
     deinit {
