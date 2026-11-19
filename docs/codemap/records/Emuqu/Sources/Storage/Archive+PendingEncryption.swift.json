@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Storage/Archive+PendingEncryption.swift",
  "hash": "55aac2c2aa641984",
- "role": "File-scope storage-confidentiality policy: chooses write protection per disk format (and keeps PendingEncryptionLedger in sync), and re-encrypts sessions that were written as plaintext while the key was unreachable.",
+ "role": "File-scope storage-confidentiality policy: chooses write protection per disk format (and keeps PendingEncryptionLedger in sync), recognises every copy of a pending session (archived, trashed, quarantined) for the protection walk, and re-encrypts sessions written as plaintext while the key was unreachable — their archived file and their Trash and quarantine copies — clearing an id only once this archive holds no plaintext copy and knows the session.",
  "types": [],
  "state": [],
  "toplevel": "Free functions only; uses ud:storage.pendingReencryption.sessionIDs through PendingEncryptionLedger.",
@@ -38,8 +38,8 @@
   },
   {
    "key": "func isPendingPlaintextSessionFile(_:pending:)",
-   "hash": "225450b92b5baef7",
-   "does": "True when the last path component of filename is <UUID>.json and that UUID is in pending: a session file written in plaintext whose .completeFileProtection the launch protection walk must not lower.",
+   "hash": "9eebba2d4dac9853",
+   "does": "True when the last path component of filename has the extension json or session and starts with a UUID that is in pending: a copy of a session written in plaintext (its <id>.json, its Trash/<id>.session, or a duplicate quarantined as <id>.json or <id>.<stamp>.json) whose .completeFileProtection the launch protection walk must not lower.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -47,11 +47,11 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "not .json, or the stem is not a UUID",
+     "cond": "extension not json/session, or the first 36 characters are not a UUID",
      "effect": "false"
     },
     {
-     "at": "+3",
+     "at": "+4",
      "cond": "UUID in pending",
      "effect": "true; else false"
     }
@@ -93,23 +93,28 @@
   },
   {
    "key": "func reencryptPendingSessions(in:)",
-   "hash": "f4852a650783bff2",
-   "does": "At launch/after pull: if the ledger lists pending ids and the encryption key is available, re-archives each through reencryptOne; logs an error and returns when the key is still unavailable.",
+   "hash": "a1afe898d382e182",
+   "does": "At launch/after pull: if the ledger lists pending ids, the encryption key is available and the archive's index loaded in full (hasCompleteIndex), passes each id to reencryptOne. Logs and returns, leaving every id queued, while the key is unavailable or the index did not load (a pending id missing from a partial index may still have its plaintext file here).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending",
     "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.hasCompleteIndex",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptOne(_:in:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
-    "ud:storage.pendingReencryption.sessionIDs"
+    "ud:storage.pendingReencryption.sessionIDs",
+    "mem:SessionArchive.indexReadFailed",
+    "mem:SessionArchive.indexDecodeFailed"
    ],
    "writes": [
     "ud:storage.pendingReencryption.sessionIDs",
     "file:<archiveDirectory>/<uuid>.json",
     "mem:SessionArchive.index",
-    "file:<archiveDirectory>/index.json"
+    "file:<archiveDirectory>/index.json",
+    "file:<archiveDirectory>/Trash/<uuid>.session",
+    "file:<archiveDirectory>/QuarantinedDuplicates/<uuid>[.<stamp>].json"
    ],
    "branches": [
     {
@@ -123,13 +128,19 @@
      "effect": "log error, return (retried next run)"
     },
     {
-     "at": "+8",
+     "at": "+9",
+     "cond": "index did not load in full this launch",
+     "effect": "log warning, return; every id stays queued"
+    },
+    {
+     "at": "+14",
      "cond": "for each pending id",
      "effect": "reencryptOne"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptOne(_:in:)": "0f29e46f2a8b104d",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.hasCompleteIndex": "4d992f398d9be95b",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptOne(_:in:)": "9d0d7818e676156f",
     "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "293d00b425d37802",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "3a3880893754edfe",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
@@ -139,16 +150,74 @@
   },
   {
    "key": "func reencryptOne(_:in:)",
-   "hash": "685c5766ea6ac8e6",
-   "does": "Loads the pending session lightweight and re-archives it via archive.archive(skipSameNightMerge:true), which re-encrypts and refreshes the hash; the rrSeries dropped by the lightweight load is restored by _archive's preservingRRSeries splice, which throws (logged here, session stays queued) rather than drop beats when the stored file cannot be read or decrypted. Errors logged.",
+   "hash": "fba2e51a58f4b972",
+   "does": "For one pending session: lists its copies outside the index (parkedCopies: Trash and quarantine; nil → return, left queued) and rewrites each encrypted in place (reencryptParkedCopy, every one attempted). An indexed session is then rewritten through the archive (reencryptArchived, whose encrypted write clears the ledger), and recorded again when a parked copy is still plaintext. A session not in the index leaves the ledger once every parked copy is encrypted, provided it had one or is tombstoned here; an id this archive neither lists, tombstones nor holds a copy of stays queued, since the ledger is process-wide and it may be another archive's.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func pendingSession(_:in:)",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.parkedCopies(of:)",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptParkedCopy(_:id:in:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptArchived(_:in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)"
+   ],
+   "reads": [
+    "file:<archiveDirectory>/<uuid>.json",
+    "file:<archiveDirectory>/Trash/<uuid>.session",
+    "file:<archiveDirectory>/QuarantinedDuplicates/ (listing)",
+    "mem:SessionArchive.index",
+    "mem:SessionArchive.deletedSessionIds"
+   ],
+   "writes": [
+    "file:<archiveDirectory>/<uuid>.json",
+    "file:<archiveDirectory>/Trash/<uuid>.session",
+    "file:<archiveDirectory>/QuarantinedDuplicates/<uuid>[.<stamp>].json",
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/index.json",
+    "ud:storage.pendingReencryption.sessionIDs",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "quarantine folder could not be listed",
+     "effect": "return; left queued"
+    },
+    {
+     "at": "+3",
+     "cond": "session is in the index",
+     "effect": "reencryptArchived; record again when a parked copy is still plaintext"
+    },
+    {
+     "at": "+6",
+     "cond": "not indexed, every parked copy encrypted, and it had one or is tombstoned",
+     "effect": "clear the ledger entry; otherwise it stays queued"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptArchived(_:in:)": "a06a077a28431bf2",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptParkedCopy(_:id:in:)": "702713911178271b",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)": "0fcaeb8ff266a299",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.parkedCopies(of:)": "824b945ef63af701",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "d45edfb391017e71",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "e211f6c61a83cb74"
+   }
+  },
+  {
+   "key": "func reencryptArchived(_:in:)",
+   "hash": "9c70ea83c8283418",
+   "does": "Loads the indexed session lightweight and re-archives it via archive.archive(skipSameNightMerge:true), which re-encrypts and refreshes the hash; the rrSeries dropped by the lightweight load is restored by _archive's preservingRRSeries splice, which throws (logged here, session stays queued) rather than drop beats when the stored file cannot be read or decrypted. A read that throws (locked file, or fileNotFound for an entry whose file is not where it names) or a session gone from the index since is logged and left queued; it never clears the ledger itself.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
-    "file:<archiveDirectory>/<uuid>.json"
+    "file:<archiveDirectory>/<uuid>.json",
+    "mem:SessionArchive.index"
    ],
    "writes": [
     "file:<archiveDirectory>/<uuid>.json",
@@ -159,59 +228,66 @@
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "pendingSession returned nil",
-     "effect": "return"
+     "at": "+3",
+     "cond": "no longer in the index",
+     "effect": "return; left queued"
     },
     {
-     "at": "+8",
-     "cond": "catch: archive threw",
+     "at": "+5",
+     "cond": "read threw (any error, fileNotFound included)",
+     "effect": "log warning, return; left queued"
+    },
+    {
+     "at": "+15",
+     "cond": "archive threw",
      "effect": "log error; ledger entry stays"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func pendingSession(_:in:)": "d18c90a7a2a7fd0f",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "917ec504a26a996e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
-   "key": "func pendingSession(_:in:)",
-   "hash": "a0ebd84cfa55c14b",
-   "does": "Returns the lightweight session for a pending id; clears the ledger when the id is not indexed or its file is missing; returns nil (keeps queued) on other read errors.",
+   "key": "func reencryptParkedCopy(_:id:in:)",
+   "hash": "3dfc96a701f1f0c7",
+   "does": "Under archiveLock (so delete cannot move a newer copy into the Trash between the read and the write): reads a Trash or quarantine copy, and unless it already carries the encrypted 'FR' prefix, resolves its plaintext (ArchiveStore.plaintextBytes), encrypts it with AppDependencies.current.storage.encryptionManager and writes it back atomically with until-first-unlock protection. True when it is encrypted afterwards; false, logged, when the read, encrypt or write threw. Does not touch the ledger.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "ext:NSLock",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:Data.write(to:options:)"
    ],
    "reads": [
-    "mem:SessionArchive.index",
-    "file:<archiveDirectory>/<uuid>.json"
+    "file:<archiveDirectory>/Trash/<uuid>.session",
+    "file:<archiveDirectory>/QuarantinedDuplicates/<uuid>[.<stamp>].json"
    ],
    "writes": [
-    "ud:storage.pendingReencryption.sessionIDs"
+    "file:<archiveDirectory>/Trash/<uuid>.session",
+    "file:<archiveDirectory>/QuarantinedDuplicates/<uuid>[.<stamp>].json"
    ],
    "branches": [
     {
-     "at": "+2",
-     "cond": "retrieveLightweight returned nil (not indexed)",
-     "effect": "clear ledger, return nil"
+     "at": "+5",
+     "cond": "already encrypted",
+     "effect": "nothing written; true"
     },
     {
-     "at": "+7",
-     "cond": "catch ArchiveError.fileNotFound",
-     "effect": "clear ledger, return nil"
-    },
-    {
-     "at": "+10",
-     "cond": "catch any other error",
-     "effect": "log warning, return nil (stays queued)"
+     "at": "+9",
+     "cond": "read, decrypt-resolve, encrypt or write threw",
+     "effect": "log warning, false"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "917ec504a26a996e",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "d45edfb391017e71",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)": "d617abae8ea527b1",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "2bebe4b4224a2d06",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }

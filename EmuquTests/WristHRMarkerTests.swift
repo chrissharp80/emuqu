@@ -132,6 +132,59 @@ final class WristHRMarkerTests: XCTestCase {
         XCTAssertEqual(WorkoutTrackBackup.firstIndex(in: rows, after: 1), 0)
     }
 
+    /// A row holding a value that is not a finite number is written and read
+    /// back like any other. It failed to encode and was skipped, while the
+    /// cursor counted it as written.
+    func testCrashBackupKeepsRowsWithNonFiniteValues() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("WristHRMarkerTests-\(UUID().uuidString)", isDirectory: true)
+        defer { XCTAssertNoThrow(try FileManager.default.removeItem(at: directory)) }
+        let backup = WorkoutTrackBackup(directory: directory)
+        let id = UUID()
+        let samples = [
+            WorkoutSample(offsetSec: 1, heartRate: 120, paceSecPerKm: .nan),
+            WorkoutSample(offsetSec: 2, heartRate: 121, mets: .infinity),
+            WorkoutSample(offsetSec: 3, heartRate: 122)
+        ]
+        backup.appendIncremental(
+            sessionId: id, sport: .run, startDate: Date(timeIntervalSince1970: 1_000), track: [],
+            samples: samples, healthKitHROffsets: [], barometricSamples: []
+        )
+
+        let recovered = try XCTUnwrap(backup.retrieve(id)).samples
+
+        XCTAssertEqual(recovered.map(\.offsetSec), [1, 2, 3])
+        XCTAssertTrue(try XCTUnwrap(recovered[0].paceSecPerKm).isNaN)
+        XCTAssertEqual(recovered[1].mets, Double.infinity)
+    }
+
+    /// "Delete All My Data" removes the backup folder before `purgeAll`
+    /// runs. The purge still forgets what it had written and makes the folder
+    /// again, so the next workout is backed up from its first row.
+    func testCrashBackupWritesAgainAfterAPurgeThatFoundNoFolder() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("WristHRMarkerTests-\(UUID().uuidString)", isDirectory: true)
+        defer { XCTAssertNoThrow(try FileManager.default.removeItem(at: directory)) }
+        let backup = WorkoutTrackBackup(directory: directory)
+        let id = UUID()
+        let start = Date(timeIntervalSince1970: 1_000)
+        let samples = (1 ... 3).map { WorkoutSample(offsetSec: $0, heartRate: 120) }
+        backup.appendIncremental(
+            sessionId: id, sport: .run, startDate: start, track: [],
+            samples: samples, healthKitHROffsets: [], barometricSamples: []
+        )
+        try FileManager.default.removeItem(at: directory)
+
+        backup.purgeAll()
+        let wrote = backup.appendIncremental(
+            sessionId: id, sport: .run, startDate: start, track: [],
+            samples: samples, healthKitHROffsets: [], barometricSamples: []
+        )
+
+        XCTAssertTrue(wrote)
+        XCTAssertEqual(try XCTUnwrap(backup.retrieve(id)).samples.count, 3)
+    }
+
     // MARK: - Recovery
 
     func testRebuildKeepsOnlyMarkersOfRowsItKept() {

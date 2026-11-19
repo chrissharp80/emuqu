@@ -22,15 +22,18 @@ extension RawRRBackup {
         guard points.count > previousCount else { return }
         let pointsPath = pointsURL(for: sessionId)
         let switchesFormat = try startAppendFormatIfNew(existingEntry, sessionId: sessionId, deviceId: deviceId, newCount: points.count)
-        let newPoints = points[previousCount...]
-        try writeAppendData(try encodedLines(newPoints), to: pointsPath, sessionId: sessionId, count: newPoints.count)
+        try writeAppendData(try encodedLines(points[previousCount...]), to: pointsPath, sessionId: sessionId) {
+            try encodedLines(points[...])
+        }
         try updateAppendIndex(sessionId: sessionId, existingEntry: existingEntry, beatCount: points.count)
         if switchesFormat, let legacyName = existingEntry?.fileName { removeReplacedLegacyFile(legacyName) }
     }
 
     /// The one-shot backup a format switch replaced, removed once the
     /// streaming copy and its index row are written. A failed removal leaves
-    /// a file the index no longer names, which costs space and nothing else.
+    /// a file the index no longer names, which costs space; one still queued
+    /// for re-encryption keeps the session queued, and `reencryptBackup`
+    /// removes it.
     private func removeReplacedLegacyFile(_ legacyName: String) {
         do {
             try fileManager.removeItem(at: backupDirectory.appendingPathComponent(legacyName))
@@ -131,8 +134,11 @@ extension RawRRBackup {
         return try decoder.decode(RRPoint.self, from: json)
     }
 
-    /// Append to the points file, falling back to a fresh write when the file
-    /// is missing or its handle can't be opened.
+    /// Append to the points file. A file that is missing, or that would not
+    /// open or read and was set aside, is replaced by a fresh one holding
+    /// every point so far (`allLines`), so the count the caller then indexes
+    /// is what the file holds; the new batch alone left the index claiming
+    /// beats that were not on disk.
     ///
     /// The throwing `FileHandle` calls, not `seekToEndOfFile()` / `write(_:)`:
     /// those raise an Objective-C exception on a full disk or an I/O error,
@@ -140,7 +146,7 @@ extension RawRRBackup {
     /// thing that crashed it. A failed append now throws to the caller, which
     /// logs it and retries on the next interval with the beats still buffered.
     func writeAppendData(
-        _ appendData: Data, to pointsPath: URL, sessionId: UUID, count: Int
+        _ appendData: Data, to pointsPath: URL, sessionId: UUID, allLines: () throws -> Data
     ) throws {
         if let handle = try? FileHandle(forWritingTo: pointsPath) {
             try appendThroughHandle(handle, appendData, sessionId: sessionId)
@@ -153,9 +159,9 @@ extension RawRRBackup {
         do {
             // Explicit protection class so the file
             // is writable while the device is locked overnight.
-            try appendData.write(to: pointsPath, options: [.completeFileProtectionUntilFirstUserAuthentication])
+            try allLines().write(to: pointsPath, options: [.completeFileProtectionUntilFirstUserAuthentication])
         } catch {
-            debugLog("[RawRRBackup] ERROR: Fallback write failed for \(sessionId.uuidString.prefix(8)): \(error). \(count) RR points may be lost.", level: .error)
+            debugLog("[RawRRBackup] ERROR: Fallback write failed for \(sessionId.uuidString.prefix(8)): \(error); the beats stay buffered for the next attempt", level: .error)
             throw error
         }
     }
@@ -178,9 +184,10 @@ extension RawRRBackup {
     /// the rewrite so the night so far is not left behind in a file only
     /// recovery knows to look for. False when they don't read either; the file
     /// is then set aside for recovery and the caller writes a fresh one.
+    /// Throws when it cannot be set aside, so nothing is written over it.
     private func rewriteKeepingExisting(_ appendData: Data, at pointsPath: URL, sessionId: UUID) throws -> Bool {
         guard let existing = attempt("RawRRBackup.readForRewrite", { try Data(contentsOf: pointsPath) }) else {
-            preserveCorruptedPointsFile(at: pointsPath, sessionId: sessionId)
+            try preserveCorruptedPointsFile(at: pointsPath, sessionId: sessionId)
             return false
         }
         try (existing + appendData).write(to: pointsPath, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
@@ -208,15 +215,21 @@ extension RawRRBackup {
     }
 
     /// File exists, won't open and won't read. Preserved for recovery:
-    /// `readAllPointLines` reads these alongside the live file.
-    func preserveCorruptedPointsFile(at pointsPath: URL, sessionId: UUID) {
-        let corruptedName = pointsPath.lastPathComponent + ".corrupted_\(Int(Date().timeIntervalSince1970))"
-        let corruptedPath = pointsPath.deletingLastPathComponent().appendingPathComponent(corruptedName)
-        debugLog("[RawRRBackup] WARNING: FileHandle failed on existing points file for \(sessionId.uuidString.prefix(8)); renaming to \(corruptedName) for recovery")
+    /// `readAllPointLines` reads these alongside the live file. Named
+    /// `.corrupted_<ms>`, raised past any name taken, so a second failure in
+    /// the same moment does not collide with the first. Throws when the move
+    /// fails: the caller must not write over the file, and the batch stays
+    /// buffered for the next interval.
+    func preserveCorruptedPointsFile(at pointsPath: URL, sessionId: UUID) throws {
+        let prefix = pointsPath.lastPathComponent + ".corrupted_"
+        var stamp = Int64((Date().timeIntervalSince1970 * 1000).rounded(.down))
+        while fileManager.fileExists(atPath: backupDirectory.appendingPathComponent(prefix + "\(stamp)").path) { stamp += 1 }
+        debugLog("[RawRRBackup] WARNING: FileHandle failed on existing points file for \(sessionId.uuidString.prefix(8)); renaming to \(prefix)\(stamp) for recovery")
         do {
-            try fileManager.moveItem(at: pointsPath, to: corruptedPath)
+            try fileManager.moveItem(at: pointsPath, to: backupDirectory.appendingPathComponent(prefix + "\(stamp)"))
         } catch {
             debugLog("[RawRRBackup] WARNING: Failed to preserve corrupted points file for \(sessionId.uuidString.prefix(8)): \(error)", level: .warning)
+            throw BackupError.couldNotSetAside(pointsPath.lastPathComponent)
         }
     }
 
@@ -421,7 +434,8 @@ extension RawRRBackup {
     /// A read error (the file locked by data protection, EPERM) is not
     /// corruption: the file is left in place, `indexReadFailed` is set, and
     /// `saveIndex` reads it again before writing. Only bytes that read but do
-    /// not decode are rebuilt from the backup files.
+    /// not decode are rebuilt from the backup files; when they cannot be moved
+    /// aside, `indexReadFailed` is set as for a failed read.
     func loadIndex() {
         guard fileManager.fileExists(atPath: indexFile.path) else { return }
         let data: Data
@@ -433,16 +447,17 @@ extension RawRRBackup {
             return
         }
         let loaded = decodedIndexOrRecovered(data)
-        indexLock.withLock { index = loaded }
+        indexLock.withLock { (index, indexReadFailed) = (loaded.entries, !loaded.replaceable) }
     }
 
     /// The index in `data`, or the one rebuilt from the backup files when it
-    /// does not decode.
-    private func decodedIndexOrRecovered(_ data: Data) -> [BackupIndex] {
+    /// does not decode. `replaceable` is false when it did not decode and
+    /// could not be moved aside: a save must not write over it.
+    private func decodedIndexOrRecovered(_ data: Data) -> (entries: [BackupIndex], replaceable: Bool) {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         do {
-            return try decoder.decode([BackupIndex].self, from: data)
+            return try (decoder.decode([BackupIndex].self, from: data), true)
         } catch {
             debugLog("[RawRRBackup] Failed to decode index: \(error)", level: .error)
             return recoverIndexFromFiles()
@@ -451,8 +466,9 @@ extension RawRRBackup {
 
     /// Read the index that failed to load at launch and add the backups it
     /// lists to the in-memory index (its own rows win). Throws while the file
-    /// still cannot be read, so a save never writes the partial in-memory list
-    /// over the only list of the user's backups. Caller holds `indexLock`.
+    /// still cannot be read, or does not decode and cannot be moved aside, so
+    /// a save never writes the partial in-memory list over the only list of
+    /// the user's backups. Caller holds `indexLock`.
     private func mergeIndexThatFailedToLoad() throws {
         guard indexReadFailed else { return }
         guard fileManager.fileExists(atPath: indexFile.path) else {
@@ -461,9 +477,10 @@ extension RawRRBackup {
             return
         }
         let onDisk = decodedIndexOrRecovered(try Data(contentsOf: indexFile))
+        guard onDisk.replaceable else { throw BackupError.couldNotSetAside(indexFile.lastPathComponent) }
         indexReadFailed = false
         let known = Set(index.map(\.id))
-        index += onDisk.filter { !known.contains($0.id) }
+        index += onDisk.entries.filter { !known.contains($0.id) }
         debugLog("[RawRRBackup] index re-read after a failed launch read: \(index.count) backups")
     }
 
@@ -497,6 +514,8 @@ extension RawRRBackup {
         case hashMismatch
         case notFound
         case wouldReplaceLargerBackup(existing: Int, new: Int)
+        /// An unreadable file could not be moved aside, so it was not written over.
+        case couldNotSetAside(String)
 
         var errorDescription: String? {
             switch self {
@@ -508,6 +527,8 @@ extension RawRRBackup {
                 "Backup not found"
             case let .wouldReplaceLargerBackup(existing, new):
                 "Kept the existing backup: it holds \(existing) beats, the new data \(new)"
+            case let .couldNotSetAside(fileName):
+                "Kept \(fileName): it could not be read or moved aside"
             }
         }
     }

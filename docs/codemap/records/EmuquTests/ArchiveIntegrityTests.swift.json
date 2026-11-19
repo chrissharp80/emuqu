@@ -309,6 +309,112 @@
    }
   },
   {
+   "key": "func ArchiveIntegrityTests.testADeleteTheTrashCannotTakeLeavesTheSessionArchived()",
+   "hash": "8bd5813328451e8a",
+   "does": "Archives a session, puts a plain file where Trash/ goes, and asserts delete throws while the session stays indexed, untombstoned and retrievable.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json, deleted.json, Trash/)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json, deleted.json, Trash/)",
+    "kc:EncryptionManager archive key",
+    "notif:flowRecoveryArchiveChanged",
+    "ud:archive.deletionTimes (UserDefaults.standard, via delete: recorded then forgotten)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)": "0fcaeb8ff266a299",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory": "35607b44510f4479",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testAnUndecodableIndexThatCannotBeSetAsideIsNotWrittenOver()",
+   "hash": "4b2be76f9d3d85ea",
+   "does": "Writes undecodable index.json into the temp archive folder and occupies every set-aside name, then asserts archiving a session throws, index.json keeps its bytes and the archive reports an incomplete index.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.occupySetAsideNames(of:)",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.hasCompleteIndex"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json, deleted.json, Trash/)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json, deleted.json, Trash/)",
+    "kc:EncryptionManager archive key"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.hasCompleteIndex": "4d992f398d9be95b",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d",
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.occupySetAsideNames(of:)": "3297c5a4dcc7230b"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testAnUndecodableDeletedListThatCannotBeSetAsideIsNotWrittenOver()",
+   "hash": "b5976c52d06ab640",
+   "does": "Writes an undecodable deleted.json and occupies every set-aside name, then asserts a tombstone change (unmarkAsDeleted of an unknown id) throws and deleted.json keeps its bytes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.occupySetAsideNames(of:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.unmarkAsDeleted(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json, deleted.json, Trash/)",
+    "ud:archive.deletionTimes (UserDefaults.standard, read by loadDeletedIndex)"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json, deleted.json, Trash/)",
+    "ud:archive.deletionTimes (UserDefaults.standard: the unknown id forgotten, a no-op)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.unmarkAsDeleted(_:)": "cb64d5b6258c5088",
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.occupySetAsideNames(of:)": "3297c5a4dcc7230b"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.occupySetAsideNames(of:)",
+   "hash": "c7cf977abbba184f",
+   "does": "Test helper: creates a folder at '<file>.unreadable_<second>' for every second from one ago to thirty ahead, so a set-aside of `file` in that window fails.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.createDirectory"
+   ],
+   "reads": [],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json, deleted.json, Trash/)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each second in the window",
+     "effect": "one folder created"
+    }
+   ],
+   "deps": {}
+  },
+  {
    "key": "func ArchiveIntegrityTests.testUpdateTags()",
    "hash": "e1ccdc04383f7be1",
    "does": "Archives an untagged session, calls updateTags with morning+stressed and a note, and asserts the retrieved session has 2 tags and the note.",
