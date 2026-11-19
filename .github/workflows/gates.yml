@@ -2,12 +2,12 @@ name: Gates
 
 # The script gates, on every push, on a Linux runner.
 #
-# 2026-09-03. `ci.yml` stays manual for the reasons in docs/CI_POSTURE.md:
-# its jobs need macOS, and macOS minutes bill at 10x. This workflow is the
-# complement — every gate in `make ci` that is plain bash + python and needs
-# no Xcode, SwiftLint, `plutil` or a simulator. On ubuntu it runs in about a
-# minute and bills at 1x, so a push trigger costs a few minutes a month, not
-# the whole allowance.
+# `ci.yml` also runs on every pull request and push to `main`, but its jobs
+# need macOS and it is advisory. This workflow is the complement — every gate
+# in `make ci` that is plain bash + python and needs no Xcode, SwiftLint,
+# `plutil` or a simulator, on ubuntu in about a minute — and its job,
+# "Script gates (no Xcode)", is the one status check `main` requires.
+# docs/CI_POSTURE.md has the reasoning.
 #
 # What is deliberately NOT here, and why:
 #   lint, lint-budget, verify-gates
@@ -15,7 +15,8 @@ name: Gates
 #                             and would make the warning budget lie.
 # (debt-budget, spec-conformance and budget-monotonicity used to be listed
 # here too. They are python and git, not SwiftLint, so they run below.)
-#   test-coverage, thread-sanitizer — need Xcode and a simulator.
+#   test-coverage, thread-sanitizer, release-build — need Xcode (and, for
+#                             the first two, a simulator).
 # All of those still run in `ci.yml` and in `make ci` locally.
 #
 # `check_gates_wired.sh` audits both files: every gate must run in `ci.yml`, and in

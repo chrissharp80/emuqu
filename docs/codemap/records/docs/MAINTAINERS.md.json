@@ -248,7 +248,7 @@
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "336e7a9de9707672",
     ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)": "13438c24dcea9cc9",
-    "Makefile::target budget-monotonicity": "ecb87460dba7db67",
+    "Makefile::target budget-monotonicity": "f2990c87cb8c36d4",
     "Makefile::target spec-conformance": "76fac68887ff9527",
     "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "56d6204c2017cb66",
     "scripts/check_refactor_spec_conformance.sh::fn over": "341bf1022cffa220",
@@ -1077,8 +1077,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 10. Build, test, CI & tooling > Local quality loop",
-   "hash": "edfefcb97fa71b86",
-   "does": "Claims make targets format, lint, test, test-coverage, debt-budget, ci, setup-hooks (hook runs SwiftFormat, SwiftLint and the code map), codemap-guard (records and re-checks), codemap-impact, codemap-report, ci-local, ci-local-unit, budget-monotonicity, localization-bundle-guard, localization-resolution-guard, uitest-reset-guard, skip-budget, fixed-font-budget (all exist in Makefile); scripts/simulate_ci.sh parses ci.yml run blocks; verify_gates_fail.sh, verify_tests_fail.sh, evidence_report.sh exist; budget ratchet compares HEAD with HEAD~1.",
+   "hash": "89c96ef80f3eb97a",
+   "does": "Claims make targets format, lint, test, test-coverage, debt-budget, ci, setup-hooks (hook runs SwiftFormat, SwiftLint and the code map), codemap-guard (records and re-checks), codemap-impact, codemap-report, ci-local, ci-local-unit (the gates plus the Release build, unit suite and Thread Sanitizer), budget-monotonicity, localization-bundle-guard, localization-resolution-guard, uitest-reset-guard, skip-budget, fixed-font-budget (all exist in Makefile); scripts/simulate_ci.sh parses ci.yml run blocks; verify_gates_fail.sh, verify_tests_fail.sh, evidence_report.sh exist; budget ratchet compares HEAD with HEAD~1.",
    "entry": null,
    "calls": [
     "Makefile::target format",
@@ -1107,10 +1107,10 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target budget-monotonicity": "ecb87460dba7db67",
-    "Makefile::target ci": "de372d3ddd101741",
+    "Makefile::target budget-monotonicity": "f2990c87cb8c36d4",
+    "Makefile::target ci": "314d826a23831255",
     "Makefile::target ci-local": "e2b0391dda4db254",
-    "Makefile::target ci-local-unit": "519d050012868454",
+    "Makefile::target ci-local-unit": "8e51d93d38811f72",
     "Makefile::target codemap-guard": "31a759d3fd34483c",
     "Makefile::target codemap-impact": "03eba22ded671ba7",
     "Makefile::target codemap-report": "fa3a55e61f6b2688",
@@ -1127,7 +1127,7 @@
     "Makefile::target uitest-reset-guard": "368e1ce40cd6fbc2",
     "scripts/evidence_report.sh::fn budget": "a927bad97b8838e4",
     "scripts/verify_gates_fail.sh::fn check": "628cb3d9d277ffae",
-    "scripts/verify_tests_fail.sh::fn mutate": "e9b411096264e708"
+    "scripts/verify_tests_fail.sh::fn mutate": "b17da90a86fc42d2"
    }
   },
   {
@@ -1239,7 +1239,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "a4472fcc86e48a24",
+    ".github/workflows/ci.yml::job lint-and-budgets": "c16025f9ed6e67fc",
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
     ".github/workflows/ci.yml::job tests": "be43d3924046dfa3",
     ".github/workflows/ci.yml::job thread-sanitizer": "1af3ef404705660f",
