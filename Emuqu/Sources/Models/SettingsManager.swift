@@ -44,14 +44,16 @@ final class SettingsManager {
         /// destroy the user's real settings.
         case blockedByProtection
         /// File exists and was unreadable for a non-protection reason
-        /// (corruption, schema mismatch). A copy is kept beside it
-        /// (`unreadableBackupName`) and we continue with defaults, allowing
-        /// saves so the user can recover by reconfiguring.
+        /// (corruption, schema mismatch). When its bytes could be read, a
+        /// copy of them is kept beside it (`unreadableBackupName`); bytes that
+        /// cannot be read at all leave nothing to keep. We continue with
+        /// defaults, allowing saves so the user can recover by reconfiguring.
         case unreadableOther
-        /// As `unreadableOther`, but the copy could not be made, so the file
-        /// is the only copy of the user's settings. Saves are held as for
-        /// `blockedByProtection`, and each change tries the copy again
-        /// (`saveUnlessLocked`).
+        /// The file's bytes were read but did not decode, and writing their
+        /// copy failed (a full disk), so the file is the only copy of the
+        /// user's settings. Saves are held as for `blockedByProtection`; each
+        /// change, and the background/terminate flush, tries the copy again
+        /// (`saveUnlessLocked`, `saveHeldChangesBeforeSuspend`).
         case unreadableNotPreserved
     }
 
@@ -169,17 +171,31 @@ final class SettingsManager {
     /// Durability for the off-main coalesced write: flush any pending settings
     /// write synchronously before the app is suspended or killed, so a mutation
     /// made moments before backgrounding can't be lost.
+    ///
+    /// Both notifications are posted on the main thread and observed on the
+    /// main queue, so a change held because an unreadable file has no copy
+    /// yet (`.unreadableNotPreserved`) gets the copy retried and, once it
+    /// succeeds, saved before the flush (`saveHeldChangesBeforeSuspend`).
     nonisolated private func installDurabilityObservers() {
-        NotificationCenter.default.addObserver(
-            forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil
-        ) { [weak self] _ in
-            _ = self?.flushPendingWritesSynchronously()
+        observeSuspension(UIApplication.didEnterBackgroundNotification)
+        observeSuspension(UIApplication.willTerminateNotification)
+    }
+
+    /// One of `installDurabilityObservers`' two main-queue observers.
+    nonisolated private func observeSuspension(_ name: Notification.Name) {
+        NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+            guard let self else { return }
+            MainActor.assumeIsolated { self.saveHeldChangesBeforeSuspend() }
+            _ = self.flushPendingWritesSynchronously()
         }
-        NotificationCenter.default.addObserver(
-            forName: UIApplication.willTerminateNotification, object: nil, queue: nil
-        ) { [weak self] _ in
-            _ = self?.flushPendingWritesSynchronously()
-        }
+    }
+
+    /// While changes are held for an unreadable file with no copy, tries the
+    /// copy again and saves them once it is made (`saveUnlessLocked`); a no-op
+    /// otherwise.
+    private func saveHeldChangesBeforeSuspend() {
+        guard loadOutcome == .unreadableNotPreserved else { return }
+        saveUnlessLocked()
     }
 
     /// Returns both the parsed settings (or nil) and a structured
@@ -189,52 +205,77 @@ final class SettingsManager {
     ///
     /// iOS file-protection blocks reads as NSCocoaErrorDomain /
     /// NSFileReadNoPermissionError (257). That is treated as "file is fine, we
-    /// just can't see it yet". Anything else is a true read/decode failure and
-    /// falls back to defaults, which we are willing to save over once a copy
-    /// of the file is kept.
+    /// just can't see it yet". Any other read failure leaves no bytes to keep,
+    /// so it falls back to defaults, which saves may write over. Bytes that
+    /// were read but do not decode are kept beside the file first
+    /// (`preserveUnreadableBytes`), and saves are held only while that fails.
     nonisolated static func load(from url: URL) -> (UserSettings?, LoadOutcome) {
         let fm = FileManager.default
         guard fm.fileExists(atPath: url.path) else { return (nil, .fileNotPresent) }
+        let data: Data
         do {
-            let data = try Data(contentsOf: url)
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            return (try decoder.decode(UserSettings.self, from: data), .loaded)
+            data = try Data(contentsOf: url)
         } catch let nsError as NSError {
-            let isProtection = nsError.domain == NSCocoaErrorDomain
-                && nsError.code == NSFileReadNoPermissionError
-            if isProtection {
+            guard !isProtectionError(nsError) else {
                 debugLog("[SettingsManager] settings file is locked (NSFileReadNoPermissionError) — will retry after the device unlocks", level: .warning)
                 return (nil, .blockedByProtection)
             }
-            debugLog("[SettingsManager] failed to load settings: \(nsError) — falling through to defaults", level: .warning)
-            return (nil, preserveUnreadableFile(at: url) ? .unreadableOther : .unreadableNotPreserved)
+            debugLog("[SettingsManager] settings file could not be read: \(nsError) — nothing to keep a copy of, falling through to defaults", level: .warning)
+            return (nil, .unreadableOther)
+        }
+        return decodeOrPreserve(data, readFrom: url)
+    }
+
+    /// The second half of `load(from:)`: the settings decoded from `data`, or,
+    /// when they do not decode, defaults once `data` is kept beside `url`
+    /// (`.unreadableOther`), or with saves held when that copy fails
+    /// (`.unreadableNotPreserved`).
+    nonisolated private static func decodeOrPreserve(_ data: Data, readFrom url: URL) -> (UserSettings?, LoadOutcome) {
+        do {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            return (try decoder.decode(UserSettings.self, from: data), .loaded)
+        } catch {
+            debugLog("[SettingsManager] failed to decode settings: \(error) — falling through to defaults", level: .warning)
+            return (nil, preserveUnreadableBytes(data, beside: url) ? .unreadableOther : .unreadableNotPreserved)
         }
     }
 
-    /// Keeps a copy of a settings file that exists but cannot be read, beside
-    /// it as `unreadableBackupName`, before the first change saves defaults
-    /// over it. The copy is made under a temporary name and then replaces an
-    /// older copy, so a copy that fails never costs the older one. Returns
-    /// whether the file may be written over: copied, or no longer there.
-    nonisolated static func preserveUnreadableFile(at url: URL) -> Bool {
-        let fm = FileManager.default
-        guard fm.fileExists(atPath: url.path) else { return true }
+    /// A read refused by iOS file protection (NSCocoaErrorDomain /
+    /// NSFileReadNoPermissionError).
+    nonisolated private static func isProtectionError(_ error: NSError) -> Bool {
+        error.domain == NSCocoaErrorDomain && error.code == NSFileReadNoPermissionError
+    }
+
+    /// Writes `data`, the bytes of a settings file that did not decode, beside
+    /// `url` as `unreadableBackupName`. The write is atomic (a temporary file
+    /// then a replace), so an older copy is replaced only once the new one is
+    /// complete. True when the copy is on disk.
+    nonisolated static func preserveUnreadableBytes(_ data: Data, beside url: URL) -> Bool {
         let backup = url.deletingLastPathComponent().appendingPathComponent(unreadableBackupName)
-        let staged = backup.appendingPathExtension("partial")
         do {
-            if fm.fileExists(atPath: staged.path) { try fm.removeItem(at: staged) }
-            try fm.copyItem(at: url, to: staged)
-            if fm.fileExists(atPath: backup.path) {
-                _ = try fm.replaceItemAt(backup, withItemAt: staged)
-            } else {
-                try fm.moveItem(at: staged, to: backup)
-            }
+            try data.write(to: backup, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
             debugLog("[SettingsManager] kept the unreadable settings file as \(unreadableBackupName)", level: .warning)
             return true
         } catch {
             debugLog("[SettingsManager] could not keep a copy of the unreadable settings file — saves held so it is not written over: \(error)", level: .error)
             return false
+        }
+    }
+
+    /// The retry of `preserveUnreadableBytes` while saves are held: reads the
+    /// file again and writes its bytes aside. Whether saves may go ahead: the
+    /// copy was written, the file is gone, or its bytes can no longer be read
+    /// for a reason other than file protection (nothing left to keep).
+    nonisolated static func preserveUnreadableFile(at url: URL) -> Bool {
+        guard FileManager.default.fileExists(atPath: url.path) else { return true }
+        do {
+            let data = try Data(contentsOf: url)
+            return preserveUnreadableBytes(data, beside: url)
+        } catch let nsError as NSError {
+            guard !isProtectionError(nsError) else { return false }
+            debugLog("[SettingsManager] unreadable settings file can no longer be read: \(nsError) — nothing to keep, saves resume", level: .warning)
+            return true
         }
     }
 
