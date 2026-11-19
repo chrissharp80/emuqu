@@ -273,22 +273,47 @@ final class ArchiveIntegrityTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: archiveDirectory.appendingPathComponent("\(session.id.uuidString).json").path))
     }
 
-    /// A deleted session's file a failed delete left in the archive folder is
-    /// removed with its Trash copy: once the tombstone is forgotten the
-    /// orphan scan would adopt it back. An archived session's file is not.
-    func testDiscardingTheTrashRemovesALeftoverFileOfADeletedSession() throws {
+    /// A tombstoned session's file a failed delete left in the archive folder
+    /// is removed with its Trash copy: once the tombstone is forgotten the
+    /// orphan scan would adopt it back. A file of an id that is not
+    /// tombstoned may be a live write, and an archived session's is live: both
+    /// are kept.
+    func testDiscardingTheTrashRemovesOnlyALeftoverFileOfATombstonedSession() throws {
         let kept = createTestSession()
         testSessionIds.append(kept.id)
         _ = try archive.archive(kept)
         let deletedId = UUID()
+        let untombstonedId = UUID()
+        try archive.markAsDeleted(deletedId)
+        defer { attempt("test.forgetDeleted") { try archive.unmarkAsDeleted(deletedId) } }
+        let leftover = archiveDirectory.appendingPathComponent("\(deletedId.uuidString).json")
+        let notTombstoned = archiveDirectory.appendingPathComponent("\(untombstonedId.uuidString).json")
+        try Data("{}".utf8).write(to: leftover)
+        try Data("{}".utf8).write(to: notTombstoned)
+
+        archive.discardTrashed(deletedId)
+        archive.discardTrashed(untombstonedId)
+        archive.discardTrashed(kept.id)
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: leftover.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: notTombstoned.path))
+        XCTAssertEqual(try archive.retrieve(kept.id)?.id, kept.id)
+    }
+
+    /// While the index has not loaded, a tombstoned id's file may still be
+    /// one the index lists: it is kept.
+    func testDiscardingTheTrashKeepsALeftoverFileWhileTheIndexIsUnread() throws {
+        let deletedId = UUID()
+        try FileManager.default.createDirectory(at: archiveDirectory, withIntermediateDirectories: true)
+        try Data("not an index".utf8).write(to: archiveDirectory.appendingPathComponent("index.json"))
+        try JSONEncoder().encode([deletedId.uuidString]).write(to: archiveDirectory.appendingPathComponent("deleted.json"))
         let leftover = archiveDirectory.appendingPathComponent("\(deletedId.uuidString).json")
         try Data("{}".utf8).write(to: leftover)
 
         archive.discardTrashed(deletedId)
-        archive.discardTrashed(kept.id)
 
-        XCTAssertFalse(FileManager.default.fileExists(atPath: leftover.path))
-        XCTAssertEqual(try archive.retrieve(kept.id)?.id, kept.id)
+        XCTAssertFalse(archive.hasCompleteIndex)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: leftover.path))
     }
 
     // MARK: - Unreadable index files

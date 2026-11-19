@@ -250,9 +250,11 @@ final class PendingEncryptionLedgerTests: XCTestCase {
         XCTAssertTrue(archive.exists(session.id))
     }
 
-    /// An indexed session whose file went to the Trash as plaintext (a delete
-    /// racing the repair) leaves the queue only with that copy encrypted.
-    func testRepairEncryptsTheTrashCopyBeforeClearingAnEntryWhoseFileMoved() throws {
+    /// An indexed session whose file is gone while a plaintext copy of it sits
+    /// in the Trash leaves the queue with that copy encrypted. This pins the
+    /// end state; the race that moves the file into the Trash during the pass
+    /// is not reproduced.
+    func testRepairEncryptsTheTrashCopyOfAnIndexedSessionWhoseFileIsGone() throws {
         let archive = try makeArchive()
         var session = HRVSession(startDate: Date(timeIntervalSince1970: 1_790_000_000), sessionType: .quick)
         session.endDate = session.startDate.addingTimeInterval(300)

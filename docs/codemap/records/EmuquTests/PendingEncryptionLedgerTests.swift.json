@@ -539,9 +539,9 @@
    }
   },
   {
-   "key": "func PendingEncryptionLedgerTests.testRepairEncryptsTheTrashCopyBeforeClearingAnEntryWhoseFileMoved()",
-   "hash": "ebeb8a9af7bf6f50",
-   "does": "Archives a session in a temp archive, replaces its file (still indexed) with a plaintext Trash copy and queues it; after the repair pass asserts (key available) the Trash copy is encrypted and the id cleared.",
+   "key": "func PendingEncryptionLedgerTests.testRepairEncryptsTheTrashCopyOfAnIndexedSessionWhoseFileIsGone()",
+   "hash": "76e664d511c4ca0f",
+   "does": "Archives a session in a temp archive, replaces its file (still indexed) with a plaintext Trash copy and queues it; after the repair pass asserts (key available) the Trash copy is encrypted and the id cleared. Pins that end state; it does not reproduce a delete racing the pass.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/PendingEncryptionLedgerTests.swift::func PendingEncryptionLedgerTests.makeArchive(deleted:index:)",

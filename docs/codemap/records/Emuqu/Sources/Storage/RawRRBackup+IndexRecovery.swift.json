@@ -284,14 +284,14 @@
    }
   },
   {
-   "key": "func OneShotBackupName.newerPlaintextBackup(than:in:)",
-   "hash": "8f102faea3876801",
-   "does": "Among the session's plain one-shot files other than the indexed one, those stamped after the indexed backup (indexedMs), newest first: returns the first that decodes (decodeLegacyBackup; failures logged by attempt) to at least as many beats as the row holds (backedUpCount ?? beatCount), or nil. That is a backup backup() would accept over the row. Throws when the listing or a read fails.",
+   "key": "func OneShotBackupName.fullerUnindexedBackup(than:in:)",
+   "hash": "40646830454cca07",
+   "does": "Returns nil when the row's write time (indexedMs) or beat count (backedUpCount, or beatCount for a one-shot row) is unknown, as for a row rebuilt from a header. Otherwise, among the session's one-shot files other than the indexed one, plain or encrypted, stamped after the indexed backup: decodes each (decodeLegacyBackup decrypts sealed ones; failures logged by attempt) and returns the one holding the most beats among those for this session with at least the row's count, or nil. That is a backup backup() would accept over the row. Throws when the listing fails.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.plaintextFiles(of:in:except:)",
-    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.writtenMs(_:)",
     "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.indexedMs(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.files(of:in:)",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.writtenMs(_:)",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.decodeLegacyBackup(at:)"
    ],
@@ -300,10 +300,16 @@
     "file:RRBackup/<uuid>_<t>.json"
    ],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "row's time or count unknown",
+     "effect": "nil"
+    }
+   ],
    "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.files(of:in:)": "c41df8bafc601514",
     "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.indexedMs(_:)": "f10479cb7365a415",
-    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.plaintextFiles(of:in:except:)": "471d9ab88b1ac3bc",
     "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.writtenMs(_:)": "1d0e34b875b01e4d",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.decodeLegacyBackup(at:)": "3c9f14b13a29d54b",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"

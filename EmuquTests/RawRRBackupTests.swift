@@ -488,17 +488,70 @@ final class RawRRBackupTests: XCTestCase {
         XCTAssertTrue(PendingEncryptionLedger.pending(in: .rawBackup).contains(sessionId))
     }
 
-    /// Discarding a backup removes every one-shot file of its session, not
-    /// only the indexed one: an unindexed copy would otherwise stay on disk.
-    func testDiscardRemovesEveryOneShotFileOfTheSession() throws {
+    /// Discarding a backup removes the unindexed one-shot files it provably
+    /// replaced, and keeps one holding more beats (a write killed before its
+    /// index save may be the fullest copy of the night).
+    func testDiscardKeepsAFullerUnindexedFile() throws {
         let sessionId = UUID()
         defer { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
-        _ = try writeUnindexedFile(sessionId: sessionId, indexedBeats: 50, beats: 30, offsetMs: 1)
-        _ = try writeUnindexedFile(sessionId: sessionId, indexedBeats: nil, beats: 20, offsetMs: -1_000)
+        let fuller = try writeUnindexedFile(sessionId: sessionId, indexedBeats: 50, beats: 80, offsetMs: 1)
+        let replaced = try writeUnindexedFile(sessionId: sessionId, indexedBeats: nil, beats: 20, offsetMs: -1_000)
+        defer { XCTAssertNoThrow(try FileManager.default.removeItem(at: fuller)) }
 
         try backup.discardBackup(sessionId)
 
-        XCTAssertEqual(try OneShotBackupName.files(of: sessionId, in: backup.backupDirectory), [])
+        XCTAssertTrue(FileManager.default.fileExists(atPath: fuller.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: replaced.path))
+    }
+
+    /// Of several fuller files the index missed, the one with the most beats
+    /// is adopted, not the newest.
+    func testReencryptionAdoptsTheFullestUnindexedFile() throws {
+        let sessionId = UUID()
+        defer { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
+        _ = try writeUnindexedFile(sessionId: sessionId, indexedBeats: 50, beats: 80, offsetMs: 1)
+        _ = try writeUnindexedFile(sessionId: sessionId, indexedBeats: nil, beats: 60, offsetMs: 2)
+
+        backup.reencryptBackup(sessionId)
+
+        XCTAssertEqual(try backup.retrieve(sessionId)?.points.count, 80)
+    }
+
+    /// An encrypted file the index missed is adopted too: a write killed
+    /// before its index save may have been encrypted.
+    func testReencryptionAdoptsAnEncryptedUnindexedFile() throws {
+        let sessionId = UUID()
+        defer { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
+        let stale = try writeUnindexedFile(sessionId: sessionId, indexedBeats: 50, beats: 20, offsetMs: -1_000)
+        let points = makePoints(count: 80)
+        let indexedName = try XCTUnwrap(backup.index.first { $0.id == sessionId }?.fileName)
+        let sealed = backup.backupDirectory.appendingPathComponent("\(sessionId.uuidString)_\(OneShotBackupName.writtenMs(indexedName) + 1).json")
+        try RawRRBackup.writeEntry(
+            RawRRBackup.BackupEntry(id: sessionId, captureDate: Date(), deviceId: nil, points: points, hash: RawRRBackup.integrityHash(of: points)),
+            to: sealed, sessionId: sessionId
+        )
+        PendingEncryptionLedger.record(sessionId, in: .rawBackup)
+
+        backup.reencryptBackup(sessionId)
+
+        XCTAssertEqual(try backup.retrieve(sessionId)?.points.count, 80)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: stale.path))
+    }
+
+    /// A row rebuilt from a header has no write time or count to compare:
+    /// nothing is adopted over it, or its uncounted points file would go.
+    func testNothingIsAdoptedOverARowWithoutATimeOrCount() throws {
+        let sessionId = UUID()
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("RawRRBackupTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { XCTAssertNoThrow(try FileManager.default.removeItem(at: directory)) }
+        try plainBackupFile(sessionId: sessionId, beats: 80).write(to: directory.appendingPathComponent("\(sessionId.uuidString)_1790000000000.json"))
+        let rebuilt = RawRRBackup.BackupIndex(
+            id: sessionId, captureDate: Date(), fileName: nil, beatCount: 0, hash: "", archived: false, lastBackupTime: nil, backedUpCount: nil
+        )
+
+        XCTAssertNil(try OneShotBackupName.fullerUnindexedBackup(than: rebuilt, in: directory))
     }
 
     /// Backs up `indexedBeats` points (when given), then writes a plain,
