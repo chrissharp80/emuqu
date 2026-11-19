@@ -354,7 +354,7 @@
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.key(for:)": "1d2a4ac58caeb322",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::let ProviderHTTP.streamSession": "755d0d1ab8a8cbe4",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.cacheAwareSystemBlocks(_:)": "24f5467acd330c46",
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "a396c16f9e9c8f51",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "7f624a8dd0c86b76",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.makeRequest(url:apiKey:body:)": "78754869ee6292c4",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.toolDeclarations(for:)": "694da6020f5247ea",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.buildMessageHistory(messages:toolRounds:)": "0df5d5d18ee8183d",
@@ -482,17 +482,16 @@
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.closeBlock(_:openToolUses:continuation:)": "4fe8a7c4e587e4cd",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.finishMessage(_:continuation:)": "53740fd7b781cb77",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.handleDelta(_:openToolUses:continuation:)": "cfbdc340c5f5d3a6",
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.messageDelta(_:state:continuation:)": "d2525215504c7072",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.messageDelta(_:state:continuation:)": "d91fde54a09796ff",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.openBlock(_:into:)": "eef43de2f8e6c20b"
    }
   },
   {
    "key": "func AnthropicProvider.messageDelta(_:state:continuation:)",
-   "hash": "927f999b7a4f8022",
-   "does": "message_delta: a refusal stop_reason throws ProviderHTTP.blockedReply(by: .anthropic), as the other providers' safety stops do; when delta.stop_reason is max_tokens (token cap) or pause_turn (server web search paused), logs a warning and yields a '…' text delta so the incomplete reply does not read as finished; then flushes usage with the final counters.",
+   "hash": "102ee01920738505",
+   "does": "message_delta: a refusal stop_reason throws AIProviderError.blockedReply(provider: .anthropic, reason: \"refusal\") (not fallbackable), as the other providers' safety stops do; when delta.stop_reason is max_tokens (token cap) or pause_turn (server web search paused), logs a warning and yields a '…' text delta so the incomplete reply does not read as finished; then flushes usage with the final counters.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.blockedReply(by:reason:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.flushUsage(_:final:to:)"
    ],
@@ -502,7 +501,7 @@
     {
      "at": "+6",
      "cond": "stop_reason is refusal",
-     "effect": "throws blockedReply"
+     "effect": "throws .blockedReply"
     },
     {
      "at": "+7",
@@ -511,10 +510,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.blockedReply(by:reason:)": "a07a0155639855b7",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.flushUsage(_:final:to:)": "235406e06fc8fde4",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textDelta(_:)": "2e33b365dfe56d9a"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {

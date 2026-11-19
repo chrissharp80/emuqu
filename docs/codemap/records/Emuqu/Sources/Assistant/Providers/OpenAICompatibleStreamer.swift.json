@@ -206,7 +206,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.key(for:)": "1d2a4ac58caeb322",
     "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.connect(_:providerID:)": "17fd88baddaf42c6",
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.consumeSSE(_:providerID:continuation:)": "b6ce5e3389e5ec6e",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.consumeSSE(_:providerID:continuation:)": "9f74985f618acaab",
     "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.requestFor(_:apiKey:)": "d52529df719c6906",
     "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.throwForStatus(_:bytes:providerID:)": "bc2373fa5f5ac21e",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
@@ -262,8 +262,8 @@
   },
   {
    "key": "func OpenAICompatibleStreamer.consumeSSE(_:providerID:continuation:)",
-   "hash": "fea76415c62722b7",
-   "does": "Reads a reply's SSE line sequence (the URL session's lines, or a test's): only data: payloads are read. [DONE] ends the reply through finishReply (flush open tool calls, .done) and returns; every other payload goes to handleChunk, which records a finish_reason and throws on a malformed event, an error object, a filtered or overloaded stop, or cut tool arguments. A stream that closes after a finish_reason but without [DONE] also ends through finishReply; one that closes with neither was cut and throws URLError(.networkConnectionLost) (ProviderStream maps it to a fallbackable .network), so open tool-call fragments never run and the partial text never reads as complete.",
+   "hash": "d6dddccbf4f6e1b5",
+   "does": "Reads a reply's SSE line sequence (the URL session's lines, or a test's): only data: payloads are read. [DONE] ends the reply through finishReply (flush open tool calls, .done) and returns; every other payload goes to handleChunk, which records a finish_reason and throws on a malformed event, an error object, a filtered or overloaded stop, or cut tool arguments. When the sequence ends, a cancelled task throws CancellationError, so Stop reads as cancellation. A stream that closes after a finish_reason but without [DONE] also ends through finishReply; one that closes with neither was cut and throws URLError(.networkConnectionLost) (ProviderStream maps it to a fallbackable .network), so open tool-call fragments never run and the partial text never reads as complete.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.finishReply(_:continuation:)",
@@ -292,6 +292,11 @@
      "at": "+11",
      "cond": "payload == \"[DONE]\"",
      "effect": "finishReply, return."
+    },
+    {
+     "at": "+17",
+     "cond": "task cancelled when the sequence ended",
+     "effect": "throws CancellationError"
     },
     {
      "at": "+17",
@@ -343,14 +348,14 @@
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.eventObject(_:provider:)": "df8778803c546b39",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.streamFailure(in:provider:)": "c730c10bedc5489d",
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.handleChoice(_:providerID:state:continuation:)": "a99992787c262718",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.handleChoice(_:providerID:state:continuation:)": "6b80e5a3f88ea4b1",
     "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.yieldUsage(_:to:)": "7078a952244237a6"
    }
   },
   {
    "key": "func OpenAICompatibleStreamer.handleChoice(_:providerID:state:continuation:)",
-   "hash": "b2e7784a34f4ebd5",
-   "does": "The choices[0] half of a chunk: yields a non-empty delta.content as .textDelta, merges each delta.tool_calls fragment into the open calls (accumulate), and passes a string finish_reason to applyFinishReason.",
+   "hash": "bce77e90638fc781",
+   "does": "The choices[0] half of a chunk: yields a non-empty delta.content as .textDelta, merges each delta.tool_calls fragment into the open calls (accumulate), and passes the first string finish_reason to applyFinishReason; a finish reason repeated in a later chunk is ignored, so it adds no second '…' and flushes nothing twice.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.accumulate(_:into:)",
@@ -376,25 +381,24 @@
     },
     {
      "at": "+15",
-     "cond": "finish_reason is a string",
+     "cond": "finish_reason is a string and none was recorded yet",
      "effect": "applyFinishReason"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.finishReason(in:)": "698cfc1a6535a837",
     "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.accumulate(_:into:)": "1326b5e6f7fc0bd9",
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.applyFinishReason(_:providerID:state:continuation:)": "7cf78c5fdb9e9e38",
-    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textDelta(_:)": "2e33b365dfe56d9a"
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.applyFinishReason(_:providerID:state:continuation:)": "5f9f5b6594101c83"
    }
   },
   {
    "key": "func OpenAICompatibleStreamer.applyFinishReason(_:providerID:state:continuation:)",
-   "hash": "182fbfce9559f3ac",
-   "does": "Records the finish reason (which marks the reply complete) and acts on it: tool_calls flushes the open calls; length logs, throws .invalidResponse when a tool call is still open (its arguments were cut) and otherwise yields a '…' text delta, as Anthropic's max_tokens does; content_filter throws ProviderHTTP.blockedReply; DeepSeek's insufficient_system_resource throws .modelUnavailable(overloadedMessage), as a 5xx does; any other reason (stop) ends normally.",
+   "hash": "7c341867c1812113",
+   "does": "Records the finish reason (which marks the reply complete) and acts on it: tool_calls flushes the open calls; length logs, throws .invalidResponse when a tool call is still open (its arguments were cut) and otherwise yields a '…' text delta, as Anthropic's max_tokens does; content_filter throws AIProviderError.blockedReply (not fallbackable); DeepSeek's insufficient_system_resource throws .modelUnavailable(overloadedMessage), as a 5xx does; any other reason (stop) ends normally.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.flushToolCalls(_:continuation:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.blockedReply(by:reason:)",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.overloadedMessage(for:)"
    ],
    "reads": [],
@@ -418,7 +422,7 @@
     {
      "at": "+16",
      "cond": "content_filter",
-     "effect": "throws ProviderHTTP.blockedReply"
+     "effect": "throws AIProviderError.blockedReply"
     },
     {
      "at": "+18",
@@ -432,12 +436,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.blockedReply(by:reason:)": "a07a0155639855b7",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.overloadedMessage(for:)": "17c60e6299c39e16",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.finishReason(in:)": "698cfc1a6535a837",
     "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.flushToolCalls(_:continuation:)": "414962e413f7ebe1",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textDelta(_:)": "2e33b365dfe56d9a"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {

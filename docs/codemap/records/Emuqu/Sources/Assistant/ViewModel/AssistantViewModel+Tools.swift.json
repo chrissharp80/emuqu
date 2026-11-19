@@ -605,7 +605,7 @@
   {
    "key": "func AssistantToolRunner.tryFallbacks(_:outbound:tools:factRegistry:turnID:voiceMode:)",
    "hash": "b948cd619e1fa5ab",
-   "does": "Tries each fallback in order; returns true on the first that handled (answered or cancelled), false if all failed.",
+   "does": "Tries each fallback in order; returns true on the first that handled (answered, cancelled, or ended the chain with its own blocked reply, already shown), false if all failed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runFallback(provider:model:outbound:tools:factRegistry:turnID:voiceMode:)"
@@ -625,13 +625,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runFallback(provider:model:outbound:tools:factRegistry:turnID:voiceMode:)": "04ce02b69744aa24"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runFallback(provider:model:outbound:tools:factRegistry:turnID:voiceMode:)": "174e011c9e87808b"
    }
   },
   {
    "key": "func AssistantToolRunner.runFallback(provider:model:outbound:tools:factRegistry:turnID:voiceMode:)",
-   "hash": "6982d214140b5042",
-   "does": "Composes a fallback system prompt, discards unspoken partial text, runs the tool loop on the fallback with the history re-cut to the fallback's own token budget (fallbackOutbound; tools/registry only if non-Apple and tools exist), re-stamps the badge on success; cancellation counts as handled; on any other error logs, cuts the failed fallback's own partial text back to what voice spoke, and returns false.",
+   "hash": "92261fbf9f75d4b2",
+   "does": "Composes a fallback system prompt, discards unspoken partial text, runs the tool loop on the fallback with the history re-cut to the fallback's own token budget (fallbackOutbound; tools/registry only if non-Apple and tools exist), re-stamps the badge on success; cancellation counts as handled; any other error goes to endFailedFallback, which cuts the fallback's partial text back to what voice spoke and returns true only for the fallback's own blocked reply (shown, chain ends).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.fallbackSystemPrompt(provider:supportsTools:voiceMode:)",
@@ -639,6 +639,7 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.fallbackOutbound(for:turnID:primaryOutbound:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.rewriteAssistantTurnProvider(turnID:providerID:modelID:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.endFailedFallback(_:provider:turnID:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -664,15 +665,46 @@
     {
      "at": "+24",
      "cond": "catch other error",
-     "effect": "log, discard the fallback's unspoken text, return false (error not surfaced here)"
+     "effect": "return endFailedFallback(...)"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.discardUnspokenPartialText(turnID:)": "a2df6544935ce9d7",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.endFailedFallback(_:provider:turnID:)": "37a32f8dc96ac39e",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.fallbackOutbound(for:turnID:primaryOutbound:)": "2ca381f5c67de8e8",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.fallbackSystemPrompt(provider:supportsTools:voiceMode:)": "a7a8b2019cbe14bb",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.rewriteAssistantTurnProvider(turnID:providerID:modelID:)": "078057fde77b3eb9",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)": "466acc0532c80c31",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.endFailedFallback(_:provider:turnID:)",
+   "hash": "69f1b45c65e3fc33",
+   "does": "Handles a fallback that threw: cuts its partial text back to what voice spoke; for a blocked reply (AIProviderError.isBlockedReply) logs, shows it through handleStreamFailure (banner, any spoken text kept) and returns true so the chain stops and the request is never sent to the next vendor; for any other error logs and returns false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.discardUnspokenPartialText(turnID:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isBlockedReply",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handleStreamFailure(error:turnID:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AssistantViewModel.turns",
+    "mem:AssistantViewModel.errorMessage"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "not a blocked reply",
+     "effect": "logs, returns false (error not surfaced here)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isBlockedReply": "95de7c208812608e",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.discardUnspokenPartialText(turnID:)": "a2df6544935ce9d7",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handleStreamFailure(error:turnID:)": "3d6cccded1dbc94b",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },

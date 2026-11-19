@@ -127,7 +127,9 @@ extension AnthropicProvider {
     ///   content_block_stop { index }
     /// We track open blocks by index and emit .toolUse on stop. A stream that
     /// ends before `message_stop` was cut: it is reported as a dropped
-    /// connection, not delivered as a complete reply.
+    /// connection, not delivered as a complete reply. A cancelled task whose
+    /// sequence ended cleanly throws `CancellationError` first, so Stop
+    /// reads as cancellation.
     ///
     /// Only `data:` payloads are parsed; comment lines (`:` keep-alives) are
     /// skipped. Takes the line sequence rather than the URL session's bytes
@@ -153,6 +155,7 @@ extension AnthropicProvider {
             guard !payload.isEmpty, let data = payload.data(using: .utf8) else { continue }
             try handle(eventName: lastEventName, data: data, state: &state, continuation: continuation)
         }
+        try Task.checkCancellation()
         guard state.messageStopped else { throw URLError(.networkConnectionLost) }
     }
 }
