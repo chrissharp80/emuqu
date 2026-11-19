@@ -53,35 +53,39 @@
   },
   {
    "key": "§ Runbook: GDPR / CCPA Data-Deletion Request > Step 2 — Local data deletion",
-   "hash": "34146cfed4d2c1e2",
-   "does": "Claims More → Settings → Advanced Data Controls → Delete All My Data, typing DELETE MY DATA, calls DataPurgeService.purgeAllUserData which wipes archive, raw backups, CloudKit sync state, API keys, conversations, user facts, disclaimer flags, debug/crash logs, units preference, breadcrumbs, legacy widget keys and sweeps containers/preferences with a keep-list; keeps Health samples and the purchase/trial anchor. Verified: confirmPhrase 'DELETE MY DATA' (DeleteAllDataPage.swift:28); Report fields and steps (DataPurgeService.swift:183-212, 553-577); defaultsKeepList keeps entitlement.anchor.v1 and storekit.lastKnown* (DataPurgeService.swift:331-335); keepList keeps user_settings.json, reset via resetToDefaults.",
+   "hash": "fb3d3592269296fd",
+   "does": "Claims More → Settings → Advanced Data Controls → Delete All My Data, typing DELETE MY DATA, calls DataPurgeService.purgeAllUserData which wipes archive, raw backups, CloudKit sync state, API keys, conversations, user facts, disclaimer flags, the settings profile (reset and read back from disk), the personal HRV baseline (disk and memory), debug/crash logs, units preference, breadcrumbs, legacy widget keys and sweeps containers/preferences with a keep-list; keeps Health samples and the purchase/trial anchor. Verified: confirmPhrase 'DELETE MY DATA' (DeleteAllDataPage.swift:28); Report fields and steps (DataPurgeService.swift); defaultsKeepList keeps entitlement.anchor.v1 and storekit.lastKnown*; the sweep keeps only the live user_settings.json (keptEntries(in:liveSettingsFile:)), reset via resetToDefaults and checked by readBackProfile; resetBaseline resets the BaselineTracker.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:scope:)",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:scope:errors:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:deleteRemote:scope:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:scope:liveSettingsFile:errors:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllDefaults(scope:errors:)",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllContainers(scope:errors:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllContainers(scope:liveSettingsFile:errors:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDirectories(settingsManager:cloudSync:scope:errors:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeFallibleStores(errors:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLegacySharedState()",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDebugLog(errors:)",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeCrashLogs(errors:)"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeCrashLogs(errors:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackProfile(settingsManager:errors:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.resetBaseline(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:scope:)": "d4c01d95aaae9bef",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:deleteRemote:scope:)": "27ca6015874fa41a",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeCrashLogs(errors:)": "42e045ba20dd7aa3",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDebugLog(errors:)": "ad7e16b60f4bec32",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDirectories(settingsManager:cloudSync:scope:errors:)": "8e1b48acc1d568a5",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDirectories(settingsManager:cloudSync:scope:errors:)": "b572b883b64571da",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeFallibleStores(errors:)": "5f0a397a0f59f964",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:)": "66d257304d1aacb8",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllContainers(scope:errors:)": "632e9dfa7160fb80",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:)": "fa72f4cde3ab3f59",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackProfile(settingsManager:errors:)": "e29a678403bf0b1c",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.resetBaseline(_:)": "6175290b41cbe774",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllContainers(scope:liveSettingsFile:errors:)": "5b77025e8a30e9bd",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllDefaults(scope:errors:)": "a58902c80a499460",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:scope:errors:)": "f212818f051a7bbb",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:scope:liveSettingsFile:errors:)": "6515236adac11044",
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()": "15384bf66f97c8b2"
    }
   },
@@ -146,13 +150,13 @@
    "does": "Reply template repeating the in-app deletion steps, the iCloud sign-out warning and the export path; consistent with Step 2/3/5 claims.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:scope:)"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:deleteRemote:scope:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:scope:)": "d4c01d95aaae9bef"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:deleteRemote:scope:)": "27ca6015874fa41a"
    }
   },
   {
@@ -184,13 +188,13 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.footerLines",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeHealthCaches()"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeHealthCaches(errors:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeHealthCaches()": "8f846051d1b42b8b",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeHealthCaches(errors:)": "5fffa90c03c48d4f",
     "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.footerLines": "65fad30ef3262e67"
    }
   }

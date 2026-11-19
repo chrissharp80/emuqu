@@ -252,6 +252,18 @@ final class ConversationStore: @unchecked Sendable {
     private let saveDebounceMs: Int
     static let defaultSaveDebounceMs: Int = 750
 
+    /// Whether the history file holds no turns once every change already
+    /// queued (a `clear()` included) has run: true when the file is gone or
+    /// decodes to an empty list. A file that cannot be read or decoded counts
+    /// as holding turns. Delete All My Data reads its result back with it.
+    func isEmptyOnDisk() -> Bool {
+        queue.sync {
+            guard FileManager.default.fileExists(atPath: fileURL.path) else { return true }
+            guard let data = attempt("conversationStore.readBack", { try Data(contentsOf: fileURL) }) else { return false }
+            return Self.decodedTurns(data)?.isEmpty ?? false
+        }
+    }
+
     func clear() {
         queue.async { [weak self] in
             guard let self else { return }

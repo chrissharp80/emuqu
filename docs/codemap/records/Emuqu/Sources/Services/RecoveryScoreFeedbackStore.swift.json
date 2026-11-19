@@ -54,11 +54,10 @@
   },
   {
    "key": "func RecoveryScoreFeedbackStore.clearAll()",
-   "hash": "269bc29ccb201795",
-   "does": "Deletes the legacy feedback file when it exists (failure logged through attempt). Called by DataPurgeService (Delete All My Data).",
+   "hash": "8fc44db212f63b3f",
+   "does": "Deletes the legacy feedback file when it exists, throwing the removal error. Called by DataPurgeService (Delete All My Data), which reports it.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
     "ext:FileManager.removeItem(at:)"
    ],
    "reads": [
@@ -72,11 +71,14 @@
      "at": "+1",
      "cond": "file does not exist",
      "effect": "return; nothing to delete"
+    },
+    {
+     "at": "+2",
+     "cond": "removeItem throws",
+     "effect": "error propagates to the caller"
     }
    ],
-   "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
-   }
+   "deps": {}
   }
  ],
  "deps": {}

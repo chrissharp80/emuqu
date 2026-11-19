@@ -68,8 +68,8 @@ final class HeatAcclimationCache {
         "FlowRecovery.heat.representativeLon"
     ]
 
-    /// Remove all persisted heat-acclimation state. Called from
-    /// `DataPurgeService.purgeAllUserData` and when heat tracking is turned off.
+    /// Remove all persisted heat-acclimation state. Called when heat tracking
+    /// is turned off, and through `clear()` by `DataPurgeService.purgeAllUserData`.
     /// A refresh still in flight does not write the readout back afterwards
     /// once tracking is off (`cacheIfSettled`); `clear()` also drops this
     /// instance's in-memory readout.

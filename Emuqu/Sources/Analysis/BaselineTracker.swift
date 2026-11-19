@@ -94,6 +94,21 @@ final class BaselineTracker: @unchecked Sendable {
     private let fileManager = FileManager.default
     private let lock = NSRecursiveLock()
     private let onBaselineUpdated: BaselineUpdater?
+    /// Why `save()` must not write over `baselineFile` yet, or nil when it may.
+    /// Set by `load()`; read and cleared under `lock`.
+    private var saveHold: SaveHold?
+
+    /// Why the file at `baselineFile` must not be written over.
+    private enum SaveHold {
+        /// iOS file protection kept the file unreadable (a background launch
+        /// before the first unlock). The file is intact: it is read again
+        /// before the next change, and the nights taken in meanwhile are
+        /// merged onto it (`reloadAfterUnlock(sleepSchedule:)`).
+        case fileLocked
+        /// The file could not be decoded and could not be moved aside, so it
+        /// is the only copy of what it held. Each save tries the move again.
+        case unreadableNotSetAside
+    }
 
     /// Data point for baseline calculation
     private struct BaselineDataPoint: Codable {
@@ -325,6 +340,7 @@ final class BaselineTracker: @unchecked Sendable {
         debugLog("[Baseline] Rebuilding from \(validSessions.count) archived sessions")
         lock.lock()
         defer { lock.unlock() }
+        reloadAfterUnlock(sleepSchedule: sleepSchedule)
         let admitted = validSessions.map { merge($0, sleepSchedule: sleepSchedule) }
         if admitted.contains(true) { commitChanges() }
         debugLog("[Baseline] Rebuild complete: \(historicalData.count) data points, baseline: \(currentBaseline != nil ? "available" : "not yet established")")
@@ -425,6 +441,7 @@ final class BaselineTracker: @unchecked Sendable {
     func update(with session: HRVSession, sleepSchedule: SleepSchedule) {
         lock.lock()
         defer { lock.unlock() }
+        reloadAfterUnlock(sleepSchedule: sleepSchedule)
         guard merge(session, sleepSchedule: sleepSchedule) else { return }
         commitChanges()
     }
@@ -591,12 +608,17 @@ final class BaselineTracker: @unchecked Sendable {
         )
     }
 
-    /// Reset baseline (start fresh)
+    /// Reset baseline (start fresh): forgets every stored night and saves the
+    /// empty baseline. A file that was locked at load is written over without
+    /// being read first, as its nights are the ones being discarded; a file
+    /// that could not be decoded or moved aside stays protected
+    /// (`mayWriteFile()`).
     func reset() {
         lock.lock()
         defer { lock.unlock() }
         currentBaseline = nil
         historicalData = []
+        if saveHold == .fileLocked { saveHold = nil }
         save()
     }
 
@@ -761,40 +783,111 @@ final class BaselineTracker: @unchecked Sendable {
 
     // MARK: - Persistence
 
+    /// Reads the stored nights. A file iOS file protection keeps unreadable is
+    /// left where it is and holds saves until it can be read; any other read
+    /// or decode failure moves the file aside, and holds saves only when that
+    /// move fails, so the file is never written over while it is the only
+    /// copy of what it held.
     private func load() {
         guard fileManager.fileExists(atPath: baselineFile.path) else { return }
-
         do {
-            let data = try Data(contentsOf: baselineFile)
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            let stored = try decoder.decode(StoredData.self, from: data)
+            let stored = try readStoredData()
             currentBaseline = stored.baseline
             historicalData = stored.historicalData
-        } catch {
-            // A corrupt/undecodable file that fails load() silently AND
-            // survives on disk means every launch re-reads the same garbage
-            // and save() can later clobber it. Quarantine the
-            // bad file aside so we start clean and never overwrite evidence.
-            debugLog("Failed to load baseline: \(error) — quarantining file")
-            quarantineCorruptFile()
+        } catch let nsError as NSError {
+            saveHold = holdAfterFailedRead(nsError)
         }
     }
 
-    /// Move a corrupt baseline file aside (once) so the next launch starts
-    /// from a clean slate instead of re-reading the same undecodable bytes.
-    private func quarantineCorruptFile() {
-        guard fileManager.fileExists(atPath: baselineFile.path) else { return }
-        let quarantined = baselineFile.appendingPathExtension("corrupt")
-        _ = attempt("BaselineTracker.remove") { try fileManager.removeItem(at: quarantined) } // clear any prior quarantine
-        do {
-            try fileManager.moveItem(at: baselineFile, to: quarantined)
-        } catch {
-            debugLog("Failed to quarantine corrupt baseline: \(error)")
+    /// The stored baseline and nights, decoded from `baselineFile`.
+    private func readStoredData() throws -> StoredData {
+        let data = try Data(contentsOf: baselineFile)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(StoredData.self, from: data)
+    }
+
+    /// The hold a failed read of `baselineFile` leaves: `.fileLocked` for a
+    /// file protection refusal (NSCocoaErrorDomain / NSFileReadNoPermissionError,
+    /// as `SettingsManager.load(from:)` reads it); otherwise the file is moved
+    /// aside, leaving no hold, or `.unreadableNotSetAside` when it cannot be.
+    private func holdAfterFailedRead(_ nsError: NSError) -> SaveHold? {
+        if nsError.domain == NSCocoaErrorDomain, nsError.code == NSFileReadNoPermissionError {
+            debugLog("[Baseline] baseline file is locked — saves wait until it can be read", level: .warning)
+            return .fileLocked
         }
+        // A corrupt/undecodable file that fails load() silently AND
+        // survives on disk means every launch re-reads the same garbage
+        // and save() can later clobber it. Quarantine the
+        // bad file aside so we start clean and never overwrite evidence.
+        debugLog("Failed to load baseline: \(nsError) — quarantining file")
+        return quarantineCorruptFile() ? nil : .unreadableNotSetAside
+    }
+
+    /// While the file was locked at load, reads it again before a change. Once
+    /// it is readable, the nights held in memory are merged onto the file's
+    /// nights (one per night, as `update` merges them), the hold lifts and the
+    /// result is committed. Still locked: nothing changes. Gone: the hold
+    /// lifts. Unreadable for another reason by now: handled as at load.
+    /// Caller holds `lock`.
+    private func reloadAfterUnlock(sleepSchedule: SleepSchedule) {
+        guard saveHold == .fileLocked else { return }
+        guard fileManager.fileExists(atPath: baselineFile.path) else {
+            saveHold = nil
+            return
+        }
+        do {
+            var nights = try readStoredData().historicalData
+            for point in historicalData {
+                Self.mergeIntoNight(point, into: &nights, sleepSchedule: sleepSchedule)
+            }
+            historicalData = nights
+            saveHold = nil
+            debugLog("[Baseline] baseline file readable again — merged into \(historicalData.count) nights")
+            commitChanges()
+        } catch let nsError as NSError {
+            saveHold = holdAfterFailedRead(nsError)
+        }
+    }
+
+    /// Move a corrupt baseline file aside as `<name>.corrupt` so the next
+    /// launch starts from a clean slate instead of re-reading the same
+    /// undecodable bytes. An earlier `.corrupt` copy is replaced by the move
+    /// itself, so it is never deleted before the new one is in place. True
+    /// once nothing is left at `baselineFile`.
+    private func quarantineCorruptFile() -> Bool {
+        guard fileManager.fileExists(atPath: baselineFile.path) else { return true }
+        let quarantined = baselineFile.appendingPathExtension("corrupt")
+        do {
+            if fileManager.fileExists(atPath: quarantined.path) {
+                _ = try fileManager.replaceItemAt(quarantined, withItemAt: baselineFile)
+            } else {
+                try fileManager.moveItem(at: baselineFile, to: quarantined)
+            }
+            return true
+        } catch {
+            debugLog("Failed to quarantine corrupt baseline — saves held so it is not written over: \(error)", level: .error)
+            return false
+        }
+    }
+
+    /// Whether `save()` may write `baselineFile`: always without a hold, and
+    /// once the held file is gone (Delete All My Data removed it). A file that
+    /// could not be moved aside is tried again here; a locked one waits for
+    /// `reloadAfterUnlock(sleepSchedule:)`. Caller holds `lock`.
+    private func mayWriteFile() -> Bool {
+        guard let hold = saveHold else { return true }
+        let fileGone = !fileManager.fileExists(atPath: baselineFile.path)
+        if fileGone || (hold == .unreadableNotSetAside && quarantineCorruptFile()) {
+            saveHold = nil
+            return true
+        }
+        debugLog("[Baseline] baseline not saved — the file on disk could not be read and is kept until it can be", level: .warning)
+        return false
     }
 
     private func save() {
+        guard mayWriteFile() else { return }
         do {
             let stored = StoredData(baseline: currentBaseline, historicalData: historicalData)
             let encoder = JSONEncoder()

@@ -183,6 +183,67 @@ final class UserSettingsTests: XCTestCase {
         XCTAssertNil(decoded.sleepUserAdjusted, "sleepUserAdjusted should default to nil")
     }
 
+    // MARK: - Settings file that cannot be read
+
+    // `SettingsManager` itself has a private initializer on the app's own
+    // settings file, so these exercise the static load and copy it runs at
+    // launch, on temporary files. The held saves that follow from
+    // `.unreadableNotPreserved` live on the instance and are not covered here.
+
+    /// A settings file in its own temporary directory, removed after the test.
+    private func unreadableSettingsFile() throws -> URL {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("SettingsLoad-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        addTeardownBlock {
+            do {
+                try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: directory.path)
+                try FileManager.default.removeItem(at: directory)
+            } catch {
+                // swallow-ok: the directory is temporary.
+            }
+        }
+        let file = directory.appendingPathComponent("user_settings.json")
+        try Data("not settings".utf8).write(to: file)
+        return file
+    }
+
+    /// An unreadable file is copied aside before anything saves over it, and
+    /// the new copy replaces the one an earlier failure kept.
+    func testAnUnreadableSettingsFileIsCopiedAsideReplacingTheEarlierCopy() throws {
+        let file = try unreadableSettingsFile()
+        let backup = file.deletingLastPathComponent().appendingPathComponent(SettingsManager.unreadableBackupName)
+        try Data("earlier copy".utf8).write(to: backup)
+
+        let (loaded, outcome) = SettingsManager.load(from: file)
+
+        XCTAssertNil(loaded)
+        XCTAssertEqual(outcome, .unreadableOther)
+        XCTAssertEqual(try Data(contentsOf: backup), Data("not settings".utf8))
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: file.deletingLastPathComponent().path).sorted(),
+                       [SettingsManager.unreadableBackupName, "user_settings.json"],
+                       "No temporary copy is left behind")
+    }
+
+    /// When the copy cannot be made, the load says so, which holds saves, and
+    /// the copy an earlier failure kept is still there: it is replaced only
+    /// by a copy that exists.
+    func testAFailedCopyHoldsSavesAndKeepsTheEarlierCopy() throws {
+        let file = try unreadableSettingsFile()
+        let directory = file.deletingLastPathComponent()
+        let backup = directory.appendingPathComponent(SettingsManager.unreadableBackupName)
+        try Data("earlier copy".utf8).write(to: backup)
+        // A read-only directory: no copy can be created in it.
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: directory.path)
+
+        let (loaded, outcome) = SettingsManager.load(from: file)
+
+        XCTAssertNil(loaded)
+        XCTAssertEqual(outcome, .unreadableNotPreserved)
+        XCTAssertEqual(try Data(contentsOf: backup), Data("earlier copy".utf8))
+        XCTAssertEqual(try Data(contentsOf: file), Data("not settings".utf8))
+    }
+
     // MARK: - Helpers
 
     private func makeMinimalSession() -> HRVSession {

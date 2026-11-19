@@ -76,6 +76,9 @@ The user types `DELETE MY DATA` and confirms. That action invokes `DataPurgeServ
 - AI conversation history (`ConversationStore`)
 - AI memory facts (`UserFactsStore`)
 - Health-disclaimer + AI-disclaimer acceptance flags
+- The profile in the settings (age, body weight, heart-rate markers, FTP,
+  sleep schedule), reset to defaults and read back from disk
+- The personal HRV baseline, on disk and in memory
 - Persistent debug log + crash logs
 - Units preference
 - Get Me Back trails (GPS breadcrumbs)

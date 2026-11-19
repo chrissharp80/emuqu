@@ -48,11 +48,22 @@ final class SettingsManager {
         /// (`unreadableBackupName`) and we continue with defaults, allowing
         /// saves so the user can recover by reconfiguring.
         case unreadableOther
+        /// As `unreadableOther`, but the copy could not be made, so the file
+        /// is the only copy of the user's settings. Saves are held as for
+        /// `blockedByProtection`, and each change tries the copy again
+        /// (`saveUnlessLocked`).
+        case unreadableNotPreserved
+    }
+
+    /// Whether saving would write over a file this launch could not read and
+    /// has no copy of: changes are held in memory meanwhile.
+    private var savesHeld: Bool {
+        loadOutcome == .blockedByProtection || loadOutcome == .unreadableNotPreserved
     }
 
     private(set) var loadOutcome: LoadOutcome = .fileNotPresent
 
-    /// The in-memory settings the app started from while the file was locked
+    /// The in-memory settings the app started from while saves were held
     /// (nil otherwise). Changes made while locked are the fields that differ
     /// from it, and those are merged onto the file's settings once it can be
     /// read, instead of being discarded.
@@ -68,7 +79,10 @@ final class SettingsManager {
     @ObservationIgnored private let snapshotBox: OSAllocatedUnfairLock<UserSettings>
 
     private let fileManager = FileManager.default
-    private let settingsURL: URL
+    /// The settings file this instance reads and writes: the App Group copy,
+    /// or the Documents file while the migration copy keeps failing.
+    /// Delete All My Data keeps this one file through its sweep.
+    let settingsURL: URL
 
     // Off-main coalesced settings persistence. A `save()` that
     // does a full prettyPrinted JSON encode (including the base64 avatar) +
@@ -91,7 +105,7 @@ final class SettingsManager {
         _loadOutcome = outcome
         let initial = loaded ?? UserSettings()
         _settings = initial
-        lockedStartingPoint = outcome == .blockedByProtection ? initial : nil
+        lockedStartingPoint = outcome == .blockedByProtection || outcome == .unreadableNotPreserved ? initial : nil
         snapshotBox = OSAllocatedUnfairLock(initialState: initial)
 
         // If the load failed because the device was locked, watch for the
@@ -109,11 +123,13 @@ final class SettingsManager {
     /// defaults until the CloudKit settings pull restores the synced values.
     ///
     /// Migration: if a file exists in Documents but none in the App Group,
-    /// copy it across and continue using the App Group path. When the copy
-    /// fails the Documents file stays in use for this launch, so the user's
-    /// settings are read and saved there and the copy is tried again next
-    /// launch; starting on defaults would create the App Group file on the
-    /// first change and abandon the Documents settings for good.
+    /// copy it across and continue using the App Group path; the Documents
+    /// original is deleted once the copy reads back the same
+    /// (`removeMigratedLegacyFile`). When the copy fails the Documents file
+    /// stays in use for this launch, so the user's settings are read and saved
+    /// there and the copy is tried again next launch; starting on defaults
+    /// would create the App Group file on the first change and abandon the
+    /// Documents settings for good.
     nonisolated private static func resolveSettingsURL(fileManager: FileManager) -> URL {
         let appGroupURL = AppConfig.sharedContainerURL().appendingPathComponent("user_settings.json")
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)
@@ -125,10 +141,28 @@ final class SettingsManager {
         do {
             try fileManager.copyItem(at: legacyURL, to: appGroupURL)
             debugLog("[SettingsManager] Migrated user_settings.json from Documents → App Group container")
+            removeMigratedLegacyFile(legacyURL, copiedTo: appGroupURL, fileManager: fileManager)
             return appGroupURL
         } catch {
             debugLog("[SettingsManager] Migration copy failed (staying on the Documents file, retrying next launch): \(error)", level: .warning)
             return legacyURL
+        }
+    }
+
+    /// Deletes the Documents original once its App Group copy reads back
+    /// byte for byte the same. Nothing reads the original again, and left in
+    /// place it was a second copy of the profile on disk. When either read
+    /// fails or they differ, the original stays; Delete All My Data still
+    /// removes it, as it is not the file in use.
+    nonisolated private static func removeMigratedLegacyFile(_ legacyURL: URL, copiedTo copyURL: URL, fileManager: FileManager) {
+        do {
+            guard try Data(contentsOf: copyURL) == Data(contentsOf: legacyURL) else {
+                debugLog("[SettingsManager] migrated copy differs from the Documents original — keeping the original", level: .warning)
+                return
+            }
+            try fileManager.removeItem(at: legacyURL)
+        } catch {
+            debugLog("[SettingsManager] could not remove the migrated Documents settings file: \(error)", level: .warning)
         }
     }
 
@@ -139,25 +173,26 @@ final class SettingsManager {
         NotificationCenter.default.addObserver(
             forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil
         ) { [weak self] _ in
-            self?.flushPendingWritesSynchronously()
+            _ = self?.flushPendingWritesSynchronously()
         }
         NotificationCenter.default.addObserver(
             forName: UIApplication.willTerminateNotification, object: nil, queue: nil
         ) { [weak self] _ in
-            self?.flushPendingWritesSynchronously()
+            _ = self?.flushPendingWritesSynchronously()
         }
     }
 
     /// Returns both the parsed settings (or nil) and a structured
-    /// reason — fileNotPresent, loaded, blockedByProtection, or
-    /// unreadableOther — so the caller can decide whether saves are
-    /// safe to issue.
+    /// reason — fileNotPresent, loaded, blockedByProtection,
+    /// unreadableOther or unreadableNotPreserved — so the caller can decide
+    /// whether saves are safe to issue.
     ///
     /// iOS file-protection blocks reads as NSCocoaErrorDomain /
     /// NSFileReadNoPermissionError (257). That is treated as "file is fine, we
     /// just can't see it yet". Anything else is a true read/decode failure and
-    /// falls back to defaults, which we ARE willing to save over.
-    nonisolated private static func load(from url: URL) -> (UserSettings?, LoadOutcome) {
+    /// falls back to defaults, which we are willing to save over once a copy
+    /// of the file is kept.
+    nonisolated static func load(from url: URL) -> (UserSettings?, LoadOutcome) {
         let fm = FileManager.default
         guard fm.fileExists(atPath: url.path) else { return (nil, .fileNotPresent) }
         do {
@@ -173,23 +208,33 @@ final class SettingsManager {
                 return (nil, .blockedByProtection)
             }
             debugLog("[SettingsManager] failed to load settings: \(nsError) — falling through to defaults", level: .warning)
-            preserveUnreadableFile(at: url)
-            return (nil, .unreadableOther)
+            return (nil, preserveUnreadableFile(at: url) ? .unreadableOther : .unreadableNotPreserved)
         }
     }
 
     /// Keeps a copy of a settings file that exists but cannot be read, beside
     /// it as `unreadableBackupName`, before the first change saves defaults
-    /// over it. A newer copy replaces an older one.
-    nonisolated private static func preserveUnreadableFile(at url: URL) {
+    /// over it. The copy is made under a temporary name and then replaces an
+    /// older copy, so a copy that fails never costs the older one. Returns
+    /// whether the file may be written over: copied, or no longer there.
+    nonisolated static func preserveUnreadableFile(at url: URL) -> Bool {
         let fm = FileManager.default
+        guard fm.fileExists(atPath: url.path) else { return true }
         let backup = url.deletingLastPathComponent().appendingPathComponent(unreadableBackupName)
+        let staged = backup.appendingPathExtension("partial")
         do {
-            if fm.fileExists(atPath: backup.path) { try fm.removeItem(at: backup) }
-            try fm.copyItem(at: url, to: backup)
+            if fm.fileExists(atPath: staged.path) { try fm.removeItem(at: staged) }
+            try fm.copyItem(at: url, to: staged)
+            if fm.fileExists(atPath: backup.path) {
+                _ = try fm.replaceItemAt(backup, withItemAt: staged)
+            } else {
+                try fm.moveItem(at: staged, to: backup)
+            }
             debugLog("[SettingsManager] kept the unreadable settings file as \(unreadableBackupName)", level: .warning)
+            return true
         } catch {
-            debugLog("[SettingsManager] could not keep a copy of the unreadable settings file: \(error)", level: .error)
+            debugLog("[SettingsManager] could not keep a copy of the unreadable settings file — saves held so it is not written over: \(error)", level: .error)
+            return false
         }
     }
 
@@ -213,7 +258,8 @@ final class SettingsManager {
         }
     }
     /// While the file is still locked the observer stays, so the next
-    /// unlock tries again.
+    /// unlock tries again. A file that turns out unreadable with no copy
+    /// kept keeps the changes held in memory, as `saveUnlessLocked` does.
     @MainActor
     private func retryLoadAfterUnlock() {
         let (loaded, outcome) = SettingsManager.load(from: settingsURL)
@@ -221,9 +267,22 @@ final class SettingsManager {
             debugLog("[SettingsManager] settings file still locked after unlock — will retry on the next unlock", level: .warning)
             return
         }
+        removeProtectedDataObserver()
+        loadOutcome = outcome
+        guard outcome != .unreadableNotPreserved else {
+            debugLog("[SettingsManager] settings file unreadable after unlock and no copy could be kept — changes stay held; the next change tries the copy again", level: .warning)
+            return
+        }
+        adoptAfterUnlock(loaded)
+    }
+
+    /// The end of `retryLoadAfterUnlock` once saves may resume: the settings
+    /// read from the file with every change made while locked merged in, or,
+    /// when the file is gone or unreadable with a copy kept, the in-memory
+    /// settings saved as they are.
+    private func adoptAfterUnlock(_ loaded: UserSettings?) {
         let startingPoint = lockedStartingPoint
         lockedStartingPoint = nil
-        loadOutcome = outcome
         if let loaded {
             // The real on-disk settings, keeping every field changed while
             // locked. `didSet` saves the result and posts the notification.
@@ -234,7 +293,6 @@ final class SettingsManager {
             // so the changes made while locked are written now.
             save()
         }
-        removeProtectedDataObserver()
     }
 
     private func removeProtectedDataObserver() {
@@ -286,13 +344,14 @@ final class SettingsManager {
     /// in-memory state is the source of truth, so resetting it — and letting
     /// the `didSet` persist the defaults — is the only wipe that holds.
     ///
-    /// While the file is locked the guard would suppress that save, so the
-    /// locked file is deleted instead (removing a file does not need to read
-    /// it) and the pending unlock retry is dropped, so it cannot load the
-    /// erased settings back. The copy kept of an unreadable file goes too.
+    /// While saves are held (the file is locked, or unreadable with no copy
+    /// kept) the guard would suppress that save, so the held file is deleted
+    /// instead (removing a file does not need to read it) and the pending
+    /// unlock retry is dropped, so it cannot load the erased settings back.
+    /// The copy kept of an unreadable file goes too.
     func resetToDefaults() {
-        if loadOutcome == .blockedByProtection {
-            Self.removeFile(at: settingsURL, what: "locked settings file")
+        if savesHeld {
+            Self.removeFile(at: settingsURL, what: "settings file saves were held for")
             loadOutcome = .fileNotPresent
             lockedStartingPoint = nil
             removeProtectedDataObserver()
@@ -318,11 +377,23 @@ final class SettingsManager {
     /// sequence once stamped fresh defaults onto the file because `init` had
     /// no way to tell "file missing" from "file unreadable.") The change is
     /// kept in memory and merged onto the real file once it can be read
-    /// (`retryLoadAfterUnlock`).
+    /// (`retryLoadAfterUnlock`). A file that could not be read for another
+    /// reason and has no copy is copied first; once that succeeds the held
+    /// changes are saved, and until then they stay in memory.
     private func saveUnlessLocked() {
-        guard loadOutcome != .blockedByProtection else {
+        switch loadOutcome {
+        case .blockedByProtection:
             debugLog("[SettingsManager] settings change not saved yet — the file is locked and overwriting it would clobber the real settings. It is merged in once the file becomes readable.", level: .warning)
             return
+        case .unreadableNotPreserved:
+            guard Self.preserveUnreadableFile(at: settingsURL) else {
+                debugLog("[SettingsManager] settings change not saved yet — the unreadable settings file has no copy, and overwriting it would lose it", level: .warning)
+                return
+            }
+            loadOutcome = .unreadableOther
+            lockedStartingPoint = nil
+        case .loaded, .fileNotPresent, .unreadableOther:
+            break
         }
         save()
     }
@@ -345,6 +416,22 @@ final class SettingsManager {
         enqueueDiskWrite(settings)
     }
 
+    /// Writes any pending settings change now, on the caller's thread, and
+    /// reports whether the file then holds `expected`. Both sides are compared
+    /// as `load(from:)` reads them, so a field the decoder fills in (the
+    /// schema version) is not a difference. Throws the last write's error, or
+    /// the read or decode error. Delete All My Data checks with it that the
+    /// reset profile reached disk.
+    func flushedFileHolds(_ expected: UserSettings) throws -> Bool {
+        if let failure = flushPendingWritesSynchronously() { throw failure }
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let onDisk = try decoder.decode(UserSettings.self, from: Data(contentsOf: settingsURL))
+        return try onDisk == decoder.decode(UserSettings.self, from: encoder.encode(expected))
+    }
+
     /// Stash the latest settings snapshot and ensure a single background
     /// worker is draining it. Latest-wins: a burst of mutations collapses to
     /// one disk write of the final value.
@@ -355,16 +442,19 @@ final class SettingsManager {
             return state.scheduled
         }
         guard !alreadyScheduled else { return }
-        settingsWriteQueue.async { [weak self] in self?.drainPendingWrites() }
+        settingsWriteQueue.async { [weak self] in _ = self?.drainPendingWrites() }
     }
 
     /// Serial-queue worker. Writes the newest pending snapshot until none
     /// remain. Only ever runs on `settingsWriteQueue`, so writes can't
-    /// interleave and there's no torn file.
-    nonisolated private func drainPendingWrites() {
+    /// interleave and there's no torn file. Returns the error of the last
+    /// write it made: nil when that write succeeded or nothing was pending.
+    nonisolated private func drainPendingWrites() -> (any Error)? {
+        var lastFailure: (any Error)?
         while let snapshot = takePendingWrite() {
-            writeSettingsToDisk(snapshot)
+            lastFailure = writeSettingsToDisk(snapshot)
         }
+        return lastFailure
     }
 
     /// Pops the latest pending snapshot, or clears `scheduled` and returns
@@ -396,7 +486,10 @@ final class SettingsManager {
     /// the device once per boot, and stays accessible for
     /// background launches afterwards. Same on-disk encryption,
     /// dramatically better availability profile.
-    nonisolated private func writeSettingsToDisk(_ snapshot: UserSettings) {
+    ///
+    /// Returns the error when the encode, write or protection change failed
+    /// (logged here too), nil when the file was written.
+    nonisolated private func writeSettingsToDisk(_ snapshot: UserSettings) -> (any Error)? {
         do {
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
@@ -407,8 +500,10 @@ final class SettingsManager {
                 URLFileProtection.completeUntilFirstUserAuthentication,
                 forKey: .fileProtectionKey
             )
+            return nil
         } catch {
             debugLog("[SettingsManager] Failed to save settings: \(error)", level: .error)
+            return error
         }
     }
 
@@ -416,7 +511,8 @@ final class SettingsManager {
     /// `didEnterBackground` / `willTerminate` so a coalesced write is never
     /// lost when the process is suspended before the utility queue drains.
     /// Blocks the caller only for one final write, and only if one is pending.
-    nonisolated func flushPendingWritesSynchronously() {
+    /// Returns that write's error, nil when it succeeded or none was pending.
+    nonisolated func flushPendingWritesSynchronously() -> (any Error)? {
         settingsWriteQueue.sync {
             self.drainPendingWrites()
         }

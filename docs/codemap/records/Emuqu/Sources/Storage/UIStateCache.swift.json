@@ -65,6 +65,38 @@
    }
   },
   {
+   "key": "func UIStateCache.forgetAfterPurge()",
+   "hash": "96fdb28f0755db4b",
+   "does": "Delete All My Data: sets dashboard and fitness to nil, then (when the Application Support URL resolved) queues on the serial write queue, behind any write still pending, a removal of UIStateCache.json if it exists (failure logged through attempt).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.removeItem(at:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:UIStateCache.dashboard",
+    "mem:UIStateCache.fitness",
+    "file:ApplicationSupport/UIStateCache.json"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no persistence URL",
+     "effect": "returns after clearing memory"
+    },
+    {
+     "at": "+5",
+     "cond": "file absent when the queued block runs",
+     "effect": "nothing to remove"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/UIStateCache.swift::let UIStateCache.persistenceURL": "1458ca068386f73b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+   }
+  },
+  {
    "key": "let UIStateCache.persistenceURL",
    "hash": "54bb92e2b0ea7f77",
    "does": "Lazy static: Application Support directory (created if needed) + UIStateCache.json; nil when the directory cannot be obtained.",
