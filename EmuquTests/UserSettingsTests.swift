@@ -220,7 +220,7 @@ final class UserSettingsTests: XCTestCase {
         XCTAssertNil(loaded)
         XCTAssertEqual(outcome, .unreadableOther)
         XCTAssertEqual(try Data(contentsOf: backup), Data("not settings".utf8))
-        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: file.deletingLastPathComponent().path).sorted(),
+        XCTAssertEqual(Set(try FileManager.default.contentsOfDirectory(atPath: file.deletingLastPathComponent().path)),
                        [SettingsManager.unreadableBackupName, "user_settings.json"],
                        "No temporary copy is left behind")
     }
@@ -242,6 +242,23 @@ final class UserSettingsTests: XCTestCase {
         XCTAssertEqual(outcome, .unreadableNotPreserved)
         XCTAssertEqual(try Data(contentsOf: backup), Data("earlier copy".utf8))
         XCTAssertEqual(try Data(contentsOf: file), Data("not settings".utf8))
+    }
+
+    /// A settings file whose bytes cannot be read at all, for a reason other
+    /// than file protection (here a directory at its path), leaves nothing to
+    /// keep: the load falls back to defaults without holding saves, so the
+    /// user can still change and save their settings.
+    func testAFileWhoseBytesCannotBeReadDoesNotHoldSaves() throws {
+        let file = try unreadableSettingsFile()
+        try FileManager.default.removeItem(at: file)
+        try FileManager.default.createDirectory(at: file, withIntermediateDirectories: false)
+
+        let (loaded, outcome) = SettingsManager.load(from: file)
+
+        XCTAssertNil(loaded)
+        XCTAssertEqual(outcome, .unreadableOther)
+        let backup = file.deletingLastPathComponent().appendingPathComponent(SettingsManager.unreadableBackupName)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: backup.path), "There were no bytes to keep a copy of")
     }
 
     // MARK: - Helpers

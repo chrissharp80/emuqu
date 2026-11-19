@@ -367,13 +367,13 @@
   },
   {
    "key": "func UserSettingsTests.testAnUnreadableSettingsFileIsCopiedAsideReplacingTheEarlierCopy()",
-   "hash": "35d6cc99f1d91bab",
-   "does": "With an earlier user_settings.unreadable.json beside an unreadable settings file, SettingsManager.load(from:) returns (nil, .unreadableOther), the copy now holds the unreadable bytes, and the directory holds only the two files (no partial copy left).",
+   "hash": "7569cf319d5c89ca",
+   "does": "With an earlier user_settings.unreadable.json beside an unreadable settings file, SettingsManager.load(from:) returns (nil, .unreadableOther), the copy now holds the unreadable bytes, and the directory holds exactly the two files (compared as a set; no temporary copy left).",
    "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
    "calls": [
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableFile(at:)"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableBytes(_:beside:)"
    ],
    "reads": [
     "file:<tmp>/SettingsLoad-<uuid>/"
@@ -383,8 +383,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)": "252dab4f74d07869",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableFile(at:)": "007e650f9325807d",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)": "4b75070cf79e4769",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableBytes(_:beside:)": "2e616cf77e8e8861",
     "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()": "e9ff2f794bd8e2bb"
    }
@@ -397,7 +397,7 @@
    "calls": [
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableFile(at:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableBytes(_:beside:)",
     "ext:FileManager.setAttributes(posixPermissions)"
    ],
    "reads": [
@@ -408,8 +408,33 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)": "252dab4f74d07869",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)": "4b75070cf79e4769",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableFile(at:)": "007e650f9325807d",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()": "e9ff2f794bd8e2bb",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableBytes(_:beside:)": "2e616cf77e8e8861"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testAFileWhoseBytesCannotBeReadDoesNotHoldSaves()",
+   "hash": "3aab13af4f19ce86",
+   "does": "Replaces the temporary settings file with a directory (its bytes cannot be read, not a protection error); SettingsManager.load(from:) returns (nil, .unreadableOther) and no user_settings.unreadable.json is written.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)",
+    "ext:FileManager.removeItem",
+    "ext:FileManager.createDirectory"
+   ],
+   "reads": [
+    "file:<tmp>/SettingsLoad-<uuid>/"
+   ],
+   "writes": [
+    "file:<tmp>/SettingsLoad-<uuid>/user_settings.json/"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)": "4b75070cf79e4769",
     "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()": "e9ff2f794bd8e2bb"
    }

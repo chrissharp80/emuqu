@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Analysis/BaselineTracker.swift",
- "hash": "acfc6d929d60bddc",
+ "hash": "7e87e5bdd098c75a",
  "role": "Per-user overnight HRV baseline: keeps one data point per night (max 90) persisted to HRVBaseline.json, derives a display baseline over the 7 most recent stored nights (geometric-mean RMSSD etc.) and ln(RMSSD) z-score stats over the last 60 stored nights for recovery scoring, gating which sessions may enter. Also exposes the baseline's night selection as static functions (isBaselineCandidate, baselineRMSSDs) so the daily report's baseline counts exactly the nights the score counts.",
  "types": [
   "BaselineTracker: class (@unchecked Sendable, NSRecursiveLock-protected) — baseline store and statistics",
@@ -22,9 +22,12 @@
   "mem:BaselineTracker.RecoveryBaselineStats.minimumDays (static let 3)",
   "mem:BaselineTracker.onBaselineUpdated (injected (rmssd, hr) closure; production wiring RRCollector.swift:647 → SettingsManager.updateBaseline)",
   "mem:BaselineTracker.recoveryWindowNights (static let 60 — nights the recovery score's baseline reads; also ReportBaselineNights.count and the coach report's night limit)",
-  "mem:BaselineTracker.saveHold (private var SaveHold?: .fileLocked — the file was protection-locked at load and is re-read before the next change; .unreadableNotSetAside — the file did not decode and could not be moved aside; save() writes nothing while it is set and the file exists)"
+  "mem:BaselineTracker.saveHold (private var SaveHold?: .fileLocked — the file was protection-locked at load and is re-read on unlock / become-active or before the next change; .unreadableNotSetAside — the file did not decode and the copy of its bytes could not be written aside; save() writes nothing while it is set and the file exists)",
+  "mem:BaselineTracker.undecodableBytes (bytes of an undecodable file whose copy aside is not yet written)",
+  "mem:BaselineTracker.lastSleepSchedule (schedule of the last update/rebuild, for merging held nights after unlock)",
+  "mem:BaselineTracker.unlockObservers (NotificationTokens: protectedDataDidBecomeAvailable + didBecomeActive, installed when the file was locked at load; removed in deinit)"
  ],
- "toplevel": "Stored-property initializers: fileManager = FileManager.default, lock = NSRecursiveLock(), historicalData = [], saveHold = nil. Class is @unchecked Sendable relying on manual lock discipline. Static constants baselineWindowDays=7, maxHistoricalPoints=90, recoveryWindowNights=60.",
+ "toplevel": "Stored-property initializers: fileManager = FileManager.default, lock = NSRecursiveLock(), historicalData = [], saveHold/undecodableBytes/lastSleepSchedule = nil, unlockObservers = NotificationTokens(). Class is @unchecked Sendable relying on manual lock discipline. Static constants baselineWindowDays=7, maxHistoricalPoints=90, recoveryWindowNights=60. Imports UIKit for the unlock notifications.",
  "units": [
   {
    "key": "init BaselineTracker(onBaselineUpdated:)",
@@ -47,21 +50,22 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)": "9d3d63da31c6a847",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)": "56178098a386f710",
     "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "cf6b353e36f53586",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "init BaselineTracker(baselineFile:onBaselineUpdated:)",
-   "hash": "a883aa6ef9603019",
-   "does": "Stores the callback and baselineFile, loads stored data, recomputes the display baseline from the stored nights (not trusting the saved one), pushes it to the callback when it has >= 3 nights, and logs counts.",
+   "hash": "90d0fae60a3c0ad0",
+   "does": "Stores the callback and baselineFile, loads stored data, installs the unlock observers when the file was protection-locked, recomputes the display baseline from the stored nights (not trusting the saved one), pushes it to the callback when it has >= 3 nights, and logs counts.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.load()",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recalculateBaseline()",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.notifyBaselineChanged()",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.observeUnlock()"
    ],
    "reads": [
     "file:<baselineFile>"
@@ -77,11 +81,17 @@
      "at": "+7",
      "cond": "currentBaseline != nil (ternary inside debugLog message)",
      "effect": "log text only"
+    },
+    {
+     "at": "+4",
+     "cond": "saveHold == .fileLocked after load",
+     "effect": "observeUnlock()"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.load()": "5add982e9e7b5ae3",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.load()": "2815575197ca88c1",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.notifyBaselineChanged()": "d9460af4bcb9f8a8",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.observeUnlock()": "cf4597437d54976b",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recalculateBaseline()": "e3832f816a21e0ba",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -287,12 +297,12 @@
   },
   {
    "key": "func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)",
-   "hash": "fc3ca3f7cd68dfcd",
-   "does": "Filters sessions to complete overnight analysed HRV-reliable ones and sorts oldest-first; then, under one hold of the lock, first re-reads a file that was locked at load (reloadAfterUnlock, merging the nights held in memory onto it), merges each session through merge(_:sleepSchedule:) and, if any was admitted, commits once (sort, trim, recalculate, notify, one file write unless saves are held); logs counts inside the lock.",
+   "hash": "f9a21eb939b47c24",
+   "does": "Filters sessions to complete overnight analysed HRV-reliable ones and sorts oldest-first; then, under one hold of the lock, first records the sleep schedule (lastSleepSchedule) and re-reads a file that was locked at load (reloadAfterUnlock, merging the nights held in memory onto it), merges each session through merge(_:sleepSchedule:) and, if any was admitted, commits once (sort, trim, recalculate, notify, one file write unless saves are held); logs counts inside the lock.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isRebuildCandidate(_:)",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reloadAfterUnlock(sleepSchedule:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reloadAfterUnlock()",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.commitChanges()",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
@@ -304,7 +314,8 @@
    "writes": [
     "mem:BaselineTracker.historicalData",
     "mem:BaselineTracker.currentBaseline",
-    "file:<AppGroup or Documents>/HRVBaseline.json"
+    "file:<AppGroup or Documents>/HRVBaseline.json",
+    "mem:BaselineTracker.lastSleepSchedule"
    ],
    "branches": [
     {
@@ -313,7 +324,7 @@
      "effect": "logs and returns without touching state"
     },
     {
-     "at": "+13",
+     "at": "+14",
      "cond": "saveHold == .fileLocked (inside reloadAfterUnlock)",
      "effect": "file re-read; when readable the held nights are merged onto it and committed"
     },
@@ -337,7 +348,7 @@
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.commitChanges()": "f4e127028238994c",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isRebuildCandidate(_:)": "fc4908668d6dc055",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "d0f243083a25b1ed",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reloadAfterUnlock(sleepSchedule:)": "c2b36da9aac94edc",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reloadAfterUnlock()": "00bb9c017bb702ce",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -476,11 +487,11 @@
   },
   {
    "key": "func BaselineTracker.update(with:sleepSchedule:)",
-   "hash": "8d236d03ff659122",
-   "does": "Under the lock: re-reads a file that was locked at load (reloadAfterUnlock), then merge(_:sleepSchedule:) (gate + night slot); when admitted, commitChanges() (sort, trim to 90, recalculate, notify, save unless saves are held).",
+   "hash": "64cff7ffd537efef",
+   "does": "Under the lock: records the sleep schedule (lastSleepSchedule) and re-reads a file that was locked at load (reloadAfterUnlock), then merge(_:sleepSchedule:) (gate + night slot); when admitted, commitChanges() (sort, trim to 90, recalculate, notify, save unless saves are held).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reloadAfterUnlock(sleepSchedule:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reloadAfterUnlock()",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.commitChanges()"
    ],
@@ -493,11 +504,12 @@
     "mem:BaselineTracker.historicalData",
     "mem:BaselineTracker.currentBaseline",
     "mem:BaselineTracker.saveHold",
-    "file:<AppGroup or Documents>/HRVBaseline.json"
+    "file:<AppGroup or Documents>/HRVBaseline.json",
+    "mem:BaselineTracker.lastSleepSchedule"
    ],
    "branches": [
     {
-     "at": "+3",
+     "at": "+4",
      "cond": "saveHold == .fileLocked (inside reloadAfterUnlock)",
      "effect": "file re-read; when readable the held nights are merged onto it and committed"
     },
@@ -510,7 +522,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.commitChanges()": "f4e127028238994c",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "d0f243083a25b1ed",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reloadAfterUnlock(sleepSchedule:)": "c2b36da9aac94edc"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reloadAfterUnlock()": "00bb9c017bb702ce"
    }
   },
   {
@@ -819,7 +831,7 @@
   {
    "key": "func BaselineTracker.reset()",
    "hash": "c23f3bddb916831f",
-   "does": "Clears currentBaseline and historicalData under the lock, lifts a .fileLocked hold (the locked file's nights are the ones being discarded, so it is written over unread) and saves the empty state; an .unreadableNotSetAside hold stays, so save() writes only once that file is moved aside or gone.",
+   "does": "Clears currentBaseline and historicalData under the lock, lifts a .fileLocked hold (the locked file's nights are the ones being discarded, so it is written over unread) and saves the empty state; an .unreadableNotSetAside hold stays, so save() writes only once the undecodable bytes are written aside or the file is gone.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.save()"
@@ -842,6 +854,23 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.save()": "8a58f6e9f0466ce2"
+   }
+  },
+  {
+   "key": "deinit BaselineTracker",
+   "hash": "d5f59972838b3530",
+   "does": "Removes the unlock observers from NotificationCenter.default.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:BaselineTracker.unlockObservers"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)": "dd504bad520a4d13"
    }
   },
   {
@@ -1194,12 +1223,11 @@
   },
   {
    "key": "func BaselineTracker.load()",
-   "hash": "8013878b2fdc0f2b",
-   "does": "If HRVBaseline.json exists, decodes it (readStoredData) into currentBaseline/historicalData; on a read or decode error sets saveHold from holdAfterFailedRead (protection lock: .fileLocked, file left in place; otherwise the file is moved aside and the hold is nil, or .unreadableNotSetAside when the move fails).",
+   "hash": "7a61d47f57b5147f",
+   "does": "If HRVBaseline.json exists and readFile() returns its contents, sets currentBaseline/historicalData; otherwise the tracker stays empty with the hold readFile set.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.readStoredData()",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.holdAfterFailedRead(_:)"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.readFile()"
    ],
    "reads": [
     "file:<AppGroup or Documents>/HRVBaseline.json"
@@ -1212,80 +1240,128 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "file absent",
+     "cond": "file absent or readFile() nil",
      "effect": "returns; empty state"
-    },
-    {
-     "at": "+6",
-     "cond": "read/decode throws",
-     "effect": "saveHold = holdAfterFailedRead(error); tracker starts empty"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.holdAfterFailedRead(_:)": "ad5cabad0253be54",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.readStoredData()": "d0c6f2cef620987d"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.readFile()": "b8cf81792d3183de"
    }
   },
   {
-   "key": "func BaselineTracker.readStoredData()",
-   "hash": "08171a26a8618b14",
-   "does": "Reads baselineFile and decodes StoredData (iso8601 dates); throws the read or decode error.",
+   "key": "func BaselineTracker.readFile()",
+   "hash": "0b57beb729cb69bf",
+   "does": "Reads baselineFile. Read refused by file protection (NSCocoaErrorDomain 257): logs, saveHold = .fileLocked, nil. Any other read error: logs that nothing can be kept, saveHold = nil, nil. Read: returns decodeOrSetAside(bytes) (decoded, or nil with the undecodable bytes written aside — hold .unreadableNotSetAside when that write fails).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.decodeOrSetAside(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
    "reads": [
     "file:<AppGroup or Documents>/HRVBaseline.json"
    ],
-   "writes": [],
-   "branches": [],
-   "deps": {}
-  },
-  {
-   "key": "func BaselineTracker.holdAfterFailedRead(_:)",
-   "hash": "2b9d834b3e35b05d",
-   "does": "The save hold a failed read of baselineFile leaves: .fileLocked for NSCocoaErrorDomain / NSFileReadNoPermissionError (iOS file protection; logged, file left in place); otherwise logs, moves the file aside with quarantineCorruptFile and returns nil when that succeeded, .unreadableNotSetAside when it failed.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.quarantineCorruptFile()",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
-   ],
-   "reads": [],
    "writes": [
-    "file:<AppGroup or Documents>/HRVBaseline.json",
+    "mem:BaselineTracker.saveHold",
+    "mem:BaselineTracker.undecodableBytes",
     "file:HRVBaseline.json.corrupt"
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "protection error (code 257)",
-     "effect": "returns .fileLocked without moving the file"
-    },
-    {
-     "at": "+10",
-     "cond": "quarantineCorruptFile() succeeded",
-     "effect": "nil (saves allowed); else .unreadableNotSetAside"
+     "at": "+4",
+     "cond": "read throws",
+     "effect": "protection: .fileLocked; otherwise no hold; nil"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.quarantineCorruptFile()": "94b3904bdc608eb5",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.decodeOrSetAside(_:)": "c8ceb4aff1ed5565",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
-   "key": "func BaselineTracker.reloadAfterUnlock(sleepSchedule:)",
-   "hash": "6de845418baa9ee7",
-   "does": "Caller holds lock. Only while saveHold == .fileLocked: if the file is gone the hold is cleared; else it re-reads the file and, when readable, merges every night held in memory onto the file's nights with mergeIntoNight (one per night, the same replacement rule), clears the hold, logs and commitChanges() (sort, trim, recalculate, notify, save). A read that fails again sets the hold from holdAfterFailedRead (still locked: unchanged; corrupt now: moved aside or .unreadableNotSetAside).",
+   "key": "func BaselineTracker.decodeOrSetAside(_:)",
+   "hash": "ac8e3d9949f50881",
+   "does": "Decodes StoredData (iso8601) from the bytes. On a decode error writes the bytes aside (setAsideUndecodable), logs at .error, sets saveHold = nil when written or .unreadableNotSetAside when not, and returns nil.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.readStoredData()",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.setAsideUndecodable(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:BaselineTracker.saveHold",
+    "mem:BaselineTracker.undecodableBytes",
+    "file:HRVBaseline.json.corrupt"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "decode throws",
+     "effect": "bytes written aside → no hold; write failed → .unreadableNotSetAside; nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.setAsideUndecodable(_:)": "9bf23c7c7b903c1c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func BaselineTracker.observeUnlock()",
+   "hash": "724ba52288dd15ef",
+   "does": "Adds observers (queue nil) for UIApplication.protectedDataDidBecomeAvailable and didBecomeActive that call retryAfterUnlock, kept in unlockObservers.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.retryAfterUnlock()",
+    "ext:NotificationCenter.addObserver"
+   ],
+   "reads": [
+    "notif:UIApplication.protectedDataDidBecomeAvailableNotification",
+    "notif:UIApplication.didBecomeActiveNotification"
+   ],
+   "writes": [
+    "mem:BaselineTracker.unlockObservers"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each notification name",
+     "effect": "one observer"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.retryAfterUnlock()": "31901f81fa9f74b8"
+   }
+  },
+  {
+   "key": "func BaselineTracker.retryAfterUnlock()",
+   "hash": "c165c1a28175eb5c",
+   "does": "Takes the lock and runs reloadAfterUnlock (a no-op once the .fileLocked hold is gone).",
+   "entry": "protectedDataDidBecomeAvailable / didBecomeActive observers installed by observeUnlock",
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reloadAfterUnlock()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reloadAfterUnlock()": "00bb9c017bb702ce"
+   }
+  },
+  {
+   "key": "func BaselineTracker.reloadAfterUnlock()",
+   "hash": "0a1ece6a691e136c",
+   "does": "Caller holds lock. Only while saveHold == .fileLocked: if the file is gone the hold is cleared; else readFile(). Still unreadable: returns with the hold readFile left (still locked → .fileLocked). Readable: merges every night held in memory onto the file's nights with mergeIntoNight using lastSleepSchedule (none recorded means no nights are held), clears the hold, logs and commitChanges() (sort, trim, recalculate, notify, save).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.readFile()",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.mergeIntoNight(_:into:sleepSchedule:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.commitChanges()",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.holdAfterFailedRead(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "mem:BaselineTracker.saveHold",
     "mem:BaselineTracker.historicalData",
+    "mem:BaselineTracker.lastSleepSchedule",
     "file:<AppGroup or Documents>/HRVBaseline.json"
    ],
    "writes": [
@@ -1307,74 +1383,62 @@
      "effect": "hold cleared; returns"
     },
     {
-     "at": "+8",
-     "cond": "for each night held in memory",
-     "effect": "merged into the file's nights"
+     "at": "+6",
+     "cond": "file still unreadable",
+     "effect": "returns with readFile's hold"
     },
     {
-     "at": "+15",
-     "cond": "read/decode throws",
-     "effect": "saveHold = holdAfterFailedRead(error)"
+     "at": "+7",
+     "cond": "a sleep schedule was recorded",
+     "effect": "held nights merged into the file's nights"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.commitChanges()": "f4e127028238994c",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.holdAfterFailedRead(_:)": "ad5cabad0253be54",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.mergeIntoNight(_:into:sleepSchedule:)": "65301be0ab94c4bf",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.readStoredData()": "d0c6f2cef620987d",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.readFile()": "b8cf81792d3183de",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
-   "key": "func BaselineTracker.quarantineCorruptFile()",
-   "hash": "ae07f94956b7e81c",
-   "does": "Moves HRVBaseline.json aside as HRVBaseline.json.corrupt: replaceItemAt over an earlier .corrupt copy when one exists (the old copy goes only as the new one takes its place), else a plain move. Returns true once nothing is left at baselineFile (also when it was already gone), false (logged) when the move failed.",
+   "key": "func BaselineTracker.setAsideUndecodable(_:)",
+   "hash": "eb1b03e4aa3d2067",
+   "does": "Writes the bytes of an undecodable baseline file to HRVBaseline.json.corrupt (atomic, completeFileProtectionUntilFirstUserAuthentication; an earlier copy is replaced only by a complete new one). On success clears undecodableBytes and returns true; on failure keeps the bytes in undecodableBytes for a later retry and returns false (no log; callers log).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "ext:Data.write(.atomic)"
    ],
    "reads": [],
    "writes": [
-    "file:<AppGroup or Documents>/HRVBaseline.json",
-    "file:HRVBaseline.json.corrupt"
+    "file:HRVBaseline.json.corrupt",
+    "mem:BaselineTracker.undecodableBytes"
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "file absent",
-     "effect": "returns true"
-    },
-    {
-     "at": "+4",
-     "cond": "earlier .corrupt copy exists",
-     "effect": "replaceItemAt(quarantined, withItemAt: baselineFile); else moveItem"
-    },
-    {
-     "at": "+10",
-     "cond": "replace/move throws",
-     "effect": "logs, returns false"
+     "at": "+5",
+     "cond": "write throws",
+     "effect": "bytes kept, false"
     }
    ],
-   "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
-   }
+   "deps": {}
   },
   {
    "key": "func BaselineTracker.mayWriteFile()",
-   "hash": "7de04876f0ffa445",
-   "does": "Caller holds lock. Whether save() may write baselineFile: true with no hold; with a hold, true (hold cleared) when the file is gone or, for .unreadableNotSetAside, when quarantineCorruptFile now succeeds; otherwise logs and returns false (a .fileLocked file waits for reloadAfterUnlock).",
+   "hash": "6dfb9c546c19489a",
+   "does": "Caller holds lock. Whether save() may write baselineFile: true with no hold; with a hold, true (hold and undecodableBytes cleared) when the file is gone or, for .unreadableNotSetAside, when the held bytes are now written aside (logged); otherwise false without logging (the hold was logged when set; a .fileLocked file waits for reloadAfterUnlock).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.quarantineCorruptFile()",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.setAsideUndecodable(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "mem:BaselineTracker.saveHold",
+    "mem:BaselineTracker.undecodableBytes",
     "file:<AppGroup or Documents>/HRVBaseline.json"
    ],
    "writes": [
     "mem:BaselineTracker.saveHold",
-    "file:<AppGroup or Documents>/HRVBaseline.json",
+    "mem:BaselineTracker.undecodableBytes",
     "file:HRVBaseline.json.corrupt"
    ],
    "branches": [
@@ -1384,18 +1448,18 @@
      "effect": "true"
     },
     {
-     "at": "+3",
-     "cond": "file gone, or unreadable file now moved aside",
-     "effect": "hold cleared, true"
+     "at": "+4",
+     "cond": "file present and not set aside",
+     "effect": "false, silently"
     },
     {
-     "at": "+8",
-     "cond": "otherwise",
-     "effect": "logged, false"
+     "at": "+5",
+     "cond": "copy written now",
+     "effect": "logged; hold cleared, true"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.quarantineCorruptFile()": "94b3904bdc608eb5",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.setAsideUndecodable(_:)": "9bf23c7c7b903c1c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -1429,7 +1493,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.mayWriteFile()": "dc8c0fe2c4504781",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.mayWriteFile()": "1fb97572cb339f3f",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }
