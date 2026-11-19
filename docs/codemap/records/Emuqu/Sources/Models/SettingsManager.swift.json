@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Models/SettingsManager.swift",
- "hash": "209e44e191979226",
+ "hash": "606ae79c7a6d5375",
  "role": "Owns the SettingsManager singleton: loads/saves UserSettings JSON (user_settings.json in the App Group container) with a protection-aware don't-clobber guard, off-main coalesced writes, CloudKit export/restore hooks, custom tags, baseline updates, device-local disclaimer flag and trial-clock helpers.",
  "types": [
   "SettingsManager: class (@Observable @MainActor) — settings store singleton",
@@ -16,7 +16,6 @@
   "mem:SettingsManager.lockedStartingPoint (settings the app started from while saves were held; diff base for the unlock merge)",
   "mem:SettingsManager.settingsSnapshot / snapshotBox (OSAllocatedUnfairLock mirror for off-main readers)",
   "mem:SettingsManager.writeState (lock: pending/scheduled)",
-  "mem:SettingsManager.protectedDataObserver",
   "mem:SettingsManager.disclaimerRevision",
   "file:<AppGroup>/user_settings.json — SettingsManager.settingsURL, the file in use (the legacy <Documents>/user_settings.json while the migration copy fails; deleted after a verified copy)",
   "ud:hasAcceptedHealthDisclaimer (UserDefaultsKeys.disclaimerAccepted, standard)",
@@ -24,9 +23,12 @@
   "ud:perf.enableAIAssistant / perf.enableVoiceMode / perf.enableWatchConnectivity (standard; mirrors written in save())",
   "notif:FlowRecoverySettingsChanged (Notification.Name.flowRecoverySettingsChanged)",
   "DispatchQueue com.emuqu.settings.write (utility, serial)",
-  "file:<settings dir>/user_settings.unreadable.json (copy of a settings file that existed but could not be read; SettingsManager.unreadableBackupName; written atomically from the bytes read)"
+  "file:<settings dir>/user_settings.unreadable.json (copy of a settings file that existed but could not be read; SettingsManager.unreadableBackupName; written atomically from the bytes read)",
+  "mem:SettingsManager.heldRetryObservers (protectedDataDidBecomeAvailable + didBecomeActive observers, present only while saves are held; internal read for tests)",
+  "mem:SettingsManager.heldChangeRetried (whether the first held change already re-read the file)",
+  "mem:SettingsManager.readSettingsFile (reader; Data(contentsOf:) for the app, injected by tests)"
  ],
- "toplevel": "`nonisolated static let shared = SettingsManager()` creates the singleton lazily on first touch from any thread; settingsWriteQueue and writeState are created as stored-property initializers. Notification.Name.flowRecoverySettingsChanged = \"FlowRecoverySettingsChanged\". FileReadFailure (file-scope enum) classifies read errors for SettingsManager and BaselineTracker.",
+ "toplevel": "`nonisolated static let shared = SettingsManager()` (the private convenience init on the resolved URL) creates the singleton lazily on first touch from any thread; settingsWriteQueue and writeState are created as stored-property initializers. Notification.Name.flowRecoverySettingsChanged = \"FlowRecoverySettingsChanged\". FileReadFailure (file-scope enum) classifies read errors for SettingsManager and BaselineTracker.",
  "units": [
   {
    "key": "var SettingsManager.settings",
@@ -50,7 +52,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.saveUnlessLocked()": "2fca1ffce8f0ce3e"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.saveUnlessLocked()": "a49d44c7559e4378"
    }
   },
   {
@@ -81,14 +83,30 @@
   },
   {
    "key": "init SettingsManager()",
-   "hash": "d08881a05074779f",
-   "does": "Private nonisolated init: resolves (and migrates) the settings URL, loads it, records the LoadOutcome, seeds settings and the snapshot with the loaded value or UserSettings() defaults, keeps those defaults as lockedStartingPoint when saves are held (blocked by protection, or .unreadableNotPreserved), schedules the protected-data observer in both held cases, and installs background/terminate flush observers.",
+   "hash": "cbe52e88d75188a8",
+   "does": "Private nonisolated convenience init for `shared`: init(settingsURL:read:) on the resolved (and migrated) settings URL with the default file reader.",
    "entry": "Called once by the static `shared` initializer on first access (EmuquApp.swift:152 and AppDependencies).",
    "calls": [
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.resolveSettingsURL(fileManager:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.resolveSettingsURL(fileManager:)": "1822ca97ccdb92f4",
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:)": "15937c1d6065c593"
+   }
+  },
+  {
+   "key": "init SettingsManager(settingsURL:read:)",
+   "hash": "1695702bfcdea9c3",
+   "does": "Nonisolated designated init (the app's via the private convenience init; tests pass a temporary URL and their own reader): stores the URL and reader, loads the file, records the LoadOutcome, seeds settings and the snapshot with the loaded value or UserSettings() defaults, keeps those defaults as lockedStartingPoint when saves are held (blocked by protection, or .unreadableNotPreserved), and in that case schedules a MainActor Task that installs the held-retry observers (which installs nothing if a change lifted the hold first); always installs the background/terminate flush observers.",
+   "entry": "Called by the private convenience init (SettingsManager.shared) and by UserSettingsTests.",
+   "calls": [
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)",
     "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.installProtectedDataObserver()",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.installHeldRetryObservers()",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.installDurabilityObservers()"
    ],
    "reads": [
@@ -98,31 +116,31 @@
     "mem:SettingsManager.settings",
     "mem:SettingsManager.loadOutcome",
     "mem:SettingsManager.settingsSnapshot",
-    "mem:SettingsManager.lockedStartingPoint"
+    "mem:SettingsManager.lockedStartingPoint",
+    "mem:SettingsManager.readSettingsFile"
    ],
    "branches": [
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "?? — load returned nil",
      "effect": "UserSettings() defaults are used in memory"
     },
     {
-     "at": "+7",
+     "at": "+8",
      "cond": "held (.blockedByProtection or .unreadableNotPreserved)",
      "effect": "lockedStartingPoint = the defaults; otherwise nil"
     },
     {
-     "at": "+14",
+     "at": "+16",
      "cond": "held",
-     "effect": "a MainActor Task installs the protectedDataDidBecomeAvailable observer"
+     "effect": "a MainActor Task runs installHeldRetryObservers"
     }
    ],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.installDurabilityObservers()": "a934c916247da0ef",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.installProtectedDataObserver()": "e551dda90491514e",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.installHeldRetryObservers()": "dd61e3c0edf0fa24",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)": "cbc144e7833ab4d5",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.outcome(forReadError:)": "04502d1dc8fff04a",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.resolveSettingsURL(fileManager:)": "1822ca97ccdb92f4",
     "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "1c099582675121a6",
     "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b"
    }
@@ -272,7 +290,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryHeldLoad()": "1a02af79d7193e95",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryHeldLoad()": "f7ec701d4f2e5453",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.hasHeldChanges": "5aa8c2b5e4d40f20"
    }
   },
@@ -402,36 +420,57 @@
    }
   },
   {
-   "key": "func SettingsManager.installProtectedDataObserver()",
-   "hash": "0a5d765220ce2875",
-   "does": "Installs (once) a main-queue observer for protectedDataDidBecomeAvailable that hops to the MainActor and calls retryLoadAfterUnlock.",
+   "key": "func SettingsManager.installHeldRetryObservers()",
+   "hash": "4452d772c7a54c42",
+   "does": "Only while saves are held and none is installed: adds a heldRetryObserver for protectedDataDidBecomeAvailable and one for didBecomeActive, kept in heldRetryObservers.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.savesHeld",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.heldRetryObserver(for:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.loadOutcome",
+    "mem:SettingsManager.heldRetryObservers"
+   ],
+   "writes": [
+    "mem:SettingsManager.heldRetryObservers"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not held, or already installed",
+     "effect": "returns; nothing installed"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.heldRetryObserver(for:)": "15be9bd29fd6d6c2",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.savesHeld": "6f3c165921f446f2"
+   }
+  },
+  {
+   "key": "func SettingsManager.heldRetryObserver(for:)",
+   "hash": "c85750d1a8a49e6a",
+   "does": "Adds a main-queue observer for the notification whose block hops to the MainActor and runs retryLoadAfterUnlock; returns its token.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryLoadAfterUnlock()",
     "ext:NotificationCenter.addObserver"
    ],
    "reads": [
-    "notif:UIApplication.protectedDataDidBecomeAvailableNotification"
+    "notif:UIApplication.protectedDataDidBecomeAvailableNotification",
+    "notif:UIApplication.didBecomeActiveNotification"
    ],
-   "writes": [
-    "mem:SettingsManager.protectedDataObserver"
-   ],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "an observer is already installed",
-     "effect": "return; otherwise register one"
-    }
-   ],
+   "writes": [],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryLoadAfterUnlock()": "1d7e338c1a158d74"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryLoadAfterUnlock()": "7d65d546dc09af34"
    }
   },
   {
    "key": "func SettingsManager.retryLoadAfterUnlock()",
-   "hash": "c5ed5b23e87fae08",
-   "does": "Runs retryHeldLoad; when saves stay held (still locked, or the file still cannot be read or kept) logs, and the observer stays for the next unlock.",
-   "entry": "NotificationCenter observer for UIApplication.protectedDataDidBecomeAvailableNotification (installed by installProtectedDataObserver).",
+   "hash": "16370082f7015718",
+   "does": "The held-retry observers' handler (internal for tests): runs retryHeldLoad — which does nothing but drop the observers when saves are not held — and logs when saves stay held, keeping the observers for the next unlock or activation.",
+   "entry": "protectedDataDidBecomeAvailable / didBecomeActive observers installed by installHeldRetryObservers; UserSettingsTests",
    "calls": [
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryHeldLoad()",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
@@ -445,29 +484,29 @@
     "mem:SettingsManager.settings",
     "file:user_settings.json",
     "notif:FlowRecoverySettingsChanged",
-    "mem:SettingsManager.protectedDataObserver"
+    "mem:SettingsManager.heldRetryObservers"
    ],
    "branches": [
     {
      "at": "+1",
-     "cond": "saves resumed",
+     "cond": "saves resumed or were not held",
      "effect": "returns; else logged"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryHeldLoad()": "1a02af79d7193e95",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryHeldLoad()": "f7ec701d4f2e5453",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func SettingsManager.retryHeldLoad()",
-   "hash": "82862975f9edea13",
-   "does": "Re-runs load(from:read:) and records the outcome. Still held (.blockedByProtection or .unreadableNotPreserved): returns false, changes stay in memory. Otherwise removes the protected-data observer, adoptAfterUnlock(loaded) (held changes merged onto the file's settings, or saved when the file is gone or a copy was kept), true.",
+   "hash": "2fe1656994f23735",
+   "does": "Not held: removes the held-retry observers and returns true without reading. Held: re-runs load(from:read:) with the stored reader and records the outcome; still held → captures lockedStartingPoint if none was (so held changes are always merged), false. Otherwise removes the observers, clears heldChangeRetried, adoptAfterUnlock(loaded) (held changes merged onto the file's settings, or saved when the file is gone or a copy was kept), true.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.savesHeld",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeProtectedDataObserver()",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeHeldRetryObservers()",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptAfterUnlock(_:)"
    ],
    "reads": [
@@ -477,24 +516,31 @@
     "mem:SettingsManager.loadOutcome",
     "mem:SettingsManager.lockedStartingPoint",
     "mem:SettingsManager.settings",
-    "mem:SettingsManager.protectedDataObserver",
+    "mem:SettingsManager.heldChangeRetried",
+    "mem:SettingsManager.heldRetryObservers",
     "file:user_settings.json",
     "file:user_settings.unreadable.json",
     "notif:FlowRecoverySettingsChanged"
    ],
    "branches": [
     {
-     "at": "+3",
-     "cond": "saves still held",
-     "effect": "false"
+     "at": "+1",
+     "cond": "saves not held",
+     "effect": "observers removed; true; nothing read"
+    },
+    {
+     "at": "+7",
+     "cond": "still held after the read",
+     "effect": "starting point captured if missing; false"
     }
    ],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptAfterUnlock(_:)": "22d5a80959f3c74e",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)": "cbc144e7833ab4d5",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.outcome(forReadError:)": "04502d1dc8fff04a",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeProtectedDataObserver()": "10eb0c1450d8976a",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeHeldRetryObservers()": "a036f959092f683e",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.savesHeld": "6f3c165921f446f2",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
     "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b"
    }
   },
@@ -544,24 +590,24 @@
    }
   },
   {
-   "key": "func SettingsManager.removeProtectedDataObserver()",
-   "hash": "608ae5bd1ad7b67f",
-   "does": "Removes the protected-data observer from NotificationCenter and clears it; no-op when none is installed.",
+   "key": "func SettingsManager.removeHeldRetryObservers()",
+   "hash": "a5bd15d7273ec34b",
+   "does": "Removes every held-retry observer from NotificationCenter.default and empties heldRetryObservers.",
    "entry": null,
    "calls": [
     "ext:NotificationCenter.removeObserver"
    ],
    "reads": [
-    "mem:SettingsManager.protectedDataObserver"
+    "mem:SettingsManager.heldRetryObservers"
    ],
    "writes": [
-    "mem:SettingsManager.protectedDataObserver"
+    "mem:SettingsManager.heldRetryObservers"
    ],
    "branches": [
     {
      "at": "+1",
-     "cond": "no observer",
-     "effect": "return"
+     "cond": "for each observer",
+     "effect": "removed"
     }
    ],
    "deps": {}
@@ -624,13 +670,13 @@
   },
   {
    "key": "func SettingsManager.resetToDefaults()",
-   "hash": "0718811dc6045d71",
-   "does": "Delete-All-My-Data reset. While saves are held (file locked, or unreadable with no copy kept) it deletes user_settings.json (removal needs no read), marks the outcome .fileNotPresent, drops the starting point and the unlock retry (so it cannot load the erased settings back). Then deletes the unreadable-file copy, assigns fresh UserSettings() (didSet persists defaults) and clears the device-local disclaimer flag.",
+   "hash": "3b1c081298a47c63",
+   "does": "Delete-All-My-Data reset. While saves are held (file locked, or unreadable with no copy kept) it deletes user_settings.json (removal needs no read), marks the outcome .fileNotPresent, drops the starting point, the change-retry flag and the held-retry observers (so they cannot load the erased settings back). Then deletes the unreadable-file copy, assigns fresh UserSettings() (didSet persists defaults) and clears the device-local disclaimer flag.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.savesHeld",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeFile(at:what:)",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeProtectedDataObserver()",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeHeldRetryObservers()",
     "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.hasAcceptedDisclaimer"
    ],
@@ -641,11 +687,12 @@
     "mem:SettingsManager.settings",
     "mem:SettingsManager.loadOutcome",
     "mem:SettingsManager.lockedStartingPoint",
-    "mem:SettingsManager.protectedDataObserver",
+    "mem:SettingsManager.heldRetryObservers",
     "file:user_settings.json",
     "file:user_settings.unreadable.json",
     "ud:hasAcceptedHealthDisclaimer",
-    "notif:FlowRecoverySettingsChanged"
+    "notif:FlowRecoverySettingsChanged",
+    "mem:SettingsManager.heldChangeRetried"
    ],
    "branches": [
     {
@@ -656,7 +703,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeFile(at:what:)": "db8be3494de563a0",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeProtectedDataObserver()": "10eb0c1450d8976a",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeHeldRetryObservers()": "a036f959092f683e",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.hasAcceptedDisclaimer": "6137b39fe90ea00e",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.savesHeld": "6f3c165921f446f2",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
@@ -695,8 +742,8 @@
   },
   {
    "key": "func SettingsManager.saveUnlessLocked()",
-   "hash": "9620926b6d9b86a8",
-   "does": "Saves the settings unless saves are held. Blocked by file protection: logs a warning and leaves the change in memory for retryLoadAfterUnlock to merge. .unreadableNotPreserved: retryHeldLoad re-reads the file and, once it reads (or its bytes are kept, or it is gone), merges or saves the held changes; still held, logs and leaves the change in memory. Otherwise save().",
+   "hash": "4e980025f1445827",
+   "does": "Saves the settings unless saves are held. Blocked by file protection: logs a warning and leaves the change in memory for the held-retry to merge. .unreadableNotPreserved: only the first change since the hold began (heldChangeRetried) runs retryHeldLoad, which re-reads the file and, once it reads (or its bytes are kept, or it is gone), merges or saves the held changes; still held, logs; later changes stay in memory for the unlock, activation and background retries. Otherwise save().",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -705,6 +752,7 @@
    ],
    "reads": [
     "mem:SettingsManager.loadOutcome",
+    "mem:SettingsManager.heldChangeRetried",
     "file:user_settings.json"
    ],
    "writes": [
@@ -723,18 +771,23 @@
      "effect": "log warning; nothing saved"
     },
     {
-     "at": "+5",
-     "cond": "loadOutcome == .unreadableNotPreserved and the file still cannot be read or kept",
+     "at": "+7",
+     "cond": ".unreadableNotPreserved and the first change already retried",
+     "effect": "returns; change held"
+    },
+    {
+     "at": "+9",
+     "cond": "first held change and the file still cannot be read or kept",
      "effect": "log warning; nothing saved"
     },
     {
-     "at": "+8",
+     "at": "+12",
      "cond": "saves allowed",
      "effect": "save()"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryHeldLoad()": "1a02af79d7193e95",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryHeldLoad()": "f7ec701d4f2e5453",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.save()": "73361178a8326f07",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -935,13 +988,14 @@
   },
   {
    "key": "func SettingsManager.restoreFromJSON(_:)",
-   "hash": "2b22d48b3bfbb4c4",
-   "does": "Decodes a CloudKit settings JSON blob (throws on failure), forces loadOutcome to .loaded, clears lockedStartingPoint and assigns it to settings (didSet persists + notifies); when the restored copy carries a trial start, adoptTrialStart bridges it into the entitlement anchor and mirrors the resolved start back.",
+   "hash": "9fc01fee7ed27b2c",
+   "does": "Decodes a CloudKit settings JSON blob (throws on failure), forces loadOutcome to .loaded, clears lockedStartingPoint and the change-retry flag, removes the held-retry observers, and assigns it to settings (didSet persists + notifies); when the restored copy carries a trial start, adoptTrialStart bridges it into the entitlement anchor and mirrors the resolved start back.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)",
     "ext:JSONDecoder.decode",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptTrialStart(_:)"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptTrialStart(_:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeHeldRetryObservers()"
    ],
    "reads": [],
    "writes": [
@@ -951,19 +1005,23 @@
     "file:user_settings.json",
     "notif:FlowRecoverySettingsChanged",
     "ud:entitlement.anchor.v1 (via adoptTrialStart)",
-    "kc:com.chrissharp.flowrecovery.entitlement/primary (via adoptTrialStart)"
+    "kc:com.chrissharp.flowrecovery.entitlement/primary (via adoptTrialStart)",
+    "mem:SettingsManager.heldRetryObservers",
+    "mem:SettingsManager.heldChangeRetried"
    ],
    "branches": [
     {
-     "at": "+13",
+     "at": "+15",
      "cond": "restored.trialStartDate is set",
      "effect": "adoptTrialStart(it); otherwise nothing"
     }
    ],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptTrialStart(_:)": "4958df5d94f11e8d",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeHeldRetryObservers()": "a036f959092f683e",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
-    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "3bdf6274eb0dde7b"
+    "Emuqu/Sources/Models/UserSettings+Codable.swift::init UserSettings(from:)": "3bdf6274eb0dde7b",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b"
    }
   },
   {

@@ -264,9 +264,10 @@ final class UserSettingsTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: file), Data("not settings".utf8), "The file must be left as it was")
     }
 
-    /// A directory at the path can never give bytes back, so there is nothing
-    /// to keep and saves go ahead; no copy is written.
-    func testADirectoryAtThePathLeavesNothingToKeep() throws {
+    /// An EISDIR read error (a directory at the path) is classified as one
+    /// that can never give bytes back: nothing to keep, saves go ahead, and no
+    /// copy is written.
+    func testAnEISDIRReadErrorLeavesNothingToKeep() throws {
         let file = try unreadableSettingsFile()
         let error = readError(posix: EISDIR)
 
@@ -286,6 +287,121 @@ final class UserSettingsTests: XCTestCase {
         XCTAssertEqual(SettingsManager.outcome(forReadError: NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoSuchFileError)), .fileNotPresent)
         XCTAssertEqual(SettingsManager.outcome(forReadError: readError(posix: ENOENT)), .fileNotPresent)
         XCTAssertEqual(SettingsManager.outcome(forReadError: NSError(domain: NSCocoaErrorDomain, code: NSFileReadTooLargeError)), .unreadableOther)
+    }
+
+    // MARK: - Held saves on a manager instance
+
+    /// A reader the test controls: it fails with `error` while one is set and
+    /// reads the file otherwise, counting every read. Used only on the main
+    /// actor, by the test and by the manager it reads for.
+    private final class SettingsReader {
+        var error: NSError?
+        private(set) var reads = 0
+
+        func read(_ url: URL) throws -> Data {
+            reads += 1
+            if let error { throw error }
+            return try Data(contentsOf: url)
+        }
+    }
+
+    /// A settings file holding `maxHR` 170 in its own temporary directory,
+    /// and a manager on it whose first read fails with EIO, so saves are held.
+    @MainActor
+    private func heldManager() throws -> (SettingsManager, SettingsReader, URL) {
+        let file = try unreadableSettingsFile()
+        var onDisk = UserSettings()
+        onDisk.maxHR = 170
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        try encoder.encode(onDisk).write(to: file)
+        let reader = SettingsReader()
+        reader.error = readError(posix: EIO)
+        let manager = SettingsManager(settingsURL: file, read: { try reader.read($0) })
+        XCTAssertEqual(manager.loadOutcome, .unreadableNotPreserved, "Sanity: an EIO read holds saves")
+        return (manager, reader, file)
+    }
+
+    /// The settings the file holds once every pending write has landed.
+    @MainActor
+    private func settingsOnDisk(_ manager: SettingsManager, file: URL) throws -> UserSettings {
+        XCTAssertNil(manager.flushPendingWritesSynchronously())
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(UserSettings.self, from: Data(contentsOf: file))
+    }
+
+    /// Lets the main-actor tasks the manager scheduled (the observer
+    /// installation) run.
+    @MainActor
+    private func drainMainActor() async {
+        for _ in 0 ..< 5 { await Task.yield() }
+    }
+
+    /// A change made while saves are held reads the file again; once it reads,
+    /// the change is merged onto the file's settings and saved, not the other
+    /// way round.
+    @MainActor
+    func testAHeldChangeIsMergedOntoTheFileOnceItReads() async throws {
+        let (manager, reader, file) = try heldManager()
+        reader.error = nil
+
+        manager.settings.bodyWeightKg = 80
+
+        XCTAssertEqual(manager.loadOutcome, .loaded)
+        XCTAssertEqual(manager.settings.maxHR, 170, "The file's settings were not adopted")
+        XCTAssertEqual(manager.settings.bodyWeightKg, 80, "The change made while held was lost")
+        let saved = try settingsOnDisk(manager, file: file)
+        XCTAssertEqual(saved.maxHR, 170)
+        XCTAssertEqual(saved.bodyWeightKg, 80)
+    }
+
+    /// A hold lifted before the retry observers are installed leaves none
+    /// behind, and a retry when nothing is held reads nothing: a later read
+    /// failure can no longer swap the file's settings in over a change.
+    @MainActor
+    func testARetryAfterTheHoldLiftedReadsNothingAndKeepsTheChange() async throws {
+        let (manager, reader, file) = try heldManager()
+        reader.error = nil
+        manager.settings.bodyWeightKg = 80   // lifts the hold in the same turn as init
+        await drainMainActor()
+        XCTAssertTrue(manager.heldRetryObservers.isEmpty, "An observer was installed after the hold lifted")
+
+        reader.error = readError(posix: EIO)
+        let readsBefore = reader.reads
+        manager.retryLoadAfterUnlock()
+        XCTAssertEqual(reader.reads, readsBefore, "A retry with nothing held read the file")
+        XCTAssertEqual(manager.loadOutcome, .loaded)
+
+        manager.settings.maxHR = 180
+        XCTAssertEqual(try settingsOnDisk(manager, file: file).maxHR, 180, "The change after the hold lifted was not saved")
+    }
+
+    /// While held, the observers are installed; the first change reads the
+    /// file once and later changes do not; becoming active (the observers'
+    /// handler) adopts the file as soon as it reads, keeping every held change
+    /// and dropping the observers.
+    @MainActor
+    func testAHeldLoadIsRetriedOnActivationWithoutAReadPerChange() async throws {
+        let (manager, reader, file) = try heldManager()
+        await drainMainActor()
+        XCTAssertFalse(manager.heldRetryObservers.isEmpty, "No retry observers while saves are held")
+
+        let readsAtLaunch = reader.reads
+        manager.settings.bodyWeightKg = 80
+        manager.settings.userRestingHR = 48
+        XCTAssertEqual(reader.reads, readsAtLaunch + 1, "Only the first held change reads the file again")
+        XCTAssertEqual(manager.loadOutcome, .unreadableNotPreserved)
+
+        reader.error = nil
+        manager.retryLoadAfterUnlock()
+
+        XCTAssertEqual(manager.loadOutcome, .loaded)
+        XCTAssertTrue(manager.heldRetryObservers.isEmpty)
+        let saved = try settingsOnDisk(manager, file: file)
+        XCTAssertEqual(saved.maxHR, 170)
+        XCTAssertEqual(saved.bodyWeightKg, 80)
+        XCTAssertEqual(saved.userRestingHR, 48)
     }
 
     // MARK: - Helpers
