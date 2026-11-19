@@ -731,6 +731,43 @@
    "deps": {}
   },
   {
+   "key": "func TrainingMetricsCache.forgetAfterPurge()",
+   "hash": "23c807aec6954fd8",
+   "does": "Delete All My Data: cancels and drops the refresh and historical-series tasks, clears historicalBuildPending and lastHistoricalKey (so a late series build is not adopted), current, dailySeries, lastUpdated, computedAt and the workout fingerprint / computed day / load settings markers; then (when the Application Support URL resolved) chains a detached utility task after the last persist task that removes TrainingMetricsCache.json if it exists (failure logged through attempt).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.removeItem(at:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:TrainingMetricsCache.current",
+    "mem:TrainingMetricsCache.dailySeries",
+    "mem:TrainingMetricsCache.lastUpdated",
+    "mem:TrainingMetricsCache.computedAt",
+    "mem:TrainingMetricsCache.refreshTask",
+    "mem:TrainingMetricsCache.historicalTask",
+    "mem:TrainingMetricsCache.persistTask",
+    "file:ApplicationSupport/TrainingMetricsCache.json"
+   ],
+   "branches": [
+    {
+     "at": "+14",
+     "cond": "no persistence URL",
+     "effect": "returns after clearing memory"
+    },
+    {
+     "at": "+18",
+     "cond": "file absent when the task runs",
+     "effect": "nothing to remove"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::let TrainingMetricsCache.persistenceURL": "30b5c031fa480eb5",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+   }
+  },
+  {
    "key": "func TrainingMetricsCache.rebuildFromScratch()",
    "hash": "053fb374da88e0b6",
    "does": "Clears all reuse markers, cancels and drops any in-flight refresh task, clears lastHistoricalKey, the pending-build mark and dailySeries, then awaits refresh(reference: now).",

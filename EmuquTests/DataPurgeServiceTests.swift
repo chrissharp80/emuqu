@@ -67,6 +67,11 @@ final class DataPurgeServiceTests: XCTestCase {
             [(name: appSuiteName, store: appSuite), (name: groupSuiteName, store: groupSuite)]
         }
     )
+    /// The baseline the purge resets: on a file in the temporary App Group
+    /// container, never the app's own `HRVBaseline.json`.
+    private lazy var baselineTracker = BaselineTracker(
+        baselineFile: containers[0].appendingPathComponent("HRVBaseline.json"), onBaselineUpdated: nil
+    )
     private lazy var archive = SessionArchive(
         directory: containers[0].appendingPathComponent(AppConfig.archiveDirectoryName, isDirectory: true),
         sleepScheduleProvider: { SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0) },
@@ -102,14 +107,18 @@ final class DataPurgeServiceTests: XCTestCase {
         try await super.tearDown()
     }
 
-    /// The purge over this test's temporary containers and suites. The
-    /// keychain, the assistant's stores, settings and CloudKit's local state
-    /// are still the app's shared instances; settings are restored above.
-    private func purge(remoteDeleted: Bool = true) async -> DataPurgeService.Report {
+    /// The purge over this test's temporary containers, suites and baseline.
+    /// The keychain, the assistant's stores, settings, CloudKit's local state
+    /// and the singleton caches the purge forgets (routes, contacts, the
+    /// display and training-load caches) are still the app's shared
+    /// instances; settings are restored above.
+    private func purge(
+        remoteDeleted: Bool = true, scope customScope: DataPurgeService.PurgeScope? = nil
+    ) async -> DataPurgeService.Report {
         await DataPurgeService.purgeAllUserData(
             archive: archive, rawBackup: RawRRBackup(),
             cloudSync: CloudKitSyncManager.shared, settingsManager: SettingsManager.shared,
-            deleteRemote: { remoteDeleted }, scope: scope
+            baselineTracker: baselineTracker, deleteRemote: { remoteDeleted }, scope: customScope ?? scope
         )
     }
 
@@ -125,6 +134,10 @@ final class DataPurgeServiceTests: XCTestCase {
         XCTAssertTrue(report.conversationsCleared, "Conversation clear is unconditional")
         XCTAssertTrue(report.userFactsCleared, "User-facts clear is unconditional")
         XCTAssertTrue(report.disclaimerReset, "Disclaimer reset is unconditional")
+        XCTAssertTrue(report.profileReset, "The settings file must read back as the fresh-install profile: \(report.errors)")
+        XCTAssertTrue(report.assistantDisclaimerReset, "The assistant disclaimer must be off in UserDefaults and in the view model")
+        XCTAssertFalse(UserDefaults.standard.bool(forKey: AssistantViewModel.disclaimerKey),
+                       "The stored assistant disclaimer acceptance survived the purge")
         // The App Group preferences suite is swept without a false
         // "domain unavailable" failure: iOS gives a group suite no persistent
         // domain under its own name, and that is not an error.
@@ -144,6 +157,7 @@ final class DataPurgeServiceTests: XCTestCase {
         XCTAssertTrue(summary.contains("AI conversation history"), "summary must mention conversation: \(summary)")
         XCTAssertTrue(summary.contains("AI memory facts"), "summary must mention user facts: \(summary)")
         XCTAssertTrue(summary.contains("Disclaimer acceptance"), "summary must mention disclaimer: \(summary)")
+        XCTAssertTrue(summary.contains("Profile: reset"), "summary must report the profile reset read back from disk: \(summary)")
         XCTAssertFalse(summary.contains("widget"), "the app has no widget, so the summary must not list one: \(summary)")
         XCTAssertTrue(summary.contains("open it again"), "summary should say to reopen the app: \(summary)")
         XCTAssertFalse(summary.contains("pre-existing iCloud records"),
@@ -205,14 +219,19 @@ final class DataPurgeServiceTests: XCTestCase {
         }
     }
 
+    /// Read from the file, not only from memory: `clear()` empties the list
+    /// at once, and only the queued write shows whether the facts left disk.
     func testPurgeClearsUserFactsSingleton() async {
         UserFactsStore.shared.add("purge-marker-\(UUID().uuidString)")
         XCTAssertFalse(UserFactsStore.shared.facts.isEmpty, "Sanity: facts seeded")
 
-        _ = await purge()
+        let report = await purge()
 
         XCTAssertTrue(UserFactsStore.shared.facts.isEmpty,
                       "DataPurgeService should leave UserFactsStore empty")
+        XCTAssertEqual(UserFactsStore.shared.persistedFacts()?.count, 0,
+                       "The facts file must hold no facts after the purge")
+        XCTAssertTrue(report.userFactsCleared)
     }
 
     func testPurgeResetsDisclaimerFlagOnSettingsManager() async {
@@ -250,7 +269,7 @@ final class DataPurgeServiceTests: XCTestCase {
         for url in sentinels {
             XCTAssertFalse(
                 fileManager.fileExists(atPath: url.path),
-                "\(url.lastPathComponent) survived Delete All My Data. Every file in every container must go unless it is on DataPurgeService.keepList."
+                "\(url.lastPathComponent) survived Delete All My Data. Every file in every container must go unless DataPurgeService.keptEntries(in:liveSettingsFile:) keeps it."
             )
         }
     }
@@ -361,19 +380,114 @@ final class DataPurgeServiceTests: XCTestCase {
         XCTAssertFalse(fileManager.fileExists(atPath: dir.path), "An unknown directory survived the purge.")
     }
 
-    /// The biometric profile must not survive an erasure request.
-    func testPurgeResetsTheBiometricProfile() async {
+    /// The biometric profile must not survive an erasure request, on disk:
+    /// the reset is an asynchronous write, so the in-memory value alone said
+    /// nothing about the file. The purge flushes it and reads the file back
+    /// (`Report.profileReset`); this reads the same file independently.
+    func testPurgeResetsTheBiometricProfile() async throws {
         let manager = SettingsManager.shared
         manager.settings.bodyWeightKg = 81.5
+        manager.settings.maxHR = 187
         manager.hasAcceptedDisclaimer = true
+
+        let report = await purge()
+
+        XCTAssertTrue(report.profileReset, "The purge did not confirm the profile on disk: \(report.errors)")
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let onDisk = try decoder.decode(UserSettings.self, from: Data(contentsOf: manager.settingsURL))
+        XCTAssertNil(onDisk.bodyWeightKg, "Body weight survived Delete All My Data in the settings file")
+        XCTAssertNil(onDisk.maxHR, "Max HR survived Delete All My Data in the settings file")
+        XCTAssertEqual(manager.settings.bodyWeightKg, UserSettings().bodyWeightKg)
+        XCTAssertFalse(manager.hasAcceptedDisclaimer)
+    }
+
+    /// An older build copied `Documents/user_settings.json` into the App Group
+    /// and left the original. Only the file the settings manager uses is
+    /// kept; a `user_settings.json` anywhere else is the same profile and goes.
+    func testPurgeRemovesASettingsFileThatIsNotTheLiveOne() async throws {
+        let fileManager = FileManager.default
+        let group = try XCTUnwrap(scope.appGroupContainer)
+        let copies = ([group] + scope.sandboxRoots).map { $0.appendingPathComponent("user_settings.json") }
+        for url in copies {
+            try Data(#"{"bodyWeightKg":81.5}"#.utf8).write(to: url)
+        }
+
+        let report = await purge()
+
+        for url in copies {
+            XCTAssertFalse(fileManager.fileExists(atPath: url.path),
+                           "A settings file that is not the live one survived the purge: \(url.path)")
+        }
+        XCTAssertTrue(report.profileReset, "The live settings file must still be reset: \(report.errors)")
+    }
+
+    /// The live settings file is kept, in its own root only.
+    func testOnlyTheLiveSettingsFileIsKept() throws {
+        let group = try XCTUnwrap(scope.appGroupContainer)
+        let documents = scope.sandboxRoots[1]
+        let live = documents.appendingPathComponent("user_settings.json")
+
+        let roots = DataPurgeService.purgeRoots(scope, liveSettingsFile: live)
+
+        let kept = Dictionary(uniqueKeysWithValues: roots.map { ($0.url, $0.kept) })
+        XCTAssertEqual(kept[documents], ["user_settings.json"])
+        XCTAssertEqual(kept[group], ["Library"])
+        for other in scope.sandboxRoots where other != documents {
+            XCTAssertEqual(kept[other], [], "\(other.lastPathComponent) keeps a settings file it does not hold")
+        }
+    }
+
+    // MARK: - Roots that cannot be swept
+
+    /// A root that exists but cannot be listed still holds its files, so the
+    /// report says so instead of "0 removed".
+    func testARootThatCannotBeListedIsReported() async throws {
+        let notADirectory = root.appendingPathComponent("not-a-directory")
+        try Data("x".utf8).write(to: notADirectory)
+        let unlistable = DataPurgeService.PurgeScope(
+            appGroupContainer: scope.appGroupContainer,
+            sandboxRoots: scope.sandboxRoots + [notADirectory],
+            defaultsDomains: scope.defaultsDomains
+        )
+
+        let report = await purge(scope: unlistable)
+
+        XCTAssertTrue(report.errors.contains { $0.contains("Could not list not-a-directory") },
+                      "An unlistable root must be reported: \(report.errors)")
+    }
+
+    /// A root that is not there has nothing in it; that is not a failure.
+    func testAMissingRootIsNotReported() async {
+        let missing = DataPurgeService.PurgeScope(
+            appGroupContainer: scope.appGroupContainer,
+            sandboxRoots: scope.sandboxRoots + [root.appendingPathComponent("missing", isDirectory: true)],
+            defaultsDomains: scope.defaultsDomains
+        )
+
+        let report = await purge(scope: missing)
+
+        XCTAssertFalse(report.errors.contains { $0.contains("Could not list") }, "\(report.errors)")
+    }
+
+    // MARK: - Personal baseline
+
+    /// The tracker keeps up to 90 nights in memory and wrote them back on the
+    /// next night's update, so the purge resets the tracker itself, and the
+    /// empty baseline is what the file then holds.
+    func testPurgeResetsThePersonalBaseline() async throws {
+        let file = containers[0].appendingPathComponent("HRVBaseline.json")
+        let nights = (1 ... 3).map { day in
+            #"{"date":"2026-01-0\#(day)T23:00:00Z","rmssd":40,"sdnn":55,"meanHR":58}"#
+        }
+        try Data(#"{"historicalData":[\#(nights.joined(separator: ","))]}"#.utf8).write(to: file)
+        XCTAssertEqual(baselineTracker.daysCollected, 3, "Sanity: the tracker loaded the seeded nights")
 
         _ = await purge()
 
-        XCTAssertEqual(
-            manager.settings.bodyWeightKg, UserSettings().bodyWeightKg,
-            "Body weight survived Delete All My Data"
-        )
-        XCTAssertFalse(manager.hasAcceptedDisclaimer)
+        XCTAssertEqual(baselineTracker.daysCollected, 0, "The baseline survived Delete All My Data in memory")
+        XCTAssertEqual(BaselineTracker(baselineFile: file, onBaselineUpdated: nil).daysCollected, 0,
+                       "The baseline file holds nights after Delete All My Data")
     }
 
     /// A user who just deleted their iCloud copy must not have sync quietly

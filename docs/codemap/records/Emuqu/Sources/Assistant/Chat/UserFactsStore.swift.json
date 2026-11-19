@@ -349,6 +349,36 @@
    }
   },
   {
+   "key": "func UserFactsStore.persistedFacts()",
+   "hash": "5807ef397b05480f",
+   "does": "Runs synchronously on the store's write queue (after every write already queued): the facts the file holds — [] when there is no file, nil when it cannot be read or decoded.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.decodedFacts(_:)"
+   ],
+   "reads": [
+    "file:<AppGroup>/Assistant/user_facts.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "file absent",
+     "effect": "[]"
+    },
+    {
+     "at": "+4",
+     "cond": "read fails",
+     "effect": "nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.decodedFacts(_:)": "ae62ef6e00124933",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+   }
+  },
+  {
    "key": "func UserFactsStore.systemPromptBlock()",
    "hash": "aa8970fc456a2e7b",
    "does": "Renders facts as 'Things to remember about this user…' header plus bullet lines; '' when empty.",

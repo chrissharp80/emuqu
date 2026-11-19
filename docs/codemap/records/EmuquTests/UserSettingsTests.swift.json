@@ -347,6 +347,74 @@
    }
   },
   {
+   "key": "func UserSettingsTests.unreadableSettingsFile()",
+   "hash": "c779a2eb4a58c623",
+   "does": "Creates a temporary directory (made writable and removed by a teardown block) holding a user_settings.json that is not settings JSON, and returns its URL.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.createDirectory",
+    "ext:FileManager.setAttributes(posixPermissions)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/SettingsLoad-<uuid>/user_settings.json"
+   ],
+   "branches": [],
+   "deps": {
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testAnUnreadableSettingsFileIsCopiedAsideReplacingTheEarlierCopy()",
+   "hash": "35d6cc99f1d91bab",
+   "does": "With an earlier user_settings.unreadable.json beside an unreadable settings file, SettingsManager.load(from:) returns (nil, .unreadableOther), the copy now holds the unreadable bytes, and the directory holds only the two files (no partial copy left).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableFile(at:)"
+   ],
+   "reads": [
+    "file:<tmp>/SettingsLoad-<uuid>/"
+   ],
+   "writes": [
+    "file:<tmp>/SettingsLoad-<uuid>/user_settings.unreadable.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)": "252dab4f74d07869",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableFile(at:)": "007e650f9325807d",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()": "e9ff2f794bd8e2bb"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testAFailedCopyHoldsSavesAndKeepsTheEarlierCopy()",
+   "hash": "8bca3b8478257402",
+   "does": "With an earlier user_settings.unreadable.json and the directory made read-only, SettingsManager.load(from:) on the unreadable file returns (nil, .unreadableNotPreserved); the earlier copy and the file keep their bytes.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableFile(at:)",
+    "ext:FileManager.setAttributes(posixPermissions)"
+   ],
+   "reads": [
+    "file:<tmp>/SettingsLoad-<uuid>/"
+   ],
+   "writes": [
+    "file:<tmp>/SettingsLoad-<uuid>/user_settings.unreadable.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)": "252dab4f74d07869",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableFile(at:)": "007e650f9325807d",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()": "e9ff2f794bd8e2bb"
+   }
+  },
+  {
    "key": "func UserSettingsTests.makeMinimalSession()",
    "hash": "5e3f56e105ef5f72",
    "does": "Fixture: HRVSession(startDate: Date(), sessionType: .overnight).",

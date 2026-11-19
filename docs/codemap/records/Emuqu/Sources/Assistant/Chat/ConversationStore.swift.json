@@ -399,6 +399,41 @@
    }
   },
   {
+   "key": "func ConversationStore.isEmptyOnDisk()",
+   "hash": "05eede97e6985022",
+   "does": "Runs synchronously on the store's queue (after every change already queued, a clear() included): true when the history file does not exist or decodes to an empty list; false when it holds turns or cannot be read or decoded.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.decodedTurns(_:)"
+   ],
+   "reads": [
+    "file:<AppGroup>/Assistant/conversation.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "file absent",
+     "effect": "true"
+    },
+    {
+     "at": "+3",
+     "cond": "read fails",
+     "effect": "false"
+    },
+    {
+     "at": "+4",
+     "cond": "decode fails",
+     "effect": "false; else whether the turns are empty"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.decodedTurns(_:)": "443a0898c240e572",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+   }
+  },
+  {
    "key": "func ConversationStore.clear()",
    "hash": "f8288b0bb85ec2d7",
    "does": "On the queue: deletes the conversation file and resets latestTurns, saveScheduled, writePending and unreadableOnDisk so a pending trailing write does not resurrect it.",

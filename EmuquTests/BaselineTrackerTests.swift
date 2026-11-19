@@ -333,6 +333,60 @@ final class BaselineTrackerTests: XCTestCase {
         XCTAssertEqual(exp(forScoring.lnRmssdMean), 40.0, accuracy: 0.01, "Later 160 ms nights must not shift an earlier night's score")
     }
 
+    // MARK: - Persistence
+
+    /// A file that does not decode is moved aside as `.corrupt` before the
+    /// tracker saves; the set-aside copy an earlier failure left is replaced
+    /// by the new one only once it is in place.
+    func testAnUndecodableFileIsSetAsideAndReplacesTheEarlierCopy() throws {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("HRVBaseline-\(UUID().uuidString).json")
+        let aside = file.appendingPathExtension("corrupt")
+        trackerFiles += [file, aside]
+        try Data("earlier unreadable copy".utf8).write(to: aside)
+        try Data("not a baseline".utf8).write(to: file)
+
+        let tracker = BaselineTracker(baselineFile: file, onBaselineUpdated: nil)
+        XCTAssertEqual(try Data(contentsOf: aside), Data("not a baseline".utf8))
+        tracker.update(with: timedSession(start: at(1, 23), hours: 8, rmssd: 40), sleepSchedule: producerSchedule)
+
+        XCTAssertEqual(BaselineTracker(baselineFile: file, onBaselineUpdated: nil).daysCollected, 1,
+                       "Once the file is set aside the tracker saves as usual")
+    }
+
+    /// While an undecodable file cannot be moved aside it is the only copy of
+    /// what it held, so no save writes over it; the move is tried again on
+    /// the next save, and the night is saved once it succeeds.
+    func testAnUndecodableFileThatCannotBeSetAsideIsNeverWrittenOver() throws {
+        let fileManager = FileManager.default
+        let directory = fileManager.temporaryDirectory.appendingPathComponent("BaselineHold-\(UUID().uuidString)", isDirectory: true)
+        try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+        trackerFiles.append(directory)
+        let file = directory.appendingPathComponent("HRVBaseline.json")
+        let garbage = Data("not a baseline".utf8)
+        try garbage.write(to: file)
+        // A read-only directory: nothing in it can be renamed or created.
+        try fileManager.setAttributes([.posixPermissions: 0o555], ofItemAtPath: directory.path)
+        addTeardownBlock {
+            do {
+                try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: directory.path)
+            } catch {
+                // swallow-ok: tearDown removes what it can; the directory is temporary.
+            }
+        }
+
+        let tracker = BaselineTracker(baselineFile: file, onBaselineUpdated: nil)
+        tracker.update(with: timedSession(start: at(1, 23), hours: 8, rmssd: 40), sleepSchedule: producerSchedule)
+        XCTAssertEqual(try Data(contentsOf: file), garbage, "The only copy of the unreadable baseline was written over")
+
+        try fileManager.setAttributes([.posixPermissions: 0o755], ofItemAtPath: directory.path)
+        tracker.update(with: timedSession(start: at(2, 23), hours: 8, rmssd: 40), sleepSchedule: producerSchedule)
+
+        XCTAssertEqual(try Data(contentsOf: file.appendingPathExtension("corrupt")), garbage,
+                       "The unreadable baseline must be set aside before the first save")
+        XCTAssertEqual(BaselineTracker(baselineFile: file, onBaselineUpdated: nil).daysCollected, 2,
+                       "Both nights are saved once the file is set aside")
+    }
+
     // MARK: - Callers
 
     /// The collector's scoring path (`scoringBaselineStats(for:)` and the
