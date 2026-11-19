@@ -200,7 +200,7 @@
   {
    "key": "func RecordView.persistTagsAndNotes(for:)",
    "hash": "be28b271b593f1c9",
-   "does": "Builds the tag list (selected tags plus 'morning' when the session ended 04:00–09:59 local, using now when endDate is nil) and notes (nil if empty), applies them to the in-memory current session and writes them to the archive (writeTagsToArchive: a failed write on a reading not awaiting acceptance raises the tag-save failure alert).",
+   "does": "Builds the tag list (selected tags plus 'morning' when the session ended 04:00–09:59 local, using now when endDate is nil) and notes (nil if empty), applies them to the in-memory current session and writes them to the archive (writeTagsToArchive: a failed write on an archived reading not awaiting acceptance raises the tag-save failure alert).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.tagsToSave(_:endedAt:)",
@@ -228,7 +228,7 @@
    "deps": {
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.applyTagsInMemory(_:notes:sessionId:)": "f119ede2da19368f",
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.tagsToSave(_:endedAt:)": "6cc1000338f774e5",
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.writeTagsToArchive(_:tags:notes:)": "8152c9c8f4681080"
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.writeTagsToArchive(_:tags:notes:)": "d55043f2c143bbea"
    }
   },
   {
@@ -257,8 +257,8 @@
   },
   {
    "key": "func RecordView.writeTagsToArchive(_:tags:notes:)",
-   "hash": "4cf80cdbe6e5ffbb",
-   "does": "Notes whether the reading is the one still awaiting acceptance (needsAcceptance and currentSession is it), then runs archive.updateTags off-main (detached). A throw is logged; for the reading awaiting acceptance nothing more (acceptance archives the in-memory copy, which holds the tags), for any other reading it sets tagSaveFailureMessage (\"Couldn't save: <error>\"), which raises the failure alert.",
+   "hash": "d027eff393fe100d",
+   "does": "Notes whether the reading is the one still awaiting acceptance (needsAcceptance and currentSession is it), then runs archive.updateTags off-main (detached). A reading the archive does not hold (fileNotFound or sessionWasDeleted: discarded, deleted, or not archived yet) is only logged. Any other throw is logged; for the reading awaiting acceptance nothing more (acceptance archives the in-memory copy, which holds the tags), for any other reading it sets tagSaveFailureMessage (\"Couldn't save: <error>\"), which raises the failure alert.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)",
@@ -277,11 +277,16 @@
    "branches": [
     {
      "at": "+5",
-     "cond": "catch from updateTags",
-     "effect": "error logged"
+     "cond": "updateTags threw fileNotFound or sessionWasDeleted",
+     "effect": "logged only"
     },
     {
      "at": "+7",
+     "cond": "any other throw from updateTags",
+     "effect": "error logged"
+    },
+    {
+     "at": "+9",
      "cond": "the reading was awaiting acceptance when the write started",
      "effect": "true: return (acceptance saves the in-memory copy); false: set tagSaveFailureMessage"
     }
@@ -343,7 +348,7 @@
   {
    "key": "func RecordView.saveReportTags(_:notes:sessionId:)",
    "hash": "6b718dcc0fc18672",
-   "does": "Tags & Notes edited in a reading's report (morning or quick), handed over by MorningResultsView on its Done/Discard or as it closes: applied to currentSession while it is still this reading (acceptance archives that copy) and written to the archived copy (writeTagsToArchive, off the main actor). The hand-off comes after the toolbar Done has started acceptance, so these writes land after persistTagsAndNotes's and the report's edits are what is kept. A write that fails on a reading not awaiting acceptance raises the tag-save failure alert (writeTagsToArchive).",
+   "does": "Tags & Notes edited in a reading's report (morning or quick), handed over by MorningResultsView on its Done or as it closes (its Discard hands nothing over): applied to currentSession while it is still this reading (acceptance archives that copy) and written to the archived copy (writeTagsToArchive, off the main actor). The hand-off comes after the toolbar Done has started acceptance, so these writes land after persistTagsAndNotes's and the report's edits are what is kept. A write that fails on an archived reading not awaiting acceptance raises the tag-save failure alert (writeTagsToArchive).",
    "entry": "MorningResultsView onUpdateTags (morningResults / quickResults)",
    "calls": [
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.applyTagsInMemory(_:notes:sessionId:)",
@@ -358,7 +363,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.applyTagsInMemory(_:notes:sessionId:)": "f119ede2da19368f",
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.writeTagsToArchive(_:tags:notes:)": "8152c9c8f4681080"
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.writeTagsToArchive(_:tags:notes:)": "d55043f2c143bbea"
    }
   },
   {

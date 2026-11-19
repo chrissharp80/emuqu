@@ -379,7 +379,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Views/RecordView.swift::func RecordView.autoAcceptOvernight()": "c958b88c3669ddf9"
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.autoAcceptOvernight()": "2e847620886ee304"
    }
   },
   {
@@ -569,7 +569,7 @@
   {
    "key": "func RecordView.autoAcceptOvernight()",
    "hash": "002b3da21bb4de32",
-   "does": "Task: if a current session exists, re-scores the latest archived version with the pre-session tags/notes added (scoreLatestVersion, exports metrics), which reports whether that re-archive was stored (true when there is no session); then on main finishAutoAccept leaves review and clears the pre-night selection only when it was stored.",
+   "does": "Task: if a current session exists, re-scores the latest archived version with the pre-session tags/notes added (scoreLatestVersion, exports metrics), which reports whether that re-archive was stored (true when there is no session); then on main finishAutoAccept leaves review, raises the tag-save failure alert when the picked tags/notes were not stored, and clears the pre-night selection either way.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.scoreLatestVersion(of:)",
@@ -589,36 +589,42 @@
    ],
    "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Views/RecordView.swift::func RecordView.finishAutoAccept(tagsStored:)": "cf9a6b03e557081a",
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.finishAutoAccept(tagsStored:)": "11cf4135ddd4a6f7",
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.scoreLatestVersion(of:)": "c017a7c63e3f76be"
    }
   },
   {
    "key": "func RecordView.finishAutoAccept(tagsStored:)",
-   "hash": "f91e770385f986d0",
-   "does": "Clears acceptance state in the collector; when tagsStored, empties selectedTags and sessionNotes, otherwise keeps them and logs a warning (the pre-night tags and notes did not reach the archive).",
+   "hash": "1f07a9973f5c7ee9",
+   "does": "Clears acceptance state in the collector; when the re-archive carrying the pre-night selection was not stored and the user had picked tags or notes, logs a warning and sets tagSaveFailureMessage (\"The tags and notes you picked for this reading couldn't be saved. Add them again from History.\"). Then always empties selectedTags and sessionNotes, so the selection never carries over onto another night.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.clearAcceptanceState()",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [],
+   "reads": [
+    "mem:RecordView.selectedTags",
+    "mem:RecordView.sessionNotes"
+   ],
    "writes": [
     "mem:SessionState.currentSession",
     "mem:SessionState.needsAcceptance",
     "mem:RRCollector.recordingPhase",
     "mem:RecordView.selectedTags",
-    "mem:RecordView.sessionNotes"
+    "mem:RecordView.sessionNotes",
+    "mem:RecordView.tagSaveFailureMessage (re-archive not stored)"
    ],
    "branches": [
     {
      "at": "+2",
-     "cond": "tagsStored",
-     "effect": "true: clear selectedTags and sessionNotes; false: keep them and log a warning"
+     "cond": "!tagsStored && (selectedTags or sessionNotes non-empty)",
+     "effect": "log a warning and raise the tag-save failure alert; the selection is cleared either way"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.clearAcceptanceState()": "8db7372d1ebc39be",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
