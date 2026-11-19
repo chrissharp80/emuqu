@@ -5,12 +5,19 @@ Every pull request and every push to `main` runs two workflows:
 - `gates.yml`: the script gates that need only bash and python (copy perimeter,
   science register, scoring governance, localization, documentation, SBOM,
   source-hygiene guards, the code map, the tech-debt budgets and refactor-spec
-  conformance) on an **ubuntu** runner in about a minute. It is the status
-  check `main` requires before anything merges.
+  conformance) on an **ubuntu** runner in about a minute. Its job, "Script
+  gates (no Xcode)", is the **only required status check** on `main`.
 - `ci.yml` at scope `unit`: SwiftLint and the budgets, strict concurrency, the
-  macOS build, the unit suite with the Views coverage floor, and the unit suite
-  under Thread Sanitizer, on GitHub's standard macOS runner. The jobs run in
-  parallel; a run takes about 15–20 minutes.
+  Release build, the unit suite with the Views coverage floor, and the unit
+  suite under Thread Sanitizer, on GitHub's standard macOS runner. The jobs run
+  in parallel; a run takes about 15–20 minutes. It is **advisory**: no job in
+  it is a required check, so a red run shows on the pull request or commit but
+  does not block a merge by itself.
+
+The ruleset on `main` ("main requires gates") holds three rules: the required
+check above, no deleting `main`, and no force-pushing to it. It has no
+pull-request or review rule, and it does not require a branch to be up to date
+with `main` before merging.
 
 The repository is public, and standard GitHub-hosted runners cost public
 repositories no Actions minutes. The UI target and the full coverage floors
@@ -29,16 +36,21 @@ target is still the slow part of a run.
 
 ## What actually enforces quality here
 
-The checks did not go away. They moved to the machine that can afford to run
-them:
+Everything `ci.yml` runs also runs on the developer's Mac:
 
 ```bash
 make ci
 ```
 
-That runs **every gate plus the full test suite** — the identical scripts CI
-invokes, against the identical budget files in `.ci/`. On the developer's Mac it
-costs nothing and takes about forty minutes.
+That runs **every gate, the Release build, the unit suite under Thread
+Sanitizer, and the full test suite** (UI target and all three coverage floors)
+— the identical scripts CI invokes, against the identical budget files in
+`.ci/`. It costs nothing, and Thread Sanitizer and the UI target make it the
+slow part of a day. It is a discipline, not an enforcement: nothing records
+that it ran. Two differences from GitHub are deliberate: it runs the test suite
+at scope `full` where a pull request runs `unit`, and the budget ratchet
+compares with the branch's merge base with `origin/main` (below) where CI
+compares with the parent commit or the pull request's base.
 
 `./scripts/evidence_report.sh` prints the live counts; nothing in this document
 restates a number the tooling already knows, because a restated number rots.
@@ -46,16 +58,19 @@ restates a number the tooling already knows, because a restated number rots.
 ### Running CI locally before pushing
 
 ```bash
-make ci-local          # every gate, ~2 minutes, free
-make ci-local-unit     # the above plus the unit suite
+make ci-local          # scope gates: every gate, ~2 minutes, free
+make ci-local-unit     # scope unit: the above plus the Release build, the unit suite and Thread Sanitizer
 ```
 
 `scripts/simulate_ci.sh` **parses `.github/workflows/ci.yml` and executes its
 `run:` blocks in order**. It keeps no list of its own, so it cannot drift from
 the workflow: a step added to CI is picked up automatically, and a step it does
-not know how to run locally is a hard error rather than a silent skip. Only two
-steps are genuinely unrunnable on a developer machine — selecting the runner's
-Xcode and `brew install` — and neither can fail a build.
+not know how to run locally is a hard error rather than a silent skip. Which
+jobs run comes from each job's own `if:`, evaluated against the scope, so the
+script runs the same jobs GitHub runs for that scope. Only two steps are
+genuinely unrunnable on a developer machine — selecting the runner's Xcode and
+installing the pinned SwiftLint onto the runner's `PATH` — and neither can fail
+a build.
 
 Run it **after committing**: the budget-ratchet gate compares `HEAD` against
 `HEAD~1`, so an uncommitted budget change is invisible to it exactly as it would
@@ -63,8 +78,9 @@ be on the runner. The script says so when the tree is dirty.
 
 ### The gates
 
-Grouped by what they protect. Every one is a script in `scripts/`, run
-identically by `make ci`, `make ci-local`, and GitHub Actions.
+Grouped by what they protect. Every one is a script in `scripts/`, run by
+`make ci`, `make ci-local`, and GitHub Actions; only the budget ratchet's
+baseline differs between them (below).
 
 | Area | Gates |
 | --- | --- |
@@ -92,9 +108,12 @@ not read, so every widening of a gate ships with its own plant.
 `scripts/enforce_*.sh` and failing if any of them has no plant and no recorded
 reason for the exemption. Adding a gate and proving it are one change.
 
-`check_budget_monotonicity.sh` skips when given no baseline. To check
-uncommitted budget edits, pass one explicitly:
-`check_budget_monotonicity.sh HEAD`.
+`check_budget_monotonicity.sh` skips when given no baseline. `make
+budget-monotonicity` passes one: the merge base of `HEAD` and `origin/main`, so
+a raise already committed on the branch is compared as well as an uncommitted
+one, or `HEAD` alone (and it says so) in a clone with no `origin/main`.
+`BUDGET_BASE_REF=<ref>` overrides it. `ci.yml` compares with the parent commit;
+`gates.yml` with the pull request's base or the tip before the push.
 
 ### Three questions, not one
 
@@ -225,11 +244,13 @@ fails a raise that has no written justification.
 
 ## Where GitHub Actions is still used
 
-- Every pull request and push to `main`: `gates.yml` and `ci.yml` (`unit`).
-- `testflight.yml` calls `ci.yml` as a reusable workflow at scope `full`, so a
-  release cannot be cut without the full suite, UI target included, passing
-  first.
-- `security.yml` (CodeQL) is run on demand when a security pass is wanted.
+- Every pull request and push to `main`: `gates.yml` (required) and `ci.yml`
+  at scope `unit` (advisory).
+- `testflight.yml` (dispatched by hand) calls `ci.yml` as a reusable workflow
+  at scope `full`, so a release cannot be cut without the full suite, UI target
+  included, passing first.
+- `security.yml` (CodeQL and dependency review) and `performance.yml` are run
+  on demand only. Nothing runs on a schedule.
 
 ## What this posture does *not* claim
 

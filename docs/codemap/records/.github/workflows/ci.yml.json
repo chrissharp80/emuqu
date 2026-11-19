@@ -13,8 +13,8 @@
   {
    "key": "job lint-and-budgets",
    "hash": "833cff3093196b90",
-   "does": "macOS-26 job \"Lint + tech-debt budgets\" (timeout 25 min): full-history checkout, Xcode 26.6, brew SwiftLint+ripgrep, then SwiftLint, every budget and every static script gate in sequence (steps 71–384). Runs for every scope including gates.",
-   "entry": "GitHub Actions job; runs on workflow_dispatch (manual) and workflow_call (testflight.yml quality-gate). No `if:`, so every scope.",
+   "does": "macOS-26 job \"Lint + tech-debt budgets\" (timeout 25 min): full-history checkout, Xcode 26.6, the pinned SwiftLint (downloaded and checksum-verified), then SwiftLint, every budget and every static script gate in sequence (steps 71–384). Runs for every scope including gates.",
+   "entry": "GitHub Actions job; runs on pull_request, push to main, workflow_dispatch and workflow_call (testflight.yml quality-gate). No `if:`, so every scope.",
    "calls": [
     ".github/workflows/ci.yml::step lint-and-budgets/Checkout",
     ".github/workflows/ci.yml::step lint-and-budgets/Select Xcode",
@@ -90,7 +90,7 @@
     ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "881cc6b476cb58aa",
     ".github/workflows/ci.yml::step lint-and-budgets/HR feed subscribes on link": "f50935a545bd033b",
     ".github/workflows/ci.yml::step lint-and-budgets/Info.plist key drift": "8dd3faa0debb2487",
-    ".github/workflows/ci.yml::step lint-and-budgets/Install tools": "fdd3fb1008128040",
+    ".github/workflows/ci.yml::step lint-and-budgets/Install tools": "32747f703f9e36bb",
     ".github/workflows/ci.yml::step lint-and-budgets/Localization bundle reachability": "e96f9bd8af74a934",
     ".github/workflows/ci.yml::step lint-and-budgets/Localization coverage": "0198cbcf5e941f03",
     ".github/workflows/ci.yml::step lint-and-budgets/Localized literals resolve to a catalogue key": "5d5eb218e8a6ee52",
@@ -122,7 +122,7 @@
     ".github/workflows/ci.yml::step lint-and-budgets/UI-test fresh-install reset": "f46df481d99a9fe6",
     ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard": "a26d5aca611355ca",
     ".github/workflows/ci.yml::step lint-and-budgets/User-facing decimals name a locale": "a4275812a75e3c60",
-    "Makefile::target ci": "de372d3ddd101741",
+    "Makefile::target ci": "314d826a23831255",
     "Makefile::target codemap-setup": "7e164b557a14aa9a",
     "Makefile::target copy-perimeter": "fbee448e717c17f3",
     "Makefile::target doc-links": "4731861b7121254e",
@@ -202,11 +202,10 @@
   },
   {
    "key": "step lint-and-budgets/Install tools",
-   "hash": "f3a201ef4d9cd31e",
-   "does": "`brew install ripgrep`, then downloads SwiftLint's portable_swiftlint.zip for the pinned SWIFTLINT_VERSION (0.65.1) from the realm/SwiftLint GitHub release with curl (fail on HTTP error, 3 retries) into $RUNNER_TEMP, verifies it against the pinned SWIFTLINT_SHA256 with `shasum -a 256 -c` (mismatch fails the step), unzips it, checks that `swiftlint version` prints exactly the pinned version (else exit 1), and prepends its directory to $GITHUB_PATH so later steps run that binary. The header comment ties the pin to the exact-count .ci/swiftlint_warning_budget.txt: bump version and checksum together and re-measure the budget.",
-   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "hash": "1f7dce94cf9e5373",
+   "does": "Downloads SwiftLint's portable_swiftlint.zip for the pinned SWIFTLINT_VERSION (0.65.1) from the realm/SwiftLint GitHub release with curl (fail on HTTP error, 3 retries) into $RUNNER_TEMP, verifies it against the pinned SWIFTLINT_SHA256 with `shasum -a 256 -c` (mismatch fails the step), unzips it, checks that `swiftlint version` prints exactly the pinned version (else exit 1), and prepends its directory to $GITHUB_PATH so later steps run that binary. The header comment ties the pin to the exact-count .ci/swiftlint_warning_budget.txt: bump version and checksum together and re-measure the budget.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: pull_request, push to main, workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps. simulate_ci.sh skips it locally (it writes $GITHUB_PATH)",
    "calls": [
-    "ext:brew install",
     "ext:curl",
     "ext:shasum",
     "ext:unzip",
@@ -222,12 +221,12 @@
    ],
    "branches": [
     {
-     "at": "+17",
+     "at": "+16",
      "cond": "downloaded archive's SHA-256 differs from SWIFTLINT_SHA256",
      "effect": "shasum -c fails; set -e fails the step and the job"
     },
     {
-     "at": "+20",
+     "at": "+19",
      "cond": "`swiftlint version` differs from SWIFTLINT_VERSION",
      "effect": "prints the mismatch to stderr and exits 1"
     }
@@ -735,8 +734,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target ci": "de372d3ddd101741",
-    "scripts/check_hr_feed_subscribes_on_link.sh::": "966820c0623915e2"
+    "Makefile::target ci": "314d826a23831255",
+    "scripts/check_hr_feed_subscribes_on_link.sh::": "3a4b6775e61cd076"
    }
   },
   {
@@ -1165,8 +1164,9 @@
     ".github/workflows/ci.yml::step tests/Run tests with coverage": "cb5ae02e2af749f1",
     ".github/workflows/ci.yml::step tests/Select Xcode": "4350c52f2517b31f",
     ".github/workflows/ci.yml::step tests/Upload test results": "5be7717a14575bbf",
-    "Makefile::target release-build": "458ef16e52e4c447",
-    "scripts/run_tests_with_coverage.sh::": "a41c19e1ba7dbea5",
+    ".github/workflows/ci.yml::step tests/Write the result to the run summary": "17b49090fc1e0a77",
+    "Makefile::target release-build": "5357cf205e264442",
+    "scripts/run_tests_with_coverage.sh::": "0d9ff4451646c02a",
     "scripts/select_simulator_destination.sh::": "d5426ac85b6a46bc"
    }
   },
@@ -1223,7 +1223,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target release-build": "458ef16e52e4c447"
+    "Makefile::target release-build": "5357cf205e264442"
    }
   },
   {
@@ -1243,7 +1243,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/run_tests_with_coverage.sh::": "a41c19e1ba7dbea5"
+    "scripts/run_tests_with_coverage.sh::": "0d9ff4451646c02a"
    }
   },
   {

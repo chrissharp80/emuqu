@@ -41,17 +41,19 @@
   },
   {
    "key": "§ Scripts > Quality / CI scripts > `run_tests_with_coverage.sh`",
-   "hash": "29c1d9a8129afdd0",
-   "does": "Claims run_tests_with_coverage.sh runs tests with coverage and evaluates the coverage gate, with env defaults SCHEME=Emuqu, PROJECT=Emuqu.xcodeproj, RESULT_BUNDLE=build/TestResults.xcresult, MIN_COVERAGE optional and only able to raise the overall floor (check_coverage.sh floor() takes the max; a missing committed floor file is an error), DESTINATION override, MAX_TEST_WORKERS=3. Verified: run_tests_with_coverage.sh sets those defaults and calls check_coverage.sh with or without MIN_COVERAGE.",
+   "hash": "a678835a8cf86fbc",
+   "does": "Claims run_tests_with_coverage.sh runs tests with coverage and evaluates the coverage gate, with env defaults SCHEME=Emuqu, PROJECT=Emuqu.xcodeproj, RESULT_BUNDLE=build/TestResults.xcresult, MIN_COVERAGE optional and only able to raise the overall floor (check_coverage.sh floor() takes the max; a missing committed floor file is an error), DESTINATION override, MAX_TEST_WORKERS=3; and that a run failing with a simulator-infrastructure marker is retried once only when every failed test failed with such a marker, any other test failure failing at once. Verified: the script sets those defaults, retries only when unexplained_failures prints nothing, and calls check_coverage.sh with or without MIN_COVERAGE.",
    "entry": null,
    "calls": [
-    "scripts/run_tests_with_coverage.sh::fn run_tests"
+    "scripts/run_tests_with_coverage.sh::fn run_tests",
+    "scripts/run_tests_with_coverage.sh::fn unexplained_failures"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/run_tests_with_coverage.sh::fn run_tests": "a81fa800842b2ce2"
+    "scripts/run_tests_with_coverage.sh::fn run_tests": "a81fa800842b2ce2",
+    "scripts/run_tests_with_coverage.sh::fn unexplained_failures": "46e35b1371f1d063"
    }
   },
   {
@@ -161,14 +163,20 @@
   },
   {
    "key": "§ Scripts > Quality / CI scripts > `check_thread_sanitizer.sh`",
-   "hash": "46143d8165c8edda",
-   "does": "Claims check_thread_sanitizer.sh runs the unit suite under TSan, fails on any race, is its own CI job and is not in `make ci`. Makefile ci target (Makefile:272) indeed omits thread-sanitizer; ci.yml runs it only when scope != gates. Script has no listed units.",
+   "hash": "f15220fd0af408ff",
+   "does": "Claims check_thread_sanitizer.sh runs the unit suite under TSan, fails on any race, is its own CI job, is run by `make ci` after the static gates, and fails a run in which no test case executed. Makefile ci lists thread-sanitizer after verify-gates and release-build; ci.yml runs it when scope != gates; the script exits 1 when xcodebuild succeeds with zero passed test cases. Script has no listed units.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Makefile::target thread-sanitizer",
+    "Makefile::target ci"
+   ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {
+    "Makefile::target ci": "314d826a23831255",
+    "Makefile::target thread-sanitizer": "adfca9b867c6ab56"
+   }
   },
   {
    "key": "§ Scripts > Quality / CI scripts > `remove_swift_file.py`",

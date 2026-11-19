@@ -103,9 +103,10 @@ min_overall = float(sys.argv[1])
 min_logic = float(sys.argv[2])
 report_path = sys.argv[3]
 # A unit-only run cannot execute SwiftUI view bodies, so the OVERALL floor is
-# unreachable there by construction. The LOGIC floor is still enforced — that is
-# the number the header above calls the meaningful goal, and it is exactly
-# the one the unit target moves.
+# unreachable there by construction. `run_tests_with_coverage.sh` skips the
+# LOGIC floor on a unit-only run too: both floors were measured on the full
+# suite, and a unit-only run reports a different number for the same commit.
+# Both are enforced on a full run; the VIEWS floor is enforced on either.
 skip_overall = len(sys.argv) > 4 and sys.argv[4] == "1"
 skip_logic = len(sys.argv) > 5 and sys.argv[5] == "1"
 min_views = float(sys.argv[6]) if len(sys.argv) > 6 else 0.0

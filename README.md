@@ -86,7 +86,7 @@ The complete feature list is in [`docs/FEATURES.md`](docs/FEATURES.md).
 
 The repository is set up so that a regression cannot land quietly.
 
-- **Forty-six scripted gates** run in `make ci`: copy perimeter, science
+- **Forty-nine scripted gates** run in `make ci`: copy perimeter, science
   register, scoring governance (the constants hash is tied to the version
   string), localization coverage, orphans and resolution, SBOM drift,
   declaration length and type size limits, `try?` on write paths, singleton
