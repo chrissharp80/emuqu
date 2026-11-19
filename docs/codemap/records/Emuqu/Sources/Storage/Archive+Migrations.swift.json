@@ -520,7 +520,7 @@
    "deps": {
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicateQuarantineWork()": "ff8a759a74b9b6f5",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.quarantineFiles(_:)": "a5c1abf0aeaa31eb",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.restoreFromQuarantine(_:)": "5a1bfafeb6ccca04",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.restoreFromQuarantine(_:)": "e2eafaa0cb1b1817",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.retireQuarantined(_:)": "b4c3c202f3eca77f",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -565,11 +565,12 @@
   },
   {
    "key": "func ArchiveMigrations.restoreFromQuarantine(_:)",
-   "hash": "414b11eb55978de2",
-   "does": "Caller holds archiveLock, after retireQuarantined rolled the index back. Moves each quarantined file from its recorded quarantine URL back to its archive path (attempt logs a failure). Ids whose file did not move back are retired again: removed from the in-memory index, tombstoned, given a deletion time, then deleted.json and index.json saved in that order (attempt: a failure is logged and the in-memory state is written by the next save), so the index never names a file still in quarantine.",
+   "hash": "c1cc65c21920bb93",
+   "does": "Caller holds archiveLock, after retireQuarantined rolled the index back. Moves each quarantined file from its recorded quarantine URL back to its archive path (attempt logs a failure). Ids whose file did not move back are retired again: removed from the in-memory index, tombstoned and given a deletion time; then deleted.json and index.json are saved separately, so a failed tombstone save does not keep the index naming a file in quarantine (without its tombstone a duplicate can come back from iCloud: a duplicate, not a lost night). A failed index save is logged at .error and the in-memory state is written by the next save.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.recordDeletionTime(_:)",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()",
@@ -600,8 +601,13 @@
     },
     {
      "at": "+10",
-     "cond": "saving the re-retired ids fails",
-     "effect": "logged; memory keeps them retired"
+     "cond": "tombstone save fails",
+     "effect": "logged; the index is still saved"
+    },
+    {
+     "at": "+11",
+     "cond": "index save fails",
+     "effect": "log error; memory keeps them retired for the next save"
     }
    ],
    "deps": {
@@ -609,6 +615,7 @@
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "38a4b1f67bd1c949",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "8c0f1c459dbeaae2",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.recordDeletionTime(_:)": "458c4130b9c80d9d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },

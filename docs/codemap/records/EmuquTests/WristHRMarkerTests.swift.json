@@ -188,9 +188,9 @@
    }
   },
   {
-   "key": "func WristHRMarkerTests.testCrashBackupKeepsRowsWithNonFiniteValues()",
-   "hash": "76fc8a149e489d16",
-   "does": "Backs up three samples, one with a NaN pace and one with infinite METs, into a temp directory and asserts all three come back with those values.",
+   "key": "func WristHRMarkerTests.testCrashBackupRecoversNonFiniteValuesAsMissing()",
+   "hash": "241ed38c75642ba6",
+   "does": "Backs up three samples (one NaN pace, one infinite METs) and two barometer rows (one NaN altitude) into a temp directory; asserts all three samples come back with their heart rates and the non-finite values nil, only the finite barometer row comes back, and the samples encode with the archive's encoder.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)",
@@ -208,10 +208,12 @@
    "deps": {
     "Emuqu/Sources/Collection/METLookup.swift::func METLookup.mets(sport:speedKmh:)": "e648cee50dd6ae97",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionEncoder": "349bd41e509b1925",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3d8dab3c4fd26bfd",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "a967581b0d365134",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "699ce5740e639a1f"
    }
   },
   {

@@ -405,33 +405,29 @@ final class RawRRBackup: @unchecked Sendable {
 
     /// A backup leaves the queue once none of its one-shot files is plaintext:
     /// the indexed one rewritten encrypted (`writeEntry` clears it), and a
-    /// plain one the index no longer names, which a newer backup replaced,
-    /// removed. With no index row such a file is kept, and so is the entry.
-    /// Anything not yet readable, listable or writable, the index file
-    /// included, leaves it queued for the next launch.
+    /// plain one the index does not name removed when the indexed backup
+    /// provably replaced it (`OneShotBackupName.isSuperseded`). Any other
+    /// plain file is kept, and so is the entry. Anything not yet readable,
+    /// listable or writable, the index file included, leaves it queued.
     func reencryptBackup(_ sessionId: UUID) {
         do {
             try mergeIndexIfLaunchReadFailed()
             let entry = existingIndexEntry(sessionId)
-            let stale = try plaintextOneShots(of: sessionId, except: entry?.fileName)
-            for url in stale where entry != nil { try fileManager.removeItem(at: url) }
+            let stale = try OneShotBackupName.plaintextFiles(of: sessionId, in: backupDirectory, except: entry?.fileName)
+            let superseded = stale.filter { OneShotBackupName.isSuperseded($0, by: entry) }
+            for url in superseded { try fileManager.removeItem(at: url) }
             if let fileName = entry?.fileName {
                 let url = backupDirectory.appendingPathComponent(fileName)
                 try Self.writeEntry(try Self.decodeLegacyBackup(at: url), to: url, sessionId: sessionId)
-            } else if entry != nil || stale.isEmpty {
+            }
+            if superseded.count < stale.count {
+                PendingEncryptionLedger.record(sessionId, in: .rawBackup)
+            } else if entry?.fileName == nil {
                 PendingEncryptionLedger.clear(sessionId, in: .rawBackup)
             }
         } catch {
             debugLog("[RawRRBackup] re-encryption deferred for \(sessionId.uuidString.prefix(8)): \(error)", level: .warning)
         }
-    }
-
-    /// One-shot files of `sessionId`, other than `current`, in plain JSON.
-    private func plaintextOneShots(of sessionId: UUID, except current: String?) throws -> [URL] {
-        try fileManager.contentsOfDirectory(atPath: backupDirectory.path)
-            .filter { $0 != current && OneShotBackupName.parse($0)?.id == sessionId }
-            .map { backupDirectory.appendingPathComponent($0) }
-            .filter { try !ArchiveStore.looksEncrypted(Data(contentsOf: $0, options: .alwaysMapped)) }
     }
 
     /// Encode one backup entry, reporting whether encryption actually happened.

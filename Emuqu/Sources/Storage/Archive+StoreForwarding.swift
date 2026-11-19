@@ -11,6 +11,7 @@ extension SessionArchive {
     func _retrieve(_ id: UUID) throws -> HRVSession? { try store._retrieve(id) }
     func archiveBatch(_ sessions: [HRVSession]) throws -> Int { try store.archiveBatch(sessions) }
     func delete(_ id: UUID) throws { try store.delete(id) }
+    func deleteWithoutTrash(_ id: UUID) throws { try store.deleteWithoutTrash(id) }
     /// Takes `archiveLock` around the lookup, which reads `index` and fills
     /// `sessionIdLookup`. Code already holding the lock calls
     /// `store.entryById` directly: `NSLock` is not re-entrant.

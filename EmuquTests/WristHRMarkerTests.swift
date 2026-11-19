@@ -132,10 +132,11 @@ final class WristHRMarkerTests: XCTestCase {
         XCTAssertEqual(WorkoutTrackBackup.firstIndex(in: rows, after: 1), 0)
     }
 
-    /// A row holding a value that is not a finite number is written and read
-    /// back like any other. It failed to encode and was skipped, while the
-    /// cursor counted it as written.
-    func testCrashBackupKeepsRowsWithNonFiniteValues() throws {
+    /// A row holding a value that is not a finite number is backed up (it
+    /// once failed to encode and was skipped while the cursor counted it) and
+    /// recovered with that value missing, so the archive, whose encoder
+    /// rejects NaN and infinity, can save the workout. Its other values stay.
+    func testCrashBackupRecoversNonFiniteValuesAsMissing() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("WristHRMarkerTests-\(UUID().uuidString)", isDirectory: true)
         defer { XCTAssertNoThrow(try FileManager.default.removeItem(at: directory)) }
@@ -146,16 +147,22 @@ final class WristHRMarkerTests: XCTestCase {
             WorkoutSample(offsetSec: 2, heartRate: 121, mets: .infinity),
             WorkoutSample(offsetSec: 3, heartRate: 122)
         ]
+        let baro = [Date(timeIntervalSince1970: 1_001), Date(timeIntervalSince1970: 1_002)].enumerated().map {
+            WorkoutTrackBackup.PersistedBaro(timestamp: $0.element, altitudeMeters: $0.offset == 0 ? .nan : 12)
+        }
         backup.appendIncremental(
             sessionId: id, sport: .run, startDate: Date(timeIntervalSince1970: 1_000), track: [],
-            samples: samples, healthKitHROffsets: [], barometricSamples: []
+            samples: samples, healthKitHROffsets: [], barometricSamples: baro
         )
 
-        let recovered = try XCTUnwrap(backup.retrieve(id)).samples
+        let recovered = try XCTUnwrap(backup.retrieve(id))
 
-        XCTAssertEqual(recovered.map(\.offsetSec), [1, 2, 3])
-        XCTAssertTrue(try XCTUnwrap(recovered[0].paceSecPerKm).isNaN)
-        XCTAssertEqual(recovered[1].mets, Double.infinity)
+        XCTAssertEqual(recovered.samples.map(\.offsetSec), [1, 2, 3])
+        XCTAssertEqual(recovered.samples.map(\.heartRate), [120, 121, 122])
+        XCTAssertNil(recovered.samples[0].paceSecPerKm)
+        XCTAssertNil(recovered.samples[1].mets)
+        XCTAssertEqual(recovered.barometricSamples.map(\.altitudeMeters), [12])
+        XCTAssertNoThrow(try SessionArchive.sessionEncoder.encode(recovered.samples))
     }
 
     /// "Delete All My Data" removes the backup folder before `purgeAll`

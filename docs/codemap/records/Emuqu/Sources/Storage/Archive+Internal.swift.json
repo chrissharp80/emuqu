@@ -1073,7 +1073,59 @@
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.dropFromIndex(_:)": "1076945f98cef7ec",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)": "703c2a2085c25cdf",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.undoDrop(_:)": "b907535626240f39",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.moveToTrash(_:id:)": "07be2cf3a473bb5c",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.moveToTrash(_:id:)": "bae2730948a9b981",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+   }
+  },
+  {
+   "key": "func ArchiveStore.deleteWithoutTrash(_:)",
+   "hash": "7048e252c56ff3f6",
+   "does": "For a session deleted on another device: under the lock, for an indexed id logs a breadcrumb and drops it from the index with a tombstone + deletion time (dropFromIndex, throws on a failed save), then removes its file directly rather than moving it to the Trash. A file already gone is fine, and a failed removal is only logged (attempt): the deletion stands and the tombstone keeps the orphan scan from adopting the file. Unknown ids are a silent no-op.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.dropFromIndex(_:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.fileExists",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [
+    "mem:SessionArchive.index",
+    "mem:SessionArchive.sessionIdLookup"
+   ],
+   "writes": [
+    "mem:SessionArchive.index",
+    "mem:SessionArchive.deletedSessionIds",
+    "file:<archiveDirectory>/index.json",
+    "file:<archiveDirectory>/deleted.json",
+    "ud:archive.deletionTimes",
+    "file:<archiveDirectory>/<uuid>.json (deleted)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "id not indexed",
+     "effect": "return"
+    },
+    {
+     "at": "+5",
+     "cond": "an index save fails",
+     "effect": "throws; nothing removed"
+    },
+    {
+     "at": "+7",
+     "cond": "file already gone",
+     "effect": "return; the deletion stands"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "245124c441f7143c",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.dropFromIndex(_:)": "1076945f98cef7ec",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)": "703c2a2085c25cdf",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }

@@ -369,7 +369,7 @@
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudPullCoordinator.refreshIfRemoteIsNewer(_:sessionId:)": "13125b2e2dd27aaa",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.assetURL(for:)": "bd5476ac4f6795e0",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handleDeletedRecord(sessionId:sessionIdString:)": "92b992c628b84cd2",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handleDeletedRecord(sessionId:sessionIdString:)": "3b97ddad5f810ff9",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.importPulledSession(from:sessionId:sessionIdString:version:)": "fb7ea0a650ecd090",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.isKnownLocally(_:)": "cb9c31dfa4be5279",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "846eb44c87bef476",
@@ -584,18 +584,18 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handleDeletedRecord(sessionId:sessionIdString:)": "92b992c628b84cd2",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.handleDeletedRecord(sessionId:sessionIdString:)": "3b97ddad5f810ff9",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func CloudPullCoordinator.handleDeletedRecord(sessionId:sessionIdString:)",
-   "hash": "8b51ad6b4d915f05",
-   "does": "If the session exists locally, deletes it (moves to Trash, tombstones) and discards the Trash copy; always markDeleted in sync state. Returns (0, deleted count).",
+   "hash": "8e14172743787015",
+   "does": "If the session exists locally, deletes it without keeping a Trash copy (deleteWithoutTrash: tombstoned, file removed directly, so a Trash that cannot take it does not block the deletion) and discards any earlier Trash copy; always markDeleted in sync state. Returns (0, deleted count).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.deleteWithoutTrash(_:)",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
@@ -615,16 +615,16 @@
     {
      "at": "+2",
      "cond": "session exists locally",
-     "effect": "delete (to Trash, tombstoned) + discardTrashed, deletedCount=1; else only markDeleted"
+     "effect": "deleteWithoutTrash + discardTrashed, deletedCount=1; else only markDeleted"
     },
     {
      "at": "+7",
-     "cond": "delete throws",
+     "cond": "deleteWithoutTrash throws (an index or tombstone save failed)",
      "effect": "logged at info and swallowed; deletedCount stays 0 but markDeleted still removes the id from uploaded/pending. The session stays in archive.entries and is not in uploadedSessionIds, so pendingPushBatch (CloudKitSyncManager+Push.swift:171-173) queues it for upload again; that upload meets the tombstone and applyDeletionMetDuringUpload retries the delete. The tombstone also re-enters this path on every later pull"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.deleteWithoutTrash(_:)": "7f526b7970e30e76",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "f7997155f08460b2",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "8a446a48eda5e5d6",

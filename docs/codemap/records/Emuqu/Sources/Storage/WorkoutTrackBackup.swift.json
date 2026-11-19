@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Storage/WorkoutTrackBackup.swift",
- "hash": "1a4e813cab2b73c4",
+ "hash": "a1d0d086354c9beb",
  "role": "Append-only crash backup of a workout's GPS fixes, per-tick WorkoutSample rows, barometer samples and wrist-HR markers as per-session JSONL files in the App Group WorkoutBackup/ directory, with retrieval for crash recovery, per-session discard and purge-all.",
  "types": [
   "WorkoutTrackBackup: class (@unchecked Sendable) — the backup store, singleton .shared",
@@ -12,7 +12,8 @@
   "WorkoutTrackBackup.AppendOutcome: enum (private) — appended/couldNotOpen/writeFailed",
   "OrderedBackupRow: protocol — rows strictly rising by backupOrderKey",
   "WorkoutSample: extension — OrderedBackupRow keyed by offsetSec",
-  "Int: extension — OrderedBackupRow keyed by self"
+  "Int: extension — OrderedBackupRow keyed by self",
+  "WorkoutSample: extension — finiteValuesOnly (non-finite values cleared)"
  ],
  "state": [
   "mem:WorkoutTrackBackup.shared (static singleton, :32)",
@@ -26,7 +27,7 @@
   "mem:WorkoutTrackBackup.trackCursor/sampleCursor/baroCursor/healthKitHRCursor/sampleLastKey/healthKitHRLastKey/headerWritten (in-memory per-session cursors under lock, :126-139)",
   "DispatchQueue com.emuqu.workouttrackbackup.append (:123)"
  ],
- "toplevel": "Stored properties: directory, FileManager.default, NSLock, serial appendQueue, cursor dictionaries, headerWritten set, ISO-8601 encoder/decoder that write and read non-finite numbers as strings (static nonFiniteStrings). Declares OrderedBackupRow protocol and conforms WorkoutSample (offsetSec) and Int (self) to it.",
+ "toplevel": "Stored properties: directory, FileManager.default, NSLock, serial appendQueue, cursor dictionaries, headerWritten set, ISO-8601 encoder/decoder that write and read non-finite numbers as strings (static nonFiniteStrings). Declares OrderedBackupRow protocol and conforms WorkoutSample (offsetSec) and Int (self) to it. Adds WorkoutSample.finiteValuesOnly and the file-private finiteOrNil helper.",
  "units": [
   {
    "key": "init WorkoutTrackBackup.PersistedFix(_:)",
@@ -742,27 +743,26 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieveSerialized(_:)": "819daa64814cbc86"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieveSerialized(_:)": "7dfa2be0ed043ce6"
    }
   },
   {
    "key": "func WorkoutTrackBackup.retrieveSerialized(_:)",
-   "hash": "b5c17fd538874c40",
-   "does": "Decodes the header (nil if missing/unreadable/undecodable — logged via logHeaderlessStreams when stream files exist), then decodes track (rehydrated to CLLocation), samples, baro and wrist-HR offset streams, each empty when absent, and returns Recovered.",
+   "hash": "f0960efeeb9b40a4",
+   "does": "Decodes the header (nil if missing/unreadable/undecodable — logged via logHeaderlessStreams when stream files exist), then the streams, each empty when absent: track via recoveredTrack (fixes without a finite position or altitude dropped), samples with non-finite values cleared to nil (finiteValuesOnly, rows kept), barometer rows with a non-finite altitude dropped, and wrist-HR offsets; returns Recovered. What it returns therefore encodes with the archive's encoder, which rejects NaN and infinity.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.headerURL(_:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.recoveredTrack(_:)",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.decodeJSONL(url:as:)",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.trackURL(_:)",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.samplesURL(_:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::var WorkoutSample.finiteValuesOnly",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.baroURL(_:)",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.healthKitHRURL(_:)",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::var WorkoutTrackBackup.PersistedFix.asCLLocation",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.logHeaderlessStreams(_:)"
    ],
    "reads": [
     "file:<uuid>_workout_header.json",
-    "file:<uuid>_workout_track.jsonl",
     "file:<uuid>_workout_samples.jsonl",
     "file:<uuid>_workout_baro.jsonl",
     "file:<uuid>_workout_hkhr.jsonl"
@@ -781,9 +781,30 @@
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.headerURL(_:)": "182ae9153186756b",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.healthKitHRURL(_:)": "1620eab2d263416c",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.logHeaderlessStreams(_:)": "b71fa22fd209499f",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.recoveredTrack(_:)": "f07f97aaad99092e",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.samplesURL(_:)": "2623e70d69b0083b",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.trackURL(_:)": "31306b37d1ca89db",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::let WorkoutTrackBackup.decoder": "70e5a2a626ab00f1",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::var WorkoutSample.finiteValuesOnly": "7e65abae37dc65d0"
+   }
+  },
+  {
+   "key": "func WorkoutTrackBackup.recoveredTrack(_:)",
+   "hash": "c1c36a2021cc93cd",
+   "does": "Decodes the track stream and returns it as CLLocations, leaving out fixes whose latitude, longitude or altitude is not a finite number.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.decodeJSONL(url:as:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.trackURL(_:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::var WorkoutTrackBackup.PersistedFix.asCLLocation"
+   ],
+   "reads": [
+    "file:<uuid>_workout_track.jsonl"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.decodeJSONL(url:as:)": "fd3e0f9cf4f6db62",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.trackURL(_:)": "31306b37d1ca89db",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::var WorkoutTrackBackup.PersistedFix.asCLLocation": "e49133fc1ea4652f"
    }
   },
@@ -999,6 +1020,40 @@
    "reads": [],
    "writes": [],
    "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutSample.finiteValuesOnly",
+   "hash": "a494488b2db9e1dc",
+   "does": "A copy of the sample with every optional Double that is not a finite number (distance, pace, cadence, altitude, alpha1, METs) set to nil; offset, heart rate and power unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func finiteOrNil(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func finiteOrNil(_:)": "b553a472caa936fd"
+   }
+  },
+  {
+   "key": "func finiteOrNil(_:)",
+   "hash": "968118de2de73c5e",
+   "does": "Returns the value when it is a finite number, else nil (nil stays nil).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "value finite",
+     "effect": "value; else nil"
+    }
+   ],
    "deps": {}
   },
   {

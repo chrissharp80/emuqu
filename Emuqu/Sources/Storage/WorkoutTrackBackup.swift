@@ -584,18 +584,24 @@ final class WorkoutTrackBackup: @unchecked Sendable {
             return nil
         }
 
-        let track = decodeJSONL(url: trackURL(sessionId), as: PersistedFix.self).map(\.asCLLocation)
-        let samples = decodeJSONL(url: samplesURL(sessionId), as: WorkoutSample.self)
-        let baro = decodeJSONL(url: baroURL(sessionId), as: PersistedBaro.self)
-        let healthKitHROffsets = decodeJSONL(url: healthKitHRURL(sessionId), as: Int.self)
-
         return Recovered(
             header: header,
-            track: track,
-            samples: samples,
-            healthKitHROffsets: healthKitHROffsets,
-            barometricSamples: baro
+            track: recoveredTrack(sessionId),
+            // The archive cannot encode NaN or infinity: a sample keeps its
+            // row with those values cleared.
+            samples: decodeJSONL(url: samplesURL(sessionId), as: WorkoutSample.self).map(\.finiteValuesOnly),
+            healthKitHROffsets: decodeJSONL(url: healthKitHRURL(sessionId), as: Int.self),
+            barometricSamples: decodeJSONL(url: baroURL(sessionId), as: PersistedBaro.self).filter { $0.altitudeMeters.isFinite }
         )
+    }
+
+    /// The backed-up fixes as locations, without any whose position or
+    /// altitude is not a finite number: the archive cannot encode those, and
+    /// a fix without a position is no point on the route.
+    private func recoveredTrack(_ sessionId: UUID) -> [CLLocation] {
+        decodeJSONL(url: trackURL(sessionId), as: PersistedFix.self)
+            .filter { $0.latitude.isFinite && $0.longitude.isFinite && $0.altitude.isFinite }
+            .map(\.asCLLocation)
     }
 
     private func logHeaderlessStreams(_ sessionId: UUID) {
@@ -702,6 +708,26 @@ protocol OrderedBackupRow: Encodable {
 /// One row per counted second, each at a later `offsetSec`.
 extension WorkoutSample: OrderedBackupRow {
     var backupOrderKey: Int { offsetSec }
+}
+
+extension WorkoutSample {
+    /// The same row with every value that is not a finite number cleared to
+    /// nil. The archive's encoder rejects NaN and infinity, so one such value
+    /// failed the save of the whole workout; a missing reading loses only
+    /// itself.
+    var finiteValuesOnly: WorkoutSample {
+        WorkoutSample(
+            offsetSec: offsetSec, heartRate: heartRate,
+            distanceMeters: finiteOrNil(distanceMeters), paceSecPerKm: finiteOrNil(paceSecPerKm),
+            cadenceStepsPerMin: finiteOrNil(cadenceStepsPerMin), altitudeMeters: finiteOrNil(altitudeMeters),
+            alpha1: finiteOrNil(alpha1), mets: finiteOrNil(mets), powerWatts: powerWatts
+        )
+    }
+}
+
+/// `value` when it is a finite number, else nil.
+private func finiteOrNil(_ value: Double?) -> Double? {
+    value.flatMap { $0.isFinite ? $0 : nil }
 }
 
 /// A wrist-HR marker is the `offsetSec` of its row.
