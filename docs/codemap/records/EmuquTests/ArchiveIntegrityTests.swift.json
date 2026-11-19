@@ -344,6 +344,68 @@
    }
   },
   {
+   "key": "func ArchiveIntegrityTests.testASessionWhoseFileIsGoneCanStillBeDeleted()",
+   "hash": "43185db4576414be",
+   "does": "Archives a session, removes its file, and asserts delete succeeds: the session leaves the index and is tombstoned.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json, deleted.json, Trash/)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json, deleted.json, Trash/)",
+    "kc:EncryptionManager archive key",
+    "ud:archive.deletionTimes (UserDefaults.standard, via delete)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)": "0fcaeb8ff266a299",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testADeletionFromAnotherDeviceDoesNotNeedTheTrash()",
+   "hash": "6f1defbb9a445ae1",
+   "does": "Archives a session, puts a plain file where Trash/ goes, and asserts deleteWithoutTrash still succeeds: the session leaves the index, is tombstoned and its file is gone.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.deleteWithoutTrash(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json, deleted.json, Trash/)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json, deleted.json, Trash/)",
+    "kc:EncryptionManager archive key",
+    "ud:archive.deletionTimes (UserDefaults.standard, via deleteWithoutTrash)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.deleteWithoutTrash(_:)": "7f526b7970e30e76",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)": "0fcaeb8ff266a299",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory": "35607b44510f4479",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d"
+   }
+  },
+  {
    "key": "func ArchiveIntegrityTests.testAnUndecodableIndexThatCannotBeSetAsideIsNotWrittenOver()",
    "hash": "4b2be76f9d3d85ea",
    "does": "Writes undecodable index.json into the temp archive folder and occupies every set-aside name, then asserts archiving a session throws, index.json keeps its bytes and the archive reports an incomplete index.",

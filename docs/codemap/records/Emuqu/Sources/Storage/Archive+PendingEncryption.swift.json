@@ -196,7 +196,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptArchived(_:in:)": "a06a077a28431bf2",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptArchived(_:in:)": "89e421b44e47c6c2",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptParkedCopy(_:id:in:)": "702713911178271b",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)": "0fcaeb8ff266a299",
@@ -207,11 +207,12 @@
   },
   {
    "key": "func reencryptArchived(_:in:)",
-   "hash": "9c70ea83c8283418",
-   "does": "Loads the indexed session lightweight and re-archives it via archive.archive(skipSameNightMerge:true), which re-encrypts and refreshes the hash; the rrSeries dropped by the lightweight load is restored by _archive's preservingRRSeries splice, which throws (logged here, session stays queued) rather than drop beats when the stored file cannot be read or decrypted. A read that throws (locked file, or fileNotFound for an entry whose file is not where it names) or a session gone from the index since is logged and left queued; it never clears the ledger itself.",
+   "hash": "ee41b1ef466b26cb",
+   "does": "Loads the indexed session lightweight and re-archives it via archive.archive(skipSameNightMerge:true), which re-encrypts and refreshes the hash; the rrSeries dropped by the lightweight load is restored by _archive's preservingRRSeries splice, which throws (logged here, session stays queued) rather than drop beats when the stored file cannot be read or decrypted. An entry whose file is gone (fileNotFound) has no plaintext left here and is cleared from the ledger. Any other failed read (a locked file) or a session gone from the index since is logged or skipped and left queued.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -234,11 +235,16 @@
     },
     {
      "at": "+5",
-     "cond": "read threw (any error, fileNotFound included)",
+     "cond": "the indexed file is gone",
+     "effect": "clear the ledger entry, return"
+    },
+    {
+     "at": "+8",
+     "cond": "read threw any other error",
      "effect": "log warning, return; left queued"
     },
     {
-     "at": "+15",
+     "at": "+18",
      "cond": "archive threw",
      "effect": "log error; ledger entry stays"
     }
@@ -246,6 +252,7 @@
    "deps": {
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "917ec504a26a996e",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "d45edfb391017e71",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },

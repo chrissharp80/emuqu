@@ -391,9 +391,12 @@ extension ArchiveMigrations {
 
     /// Move quarantined files back to where the (restored) index expects them.
     /// Caller holds the lock. A file that will not move back stays retired:
-    /// its entry leaves the index again and it keeps its tombstone, saved
-    /// first as in `retireQuarantined`, so the index never names a file that
-    /// is not there.
+    /// its entry leaves the index again and it keeps its tombstone. The two
+    /// saves are tried apart, the index regardless of the tombstones, since
+    /// an index naming a file in quarantine fails every read of it. Without
+    /// its tombstone a retired duplicate can come back from iCloud, which
+    /// costs a duplicate, not a lost night. Whatever does not save stays in
+    /// memory for the next save to write, and is logged as an error.
     private func restoreFromQuarantine(_ moves: [QuarantineMove]) {
         let stranded = Set(moves.filter { move in
             attempt("Archive.dedupe.restoreFromQuarantine") {
@@ -404,9 +407,9 @@ extension ArchiveMigrations {
         archive.index.removeAll { stranded.contains($0.sessionId) }
         archive.deletedSessionIds.formUnion(stranded)
         stranded.forEach(ArchiveStore.recordDeletionTime)
-        attempt("Archive.dedupe.retireStranded") {
-            try archive.saveDeletedIndex()
-            try archive.saveIndex()
+        attempt("Archive.dedupe.retireStrandedTombstones") { try archive.saveDeletedIndex() }
+        if attempt("Archive.dedupe.retireStrandedIndex", { try archive.saveIndex() }) == nil {
+            debugLog("[Archive] ⚠️ index still names \(stranded.count) quarantined file(s) on disk until the next save", level: .error)
         }
     }
 

@@ -232,6 +232,24 @@ final class PendingEncryptionLedgerTests: XCTestCase {
         }
     }
 
+    /// An indexed session whose file is gone has no plaintext left to repair:
+    /// it leaves the queue instead of staying there for good.
+    func testRepairClearsAnIndexedSessionWhoseFileIsGone() throws {
+        let archive = try makeArchive()
+        var session = HRVSession(startDate: Date(timeIntervalSince1970: 1_790_000_000), sessionType: .quick)
+        session.endDate = session.startDate.addingTimeInterval(300)
+        _ = try archive.archive(session)
+        try FileManager.default.removeItem(at: archive.archiveDirectory.appendingPathComponent("\(session.id.uuidString).json"))
+        PendingEncryptionLedger.record(session.id)
+
+        reencryptPendingSessions(in: archive)
+
+        if EncryptionManager.shared.isAvailable {
+            XCTAssertFalse(PendingEncryptionLedger.pending.contains(session.id))
+        }
+        XCTAssertTrue(archive.exists(session.id))
+    }
+
     /// A plaintext copy in the Trash is encrypted in place, and still
     /// restores.
     func testRepairEncryptsAPlaintextCopyInTheTrash() throws {

@@ -86,13 +86,14 @@
   },
   {
    "key": "func ArchiveStore.moveToTrash(_:id:)",
-   "hash": "947180eedaa62671",
-   "does": "Creates Trash/ if needed, removes any existing trash file for the id, moves the session file there and dates it now (modificationDate, so expiredDeletionIds ages it from the deletion when no deletion time is recorded; a failed date set is only logged). A failed create, remove or move throws, leaving the session file where it was.",
+   "hash": "2feade929f86a4b8",
+   "does": "When the session file is not there, returns: nothing to keep, and the delete goes ahead. Otherwise creates Trash/ if needed, removes any existing trash file for the id, moves the session file there and dates it now (modificationDate, so expiredDeletionIds ages it from the deletion when no deletion time is recorded; a failed date set is only logged). A failed create, remove or move throws, leaving the session file where it was.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory",
     "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.fileExists",
     "ext:FileManager.createDirectory",
     "ext:FileManager.removeItem",
     "ext:FileManager.moveItem",
@@ -108,16 +109,21 @@
    "branches": [
     {
      "at": "+2",
+     "cond": "session file missing",
+     "effect": "return without error"
+    },
+    {
+     "at": "+3",
      "cond": "Trash/ cannot be created (e.g. a file stands there)",
      "effect": "throws; nothing moved"
     },
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "destination exists",
      "effect": "remove it first (a failed remove throws)"
     },
     {
-     "at": "+5",
+     "at": "+6",
      "cond": "move throws",
      "effect": "rethrown; the session file stays in place"
     }

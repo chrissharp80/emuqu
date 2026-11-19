@@ -496,6 +496,49 @@
    }
   },
   {
+   "key": "func PendingEncryptionLedgerTests.testRepairClearsAnIndexedSessionWhoseFileIsGone()",
+   "hash": "41f9acbd4328845d",
+   "does": "Archives a session in a temp archive, removes its file and queues it; after the repair pass asserts (key available) the id left the queue, and that the entry is still indexed.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/PendingEncryptionLedgerTests.swift::func PendingEncryptionLedgerTests.makeArchive(deleted:index:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptPendingSessions(in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)"
+   ],
+   "reads": [
+    "file:PendingEncryptionLedgerTests-<uuid> temp archive directory (index.json, deleted.json, session files, Trash/)",
+    "kc:EncryptionManager archive key",
+    "mem:PendingEncryptionLedger.cache (session store)"
+   ],
+   "writes": [
+    "file:PendingEncryptionLedgerTests-<uuid> temp archive directory (index.json, deleted.json, session files, Trash/)",
+    "kc:EncryptionManager archive key",
+    "mem:PendingEncryptionLedger.cache (session store)",
+    "ud:storage.pendingReencryption.sessionIDs"
+   ],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "key available",
+     "effect": "asserts the id was cleared"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptPendingSessions(in:)": "7691596c91c3e28b",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "293d00b425d37802",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "e211f6c61a83cb74",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "3a3880893754edfe",
+    "EmuquTests/PendingEncryptionLedgerTests.swift::func PendingEncryptionLedgerTests.makeArchive(deleted:index:)": "7d666c5c5caf9d6c"
+   }
+  },
+  {
    "key": "func PendingEncryptionLedgerTests.testRepairEncryptsAPlaintextCopyInTheTrash()",
    "hash": "b50ed0ebc512877f",
    "does": "Archives and deletes a session in a temp archive, replaces its Trash file with plaintext JSON and queues it; after the repair pass asserts (key available) the Trash file is encrypted and the id cleared, and that trashedSession still reads it.",

@@ -46,9 +46,12 @@ extension ArchiveStore {
     ///
     /// Throws when the file could not be moved; it is then left where it was,
     /// so the caller can put the session back in the index. Deleting it there
-    /// lost the copy the Trash exists to keep.
+    /// lost the copy the Trash exists to keep. A file that is not there has
+    /// nothing to keep, and is not an error: an index entry whose file is gone
+    /// must still be deletable.
     func moveToTrash(_ fileURL: URL, id: UUID) throws {
         let fm = archive.fileManager
+        guard fm.fileExists(atPath: fileURL.path) else { return }
         try fm.createDirectory(at: trashDirectory, withIntermediateDirectories: true)
         let destination = trashURL(for: id)
         if fm.fileExists(atPath: destination.path) { try fm.removeItem(at: destination) }

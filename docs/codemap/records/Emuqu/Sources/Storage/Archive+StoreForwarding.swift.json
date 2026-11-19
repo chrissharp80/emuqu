@@ -77,6 +77,22 @@
    }
   },
   {
+   "key": "func SessionArchive.deleteWithoutTrash(_:)",
+   "hash": "0ea828269bbcd992",
+   "does": "Forwards to ArchiveStore.deleteWithoutTrash.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.deleteWithoutTrash(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.deleteWithoutTrash(_:)": "3216d5f634106e18",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
+   }
+  },
+  {
    "key": "func SessionArchive.entryById(_:)",
    "hash": "06250aec6627e093",
    "does": "Locked lookup for callers outside the lock (CloudPullCoordinator.refreshIfRemoteIsNewer, tests): takes archiveLock around ArchiveStore.entryById, which reads index and may fill sessionIdLookup. Code already holding the lock calls store.entryById directly (NSLock is not re-entrant).",

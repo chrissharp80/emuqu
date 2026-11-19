@@ -244,6 +244,35 @@ final class ArchiveIntegrityTests: XCTestCase {
         XCTAssertEqual(try archive.retrieve(session.id)?.id, session.id)
     }
 
+    /// An entry whose file is already gone has nothing for the Trash to keep:
+    /// it is deleted and tombstoned rather than refused on every attempt.
+    func testASessionWhoseFileIsGoneCanStillBeDeleted() throws {
+        let session = createTestSession()
+        testSessionIds.append(session.id)
+        _ = try archive.archive(session)
+        try FileManager.default.removeItem(at: archiveDirectory.appendingPathComponent("\(session.id.uuidString).json"))
+
+        try archive.delete(session.id)
+
+        XCTAssertFalse(archive.exists(session.id))
+        XCTAssertTrue(archive.wasIntentionallyDeleted(session.id))
+    }
+
+    /// A deletion made on another device removes the file without the Trash,
+    /// so a Trash that cannot take it does not stop the deletion.
+    func testADeletionFromAnotherDeviceDoesNotNeedTheTrash() throws {
+        let session = createTestSession()
+        testSessionIds.append(session.id)
+        _ = try archive.archive(session)
+        XCTAssertTrue(FileManager.default.createFile(atPath: archive.store.trashDirectory.path, contents: Data()))
+
+        try archive.deleteWithoutTrash(session.id)
+
+        XCTAssertFalse(archive.exists(session.id))
+        XCTAssertTrue(archive.wasIntentionallyDeleted(session.id))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: archiveDirectory.appendingPathComponent("\(session.id.uuidString).json").path))
+    }
+
     // MARK: - Unreadable index files
 
     /// An index that does not decode and cannot be moved aside is left as it

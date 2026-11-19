@@ -111,3 +111,31 @@ enum OneShotBackupName {
         "\(sessionId.uuidString)_\(stamp).json"
     }
 }
+
+extension OneShotBackupName {
+    /// One-shot files of `sessionId` in `directory`, other than `current`,
+    /// still in plain JSON. Throws when the listing or a read fails.
+    static func plaintextFiles(of sessionId: UUID, in directory: URL, except current: String?) throws -> [URL] {
+        try FileManager.default.contentsOfDirectory(atPath: directory.path)
+            .filter { $0 != current && parse($0)?.id == sessionId }
+            .map { directory.appendingPathComponent($0) }
+            .filter { try !ArchiveStore.looksEncrypted(Data(contentsOf: $0, options: .alwaysMapped)) }
+    }
+
+    /// Whether `url`, a one-shot file the index does not name, was provably
+    /// replaced by `entry`: written before the indexed backup (its file, or a
+    /// streaming backup's last append) and holding no more beats. A process
+    /// killed between a newer write and its index save leaves a file that is
+    /// later, and may hold the most of the night; that one, one without a row
+    /// or a date to compare, and one that does not decode are not replaced.
+    static func isSuperseded(_ url: URL, by entry: RawRRBackup.BackupIndex?) -> Bool {
+        guard let entry else { return false }
+        let indexedMs = entry.fileName != nil
+            ? writtenMs(entry.fileName)
+            : Int64((entry.lastBackupTime?.timeIntervalSince1970 ?? 0) * 1000)
+        guard writtenMs(url.lastPathComponent) < indexedMs,
+              let beats = attempt("RawRRBackup.readReplacedFile", { try RawRRBackup.decodeLegacyBackup(at: url).points.count })
+        else { return false }
+        return beats <= (entry.backedUpCount ?? entry.beatCount)
+    }
+}

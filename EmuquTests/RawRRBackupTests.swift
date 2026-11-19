@@ -443,7 +443,7 @@ final class RawRRBackupTests: XCTestCase {
         defer { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
         try backup.backup(points: makePoints(count: 50), sessionId: sessionId)
         let stale = backup.backupDirectory.appendingPathComponent("\(sessionId.uuidString)_1000000000000.json")
-        try Data("{}".utf8).write(to: stale)
+        try plainBackupFile(sessionId: sessionId, beats: 40).write(to: stale)
         PendingEncryptionLedger.record(sessionId, in: .rawBackup)
 
         backup.reencryptBackup(sessionId)
@@ -453,6 +453,35 @@ final class RawRRBackupTests: XCTestCase {
             XCTAssertFalse(PendingEncryptionLedger.pending(in: .rawBackup).contains(sessionId))
         }
         XCTAssertEqual(try backup.retrieve(sessionId)?.points.count, 50)
+    }
+
+    /// A plaintext file written after the indexed backup (a process killed
+    /// between a new write and its index save) may hold the most of the
+    /// night: it is kept, and the session stays queued.
+    func testReencryptionKeepsANewerUnindexedPlaintextFile() throws {
+        let sessionId = UUID()
+        defer { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
+        try backup.backup(points: makePoints(count: 50), sessionId: sessionId)
+        let newerMs = Int64(Date().timeIntervalSince1970 * 1000) + 60_000
+        let newer = backup.backupDirectory.appendingPathComponent("\(sessionId.uuidString)_\(newerMs).json")
+        defer { XCTAssertNoThrow(try FileManager.default.removeItem(at: newer)) }
+        try plainBackupFile(sessionId: sessionId, beats: 80).write(to: newer)
+        PendingEncryptionLedger.record(sessionId, in: .rawBackup)
+
+        backup.reencryptBackup(sessionId)
+
+        XCTAssertEqual(try RawRRBackup.decodeLegacyBackup(at: newer).points.count, 80)
+        XCTAssertTrue(PendingEncryptionLedger.pending(in: .rawBackup).contains(sessionId))
+    }
+
+    /// A one-shot backup file of `beats` points, written as plain JSON.
+    private func plainBackupFile(sessionId: UUID, beats: Int) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let points = makePoints(count: beats)
+        return try encoder.encode(RawRRBackup.BackupEntry(
+            id: sessionId, captureDate: Date(), deviceId: nil, points: points, hash: RawRRBackup.integrityHash(of: points)
+        ))
     }
 
     /// A plaintext one-shot file no index row names may be the only copy of

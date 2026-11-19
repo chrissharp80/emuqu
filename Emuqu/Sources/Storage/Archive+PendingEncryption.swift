@@ -117,9 +117,11 @@ private func reencryptOne(_ id: UUID, in archive: SessionArchive) {
 /// that throws again writes plaintext and keeps it queued. The index hash is
 /// refreshed because the bytes on disk change.
 ///
-/// A read that fails leaves it queued for the next launch: most often a launch
-/// in the background while the device is locked, when the file's protection
-/// class keeps it closed, or an index entry whose file is not where it names.
+/// An index entry whose file is gone (`fileNotFound`) has no plaintext left
+/// here to repair, and leaves the ledger; its Trash and quarantine copies were
+/// handled before this runs (`reencryptOne`). Any other failed read leaves it
+/// queued for the next launch: most often a launch in the background while the
+/// device is locked, when the file's protection class keeps it closed.
 /// Clearing it there would leave the plaintext on disk with nothing left to
 /// repair it.
 private func reencryptArchived(_ id: UUID, in archive: SessionArchive) {
@@ -127,6 +129,9 @@ private func reencryptArchived(_ id: UUID, in archive: SessionArchive) {
     do {
         guard let found = try archive.retrieveLightweight(id) else { return }
         session = found
+    } catch SessionArchive.ArchiveError.fileNotFound {
+        PendingEncryptionLedger.clear(id)
+        return
     } catch {
         debugLog("[Archive] re-encryption deferred for \(id.uuidString.prefix(8)) — file not readable yet: \(error)", level: .warning)
         return

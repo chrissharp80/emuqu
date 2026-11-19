@@ -1,10 +1,10 @@
 {
  "file": "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift",
- "hash": "b8cdedb118a686f3",
- "role": "RawRRBackup extension that rebuilds the backup index from on-disk files (append-format headers and one-shot <uuid>_<stamp>.json backups) when backup_index.json does not decode, plus OneShotBackupName, the single place one-shot file names are made and parsed (millisecond stamps, never reused; legacy second stamps still parse).",
+ "hash": "c62680ceb68fafd9",
+ "role": "RawRRBackup extension that rebuilds the backup index from on-disk files (append-format headers and one-shot <uuid>_<stamp>.json backups) when backup_index.json does not decode, plus OneShotBackupName, the single place one-shot file names are made and parsed (millisecond stamps, never reused; legacy second stamps still parse), and which lists a session's plaintext one-shot files and judges whether the indexed backup provably replaced one.",
  "types": [
   "RawRRBackup: extension — index recovery",
-  "OneShotBackupName: enum — makes and parses one-shot backup file names"
+  "OneShotBackupName: enum — makes and parses one-shot backup file names; lists plaintext ones and judges which are superseded"
  ],
  "state": [],
  "toplevel": "",
@@ -222,6 +222,70 @@
    "writes": [],
    "branches": [],
    "deps": {}
+  },
+  {
+   "key": "func OneShotBackupName.plaintextFiles(of:in:except:)",
+   "hash": "dc2d54d827018197",
+   "does": "Lists `directory` and returns the URLs of the session's one-shot files (parse id matches) other than `current` whose bytes do not start with the encrypted 'FR' prefix (read memory-mapped). Throws when the listing or a read fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.parse(_:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)",
+    "ext:FileManager.contentsOfDirectory",
+    "ext:Data(contentsOf:options:)"
+   ],
+   "reads": [
+    "file:RRBackup/ (listing)",
+    "file:RRBackup/<uuid>_<t>.json"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)": "d617abae8ea527b1",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.parse(_:)": "ef97a1a3f041353b"
+   }
+  },
+  {
+   "key": "func OneShotBackupName.isSuperseded(_:by:)",
+   "hash": "2801103d6f4b3b86",
+   "does": "True only when `entry` exists, the file's name stamp is earlier than the indexed backup's (its one-shot file's stamp, or a streaming row's lastBackupTime in ms; 0 when neither), and the file decodes (decodeLegacyBackup) to no more beats than the row holds (backedUpCount ?? beatCount). A later file — one a process killed before its index save left, possibly the fullest copy — or one that does not decode is not replaced.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.writtenMs(_:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.decodeLegacyBackup(at:)"
+   ],
+   "reads": [
+    "file:RRBackup/<uuid>_<t>.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no index row",
+     "effect": "false"
+    },
+    {
+     "at": "+2",
+     "cond": "one-shot row / streaming row",
+     "effect": "indexed file's stamp / lastBackupTime (0 if nil)"
+    },
+    {
+     "at": "+5",
+     "cond": "file not older, or does not decode",
+     "effect": "false"
+    },
+    {
+     "at": "+8",
+     "cond": "beats compared",
+     "effect": "true when no more than the row holds"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.writtenMs(_:)": "1d0e34b875b01e4d",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.decodeLegacyBackup(at:)": "3c9f14b13a29d54b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+   }
   }
  ],
  "deps": {}
