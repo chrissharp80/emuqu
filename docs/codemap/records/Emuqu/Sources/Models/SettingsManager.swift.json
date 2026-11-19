@@ -1,12 +1,13 @@
 {
  "file": "Emuqu/Sources/Models/SettingsManager.swift",
- "hash": "e92527688fad5d4d",
+ "hash": "209e44e191979226",
  "role": "Owns the SettingsManager singleton: loads/saves UserSettings JSON (user_settings.json in the App Group container) with a protection-aware don't-clobber guard, off-main coalesced writes, CloudKit export/restore hooks, custom tags, baseline updates, device-local disclaimer flag and trial-clock helpers.",
  "types": [
   "SettingsManager: class (@Observable @MainActor) — settings store singleton",
   "SettingsManager.LoadOutcome: enum — loaded/fileNotPresent/blockedByProtection/unreadableOther/unreadableNotPreserved",
   "SettingsManager.WriteState: struct (private) — pending snapshot + scheduled flag for the write queue",
-  "Notification.Name: extension — declares flowRecoverySettingsChanged"
+  "Notification.Name: extension — declares flowRecoverySettingsChanged",
+  "FileReadFailure: enum (file scope) — locked | gone | nothingToKeep | transient: what a failed read of a stored file means for writing over it; shared with BaselineTracker"
  ],
  "state": [
   "mem:SettingsManager.shared (nonisolated static singleton)",
@@ -25,7 +26,7 @@
   "DispatchQueue com.emuqu.settings.write (utility, serial)",
   "file:<settings dir>/user_settings.unreadable.json (copy of a settings file that existed but could not be read; SettingsManager.unreadableBackupName; written atomically from the bytes read)"
  ],
- "toplevel": "`nonisolated static let shared = SettingsManager()` creates the singleton lazily on first touch from any thread; settingsWriteQueue and writeState are created as stored-property initializers. Notification.Name.flowRecoverySettingsChanged = \"FlowRecoverySettingsChanged\".",
+ "toplevel": "`nonisolated static let shared = SettingsManager()` creates the singleton lazily on first touch from any thread; settingsWriteQueue and writeState are created as stored-property initializers. Notification.Name.flowRecoverySettingsChanged = \"FlowRecoverySettingsChanged\". FileReadFailure (file-scope enum) classifies read errors for SettingsManager and BaselineTracker.",
  "units": [
   {
    "key": "var SettingsManager.settings",
@@ -49,7 +50,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.saveUnlessLocked()": "af48fac869a7e494"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.saveUnlessLocked()": "2fca1ffce8f0ce3e"
    }
   },
   {
@@ -80,12 +81,12 @@
   },
   {
    "key": "init SettingsManager()",
-   "hash": "d10bc332bdc316ad",
-   "does": "Private nonisolated init: resolves (and migrates) the settings URL, loads it, records the LoadOutcome, seeds settings and the snapshot with the loaded value or UserSettings() defaults, keeps those defaults as lockedStartingPoint when saves are held (load blocked by protection, or unreadable with no copy kept), schedules the protected-data observer if blocked by protection, and installs background/terminate flush observers.",
+   "hash": "d08881a05074779f",
+   "does": "Private nonisolated init: resolves (and migrates) the settings URL, loads it, records the LoadOutcome, seeds settings and the snapshot with the loaded value or UserSettings() defaults, keeps those defaults as lockedStartingPoint when saves are held (blocked by protection, or .unreadableNotPreserved), schedules the protected-data observer in both held cases, and installs background/terminate flush observers.",
    "entry": "Called once by the static `shared` initializer on first access (EmuquApp.swift:152 and AppDependencies).",
    "calls": [
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.resolveSettingsURL(fileManager:)",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)",
     "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.installProtectedDataObserver()",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.installDurabilityObservers()"
@@ -102,24 +103,25 @@
    "branches": [
     {
      "at": "+4",
-     "cond": "?? — load returned nil (missing, blocked or unreadable file)",
+     "cond": "?? — load returned nil",
      "effect": "UserSettings() defaults are used in memory"
     },
     {
-     "at": "+6",
-     "cond": "outcome == .blockedByProtection || .unreadableNotPreserved",
+     "at": "+7",
+     "cond": "held (.blockedByProtection or .unreadableNotPreserved)",
      "effect": "lockedStartingPoint = the defaults; otherwise nil"
     },
     {
-     "at": "+13",
-     "cond": "outcome == .blockedByProtection",
-     "effect": "true: a MainActor Task installs the protectedDataDidBecomeAvailable observer; false: nothing"
+     "at": "+14",
+     "cond": "held",
+     "effect": "a MainActor Task installs the protectedDataDidBecomeAvailable observer"
     }
    ],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.installDurabilityObservers()": "a934c916247da0ef",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.installProtectedDataObserver()": "e551dda90491514e",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)": "4b75070cf79e4769",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)": "cbc144e7833ab4d5",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.outcome(forReadError:)": "04502d1dc8fff04a",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.resolveSettingsURL(fileManager:)": "1822ca97ccdb92f4",
     "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "1c099582675121a6",
     "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b"
@@ -240,19 +242,22 @@
    ],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.flushPendingWritesSynchronously()": "96642c2f565b8fca",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.saveHeldChangesBeforeSuspend()": "26b2b2fdc0eb993e"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.saveHeldChangesBeforeSuspend()": "64d95c2077a31e81"
    }
   },
   {
    "key": "func SettingsManager.saveHeldChangesBeforeSuspend()",
-   "hash": "d6d2e86ea5fba7c2",
-   "does": "Only while loadOutcome == .unreadableNotPreserved: runs saveUnlessLocked, which retries the copy of the unreadable file and saves the held changes once it is made.",
+   "hash": "0f6175f00906e2c8",
+   "does": "Only while loadOutcome == .unreadableNotPreserved and something was changed while held (hasHeldChanges): runs retryHeldLoad, which re-reads the file and saves the held changes once it can. Without a change nothing is read or written.",
    "entry": "installDurabilityObservers' didEnterBackground / willTerminate observers",
    "calls": [
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.saveUnlessLocked()"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryHeldLoad()",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.hasHeldChanges"
    ],
    "reads": [
-    "mem:SettingsManager.loadOutcome"
+    "mem:SettingsManager.loadOutcome",
+    "mem:SettingsManager.lockedStartingPoint",
+    "mem:SettingsManager.settings"
    ],
    "writes": [
     "mem:SettingsManager.loadOutcome",
@@ -262,23 +267,40 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "loadOutcome != .unreadableNotPreserved",
+     "cond": "not held for an unread file, or no held change",
      "effect": "returns"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.saveUnlessLocked()": "af48fac869a7e494"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryHeldLoad()": "1a02af79d7193e95",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.hasHeldChanges": "5aa8c2b5e4d40f20"
    }
   },
   {
-   "key": "func SettingsManager.load(from:)",
-   "hash": "428ae32f7eeb8e1a",
-   "does": "Static loader (internal so tests can run it on a temporary file): missing file → (nil,.fileNotPresent); read refused by file protection → (nil,.blockedByProtection); any other read error → logged, nothing to keep, (nil,.unreadableOther); read → decodeOrPreserve (decoded → .loaded; undecodable bytes written aside → .unreadableOther, copy failed → .unreadableNotPreserved).",
+   "key": "var SettingsManager.hasHeldChanges",
+   "hash": "6f7f0e6f3a75f49c",
+   "does": "True when lockedStartingPoint is set and differs from the in-memory settings (a change was made while saves were held).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SettingsManager.lockedStartingPoint",
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e"
+   }
+  },
+  {
+   "key": "func SettingsManager.load(from:read:)",
+   "hash": "2156183cef4d9749",
+   "does": "Static loader (internal; `read` is a test seam defaulting to Data(contentsOf:)): missing file → (nil,.fileNotPresent); read throws → logged, (nil, outcome(forReadError:)) — .blockedByProtection, .fileNotPresent, .unreadableOther (nothing to keep) or .unreadableNotPreserved (may be intact; saves held); read → decodeOrPreserve (decoded → .loaded; undecodable bytes written aside → .unreadableOther; copy failed → .unreadableNotPreserved).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.isProtectionError(_:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.outcome(forReadError:)",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.decodeOrPreserve(_:readFrom:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "ext:Data(contentsOf:)"
    ],
    "reads": [
@@ -289,20 +311,41 @@
    ],
    "branches": [
     {
-     "at": "+2",
+     "at": "+3",
      "cond": "file does not exist",
-     "effect": "return (nil,.fileNotPresent)"
+     "effect": "(nil,.fileNotPresent)"
     },
     {
      "at": "+7",
-     "cond": "read error is file protection",
-     "effect": "(nil,.blockedByProtection); else logged, (nil,.unreadableOther)"
+     "cond": "read throws",
+     "effect": "(nil, outcome(forReadError:))"
     }
    ],
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.decodeOrPreserve(_:readFrom:)": "c79cf832fe69219e",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.isProtectionError(_:)": "53289ccaa4449502",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.outcome(forReadError:)": "04502d1dc8fff04a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func SettingsManager.outcome(forReadError:)",
+   "hash": "542d797b9766eed9",
+   "does": "Maps FileReadFailure(error): locked → .blockedByProtection; gone → .fileNotPresent; nothingToKeep → .unreadableOther; transient → .unreadableNotPreserved.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::init FileReadFailure(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "failure kind",
+     "effect": "one outcome per kind"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::init FileReadFailure(_:)": "a22c3c02670f4493"
    }
   },
   {
@@ -335,19 +378,6 @@
    }
   },
   {
-   "key": "func SettingsManager.isProtectionError(_:)",
-   "hash": "5fd3688fa67b8639",
-   "does": "True for NSCocoaErrorDomain / NSFileReadNoPermissionError (257), the error iOS file protection gives a locked read.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693"
-   }
-  },
-  {
    "key": "func SettingsManager.preserveUnreadableBytes(_:beside:)",
    "hash": "a61e5750d82a759b",
    "does": "Writes the given bytes of an undecodable settings file to user_settings.unreadable.json beside it (atomic, completeFileProtectionUntilFirstUserAuthentication, so an older copy is replaced only by a complete new one); logs and returns true, or logs at .error and returns false.",
@@ -368,41 +398,6 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
-   }
-  },
-  {
-   "key": "func SettingsManager.preserveUnreadableFile(at:)",
-   "hash": "5714aa21c52930e0",
-   "does": "The retry while saves are held: file gone → true; reads the file and returns preserveUnreadableBytes' result; a read refused by file protection → false; any other read error → logged, true (nothing left to keep).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableBytes(_:beside:)",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.isProtectionError(_:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:Data(contentsOf:)"
-   ],
-   "reads": [
-    "file:user_settings.json"
-   ],
-   "writes": [
-    "file:user_settings.unreadable.json"
-   ],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "file gone",
-     "effect": "true"
-    },
-    {
-     "at": "+6",
-     "cond": "read refused by file protection",
-     "effect": "false; other read error: logged, true"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.isProtectionError(_:)": "53289ccaa4449502",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableBytes(_:beside:)": "2e616cf77e8e8861",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -429,23 +424,20 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryLoadAfterUnlock()": "f170db3f6662c0ba"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryLoadAfterUnlock()": "1d7e338c1a158d74"
    }
   },
   {
    "key": "func SettingsManager.retryLoadAfterUnlock()",
-   "hash": "152ee693a7c9d869",
-   "does": "Re-runs the static load. Still locked: logs and returns, keeping the observer for the next unlock. Otherwise removes the protected-data observer and stores the outcome; unreadable with no copy kept (.unreadableNotPreserved): logs and returns with the changes still held in memory (saveUnlessLocked retries the copy on the next change). Else adoptAfterUnlock: the loaded settings merged with every field changed while locked (didSet saves and notifies), or, when the file is now absent/unreadable with a copy kept, the in-memory settings saved.",
+   "hash": "c5ed5b23e87fae08",
+   "does": "Runs retryHeldLoad; when saves stay held (still locked, or the file still cannot be read or kept) logs, and the observer stays for the next unlock.",
    "entry": "NotificationCenter observer for UIApplication.protectedDataDidBecomeAvailableNotification (installed by installProtectedDataObserver).",
    "calls": [
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeProtectedDataObserver()",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptAfterUnlock(_:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryHeldLoad()",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
-    "file:user_settings.json",
-    "mem:SettingsManager.lockedStartingPoint"
+    "mem:SettingsManager.loadOutcome"
    ],
    "writes": [
     "mem:SettingsManager.loadOutcome",
@@ -457,28 +449,59 @@
    ],
    "branches": [
     {
-     "at": "+2",
-     "cond": "outcome still .blockedByProtection",
-     "effect": "log and return; observer kept"
-    },
-    {
-     "at": "+8",
-     "cond": "outcome .unreadableNotPreserved",
-     "effect": "log and return; changes stay held, lockedStartingPoint kept"
+     "at": "+1",
+     "cond": "saves resumed",
+     "effect": "returns; else logged"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptAfterUnlock(_:)": "0726991267b9f7be",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)": "4b75070cf79e4769",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeProtectedDataObserver()": "10eb0c1450d8976a",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryHeldLoad()": "1a02af79d7193e95",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
+   "key": "func SettingsManager.retryHeldLoad()",
+   "hash": "82862975f9edea13",
+   "does": "Re-runs load(from:read:) and records the outcome. Still held (.blockedByProtection or .unreadableNotPreserved): returns false, changes stay in memory. Otherwise removes the protected-data observer, adoptAfterUnlock(loaded) (held changes merged onto the file's settings, or saved when the file is gone or a copy was kept), true.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.savesHeld",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeProtectedDataObserver()",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptAfterUnlock(_:)"
+   ],
+   "reads": [
+    "file:user_settings.json"
+   ],
+   "writes": [
+    "mem:SettingsManager.loadOutcome",
+    "mem:SettingsManager.lockedStartingPoint",
+    "mem:SettingsManager.settings",
+    "mem:SettingsManager.protectedDataObserver",
+    "file:user_settings.json",
+    "file:user_settings.unreadable.json",
+    "notif:FlowRecoverySettingsChanged"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "saves still held",
+     "effect": "false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.adoptAfterUnlock(_:)": "22d5a80959f3c74e",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)": "cbc144e7833ab4d5",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.outcome(forReadError:)": "04502d1dc8fff04a",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.removeProtectedDataObserver()": "10eb0c1450d8976a",
+    "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.savesHeld": "6f3c165921f446f2",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b"
+   }
+  },
+  {
    "key": "func SettingsManager.adoptAfterUnlock(_:)",
-   "hash": "ef9c475fe5173131",
-   "does": "Clears lockedStartingPoint; with loaded settings assigns them merged with every field changed while locked (merging(changesFrom:to:onto:) from the starting point, or them as they are without one; didSet saves and notifies) and logs; with none (file gone, or unreadable with a copy kept) saves the in-memory settings.",
+   "hash": "7e633da2b33d7ecb",
+   "does": "Clears lockedStartingPoint; with loaded settings assigns them merged with every field changed while held (merging(changesFrom:to:onto:) from the starting point, or them as they are without one; didSet saves and notifies) and logs; with none (file gone, or unreadable with a copy kept) saves the in-memory settings only when they differ from the starting point, so unchanged defaults are not written over the file.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.merging(changesFrom:to:onto:)",
@@ -499,12 +522,17 @@
     {
      "at": "+3",
      "cond": "loaded settings",
-     "effect": "true: settings = merge (or loaded); false: save() the in-memory settings"
+     "effect": "settings = merge (or loaded)"
     },
     {
      "at": "+6",
      "cond": "lockedStartingPoint present",
      "effect": "merge; otherwise take the loaded settings as they are"
+    },
+    {
+     "at": "+8",
+     "cond": "no loaded settings and a change was made while held",
+     "effect": "save(); else nothing written"
     }
    ],
    "deps": {
@@ -667,12 +695,12 @@
   },
   {
    "key": "func SettingsManager.saveUnlessLocked()",
-   "hash": "b09ef989feb680d0",
-   "does": "Saves the settings unless saves are held. Blocked by file protection: logs a warning and leaves the change in memory for retryLoadAfterUnlock to merge. Unreadable with no copy kept: tries preserveUnreadableFile again; still failing, logs and leaves the change in memory; once it succeeds the outcome becomes .unreadableOther, the starting point is dropped and the in-memory settings (every held change) are saved.",
+   "hash": "9620926b6d9b86a8",
+   "does": "Saves the settings unless saves are held. Blocked by file protection: logs a warning and leaves the change in memory for retryLoadAfterUnlock to merge. .unreadableNotPreserved: retryHeldLoad re-reads the file and, once it reads (or its bytes are kept, or it is gone), merges or saves the held changes; still held, logs and leaves the change in memory. Otherwise save().",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableFile(at:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryHeldLoad()",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.save()"
    ],
    "reads": [
@@ -692,21 +720,21 @@
     {
      "at": "+2",
      "cond": "loadOutcome == .blockedByProtection",
-     "effect": "log warning and return without saving"
+     "effect": "log warning; nothing saved"
     },
     {
-     "at": "+6",
-     "cond": "loadOutcome == .unreadableNotPreserved and the copy fails again",
-     "effect": "log warning and return without saving; copy succeeds: outcome .unreadableOther, starting point cleared, save()"
+     "at": "+5",
+     "cond": "loadOutcome == .unreadableNotPreserved and the file still cannot be read or kept",
+     "effect": "log warning; nothing saved"
     },
     {
-     "at": "+12",
+     "at": "+8",
      "cond": "saves allowed",
      "effect": "save()"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableFile(at:)": "110d15650f15a72d",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryHeldLoad()": "1a02af79d7193e95",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.save()": "73361178a8326f07",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -1169,6 +1197,40 @@
     }
    ],
    "deps": {}
+  },
+  {
+   "key": "init FileReadFailure(_:)",
+   "hash": "d4a5c44692f65c5f",
+   "does": "Classifies a read error, taking the POSIX code from the error or its NSUnderlyingErrorKey: NSFileReadNoPermissionError → .locked; NSFileReadNoSuchFileError or ENOENT → .gone; NSFileReadTooLargeError or EISDIR → .nothingToKeep; anything else (EIO, EMFILE, a failed mapping, NSFileReadUnknownError) → .transient.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "protection refusal",
+     "effect": ".locked"
+    },
+    {
+     "at": "+6",
+     "cond": "file gone",
+     "effect": ".gone"
+    },
+    {
+     "at": "+8",
+     "cond": "too large or a directory",
+     "effect": ".nothingToKeep"
+    },
+    {
+     "at": "+10",
+     "cond": "anything else",
+     "effect": ".transient"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693"
+   }
   }
  ],
  "deps": {}

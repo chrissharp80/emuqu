@@ -244,21 +244,48 @@ final class UserSettingsTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: file), Data("not settings".utf8))
     }
 
-    /// A settings file whose bytes cannot be read at all, for a reason other
-    /// than file protection (here a directory at its path), leaves nothing to
-    /// keep: the load falls back to defaults without holding saves, so the
-    /// user can still change and save their settings.
-    func testAFileWhoseBytesCannotBeReadDoesNotHoldSaves() throws {
-        let file = try unreadableSettingsFile()
-        try FileManager.default.removeItem(at: file)
-        try FileManager.default.createDirectory(at: file, withIntermediateDirectories: false)
+    /// A Cocoa read error wrapping a POSIX code, as `Data(contentsOf:)` reports one.
+    private func readError(posix code: Int32) -> NSError {
+        NSError(domain: NSCocoaErrorDomain, code: NSFileReadUnknownError,
+                userInfo: [NSUnderlyingErrorKey: NSError(domain: NSPOSIXErrorDomain, code: Int(code))])
+    }
 
-        let (loaded, outcome) = SettingsManager.load(from: file)
+    /// A read that fails for a reason that can pass (an I/O error, out of
+    /// file descriptors) leaves a file that may be intact: saves are held,
+    /// and nothing is written beside it.
+    func testAReadFailureThatCanPassHoldsSaves() throws {
+        let file = try unreadableSettingsFile()
+        for code in [EIO, EMFILE, ENFILE] {
+            let error = readError(posix: code)
+            let (loaded, outcome) = SettingsManager.load(from: file, read: { _ in throw error })
+            XCTAssertNil(loaded)
+            XCTAssertEqual(outcome, .unreadableNotPreserved, "POSIX \(code) must hold saves")
+        }
+        XCTAssertEqual(try Data(contentsOf: file), Data("not settings".utf8), "The file must be left as it was")
+    }
+
+    /// A directory at the path can never give bytes back, so there is nothing
+    /// to keep and saves go ahead; no copy is written.
+    func testADirectoryAtThePathLeavesNothingToKeep() throws {
+        let file = try unreadableSettingsFile()
+        let error = readError(posix: EISDIR)
+
+        let (loaded, outcome) = SettingsManager.load(from: file, read: { _ in throw error })
 
         XCTAssertNil(loaded)
         XCTAssertEqual(outcome, .unreadableOther)
         let backup = file.deletingLastPathComponent().appendingPathComponent(SettingsManager.unreadableBackupName)
         XCTAssertFalse(FileManager.default.fileExists(atPath: backup.path), "There were no bytes to keep a copy of")
+    }
+
+    /// File protection's refusal is a locked file; a file gone by the time it
+    /// is read is not present; a file too large to read leaves nothing to keep.
+    func testReadErrorsThatAreNotTransient() {
+        let locked = NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoPermissionError)
+        XCTAssertEqual(SettingsManager.outcome(forReadError: locked), .blockedByProtection)
+        XCTAssertEqual(SettingsManager.outcome(forReadError: NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoSuchFileError)), .fileNotPresent)
+        XCTAssertEqual(SettingsManager.outcome(forReadError: readError(posix: ENOENT)), .fileNotPresent)
+        XCTAssertEqual(SettingsManager.outcome(forReadError: NSError(domain: NSCocoaErrorDomain, code: NSFileReadTooLargeError)), .unreadableOther)
     }
 
     // MARK: - Helpers

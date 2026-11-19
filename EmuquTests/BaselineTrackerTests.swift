@@ -387,6 +387,22 @@ final class BaselineTrackerTests: XCTestCase {
                        "Both nights are saved once the file is set aside")
     }
 
+    /// The decision a failed read of the baseline file makes: a file that may
+    /// be intact (protection-locked, an I/O error, out of file descriptors)
+    /// holds saves, so the stored nights are not written over; only a file
+    /// that is gone or is a directory lets saves go ahead.
+    func testOnlyAReadThatCanNeverSucceedLetsSavesWriteOverTheBaseline() {
+        func posix(_ code: Int32) -> NSError {
+            NSError(domain: NSCocoaErrorDomain, code: NSFileReadUnknownError,
+                    userInfo: [NSUnderlyingErrorKey: NSError(domain: NSPOSIXErrorDomain, code: Int(code))])
+        }
+        XCTAssertTrue(BaselineTracker.holdsSaves(afterReadError: NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoPermissionError)))
+        XCTAssertTrue(BaselineTracker.holdsSaves(afterReadError: posix(EIO)))
+        XCTAssertTrue(BaselineTracker.holdsSaves(afterReadError: posix(EMFILE)))
+        XCTAssertFalse(BaselineTracker.holdsSaves(afterReadError: posix(EISDIR)))
+        XCTAssertFalse(BaselineTracker.holdsSaves(afterReadError: NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoSuchFileError)))
+    }
+
     // MARK: - Callers
 
     /// The collector's scoring path (`scoringBaselineStats(for:)` and the
