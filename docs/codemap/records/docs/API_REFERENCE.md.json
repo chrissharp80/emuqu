@@ -273,7 +273,7 @@
   },
   {
    "key": "§ Emuqu — API Reference > Collection Layer > RRCollector (Main Orchestrator)",
-   "hash": "7a2a62255fb1ad8b",
+   "hash": "961eedf643f69b51",
    "does": "RRCollector @MainActor @Observable orchestrator: lists ~20 observable state properties and the public API for hybrid overnight streaming, pause/resume/finalize split sleep, quick streaming (default 180 s), device-only recording, accept/reject/reset, reanalysis, sleep-boundary updates, session loading, import, backup recovery and training context. Every listed method exists as an RRCollector facade/forwarder (RRCollector.swift:147-166, +*Forwarding.swift). State properties forward to sub-objects in RRCollector+Forwarders.swift. pauseOvernightStreaming returns nil only when not overnight streaming and otherwise always saves a paused session (RRCollector+PauseResume.swift:28-48).",
    "entry": null,
    "calls": [
@@ -325,7 +325,7 @@
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.applyManualAnalysis(_:result:)": "333a29ae1bdd40eb",
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeAtPosition(_:targetMs:)": "c48db2045ab27323",
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeSession(_:method:)": "e351483fb9f399fe",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.unlinkSegment(segmentId:fromSession:)": "4d7b559cc74765cb",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.unlinkSegment(segmentId:fromSession:)": "cb9b8e39eb673b4d",
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "dd89e7bdb872b231",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.checkForLostSessions()": "fd72cf5c6e464810",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.permanentlyDelete(_:)": "cfdf4822119cb6a4",
@@ -334,13 +334,12 @@
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.restoreFromTrash(_:)": "46073ee02b87d853",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.retryFetchRecording()": "38eb2a533e09e694",
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "ab465e22e805298a",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "aaa4636d68fbc6ce",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContext(relativeTo:)": "0cb9b353e72101be",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)": "85f6f48c29a9652c",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)": "dadaaf0287118899",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.finalizeFromPause()": "e843d8fda81c902e",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.findRecentPausedSessionOffMain(archive:maxGap:)": "d4449a31b997a5d9",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.pauseOvernightStreaming()": "0feb0f5a78537026",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessions(limit:)": "21d596f047675431",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)": "d0b0b578fa7f7968",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.resumeOvernightStreaming(linkedSessionId:)": "c78b4f50b7b43dc8",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)": "151db517594e3b0d",
@@ -899,7 +898,7 @@
   },
   {
    "key": "§ Emuqu — API Reference > Services > ReanalysisService",
-   "hash": "32e311c2eb90a640",
+   "hash": "80cb35cad03e1d3e",
    "does": "ReanalysisService @MainActor: init with archive/healthKit/pipeline/selector/detector/baseline plus provider and callback closures; reanalyzeSession(method, preserveManualWindows), reanalyzeAllSessions(from,to,progress)->(updated, skipped), retroApplySleepSettings->Int, reanalyzeAtPosition, applyManualAnalysis, updateSessionSleepBoundaries, unlinkSegment; static hasInsufficientData (shared with MorningProcessingService so both paths agree) and computeFrozenReadiness(compositeScore, trainingContext). All exist (ReanalysisService.swift:26-700, +Sleep.swift:14-612). hasInsufficientData is used by MorningProcessingService.swift:414, ReanalysisService.swift:348 and the insufficient-data migration.",
    "entry": null,
    "calls": [
@@ -918,14 +917,14 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyManualAnalysis(_:result:)": "6101138b43745ab5",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.reanalyzeAtPosition(_:targetMs:)": "552b8b336e2483a7",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyManualAnalysis(_:result:)": "a33c0cff3e7e52a8",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.reanalyzeAtPosition(_:targetMs:)": "6d9db5d724cc59d1",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.retroApplySleepSettings(sessions:progress:)": "890ac26aae8abfea",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.unlinkSegment(segmentId:fromSession:)": "332c7dd5dd454010",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "aad8499a0f784cde",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.unlinkSegment(segmentId:fromSession:)": "aed4c03d408fe088",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "c11d10dab10551e5",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "09343bbc201631d1",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.hasInsufficientData(session:analysisResult:baselineRmssd:)": "52495eb9fe13e172",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeAllSessions(sessions:from:to:progress:)": "e99553b3a4995675",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.hasInsufficientData(session:analysisResult:baselineRmssd:)": "288ffd2083f4a975",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeAllSessions(sessions:from:to:progress:)": "c1e5a11ba5b7114c",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeSession(_:method:preserveManualWindows:)": "1af065c739ef1b58",
     "Emuqu/Sources/Services/ReanalysisService.swift::init ReanalysisService(archive:healthKit:analysisPipeline:windowSelector:artifactDetector:baselineTracker:settingsProvider:scoringConfigProvider:ansConfigProvider:trainingContextProvider:analyzeWithWindow:analyzeFullSession:onArchiveChanged:onSessionUploaded:)": "54b229e09e5956c3"
    }

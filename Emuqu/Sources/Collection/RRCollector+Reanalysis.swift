@@ -684,8 +684,10 @@ extension SessionReanalysisCoordinator {
 
     /// Remove a linked segment from a session's same-night merge.
     /// The unlinked segment becomes a standalone session again, and the parent
-    /// session's linkedSessionIds list is updated.
-    func unlinkSegment(segmentId: UUID, fromSession sessionId: UUID) {
+    /// session's linkedSessionIds list is updated. False when nothing was
+    /// unlinked (see `ReanalysisService.unlinkSegment`): the segment stays
+    /// linked and scored, so the caller must not show it as removed.
+    func unlinkSegment(segmentId: UUID, fromSession sessionId: UUID) -> Bool {
         reanalysisService.unlinkSegment(segmentId: segmentId, fromSession: sessionId)
     }
 

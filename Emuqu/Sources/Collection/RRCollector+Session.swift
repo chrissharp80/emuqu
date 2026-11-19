@@ -22,7 +22,6 @@ extension RRCollector {
         baselineDeviation = nil
         isPaused = false
         pausedSession = nil
-        isDeviceFetchInProgress = false
         clearPausedSessionState()
     }
 

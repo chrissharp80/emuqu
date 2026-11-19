@@ -298,6 +298,35 @@
    }
   },
   {
+   "key": "func ReanalysisServiceTests.testUnlinkingALinkedSegmentDropsTheLinkAndReportsTrue()",
+   "hash": "197588591cdc2399",
+   "does": "Archives a segment and an overnight night that links it, asserts unlinkSegment reports true and the stored night no longer links anything.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService()",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.unlinkSegment(segmentId:fromSession:)"
+   ],
+   "reads": [
+    "file:<tmp>/ReanalysisSleepTests-<UUID>/ (hermetic SessionArchive)"
+   ],
+   "writes": [
+    "file:<tmp>/ReanalysisSleepTests-<UUID>/ (hermetic SessionArchive)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.unlinkSegment(segmentId:fromSession:)": "aed4c03d408fe088",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService()": "65a5e42b12285b05",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e"
+   }
+  },
+  {
    "key": "func ReanalysisServiceTests.testRescoreReadsTheStrapNocturnalHeartRate()",
    "hash": "e1b84bda5fc32009",
    "does": "Asserts scoringVitals replaces vitals restingHeartRate 64 with the analysis meanHR 52, leaves respiratoryRate 14, and is a no-op on a snapshot that already carries it.",

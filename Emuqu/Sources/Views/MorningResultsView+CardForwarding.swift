@@ -25,7 +25,6 @@ extension MorningResultsView {
             result: result,
             recentSessions: recentSessions,
             collector: collector,
-            morningCoordination: morningCoordination,
             linkedSegments: linkedSegments,
             onUnlinkSegment: onUnlinkSegment,
             onToggleTag: { toggleTag($0) },

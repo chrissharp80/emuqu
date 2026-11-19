@@ -15,6 +15,9 @@ struct SavedRoutesPage: View {
     private var store: SavedRouteStore { dependencies.location.savedRouteStore }
     @State private var renamingRoute: SavedRoute?
     @State private var renameText: String = ""
+    /// A rename or delete the store could not save (the library cannot be
+    /// read yet); the route is unchanged.
+    @State private var showSaveFailed = false
 
     var body: some View {
         Group {
@@ -32,6 +35,9 @@ struct SavedRoutesPage: View {
         )) {
             renameDialogActions
         }
+        .alert(String(localized: "Your change couldn't be saved. Try again.", bundle: LanguageManager.appBundle), isPresented: $showSaveFailed) {
+            Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
+        }
     }
 
     @ViewBuilder
@@ -46,8 +52,8 @@ struct SavedRoutesPage: View {
     private func commitRename() {
         if let r = renamingRoute {
             let trimmed = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty {
-                store.rename(id: r.id, to: trimmed)
+            if !trimmed.isEmpty, !store.rename(id: r.id, to: trimmed) {
+                showSaveFailed = true
             }
         }
         renamingRoute = nil
@@ -101,7 +107,7 @@ struct SavedRoutesPage: View {
     @ViewBuilder
     private func swipeActions(for route: SavedRoute) -> some View {
         Button(role: .destructive) {
-            store.remove(id: route.id)
+            if !store.remove(id: route.id) { showSaveFailed = true }
         } label: {
             Label(String(localized: "Delete", bundle: LanguageManager.appBundle), systemImage: "trash")
         }

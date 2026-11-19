@@ -166,3 +166,125 @@ extension RRCollectorTests {
         )
     }
 }
+
+// MARK: - Save results the screens act on
+
+/// The collector reports whether a re-score's re-archive or a segment unlink
+/// was stored, so the screens that call them keep the user's input on a
+/// failure instead of acting as if it was saved. Built over a temporary
+/// archive, baseline file and a mock HealthKit, never the app's own stores.
+@MainActor
+final class RRCollectorSaveResultTests: XCTestCase {
+    private lazy var directory = FileManager.default.temporaryDirectory
+        .appendingPathComponent("RRCollectorSaveResultTests-\(UUID().uuidString)", isDirectory: true)
+    private lazy var archive = SessionArchive(
+        directory: directory,
+        sleepScheduleProvider: { SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0) },
+        sessionMergeModeProvider: { .off }
+    )
+    private lazy var collector = makeCollector()
+
+    private let nightStart = Date(timeIntervalSince1970: 4_102_444_800) // 2100-01-01T00:00:00Z
+
+    override func tearDown() async throws {
+        do {
+            try FileManager.default.removeItem(at: directory)
+        } catch {
+            // swallow-ok: a test that archived nothing leaves no directory to remove.
+        }
+        try await super.tearDown()
+    }
+
+    /// The acceptance service reads sleep and vitals from a mock and syncs
+    /// nothing to iCloud; the baseline lives in the test's directory.
+    private func makeCollector() -> RRCollector {
+        let rawBackup = RawRRBackup()
+        let tracker = BaselineTracker(baselineFile: directory.appendingPathComponent("HRVBaseline.json"))
+        let acceptance = SessionAcceptanceService(
+            archive: archive, healthKit: MockHealthKitService(), baselineTracker: tracker, rawBackup: rawBackup,
+            onCloudSync: { _ in }, onCloudDelete: { _ in }
+        )
+        return RRCollector(
+            polarManager: PolarManager(), healthKit: HealthKitManager(), archive: archive, rawBackup: rawBackup,
+            baselineTracker: tracker, acceptanceService: acceptance
+        )
+    }
+
+    private func night() -> HRVSession {
+        HRVSession(
+            id: UUID(), startDate: nightStart, endDate: nightStart.addingTimeInterval(8 * 3600),
+            state: .complete, sessionType: .overnight, rrSeries: nil, analysisResult: nil, artifactFlags: nil
+        )
+    }
+
+    /// An analysis carrying its own training context, so the re-score never
+    /// asks HealthKit for the load.
+    private func analysis() -> HRVAnalysisResult {
+        var result = HRVAnalysisResult(
+            windowStart: 0, windowEnd: 400,
+            timeDomain: TimeDomainMetrics(
+                meanRR: 1035, sdnn: 30, rmssd: 35, pnn50: 12, sdsd: 30, meanHR: 58, sdHR: 3, triangularIndex: nil
+            ),
+            frequencyDomain: nil,
+            nonlinear: NonlinearMetrics(
+                sd1: 25, sd2: 40, sd1Sd2Ratio: 0.6, sampleEntropy: 1.5, approxEntropy: 1.3,
+                dfaAlpha1: 0.85, dfaAlpha2: nil, dfaAlpha1R2: 0.95
+            ),
+            ansMetrics: nil, artifactPercentage: 1, cleanBeatCount: 400, analysisDate: nightStart
+        )
+        result.trainingContext = TrainingContext(
+            atl: 0, ctl: 0, tsb: 0, yesterdayTrimp: 0, vo2Max: nil, daysSinceHardWorkout: nil, recentWorkouts: nil
+        )
+        return result
+    }
+
+    // MARK: - Re-score after acceptance
+
+    /// A stored re-score reports true, and the tags carried on the session
+    /// (the auto-accept's pre-night tags) reach the archive with it.
+    func testScoreUpdateReportsTheStoredReArchiveWithItsTags() async throws {
+        var session = night()
+        session.analysisResult = analysis()
+        try archive.archive(session)
+        session.tags = [ReadingTag.alcohol]
+
+        let stored = await collector.updateCompositeRecoveryScore(for: session)
+
+        XCTAssertTrue(stored)
+        XCTAssertEqual(try archive.retrieve(session.id)?.tags, [ReadingTag.alcohol])
+    }
+
+    /// A session with no analysis is not re-archived: the update reports
+    /// false and the tags it carries are not in the archive, so the
+    /// auto-accept keeps them selected.
+    func testScoreUpdateReportsNothingStoredWithoutAnAnalysis() async throws {
+        var session = night()
+        try archive.archive(session)
+        session.tags = [ReadingTag.alcohol]
+
+        let stored = await collector.updateCompositeRecoveryScore(for: session)
+
+        XCTAssertFalse(stored)
+        XCTAssertEqual(try archive.retrieve(session.id)?.tags, [])
+    }
+
+    // MARK: - Segment unlink
+
+    /// No archived parent: nothing is unlinked and the collector says so,
+    /// so the report keeps the segment listed.
+    func testUnlinkReportsFailureWhenTheParentIsNotArchived() {
+        XCTAssertFalse(collector.unlinkSegment(segmentId: UUID(), fromSession: UUID()))
+    }
+
+    /// A segment whose own copy cannot be read: its beats cannot be located,
+    /// so the link is kept and the collector reports false.
+    func testUnlinkReportsFailureAndKeepsTheLinkWhenTheSegmentCannotBeRead() throws {
+        var parent = night()
+        let segmentId = UUID()
+        parent.linkedSessionIds = [segmentId]
+        try archive.archive(parent)
+
+        XCTAssertFalse(collector.unlinkSegment(segmentId: segmentId, fromSession: parent.id))
+        XCTAssertEqual(try archive.retrieve(parent.id)?.linkedSessionIds, [segmentId])
+    }
+}

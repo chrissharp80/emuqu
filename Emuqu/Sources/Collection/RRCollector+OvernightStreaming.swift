@@ -135,7 +135,6 @@ extension OvernightStreamingCoordinator {
         collector.isCollecting = true
         collector.pausedBeatCount = 0
         collector.lastSeenReconnectCount = 0
-        collector.isDeviceFetchInProgress = false
         collector.overnightDeviceBackupActive = false
         collector.isOvernightEnding = false
         // A Skip from an earlier morning never reaches this night's download,
@@ -634,9 +633,6 @@ extension OvernightStreamingCoordinator {
     /// for one frame and permanently corrupt the parent ScrollView layout.
     /// The morning stop and the pause's gather both stop through here.
     func stopStreamingInfrastructure() async -> (HRVSession, [RRPoint], Int) {
-        await MainActor.run {
-            collector.isDeviceFetchInProgress = false
-        }
         collector.stopStreamingTimer()
         AppDependencies.current.app.systemDiagnosticsManager.stopSamplingAfterRecording()
         collector.isStreamingMode = false

@@ -30,7 +30,6 @@ extension MorningDetailCards {
                 .foregroundColor(AppTheme.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-            strapSyncIndicator
             dateAndQualitySubtitle
             splitNightSection
         }
@@ -99,20 +98,6 @@ extension MorningDetailCards {
             Text(verbatim: ScoreVerdict(score: score).localizedWord)
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(AppTheme.textSecondary)
-        }
-    }
-
-    /// Subtle strap sync indicator. Does NOT gate score display.
-    @ViewBuilder
-    private var strapSyncIndicator: some View {
-        if morningCoordination.isDeviceFetchInProgress {
-            HStack(spacing: 6) {
-                ProgressView().scaleEffect(0.6)
-                Text(String(localized: "Syncing strap data", bundle: LanguageManager.appBundle))
-                    .font(.caption)
-                    .foregroundColor(AppTheme.textTertiary)
-                Spacer()
-            }
         }
     }
 
