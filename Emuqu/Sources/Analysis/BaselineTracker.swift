@@ -101,12 +101,14 @@ final class BaselineTracker: @unchecked Sendable {
 
     /// Why the file at `baselineFile` must not be written over.
     private enum SaveHold {
-        /// iOS file protection kept the file unreadable (a background launch
-        /// before the first unlock). The file is intact: it is read again as
-        /// soon as protected data is available (or before the next change),
-        /// and the nights taken in meanwhile are merged onto it
-        /// (`reloadAfterUnlock()`).
-        case fileLocked
+        /// The file could not be read but may be intact: iOS file protection
+        /// kept it unreadable (a background launch before the first unlock),
+        /// or the read failed for a reason that can pass (out of file
+        /// descriptors, an I/O error; `FileReadFailure.transient`). It is read
+        /// again when protected data is available, the app becomes active or
+        /// goes to the background, or before the next change, and the nights
+        /// taken in meanwhile are merged onto it (`reloadAfterUnlock()`).
+        case fileNotRead
         /// The file did not decode and the copy of its bytes could not be
         /// written aside, so the file is the only copy of what it held. Each
         /// save writes the copy again from `undecodableBytes`.
@@ -122,8 +124,8 @@ final class BaselineTracker: @unchecked Sendable {
     /// Under `lock`.
     private var lastSleepSchedule: SleepSchedule?
 
-    /// Protected-data and become-active observers, installed while the file
-    /// was locked at load.
+    /// Protected-data, become-active and background observers, installed
+    /// when the file could not be read at load.
     private let unlockObservers = NotificationTokens()
 
     /// Data point for baseline calculation
@@ -195,7 +197,7 @@ final class BaselineTracker: @unchecked Sendable {
         self.onBaselineUpdated = onBaselineUpdated
         self.baselineFile = baselineFile
         load()
-        if saveHold == .fileLocked { observeUnlock() }
+        if saveHold == .fileNotRead { observeUnlock() }
         recalculateBaseline()
         // Sync loaded baseline on startup
         notifyBaselineChanged()
@@ -628,8 +630,8 @@ final class BaselineTracker: @unchecked Sendable {
     }
 
     /// Reset baseline (start fresh): forgets every stored night and saves the
-    /// empty baseline. A file that was locked at load is written over without
-    /// being read first, as its nights are the ones being discarded; a file
+    /// empty baseline. A file that could not be read at load is written over
+    /// without being read first, as its nights are the ones being discarded; a file
     /// that did not decode and whose copy could not be written aside stays
     /// protected (`mayWriteFile()`).
     func reset() {
@@ -637,7 +639,7 @@ final class BaselineTracker: @unchecked Sendable {
         defer { lock.unlock() }
         currentBaseline = nil
         historicalData = []
-        if saveHold == .fileLocked { saveHold = nil }
+        if saveHold == .fileNotRead { saveHold = nil }
         save()
     }
 
@@ -813,25 +815,42 @@ final class BaselineTracker: @unchecked Sendable {
     }
 
     /// The stored baseline and nights, or nil with `saveHold` set for why not.
-    /// A read iOS file protection refuses (NSCocoaErrorDomain /
-    /// NSFileReadNoPermissionError, as `SettingsManager.load(from:)` reads it)
-    /// leaves the file in place and holds saves until it can be read. A read
-    /// that fails for another reason has no bytes to keep, so saves go ahead.
-    /// Bytes that do not decode are written aside first
-    /// (`setAsideUndecodable`), and saves are held only while that write fails.
+    /// A failed read is classified as `SettingsManager.load(from:)` does
+    /// (`Self.hold(forReadError:)`): a file that may be intact is left in place
+    /// and holds saves until it reads; only a file that is gone or can never
+    /// give its bytes back lets saves go ahead. Bytes that do not decode are
+    /// written aside first (`setAsideUndecodable`), and saves are held only
+    /// while that write fails.
     private func readFile() -> StoredData? {
         let data: Data
         do {
             data = try Data(contentsOf: baselineFile)
         } catch let nsError as NSError {
-            let locked = nsError.domain == NSCocoaErrorDomain && nsError.code == NSFileReadNoPermissionError
-            debugLog(locked
-                ? "[Baseline] baseline file is locked — saves wait until it can be read"
-                : "[Baseline] baseline file could not be read (\(nsError)) — nothing to keep aside, starting empty", level: .warning)
-            saveHold = locked ? .fileLocked : nil
+            saveHold = Self.hold(forReadError: nsError)
+            if saveHold == nil {
+                debugLog("[Baseline] baseline file is gone or can never be read — nothing to keep, starting empty: \(nsError)", level: .warning)
+            } else {
+                debugLog("[Baseline] baseline file could not be read — saves wait until it reads: \(nsError)", level: .warning)
+            }
             return nil
         }
         return decodeOrSetAside(data)
+    }
+
+    /// Whether a failed read of the baseline file holds saves; the decision
+    /// `readFile()` makes, for tests.
+    static func holdsSaves(afterReadError error: NSError) -> Bool {
+        hold(forReadError: error) != nil
+    }
+
+    /// The save hold a failed read of the baseline file leaves: `.fileNotRead`
+    /// while the file may be intact (protection-locked or a read that can
+    /// pass), none when it is gone or can never give its bytes back.
+    private static func hold(forReadError error: NSError) -> SaveHold? {
+        switch FileReadFailure(error) {
+        case .locked, .transient: .fileNotRead
+        case .gone, .nothingToKeep: nil
+        }
     }
 
     /// The second half of `readFile()`: `data` decoded, or nil once its bytes
@@ -855,12 +874,17 @@ final class BaselineTracker: @unchecked Sendable {
         }
     }
 
-    /// Watches for protected data becoming available (and the app becoming
-    /// active, which a suspended app sees instead) while the file is locked,
-    /// so the file is read and the nights held in memory are saved without
-    /// waiting for the next change.
+    /// Watches for protected data becoming available, the app becoming active
+    /// (which a suspended app sees instead) and the app going to the
+    /// background while the file could not be read, so it is read again and
+    /// the nights held in memory are saved without waiting for the next change.
     private func observeUnlock() {
-        for name in [UIApplication.protectedDataDidBecomeAvailableNotification, UIApplication.didBecomeActiveNotification] {
+        let names = [
+            UIApplication.protectedDataDidBecomeAvailableNotification,
+            UIApplication.didBecomeActiveNotification,
+            UIApplication.didEnterBackgroundNotification
+        ]
+        for name in names {
             unlockObservers.add(NotificationCenter.default.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
                 self?.retryAfterUnlock()
             })
@@ -874,15 +898,15 @@ final class BaselineTracker: @unchecked Sendable {
         reloadAfterUnlock()
     }
 
-    /// While the file was locked at load, reads it again. Once it is readable,
-    /// the nights held in memory are merged onto the file's nights (one per
-    /// night, with the last sleep schedule an update or rebuild passed), the
-    /// hold lifts and the result is committed. Still locked: nothing changes.
-    /// Gone, or unreadable for another reason by now: the hold is what
-    /// `readFile()` leaves, and the held nights are saved with the next change.
-    /// Caller holds `lock`.
+    /// While the file could not be read at load, reads it again. Once it is
+    /// readable, the nights held in memory are merged onto the file's nights
+    /// (one per night, with the last sleep schedule an update or rebuild
+    /// passed), the hold lifts and the result is committed. Still unreadable:
+    /// nothing changes. Gone, or unable ever to give its bytes back: the hold
+    /// is what `readFile()` leaves, and the held nights are saved with the
+    /// next change. Caller holds `lock`.
     private func reloadAfterUnlock() {
-        guard saveHold == .fileLocked else { return }
+        guard saveHold == .fileNotRead else { return }
         guard fileManager.fileExists(atPath: baselineFile.path) else {
             saveHold = nil
             return
@@ -916,7 +940,7 @@ final class BaselineTracker: @unchecked Sendable {
 
     /// Whether `save()` may write `baselineFile`: always without a hold, and
     /// once the held file is gone (Delete All My Data removed it). The copy of
-    /// an undecodable file is written again here; a locked file waits for
+    /// an undecodable file is written again here; an unread file waits for
     /// `reloadAfterUnlock()`. A save that stays held is not logged again: the
     /// hold was logged when it was set. Caller holds `lock`.
     private func mayWriteFile() -> Bool {
