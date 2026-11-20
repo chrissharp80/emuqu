@@ -90,6 +90,12 @@ It does not remove Apple Health samples the app wrote (the result tells the
 user how to remove them in the Health app), and it keeps the purchase/trial
 anchor — a wipe is not a refund.
 
+The delete is unavailable while a recording is in progress (a quick reading,
+a night, paused or still being analysed, a strap recording, or a workout) or
+a reading is waiting to be accepted; the page says so under the button. The
+user stops the recording, or accepts or discards the reading, and then runs
+it.
+
 Direct the user to that flow first. It's faster than waiting for you.
 
 ## Step 3 — CloudKit private-DB deletion

@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Services/DataPurgeService.swift",
  "hash": "5751f755a05f2cd4",
- "role": "'Delete All My Data' orchestrator: refuses while a recording is under way, otherwise awaits CloudKit zone deletion, sweeps every file in App Group/Application Support/Documents/Caches/tmp and every UserDefaults key (minus keep-lists), then resets named stores (archive dirs, keychain, AI stores, settings, breadcrumbs, caches, notifications) and returns a localized Report.",
+ "role": "'Delete All My Data' orchestrator: refuses while a recording is under way or a reading is waiting to be accepted, otherwise awaits CloudKit zone deletion, sweeps every file in App Group/Application Support/Documents/Caches/tmp and every UserDefaults key (minus keep-lists), then resets named stores (archive dirs, keychain, AI stores, settings, breadcrumbs, caches, notifications) and returns a localized Report.",
  "types": [
   "DataPurgeService: enum (@MainActor) — static purge steps",
   "DataPurgeService.Report: struct — per-step booleans (profileReset among them), residual counts, errors, localized text",
@@ -294,8 +294,8 @@
   },
   {
    "key": "var DataPurgeService.Refusal.errorDescription",
-   "hash": "d9cc3cf36e086420",
-   "does": "Localized explanation of a refusal. .recordingInProgress: stop the recording in progress first, because a reading, night or workout that keeps recording would save its data again after the delete.",
+   "hash": "36dd18a6768247be",
+   "does": "Localized explanation of a refusal. .recordingInProgress: stop the recording in progress, or accept or discard the reading that is waiting for review, first, because otherwise its data would be saved again after the delete.",
    "entry": "LocalizedError.localizedDescription, read by DeleteAllDataPage.recordingFooter and by the catch in DeleteAllDataPage.runPurge",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -316,7 +316,7 @@
   {
    "key": "func DataPurgeService.isRecordingInProgress(collector:workout:)",
    "hash": "672824626809c6b1",
-   "does": "True when the collector passed is recording (collectorIsRecording) or the workout recorder passed is (workoutIsRecording); false when neither is, or both are nil.",
+   "does": "True when the collector passed is recording or holds a reading waiting to be accepted (collectorIsRecording), or the workout recorder passed is recording (workoutIsRecording); false when neither is, or both are nil.",
    "entry": "DeleteAllDataPage.recordingInProgress; appIsRecording (the default recording check in purgeAllUserData); DataPurgeServiceTests",
    "calls": [
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.collectorIsRecording(_:)",
@@ -342,20 +342,21 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.collectorIsRecording(_:)": "43e9d2fd6673b837",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.collectorIsRecording(_:)": "ec80d918e585f231",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.workoutIsRecording(_:)": "dd02638cce5f9617"
    }
   },
   {
    "key": "func DataPurgeService.collectorIsRecording(_:)",
-   "hash": "64dd136ffd7a3ec4",
-   "does": "True while the collector's isCollecting, isOvernightStreaming, isPaused or isRecordingOnDevice is set, or its recordingPhase is .streaming, .overnightStreaming, .deviceRecording, .paused or .analyzing (a quick reading, a night including a paused one or a stopped one being analysed, a strap recording). False for .idle and .awaitingAcceptance with none of the flags set.",
+   "hash": "e723bb172fbfe832",
+   "does": "True while the collector's isCollecting, isOvernightStreaming, isPaused, isRecordingOnDevice or needsAcceptance is set, or its recordingPhase is anything but .idle: .streaming, .overnightStreaming, .deviceRecording, .paused, .analyzing or .awaitingAcceptance (a quick reading, a night including a paused one or a stopped one being analysed, a strap recording, or a reading waiting to be accepted or discarded). False only for .idle with none of the flags set.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isPaused",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase"
    ],
    "reads": [
@@ -363,23 +364,24 @@
     "mem:StreamingLifecycle.isOvernightStreaming",
     "mem:StreamingLifecycle.isPaused",
     "mem:DeviceStatus.isRecordingOnDevice",
+    "mem:SessionState.needsAcceptance",
     "mem:SessionState.recordingPhase"
    ],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "isCollecting || isOvernightStreaming || isPaused || isRecordingOnDevice",
-     "effect": "true"
-    },
-    {
-     "at": "+5",
-     "cond": "recordingPhase .streaming/.overnightStreaming/.deviceRecording/.paused/.analyzing",
+     "cond": "isCollecting || isOvernightStreaming || isPaused || isRecordingOnDevice || needsAcceptance",
      "effect": "true"
     },
     {
      "at": "+6",
-     "cond": "recordingPhase .idle/.awaitingAcceptance",
+     "cond": "recordingPhase .streaming/.overnightStreaming/.deviceRecording/.paused/.analyzing/.awaitingAcceptance",
+     "effect": "true"
+    },
+    {
+     "at": "+7",
+     "cond": "recordingPhase .idle",
      "effect": "false"
     }
    ],
@@ -387,6 +389,7 @@
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "f52c78dcfaca1b83",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isPaused": "2adbcfd04fa8941f",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "b611e0c61d35d899",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610"
    }
@@ -435,7 +438,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isRecordingInProgress(collector:workout:)": "f3261a3ff39a560f",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isRecordingInProgress(collector:workout:)": "0ae1baecd7e62774",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox": "59f6a0baabb8c1c8",
@@ -445,7 +448,7 @@
   {
    "key": "func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)",
    "hash": "4847b462d5e13a72",
-   "does": "First asks whether a recording is under way (recordingInProgress when passed, else appIsRecording: isRecordingInProgress over RRCollector.current and the app's workout recorder) and, if one is, throws Refusal.recordingInProgress before anything is deleted, iCloud included. Otherwise runs the purge: remote CloudKit deletion (awaited), container file sweep (keeping only the live settings file, settingsManager.settingsURL) + in-memory archive reset, UserDefaults sweep, named directory/store resets, a reset of the personal baseline tracker (the one passed, else RRCollector.current's), debug/crash log purge, then reads the settings file back (readBackProfile) and every other store whose clear reports no failure (readBackClearedStores) and returns a Report whose per-step booleans are those results. The file and preference sweeps and the archive/backup directory resets run in `scope` (default .device, the app's own containers and suites; tests pass temporary ones); the keychain, assistant stores, settings, CloudKit local state, logs, breadcrumbs and workout track backups are always the app's own.",
+   "does": "First asks whether a recording is under way or a reading is waiting to be accepted (recordingInProgress when passed, else appIsRecording: isRecordingInProgress over RRCollector.current and the app's workout recorder) and, if one is, throws Refusal.recordingInProgress before anything is deleted, iCloud included. Otherwise runs the purge: remote CloudKit deletion (awaited), container file sweep (keeping only the live settings file, settingsManager.settingsURL) + in-memory archive reset, UserDefaults sweep, named directory/store resets, a reset of the personal baseline tracker (the one passed, else RRCollector.current's), debug/crash log purge, then reads the settings file back (readBackProfile) and every other store whose clear reports no failure (readBackClearedStores) and returns a Report whose per-step booleans are those results. The file and preference sweeps and the archive/backup directory resets run in `scope` (default .device, the app's own containers and suites; tests pass temporary ones); the keychain, assistant stores, settings, CloudKit local state, logs, breadcrumbs and workout track backups are always the app's own.",
    "entry": "DeleteAllDataPage.runPurge (the button task); DataPurgeServiceTests",
    "calls": [
     "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.appIsRecording",

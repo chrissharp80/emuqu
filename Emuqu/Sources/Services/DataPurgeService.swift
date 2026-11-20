@@ -207,13 +207,14 @@ enum DataPurgeService {
 
     /// Why a purge did not start.
     enum Refusal: Error, LocalizedError {
-        /// A recording is under way (see `isRecordingInProgress`).
+        /// A recording is under way, or a reading is waiting to be accepted
+        /// (see `isRecordingInProgress`).
         case recordingInProgress
 
         var errorDescription: String? {
             switch self {
             case .recordingInProgress:
-                String(localized: "Stop the recording in progress first. A reading, night or workout that keeps recording would save its data again after the delete.", bundle: LanguageManager.appBundle)
+                String(localized: "Stop the recording in progress, or accept or discard the reading that is waiting for review, first. Otherwise its data would be saved again after the delete.", bundle: LanguageManager.appBundle)
             }
         }
     }
@@ -224,7 +225,8 @@ enum DataPurgeService {
     /// paused or being finalised). A purge while one runs is undone by it:
     /// the recording still holds its beats in memory and writes them back to
     /// the emptied backups, and its session is archived when it stops. A
-    /// night waiting for the user to accept it is not recording.
+    /// reading waiting for the user to accept or discard it counts too:
+    /// accepting it after the purge would archive the pre-purge session.
     static func isRecordingInProgress(collector: RRCollector?, workout: WorkoutRecorder?) -> Bool {
         if let collector, collectorIsRecording(collector) { return true }
         if let workout, workoutIsRecording(workout) { return true }
@@ -232,12 +234,13 @@ enum DataPurgeService {
     }
 
     private static func collectorIsRecording(_ collector: RRCollector) -> Bool {
-        if collector.isCollecting || collector.isOvernightStreaming || collector.isPaused || collector.isRecordingOnDevice {
+        if collector.isCollecting || collector.isOvernightStreaming || collector.isPaused
+            || collector.isRecordingOnDevice || collector.needsAcceptance {
             return true
         }
         return switch collector.recordingPhase {
-        case .streaming, .overnightStreaming, .deviceRecording, .paused, .analyzing: true
-        case .idle, .awaitingAcceptance: false
+        case .streaming, .overnightStreaming, .deviceRecording, .paused, .analyzing, .awaitingAcceptance: true
+        case .idle: false
         }
     }
 

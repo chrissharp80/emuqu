@@ -557,7 +557,8 @@ final class DataPurgeServiceTests: XCTestCase {
 
     /// Each kind of recording counts: a quick reading, an overnight stream,
     /// a paused night, a stopped night still being analysed, and a recording
-    /// on the strap. A night waiting to be accepted has stopped recording.
+    /// on the strap. So does a reading waiting to be accepted: accepting it
+    /// after the purge would archive it. Only an idle collector lets it run.
     func testEveryCollectorRecordingStateCounts() {
         let reading = SnapshotFixtures.collector()
         reading.isCollecting = true
@@ -581,7 +582,13 @@ final class DataPurgeServiceTests: XCTestCase {
 
         let awaiting = SnapshotFixtures.collector()
         awaiting.recordingPhase = .awaitingAcceptance
-        XCTAssertFalse(DataPurgeService.isRecordingInProgress(collector: awaiting, workout: nil), "night awaiting acceptance")
+        XCTAssertTrue(DataPurgeService.isRecordingInProgress(collector: awaiting, workout: nil), "night awaiting acceptance")
+
+        let review = SnapshotFixtures.collector()
+        review.needsAcceptance = true
+        XCTAssertTrue(DataPurgeService.isRecordingInProgress(collector: review, workout: nil), "reading awaiting acceptance")
+
+        XCTAssertFalse(DataPurgeService.isRecordingInProgress(collector: SnapshotFixtures.collector(), workout: nil), "idle collector")
     }
 
     /// A workout counts while it records (paused included, which keeps the
