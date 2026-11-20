@@ -1311,12 +1311,15 @@ lists them all as possible callers, and only certain edges trigger re-checks.
 - **`gates.yml`** — on pushes to `main` and every pull request, ubuntu runner:
   the script gates from `make ci` that need only bash and python (no SwiftLint,
   no Xcode), including the code-map check. On a pull request it also writes the
-  code-map impact report to the job summary. About a minute. The macOS jobs
-  above are not required checks. `main` requires this job to pass before anything merges.
+  code-map impact report to the job summary. About a minute. `main` requires
+  this job and the four macOS jobs above to pass, on a branch that is up to date
+  with `main`, before anything merges.
 - **`security.yml`** — `workflow_dispatch` only — CodeQL over the Swift
   (macOS) and dependency review (ubuntu).
 - **`performance.yml`** — `workflow_dispatch` only — `AnalysisPerformanceTests`.
 - **`testflight.yml`** — `workflow_dispatch` only — TestFlight build + upload.
+  The deploy job runs in the `testflight` environment, which holds the signing
+  secrets, accepts only `main` and waits for the owner's approval.
 
 ### Dependency upgrade constraints
 

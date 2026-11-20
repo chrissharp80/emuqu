@@ -27,11 +27,11 @@ jobs:
     # thing standing between a red build and real testers, so it says what it
     # means instead of depending on that rule staying true.
     if: needs.quality-gate.result == 'success' && github.repository_owner == 'chrissharp80'
-    # The signing and App Store Connect secrets live in this environment,
-    # which requires a reviewer's approval and deploys only from main.
-    environment: testflight
     runs-on: macos-26
     timeout-minutes: 60
+    # The signing and App Store Connect secrets live in this environment, which
+    # only main can deploy to and which waits for the owner's approval.
+    environment: testflight
 
     steps:
       - name: Checkout

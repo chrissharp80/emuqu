@@ -34,9 +34,30 @@ if [[ -z "${DESTINATION:-}" ]]; then
 fi
 
 log="$(gate_mktemp tsan)" || exit $?
-trap 'rm -f "$log"' EXIT
+heartbeat=""
+stop_heartbeat() {
+    [[ -n "$heartbeat" ]] || return 0
+    # The loop's own `sleep` is a child of it; end that too, or it outlives the script.
+    pkill -P "$heartbeat" 2>/dev/null || true
+    kill "$heartbeat" 2>/dev/null || true
+    wait "$heartbeat" 2>/dev/null || true
+    heartbeat=""
+}
+trap 'stop_heartbeat; rm -f "$log"' EXIT
 
-echo "Running the unit suite under Thread Sanitizer (this takes several minutes)…"
+echo "Running the unit suite under Thread Sanitizer (20 to 40 minutes on a CI runner)…"
+
+# xcodebuild writes only to the log, so without this the step prints nothing
+# for half an hour and a slow run looks the same as a hung one. Once a minute,
+# say how long it has run and how many tests have passed so far.
+started="$(date +%s)"
+(
+    while sleep 60; do
+        done_so_far="$(grep -c "' passed" "$log" 2>/dev/null || true)"
+        echo "  $(( ($(date +%s) - started) / 60 )) min: ${done_so_far:-0} tests passed so far"
+    done
+) 2>/dev/null &
+heartbeat=$!
 
 set +e
 xcodebuild test \
@@ -48,6 +69,8 @@ xcodebuild test \
     -only-testing:EmuquTests > "$log" 2>&1
 status=$?
 set -e
+stop_heartbeat
+echo "Sanitized build and test run took $(( ($(date +%s) - started) / 60 )) min."
 
 # An empty log would read as zero races and zero failures.
 gate_require_nonempty "$log" "the xcodebuild log"
