@@ -11,8 +11,8 @@
  "units": [
   {
    "key": "func MorningSessionPipeline.gatherOvernightData()",
-   "hash": "90ec5aff636fd53e",
-   "does": "Pause-path gather: stops the stream exactly as the morning stop does (OvernightStreamingCoordinator.stopStreamingInfrastructure: base session, reconnect count, saving state published), backs the beats up (backupStreamingData), downloads the strap file via fetchNightFromStrap, gates/selects the source and returns an OvernightDataResult (nil when the session was failed).",
+   "hash": "3fe9a39486bc3c23",
+   "does": "Pause-path gather: stops the stream exactly as the morning stop does (OvernightStreamingCoordinator.stopStreamingInfrastructure: base session, reconnect count, saving state published), backs the beats up (backupStreamingData), downloads the strap file via fetchNightFromStrap, gates/selects the source and returns an OvernightDataResult carrying the downloaded strap beats as downloadedPoints (nil when the session was failed).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming",
@@ -51,7 +51,7 @@
     "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.resolveOvernightSource(streamingPoints:internalPoints:baseSession:)": "636facceda0bc0c2",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.backupStreamingData(_:sessionId:)": "9ec6ffb5020f31eb",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)": "04a37de5fc61168b",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopStreamingInfrastructure()": "80eaad4f2265b36e",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopStreamingInfrastructure()": "7118bb68655824f9",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.isVeritySenseDevice(_:)": "fcdf7e5816f3f122",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "0f40f13f892158e2",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"

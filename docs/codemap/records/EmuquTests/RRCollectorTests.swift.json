@@ -422,31 +422,96 @@
    }
   },
   {
-   "key": "func RRCollectorSaveResultTests.testARescoredNightReachesTheReviewCardWithTheCardsEntries()",
-   "hash": "4ef958c21b1ee055",
-   "does": "Puts a night with score 6.1, tags, notes and a feeling on the review card, adopts an archived copy with score 7.4 and none of those entries, and asserts the card shows 7.4 with its own tags, notes and feeling.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "key": "func RRCollectorSaveResultTests.reviewCard()",
+   "hash": "9d1abaa06bec9988",
+   "does": "Puts a night with score 6.1 on the review card awaiting acceptance, as the night this review saved (reviewArchivedSessionId, reviewArchivedEntries from it), and returns it.",
+   "entry": null,
    "calls": [
     "EmuquTests/RRCollectorTests.swift::func RRCollectorSaveResultTests.night()",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis",
-    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.adoptArchivedCopy(_:)"
+    "Emuqu/Sources/Collection/SessionState.swift::init SessionState.ReviewEntries(of:)"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:SessionState.reviewArchivedSessionId",
+    "mem:SessionState.reviewArchivedEntries"
+   ],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
-    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.adoptArchivedCopy(_:)": "30c9a8ca43e368fa",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis": "726142f09d599723",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "b611e0c61d35d899",
+    "Emuqu/Sources/Collection/SessionState.swift::init SessionState.ReviewEntries(of:)": "6aaab0fdba9aba60",
     "EmuquTests/RRCollectorTests.swift::func RRCollectorSaveResultTests.night()": "7cd693f1c6b696c9"
    }
   },
   {
+   "key": "func RRCollectorSaveResultTests.testARescoreOfTheReviewedNightReachesTheCardKeepingTheCardsEdits()",
+   "hash": "c82ecdec91d7e2e2",
+   "does": "Edits tags and notes on the review card, finishes a rescore whose copy has score 7.4, no tags or notes and a feeling of 2, and asserts the card shows 7.4 with its own tags and notes and the archived feeling.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RRCollectorTests.swift::func RRCollectorSaveResultTests.reviewCard()",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.finishRescore(sessionId:prior:updated:reason:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.finishRescore(sessionId:prior:updated:reason:)": "357596120a3f3499",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis": "726142f09d599723",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "EmuquTests/RRCollectorTests.swift::func RRCollectorSaveResultTests.reviewCard()": "3a8309e433e450aa"
+   }
+  },
+  {
+   "key": "func RRCollectorSaveResultTests.testARescoreOfTheOldArchivedCopyLeavesANewerReviewNightAlone()",
+   "hash": "dd8299a75c0a9aa1",
+   "does": "With a review card that is not the archive's copy (no reviewArchivedSessionId) scored 8.2, finishes a rescore of the old archived copy scored 5.0 and asserts the card keeps 8.2.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RRCollectorTests.swift::func RRCollectorSaveResultTests.reviewCard()",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.finishRescore(sessionId:prior:updated:reason:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.finishRescore(sessionId:prior:updated:reason:)": "357596120a3f3499",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis": "726142f09d599723",
+    "EmuquTests/RRCollectorTests.swift::func RRCollectorSaveResultTests.reviewCard()": "3a8309e433e450aa"
+   }
+  },
+  {
+   "key": "func RRCollectorSaveResultTests.testARescoreWithNothingAwaitingAcceptanceLeavesTheCurrentSession()",
+   "hash": "6a26ba5455bf4467",
+   "does": "With nothing awaiting acceptance, finishes a rescore of the current session and asserts its score is unchanged.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RRCollectorTests.swift::func RRCollectorSaveResultTests.reviewCard()",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.finishRescore(sessionId:prior:updated:reason:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "b611e0c61d35d899",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.finishRescore(sessionId:prior:updated:reason:)": "357596120a3f3499",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis": "726142f09d599723",
+    "EmuquTests/RRCollectorTests.swift::func RRCollectorSaveResultTests.reviewCard()": "3a8309e433e450aa"
+   }
+  },
+  {
    "key": "func RRCollectorSaveResultTests.testAnotherSessionsArchivedCopyLeavesTheReviewCardAlone()",
-   "hash": "0d379adea3d21ebf",
+   "hash": "c3ff78285a121977",
    "does": "Puts a night on the review card, adopts the archived copy of a different session, and asserts the card keeps its own id and score.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
+    "EmuquTests/RRCollectorTests.swift::func RRCollectorSaveResultTests.reviewCard()",
     "EmuquTests/RRCollectorTests.swift::func RRCollectorSaveResultTests.night()",
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.adoptArchivedCopy(_:)"
@@ -456,9 +521,10 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
-    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.adoptArchivedCopy(_:)": "30c9a8ca43e368fa",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.adoptArchivedCopy(_:)": "43796119c333b684",
     "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis": "726142f09d599723",
-    "EmuquTests/RRCollectorTests.swift::func RRCollectorSaveResultTests.night()": "7cd693f1c6b696c9"
+    "EmuquTests/RRCollectorTests.swift::func RRCollectorSaveResultTests.night()": "7cd693f1c6b696c9",
+    "EmuquTests/RRCollectorTests.swift::func RRCollectorSaveResultTests.reviewCard()": "3a8309e433e450aa"
    }
   },
   {

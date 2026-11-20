@@ -48,8 +48,8 @@ extension CollectorSessionControl {
     /// touching the night. Returns nil then, and when the paused night could
     /// not be archived.
     func pauseOvernightStreaming() async -> HRVSession? {
-        guard collector.streamingLifecycle.claimOvernightEnding() else { return nil }
-        defer { collector.streamingLifecycle.releaseOvernightEnding() }
+        guard let claim = collector.streamingLifecycle.claimOvernightEnding() else { return nil }
+        defer { collector.streamingLifecycle.releaseOvernightEnding(claim) }
         let bgTask = BackgroundTaskAssertion.forRecordingStop(named: "OvernightPause")
         defer { bgTask.end() }
         await collector.overnightStreaming.endDeviceRecordingArming()
@@ -74,8 +74,8 @@ extension CollectorSessionControl {
 
     /// Full analysis pause path: merge parent data, analyze, archive, update UI.
     /// A night the archive would not take is not published as paused
-    /// (`publishUnsavedPause`); the strap's beats in it, which the stream's
-    /// backup does not hold, get a backup of their own first.
+    /// (`publishUnsavedPause`); the strap's beats the gather downloaded, which
+    /// the stream's backup does not hold, get a backup of their own first.
     private func pauseWithFullAnalysis(data: OvernightStreamingCoordinator.OvernightDataResult) async -> HRVSession? {
         let merged = collector.mergeParentSessionData(data: data)
         let totalBeats = merged.points.count
@@ -90,7 +90,7 @@ extension CollectorSessionControl {
         pausedSession.state = .paused
         pausedSession.pausedDate = Date()
         guard await archiveAndPersistPause(pausedSession, label: "Paused") else {
-            collector.morning.rescueDownloadedBeats(data.dataSource == "streaming" ? nil : data.points, baseSession: data.baseSession)
+            collector.morning.rescueDownloadedBeats(data.downloadedPoints, baseSession: data.baseSession)
             publishUnsavedPause(pausedSession)
             return nil
         }
@@ -242,10 +242,12 @@ extension CollectorSessionControl {
         commitResumedSession(session)
     }
 
-    /// Publish the resumed session's state, persist it for crash recovery, drop
-    /// the paused-session marker, and restart the 1 Hz overnight timer.
+    /// Publish the resumed session's state, drop an ending claim left behind,
+    /// persist it for crash recovery, drop the paused-session marker, and
+    /// restart the 1 Hz overnight timer.
     private func commitResumedSession(_ session: HRVSession) {
         resetStateForResumedSession(session)
+        collector.overnightStreaming.dropStaleEndingClaim()
         collector.persistRecordingState(sessionId: session.id, startTime: Date(), sessionType: session.sessionType)
         clearPausedSessionState()
         collector.startOvernightStreamingTimer()
@@ -329,6 +331,7 @@ extension CollectorSessionControl {
         collector.currentSession = finalSession
         collector.needsAcceptance = finalSession.analysisResult != nil
         collector.sessionState.reviewArchivedSessionId = collector.needsAcceptance ? finalSession.id : nil
+        collector.sessionState.reviewArchivedEntries = SessionState.ReviewEntries(of: finalSession)
         collector.isPaused = false
         collector.recordingPhase = collector.needsAcceptance ? .awaitingAcceptance : .idle
         collector.pausedSession = nil

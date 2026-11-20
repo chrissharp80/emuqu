@@ -35,7 +35,8 @@ extension MorningSessionPipeline {
         return OvernightStreamingCoordinator.OvernightDataResult(
             points: chosen.points, baseSession: baseSession, streamingBeats: streamingPoints.count,
             deviceBeats: internalPoints?.isEmpty == false ? internalPoints?.count : nil,
-            dataSource: chosen.source, reconnectCount: reconnectCount
+            dataSource: chosen.source, reconnectCount: reconnectCount,
+            downloadedPoints: internalPoints
         )
     }
 

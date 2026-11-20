@@ -33,7 +33,7 @@ extension CollectorSessionControl {
     /// released just before the recorder is reset, once nothing of the night
     /// is left to remove.
     func discardOvernightRecording() async -> DiscardOutcome? {
-        guard collector.streamingLifecycle.claimOvernightEnding() else { return nil }
+        guard let claim = collector.streamingLifecycle.claimOvernightEnding() else { return nil }
         let session = collector.currentSession
         debugLog("[RRCollector] 🗑 Discarding recording \(session?.id.uuidString.prefix(8) ?? "-")")
         await collector.overnightStreaming.endDeviceRecordingArming()
@@ -42,7 +42,7 @@ extension CollectorSessionControl {
         let strapCopyKept = strapArmed ? await clearStrapCopy() : false
         if let session { await removeKeptCopies(of: session.id) }
         collector.clearPersistedRecordingState()
-        collector.streamingLifecycle.releaseOvernightEnding()
+        collector.streamingLifecycle.releaseOvernightEnding(claim)
         returnToParentPauseOrIdle(parentId: session?.linkedSessionIds?.first)
         if strapCopyKept { collector.lastError = PolarManager.PolarError.fetchFailed(Self.strapCopyKeptReason) }
         collector.notifyArchiveChanged()

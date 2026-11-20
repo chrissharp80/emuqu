@@ -76,7 +76,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.applyProcessingResult(_:finalSession:awaitsReview:)": "a332b286bb652bf6",
-    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.archiveForReview(_:)": "add4c9091bbdfd56"
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.archiveForReview(_:)": "49b4334447b994b4"
    }
   },
   {
@@ -198,14 +198,15 @@
   },
   {
    "key": "func MorningSessionPipeline.archiveForReview(_:)",
-   "hash": "e508f07ce3ae730a",
-   "does": "Pre-archives a .complete session before the user reviews it (crash safety), retires its raw backup when safe, bumps the archive signal, and remembers the id in sessionState.reviewArchivedSessionId when it was not already in the archive so Discard can remove it. A failed write is logged as an error and set as lastError; the night is then not in the archive, and the morning keeps its recording marker for it.",
+   "hash": "e5836e72c11b4a96",
+   "does": "Pre-archives a .complete session before the user reviews it (crash safety), retires its raw backup when safe, bumps the archive signal, and when it was not already in the archive remembers the id in sessionState.reviewArchivedSessionId (so Discard can remove it) and its tags, notes and feeling in sessionState.reviewArchivedEntries. A failed write is logged as an error and set as lastError; the night is then not in the archive, and the morning keeps its recording marker for it.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
     "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.retireRawBackupIfSafe(_:)",
-    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()"
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()",
+    "Emuqu/Sources/Collection/SessionState.swift::init SessionState.ReviewEntries(of:)"
    ],
    "reads": [
     "archive:SessionArchive.entries"
@@ -213,6 +214,7 @@
    "writes": [
     "archive:SessionArchive.archive",
     "mem:SessionState.reviewArchivedSessionId",
+    "mem:SessionState.reviewArchivedEntries",
     "mem:ArchiveSignal.version",
     "mem:SessionState.lastError"
    ],
@@ -225,10 +227,10 @@
     {
      "at": "+8",
      "cond": "isNewEntry (id absent from archive index before the write)",
-     "effect": "reviewArchivedSessionId = id; else unchanged"
+     "effect": "reviewArchivedSessionId = id and reviewArchivedEntries = its entries; else unchanged"
     },
     {
-     "at": "+9",
+     "at": "+12",
      "cond": "archive() throws",
      "effect": "logs error, sets lastError; no raw-backup retire, no signal"
     }
@@ -237,6 +239,8 @@
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "dd1d381f6262b4a9",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
     "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.retireRawBackupIfSafe(_:)": "53f97d3b5cce48aa",
+    "Emuqu/Sources/Collection/SessionState.swift::init SessionState.ReviewEntries(of:)": "6aaab0fdba9aba60",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"

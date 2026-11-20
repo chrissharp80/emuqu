@@ -19,6 +19,10 @@ extension OvernightStreamingCoordinator {
         let deviceBeats: Int?
         let dataSource: String
         let reconnectCount: Int
+        /// The strap's beats as downloaded, when the gather downloaded any:
+        /// the stream's backup does not hold them, so a pause that cannot be
+        /// archived backs them up whichever source was chosen.
+        var downloadedPoints: [RRPoint]?
     }
 
     /// Whether the session's device is a Verity Sense (streaming-only, no internal recording).
@@ -137,10 +141,19 @@ extension OvernightStreamingCoordinator {
         collector.lastSeenReconnectCount = 0
         collector.overnightDeviceBackupActive = false
         collector.isOvernightEnding = false
+        dropStaleEndingClaim()
         // A Skip from an earlier morning never reaches this night's download,
         // and an earlier session's error is not this night's.
         collector.deviceFetchPolicy = .automatic
         collector.lastError = nil
+    }
+
+    /// A night or a resumed segment is starting, so no earlier ending can
+    /// still own the recorder; a claim left behind is dropped and logged.
+    @MainActor
+    func dropStaleEndingClaim() {
+        guard collector.streamingLifecycle.dropStaleOvernightEnding() else { return }
+        debugLog("[RRCollector] ⚠️ An earlier night's ending never released its claim — dropped for the new night", level: .warning)
     }
 
     /// Start observing HealthKit for sleep data so we catch Apple Watch sync.
@@ -312,12 +325,14 @@ extension OvernightStreamingCoordinator {
     /// the blocking `fallbackToDeviceFetch`.
     ///
     /// The stop claims the night's ending before its first suspension and
-    /// holds it until the night is archived or has failed, so a Stop tapped
-    /// again, or one that lands while a pause or a discard is ending the
-    /// night, returns nil and leaves the night to that one.
+    /// holds it until the night is on the review card or has failed, so a
+    /// Stop tapped again, or one that lands while a pause or a discard is
+    /// ending the night, returns nil and leaves the night to that one. The
+    /// brief "complete" status and the baseline update that follow run
+    /// without it (`releaseEndingOnceShown`).
     func stopOvernightStreaming() async -> HRVSession? {
-        guard collector.streamingLifecycle.claimOvernightEnding() else { return nil }
-        defer { collector.streamingLifecycle.releaseOvernightEnding() }
+        guard let claim = collector.streamingLifecycle.claimOvernightEnding() else { return nil }
+        defer { collector.streamingLifecycle.releaseOvernightEnding(claim) }
         // From the tap on, not only once analysis starts: the strap stop,
         // reconnect and download come first, and without an assertion a
         // trip to the home screen suspends the app mid-download. On expiry
@@ -364,8 +379,9 @@ extension OvernightStreamingCoordinator {
     /// A Verity Sense night is scored from the stream alone (the morning never
     /// downloads from it), so nothing is left to pull and the sensor is
     /// released once the night is scored, or has failed for too short a stream.
+    /// A night started on it since the stop let go of the ending keeps it.
     private func disconnectVeritySenseAfterNight(isVeritySense: Bool) {
-        guard isVeritySense else { return }
+        guard isVeritySense, !collector.isOvernightStreaming else { return }
         debugLog("[RRCollector] Auto-disconnecting Verity Sense after overnight session")
         collector.polarManager.disconnect()
     }
@@ -708,6 +724,7 @@ extension OvernightStreamingCoordinator {
             prefetchedSleepData: prefetchedSleepData
         )
         clearPersistedStateIfSaved(finalSession)
+        releaseEndingOnceShown()
         await settleMorningStatus(
             complete: .complete(beats: totalBeats, streamedBeats: streamingBeats, deviceBeats: deviceBeats, source: dataSource),
             finalSession: finalSession
@@ -725,6 +742,16 @@ extension OvernightStreamingCoordinator {
             return
         }
         collector.clearPersistedRecordingState()
+    }
+
+    /// The stopped night is on the review card (or shown as failed): the
+    /// stop's claim on the ending goes now rather than after the status hold
+    /// and the baseline update, so a night started meanwhile can be stopped.
+    /// Only the stop reaches here, and it still holds the claim, so the claim
+    /// held is its own; its own release on return is then a no-op.
+    private func releaseEndingOnceShown() {
+        guard let claim = collector.streamingLifecycle.overnightEndingClaim else { return }
+        collector.streamingLifecycle.releaseOvernightEnding(claim)
     }
 
     /// Show the finished status for a beat, clear it, and fold the night into
@@ -798,6 +825,7 @@ extension OvernightStreamingCoordinator {
         )
         clearPersistedStateIfSaved(finalSession)
         await MainActor.run { collector.currentSession = finalSession }
+        releaseEndingOnceShown()
         await settleMorningStatus(
             complete: .complete(beats: totalBeats, streamedBeats: data.streamingBeats, deviceBeats: data.deviceBeats, source: dataSource),
             finalSession: finalSession
