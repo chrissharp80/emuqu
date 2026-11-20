@@ -1,7 +1,7 @@
 {
  "file": "EmuquTests/ProviderStreamTests.swift",
- "hash": "15cfe895691bd7ea",
- "role": "XCTest suites over the cloud providers' streams and the chat layer's handling of a reply that failed partway: ProviderStreamTests checks ProviderStream.make's error mapping (URLError → .network / .cancelled, CancellationError → .cancelled, provider and unrelated errors pass through), normal event delivery, and that a consumer leaving cancels the operation; OpenAICompatibleReasoningTests checks the reasoning fields OpenAICompatibleStreamer.requestFor writes for DeepSeek (thinking disabled), OpenAI (reasoning_effort none) and Grok (neither); OpenAICompatibleEndOfStreamTests, GeminiEndOfStreamTests and AnthropicEndOfStreamTests replay in-memory SSE lines through each provider's consumeSSE (via SSEReplay) and check how a reply ends: a clean close without the terminal signal is a dropped connection, the terminal signal completes, a malformed event throws, a token-cap stop ends with '…', a safety stop is a non-fallbackable .blockedReply, a repeated finish reason adds one '…', a cut or unparseable tool call is never emitted, a mid-stream server failure is the overloaded modelUnavailable, and (Gemini, Anthropic) usage that arrived before a failure is still reported. EndOfStreamCancellationTests checks that each reader, cancelled before its lines end cleanly, throws CancellationError rather than a dropped connection. PartialReplyTests checks ChatTurn.incomplete (old transcripts decode as complete, the mark survives storage, truncateForSend withholds it), the fallback splice (AssistantToolRunner.settle), the fact-extraction gate (AssistantTurnRouter.factExtractionExchange) and that AssistantViewModel.collect returns nothing for a failed or timed-out stream.",
+ "hash": "393ce416a4b3e648",
+ "role": "XCTest suites over the cloud providers' streams and the chat layer's handling of a reply that failed partway: ProviderStreamTests checks ProviderStream.make's error mapping (URLError → .network / .cancelled, CancellationError → .cancelled, provider and unrelated errors pass through), normal event delivery, and that a consumer leaving cancels the operation; OpenAICompatibleReasoningTests checks the reasoning fields OpenAICompatibleStreamer.requestFor writes for DeepSeek (thinking disabled), OpenAI (reasoning_effort none) and Grok (neither); OpenAICompatibleEndOfStreamTests, GeminiEndOfStreamTests and AnthropicEndOfStreamTests replay in-memory SSE lines through each provider's consumeSSE (via SSEReplay) and check how a reply ends: a clean close without the terminal signal is a dropped connection, the terminal signal completes, a malformed event throws, a token-cap stop ends with '…', a safety stop is a non-fallbackable .blockedReply, a repeated finish reason adds one '…', a cut or unparseable tool call is never emitted, a mid-stream server failure is the overloaded modelUnavailable, and (Gemini, Anthropic) usage that arrived before a failure is still reported; for Anthropic, a pause_turn reply is sent back with its raw content and continued into one reply, at most maxPauseContinuations times. EndOfStreamCancellationTests checks that each reader, cancelled before its lines end cleanly, throws CancellationError rather than a dropped connection. PartialReplyTests checks ChatTurn.incomplete (old transcripts decode as complete, the mark survives storage, truncateForSend withholds it), the fallback splice (AssistantToolRunner.settle), the fact-extraction gate (AssistantTurnRouter.factExtractionExchange) and that AssistantViewModel.collect returns nothing for a failed or timed-out stream.",
  "types": [
   "ProviderStreamTests: class — XCTestCase over ProviderStream",
   "ProviderStreamTests.Unrelated: private enum Error — a non-provider error",
@@ -12,7 +12,8 @@
   "GeminiEndOfStreamTests: class — XCTestCase over GeminiProvider.consumeSSE",
   "AnthropicEndOfStreamTests: class — XCTestCase over AnthropicProvider.consumeSSE",
   "EndOfStreamCancellationTests: class — XCTestCase over the three consumeSSE readers under cancellation",
-  "PartialReplyTests: @MainActor class — XCTestCase over replies that failed partway (ChatTurn.incomplete, truncateForSend, settle, factExtractionExchange, collect)"
+  "PartialReplyTests: @MainActor class — XCTestCase over replies that failed partway (ChatTurn.incomplete, truncateForSend, settle, factExtractionExchange, collect)",
+  "AnthropicEndOfStreamTests.PausedReplay: private struct — text, .done count and request bodies of a paused-turn replay"
  ],
  "state": [],
  "toplevel": "",
@@ -1061,7 +1062,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "7e53e25865256ded",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "88fd168045913f13",
     "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)": "8965c0bed0b1cf6e",
     "EmuquTests/ProviderStreamTests.swift::func SSEReplay.run(_:)": "f32e2dd57e18979a"
    }
@@ -1340,6 +1341,101 @@
    }
   },
   {
+   "key": "func AnthropicEndOfStreamTests.replayPaused(_:)",
+   "hash": "16aa2f4ad914b929",
+   "does": "Runs AnthropicProvider.continuingPausedTurns on a one-user-message body with a perform that records each request body as JSON and replays the next canned reply (the last repeats) through consumeSSE; returns the text deltas, the number of .done events and the bodies.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.continuingPausedTurns(_:continuation:perform:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)",
+    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "88fd168045913f13",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.continuingPausedTurns(_:continuation:perform:)": "649c2bc8d8bf51f5",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleReasoningTests.body(for:)": "2a2e0d959773808e",
+    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)": "8965c0bed0b1cf6e"
+   }
+  },
+  {
+   "key": "func AnthropicEndOfStreamTests.textBlock(_:index:)",
+   "hash": "aabac35549bb90cd",
+   "does": "SSE lines of a whole text block at an index: start, one text delta, stop.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.sseEvent(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.sseEvent(_:_:)": "77d9bd56fa2ec600"
+   }
+  },
+  {
+   "key": "var AnthropicEndOfStreamTests.pausedReply",
+   "hash": "5ae0c62087fa8431",
+   "does": "SSE lines of a reply that paused after searching: a text block, a server_tool_use block whose query arrives as partial JSON, a web_search_tool_result block, then a pause_turn stop.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textBlock(_:index:)",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.sseEvent(_:_:)",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.stop(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.sseEvent(_:_:)": "77d9bd56fa2ec600",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.stop(_:)": "62f573dbbf617221",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textBlock(_:index:)": "0f6296a5677705e8"
+   }
+  },
+  {
+   "key": "func AnthropicEndOfStreamTests.testPausedTurnIsContinuedWithItsContent()",
+   "hash": "b00f8d4f1f5160d7",
+   "does": "A paused reply followed by a completing one: the chat layer gets 'Searching. Found it.' with one .done and no '…'; two requests are sent, the second carrying user + assistant messages whose blocks are the paused text, the server_tool_use with its parsed input and id, and the web_search_tool_result with its encrypted content.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replayPaused(_:)",
+    "EmuquTests/ProviderStreamTests.swift::var AnthropicEndOfStreamTests.pausedReply",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textBlock(_:index:)",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.stop(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)": "43ceccab35b5aded",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replayPaused(_:)": "6ff0941680b60cbd",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.stop(_:)": "62f573dbbf617221",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textBlock(_:index:)": "0f6296a5677705e8",
+    "EmuquTests/ProviderStreamTests.swift::var AnthropicEndOfStreamTests.pausedReply": "fbf820e53a3f364a"
+   }
+  },
+  {
+   "key": "func AnthropicEndOfStreamTests.testPausedTurnStopsAfterTheContinuationBound()",
+   "hash": "7a72e7156a87ba28",
+   "does": "A reply that always pauses: maxPauseContinuations + 1 requests are sent, the last with one assistant message holding every earlier paused block, and the text ends with '…' with one .done.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replayPaused(_:)",
+    "EmuquTests/ProviderStreamTests.swift::var AnthropicEndOfStreamTests.pausedReply"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)": "43ceccab35b5aded",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replayPaused(_:)": "6ff0941680b60cbd",
+    "EmuquTests/ProviderStreamTests.swift::var AnthropicEndOfStreamTests.pausedReply": "fbf820e53a3f364a"
+   }
+  },
+  {
    "key": "func EndOfStreamCancellationTests.errorFromCancelledReader(_:)",
    "hash": "40f4544b451823ea",
    "does": "Runs a reader in a task that cancels itself before reading (UnsafeCurrentTask.cancel) and returns what the task threw, or nil.",
@@ -1381,7 +1477,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "7e53e25865256ded",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "88fd168045913f13",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)": "05bcc359c8556e76",
     "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.consumeSSE(_:providerID:continuation:)": "9f74985f618acaab",
     "EmuquTests/ProviderStreamTests.swift::func EndOfStreamCancellationTests.errorFromCancelledReader(_:)": "2b625dceda9dee1b",

@@ -324,13 +324,12 @@
   },
   {
    "key": "§ Emuqu — A Measurement-Grounded Assistant with a Multilingual Regulated-Claim Per > 3. Methods > 3.2 Compact tool layer",
-   "hash": "bad1fe5d9f83c844",
-   "does": "Specifies the compact tool layer: 21 fixed read tools plus 18 allow-listed actions (location.roads_ahead not allow-listed), read tools first, dedupe by name first-wins, sorted; capability index of first sentence capped at 170 chars; BM25 (k1 1.5, b 0.75) filtering only above 40 tools; per-turn budget >8 calls -> all calls rateLimited. Code: CompactToolRouter.schema/deduped/capabilityIndex/readTools/spec/actionTools/allowedActionNames (CompactToolRouter.swift:42-440), ToolRetriever.retrieve/bm25 (targetK 40), AssistantViewModel+Tools.maxToolCallsPerTurn 8 and resolveToolCalls.",
+   "hash": "b9d59b1a76016392",
+   "does": "Specifies the compact tool layer: 21 fixed read tools plus 18 allow-listed actions (location.roads_ahead not allow-listed), read tools first, dedupe by name first-wins, sorted; capability index of first sentence capped at 170 chars; BM25 (k1 1.5, b 0.75) filtering only above 40 tools; per-turn budget of 8 calls: in the round that crosses it the calls that still fit resolve and each one past it is rateLimited, then one more text round with further tool calls dropped; the on-device dispatcher enforces the same constant. Code: CompactToolRouter.schema/deduped/capabilityIndex/readTools/spec/actionTools/allowedActionNames, ToolRetriever.retrieve/bm25 (targetK 40), AssistantViewModel+Tools.maxToolCallsPerTurn 8, resolveToolCalls/resultJSON/handle, AppleToolDispatcher's per-call count.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.deduped(_:)",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schemaHash(registry:)",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.capabilityIndex()",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools()",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)",
@@ -339,24 +338,27 @@
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveReadTool(name:argsJSON:)",
     "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.retrieve(query:tools:targetK:catalogHash:)",
     "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.bm25(_:queryTokens:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resultJSON(for:overBudget:factRegistry:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handle(_:provider:auditID:budgetExhausted:buffer:thisRound:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.actionTools(registry:)": "12c285c552028037",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.capabilityIndex()": "71a374d60c251976",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.capabilityIndex()": "8d66e5869880f647",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.deduped(_:)": "af9c5363c90b9fda",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools()": "38222fdfbe00c8b7",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveReadTool(name:argsJSON:)": "78a8c63c082ead05",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "fa79c3bca0f486d3",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveReadTool(name:argsJSON:)": "33957c486d7e81f3",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "d3863d8890919dcd",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)": "a26db50852d1a413",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schemaHash(registry:)": "b6c0233015495a62",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.spec(_:_:_:required:)": "7a6da6372d1026af",
     "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func BM25Index.bm25(_:queryTokens:)": "028af866378f58df",
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.retrieve(query:tools:targetK:catalogHash:)": "179031c4c1cc8824",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)": "51c429d7c3e8b857"
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.retrieve(query:tools:targetK:catalogHash:)": "32aa0a67a7332b75",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handle(_:provider:auditID:budgetExhausted:buffer:thisRound:)": "6ed72930981424e6",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)": "08e15dc41d4b0890",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resultJSON(for:overBudget:factRegistry:)": "d7b1be0c3dfd3ecb"
    }
   },
   {
@@ -372,14 +374,14 @@
   },
   {
    "key": "§ Emuqu — A Measurement-Grounded Assistant with a Multilingual Regulated-Claim Per > 3. Methods > 3.3 Runtime number verification > 3.3.1 Claim shapes and tolerances",
-   "hash": "1e2354144bc7569c",
-   "does": "Specifies two verified families (live workout via voice; app state via chat round end and voice) and claim shapes/tolerances: HR 5 bpm, power 15 W, alpha1 0.10, HR drift 1.5 pp, TSB 2.0, ATL/CTL 3.0, ACWR 0.15, RMSSD 8 ms, recovery 4.0 (0-100) or 1.0 on 0-10, sleep duration 5/30 min, efficiency 1.0 pp; count/time units and following digits exclude a match. Code: MetricsVerifier heartRateDiscrepancies/powerDiscrepancies/alpha1Discrepancies/hrDriftDiscrepancies/trainingLoadDiscrepancies/acwrDiscrepancies/overnightDiscrepancies/recoveryScoreClaims/sleepDurationDiscrepancies/durationDiscrepancy/sleepEfficiencyDiscrepancies (MetricsVerifier.swift:81-420) with the listed tolerances.",
+   "hash": "73b8d4e6de1ad4e7",
+   "does": "Specifies two verified families (live workout via chat round end, before the app-state pass, and voice; app state via chat round end and voice) and claim shapes/tolerances: HR 5 bpm, power 15 W, alpha1 0.10, HR drift 1.5 pp, TSB 2.0, ATL/CTL 3.0, ACWR 0.15, RMSSD 8 ms, recovery 4.0 (0-100) or 1.0 on 0-10, sleep duration 5/30 min, efficiency 1.0 pp; count/time units and following digits exclude a match. Code: MetricsVerifier heartRateDiscrepancies/powerDiscrepancies/alpha1Discrepancies/hrDriftDiscrepancies/trainingLoadDiscrepancies/acwrDiscrepancies/overnightDiscrepancies/recoveryScoreClaims/sleepDurationDiscrepancies/durationDiscrepancy/sleepEfficiencyDiscrepancies with the listed tolerances; AssistantViewModel+Tools.verifyAppStateNumbers runs verify(_:againstLive:) then verifyAppStateClaims in chat.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.heartRateDiscrepancies(in:snapshot:)",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.powerDiscrepancies(in:snapshot:)",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.alpha1Discrepancies(in:snapshot:)",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.hrDriftDiscrepancies(in:snapshot:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.heartRateDiscrepancies(in:actual:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.powerDiscrepancies(in:actual:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.alpha1Discrepancies(in:actual:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.hrDriftDiscrepancies(in:actual:)",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.trainingLoadDiscrepancies(in:)",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.acwrDiscrepancies(in:acwr:)",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.overnightDiscrepancies(in:)",
@@ -387,24 +389,30 @@
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.onTheClaimsScale(_:score10:)",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDurationDiscrepancies(in:nightMinutes:)",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.durationDiscrepancy(from:in:nightMinutes:)",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepEfficiencyDiscrepancies(in:efficiency:)"
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepEfficiencyDiscrepancies(in:efficiency:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.verifyAppStateNumbers(turnID:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:againstLive:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verifyAppStateClaims(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.acwrDiscrepancies(in:acwr:)": "bc83712e490cf9ab",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.alpha1Discrepancies(in:snapshot:)": "1aa66b8eaf3bf1c7",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.durationDiscrepancy(from:in:nightMinutes:)": "9536cfab154bc829",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.heartRateDiscrepancies(in:snapshot:)": "a897be736bf41204",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.hrDriftDiscrepancies(in:snapshot:)": "3c59d8b227a124d0",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.acwrDiscrepancies(in:acwr:)": "d19eb1cb8eb92fbf",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.alpha1Discrepancies(in:actual:)": "346a128041cd249b",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.durationDiscrepancy(from:in:nightMinutes:)": "bf5c3c829943a5a5",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.heartRateDiscrepancies(in:actual:)": "20f789deb34dbef7",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.hrDriftDiscrepancies(in:actual:)": "0fb6de3ae82c6a15",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.onTheClaimsScale(_:score10:)": "4c072c5c812dbe0e",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.overnightDiscrepancies(in:)": "cdcc8d8eeeaf6bf5",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.powerDiscrepancies(in:snapshot:)": "ac29b155ccd75644",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recoveryScoreClaims(in:score10:)": "7f8f28591d9bc93d",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.overnightDiscrepancies(in:)": "1b1d24a53d03b9f1",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.powerDiscrepancies(in:actual:)": "b59cbb42d00fca23",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recoveryScoreClaims(in:score10:)": "f141acb57158b022",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepDurationDiscrepancies(in:nightMinutes:)": "e0e543746ee31861",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.sleepEfficiencyDiscrepancies(in:efficiency:)": "1106c58278575212",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.trainingLoadDiscrepancies(in:)": "d38a5d0267291ae5"
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.trainingLoadDiscrepancies(in:)": "7eb94169b8142edc",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:againstLive:)": "d06f442328429ed6",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verifyAppStateClaims(_:)": "3256aa664e5cf316",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.verifyAppStateNumbers(turnID:)": "73e93a0b9cae48c6"
    }
   },
   {
@@ -452,8 +460,8 @@
   },
   {
    "key": "§ Emuqu — A Measurement-Grounded Assistant with a Multilingual Regulated-Claim Per > 3. Methods > 3.3 Runtime number verification > 3.3.3 Where verification runs",
-   "hash": "930e23cab5d2588f",
-   "does": "Specifies where verification runs: chat at the end of every tool-loop round before preceding text is cleared, corrected text replacing the saved turn; voice chunk path output scrub -> live-workout verification -> app-state verification -> preamble -> speech normalization. Code: AssistantViewModel+Tools.applyRoundEndTextPolicy/verifyAppStateNumbers, VoiceConversationController+Speech.applyHallucinationGuard/liveWorkoutCorrected/appStateCorrected/perimeterScrubbed/speak.",
+   "hash": "234ac92a844ad006",
+   "does": "Specifies where verification runs: chat at the end of every tool-loop round, live-workout then app-state, after the text that preceded a tool call has been cleared, on the text that stays, corrected text replacing the saved turn; voice chunk path output scrub -> live-workout verification -> app-state verification -> preamble -> speech normalization. Code: AssistantViewModel+Tools.applyRoundEndTextPolicy (rewind, then verifyAppStateNumbers), VoiceConversationController+Speech.applyHallucinationGuard/liveWorkoutCorrected/appStateCorrected/perimeterScrubbed/speak.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.applyRoundEndTextPolicy(thisRound:budgetExhausted:buffer:turnID:)",
@@ -462,18 +470,20 @@
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.liveWorkoutCorrected(_:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.appStateCorrected(_:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func perimeterScrubbed(_:)",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:againstLive:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.applyRoundEndTextPolicy(thisRound:budgetExhausted:buffer:turnID:)": "7f6234e1d043e2a0",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.verifyAppStateNumbers(turnID:)": "95cb9e5ecb20f038",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:againstLive:)": "d06f442328429ed6",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.applyRoundEndTextPolicy(thisRound:budgetExhausted:buffer:turnID:)": "06d1c4ea1ac14161",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.verifyAppStateNumbers(turnID:)": "73e93a0b9cae48c6",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.appStateCorrected(_:)": "754918d471c66eb2",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.applyHallucinationGuard(to:)": "4c5214e46bad2883",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.liveWorkoutCorrected(_:)": "67a03066ce5408dd",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "fe4979f15855666c",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "579381859ae4cd85",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func perimeterScrubbed(_:)": "f6a183eacabce379"
    }
   },
@@ -779,20 +789,26 @@
   },
   {
    "key": "§ Emuqu — A Measurement-Grounded Assistant with a Multilingual Regulated-Claim Per > 7. Design Tradeoffs",
-   "hash": "c368ef382cc0bdab",
-   "does": "States design tradeoffs including that number verification covers 11 metrics in English only, live-workout claims are checked only on the voice path, a round over 8 calls has all calls refused, and model-drafted emails and auto-extracted memories bypass the output guard. Consistent with AssistantViewModel+Tools.maxToolCallsPerTurn and the voice-only liveWorkoutCorrected path.",
+   "hash": "c147046c5d1d5404",
+   "does": "States design tradeoffs: a lexical perimeter; negation-neutral deflection; guards over prompt rules; the input guard reads the current message only; number verification covers present-value claims for the 11 metrics of Table 3.4 in English only; in chat the correction lands at round end; the 21 read tools are static; the 8-call budget is per turn, with the calls that still fit in the crossing round run, only those past it refused and one more answer pass with further tool calls dropped; the coverage gate is one-directional; model-drafted emails and auto-extracted memories sit outside the output guard. Consistent with AssistantViewModel+Tools (maxToolCallsPerTurn, resolveToolCalls, resultJSON, handle, verifyAppStateNumbers) and auto-extraction (extractFactsInBackground, runAutoFactExtraction's filter, not CoachVoiceGuard).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.liveWorkoutCorrected(_:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.extractFactsInBackground(from:completed:)"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.extractFactsInBackground(from:completed:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resultJSON(for:overBudget:factRegistry:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handle(_:provider:auditID:budgetExhausted:buffer:thisRound:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.verifyAppStateNumbers(turnID:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.extractFactsInBackground(from:completed:)": "8729adde218fa242",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)": "51c429d7c3e8b857",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handle(_:provider:auditID:budgetExhausted:buffer:thisRound:)": "6ed72930981424e6",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)": "08e15dc41d4b0890",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resultJSON(for:overBudget:factRegistry:)": "d7b1be0c3dfd3ecb",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.verifyAppStateNumbers(turnID:)": "73e93a0b9cae48c6",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.liveWorkoutCorrected(_:)": "67a03066ce5408dd"
    }
   },
@@ -886,8 +902,8 @@
   },
   {
    "key": "§ Emuqu — A Measurement-Grounded Assistant with a Multilingual Regulated-Claim Per > Appendix A: Parameters",
-   "hash": "60011840adc301fc",
-   "does": "Parameter table (Appendix A) restating catalog counts, rail constants, tool counts, BM25 values, Grok cap 110, tool budget 8, stream interval 33 ms, verifier tolerances, correction cap 4, assertion window 6, numeric argument ranges, lexicon counts and group sizes, terminators, offensive recognizer 0.6/3 words, echo overlap 0.40, linter window/fragment, 62 patterns, coverage minimum 100, consent schema version 8, 10-entry audit log, plus consent/fallback context. Checked values match code (GrokProvider.swift:58 maxToolSchemaCount 110, ProviderConsentTracker.consentSchemaVersion 8 at :76, publishIntervalMs 33, minimumLanguageConfidence 0.6).",
+   "hash": "0c983e987d03daf2",
+   "does": "Parameter table (Appendix A) restating catalog counts, rail constants, tool counts, BM25 values, Grok cap 110, tool budget 8 (calls past it in a turn are rateLimited), stream interval 33 ms, verifier tolerances, correction cap 4, assertion window 6, numeric argument ranges, lexicon counts and group sizes, terminators, offensive recognizer 0.6/3 words, echo overlap 0.40, linter window/fragment, 62 patterns, coverage minimum 100, consent schema version 8, 10-entry audit log, plus consent/fallback context. Checked values match code (GrokProvider.swift:58 maxToolSchemaCount 110, ProviderConsentTracker.consentSchemaVersion 8 at :76, publishIntervalMs 33, minimumLanguageConfidence 0.6).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.postResolveGates(toolName:argsJSON:value:)",
@@ -895,18 +911,20 @@
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.orderedFallbackProviders(after:)",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)"
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.postResolveGates(toolName:argsJSON:value:)": "56a03c969e6d8e6a",
-    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.retrieve(query:tools:targetK:catalogHash:)": "179031c4c1cc8824",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)": "9c1beb550d5009e8",
+    "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.retrieve(query:tools:targetK:catalogHash:)": "32aa0a67a7332b75",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)": "504750e4ad75b523",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "6cc9d2a50a137c6c",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.storageKey(for:)": "9d58ec93b629bac5",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.orderedFallbackProviders(after:)": "a52875ed68367c9d"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.orderedFallbackProviders(after:)": "a52875ed68367c9d",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)": "08e15dc41d4b0890"
    }
   },
   {

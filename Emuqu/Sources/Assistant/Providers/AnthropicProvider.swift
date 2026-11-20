@@ -114,10 +114,14 @@ final class AnthropicProvider: AIProvider, Sendable {
             }
         }
 
+        /// `raw` is a content block exactly as the model sent it (text with
+        /// its citations, `server_tool_use`, `web_search_tool_result`),
+        /// replayed when a paused reply is sent back to be continued.
         enum ContentBlock: Encodable {
             case text(String)
             case toolUse(id: String, name: String, inputJSON: String)
             case toolResult(toolUseID: String, content: String)
+            case raw([String: Any])
 
         }
 
@@ -358,13 +362,26 @@ final class AnthropicProvider: AIProvider, Sendable {
             model: model.apiID, max_tokens: 2048, system: systemBlocks,
             messages: mapped, stream: true, tools: Self.toolDeclarations(for: tools)
         )
-        let request = try Self.makeRequest(url: url, apiKey: apiKey, body: body)
+        try await Self.continuingPausedTurns(body, continuation: continuation) { request in
+            try await Self.perform(request, url: url, apiKey: apiKey, continuation: continuation)
+        }
+    }
+
+    /// One HTTP request and its reply's events; returns the reply's content
+    /// when it paused (`pause_turn`), nil when it completed.
+    static func perform(
+        _ body: RequestBody,
+        url: URL,
+        apiKey: String,
+        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+    ) async throws -> PausedTurn? {
+        let request = try makeRequest(url: url, apiKey: apiKey, body: body)
         let (bytes, response) = try await ProviderHTTP.streamSession.bytes(for: request)
         try Task.checkCancellation()
         if let http = response as? HTTPURLResponse, !(200 ... 299).contains(http.statusCode) {
-            try await Self.throwForStatus(http.statusCode, bytes: bytes)
+            try await throwForStatus(http.statusCode, bytes: bytes)
         }
-        try await Self.consumeSSE(bytes.lines, continuation: continuation)
+        return try await consumeSSE(bytes.lines, continuation: continuation)
     }
 
     /// Accumulator for a streaming tool_use content block. Anthropic sends
@@ -382,12 +399,16 @@ final class AnthropicProvider: AIProvider, Sendable {
     /// each request records ONE usage event. Recording both doubled the
     /// cache-telemetry turn count. `messageStopped` records that
     /// `message_stop` arrived, so a stream cut before it is not taken for a
-    /// complete reply.
+    /// complete reply. `content` keeps the reply's raw content blocks and
+    /// `paused` records a `pause_turn` stop, so a paused reply can be sent
+    /// back for the model to continue (`continuingPausedTurns`).
     struct StreamState {
         var openToolUses: [Int: PendingToolUse] = [:]
         var startUsage: [String: Any]?
         var usageRecorded = false
         var messageStopped = false
+        var content = ReplyContent()
+        var paused = false
     }
 
     /// Emits a `.usage` event from an Anthropic usage payload, when it
@@ -417,6 +438,7 @@ final class AnthropicProvider: AIProvider, Sendable {
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) throws {
         let json = try ProviderHTTP.eventObject(data, provider: .anthropic)
+        state.content.record(json)
         switch (json["type"] as? String) ?? eventName ?? "" {
         case "content_block_start":
             openBlock(json, into: &state.openToolUses)
@@ -431,8 +453,7 @@ final class AnthropicProvider: AIProvider, Sendable {
         case "message_stop":
             finishMessage(&state, continuation: continuation)
         case "error":
-            throw ProviderHTTP.streamFailure(in: json, provider: .anthropic)
-                ?? AIProviderError.invalidResponse("Anthropic stream error")
+            throw ProviderHTTP.streamFailure(in: json, provider: .anthropic) ?? AIProviderError.invalidResponse("Anthropic stream error")
         default:
             break // ping — ignore
         }
@@ -441,9 +462,10 @@ final class AnthropicProvider: AIProvider, Sendable {
     /// `message_delta`: the final usage, and the stop reason. A `refusal`
     /// is the model's safety stop and throws `AIProviderError.blockedReply`, as
     /// the other providers' safety stops do. A reply that stopped at the
-    /// token cap (`max_tokens`) or paused mid server-tool turn
-    /// (`pause_turn`) is incomplete, so it is logged and ends with an
-    /// ellipsis rather than reading as a finished answer.
+    /// token cap (`max_tokens`) is incomplete, so it is logged and ends with
+    /// an ellipsis rather than reading as a finished answer. A reply paused
+    /// mid server-tool turn (`pause_turn`) is marked paused: the request is
+    /// sent again for the model to continue (`continuingPausedTurns`).
     static func messageDelta(
         _ json: [String: Any],
         state: inout StreamState,
@@ -451,21 +473,24 @@ final class AnthropicProvider: AIProvider, Sendable {
     ) throws {
         let reason = (json["delta"] as? [String: Any])?["stop_reason"] as? String
         if reason == "refusal" { throw AIProviderError.blockedReply(provider: .anthropic, reason: "refusal") }
-        if let reason, reason == "max_tokens" || reason == "pause_turn" {
-            debugLog("[Anthropic] reply stopped early: stop_reason=\(reason)", level: .warning)
+        if reason == "pause_turn" { state.paused = true }
+        if reason == "max_tokens" {
+            debugLog("[Anthropic] reply stopped early: stop_reason=max_tokens", level: .warning)
             continuation.yield(.textDelta("…"))
         }
         flushUsage(&state, final: json["usage"] as? [String: Any], to: continuation)
     }
 
-    /// `message_stop`: record usage if no delta did, then end the stream.
+    /// `message_stop`: record usage if no delta did, then end the stream,
+    /// unless the reply paused: the continuation request carries on the same
+    /// reply and ends it.
     static func finishMessage(
         _ state: inout StreamState,
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) {
         state.messageStopped = true
         flushUsage(&state, final: nil, to: continuation)
-        continuation.yield(.done)
+        if !state.paused { continuation.yield(.done) }
     }
 
     /// One usage event from `message_start`'s counters overlaid with the
@@ -574,7 +599,27 @@ extension AnthropicProvider.RequestBody.ContentBlock {
                 try c.encode("tool_result", forKey: .type)
                 try c.encode(id, forKey: .tool_use_id)
                 try c.encode(content, forKey: .content)
+            case .raw(let fields):
+                try Self.encodeRaw(fields, to: encoder)
             }
+        }
+
+        /// Every field of a raw block under its own key. A keyed container,
+        /// not a single value, so `CachedContentBlock` can still add
+        /// `cache_control` beside the fields.
+        private static func encodeRaw(_ fields: [String: Any], to encoder: Encoder) throws {
+            var c = encoder.container(keyedBy: RawKey.self)
+            for (key, value) in fields {
+                try c.encode(AnyJSON(value), forKey: RawKey(key))
+            }
+        }
+
+        private struct RawKey: CodingKey {
+            let stringValue: String
+            init(_ s: String) { stringValue = s }
+            init?(stringValue: String) { self.stringValue = stringValue }
+            var intValue: Int? { nil }
+            init?(intValue _: Int) { nil }
         }
 
         /// `input` is an object in Anthropic's schema, not a string. Parse
