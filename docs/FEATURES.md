@@ -72,10 +72,10 @@ project is in one screen. For how each feature is built, start with [`MAINTAINER
 - **Stage Analysis** — Deep, REM, core, and awake time breakdown
 - **HRV Sleep Stage Classifier** — Estimated sleep stages from chest strap RR data when no Apple Watch is available. With a Watch, optional HRV-based refinement overrides Watch stages where the HRV evidence strongly disagrees. Stages are estimates; agreement with lab sleep studies is not claimed
 - **Sleep Export to Apple Health** — On nights Apple Health has no sleep, write the sleep detected from heart rate as asleep and awake samples. Stages are estimates, so they are not written as deep, REM or core
-- **Sleep Adjustment Timeline** — Tap "Adjust Sleep" to fine-tune session boundaries on a draggable timeline (replaces the older slider-based editor). Multi-segment nights show all segments with gap indicators; exclude any segment from totals
-- **Sleep Refresh Bounded to Session Start** — Refreshing sleep no longer pulls in pre-recording data; stale baselines are penalized
+- **Sleep Adjustment Timeline** — Tap "Adjust Sleep" to fine-tune session boundaries on a draggable timeline. Multi-segment nights show all segments with gap indicators; exclude any segment from totals
+- **Sleep Refresh Bounded to Session Start** — Refreshing sleep never pulls in pre-recording data; stale baselines are penalized
 - **Watch False-Positive Rejection** — Apple Watch sleep samples near recording start are rejected when HR data contradicts
-- **Historical Session Protection** — Opening the app no longer rewrites historical sessions' sleep data
+- **Historical Session Protection** — Opening the app never rewrites historical sessions' sleep data
 - **Recovery Vitals** — Respiratory rate, SpO2, wrist temperature (with baseline deviation), and resting HR integrated alongside sleep data
 - **Custom Bedtime** — Set your schedule for accurate overnight windows and morning detection
 - **Estimated Sleep When Apple Health Has None** — On a night Apple Health returns no sleep, the app estimates it from the overnight heart-rate drop: first in the strap's RR data, then in the Apple Watch's background heart rate. It is an on-device heuristic (adaptive HR threshold with smoothing and artifact guards), not a clinically validated staging model. Sleep after the strap comes off is not added to a night that already has sleep.

@@ -4,10 +4,10 @@ import Foundation
 
 extension SessionDataMigrations {
     /// Storage key for the one-shot TRIMP repair flag.
-    /// Bumped when the TRIMP denominator was fixed to use the user's physiological
-    /// max HR (from UserSettings.effectiveMaxHR) instead of the workout's own peak.
-    /// The old fallback inverted scoring — easy activities with low peaks outscored
-    /// hard ones with brief HR spikes.
+    /// The repair recomputes TRIMP with the user's physiological max HR (from
+    /// UserSettings.effectiveMaxHR) as the denominator instead of the workout's
+    /// own peak. The workout-peak fallback inverted scoring: easy activities with
+    /// low peaks outscored hard ones with brief HR spikes.
     private static let trimpRepairMigrationKey = "didRunTrimpRepairMigration_v1"
 
     /// One-time repair for archived sessions whose `trainingSnapshot`,

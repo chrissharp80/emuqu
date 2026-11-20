@@ -147,13 +147,13 @@ extension HealthWorkoutImporter {
     /// Rebuild an activity from Apple Health's passive samples for a start time
     /// the user supplies, with nothing left in the archive to hang it on.
     ///
-    /// This exists because keying the rebuild to a leftover stub was wrong. A
+    /// This exists because the rebuild must not depend on a leftover stub. A
     /// recording that dies in its first seconds leaves a one-second session,
-    /// and deleting that junk row is the obvious thing for anyone to do — at
-    /// which point the only route back to the hour they actually walked was
-    /// deleted along with it. Health still has the steps, the heart rate and
-    /// the distance; the archive's wreckage was never the thing that made the
-    /// rebuild possible, only the thing that made it discoverable.
+    /// and deleting that junk row is the obvious thing for anyone to do, which
+    /// would delete the only route back to the hour they actually walked.
+    /// Health still has the steps, the heart rate and the distance; the
+    /// archive's leftover row is not what makes the rebuild possible, only what
+    /// makes it discoverable.
     ///
     /// `replacing` is nil here, so the result is a new session rather than an
     /// overwrite.

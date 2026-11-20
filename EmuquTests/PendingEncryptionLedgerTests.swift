@@ -70,8 +70,8 @@ final class PendingEncryptionLedgerTests: XCTestCase {
         XCTAssertNotEqual(encrypted, plaintext, "The two formats must not write identically")
     }
 
-    /// Both formats stay atomic — a torn write is a separate failure mode and
-    /// this change must not introduce one.
+    /// Both formats stay atomic: a torn write is a separate failure mode that
+    /// neither format may introduce.
     func testBothFormatsWriteAtomically() {
         let id = UUID()
         XCTAssertTrue(archiveWriteOptions(for: .encrypted, sessionID: id).contains(.atomic))
@@ -332,8 +332,7 @@ final class PendingEncryptionLedgerTests: XCTestCase {
 
     // MARK: - No silent path back
 
-    /// A guard against the specific regression: someone restoring the old
-    /// `try? encrypt(...) ?? plaintext` shape would produce identical bytes for
+    /// A `try? encrypt(...) ?? plaintext` shape would produce identical bytes for
     /// both formats with no way to tell them apart. The format enum existing
     /// and being exhaustive is what makes that impossible to do accidentally.
     func testDiskFormatDistinguishesTheTwoOutcomes() {

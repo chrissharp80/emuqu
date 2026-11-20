@@ -584,11 +584,9 @@ extension OvernightStreamingCoordinator {
     /// hole in it, so "we couldn't read it" must never be reported as "nothing
     /// was lost".
     ///
-    /// In a field log the link dropped at 00:56 and did not come back until
-    /// 04:16; the live stream held 2 h 46 m of about six hours, the H10 had
-    /// been recording the whole time, the fetch failed, and the night was
-    /// scored and archived from the partial stream with the strap's copy never
-    /// mentioned. A material gap is therefore surfaced to the user as an
+    /// The link can drop for hours while the H10 records the whole time; if the
+    /// fetch then fails, a night scored and archived from the partial stream
+    /// would never mention the strap's copy. A material gap is therefore surfaced to the user as an
     /// error telling them to recover the strap's copy before the next
     /// recording clears it; a covered session is only logged.
     ///

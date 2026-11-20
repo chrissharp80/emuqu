@@ -716,17 +716,14 @@ enum UITestLaunch {
     /// catch, so it fails the test from inside a helper whose whole job is to
     /// tolerate gates coming and going.
     ///
-    /// That is what CI run 33230172290 hit: `testPrefabQuestionsRender` and
-    /// `testOnboardingHealthPageHasSkipAffordance` both died in `setUp`, on the
-    /// disclaimer and the onboarding skip respectively, with exactly that
-    /// message — never on this Mac, because the window is only wide enough to
-    /// land in when transitions are slow.
+    /// The window is only wide enough to land in when transitions are slow,
+    /// so it shows on a slow CI runner and not on a developer Mac.
     ///
     /// `allElementsBoundByIndex` resolves the whole match set from a single
-    /// snapshot, which removes the count/index race. The geometry probe is gone
-    /// from here entirely: `dismissOneGate` already runs `isSafelyHittable`
-    /// before tapping, so reading `.frame` twice bought nothing and supplied
-    /// the throwing call.
+    /// snapshot, which removes the count/index race. There is no geometry
+    /// probe here: `dismissOneGate` already runs `isSafelyHittable` before
+    /// tapping, so reading `.frame` again would buy nothing and supply the
+    /// throwing call.
     /// The paged onboarding keeps its neighbouring pages in the hierarchy, so
     /// one identifier can match a button per page. Prefer the one on the page
     /// in view, whose frame is horizontally inside the app; a page's buttons
@@ -791,16 +788,13 @@ final class EmuquUITests: XCTestCase {
 
     private var app: XCUIApplication!
 
-    // This suite defines `UITestLaunch` / `UITestNav` for every other suite but
-    // was the only one of the fourteen that never adopted them itself, so it
-    // ran against whatever onboarding/paywall/scroll state the shared simulator
-    // clone happened to carry. That made seven tests fail — the Record cases
-    // asserted against the Dashboard because `selectTab` never landed, and the
-    // Settings cases missed the More row because the list held a prior test's
-    // scroll offset. `-UITests-FreshInstall` wipes the first-run state
+    // This suite defines `UITestLaunch` / `UITestNav` for every other suite
+    // and uses them itself, so it does not run against whatever
+    // onboarding/paywall/scroll state the shared simulator clone happens to
+    // carry. `-UITests-FreshInstall` wipes the first-run state
     // (`AppLaunchRecovery.removeStoredSessionData()`, called from `EmuquApp`)
     // and `toMainUI` walks past the resulting gates.
-    // `scripts/check_uitest_fresh_install.sh` now keeps every suite on this
+    // `scripts/check_uitest_fresh_install.sh` keeps every suite on this
     // shape.
     override func setUp() async throws {
         continueAfterFailure = false
@@ -950,19 +944,17 @@ final class EmuquUITests: XCTestCase {
         // handled inside the loop is one such sheet; it is not the only one,
         // and on a slow host it can appear after the loop has moved on.
         //
-        // CI run 33202282889 failed here for that reason — `dashboard.root`
-        // was polled for the full ten seconds and never appeared, because the
-        // app was not on the Dashboard at all. Re-asserting the destination
-        // fixes the cause; widening the deadline would only have waited longer
-        // on the wrong screen.
+        // When that happens `dashboard.root` never appears, because the app is
+        // not on the Dashboard at all. Re-asserting the destination fixes the
+        // cause; widening the deadline would only wait longer on the wrong
+        // screen.
         dismissModalIfPresent()
 
         // Use the shared navigator, not this file's `selectTab`.
         //
-        // CI run 33230172290 failed here again after the re-select was added,
-        // and the trace says why: `Computed hit point {-1, -1} after scrolling
-        // to visible`. The tab existed, the tap was synthesized against an
-        // unresolvable point, and nothing happened. The `selectTab` in this
+        // A tab can exist while its tap is synthesized against an unresolvable
+        // point (`Computed hit point {-1, -1} after scrolling to visible`), and
+        // then nothing happens. The `selectTab` in this
         // file asserts existence and taps; existence and hittability are
         // different states, which is exactly the gap `UITestNav.selectTab`
         // exists to close — it polls for hittability, taps through

@@ -4,15 +4,9 @@
 #
 # ## Why
 #
-# Two external audits (2026-08-26, 2026-08-27) reached the same shape of
-# conclusion: the code is strong, the *evidence* is missing. One scored it
-# "static implementation quality ~3.3/5, operational assurance ~1.2/5". Both had
-# to infer the state of the codebase from a quiet Actions tab, and both inferred
-# wrong — one concluded the app collects user data, another that the test suite
-# had never been run.
-#
-# Neither was being careless. There was simply nothing in the repository that
-# answered the question in one command. This is that command.
+# A reviewer reading only a quiet Actions tab has to infer what the codebase
+# enforces, and can infer wrong (that the app collects user data, or that the
+# test suite never runs). This answers the question in one command.
 #
 # It runs no builds and takes seconds: every number is read live from the
 # enforced budget files or a plain source scan. Coverage percentages and
@@ -58,7 +52,7 @@ n = 0
 for f in glob.glob('.github/workflows/*.yml'):
     d = yaml.safe_load(open(f))
     on = list((d.get(True) or d.get('on') or {}).keys())
-    # One workflow, however many triggers it has (2026-09-03: gates.yml has push + pull_request).
+    # One workflow, however many triggers it has (gates.yml has push + pull_request).
     n += 1 if any(t not in ('workflow_dispatch', 'workflow_call') for t in on) else 0
 print(n)
 " 2>/dev/null || echo "?")

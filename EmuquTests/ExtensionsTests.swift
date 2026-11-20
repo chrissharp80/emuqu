@@ -1,9 +1,7 @@
 @testable import Emuqu
 import XCTest
 
-/// Covers the helpers left in Extensions.swift. The generic Optional,
-/// Collection, Date and ReadingTag helpers this suite used to test were
-/// removed from the app with their last callers.
+/// Covers the helpers in Extensions.swift.
 final class ExtensionsTests: XCTestCase {
     // MARK: - DurationFormatter.hoursMinutes
 

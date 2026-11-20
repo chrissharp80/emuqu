@@ -113,8 +113,7 @@ Runs the unit suite under Thread Sanitizer and fails on any race report.
 
 `check_unchecked_sendable.sh` proves the count of concurrency escapes has not
 grown. This is the only thing that can show any of them is actually correct,
-because it tests them as executed rather than as annotated. First run
-(2026-08-18): 1,444 tests, zero races.
+because it tests them as executed rather than as annotated.
 
 Unit suite only — the UI suite runs the app in a separate process where TSan
 would have to be injected into the runner too, at prohibitive cost for a

@@ -132,8 +132,8 @@
   },
   {
    "key": "§ Emuqu — feature reference > Key Features > Sleep Integration",
-   "hash": "103424cc46e6880b",
-   "does": "Claims sleep score from duration/efficiency/deep/REM enhanced by SleepScienceAnalyzer when stages exist, estimated HRV sleep stages without a Watch (agreement with lab sleep studies not claimed) and optional augmentation with one that overrides Watch stages where HRV strongly disagrees, sleep export to Health only on nights with no Health sleep and only asleep/awake values, adjustable timeline, HR-estimated sleep fallback (RR then Watch HR), no post-strap sleep extension. Code: exportSleepIfSoleSource exports only HR-estimated nights when no other source wrote sleep; hkSleepValue maps every non-awake stage to asleepUnspecified; SleepResolver.maybeAugment/inferStagesFromRR; MorningResultsViewModel.estimateSleepFallback. The weighted sleep formula runs only for zero-minute nights (see ARCHITECTURE.md:367 record).",
+   "hash": "574d91c92ac93611",
+   "does": "Claims sleep score from duration/efficiency/deep/REM enhanced by SleepScienceAnalyzer when stages exist, estimated HRV sleep stages without a Watch (agreement with lab sleep studies not claimed) and optional augmentation with one that overrides Watch stages where HRV strongly disagrees, sleep export to Health only on nights with no Health sleep and only asleep/awake values, adjustable timeline, HR-estimated sleep fallback (RR then Watch HR), no post-strap sleep extension. Code: exportSleepIfSoleSource exports only HR-estimated nights when no other source wrote sleep; hkSleepValue maps every non-awake stage to asleepUnspecified; SleepResolver.maybeAugment/inferStagesFromRR; MorningResultsViewModel.estimateSleepFallback.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepIfSoleSource(session:)",
@@ -147,11 +147,11 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "7330a00595a0e155",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inferStagesFromRR(ctx:envelope:)": "7a240281c4863d44",
-    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.maybeAugment(_:ctx:envelope:)": "1d889b52439dc5b3",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepIfSoleSource(session:)": "4dae1c525ba31b62",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)": "375d75f53a50f643",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "df732f4d66d187be",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.inferStagesFromRR(ctx:envelope:)": "929b2dbaa0385be6",
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.maybeAugment(_:ctx:envelope:)": "35ca84025fe983ac",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepIfSoleSource(session:)": "d25c8497c038c027",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)": "0b611b7b18f3fce0",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.estimateSleepFallback(for:)": "7b5f71eb20ddedd8"
    }
   },

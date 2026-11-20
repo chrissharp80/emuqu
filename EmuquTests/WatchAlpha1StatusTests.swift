@@ -2,8 +2,8 @@
 import XCTest
 
 /// The phone tells the Watch whether its α1 is current, and the Watch shows a
-/// value only when it is. The live payload used to carry `alpha1` with no
-/// status, so the Watch had no way to tell a frozen value from a live one.
+/// value only when it is. Without the status, the Watch would have no way to
+/// tell a frozen `alpha1` from a live one.
 final class WatchAlpha1StatusTests: XCTestCase {
     @MainActor
     func testTheLivePayloadCarriesTheAlpha1Status() {

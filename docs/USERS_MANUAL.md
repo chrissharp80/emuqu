@@ -511,8 +511,8 @@ structured JSON. The model then composes the answer.
 Why it matters:
 
 - **Faster.** The prompt is small and byte-identical every turn, so each
-  provider's prompt cache hits from turn 2 onwards. DeepSeek in
-  particular no longer slows to a crawl after five turns.
+  provider's prompt cache hits from turn 2 onwards, so long chats
+  stay fast.
 - **More correct on specific questions.** The model asks for exactly
   the fact it needs ("the session on April 21") rather than skimming a
   flat text dump and approximating.
@@ -1275,7 +1275,7 @@ Most users have never done a 20-minute FTP test and never will. If you have a St
 
 ### One-shot load backfill
 
-Old workouts whose strap dropped mid-session — common cause: sweat or contact loss after the warmup — used to surface "1 TRIMP" on the Load page because `extrapolatedTRIMP` was nil and the preferred-load resolver fell all the way through to a junk Banister value.
+A workout whose strap dropped mid-session (common cause: sweat or contact loss after the warmup) has too little heart-rate data for a real TRIMP, so without an estimate the Load page would show a near-zero value such as "1 TRIMP".
 
 A one-time backfill (`WorkoutLoadBackfill`) runs once per week to retroactively apply `RouteTRIMPEstimator` to archived workouts that match a saved route shape:
 
@@ -1286,7 +1286,7 @@ A one-time backfill (`WorkoutLoadBackfill`) runs once per week to retroactively 
 - Priors are only earlier runs whose own track matches the same saved route, that ended before the workout being estimated (so a workout never counts itself), and whose own heart rate didn't drop out; a prior under half the median of the others is ignored as an outlier.
 - The estimate replaces the recorded heart-rate load only when it rests on at least one prior run and the recorded TRIMP is under half of it; otherwise it counts only when the workout has no other load at all. An easy day on a familiar route keeps its recorded value.
 
-After the first launch with this build, the Load page, recent-workouts list, ATL/CTL chain, and the AI coach all read coherent numbers for your historical workouts without forcing you to re-record anything.
+Once it has run, the Load page, recent-workouts list, ATL/CTL chain, and the AI coach all read coherent numbers for your historical workouts without you re-recording anything.
 
 ### Turn-by-turn alerts (opt-in)
 
@@ -1427,7 +1427,7 @@ A separate Bluetooth pipeline on the Watch (`WatchStrapConnector`) lets the Watc
 ### Known Watch limitations
 
 - The Watch app is a **viewer + remote + HR source**, not a standalone recorder. If your iPhone is dead, the Watch alone will not produce a workout.
-- HealthKit authorization on the Watch is separate from iOS — the Watch app prompts the first time you tap Start. The auth-failure case is surfaced so the strap-drop fallback no longer silently fails when the prompt was denied or never appeared.
+- HealthKit authorization on the Watch is separate from iOS — the Watch app prompts the first time you tap Start. The auth-failure case is surfaced, so the strap-drop fallback does not fail silently when the prompt was denied or never appeared.
 - watchOS `HKWorkoutSession.start()` can throw at app cold-start before `HKHealthStore` is fully booted; the manager logs the start failure into `lastStartError` and surfaces it to the Watch UI so the user knows wrist-HR fallback won't fire.
 
 **Note.** Watch ↔ iPhone communication is over `WatchConnectivity` (`WatchConnectivityBridge` on the phone, `WatchSessionManager` on the wrist), not the App Group.

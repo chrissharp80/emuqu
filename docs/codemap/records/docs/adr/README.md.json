@@ -1,15 +1,15 @@
 {
  "file": "docs/adr/README.md",
  "hash": "e3b0c44298fc1c14",
- "role": "Index of ADRs 001-006 with inline summaries of 001 (encryption fallback), 002 (CI cost posture), 003 (concurrency allowlist) and pointers to 004-006.",
+ "role": "Index of ADRs 001-006 with inline summaries of 001 (encryption fallback), 002 (CI scopes: unit on every pull request and push, full on demand), 003 (concurrency allowlist) and pointers to 004-006.",
  "types": [],
  "state": [],
  "toplevel": "",
  "units": [
   {
    "key": "§ Architecture decision records",
-   "hash": "dfedeb206df76aff",
-   "does": "Index table mapping ADR 001-006 to where reasoning lives (PendingEncryptionLedger.swift, CI_POSTURE.md, check_unchecked_sendable.sh, adr files). All linked files exist.",
+   "hash": "a1cbf9d8fc7f0d8b",
+   "does": "Index table mapping ADR 001-006 to where reasoning lives (PendingEncryptionLedger.swift, CI_POSTURE.md, check_unchecked_sendable.sh, adr files); says the first three are written up next to the code they govern. All linked files exist.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)",
@@ -55,7 +55,7 @@
   },
   {
    "key": "§ Architecture decision records > 001 — Sensitive storage falls back, then repairs",
-   "hash": "083cc017046b6ffd",
+   "hash": "b9b95ccee9b8d065",
    "does": "Claims: when EncryptionManager is unavailable (before first unlock), archive writes plaintext with .completeFileProtection, records the session in PendingEncryptionLedger, and reencryptPendingSessions() rewrites it encrypted at the next launch where the key is reachable; the window is 'bounded by one app launch'; only a throwing encrypt() is logged at .error, while the key-unavailable fallback is not logged and shows only as the ledger entry. Verified the write options (Archive+PendingEncryption.swift:18-30), encryptOrReportFailure (Archive+SessionCodec.swift:113-126: isAvailable guard returns nil silently, catch logs .error), and the launch-time repair called from ArchiveMigrations.runDeferredMigrations.",
    "entry": null,
    "calls": [
@@ -85,9 +85,9 @@
    }
   },
   {
-   "key": "§ Architecture decision records > 002 — Nothing that needs macOS runs automatically",
-   "hash": "c9e32d53c015f269",
-   "does": "Claims macOS jobs stay manual (10x billing, ~1,080 billable minutes per full run vs 3,000 cap) and script gates run on a Linux runner on every push via gates.yml. Verified: gates.yml triggers on push to main, pull_request, workflow_dispatch; CI_POSTURE.md:24-30 carries the arithmetic.",
+   "key": "§ Architecture decision records > 002 — The macOS jobs run at scope `unit`; the full run is on demand",
+   "hash": "2b1ba6e30992655a",
+   "does": "Claims the no-Xcode script gates run on a Linux runner on every pull request and push to main (gates.yml), the macOS jobs in ci.yml (SwiftLint and budgets, strict concurrency, build, unit suite, Thread Sanitizer) run at scope unit on every pull request and push to main, and the UI target and full coverage floors (scope full) run on demand and before every release; points to CI_POSTURE.md for per-scope cost. Verified: gates.yml and ci.yml trigger on pull_request, push to main and workflow_dispatch; ci.yml's tests job takes scope unit when inputs.scope is empty; workflow_call defaults to full (testflight.yml).",
    "entry": null,
    "calls": [
     ".github/workflows/gates.yml::job script-gates"
@@ -127,8 +127,8 @@
   },
   {
    "key": "§ Architecture decision records > 005 — Helpers hold their owner strongly; `unowned` is banned",
-   "hash": "e6444c9f7d0f0761",
-   "does": "Summary of ADR 005: 28 helpers had unowned back-pointers and 'two of them crashed the unit suite from resumed continuations'; they are now values holding the owner strongly, built on demand, and a gate bans unowned. Consistent with ADR 005, which says the crash reports named two sites (005-no-unowned-back-references.md:66); the 'unit suite' wording omits that the first reproduction was in four observable-state tests (005:64).",
+   "hash": "c5e9c2057cd6b8a9",
+   "does": "Summary of ADR 005: an unowned back-pointer from a helper traps when a resumed continuation outlives the owner; helpers are values holding the owner strongly, built on demand, and a gate bans unowned. Consistent with 005-no-unowned-back-references.md.",
    "entry": null,
    "calls": [
     ".github/workflows/ci.yml::step lint-and-budgets/No unowned references"

@@ -733,8 +733,8 @@ struct MetricExplanationsView: View {
     }
 
     /// The bands the app labels a reading with (`HRVThresholds`), so the
-    /// glossary and the score screen agree. They used to differ: an index of
-    /// 120 was "normal band" in the findings and "mildly elevated" here.
+    /// glossary and the score screen agree: an index of 120 is "normal" in
+    /// both.
     private var stressIndexInterpretation: String {
         let bundle = LanguageManager.appBundle
         let bands = String(localized: "Below 50: very low. 50-100: low. 100-150: normal. 150-200: elevated. Above 200: high, and above 300 a clear signal to recover.", bundle: bundle)

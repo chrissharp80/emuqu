@@ -13,7 +13,7 @@ final class HealthExportIdentityTests: XCTestCase {
     private let session = UUID()
     private let otherSession = UUID()
 
-    // MARK: - The comment that used to be the whole safeguard
+    // MARK: - The exact-match safety argument
 
     /// The summary sample's predicate is exact, so it cannot reach the minute
     /// series that shares its metric name.

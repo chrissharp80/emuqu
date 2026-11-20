@@ -8,12 +8,12 @@ import XCTest
 /// warned about the wrong hill — or half of one.
 @MainActor
 final class RouteClimbDetectionTests: XCTestCase {
-    // MARK: - The bug this fixed
+    // MARK: - A flat shelf inside a climb
 
     func testFlatShelfDoesNotSplitAClimb() {
         // A shelf partway up a hill is still the same hill. Treating a flat
-        // step as "not rising" closed the run, and the 30 m qualifying
-        // threshold then discarded the shorter half.
+        // step as "not rising" would close the run, and the 30 m qualifying
+        // threshold would then discard the shorter half.
         var alt: [Double] = []
         for i in 0 ..< 21 {
             if (9 ... 11).contains(i) { alt.append(alt[alt.count - 1]) } else {

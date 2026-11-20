@@ -15,8 +15,7 @@ source "$(dirname "$0")/lib/preflight.sh"
 #
 # Thread Sanitizer is the only thing that can. It instruments every memory
 # access and reports actual races at runtime, so it tests the escapes as
-# executed rather than as annotated. First run (2026-08-18): 1,444 tests, **zero
-# race reports**.
+# executed rather than as annotated.
 #
 # Unit suite only. The UI suite runs the app in a separate process where TSan
 # would need to be injected into the runner too, and its wall-clock cost under

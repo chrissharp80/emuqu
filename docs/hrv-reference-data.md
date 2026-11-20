@@ -1,7 +1,7 @@
 # HRV reference data
 
-The app reports RMSSD, SDNN and pNN50, and nothing demonstrated those
-numbers were right until this data set.
+The app reports RMSSD, SDNN and pNN50. This data set is what shows those
+numbers are right.
 
 ## What is validated, and what is not
 
@@ -55,20 +55,19 @@ Needs network access and is never run in CI. The generated Swift file is
 committed so the tests run offline. Each record carries the SHA-256 of the
 annotation file it came from.
 
-## Three things the first version of this got wrong
+## Three differences that are not defects
 
-Worth recording, because each looked like an app defect and was not.
+A plain reference implementation disagrees with the app in three places. Each looks like an app defect and is not.
 
-**SDNN divisor.** The reference used the population standard deviation and
-disagreed with the app by exactly `sqrt(N/(N-1))` on every record — 19.8456
-against 19.8125 on nsr001. The app was right: N-1 is what HRV software reports.
-A ratio that small is easy to dismiss as floating-point noise. It was not.
+**SDNN divisor.** A reference that uses the population standard deviation
+disagrees with the app by exactly `sqrt(N/(N-1))` on every record: 19.8456
+against 19.8125 on nsr001. The app uses N-1, which is what HRV software reports.
+A ratio that small is easy to dismiss as floating-point noise. It is not.
 
 **Ectopic filtering.** `computeTimeDomain` filters ectopic beats before taking
-successive differences; the reference did not. On nsr005 the app reported RMSSD
-16.03 against 28.98. That is the filter working — removing beats that are not
-sinus rhythm — and reading it as an error would have meant "fixing" a correct,
-documented design choice. The suite now compares the unfiltered reference
+successive differences; a plain reference does not. On nsr005 the app reports RMSSD
+16.03 against 28.98. That is the filter removing beats that are not sinus
+rhythm, a documented design choice. The suite compares the unfiltered reference
 against `rmssd(fromCleanRRs:)`, which is the pure formula, and separately
 asserts that the filtered pipeline never reports a *larger* RMSSD than the raw
 one.

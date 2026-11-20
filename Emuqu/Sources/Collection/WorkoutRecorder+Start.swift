@@ -438,13 +438,11 @@ extension WorkoutSessionLifecycle {
     /// data — subscribing here would wire a sink to a dead publisher, a real
     /// cause of "no HR despite the UI saying recording."
     ///
-    /// The announce path is not called inline here. A user log showed a 14.65 s
-    /// gap between `recorder.phase.recording → announce.fire` and the next synchronous
-    /// start() log line, with `announceStart` the only meaningful work in that
-    /// gap. Root cause was `AVSpeechSynthesisVoice.speechVoices()` IPC stalling
-    /// after an audio-session interruption; a secondary contributor was
-    /// first-use Taptic Engine spin-up via a
-    /// fresh `UINotificationFeedbackGenerator()`. Both are mitigated upstream
+    /// The announce path is not called inline here. Inline, it can stall
+    /// start() for seconds: `AVSpeechSynthesisVoice.speechVoices()` IPC can
+    /// stall after an audio-session interruption, and first-use Taptic Engine
+    /// spin-up via a fresh `UINotificationFeedbackGenerator()` adds to it.
+    /// Both are mitigated upstream
     /// (voice is cached via `_voiceCacheLookup`; haptic generators are
     /// pre-warmed at app launch), and announce itself is hopped into a
     /// `Task { @MainActor }` by `queueStartAnnouncement`. `recordAnnounceFire`
@@ -508,18 +506,15 @@ extension WorkoutSessionLifecycle {
     /// waits until SwiftUI has finished mounting `FitnessRecordingView`
     /// defends against one rare iOS-26 race where CLLocationManager setters
     /// hung for 17 s on the main thread after a BLE power-cycle, but it makes
-    /// EVERY workout wait ~11–12 s (beta user logs) before GPS begins
-    /// tracking. Net: a once-in-many bug avoided, an
-    /// always-in-every-workout 12 s GPS delay introduced. Bad trade. The
+    /// EVERY workout wait ~11–12 s before GPS begins tracking: a rare hang
+    /// avoided at the cost of a GPS delay on every workout. The
     /// fine-grained `step=1…8` logs inside `startTracking()` pinpoint any
-    /// future hang at exactly the setter that blocks, so
-    /// re-fixing if needed is mechanical.
+    /// hang at exactly the setter that blocks.
     ///
-    /// The one hop exists because user logs captured
-    /// `recorder.location.startTracking done (3083ms)` for a walk start, with the
-    /// "exceeded 250ms threshold" warning firing every time. 3 s of main-thread block between
-    /// the user's tap and the recording UI is the "exercise was super slow to
-    /// start" complaint. `CLLocationManager.startUpdatingLocation` is
+    /// The one hop exists because inline,
+    /// `recorder.location.startTracking` can take about 3 s on a walk start,
+    /// main-thread block between the user's tap and the recording UI that
+    /// makes the workout feel slow to start. `CLLocationManager.startUpdatingLocation` is
     /// documented as non-blocking, but its first call after an authorization
     /// change / cold start synchronously prompts CoreLocation to negotiate
     /// accuracy + delivery cadence with locationd, which is what eats the 3 s.
@@ -758,8 +753,8 @@ extension WorkoutSessionLifecycle {
     }
 
     /// An AI-worded interval call, or the scripted one when the AI can't be
-    /// asked (Flo off, its notice not accepted, no consent for the provider).
-    /// Interval calls used to go silent then.
+    /// asked (Flo off, its notice not accepted, no consent for the provider),
+    /// so interval calls are never silent.
     @MainActor
     private static func announce(on conversation: VoiceConversationController, prompt: String, fallback: String) {
         let provider = AppDependencies.current.providers.providerRegistry.activeProvider

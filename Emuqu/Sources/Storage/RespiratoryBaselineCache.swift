@@ -17,7 +17,7 @@ import Foundation
 /// (`VitalsHealthQueries.refreshesBaselineCache` / `cachedBaselineIfToday`).
 /// The scoring path falls back to this cache when HK is unreachable. As long
 /// as the user has opened the app at least once recently with HK unlocked,
-/// the cache stays warm and the locked-phone-at-6AM window no longer drops the
+/// the cache stays warm and the locked-phone-at-6AM window does not drop the
 /// baseline.
 enum RespiratoryBaselineCache {
     typealias Snapshot = BaselineSnapshot

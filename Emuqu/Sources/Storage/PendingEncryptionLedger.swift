@@ -78,8 +78,7 @@ enum PendingEncryptionLedger {
     /// Record that `id` was written without encryption.
     ///
     /// Logged at `.error`, not `.warning`: a downgraded confidentiality
-    /// guarantee on health data is not a routine event, and the whole point of
-    /// this change is that it stops being invisible.
+    /// guarantee on health data is not a routine event and must stay visible.
     static func record(_ id: UUID, in store: Store) {
         let count: Int? = cache.withLockUnchecked { lists in
             var ids = ids(store, in: &lists)

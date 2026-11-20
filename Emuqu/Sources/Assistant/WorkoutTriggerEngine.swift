@@ -30,8 +30,8 @@ final class WorkoutTriggerEngine {
 
     // MARK: Urgency
     //
-    // Bug list item #8: "only genuine emergency-level
-    // thresholds should interrupt" an active AI voice conversation.
+    // Only genuine emergency-level thresholds interrupt an active AI
+    // voice conversation.
     // A `routine` event that reaches the coach while the AI is
     // mid-conversation is DROPPED; an `urgent` one still preempts because
     // the user explicitly opted into it. In the default catalogue the only

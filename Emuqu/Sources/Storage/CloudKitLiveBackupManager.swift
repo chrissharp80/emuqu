@@ -191,11 +191,10 @@ final class CloudKitLiveBackupManager {
     /// Fetch any live backups in CloudKit for recovery after device loss.
     ///
     /// Selected on `captureDate`, which every record carries, so the query
-    /// needs that field's queryable index in the production schema. It used to
-    /// select on a plaintext beat count, which is no longer written.
+    /// needs that field's queryable index in the production schema.
     ///
     /// The newest backups by capture date: a query returns records in no set
-    /// order, so a capped query let stale backups crowd out the one the user
+    /// order, so a capped query would let stale backups crowd out the one the user
     /// needs. Dates are listed first, without the beats, and only the newest
     /// records are then fetched whole.
     func fetchAll() async -> [LiveBackupSummary] {

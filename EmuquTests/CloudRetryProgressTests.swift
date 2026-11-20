@@ -3,27 +3,27 @@ import XCTest
 
 /// A deferred upload must eventually become eligible again.
 ///
-/// ## The defect this pins
+/// ## What this pins
 ///
 /// A `shouldDeferForBackoff` of the form
 /// `stableRetryBucket(id) % skipCycles != 0` never recovers. Both operands are constant while
 /// an item is being skipped — the bucket comes from the UUID, and the failure
 /// count only changes when an attempt is actually made — so a session that
-/// deferred once deferred on every cycle for the life of the process. A backup
-/// pending its first upload never retried, even after connectivity returned.
+/// defers once defers on every cycle for the life of the process. A backup
+/// pending its first upload never retries, even after connectivity returns.
 ///
 /// A worked example: UUID `01000000-0000-4000-8000-000000000000`
 /// gives bucket 1. After one failure the test is `1 % 2 != 0` → true, and
 /// re-evaluating it changes nothing.
 ///
-/// A test that only checked bucket STABILITY would pass against the broken
-/// code, because stability was never the problem. What has to be asserted is
+/// A test that only checked bucket STABILITY would pass against that form,
+/// because stability is not the problem. What has to be asserted is
 /// PROGRESS: that advancing the cycle eventually makes a deferred session
 /// eligible.
 @MainActor
 final class CloudRetryProgressTests: XCTestCase {
-    /// The UUID from the worked example above: bucket 1, which under the old
-    /// expression deferred forever after a single failure.
+    /// The UUID from the worked example above: bucket 1, which under the
+    /// cycle-free form defers forever after a single failure.
     private static let workedExampleUUID = UUID(
         uuid: (0x01, 0, 0, 0, 0, 0, 0x40, 0, 0x80, 0, 0, 0, 0, 0, 0, 0)
     )
@@ -37,12 +37,12 @@ final class CloudRetryProgressTests: XCTestCase {
         return (cycle + offset) % period != 0
     }
 
-    /// The buggy expression, kept so the regression is legible.
+    /// The cycle-free form, kept so the failure it causes stays legible.
     private func oldDefers(bucket: Int, failCount: Int) -> Bool {
         bucket % min(1 << failCount, 32) != 0
     }
 
-    // MARK: - The bug, reproduced
+    // MARK: - The cycle-free form
 
     func testTheOldExpressionNeverBecomesEligible() {
         let bucket = CloudKitSyncManager.stableRetryBucket(for: Self.workedExampleUUID)
@@ -53,10 +53,10 @@ final class CloudRetryProgressTests: XCTestCase {
         }
     }
 
-    // MARK: - The fix
+    // MARK: - The production form
 
     /// Every session, at every failure count, must become eligible within its
-    /// backoff period. This is the assertion the buggy expression cannot satisfy.
+    /// backoff period. This is the assertion the cycle-free form cannot satisfy.
     func testEverySessionBecomesEligibleWithinItsPeriod() {
         for failCount in 1 ... 8 {
             let period = min(1 << min(failCount, 6), 32)

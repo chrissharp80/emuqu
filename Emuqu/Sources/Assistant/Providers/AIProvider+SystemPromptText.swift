@@ -34,7 +34,7 @@ extension AssistantSystemPrompt {
       describes what you're about to fetch. If you announce a fetch in text \
       without actually issuing the tool call, the user sees a lie — you said \
       you'd do something and the value never arrives. This pattern triggers \
-      immediate user frustration; saw real session 2026-05-16 where the model \
+      immediate user frustration, for example a model that \
       repeated "Calling get_workout_live snapshot for current HR now" six \
       times across a walk while the user asked for the number.
     - NEVER use developer / implementation jargon in user-facing output. \
@@ -296,11 +296,10 @@ extension AssistantSystemPrompt {
     /// hits a tool-required question. That advice is broken in voice
     /// mode: the user is hands-free, eyes-free, and there is no chat
     /// surface or sparkles glyph to tap. Worse, when the user already
-    /// has a cloud configured (the observed case: 22 voice turns, all
-    /// configured for Anthropic, all routed to Apple), the
+    /// has a cloud configured and the turn was still routed to Apple, the
     /// instruction is also a lie — there's no cloud to add.
     ///
-    /// The fix is layered: (a) the action-intent override in
+    /// The handling is layered: (a) the action-intent override in
     /// `AssistantViewModel.resolveProviderForThisTurn()` already
     /// auto-routes any tool-action verb to the user's configured cloud,
     /// so by the time Apple sees a turn it should mostly be a question

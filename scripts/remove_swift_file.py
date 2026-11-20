@@ -11,9 +11,9 @@ build-file membership means removing four entries from project.pbxproj:
 4. The file's entry in the PBXSourcesBuildPhase files list
 
 Leaving any of them behind either breaks the build ("Build input file cannot be
-found") or leaves a dangling reference Xcode shows in red. Doing it by hand is
-why three dead protocol files in this repo were left as empty "tombstones"
-rather than removed — this script exists so that is no longer the trade-off.
+found") or leaves a dangling reference Xcode shows in red. This script removes
+all four, so a dead file can be deleted rather than left as an empty
+"tombstone".
 
 Usage:
     python3 scripts/remove_swift_file.py <relative_path_to_swift_file> [...]

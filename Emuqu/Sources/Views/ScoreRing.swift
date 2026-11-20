@@ -71,7 +71,7 @@ struct ScoreRing: View {
 
     /// The score the ring shows, which VoiceOver names: the ring is reused
     /// for the morning recovery score, the live readiness and the sleep
-    /// score, and every one of them used to be read as a recovery score.
+    /// score, and each must not be read as a recovery score.
     enum Metric {
         case recovery
         case readiness

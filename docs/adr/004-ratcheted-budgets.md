@@ -29,10 +29,9 @@ separately so they cannot hide inside the main number.
 
 ## Why not a hard zero
 
-Because a rule set to an aspiration is worse than no rule. The coverage gate
-demonstrated this: it required 90% for months, could never pass, and was
-therefore never run — while the README and a runbook both stated the 90% figure
-as though it held. A gate nobody can satisfy is a gate everybody routes around,
+Because a rule set to an aspiration is worse than no rule. A coverage gate
+that requires a figure the suite cannot reach never passes, so nobody runs it,
+while the docs go on stating the figure as though it held. A gate nobody can satisfy is a gate everybody routes around,
 and its documentation becomes a lie by default.
 
 A measured ceiling is honest about the present, blocks regression immediately,
@@ -41,11 +40,8 @@ and converts "we should fix this someday" into a number that only moves one way.
 ## Consequence
 
 The numbers in `.ci/` are a debt inventory, and a reviewer is right to read them
-as such. Eighteen waivers went to zero this way, and the last oversized types
-have been split. Static reads of the composition root are what remain, counted
-in `.ci/shared_usage_budget.txt`. That is the honest measure of what is still
-outstanding, which is the point of writing it down rather than asserting a
-standard that was never met.
+as such. That is the honest measure of what is still outstanding, which is
+the point of writing it down rather than asserting a standard nobody meets.
 
 These ceilings are debt inventories rather
 than assurance targets. That is intended.

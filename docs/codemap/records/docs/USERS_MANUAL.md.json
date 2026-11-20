@@ -857,7 +857,7 @@
   },
   {
    "key": "§ Emuqu User Manual > Flo Tab (the AI Assistant) > How the assistant fetches your data (tool use)",
-   "hash": "2aaed122376b366a",
+   "hash": "53ba039cef8af8fe",
    "does": "Claims every provider uses tool use, prompt is small and cache-stable, hard cap 8 tool calls per question, Apple transcript trimmed verbatim at 70% of 4K keeping the latest user turn, Apple session cache rotates after 20 turns.",
    "entry": null,
    "calls": [
@@ -870,10 +870,10 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)": "c3f0201319859f72",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)": "dd6ae7872b57f262",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.schema(registry:)": "a26db50852d1a413",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.SessionCache.canReuse(for:)": "a5a21a29423ea673",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)": "51c429d7c3e8b857"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)": "08e15dc41d4b0890"
    }
   },
   {
@@ -2275,7 +2275,7 @@
   },
   {
    "key": "§ Emuqu User Manual > Fitness Tab > One-shot load backfill",
-   "hash": "805167793bc2a557",
+   "hash": "dbb6ed8c9728c0b5",
    "does": "Claims WorkoutLoadBackfill runs weekly over 90 days applying RouteTRIMPEstimator to route-matching workouts, idempotent, re-running when saved-route count changes, with prior/outlier rules and replacement only when recorded TRIMP < half the estimate.",
    "entry": null,
    "calls": [
@@ -2298,20 +2298,19 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "26547ccaed8e1da6",
-    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.estimate(track:sport:recordedTRIMP:recordedDistance:distanceMayBeTruncated:archive:savedRouteStore:)": "79a9067b84cc9c9e",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "ef22a598a8881280",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.estimate(track:sport:recordedTRIMP:recordedDistance:distanceMayBeTruncated:archive:savedRouteStore:)": "d1f147aa9676b2b9",
     "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.isCleanPrior(_:sport:before:)": "b7316d7afb25ed3f",
-    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.priorSessionsOnRoute(archive:route:before:)": "2b9879b149797857",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.priorSessionsOnRoute(archive:route:before:)": "b37cbfa78d8eb610",
     "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.priorTRIMPPerMetre(archive:route:before:)": "535f26bdb99f7b9d",
     "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.withoutOutliers(_:)": "dbb355779a1001cd",
     "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.backfill(_:archive:savedRouteStore:)": "9839a6f6eefa1127",
     "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.loadCandidate(_:archive:)": "c20153371568feb8",
     "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.persist(_:entry:archive:)": "e8a099e3681138ea",
     "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.run(archive:savedRouteStore:lookbackDays:)": "141b2b815b493633",
-    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.runIfNeeded(archive:savedRouteStore:lookbackDays:)": "d3497339168979cd",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "4c06ba92c36737df",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "03a72852e5d15141",
-    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.scheduleWorkoutLoadBackfill(powerMultiplier:lowPower:)": "23c4361f05dfe161"
+    "Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift::func WorkoutLoadBackfill.runIfNeeded(archive:savedRouteStore:lookbackDays:)": "b2daa1c3fdbf0bca",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "d26eee9c8f04fad4",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.routeEstimateReplacesHRLoad": "03a72852e5d15141"
    }
   },
   {
@@ -2502,7 +2501,7 @@
   },
   {
    "key": "§ Emuqu User Manual > Apple Watch Companion App > Known Watch limitations",
-   "hash": "412eb4f81bf48d7d",
+   "hash": "98cbd0777c207d4e",
    "does": "Claims Watch is not standalone, requests HealthKit on first Start, and surfaces HKWorkoutSession start failures via lastStartError.",
    "entry": null,
    "calls": [

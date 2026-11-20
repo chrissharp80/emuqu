@@ -1,10 +1,10 @@
 {
  "file": "Emuqu.xctestplan",
- "hash": "4ee0da8389267061",
+ "hash": "14f59f28e891f90c",
  "role": "Test plan referenced by the Emuqu scheme: runs EmuquTests in parallel and EmuquUITests serially, in random order, with coverage on the Emuqu target.",
  "types": [],
  "state": [],
- "toplevel": "configurations: one 'Default' with codeCoverage targets [Emuqu]. defaultOptions.testExecutionOrdering = random (applies to both targets). testTargets: EmuquTests parallelizable true; EmuquUITests parallelizable false. Two _comment strings record why: UI tests flaked under parallel simulator clones (SettingsNavigationUITests, 2026-08-19), and random ordering became safe for UI tests once AppLaunchRecovery.removeStoredSessionData() wiped archive/raw-RR directories under -UITests-FreshInstall (verified: Emuqu/Sources/Services/AppLaunchRecovery.swift:185-193,217; all 18 UI test files reference -UITests-FreshInstall). Random ordering makes order-dependent unit tests fail non-deterministically rather than consistently. The top-level _comment also says these parallel settings apply to `make test` and Xcode runs, while scripts/run_tests_with_coverage.sh (`make test-coverage`, ci.yml tests job) passes -parallel-testing-enabled NO by default (PARALLEL_TESTING), running both targets serially and overriding both settings.",
+ "toplevel": "configurations: one 'Default' with codeCoverage targets [Emuqu]. defaultOptions.testExecutionOrdering = random (applies to both targets). testTargets: EmuquTests parallelizable true; EmuquUITests parallelizable false. Two _comment strings say why: UI tests run serially because parallel simulator clones made them flaky, and random ordering stays hermetic for UI tests because every launching suite passes -UITests-FreshInstall, under which AppLaunchRecovery.removeStoredSessionData() wipes the stored archive before the app reads it (verified: Emuqu/Sources/Services/AppLaunchRecovery.swift; the UI test files reference -UITests-FreshInstall). Random ordering makes order-dependent unit tests fail non-deterministically rather than consistently. The top-level _comment also says scripts/run_tests_with_coverage.sh (`make test-coverage`, CI) passes -parallel-testing-enabled NO unless PARALLEL_TESTING says otherwise, overriding the parallel settings here.",
  "units": [],
  "deps": {}
 }

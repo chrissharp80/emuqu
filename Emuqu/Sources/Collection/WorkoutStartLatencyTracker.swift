@@ -76,8 +76,7 @@ final class WorkoutStartLatencyTracker {
     }
 
     /// Stamps when `start()` finishes its synchronous body. Instrumentation
-    /// that stops at `announce.fire` leaves gaps like the
-    /// 14.6 s + 9.5 s in `hrv_debug_log_1778675167.txt` to be inferred
+    /// that stops at `announce.fire` leaves gaps to be inferred
     /// from per-step log spacing. This gives a single explicit number for
     /// "tap → start() returned" — anything over a few hundred ms is a
     /// regression and the per-step logs after this line tell us where it lives.

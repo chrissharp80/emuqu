@@ -204,7 +204,7 @@ final class WatchMessageDecodingTests: XCTestCase {
         )
     }
 
-    /// The regression this rule exists for: a cold Watch launch reports
+    /// The case this rule exists for: a cold Watch launch reports
     /// `isRecording: false` while `wasRecording` is also false, and must NOT
     /// raise a "Save & Done" banner for a workout that never happened.
     func testColdLaunchDoesNotRaiseCompletionBanner() {
@@ -379,10 +379,10 @@ final class WatchMessageDecodingTests: XCTestCase {
 
     // MARK: - Words the Watch writes itself
 
-    // The phone used to send the α1 band, the pace and its refusals already
-    // worded in its app language, so a Watch set to another language showed
-    // two languages. It now sends codes and numbers and the Watch words them
-    // from the shared catalogue; the phone's wording stays in the payload for
+    // The phone sends the α1 band, the pace and its refusals as codes and
+    // numbers, and the Watch words them from the shared catalogue, so a Watch
+    // set to another language than the phone shows one language. The phone's
+    // wording stays in the payload for
     // Watch builds that predate the codes, and is what an unknown code falls
     // back to.
 

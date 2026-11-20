@@ -2,25 +2,24 @@
 
 ## Context
 
-Twenty-eight helper types — the collector's recovery, streaming, morning and
+Many helper types sit beside their owners to keep the owning types under the
+aggregate size limit: the collector's recovery, streaming, morning and
 session-control coordinators, the HealthKit query groups, the workout ticker
 and finalizer, the PDF renderers, the archive store and migrations, the cloud
-pull and deletion coordinators, the assistant's router and tool runner — were
-split out of their owners in August 2026 to bring the owning types under the
-aggregate size limit. Each held an `unowned let` back-pointer, documented as
-safe "because the owner outlives it".
+pull and deletion coordinators, the assistant's router and tool runner. An
+`unowned let` back-pointer from such a helper looks safe "because the owner
+outlives it".
 
-That was true on every synchronous path and false on the asynchronous one. A
-`Task` or a resumed continuation could keep the helper alive after its owner
-had been released; the next read of the back-pointer trapped:
+That holds on every synchronous path and fails on the asynchronous one. A
+`Task` or a resumed continuation can keep the helper alive after its owner
+has been released; the next read of the back-pointer traps:
 
     Fatal error: Attempted to read an unowned reference but object … was
     already destroyed
 
-It reproduced in four observable-state tests on 2026-09-02 and again in the
-unit suite on 2026-09-03, from a launch-time migration the collector kicked
-off in its own initialiser. Fixing the two sites the crash reports named would
-have left twenty-six more with the same shape.
+A launch-time migration the collector starts in its own initialiser is enough
+to hit it. Fixing only the sites a crash report names leaves every other helper
+with the same shape.
 
 ## Decision
 
@@ -31,8 +30,7 @@ have left twenty-six more with the same shape.
 2. Callbacks the owner stores — Combine sinks in its `cancellables`, timers,
    notification tokens, HealthKit query handlers — capture the **owner
    weakly** and rebuild the helper when they fire. A strong capture there
-   would be a cycle; a weak one no-ops once the owner is gone, which is the
-   behaviour the old `[weak self]` sinks had.
+   would be a cycle; a weak one no-ops once the owner is gone.
 3. Fire-and-forget tasks launched from a helper capture the owner strongly for
    their duration. A one-time migration or an upload should keep its owner
    alive until it finishes; that is the point of running it.
@@ -44,9 +42,8 @@ have left twenty-six more with the same shape.
 
 - The class of bug is removed rather than its instances. No coordinator can
   read a freed owner, whatever the async path.
-- The helpers are values. They carry no state, and the compiler now rejects
-  `[weak self]` inside them, which is what surfaced every capture that had to
-  be reconsidered during the change.
+- The helpers are values. They carry no state, and the compiler rejects
+  `[weak self]` inside them, so every capture has to be decided explicitly.
 - `weak` remains available for a genuinely optional back-reference, and a
   few owners use it (for example `WorkoutVoiceCoach`, `BeatConsistencyPriorsCache`,
   `TrainingMetricsCache`).

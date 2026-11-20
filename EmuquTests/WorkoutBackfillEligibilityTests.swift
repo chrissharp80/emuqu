@@ -26,10 +26,10 @@ final class WorkoutBackfillEligibilityTests: XCTestCase {
         XCTAssertTrue(HealthKitManager.needsBackfill(workout()))
     }
 
-    /// The regression. HealthKit rejects a workout whose collection ends where
+    /// HealthKit rejects a workout whose collection ends where
     /// it began — "endDate must be after startDate" — and rejects it
-    /// identically every time, so retrying can only ever fail again. A field
-    /// log shows one of these: the stub a crashed recording left behind.
+    /// identically every time, so retrying can only ever fail again. A crashed
+    /// recording can leave such a stub behind.
     func testAZeroLengthWorkoutIsNotEligible() {
         XCTAssertFalse(HealthKitManager.needsBackfill(workout(durationSeconds: 0)))
     }

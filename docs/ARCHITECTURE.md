@@ -160,21 +160,20 @@ the right rule when summing over an interval.
 
 ## Analysis Algorithms
 
-**File Organization**: `RecoveryScoreCalculator` keeps the composite entry points and the display helpers, with `+Composite`, `+Tiers` and `+Training` (training-load sub-score feeding the *parallel* training-readiness path — in the current scoring, `ScoringVersion.current` = `v3.2.oct2026`, training load is **not** a composite tier). Three pieces moved out on 2026-08-31 to take the type under the 1500-line limit: `ReadinessScoring` (training readiness), `VitalsScoring` (Tier 3 vitals sub-score + post-composite overrides) and `ScoreDetailBuilder` (tier composition and the detail sentences). Each has a forwarding extension on `RecoveryScoreCalculator` (`+ReadinessForwarding`, `+VitalsForwarding`, `+DetailForwarding`), so existing call sites are unchanged and the arithmetic is identical. `WindowSelection` is split into `+Scoring` (`findBestWindow`, `selectWindowByMethod`, `analyzeAtPosition`), `+Evaluation` (window scoring and classification) and `+Filters` (spike filtering and artifact thresholds).
+**File Organization**: `RecoveryScoreCalculator` keeps the composite entry points and the display helpers, with `+Composite`, `+Tiers` and `+Training` (training-load sub-score feeding the *parallel* training-readiness path — in the current scoring, `ScoringVersion.current` = `v3.2.oct2026`, training load is **not** a composite tier). Three pieces live in their own types to keep it under the 1500-line limit: `ReadinessScoring` (training readiness), `VitalsScoring` (Tier 3 vitals sub-score + post-composite overrides) and `ScoreDetailBuilder` (tier composition and the detail sentences). Each has a forwarding extension on `RecoveryScoreCalculator` (`+ReadinessForwarding`, `+VitalsForwarding`, `+DetailForwarding`), so call sites use the `RecoveryScoreCalculator` API. `WindowSelection` is split into `+Scoring` (`findBestWindow`, `selectWindowByMethod`, `analyzeAtPosition`), `+Evaluation` (window scoring and classification) and `+Filters` (spike filtering and artifact thresholds).
 
 ### Artifact Detection
 
 **Rolling Median Approach** — O(n × w) using insertion-sorted centered 50-beat sliding window:
 
-| Classification | Condition | Confidence |
-|---|---|---|
-| Technical | RR < 300ms or > 2000ms | 1.0 |
-| Extra beat | RR < median × 0.5 | ratio / threshold |
-| Ectopic (short) | RR < median × (1 − 0.30) outer gate **and** deviation > 20% (`ectopicThreshold = 0.20`) | ratio / threshold |
-| Ectopic (long) | RR > median × (1 + 0.20) — symmetric long-beat gate added 2026-06-22 | ratio / threshold |
-| Missed beat | RR > median × (1 + 0.50) | ratio / threshold |
+Each beat is checked in this order against the median of its window. Every flag has confidence 1.0, because each band is a hard threshold.
 
-`minRR` was raised 200 → 300 ms on 2026-08-05 (`Constants.swift`). The 0.30 figure is the outer short gate (`extraThreshold`); the ectopic decision itself uses `ectopicThreshold = 0.20`.
+| Classification | Condition |
+|---|---|
+| Technical | RR < 300 ms or > 2000 ms (`minRR`, `maxRR` in `Constants.swift`) |
+| Extra beat | RR < median × (1 − 0.50) (`extraThreshold`) |
+| Missed beat | RR > median × (1 + 0.50) (`missedThreshold`) |
+| Ectopic | any other deviation from the median above 20%, on either side (`ectopicThreshold = 0.20`) |
 
 ### Time Domain Analysis
 
@@ -218,9 +217,8 @@ stay inside runs of neighbouring beats.
 - α1 < 0.6: **Anti-correlated** — uncommon in healthy resting recordings, most often a sensor-quality artifact
 
 These band NAMES are the app's internal vocabulary for window selection and
-scoring. They are not validated readiness classifications, and the
-copy that presented them as such was removed — "the gold
-standard", "load-bearing", "white noise … not recovery". Two reasons, both
+scoring. They are not validated readiness classifications, and user-facing
+copy does not present them as such. Two reasons, both
 worth keeping in front of anyone editing these numbers:
 
 - The published 0.75 anchor comes from **graded-exercise** protocols (Rogers &
@@ -437,7 +435,7 @@ Only SpO2 retains a post-composite penalty in the current scoring:
 
 - SpO2 average over the 24 h before the reading ends <95% → −10 (flag-only signal — often reflects altitude or sleep apnea rather than recovery state)
 
-The pre-2026-05-02 RR / temperature post-composite penalties were folded into the new Vitals factor (Tier 3) where they contribute as a continuous sub-score rather than a binary penalty.
+Respiratory rate and wrist temperature carry no post-composite penalty. They feed the Vitals factor (Tier 3) as a continuous sub-score.
 
 Magic numbers for all scoring thresholds (z-score clamps, DFA bands, CV thresholds, Vitals sub-score weights, Comeback weights, SpO2 penalty, etc.) are centralized in the constants files: `ScoringWeights` lives in `Constants.swift`, while `RecoveryScoreConstants` (and the ACWR / capacity-ratio / freshness-bonus figures) lives in the `Constants+RecoveryScore.swift` extension.
 
@@ -484,7 +482,7 @@ ratio 1.5  → 30   (sharp recent increase over the chronic base)
 ratio 2.0+ → 10   (extreme overload)
 ```
 
-When CTL < 3.2 (no training history): `readiness = max(10, 100 - (ATL + undamped acute load) × 0.5)`, where the acute load is the decayed TRIMP sum without the 0.30 factor (`ctlThreshold` recalibrated 5.0 → 3.2 on 2026-04-23 after the TRIMP 0.64 scaling fix)
+When CTL < 3.2 (no training history): `readiness = max(10, 100 - (ATL + undamped acute load) × 0.5)`, where the acute load is the decayed TRIMP sum without the 0.30 factor (`ctlThreshold` = 3.2)
 
 ### ACWR Modifier (Training Readiness only — NOT the recovery score)
 
@@ -497,7 +495,7 @@ ACWR < 0.8:   no penalty (detraining penalty removed; sub-0.8 readings
               are most often tapers / rest weeks / natural variation)
 ```
 
-Two dampeners shipped 2026-05-01 reduce the penalty's effect when the underlying ratio is unreliable or contradicted by direct physiology:
+Two dampeners reduce the penalty's effect when the underlying ratio is unreliable or contradicted by direct physiology:
 
 1. **Low-CTL confidence ramp.** Penalty multiplied by `min(CTL/50, 1.0)`. At CTL=16 the ratio is mathematically noisy (one 40-TRIMP walk swings it ~0.2); the ramp prevents that noise from steamrolling the readout.
 2. **Autonomic-state rescue.** When the morning recovery score is ≥70, the ACWR penalty is capped at 10%. The proxy (ACWR) shouldn't override the direct physiological signal (HRV) when they disagree on a clearly-recovered morning.
@@ -595,7 +593,7 @@ Algorithm (arithmetic in `HRSleepEstimator`):
   4. Sleep onset = first **2 consecutive** smoothed points below threshold, accepted only within a
      plausible sleep-onset latency (20 min, wall clock) so deep-sleep bradycardia can't report a bogus
      late onset and shrink the night; a later detection is a misfire and onset falls back to bedtime
-  5. Wake = end of the **last continuous** below-threshold block (2026-07-01), so a mid-night HR
+  5. Wake = end of the **last continuous** below-threshold block, so a mid-night HR
      bump (bathroom trip, REM tachycardia, BLE-gap artifact) doesn't truncate the night
 
 ```
@@ -611,19 +609,13 @@ onset rule          = first 2 consecutive smoothed points below threshold (≤ 2
 > and `fetchSleepData` threads it through to the merging pipeline, but **nothing in the app ever
 > constructs one** — every production call site passes nil, and only `SleepResolverTests` builds
 > one. So there is no "the user took the strap off, went back to bed, and the app annexed the
-> extra sleep" path in the shipping build. The resolver is ready for it; the trigger was never
-> written. Earlier revisions of this section described that trigger
-> (`DashboardViewModel.checkForExtendedSleep`, a merge that re-froze the archive) as though it
-> shipped. It did not, and `DashboardViewModel` no longer exists at all.
+> extra sleep" path in the shipping build. The resolver is ready for it; the trigger is not
+> written.
 >
-> **History (2026-08-16):** revisions before that described an
-> "ECDF / P35, Walch et al. 2022, validated against polysomnography" algorithm. That algorithm
-> was never implemented either — no `WatchSleepDetector`, ECDF, or percentile code exists — and
-> the citation was inaccurate (the real Walch et al. paper is 2019, *SLEEP*, a machine-learning
-> *staging* study, not an ECDF sleep/wake detector). The method choice was assessed and kept
-> deliberately: for HR-only, motion-free detection the thresholding method is a marginal factor
-> versus the HR-only accuracy ceiling, and this heuristic has been hardened against the real
-> overnight artifacts above.
+> The detector is the threshold heuristic above. There is no ECDF or percentile detector in the
+> code. The method is a deliberate choice: for HR-only, motion-free detection the thresholding
+> method is a marginal factor next to the HR-only accuracy ceiling, and this heuristic is
+> hardened against the real overnight artifacts above.
 
 ---
 
@@ -873,9 +865,7 @@ fact/tool system, cache-aware system prompt, voice subsystem, safety gates —
 see [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). For the
 fact-catalog contents, the tool-use data path, and voice field-notes see
 [`VOICE_AND_TOOL_USE.md`](VOICE_AND_TOOL_USE.md). **Do not restate their
-internals here.** This section previously carried a full second copy of the AI
-mechanics and drifted (a tool-call budget was documented as 4 here while the code
-and VOICE said 8). AI mechanics live in FLO/VOICE; only the *fitness-app
+internals here.** AI mechanics live in FLO/VOICE; only the *fitness-app
 integration seam* lives here.
 
 **Naming.** The chat tab is **Flo** (`MainTabView.Tab.coach`); the audible
@@ -945,8 +935,8 @@ requests).
 ### `WorkoutLocationManager`
 `kCLLocationAccuracyBestForNavigation`, `location` background mode.
 Active during a recording workout. Owns the `CLAltimeter` for
-barometric elevation. **Lazy-initialised** on first access — the
-recorder's `init()` no longer pays the 2–3 s `CLLocationManager` +
+barometric elevation. **Lazy-initialised** on first access, so the
+recorder's `init()` does not pay the 2–3 s `CLLocationManager` +
 `CMAltimeter` setup cost synchronously on `@MainActor`. First access
 is `start()` for GPS sports, by which point the user has explicitly
 committed to a workout.
@@ -1098,30 +1088,28 @@ The earlier "god object" `RRCollector` was decomposed into focused
 - `MorningCoordination` — morning-window detection, score reveal
   state, organized-recovery selection
 
-All live state moved into the sub-objects; the parent `RRCollector`
+All live state lives in the sub-objects; the parent `RRCollector`
 itself holds no observable state of its own. Views observe the sub-object
 they need (`@Environment(DeviceStatus.self)`); under `@Observable`, nested
-observation flows automatically, so the old "observe the child, not the
-parent" pitfall no longer exists.
+observation flows automatically.
 
-**Observation framework, everywhere (completed 2026-09-03).** Every
+**Observation framework, everywhere.** Every
 observable type in the app is `@Observable`; there are no `ObservableObject`
 conformers, no `@Published` properties and no `objectWillChange` sends, and
-the `.ci/legacy_observable_object_budget.txt` ratchet sits at zero. The
-Combine bindings that used to watch `$property` publishers — the collector's
-device-status proxies, the HealthKit version counters, the voice controller's
-streaming observers, the workout recorder's strap and heart-rate
-subscriptions — became self-re-arming observation loops built on
-`withObservationTracking`; the helper is `ObservationLoop` in
-`Emuqu/Sources/Utilities/ObservationLoop.swift`, and it delivers on the main actor after the
-mutation, exactly where `.receive(on: .main)` did. Plumbing that must not be
+the `.ci/legacy_observable_object_budget.txt` ratchet sits at zero. Code
+that reacts to a property change (the collector's device-status proxies, the
+HealthKit version counters, the voice controller's streaming observers, the
+workout recorder's strap and heart-rate subscriptions) uses self-re-arming
+observation loops built on `withObservationTracking`; the helper is
+`ObservationLoop` in `Emuqu/Sources/Utilities/ObservationLoop.swift`, and it
+delivers on the main actor after the mutation. Plumbing that must not be
 tracked (timers, tasks, notification tokens, BLE characteristics, audio
 engines) is marked `@ObservationIgnored`.
 
 **Swift 6 language mode, `complete` strict concurrency.** Every build
 configuration compiles in Swift 6 mode with warnings as errors, so an
 isolation hazard is a compile error, not a diagnostic to budget. The patterns
-that got the tree there, in the order you will meet them:
+the tree uses, in the order you will meet them:
 
 - *Main-actor stores with a nonisolated snapshot.* `SettingsManager`,
   `UserFactsStore` and `DebugLogger` are `@MainActor`; each mirrors the
@@ -1172,8 +1160,7 @@ them follow one pattern:
 2. **Extracted helpers are values that hold the parent strongly.** The parent
    builds the helper on demand (`collector.recovery`, `generator.deepDive`) and
    does not retain it, so there is no cycle and nothing that can outlive its
-   owner. They were `unowned` back-pointers until 2026-09-03, when two of them
-   trapped from resumed continuations; `unowned` is now banned by
+   owner. `unowned` is banned by
    `scripts/check_no_unowned.sh` (ADR 005). Value-type parents take the values
    they need instead: `ThresholdCards` holds the session. All-static namespaces
    need no reference at all (`VitalsScoring`, `ReadinessScoring`,
@@ -1191,32 +1178,15 @@ was cut, when, and why that seam and not another.
 
 ---
 
-## Home-screen Widget — REMOVED (2026-07-03)
+## Home-screen widget
 
-**The `EmuquWidget` extension was removed entirely on 2026-07-03.** It was
-dead: the target had zero references in `Emuqu.xcodeproj/project.pbxproj`,
-and its `SharedDefaults` reader was defined only inside the widget directory. The
-whole `EmuquWidget/` directory (its widget entry point, its `SharedDefaults`
-reader, README, privacy manifest, Info.plist and entitlements) was `git rm`'d,
-and the dead Live Activity was dropped earlier
-(commit `8db4540`). There is no widget, no Lock-Screen accessory, and no Live
-Activity.
-
-**Writer plumbing removed (2026-08-27).** For seven weeks after the extension
-was deleted, the *writer* kept running: `WidgetDataPublisher` published today's
-score, verdict, three-day trend and session count into the App Group
-`UserDefaults` on every dashboard refresh, and called
-`WidgetCenter.reloadAllTimelines()`, for a reader that no longer existed. That
-is not merely dead code in a health app — it is health-derived data written to a
-shared container on a hot path with no consumer, which data minimisation says
-should not happen. The publisher, its call sites in `DashboardV2View`, and its
-tests are gone.
+The app has no home-screen widget, Lock Screen accessory or Live Activity, and
+nothing writes widget data to the App Group `UserDefaults`.
 
 `DataPurgeService` still erases the `widget.*` keys, deliberately. A user who
-ran an earlier build still has those values on disk; deleting the writer does
-not delete their data. The key list moved into the purge service, where it now
-describes what must be cleaned up rather than what is being produced. Remove it
-only once no supported upgrade path can still carry those keys.
+ran an earlier build can still have those values on disk. The key list in the
+purge service describes what must be cleaned up. Remove it only once no
+supported upgrade path can still carry those keys.
 
 The App Group entitlement stays — the archive, raw-RR backups, conversation
 store, user facts and unit preferences all live in that container.
@@ -1225,13 +1195,8 @@ store, user facts and unit preferences all live in that container.
 
 ## Apple Watch app
 
-The Watch companion (`EmuquWatch Watch App/`) was **re-embedded into the
-iOS build on 2026-07-03** after a stretch where it was orphaned from the build
-(the iOS target's "Embed Watch Content" phase had been removed to unblock iOS
-builds, so the Watch app never installed on the wrist — the reason it "never
-worked"). The iOS app now depends on and embeds the `Watch App` target directly.
-The legacy `watchapp2-container` target, unused since then, was removed from
-the project on 2026-09-29. See `project.pbxproj` (the iOS app
+The Watch companion (`EmuquWatch Watch App/`) is embedded in the iOS build:
+the iOS app depends on and embeds the `Watch App` target directly. See `project.pbxproj` (the iOS app
 target's build phases) and `docs/FLOWCHART.md` for the workout wiring.
 
 **Design: phone-mirror + wrist controls.** The iPhone owns the Polar strap and
@@ -1274,7 +1239,7 @@ verification.
 - **No Training Periodization**: Training load tracked but no periodization planning.
 - **TRIMPi (Manzi) Not Implemented**: Requires individual blood-lactate testing that users don't have. Banister is our accepted fallback. The post-summary shows an α1-derived LT1 (aerobic-threshold) estimate, but it is not offered as an LTHR value — LT1 is not LTHR (see "LT1 is not LTHR" below).
 - **Sex Binary in Banister k**: Banister 1991's sex-split coefficients (k = 1.92 male / 1.67 female) are the accepted defaults in the literature but don't handle non-binary / unspecified users gracefully — we fall back to male constants, noted in code.
-- **Polar battery — no force-read API**: Polar's BLE SDK reports battery opportunistically and the value can stall for days while the strap is fine. We supplement the manufacturer signal with a recording-hours counter (`PolarManager.hoursRecordedSinceBatteryChanged`) against published spec capacity (H10 = 400 h, Verity Sense = 30 h). UI surfaces both numbers — "Reported 100 %, recorded 38 h since last full charge" — instead of the misleading "stale" warning that used to appear after 6 days of unchanged readings.
+- **Polar battery — no force-read API**: Polar's BLE SDK reports battery opportunistically and the value can stall for days while the strap is fine. We supplement the manufacturer signal with a recording-hours counter (`PolarManager.hoursRecordedSinceBatteryChanged`) against published spec capacity (H10 = 400 h, Verity Sense = 30 h). UI surfaces both numbers — "Reported 100 %, recorded 38 h since last full charge" — instead of a "stale" warning after days of unchanged readings.
 - **Multi-sport / triathlon transitions not supported**: Recorder owns one sport per session today; brick / triathlon transition support is intentionally held until there's user demand.
 - **Custom interval editor not built**: Voice coach announces steps from a chosen `IntervalPlan`, but there's no in-app editor yet — pre-built plans only.
 - **Road construction / closures**: Free APIs (Mapbox / HERE Traffic) charge per request; OSM construction data is sparse. Live coaching only sees terrain (climbs, grade, peak altitude) and weather, not roadway events.
@@ -1324,7 +1289,7 @@ Post-summary and the epic α1 report live in
 - **HRRCaptureService** — three-tier fallback: strap, Watch HR samples,
   HealthKit-computed HRR. Runs in a detached task after stop(). Strap
   streaming is kept alive through the 120 s capture window, then
-  closed — previously we closed it early and Tier 1 always failed.
+  closed, so Tier 1 has strap data to work with.
 - **LiveWorkoutBroker** — thread-safe snapshot publisher feeding the
   AI assistant and voice coach with wall-clock time, GPS, heading,
   grade, units, α1 status. Snapshots > 12 s old treated as nil so
@@ -1438,8 +1403,8 @@ Post-summary and the epic α1 report live in
 - **TRIMP — Banister 1991**: `TRIMP = Σ dur_min × HRR × A × e^(k·HRR)`.
   Male: `A=0.64, k=1.92`. Female: `A=0.86, k=1.67`. Sex is taken from
   `settings.biologicalSex` and the male coefficients are NOT used as
-  a default for female users (a long-standing bug fixed 2026-04-23 —
-  female TRIMP / hrTSS / CTL / ATL / TSB had been ~30 % off).
+  a default for female users (doing so puts female TRIMP / hrTSS /
+  CTL / ATL / TSB about 30 % off).
   HRR = (HR − HRrest) / (HRmax − HRrest). Continuous integration;
   accepted across endurance sports. Source: https://fellrnr.com/wiki/TRIMP
 - **hrTSS — HRSS formulation**: session TRIMP / 1-hour-at-LTHR TRIMP × 100.
@@ -1458,7 +1423,7 @@ Post-summary and the epic α1 report live in
 - **Resting HR**: user override → `baselineHR` (HRV-derived) → 60 fallback.
 - **CTL / ATL / TSB fetch window** (`TrainingHealthQueries+Queries`): 180-day
   history (matches the 6-week EWMA tail), startDate anchored to start-of-day,
-  seed-from-zero (the previous seed-from-average back-filled fictional
+  seed-from-zero (seeding from an average would back-fill fictional
   load on first install). Sub-1-minute "ghost" workouts (Watch
   auto-detects from a 30-second walk) are dropped before TRIMP runs.
 
@@ -1471,20 +1436,19 @@ at that crossing as an aerobic-threshold estimate. Source:
 - Rogers & Gronwald 2021 (PMC7845545) — HRVT vs gas-exchange VT1 within ~2 bpm on average in 15 men (ICC 0.96 for HR; limits −12 to +8 bpm)
 - Schaffarczyk 2022 (PMC9894976), Van Hooren 2023 (PMID 37916488), Sempere-Ruiz 2024 (10.3389/fphys.2024.1329360) — later cohorts agree less tightly: roughly ±10 bpm for an individual, none once fatigued
 
-**LT1 is not LTHR, and the app no longer suggests otherwise.**
+**LT1 is not LTHR.**
 
-The card used to compare the estimated LT1 against the configured LTHR and
-invite the user to replace it. That is a
-user-facing correctness defect, and it was removed.
+The card does not compare the estimated LT1 against the configured LTHR or
+invite the user to replace it.
 
 They are different anchors. LT1 is the first (aerobic) threshold, which DFA α1
 near 0.75 is studied as a proxy for. The app's LTHR setting is described by
 Friel's time-trial protocol — a substantially harder effort — and is the
 one-hour reference `WorkoutAnalyzer` divides by to compute hrTSS. LT1 sits
-materially below LTHR, so a user who took the advice shrank the hrTSS
-denominator and inflated every subsequent training-load figure.
+materially below LTHR, so entering LT1 as LTHR would shrink the hrTSS
+denominator and inflate every later training-load figure.
 
-The estimate is still displayed, labelled as the aerobic threshold. It does
+The estimate is displayed, labelled as the aerobic threshold. It does
 not populate, and does not recommend populating, any threshold used for load
 calculation. TRIMP and hrTSS remain untouched by α1.
 
@@ -1536,10 +1500,9 @@ process that signal correctly.
 4. The processed result is written to
    `WorkoutMetadata.elevationGainMeters` / `elevationLossMeters`.
 
-#### Retroactive (pre-barometer-fix sessions)
+#### Retroactive (sessions without barometric samples)
 
-Sessions recorded before the buffer existed have no barometric
-samples to post-process. They fall back to
+Sessions that carry no barometric samples have nothing to post-process. They fall back to
 [`TopoElevationService`](../Emuqu/Sources/Analysis/TopoElevationService.swift)
 — DEM lookup via OpenTopoData (USGS NED 10 m for US, SRTM 30 m
 elsewhere). Applies a 15 m sustained-climb threshold empirically

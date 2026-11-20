@@ -82,19 +82,13 @@ extension WorkoutTriggerEngine {
         // α1 below 0.50 (above VT2, intense). It reads no target zone or
         // stated intent, so it fires on any session, hard ones included.
         //
-        // Debounced. Debug log
-        // hrv_debug_log_1778086619.txt showed α1 going
-        // 1.41 → 0.32 → 1.31 in 40 seconds with HR steady at
-        // 129 bpm, 0% ectopic rejection, R²=0.93. The 0.32
-        // reading was a single-sample numerical artifact, not
-        // real intensity — but it fired this trigger and the
-        // voice coach interrupted the user mid-walk to warn
-        // about anaerobic threshold. False alarm logged in the
-        // user's defect list as #14 ("Voice coach flagging HR
-        // drift on downhill sections"; same root cause —
-        // single-sample dropouts firing alerts).
+        // Debounced. α1 can go 1.41 → 0.32 → 1.31 in 40 seconds
+        // with HR steady at 129 bpm, 0% ectopic rejection,
+        // R²=0.93: a single-sample numerical artifact, not real
+        // intensity, which would otherwise interrupt the user
+        // mid-walk with an anaerobic-threshold warning.
         //
-        // Fix: require 2 consecutive sub-threshold α1
+        // Require 2 consecutive sub-threshold α1
         // recomputes. Recompute cadence is 20 s, so this is
         // effectively a "sustained for ~40 s" gate. Real
         // intensity transitions hold through multiple recomputes;
@@ -165,8 +159,7 @@ extension WorkoutTriggerEngine {
         //
         // Grade-aware suppression. HR rising while on
         // a climb is mechanical, not drift; surfacing "drift" when
-        // the user is mid-hill is the kind of false alarm the user
-        // explicitly called out (item #12). Skip when the current
+        // the user is mid-hill is a false alarm. Skip when the current
         // sustained grade is >+2 % (climb) or <-2 % (descent —
         // HR dropping on a downhill mid-quartile would also distort
         // the comparison, just in the other direction). The workout
@@ -187,10 +180,9 @@ extension WorkoutTriggerEngine {
         guard let drift = ctx.liveHRDriftPercent else { return false }
         guard drift > 5.0, ctx.elapsedSeconds > 30 * 60 else { return false }
         // Fail-closed gates. Suppressing only when grade > 2 %
-        // OR slope < 0 were *known* let nil values pass the
-        // alert through, which is the user's bug list
-        // items #4 (uphill) and #5 (downhill HR falling).
-        // Both trigger when grade isn't computed in time.
+        // OR slope < 0 were *known* would let nil values pass the
+        // alert through on a climb or on a downhill with HR falling,
+        // whenever grade isn't computed in time.
         // Rule: REQUIRE both signals before firing.
         // The user wants no false alarms, even at the cost
         // of missing some real drift events.
@@ -394,7 +386,7 @@ extension WorkoutTriggerEngine {
         // promised — long enough out to ease off the gas, short
         // enough that the cue still feels relevant. Cooldown
         // dwarfs typical climb durations so we don't re-fire DURING
-        // the climb. With route topology we now also speak the climb
+        // the climb. With route topology it also speaks the climb
         // length, gain, and how it fits in the queue ("first of
         // three") so the user has full pre-emptive awareness.
     private static func routeClimbAheadRule() -> Rule {
@@ -631,8 +623,7 @@ extension WorkoutTriggerEngine {
         // of forward speed because you're paying the climb tax);
         // that's expected geography, not aerobic strain. Skip when
         // the current sustained grade is >+2 % so a hilly back-half
-        // doesn't generate a false "you're decoupling" alert
-        // (item #4 / #12).
+        // doesn't generate a false "you're decoupling" alert.
     private static func aerobicDecouplingMaterialRule() -> Rule {
         Rule(
             id: "aerobic.decouplingMaterial",

@@ -19,8 +19,8 @@
   },
   {
    "key": "§ Runbook: GDPR / CCPA Data-Deletion Request > Architecture you're working with",
-   "hash": "3208a78e16ea77c0",
-   "does": "Claims: no backend; CloudKit private DB holds session backups, raw RR archives and workout tracks; iCloud sign-out does not delete; Delete All My Data removes the cloud copy; AI API keys are ThisDeviceOnly; archive encryption key is not synchronizable; CloudPayloadCodec key and EntitlementAnchor are synchronizable. Verified: APIKeyStore uses kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly (APIKeyStore.swift:65), EncryptionManager uses AfterFirstUnlock without synchronizable (EncryptionManager.swift:252), CloudPayloadCodec.swift:281 and EntitlementAnchor.swift:355 set kSecAttrSynchronizable true; workout GPS tracks travel inside the HRVSession payload (CloudKitSyncManager+Push.swift:429).",
+   "hash": "6bd5be68e40da013",
+   "does": "Claims: no backend; CloudKit private DB holds session backups, raw RR archives and workout tracks; iCloud sign-out or erasing the device does not delete them; Delete All My Data removes the cloud copy; AI API keys are ThisDeviceOnly; archive encryption key is not synchronizable; CloudPayloadCodec key and EntitlementAnchor are synchronizable. Verified: APIKeyStore uses kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly (APIKeyStore.swift:166), EncryptionManager uses AfterFirstUnlock without synchronizable (Storage/EncryptionManager.swift:252,270), CloudPayloadCodec.swift:294 and EntitlementAnchor.swift:387 set kSecAttrSynchronizable true; workout GPS tracks travel inside the HRVSession payload.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.deleteAllRemoteData()"

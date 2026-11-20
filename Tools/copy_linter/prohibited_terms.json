@@ -1,5 +1,5 @@
 {
-  "_comment": "FDA copy perimeter — do not loosen without product+legal sign-off. See VOICE_AND_TOOL_USE.md and the v2.0 build plan §7. Prohibited in user-facing strings (Swift String literals in Views/Components/Onboarding, plus Localizable.xcstrings values). Audit 2026-05-06 expanded scan_paths to include ViewModels/, Export/ (PDF reports), Verification.swift and AnalysisSummaryGenerator.swift, after the P0-2 'arrhythmia' string in Verification.swift slipped through. AIAssistantSettingsPage is allowlisted because its 'guard refuses AFib / arrhythmia / symptom queries' line is user-information about the refusal feature, not a claim.",
+  "_comment": "FDA copy perimeter. Do not loosen without product and legal sign-off. lint.py fails on any user_facing_prohibited pattern in a user-facing string under scan_paths (the app and Watch sources and both string catalogues); coach_response_prohibited applies to Flo's replies. See docs/VOICE_AND_TOOL_USE.md.",
   "version": "1.0",
   "user_facing_prohibited": [
     {
@@ -64,7 +64,7 @@
     },
     {
       "pattern": "(?i)(?<!sinus\\s)\\barrhythmias?\\b",
-      "reason": "Audit 2026-05-06 P0-2: 'arrhythmia' implies a cardiac diagnosis. Describe the signal ('irregular beats') without naming the condition. The phrase 'respiratory sinus arrhythmia' is a physiology term and is exempted via the lookbehind."
+      "reason": "'arrhythmia' implies a cardiac diagnosis. Describe the signal ('irregular beats') without naming the condition. The phrase 'respiratory sinus arrhythmia' is a physiology term and is exempted via the lookbehind."
     },
     {
       "pattern": "(?i)\\bpatholog(?:y|ies|ical|ically)\\b",
@@ -72,19 +72,19 @@
     },
     {
       "pattern": "(?i)autonomic\\s+rigidity",
-      "reason": "Audit 2026-05-06 P1-1: clinical-sounding diagnostic label. Describe as 'reduced beat-to-beat variability' or similar."
+      "reason": "clinical-sounding diagnostic label. Describe as 'reduced beat-to-beat variability' or similar."
     },
     {
       "pattern": "(?i)respiratory\\s+compromise",
-      "reason": "Audit 2026-05-06 P1-1: clinical diagnostic label. Describe as 'elevated respiration' or 'reduced breath quality' instead."
+      "reason": "clinical diagnostic label. Describe as 'elevated respiration' or 'reduced breath quality' instead."
     },
     {
       "pattern": "(?i)respiratory\\s+compensation",
-      "reason": "Audit 2026-05-06 P1-1: clinical-physiology label that reads as a diagnosis to lay users; describe behaviour instead."
+      "reason": "clinical-physiology label that reads as a diagnosis to lay users; describe behaviour instead."
     },
     {
       "pattern": "(?i)atrial\\s+fib(rillation)?",
-      "reason": "Audit 2026-05-06 P0-2: AFib is a regulated cardiac diagnosis. Refer questions to the Apple Watch ECG app via the standard refusal."
+      "reason": "AFib is a regulated cardiac diagnosis. Refer questions to the Apple Watch ECG app via the standard refusal."
     },
     {
       "pattern": "(?i)atrial\\s+flutter",
@@ -140,51 +140,51 @@
     },
     {
       "pattern": "(?i)\\bload[- ]bearing\\b",
-      "reason": "Audit 2026-09-02: asserts a reading can carry training load. The DFA band it described is a product convention, not a validated readiness scale. Describe the range."
+      "reason": "asserts a reading can carry training load. The DFA band it described is a product convention, not a validated readiness scale. Describe the range."
     },
     {
       "pattern": "(?i)\\bclinical\\s+safety\\b",
-      "reason": "Audit 2026-09-02: promotes a wellness threshold to a clinical one. Apple states Apple Watch blood-oxygen readings are not intended for medical use; call a conservative product rule what it is."
+      "reason": "promotes a wellness threshold to a clinical one. Apple states Apple Watch blood-oxygen readings are not intended for medical use; call a conservative product rule what it is."
     },
     {
       "pattern": "(?i)\\bmirage\\b",
-      "reason": "Audit 2026-09-02: told the reader their own metric was fake on the strength of an unvalidated band. Report the range, not a ranking of which reading is real."
+      "reason": "told the reader their own metric was fake on the strength of an unvalidated band. Report the range, not a ranking of which reading is real."
     },
     {
       "pattern": "(?i)\\b(?:genuine|real|true)\\s+(?:organi[sz]ed\\s+)?recovery\\b",
-      "reason": "Audit 2026-09-02: ranks one reading as more real than another. 'Organized Recovery' alone is the window-classification LABEL and is deliberately still allowed."
+      "reason": "ranks one reading as more real than another. 'Organized Recovery' alone is the window-classification LABEL and is deliberately still allowed."
     },
     {
       "pattern": "(?i)\\bearly[- ]warning\\s+system\\b",
-      "reason": "Audit 2026-09-02: claims illness detection. Deviations from baseline are context, not a warning system."
+      "reason": "claims illness detection. Deviations from baseline are context, not a warning system."
     },
     {
       "pattern": "(?i)\\bstrong\\s+predictor\\b",
-      "reason": "Audit 2026-09-02: prediction claim. The resp-rate + temperature rule has not been prospectively validated."
+      "reason": "prediction claim. The resp-rate + temperature rule has not been prospectively validated."
     },
     {
       "pattern": "(?i)\\b(?:increases|increase|increasing|boosts|boost|boosting|maximizes|maximises|maximizing|maximising|raises|raise|raising)\\s+(?:your\\s+)?HF\\s+power\\b",
-      "reason": "Audit 2026-09-02: slow or paced breathing does NOT raise HF under the app's fixed bands. 5.5 breaths/min is 0.09 Hz; HF is 0.15-0.40 Hz (9-24 breaths/min). The enlarged oscillation moves INTO LF and HF falls. Literal alternatives rather than \\w+ so check_perimeter_sync can synthesise a probe. This claim appeared three times across two articles and survived one round of correction, which is why it is a pattern and not an edit."
+      "reason": "slow or paced breathing does NOT raise HF under the app's fixed bands. 5.5 breaths/min is 0.09 Hz; HF is 0.15-0.40 Hz (9-24 breaths/min). The enlarged oscillation moves INTO LF and HF falls. Literal alternatives rather than \\w+ so check_perimeter_sync can synthesise a probe. This claim appeared three times across two articles and survived one round of correction, which is why it is a pattern and not an edit."
     },
     {
       "pattern": "(?i)\\b(?:strongly\\s+suggests?|strong(?:ly)?\\s+indicat\\w*|clear(?:ly)?\\s+indicat\\w*|is\\s+a\\s+sign\\s+that)\\b",
-      "reason": "Audit 2026-09-02: evasion of the banned prediction vocabulary rather than a change of claim. The perimeter forbade 'strong predictor' and cause detection shipped 'strongly suggests' and 'strong indicator' of immune activation. Assert the observation, not its strength."
+      "reason": "evasion of the banned prediction vocabulary rather than a change of claim. The perimeter forbade 'strong predictor' and cause detection shipped 'strongly suggests' and 'strong indicator' of immune activation. Assert the observation, not its strength."
     },
     {
       "pattern": "(?i)\\b(?:likely|probably)\\s+(?:getting\\s+sick|ill|coming\\s+down\\s+with)\\b",
-      "reason": "Audit 2026-09-02: a likelihood claim about infection. Prospective wearable illness alerts have a positive predictive value of roughly 4-10% — most are not infections. Name the pattern, not the diagnosis."
+      "reason": "a likelihood claim about infection. Prospective wearable illness alerts have a positive predictive value of roughly 4-10% — most are not infections. Name the pattern, not the diagnosis."
     },
     {
       "pattern": "(?i)\\b(?:often|usually|typically)\\s+precede[sd]?\\s+(?:illness|infection|symptoms)\\b",
-      "reason": "Audit 2026-09-02: implies a base rate the evidence does not support. Most instances of these patterns are not followed by illness."
+      "reason": "implies a base rate the evidence does not support. Most instances of these patterns are not followed by illness."
     },
     {
       "pattern": "(?i)\\b(?:strongly|clearly|markedly)\\s+dominant\\b",
-      "reason": "Audit 2026-09-02: categorical autonomic claim that slipped past the 'clear X dominance' rule by reordering the words. Same claim, same problem."
+      "reason": "categorical autonomic claim that slipped past the 'clear X dominance' rule by reordering the words. Same claim, same problem."
     },
     {
       "pattern": "(?i)\\bfully\\s+recovered\\b",
-      "reason": "Audit 2026-09-02: a composite score that is calibrated rather than outcome-validated cannot certify full recovery. Describe the position against the user's own range."
+      "reason": "a composite score that is calibrated rather than outcome-validated cannot certify full recovery. Describe the position against the user's own range."
     },
     {
       "pattern": "(?i)\\blikely\\s+(?:\\w+\\s+)?illness\\b",
@@ -278,7 +278,7 @@
       "deflection": "Emuqu's readings can't establish or rule out a cause or condition. If something concerns you, a clinician is the right person to ask."
     }
   ],
-  "_allowlist_strings_note": "Exact user-facing strings exempt from ALL patterns, everywhere (path-independent). Use this for approved protective disclaimers whose safe, negated form legitimately contains an otherwise-prohibited word (e.g. 'not ... diagnosis ...'). This keeps whole-file scanning live in Export/ so real violations there are still caught. Audit 2026-07-01: the standard per-page wellness disclaimer tripped the 'diagnosis' pattern in the three Export report generators.",
+  "_allowlist_strings_note": "Exact user-facing strings, and string-catalog keys with all their translations, exempt from every pattern: approved disclaimers whose negated form has to name a prohibited term (for example 'not ... diagnosis').",
   "allowlist_strings": [
     "For wellness and fitness use only. Not a medical device; not medical advice, diagnosis, or treatment.",
     "AI responses are informational coaching from the data this app collected. They are not medical diagnosis or treatment. For health decisions, talk to a qualified clinician.",
@@ -313,30 +313,18 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift",
     "Emuqu/Sources/Views/OpenSourceLicenseTexts.swift"
   ],
-  "_scan_note": "SUPERSEDED — see _xcstrings_note_2026_08_22. This note once said Localizable.xcstrings was intentionally not scanned; both string catalogues (Emuqu/Localizable.xcstrings and Emuqu/Help.xcstrings) are now in scan_paths and scanned. Allowlisting an English key also clears its translations, so disclaimers do not need 17 allowlist entries each.",
   "scan_paths": [
     "Emuqu/Sources/",
     "EmuquWatch Watch App/",
     "Emuqu/Localizable.xcstrings",
     "Emuqu/Help.xcstrings"
   ],
-  "_scan_note_2026_08_22": "Widened from 10 hand-listed paths (202 of 518 files under Emuqu/Sources) to the whole source tree plus the Watch app. The old list named individual FILES, and collect_targets only rglobs DIRECTORIES — so an extension file such as AnalysisSummaryGenerator+Interpretation.swift was invisible while its base file was scanned. That is exactly how the 2026-08-22 illness copy ('Possible infection... palpitations... talk to your doctor') shipped.",
-  "_allowlist_note_2026_08_22": "Widening scan_paths to the whole source tree surfaced 8 hits in files whose content is MACHINE-facing, not user-facing: regex guard patterns, intent-routing keyword lists, and model-facing safety instructions that quote a banned term precisely in order to forbid it (e.g. system-prompt rule 13, 'Never tell the user that a number predicts injury'). Banning the ban makes the perimeter weaker, not stronger. These files are allowlisted on the same basis CoachVoiceGuard.swift already was. Every file below was reviewed individually; the two genuine hits the widening found (a suggested prompt reading 'Am I overtraining right now?' and the illness copy naming cardiac symptoms) were FIXED, not allowlisted.",
-  "_xcstrings_note_2026_08_22": "The string catalog is now scanned. `scan_xcstrings` had existed since the linter was written but was unreachable: collect_targets only rglob'd *.swift, and no scan_path named the catalog. It sits at Emuqu/Localizable.xcstrings — OUTSIDE Emuqu/Sources/ — so widening scan_paths to the source tree alone still missed it. Every user-facing string that lives only in the catalog (stale/manual keys with no Swift referent) was unreviewed until now.",
-  "_allowlist_strings_note_2026_08_22": "String-catalog keys that must NAME a prohibited term in order to DENY it: the wellness disclaimer, the 'not FDA-approved / not FDA-cleared' negation, the AI informational-coaching notice, the AFib-guard status line, and one software-diagnostics category label. Allowlisting the KEY now also clears its translations (see scan_xcstrings) — otherwise each disclaimer fired once per locale for correctly saying the approved thing in German. Two ORPHANED keys this scan surfaced ('Diagnosis', extractionState manual, and a stale troubleshooting line) had no Swift referent and were DELETED, not allowlisted.",
-  "_negation_guards_note_2026_08_25": "A prohibited phrase QUOTED INSIDE A PROHIBITION is the perimeter, not a breach. The assistant system prompt names the framings it forbids ('Never tell the user that a number \"predicts injury\" ... or sits in an \"advisory zone\"'), and the linter fired on all of them. The previous fix was allowlist_paths on the file holding the prompt; a length-budget split moved the text to a sibling file and the exemption silently stopped applying. These guards key on the CONTENT of the surrounding sentence instead, so they survive renames, splits and moves. Scope is deliberately tight: Swift source only (the string catalogue is pure user copy and is never excused), a three-line window, and an explicit prohibition verb. Adding a guard widens the perimeter — do it only for a phrase pattern that cannot appear in user-facing copy.",
+  "_allowlist_paths_note": "Files whose text is machine-facing: regex guard patterns, intent-routing keyword lists and model-facing safety rules that quote a banned term in order to forbid it. The lexicon entry is a family prefix, so a file split stays covered.",
+  "_negation_guards_note": "A prohibited phrase quoted inside a prohibition ('Never tell the user that a number \"predicts injury\"') is allowed. The guards key on the surrounding sentence, so they survive renames and file splits. Swift source only.",
   "negation_guards": [
     "(?i)\\bnever\\s+(tell|say|use|describe|call|label|refer|frame|claim|imply)\\b",
     "(?i)\\b(do\\s+not|don't|never)\\s+(tell|say|use|describe|call|label|refer|frame|claim|imply)\\b",
     "(?i)\\bthose\\s+framings\\s+were\\s+retired\\b",
     "(?i)\\bwere\\s+retired\\s+in\\b"
-  ],
-  "_allowlist_note_2026_08_26": "MedicalTermLexicon.swift is the perimeter's own vocabulary — it necessarily spells out every prohibited term, in seventeen languages, plus concept ids like 'speculative-diagnosis'. Same reason MedicalQueryGuard.swift and CoachVoiceGuard.swift are already here. scripts/check_perimeter_sync.sh is what keeps this file honest: it asserts the lexicon can match every pattern in user_facing_prohibited, so allowlisting it cannot hide a gap.",
-  "_allowlist_strings_note_2026_08_26": "The two MedicalQueryGuard refusals moved from hardcoded English in an allowlisted FILE into the string catalogue, so they now need a STRING allowlist entry instead of a path one. Both necessarily name the condition in order to say the app does not detect it — the same shape as the wellness disclaimer above. Allowlisting the English key also clears its sixteen translations (see the key_allowlisted note), which is the whole reason that rule exists.",
-  "_term_list_note_2026_08_26": "Audit V5 — the list was 21 patterns assembled from whichever audits happened, so 'atrial flutter', 'heart block', 'bradycardia' and 'tachycardia' all passed while 'atrial fibrillation' was blocked. Widened from a cardiology vocabulary. check_perimeter_sync.sh now proves the runtime lexicon can match every entry here, so adding a term to this file without adding it to MedicalTermLexicon fails the build.",
-  "_categorical_note_2026_08_26": "Audit 2026-08-26 P1-1: the perimeter passed while shipping 'potentially pathological', 'clear parasympathetic dominance', 'This IS your parasympathetic system in action', 'Strong sympathetic dominance - something significant is going on' and 'true recovery state'. The vocabulary rules were built around regulated NOUNS (diagnosis, injury, FDA) and had nothing to say about categorical CERTAINTY, which is the other half of Guideline 1.4.1: a health app is judged on whether it can substantiate what it asserts, and 'clear X dominance' asserts more than an HRV-derived number can carry. The patterns added here target the certainty, not the topic - the app is still free to explain parasympathetic activity, just not to declare it.",
-  "_metric_verdict_note_2026_09_02": "Science audit 2026-09-02. The existing certainty rules covered asserting a physiological STATE ('clear parasympathetic dominance'). They said nothing about asserting a metric's AUTHORITY, and the app shipped four such claims: DFA a1 0.75-1.0 as 'the gold standard ... consolidated and load-bearing', a1 ~0.5 as 'a mirage', SpO2 <95% as 'a clinical safety threshold', and vitals as 'an early warning system' with a 'strong predictor' of illness. Each existed in two to four places that had drifted apart, which is why these are patterns and not edits. Every one is now matched by MedicalTermLexicon.unsupportedMetricVerdict, so check_perimeter_sync.sh holds and CoachVoiceGuard scrubs them from model output too.",
-  "_lexicon_family_note_2026_09_02": "The lexicon allowlist entry is the family PREFIX, not the file. Splitting MedicalTermLexicon.swift to stay under the 1000-line limit moved a concept into MedicalTermLexicon+MetricVerdict.swift and the exemption stopped applying — the linter immediately fired on the sibling for spelling out the terms it exists to forbid. That is the identical failure is_allowlisted's docstring already records for AIProvider+SystemPrompt, and the identical fix: key one level up, so the next split is covered on the day it happens.",
-  "_illness_framing_note": "Illness framing audit (App Store 1.4.1). Morning results shipped cause titles 'Severe HRV Crash' (with 'likely acute illness ... Consider staying home and monitoring for symptoms'), 'Possible Illness Coming On' ('sometimes appears before cold/flu symptoms manifest') and 'Possible Immune Response'; the vitals screen said respiratory rate 'can signal early illness ... 1-3 days before HRV responds', contradicting the Help Center's cited 4-9% PPV. The same claim sat in the deep-dive PDF, metric info sheets, trend narrative and two assistant fact descriptions. These patterns forbid the shapes; the fix everywhere is a neutral physiological title plus common causes in order of likelihood, illness last. MedicalTermLexicon.unsupportedMetricVerdict carries the same English alternatives so check_perimeter_sync.sh stays green and the coach cannot say them either.",
-  "_evasion_note_2026_09_02": "Audit round 3 found the perimeter working exactly as designed and failing anyway. It banned 'predicts injury', 'strong predictor' and 'early-warning system'; production copy shipped 'strongly suggests', 'strong indicator', 'likely getting sick' and 'often precedes illness'. The vocabulary was blocked and the CLAIM walked around it. The rules added below target claim SHAPES rather than single phrasings, which is broader — but round 4 correctly pushed back on calling that semantic. It is not. These are still regexes over strings, and a sufficiently different phrasing still gets through. The structured control the audit actually asked for lives in Tools/science_register/register.json, which classifies every operative heuristic by validation status and names the language each one is allowed, enforced by scripts/check_science_register.sh. This file is the fast lexical net underneath it; neither replaces reading the copy."
+  ]
 }

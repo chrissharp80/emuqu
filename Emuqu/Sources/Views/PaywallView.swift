@@ -261,8 +261,9 @@ struct PaywallView: View {
     }
 
     /// The store price, a spinner while it loads, or — when the App Store did
-    /// not return the unlock — a way to try again. The spinner used to wait forever,
-    /// and the trial button, which needs the price in its terms, stayed off.
+    /// not return the unlock — a way to try again, so the spinner never waits
+    /// forever and the trial button, which needs the price in its terms, can
+    /// come on.
     @ViewBuilder
     private var priceLine: some View {
         if let product = storeKit.product {

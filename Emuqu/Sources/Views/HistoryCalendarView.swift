@@ -791,8 +791,8 @@ private struct DaySummarySheet: View {
                 .font(.title2.bold().monospacedDigit())
                 .foregroundStyle(AppTheme.textPrimary)
             // A column heading under the number, the same for every count:
-            // picking SESSION or SESSIONS by hand was wrong for any language
-            // with more than two plural forms.
+            // picking SESSION or SESSIONS by hand would be wrong for any
+            // language with more than two plural forms.
             Text(verbatim: String(localized: "SESSIONS", bundle: LanguageManager.appBundle))
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(AppTheme.textTertiary)

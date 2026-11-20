@@ -23,17 +23,15 @@ extension ArchiveIntegrityTests {
 
     /// Archiving a second overnight session from the same sleep (different
     /// UUID, 2 h later, well inside the 4.5 h merge gap) merges into the
-    /// existing one instead of creating a duplicate — on one clock. This test
-    /// used to check only the entry count, so it passed while the merge laid
-    /// both recordings over each other at t = 0.
+    /// existing one instead of creating a duplicate, on one clock. Checking the
+    /// entry count alone would pass while the merge laid both recordings over
+    /// each other at t = 0.
     func testSameNightDuplicatePrevention() throws {
         // Two overnight sessions starting the same night (2 hours apart, same recovery night)
         //
-        // The start time is pinned to 23:00 local. It used
-        // to be `Date() - 10 days`, i.e. whatever time of day the suite
-        // happened to run at, so on some runs the second session (start + 2 h)
-        // crossed into the next night's window, the merge correctly did not
-        // happen, and the test failed at certain times of day.
+        // The start time is pinned to 23:00 local. Anchored to `Date()`, the
+        // second session (start + 2 h) could cross into the next night's
+        // window at some times of day, and the merge would correctly not happen.
         let nightStart = Self.nightAnchoredDate(daysAgo: 10)
         let session1 = createTestSession(startDate: nightStart, sessionType: .overnight)
         let session2 = createTestSession(startDate: nightStart.addingTimeInterval(2 * 3600), sessionType: .overnight)
@@ -421,8 +419,8 @@ extension ArchiveIntegrityTests {
     // MARK: - Index Entries From a Newer Build
 
     /// An index entry this build cannot decode (a newer build's) is not in
-    /// the in-memory index; the next save used to write `index.json` without
-    /// it, dropping the session from the newer build's list.
+    /// the in-memory index; the next save must still write it to `index.json`,
+    /// or the session drops out of the newer build's list.
     func testSaveKeepsAnIndexEntryThisBuildCannotDecode() throws {
         let foreignId = UUID()
         try appendToIndexFile([

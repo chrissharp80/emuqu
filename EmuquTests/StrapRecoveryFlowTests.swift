@@ -47,12 +47,10 @@ final class StrapRecoveryFlowTests: XCTestCase {
         radio.calls.contains { if case .fetchExercise = $0 { return true } else { return false } }
     }
 
-    // MARK: - Bugs 1 and 3: Retry is Stop, with Stop's date check
+    // MARK: - Retry is Stop, with Stop's date check
 
-    /// Retry used to build `currentSession ?? HRVSession()`, download the
-    /// newest file whatever its date, and score last night's file as
-    /// tonight's. It is now Stop: the persisted session, and only a
-    /// recording started since it began.
+    /// Retry is Stop: the persisted session, and only a recording started
+    /// since it began, so last night's file is never scored as tonight's.
     func testRetryDoesNotScoreLastNightsFileAsTonight() async throws {
         let radio = FakeStrapRadio()
         let lastNight = Date().addingTimeInterval(-30 * 3600)
@@ -71,7 +69,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
         }
     }
 
-    // MARK: - Bug 2: Recover and a recording still running
+    // MARK: - Recover and a recording still running
 
     /// A recording no session owns — left by a crash — is what the Recover
     /// card offers, and Recover stops it before reading it.
@@ -103,7 +101,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
         XCTAssertFalse(radio.calls.contains(.stopRecording))
     }
 
-    // MARK: - Bug 9: the same night offered on every connect
+    // MARK: - The same night is not offered on every connect
 
     /// The strap keeps a downloaded recording as a backup; it is neither
     /// offered on the Record screen nor recovered a second time.
@@ -133,10 +131,10 @@ final class StrapRecoveryFlowTests: XCTestCase {
         XCTAssertFalse(fetched(radio))
     }
 
-    // MARK: - Bug 5: Discard after Recover
+    // MARK: - Discard after Recover
 
     /// A night new to the archive is saved for review with the id Discard
-    /// takes back out; Recover now saves through the same path.
+    /// takes back out; Recover saves through the same path.
     func testANightSavedForReviewIsTheOneDiscardRemoves() async throws {
         let collector = makeCollector(FakeStrapRadio())
         let night = completeNight()
@@ -162,7 +160,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
         XCTAssertNil(collector.sessionState.reviewArchivedSessionId)
     }
 
-    // MARK: - Bugs 6 and 7: the overnight gate
+    // MARK: - The overnight gate
 
     /// A Skip tapped before the download: nothing is read, the strap is not
     /// left recording, and the Skip does not carry into the next night.
@@ -186,8 +184,8 @@ final class StrapRecoveryFlowTests: XCTestCase {
         XCTAssertEqual(collector.deviceFetchPolicy, .automatic, "the Skip would silently skip the next night")
     }
 
-    /// A pause whose download failed used to only log it; it now reports the
-    /// strap's copy exactly as the morning does, and the copy shows as
+    /// A pause whose download fails reports the strap's copy exactly as the
+    /// morning does, rather than only logging it, and the copy shows as
     /// unrecovered.
     func testAFailedNightDownloadIsReportedNotSilent() async {
         let radio = FakeStrapRadio()
@@ -208,7 +206,7 @@ final class StrapRecoveryFlowTests: XCTestCase {
         XCTAssertTrue(collector.hasUnrecoveredData, "Resume would clear a copy nobody was told about")
     }
 
-    // MARK: - Bug 8: a strap the link dropped
+    // MARK: - A strap the link dropped
 
     /// The workout's end, the morning and crash recovery all bring a dropped
     /// strap back the same way, and read what it is recording before

@@ -2,11 +2,11 @@ import Foundation
 
 /// A Polar SDK callback, reduced to what the app acts on.
 ///
-/// The SDK raises its observer callbacks on its own queue. Each one used to
-/// spawn its own `Task { @MainActor }`, and nothing guarantees those tasks run
-/// in the order they were created — so a disconnect could be applied after the
-/// reconnect that followed it, clearing the new link's readiness. Events are
-/// instead yielded in order into one stream and applied one at a time.
+/// The SDK raises its observer callbacks on its own queue. A separate
+/// `Task { @MainActor }` per callback would not be guaranteed to run in order,
+/// so a disconnect could be applied after the reconnect that followed it,
+/// clearing the new link's readiness. Events are yielded in order into one
+/// stream and applied one at a time.
 enum StrapEvent: Sendable {
     case connecting(deviceId: String)
     /// `peripheralId` is the strap's CoreBluetooth identifier, which the

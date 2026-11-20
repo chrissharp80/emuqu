@@ -115,23 +115,20 @@ final class LiveDFAAnalyzerTests: XCTestCase {
 
     // MARK: - How much was corrected
     //
-    // These exist because of a defect that survived for months in code
-    // written specifically to detect it. Both callers of
-    // `cleanRRForDFA` measured artifact load as `raw.count - cleaned.count`
-    // while `testCleaningPreservesSeriesLength` above asserted, on purpose,
-    // that cleaning cannot change the count. The subtraction was identically
-    // zero, so the "too much artifact" guard could never fire and the
-    // diagnostic log added to investigate over-correction at HR 150–170 could
-    // only ever print `rejected=0 (0%)`.
+    // `testCleaningPreservesSeriesLength` above asserts, on purpose, that
+    // cleaning cannot change the count, so artifact load measured as
+    // `raw.count - cleaned.count` is identically zero: the "too much
+    // artifact" guard could never fire and the over-correction log at HR
+    // 150–170 could only print `rejected=0 (0%)`.
     //
-    // The lesson the tests encode: a quantity that is deliberately invariant
-    // cannot also be the measurement. So every test below asserts the count
-    // ALONGSIDE the invariant, never through it.
+    // A quantity that is deliberately invariant cannot also be the
+    // measurement. So every test below asserts the count ALONGSIDE the
+    // invariant, never through it.
 
     func testCorrectionCountIsReportedIndependentlyOfLength() {
-        // The regression, stated directly: length preserved AND corrections
-        // visible, in the same assertion pair. Either one alone passes on the
-        // broken implementation.
+        // Length preserved AND corrections visible, in the same assertion
+        // pair. Either one alone passes on an implementation that measures
+        // corrections by length.
         var rrs = steady(20)
         rrs[5] = 250
         rrs[11] = 2_400

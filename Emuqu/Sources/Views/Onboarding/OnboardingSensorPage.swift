@@ -78,7 +78,7 @@ struct OnboardingSensorPage: View {
     }
 
     /// Pinned above the page indicator. At the end of the scroll view these
-    /// landed on the dots on a small screen or at a large text size, where a
+    /// would sit on the dots on a small screen or at a large text size, where a
     /// tap pages backwards instead of pressing the button.
     private var pinnedNavigationButtons: some View {
         navigationButtons

@@ -5,15 +5,13 @@ would otherwise have to reconstruct from commit archaeology: the encryption
 fallback, the CI cost posture, the concurrency escapes, ratcheted debt
 budgets, no `unowned` back-references, and Swift 6 strict concurrency.
 
-The first three were already written down at length — just not
-somewhere a reader would look first, and not labelled as decisions. This index
-is the missing map; the reasoning lives with the code it governs, which is where
-it stays accurate.
+The first three are written up at length next to the code they govern, which is
+where the reasoning stays accurate. This index is the map.
 
 | # | Decision | Where the reasoning lives |
 |---|---|---|
 | 001 | Sensitive storage falls back, then repairs, rather than failing hard | [`Emuqu/Sources/Storage/PendingEncryptionLedger.swift`](../../Emuqu/Sources/Storage/PendingEncryptionLedger.swift) |
-| 002 | Nothing that needs macOS runs automatically | [`docs/CI_POSTURE.md`](../CI_POSTURE.md) |
+| 002 | The macOS jobs run at scope `unit`; the full run is on demand | [`docs/CI_POSTURE.md`](../CI_POSTURE.md) |
 | 003 | Concurrency escapes are allowlisted, not eliminated | [`scripts/check_unchecked_sendable.sh`](../../scripts/check_unchecked_sendable.sh) |
 | 004 | Debt is ratcheted, never waived | [`docs/adr/004-ratcheted-budgets.md`](004-ratcheted-budgets.md) |
 | 005 | No `unowned` back-references | [`docs/adr/005-no-unowned-back-references.md`](005-no-unowned-back-references.md) |
@@ -26,7 +24,7 @@ reboot. That is exactly when a completed overnight recording gets archived by a
 background task.
 
 **Options.** Fail the write (lose a night the user cannot regenerate); write
-plaintext silently (what the code did); or
+plaintext silently; or
 write under the strictest protection class and repair later.
 
 **Decision.** The third. The bytes are written with `.completeFileProtection` —
@@ -42,13 +40,16 @@ the plaintext write is not logged, and the window shows only as the session's
 entry in `PendingEncryptionLedger`. The alternative was losing
 user data to protect a file the OS had already made unreadable.
 
-## 002 — Nothing that needs macOS runs automatically
+## 002 — The macOS jobs run at scope `unit`; the full run is on demand
 
-See [`docs/CI_POSTURE.md`](../CI_POSTURE.md), which carries the arithmetic
-(macOS bills at 10×; one full run is ~1,080 billable minutes against a
-3,000-minute cap) and the accepted costs. The script gates that need no
-Xcode run on a Linux runner on every push (`.github/workflows/gates.yml`);
-the build, test, sanitizer and coverage jobs stay manual.
+The script gates that need no Xcode run on a Linux runner on every pull request
+and every push to `main` (`.github/workflows/gates.yml`). The macOS jobs in
+`.github/workflows/ci.yml` run at scope `unit` on every pull request and every
+push to `main`: SwiftLint and the budgets, strict concurrency, the build, the
+unit suite and Thread Sanitizer. The UI target and the full coverage floors
+(scope `full`) run on demand and before every release. See
+[`docs/CI_POSTURE.md`](../CI_POSTURE.md) for what each scope runs, what it
+costs and the accepted trade-offs.
 
 ## 003 — Concurrency escapes are allowlisted, not eliminated
 
@@ -69,8 +70,8 @@ See [`004-ratcheted-budgets.md`](004-ratcheted-budgets.md).
 
 ## 005 — Helpers hold their owner strongly; `unowned` is banned
 
-Twenty-eight helper types kept `unowned` back-pointers to their owners and two
-of them crashed the unit suite from resumed continuations. They are values now,
-holding the owner strongly and built on demand, and a gate bans `unowned`.
+An `unowned` back-pointer from a helper to its owner traps when a resumed
+continuation outlives the owner. Helpers are values, holding the owner strongly
+and built on demand, and a gate bans `unowned`.
 
 See [`005-no-unowned-back-references.md`](005-no-unowned-back-references.md).

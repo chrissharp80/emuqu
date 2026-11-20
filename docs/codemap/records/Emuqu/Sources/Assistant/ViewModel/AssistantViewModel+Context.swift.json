@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift",
- "hash": "6ff465564c1bad54",
+ "hash": "b5c6738123abf96c",
  "role": "Extension of AssistantViewModel for what the model is given: dropped-turn summarisation, per-provider token-budget truncation, background auto-fact extraction, announce-without-call / live-data heuristics used by GrokQuirkPolicy, provider-agnostic prompt-audit encoders; plus the round-local StreamTextBuffer that throttles streamed text to the live turn, scrubs it through CoachVoiceGuard sentence by sentence, and manages the voice speakable cursor.",
  "types": [
   "AssistantViewModel: extension — summarisation, truncation, fact extraction, heuristics, audit encoders",
@@ -16,7 +16,7 @@
   "StreamTextBuffer.owner, turnID, roundStartTextLen, pendingChunks, lastPublishAt, publishIntervalMs=33",
   "uses ud:assistant.priorSummary via AssistantViewModel.summaryKey (declared AssistantViewModel.swift:104)"
  ],
- "toplevel": "Static let initializers hold prompt text and phrase lists. StreamTextBuffer stored-property initializers: pendingChunks='', lastPublishAt=.distantPast, publishIntervalMs=33. The MARK block at lines 306-314 is a comment only (prompt-audit encoders section header placed before the announce detector).",
+ "toplevel": "Static let initializers hold prompt text and phrase lists. StreamTextBuffer stored-property initializers: pendingChunks='', lastPublishAt=.distantPast, publishIntervalMs=33. The 'Prompt-audit encoders' MARK block is a comment only (prompt-audit encoders section header placed before the announce detector).",
  "units": [
   {
    "key": "func AssistantViewModel.updateSummaryWith(droppedTurns:provider:model:contextRendered:)",

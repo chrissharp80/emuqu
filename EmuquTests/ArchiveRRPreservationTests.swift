@@ -7,8 +7,8 @@ import XCTest
 /// `_archive` splices the stored `rrSeries` back into any session arriving
 /// without one, because a metadata edit — a note, a morning feeling, a
 /// re-smoothed elevation, a CloudKit pull — carries only the fields it
-/// touched. The splice has to tell three outcomes apart, and until now it told
-/// two: it reported a session that simply has no beats as a file "unreadable by
+/// touched. The splice has to tell three outcomes apart; with only two it
+/// would report a session that simply has no beats as a file "unreadable by
 /// hash-checked AND raw readers … already unrecoverable on disk".
 @MainActor
 final class ArchiveRRPreservationTests: XCTestCase {
@@ -61,19 +61,16 @@ final class ArchiveRRPreservationTests: XCTestCase {
 
     // MARK: - The three-way classification
 
-    /// The regression, asserted where it actually lives.
+    /// A beatless session is not an unreadable file.
     ///
     /// A beatless workout reads back perfectly well; there is simply nothing to
-    /// preserve. The version of this code that had two outcomes instead of
-    /// three called that an unreadable file and reported data loss — for every
+    /// preserve. Calling it an unreadable file would report data loss for every
     /// strapless workout, every import, and every recording that died before
     /// its first beat.
     ///
     /// Asserted against the classification rather than against the error log:
     /// the catalog is appended asynchronously, so a synchronous check of it
     /// right after archiving passes whether or not anything was ever logged.
-    /// The first version of this test did exactly that and asserted nothing at
-    /// all; a planted mutation is what said so.
     func testABeatlessSessionClassifiesAsNoBeatsNotAsUnreadable() throws {
         let session = beatlessWorkout()
         _ = try archive.archive(session)

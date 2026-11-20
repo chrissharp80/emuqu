@@ -92,12 +92,12 @@ enum EntitlementAnchor {
         /// history (see `evaluatedHistory`). Set once; the earliest value
         /// wins on merge.
         ///
-        /// Encoded under a new key on purpose. TestFlight builds used to run
-        /// the check too, under `historyCheckedAt`, and locked it for any
-        /// tester whose device was still empty at that moment. That tester
-        /// could then record for months and still meet the trial on the store
-        /// build. The old key is no longer decoded, so the first store launch
-        /// looks again.
+        /// Encoded under its own key on purpose. TestFlight builds wrote
+        /// `historyCheckedAt`, which locks the check for any tester whose
+        /// device was still empty at that moment, so a tester who then
+        /// recorded for months would still meet the trial on the store build.
+        /// `historyCheckedAt` is not decoded, so the first store launch looks
+        /// again.
         var storeHistoryCheckedAt: Date?
 
         static let empty = Record(isBetaTester: false, trialStartDate: nil, highWaterMark: .distantPast)

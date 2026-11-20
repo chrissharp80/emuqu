@@ -69,8 +69,8 @@ final class ImportedWorkoutBuilderTests: XCTestCase {
         XCTAssertEqual(ImportedWorkoutBuilder.Source.appleHealth(sourceName: "").label, "Apple Health")
     }
 
-    /// Recorded, not imported, is what the provenance used to claim. A reader
-    /// asking "where did this session come from" gets the truth.
+    /// The provenance says imported, not recorded, so a reader asking "where
+    /// did this session come from" gets the truth.
     func testProvenanceRecordsThatTheSessionWasImported() {
         let session = ImportedWorkoutBuilder.buildSession(
             from: track(), source: .appleHealth(sourceName: "Apple Watch")

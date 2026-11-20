@@ -46,9 +46,9 @@ struct MainTabView: View {
     /// `reloadDashboardSessions` instead of read from `archive.entries` in body.
     /// SEEDED at init (see below) from the synchronously-loaded archive index,
     /// so an existing user's very first frame already knows the real count.
-    /// Without the seed this started at 0 and the dashboard flashed the
+    /// Without the seed it would start at 0 and the dashboard would flash the
     /// new-user onboarding state (No reading yet / Building baseline 0/14 /
-    /// Get started) on every cold launch until the async reload landed.
+    /// Get started) on every cold launch until the async reload lands.
     @State var totalSessionCount: Int
     /// Cold-start seed for the dashboard hero score, computed once at launch
     /// from the synchronously-loaded archive index (passed from
@@ -729,8 +729,7 @@ struct MainTabView: View {
     /// per-frame budget. TrendsV2View loads the full archive itself;
     /// History paginates off the lightweight index.
     static let dashboardSessionLoadLimit = 35
-    /// Above this, the reload log breaks its total into phases. One launch in
-    /// five in a field log crossed it; the median was 497 ms.
+    /// Above this, the reload log breaks its total into phases.
     static let slowDashboardReloadMs = 1_500
 }
 

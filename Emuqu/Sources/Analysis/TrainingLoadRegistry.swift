@@ -5,7 +5,7 @@ import Foundation
 ///
 /// # The problem this exists to solve
 ///
-/// The same physical concept ("user's current CTL") was readable from
+/// The same physical concept ("user's current CTL") is readable from
 /// four distinct places in the codebase:
 ///
 /// 1. `TrainingMetricsCache.current` — set by
@@ -18,18 +18,11 @@ import Foundation
 /// 4. `HRVSession.analysisResult.trainingContext` — also frozen at
 ///    session acceptance via the same path.
 ///
-/// Different surfaces read different sources without coordination:
-/// Dashboard pulled live, AI pulled live, **PDF and Holistic Daily
-/// Report pulled frozen morning snapshots**, AI's
-/// `workout.live.today_readiness` mixed live and frozen fields.
-///
-/// User-visible symptom (from a user report):
-///   * Dashboard:        CTL 36.4 / ATL 61.2 / TSB −24.8  (live, post-walk)
-///   * Holistic Report:  CTL 30   / ATL 61   / TSB −30    (frozen at 03:34 AM, pre-walk)
-///   * AI live answer:   often stale by up to the cache-TTL window
-///
-/// The user reasonably calls all three "wrong" because there's no
-/// disclosure of which era each value comes from.
+/// Surfaces that read different sources without coordination disagree:
+/// a live dashboard after a walk (CTL 36.4 / ATL 61.2 / TSB −24.8) beside
+/// a morning snapshot frozen before it (CTL 30 / ATL 61 / TSB −30), with
+/// an AI answer stale by up to the cache-TTL window. Without saying which
+/// moment each value comes from, all three read as wrong.
 ///
 /// # What this registry does
 ///
@@ -156,16 +149,16 @@ enum TrainingLoadRegistry {
     /// `cache.snapshot()` (cache.current) causes the AI to
     /// quote different numbers than the Dashboard.
     ///
-    /// Root cause: `TrainingMetricsCache.refresh()` publishes
+    /// Reason: `TrainingMetricsCache.refresh()` publishes
     /// `cache.current` immediately after the 120-day dashboard
     /// calculation finishes, then kicks the 400-day Banister daily-
     /// series replay as a detached task (see TrainingMetricsCache.swift
     /// :184). Until the detached task finishes, `sampleOn(today)`
     /// returns the OLD value while `cache.current` is fresh. The
     /// Dashboard observes `cache.current` directly, so it
-    /// reflects the fresh value while the registry returns the stale
-    /// daily-series value — same physical concept, different numbers
-    /// in the same minute.
+    /// reflects the fresh value while a registry reading the daily series
+    /// would return the stale value — same physical concept, different
+    /// numbers in the same minute.
     ///
     /// Order: `cache.snapshot()` (== `cache.current`) FIRST —
     /// guarantees the registry returns exactly what the Dashboard

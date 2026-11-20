@@ -97,9 +97,8 @@ final class CloudKitSyncManagerTests: XCTestCase {
         // Unlike the upload paths below, this one is NOT state-neutral by
         // design: CloudKitSyncManager.swift:581 sets `.idle` explicitly when
         // the setting is off, so that turning sync off clears a stale error
-        // rather than leaving it on screen. Asserting "unchanged" here failed
-        // under Thread Sanitizer against whatever state ran before it — the
-        // assertion was wrong, not the app.
+        // rather than leaving it on screen. Asserting "unchanged" here would
+        // depend on whatever state ran before it.
         XCTAssertEqual(manager.syncState, .idle, "Disabling sync must normalise the state to idle")
 
         // Restore setting

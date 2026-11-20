@@ -80,7 +80,7 @@ final class FactNumericArgumentTests: XCTestCase {
 
     // MARK: - Every numeric tool
 
-    /// Each key puts the hostile value in the slot that used to reach
+    /// Each key puts the hostile value in a numeric slot: one parsed by
     /// `Int(_:)`, a day count, an index or a distance.
     private static func hostileKeys(_ bad: String) -> [String] {
         [

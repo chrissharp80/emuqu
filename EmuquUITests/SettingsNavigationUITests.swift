@@ -170,10 +170,10 @@ final class SettingsNavigationUITests: XCTestCase {
 
     /// Sleep: bedtime, sleep schedule, split-sleep merge gap.
     func testSleepSubpageRenders() {
-        // Identifier, not `CONTAINS[c] "Sleep"` — that predicate matched the
-        // "Connect Apple Health, For sleep + vitals" banner and then failed on
-        // hittability, which read as a Settings regression rather than a test
-        // targeting the wrong element.
+        // Identifier, not `CONTAINS[c] "Sleep"`: that predicate also matches
+        // the "Connect Apple Health, For sleep + vitals" banner, and a failure
+        // on its hittability would read as a Settings regression rather than a
+        // test targeting the wrong element.
         walkSubPage(identified: UITestID.settingsSleep, label: "Sleep")
     }
 
@@ -320,9 +320,8 @@ final class SettingsNavigationUITests: XCTestCase {
     /// The search route to the delete page must work exactly like the
     /// tap-through route `DataDeletionUITests` walks: search, open Advanced
     /// Data Controls from the results, then open Delete All My Data from
-    /// inside it. Search results
-    /// used to open in a sheet whose inner links did nothing, so this last
-    /// tap was dead.
+    /// inside it. A search result opened in a sheet whose inner links do
+    /// nothing would leave this last tap dead.
     func testDeleteAllDataReachableFromSearch() {
         let searchField = app.searchFields.firstMatch
         XCTAssertTrue(searchField.waitForExistence(timeout: UITestTiming.s(5)),
