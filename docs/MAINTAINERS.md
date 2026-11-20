@@ -1290,7 +1290,7 @@ lists them all as possible callers, and only certain edges trigger re-checks.
 - **`ci.yml`** — every pull request and push to `main` (scope `unit`),
   `workflow_dispatch` (with a `gates` / `unit` / `full` scope) and
   `workflow_call` from `testflight.yml` (scope `full`). Runs on `macos-26` runners
-  with Xcode 26.6 selected (`xcode-select -s /Applications/Xcode_26.6.app`). Jobs 3 and 4 skip at the `gates` scope.
+  with Xcode 26.6 selected (`xcode-select -s /Applications/Xcode_26.6.app`). Jobs 3, 4 and 5 skip at the `gates` scope.
   - **Job 1 `lint-and-budgets`** — SwiftLint (0 errors, warnings under budget),
     tech-debt budgets, budget monotonicity, copy-perimeter, Info.plist drift,
     Sendable guard, SBOM drift, log redaction, localization coverage,
@@ -1306,7 +1306,11 @@ lists them all as possible callers, and only certain edges trigger re-checks.
     file, each naming the queue or lock that owns its state) are actually
     safe, as opposed to merely no more numerous than last week. Its last step
     writes the job's result to the run summary.
-  - **Job 4 `tests`** — `xcodebuild test` with coverage, against the floors in
+  - **Job 4 `release-build`** — `make release-build`: the Release
+    configuration compiles with the optimizer, in parallel with the tests so a
+    full-scope run fits its time limit. Its last step writes the job's result
+    to the run summary.
+  - **Job 5 `tests`** — `xcodebuild test` with coverage, against the floors in
     `.ci/min_coverage.txt` and `.ci/min_coverage_logic.txt` (scope `full`;
     `unit` runs the unit target against the Views floor only). Its last step
     writes the scope and the job's result to the run summary.
@@ -1314,7 +1318,8 @@ lists them all as possible callers, and only certain edges trigger re-checks.
   the script gates from `make ci` that need only bash and python (no SwiftLint,
   no Xcode), including the code-map check. On a pull request it also writes the
   code-map impact report to the job summary. About a minute. `main` requires
-  this job and the four macOS jobs above to pass, on a branch that is up to date
+  this job and the `ci.yml` jobs above to pass (the ruleset names each one;
+  `release-build` has to be added to it by name), on a branch that is up to date
   with `main`, before anything merges.
 - **`security.yml`** — `workflow_dispatch` only — CodeQL over the Swift
   (macOS) and dependency review (ubuntu).
