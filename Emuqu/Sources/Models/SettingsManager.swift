@@ -92,13 +92,21 @@ final class SettingsManager {
 
     /// Reads the settings file; `Data(contentsOf:)` for the app, a reader a
     /// test controls otherwise.
-    @ObservationIgnored private let readSettingsFile: (URL) throws -> Data
+    @ObservationIgnored private let readSettingsFile: @Sendable (URL) throws -> Data
 
-    /// Whether the change-driven retry of a held load has run since saves
-    /// were held for a file that could not be read or kept. Later changes are
-    /// held without a read each (a slider drag would read the file on every
-    /// step); the lifecycle events keep retrying.
-    @ObservationIgnored private var heldChangeRetried = false
+    /// When a change last re-read a file that could not be read or kept
+    /// (nil since the hold began). Changes within `heldChangeRetryInterval`
+    /// of it stay held without a read, so a slider drag does not read the
+    /// file on every step.
+    @ObservationIgnored private var lastHeldChangeRetry: Date?
+
+    /// How often a change may re-read a held file: at most once every 5 s.
+    /// A drag fires many changes a second, so this keeps the main-thread
+    /// reads to one per gesture or so; and once the file reads again, the
+    /// changes held meanwhile are saved by the next change after at most 5 s
+    /// (or by the activation and background retries), so a foreground kill
+    /// loses at most the last few seconds of changes.
+    nonisolated static let heldChangeRetryInterval: TimeInterval = 5
 
     // Off-main coalesced settings persistence. A `save()` that
     // does a full prettyPrinted JSON encode (including the base64 avatar) +
@@ -122,7 +130,7 @@ final class SettingsManager {
     /// A manager on `settingsURL`, read with `read`. The app has one, `shared`,
     /// on the resolved settings file; tests build one on a temporary file with
     /// a reader they control.
-    nonisolated init(settingsURL: URL, read: @escaping (URL) throws -> Data = { try Data(contentsOf: $0) }) {
+    nonisolated init(settingsURL: URL, read: @escaping @Sendable (URL) throws -> Data = { try Data(contentsOf: $0) }) {
         self.settingsURL = settingsURL
         readSettingsFile = read
         let (loaded, outcome) = SettingsManager.load(from: settingsURL, read: read)
@@ -240,7 +248,7 @@ final class SettingsManager {
     /// beside the file first (`preserveUnreadableBytes`), and saves are held
     /// only while that fails. `read` is a test seam; the app reads the file.
     nonisolated static func load(
-        from url: URL, read: (URL) throws -> Data = { try Data(contentsOf: $0) }
+        from url: URL, read: @Sendable (URL) throws -> Data = { try Data(contentsOf: $0) }
     ) -> (UserSettings?, LoadOutcome) {
         guard FileManager.default.fileExists(atPath: url.path) else { return (nil, .fileNotPresent) }
         let data: Data
@@ -311,9 +319,14 @@ final class SettingsManager {
     /// held, or twice.
     private func installHeldRetryObservers() {
         guard savesHeld, heldRetryObservers.isEmpty else { return }
-        let names = [UIApplication.protectedDataDidBecomeAvailableNotification, UIApplication.didBecomeActiveNotification]
-        heldRetryObservers = names.map { heldRetryObserver(for: $0) }
+        heldRetryObservers = Self.heldRetryNotifications.map { heldRetryObserver(for: $0) }
     }
+
+    /// The notifications a held load is retried on: unlock and activation.
+    nonisolated static let heldRetryNotifications = [
+        UIApplication.protectedDataDidBecomeAvailableNotification,
+        UIApplication.didBecomeActiveNotification
+    ]
 
     /// One held-retry observer: runs `retryLoadAfterUnlock` on `name`.
     private func heldRetryObserver(for name: Notification.Name) -> NSObjectProtocol {
@@ -348,12 +361,9 @@ final class SettingsManager {
         }
         let (loaded, outcome) = SettingsManager.load(from: settingsURL, read: readSettingsFile)
         loadOutcome = outcome
-        guard !savesHeld else {
-            if lockedStartingPoint == nil { lockedStartingPoint = settings }
-            return false
-        }
+        guard !savesHeld else { return false }
         removeHeldRetryObservers()
-        heldChangeRetried = false
+        lastHeldChangeRetry = nil
         adoptAfterUnlock(loaded)
         return true
     }
@@ -438,7 +448,7 @@ final class SettingsManager {
             Self.removeFile(at: settingsURL, what: "settings file saves were held for")
             loadOutcome = .fileNotPresent
             lockedStartingPoint = nil
-            heldChangeRetried = false
+            lastHeldChangeRetry = nil
             removeHeldRetryObservers()
         }
         Self.removeFile(at: settingsURL.deletingLastPathComponent().appendingPathComponent(Self.unreadableBackupName), what: "unreadable settings copy")
@@ -463,20 +473,22 @@ final class SettingsManager {
     /// no way to tell "file missing" from "file unreadable.") The change is
     /// kept in memory and merged onto the real file once it can be read
     /// (`retryLoadAfterUnlock`). A file that could not be read or kept for
-    /// another reason is read again on the first change after the hold began
-    /// (`retryHeldLoad`), which saves the change once it can; later changes
-    /// stay in memory for the unlock, activation and background retries.
+    /// another reason is read again by a change at most once every
+    /// `heldChangeRetryInterval` (`retryHeldLoad`), which saves the held
+    /// changes once it can; in between they stay in memory for the next such
+    /// change and the unlock, activation and background retries.
     private func saveUnlessLocked() {
         switch loadOutcome {
         case .blockedByProtection:
             debugLog("[SettingsManager] settings change not saved yet — the file is locked and overwriting it would clobber the real settings. It is merged in once the file becomes readable.", level: .warning)
         case .unreadableNotPreserved:
-            // The first change reads the file again; later ones stay held for
-            // the lifecycle retries rather than read it on every change.
-            guard !heldChangeRetried else { return }
-            heldChangeRetried = true
+            // Read the file again at most once per interval; changes in
+            // between stay held for the next read rather than read it each.
+            let now = Date()
+            if let last = lastHeldChangeRetry, now.timeIntervalSince(last) < Self.heldChangeRetryInterval { return }
+            lastHeldChangeRetry = now
             if !retryHeldLoad() {
-                debugLog("[SettingsManager] settings change not saved yet — the settings file could not be read or kept, and overwriting it could lose it. Later changes are held too, and retried on unlock, activation and background.", level: .warning)
+                debugLog("[SettingsManager] settings change not saved yet — the settings file could not be read or kept, and overwriting it could lose it. It is read again on a later change, on unlock, activation and background.", level: .warning)
             }
         case .loaded, .fileNotPresent, .unreadableOther:
             save()
@@ -630,7 +642,7 @@ final class SettingsManager {
         // was wedged.
         loadOutcome = .loaded
         lockedStartingPoint = nil
-        heldChangeRetried = false
+        lastHeldChangeRetry = nil
         removeHeldRetryObservers()
         settings = restored
         // The restored copy carries the synced mirror of the trial start; the
