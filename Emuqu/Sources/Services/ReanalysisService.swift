@@ -969,7 +969,7 @@ enum RescoreWrite {
     /// some rescore (`applyComputedFields`, each kind its own part).
     static let computedFields: Set<String> = [
         "analysisResult", "artifactFlags", "windowUserAdjusted", "hrvDataQuality",
-        "recoveryScore", "scoreBreakdown", "frozenReadiness", "trainingSnapshot",
+        "recoveryScore", "scoreBreakdown", "frozenReadiness", "trainingSnapshot"
     ]
 
     /// Never written by a rescore: the recording and its identity, the beats
@@ -981,6 +981,6 @@ enum RescoreWrite {
         "sleepSegments", "linkedSessionIds", "pausedDate", "dataSourceSummary", "sleepSnapshot",
         "sleepUserAdjusted", "napRepaired", "autoWindowResult", "autoWindowScore", "vitalsSnapshot",
         "healthKitExportedAt", "healthKitExportFailureCount", "modifiedAt", "aiContext",
-        "perceivedReadiness", "morningFeeling", "morningFeelingTags", "workoutMetadata",
+        "perceivedReadiness", "morningFeeling", "morningFeelingTags", "workoutMetadata"
     ]
 }
