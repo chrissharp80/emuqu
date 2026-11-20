@@ -1224,8 +1224,8 @@
   },
   {
    "key": "job tests",
-   "hash": "67952978c1de2fe0",
-   "does": "macOS-26 job 'Tests + coverage' (timeout 110). Sets TEST_SCOPE=full when scope is full, otherwise unit, plus SCHEME/PROJECT/RESULT_BUNDLE. Steps: checkout, Xcode 26.6, resolve simulator, run_tests_with_coverage.sh, upload xcresult (the Release build is its own job, release-build). Skipped for gates scope. In unit scope the overall and logic floors are reported but not gated (SKIP_OVERALL_COVERAGE/SKIP_LOGIC_COVERAGE); the Views floor (.ci/min_coverage_views.txt) is gated in both scopes, which the job's comment now states.",
+   "hash": "2637ca5a4815b431",
+   "does": "macOS-26 job 'Tests + coverage' (timeout 180). Sets TEST_SCOPE=full when scope is full, otherwise unit, plus SCHEME/PROJECT/RESULT_BUNDLE. Steps: checkout, Xcode 26.6, resolve simulator, run_tests_with_coverage.sh, upload xcresult (the Release build is its own job, release-build). Skipped for gates scope. In unit scope the overall and logic floors are reported but not gated (SKIP_OVERALL_COVERAGE/SKIP_LOGIC_COVERAGE); the Views floor (.ci/min_coverage_views.txt) is gated in both scopes, which the job's comment now states.",
    "entry": "GitHub Actions job in ci.yml, conditional on inputs.scope",
    "calls": [
     ".github/workflows/ci.yml::step tests/Checkout",
@@ -1238,12 +1238,12 @@
    "writes": [],
    "branches": [
     {
-     "at": "+6",
+     "at": "+8",
      "cond": "inputs.scope != 'gates'",
      "effect": "job runs for unit/full; skipped for gates"
     },
     {
-     "at": "+15",
+     "at": "+17",
      "cond": "inputs.scope == 'full'",
      "effect": "TEST_SCOPE=full (UI + unit, all floors gated); otherwise unit (EmuquTests only, overall and logic floors reported but not gated, Views floor gated)"
     }

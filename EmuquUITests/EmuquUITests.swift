@@ -239,9 +239,15 @@ enum UITestFind {
     ///
     /// It can still raise on an element mid-transition — see `tapSafely` — but
     /// assertion sites look at settled UI, which is where the distinction lies.
+    ///
+    /// Existence, enablement and frame come from one `snapshot()`, which
+    /// throws when the element is gone instead of recording a test failure.
+    /// Reading them one by one let an element that vanished between
+    /// `exists` and `isEnabled` (a row whose page was just pushed) fail the
+    /// test with "No matches found".
     static func isSafelyHittable(_ element: XCUIElement, in app: XCUIApplication) -> Bool {
-        guard element.exists, element.isEnabled else { return false }
-        let frame = element.frame
+        guard let snapshot = try? element.snapshot(), snapshot.isEnabled else { return false }
+        let frame = snapshot.frame
         guard frame.width > 1, frame.height > 1 else { return false }
         guard app.frame.intersects(frame) else { return false }
         return element.isHittable
