@@ -466,6 +466,34 @@ jobs:
         run: |
           echo "- Thread Sanitizer (unit suite): ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
 
+  # Release compiles with the optimizer, and some diagnostics exist only
+  # there: an optimizer-only warning, made an error by warnings-as-errors,
+  # passes every Debug build and test run. Without this job the first place
+  # it would show is the TestFlight archive.
+  #
+  # It runs as its own job, in parallel with `tests`, so a full-scope run
+  # fits the time limit.
+  release-build:
+    name: Release build
+    if: inputs.scope != 'gates'
+    runs-on: macos-26
+    # A from-scratch Release build takes about 21 minutes on a slow runner.
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app
+
+      - name: Release configuration compiles
+        run: make release-build
+
+      - name: Write the result to the run summary
+        if: always()
+        run: |
+          echo "- Release build: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+
   tests:
     name: Tests + coverage
     # Skipped for a `gates` run. On `unit` it runs the unit target only, which
@@ -502,13 +530,6 @@ jobs:
         id: destination
         run: echo "value=$(./scripts/select_simulator_destination.sh $SCHEME $PROJECT)" >> "$GITHUB_OUTPUT"
 
-      # Release compiles with the optimizer, and some diagnostics exist only
-      # there (an optimizer-only warning, made an error by warnings-as-errors,
-      # passes every Debug build and test run). Without this step the first
-      # place it would show is the TestFlight archive.
-      - name: Release configuration compiles
-        run: make release-build
-
       # Scope comes from the job `env:` above, which reads the dispatch input.
       # Do not set `TEST_SCOPE` in a step `env:`: a step `env:` beats a job
       # `env:`, and a `unit` run would then execute the full suite.
@@ -528,4 +549,4 @@ jobs:
       - name: Write the result to the run summary
         if: always()
         run: |
-          echo "- Release build, tests and coverage (scope ${TEST_SCOPE}): ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Tests and coverage (scope ${TEST_SCOPE}): ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
