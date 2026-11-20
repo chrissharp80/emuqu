@@ -436,7 +436,7 @@ extension HRVDetailV2View {
             title: String(localized: "Advanced metrics", bundle: LanguageManager.appBundle),
             // One key for the screen, not one per session: the 30-day
             // "keep it expanded" memory applies to every night, and viewing
-            // sessions no longer adds a UserDefaults key each.
+            // sessions does not add a UserDefaults key each.
             memoryKey: "engineRoom.hrvDetail"
         ) {
             engineRoomBody

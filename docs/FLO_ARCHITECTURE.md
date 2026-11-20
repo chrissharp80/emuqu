@@ -252,7 +252,7 @@ Awaitable resolvers bound their own waits with `FactResolveTimeout.withTimeout(s
 
 ### 7.2 Variable sections (`variableSections`)
 
-1. `nowSnapshot()` — the current time. It used to sit in the stable half and caused a cache miss on every send.
+1. `nowSnapshot()` — the current time. It sits in the variable half because it changes on every send and would break the cache in the stable half.
 2. Training-load numbers matching the dashboard.
 3. `activeWorkoutMarker()` when a workout is running (no live numbers; those come from tools).
 4. `MetricsVerifier.consumePendingCorrectionsBlock()` (§11).

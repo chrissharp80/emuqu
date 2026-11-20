@@ -1,13 +1,13 @@
 {
  "file": "scripts/generate_sbom.py",
- "hash": "68cd9cb1740fd172",
+ "hash": "4ef1e57b74065c09",
  "role": "Generates (or with --check verifies) sbom.spdx.json, an SPDX 2.3 document derived from Package.resolved; run by make sbom-check, ci.yml 'SBOM is current', gates.yml, and planted by verify_gates_fail 'sbom_drift'.",
  "types": [],
  "state": [
   "file:Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved (read)",
   "file:sbom.spdx.json (write / compare)"
  ],
- "toplevel": "Constants: DIRECT={polar-ble-sdk, whisperkit}; LICENSES map for all 11 current identities (unknown identities get NOASSERTION); COPYRIGHTS for polar; POLAR_LICENSE LicenseRef. Docstring says check_sbom_drift.sh verifies the SBOM is not stale, but check_sbom_drift.sh never reads sbom.spdx.json; staleness is checked by this script's own --check. creationInfo.created is a fixed '2026-08-27T00:00:00Z' while the comment says 'No timestamp'. Verified at 8d32097: --check reports 'matches Package.resolved. 11 packages.'",
+ "toplevel": "Constants: DIRECT={polar-ble-sdk, whisperkit}; LICENSES map for all 11 current identities (unknown identities get NOASSERTION); COPYRIGHTS for polar; POLAR_LICENSE LicenseRef. The module docstring says the output is deterministic (same lockfile in, byte-identical file out); staleness is checked by this script's own --check. creationInfo.created is the fixed string '2026-08-27T00:00:00Z' so regeneration yields no diff. --check reports 'matches Package.resolved. 11 packages.'",
  "units": [
   {
    "key": "def spdx_id",

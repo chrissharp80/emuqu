@@ -54,12 +54,11 @@ otherwise they stay on Apple.
 
 ### Capability-axis classifier
 
-The router used to ask *"how complex does this question look?"* That
-collapsed when a simple-looking question turned out to need a tool
-the cheap model didn't have ("can you see the top of the last hill?"
-is eight words but requires per-tick GPS + altitude). The replacement
-asks *"what does this question NEED?"* across four orthogonal binary
-axes, each gated by both a keyword marker AND embedding cosine
+The router asks *"what does this question NEED?"* rather than how
+complex it looks, because a simple-looking question can need a tool the
+cheap model doesn't have ("can you see the top of the last hill?" is
+eight words but requires per-tick GPS + altitude). It scores four
+orthogonal binary axes, each gated by both a keyword marker AND embedding cosine
 similarity ≥ 0.55 to a per-axis prototype centroid:
 
 1. **`needsTools`** — explicit action verbs (email, directions, save
@@ -191,7 +190,7 @@ on A17 / M-series.
 
 ### Voice preamble names the model
 
-The earcon at voice-session start now names the model handling the
+The earcon at voice-session start names the model handling the
 turn: *"Flo here. Sonnet."* / *"Flo here. Apple."* /
 *"Flo here. Haiku."* (the chat-tab voice conversation is the
 `.voiceConversation` subsystem, whose `voiceAnnouncement` is "Flo
@@ -217,7 +216,7 @@ button. Stays on-device.
 
 ## How the assistant fetches data
 
-Every connected provider — including Apple — now uses tool use. Apple
+Every connected provider — including Apple — uses tool use. Apple
 gets a compacted instruction prefix on top of the tool catalog
 because of its tight 4K context window; the cloud providers send the
 full instructions and lean on prompt caching.
@@ -591,7 +590,7 @@ the mic hot the entire time so you can interrupt the AI mid-sentence.
 On voice start, the `AVAudioSession` is configured as `.playAndRecord`
 with mode `.measurement` (no input signal processing — Apple's
 recommendation for speech recognition). The category claim goes
-through `AudioSessionCoordinator` (2026-04-29) — single owner of
+through `AudioSessionCoordinator`, the single owner of
 `setCategory` calls. Voice and `BackgroundAudioManager` (which claims
 `.workoutCue` only while a spoken workout cue — the start announcement or a
 workout coach line — plays) both declare INTENT through it; the coordinator
@@ -602,13 +601,11 @@ ends while a cue is still speaking, voice leaves the session up and the cue
 deactivates it when it finishes. The session is active only while something
 is audible.
 
-History note worth preserving: an earlier revision switched to mode
-`.voiceChat` (for hardware AEC) while another audio component called
-`setCategory(.playback, ...)` directly, which clobbered the voice
-recording config and produced `kAFAssistantErrorDomain:1110 No speech
-detected` until full app restart. The coordinator is the proper fix;
-the original revert to `.measurement` was a workaround. Software echo rejection
-(the gate-4 Jaccard overlap below) covers what AEC would have done
+No other component calls `setCategory` directly: a direct
+`setCategory(.playback, ...)` call clobbers the voice recording config and
+produces `kAFAssistantErrorDomain:1110 No speech detected` until full app
+restart. The mode stays `.measurement` rather than `.voiceChat`; software echo
+rejection (the gate-4 Jaccard overlap below) covers what hardware AEC would do
 on AirPods.
 
 If the recogniser errors with `1110` or `kLSRErrorDomain:301` mid-
@@ -724,7 +721,7 @@ When the send comes from voice, an extra overlay gets appended:
 spoken prose only." The model still occasionally produces a
 numbered list; it's still tuning.
 
-### Always-on brevity (2026-04-29)
+### Always-on brevity
 
 The base persona has a stricter `BREVITY` block that applies to ALL
 sends (typed and voice):
@@ -736,12 +733,10 @@ sends (typed and voice):
 - NEVER emit `<data>...</data>` blocks, "let me check", "looking at
   your data", "first I'll fetch", or any other reasoning preamble.
 
-The toolOverlay's "Extract before you answer" rule used to literally
-say "Quote the raw values back to yourself in `<data>...</data>`
-tags" — which the model interpreted as permission to emit those tags
-into the visible reply, producing the verbose preamble users
-complained about. Replaced with "Extract silently, then answer. The
-first sentence of your visible reply IS the answer."
+The toolOverlay's extraction rule reads "Extract silently, then
+answer. The first sentence of your visible reply IS the answer." It
+does not ask the model to quote raw values in `<data>...</data>` tags,
+which models take as permission to put those tags in the visible reply.
 
 ---
 
@@ -785,7 +780,7 @@ first sentence of your visible reply IS the answer."
 - Apple's safety filter occasionally refuses health-adjacent questions.
   That's Apple's call, not ours. Switch to Claude or ChatGPT for
   those.
-- Apple now gets tool use, so it can answer
+- Apple gets tool use, so it can answer
   per-workout, per-date, route, and breadcrumb queries on-device.
   The 4K context ceiling still bites: very long conversations get
   oldest turns dropped verbatim by `AppleContextCompactor` once the
@@ -798,10 +793,10 @@ first sentence of your visible reply IS the answer."
 
 ### Hallucinations we've actually observed
 
-- Sleep efficiency rendered as "9592 %" was a unit-scaling bug in the
-  data path, not a model failure — fixed in this release. But it's a
-  good reminder that data-layer bugs look like AI bugs when they
-  surface through the AI.
+- Data-layer bugs look like AI bugs when they surface through the AI.
+  A wildly wrong figure, such as a sleep efficiency of "9592 %", is
+  more likely a unit-scaling error in the data path than a model
+  failure.
 - Score values flipping between turns without acknowledgment — the
   turn-to-turn consistency rule in the prompt is supposed to catch
   this but models still slip.
@@ -839,7 +834,7 @@ are designed to respect user-reported observations.
 
 **Routing & cache strategy items live:**
 
-- Capability-axis classifier replaces length/complexity prototypes
+- Capability-axis classifier
   (4 axes × keyword-gated embedding ≥ 0.55 threshold per axis)
 - Routing (Quick / Auto / Deep) acts only while Apple is the selected
   model; any other pick answers every turn
@@ -857,9 +852,8 @@ are designed to respect user-reported observations.
 - LLM cache-hit telemetry across the cloud providers (Apple is
   on-device and has no prompt cache; Grok reports none), surfaced in
   Settings → Troubleshooting → AI cache health
-- `<live_state>` block moved from system role to last-user-tail to
-  protect cached prefix from invalidation (ProjectDiscovery
-  7%→74% hit-rate pattern)
+- `<live_state>` block in the last user turn rather than the system
+  role, to protect the cached prefix from invalidation
 - Anthropic prompt-cache breakpoints on last tool definition (1h
   TTL) + system prompt + conversation history
 - Sorted-keys JSON across every provider serialiser to keep the
@@ -919,7 +913,7 @@ are designed to respect user-reported observations.
 
 **Catalog coverage (the "AI aware of everything" ask):**
 
-The catalog now covers every user-visible data surface:
+The catalog covers every user-visible data surface:
 
 - `user.*` — profile (max HR, resting HR, LTHR, weight, sex, age,
   units, typical sleep), app capabilities
@@ -938,45 +932,42 @@ The catalog now covers every user-visible data surface:
 - `training.*` — CTL, ATL, TSB, ACWR, composite snapshot
 - `composites` — aggregated multi-call queries
 
-**2026-08 — closed four "computed but never exposed" gaps** (facts that
-the app showed on its own screens but had no catalog key for, so the model
-could only guess or deny):
+**Facts the app shows on its own screens are in the catalog too**, so the
+model never has to guess or deny them:
 
 - **Load & Trajectory** — `training.trajectory` (via `get_training_load`
   `which:'trajectory'`): the trajectory verdict (building / detraining /
   high-strain / …), ramp band + rate, form descriptor (Fresh/Held/Working/
   Tired), and Foster monotony/strain. Assembled from the SAME inputs as the
   dashboard chip so the AI and UI can't disagree.
-- **Sleep science** — `sleep.latest` / `by_date` / `recent` now include
+- **Sleep science** — `sleep.latest` / `by_date` / `recent` include
   `fragmentation_index`, `awakening_count`, `sleep_cycles`,
   `architecture_score`, `deep_front_loaded`, `rem_back_loaded`,
   `enhanced_sleep_score`, and age-adjusted range flags (SleepScienceAnalyzer).
-- **Morning subjective + score internals** — `recovery.score.*` now include
+- **Morning subjective + score internals** — `recovery.score.*` include
   `morning_feeling` (1–5) + `morning_feeling_tags`, `notes`,
   `training_readiness`, `data_quality` (good/preSleep/insufficient — so the
   AI can caveat a poor reading), and `perceived_readiness`.
 - **Live HealthKit fallback for sleep + overnight vitals** — `sleep.latest`
-  and `vitals.latest` are now async: when the frozen `sleepSnapshot` /
+  and `vitals.latest` are async: when the frozen `sleepSnapshot` /
   `vitalsSnapshot` is nil (the night hasn't been accepted, or the Watch synced
   sleep/vitals AFTER acceptance), the resolver reads the value LIVE from
   HealthKit (5 s timeout, cache-warm by morning via the sleep observer; the
   registry keeps an answer that took longer than its 2 s warning budget) and
-  tags it `data_source=live_healthkit_pending_acceptance`. This closes the
-  "the AI doesn't know anything about my sleep last night" gap — the app's own
-  HealthKit truth answers even before the morning results are opened, instead
-  of returning `.missing`.
+  tags it `data_source=live_healthkit_pending_acceptance`. So the app's own
+  HealthKit data answers a question about last night's sleep even before the
+  morning results are opened, instead of returning `.missing`.
 
-Three areas that look missing from a grep of top-level keys are **already**
+Three areas that look missing from a grep of top-level keys are
 covered as record *fields* in the serialized record: nonlinear/ANS
 HRV (`dfa_alpha1`, `sd1/sd2`, entropy, `pns/sns_index`, nocturnal dip, nadir)
 in `get_hrv`; advanced per-session workout metrics (`vam_m_per_hr`,
 `grade_adjusted_pace_sec_per_km`, `efficiency_factor`, `decoupling_percent`,
 `dominant_hr_zone`) in `get_workout`; and per-metric trends with slopes in
-`recovery.trend`. The stale "Capabilities the app does NOT have" list in
-`AppKnowledgeBase` was also trimmed — it had been telling the model the app
-can't do Stryd/foot-pod power, cycling power, custom intervals, or route
-loading, all of which ship (and have tools), which made the AI deny real
-features. The tool catalog is the source of truth for that list now.
+`recovery.trend`. The "Capabilities the app does NOT have" list in
+`AppKnowledgeBase` must not name features that ship with tools (Stryd/foot-pod
+power, cycling power, custom intervals, route loading), or the AI denies real
+features. The tool catalog is the source of truth for what the app can do.
 
 Date-parameterised lookups use the midpoint-in-day rule so "Tuesday's
 sleep" matches the session whose midpoint falls in that local day

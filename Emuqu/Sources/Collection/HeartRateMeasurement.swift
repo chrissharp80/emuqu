@@ -10,8 +10,8 @@ import Foundation
 /// for the same bytes (`BleHrClient.processServiceData`): the same flag
 /// handling and the same rounding of each 1/1024 s interval to whole
 /// milliseconds. An interval that came out a millisecond different would move
-/// every HRV figure computed from it, and a night recorded after this change
-/// must be comparable with the nights before it.
+/// every HRV figure computed from it, and a night recorded this way must be
+/// comparable with nights recorded through the SDK.
 ///
 /// Layout:
 ///   - byte 0: flags — bit 0 rate width (8/16-bit), bit 3 energy expended

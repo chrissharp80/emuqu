@@ -4,16 +4,15 @@ import XCTest
 /// A scrubbed sentence must never come back as its own opposite.
 ///
 /// The guard matches a term and replaces the whole sentence, so it cannot
-/// tell "There's no sign of overtraining" from "You're overtrained". Several
-/// replacement sentences used to assert a finding — accumulated stress,
-/// heavier training than usual, numbers outside the usual range, a notable
-/// pattern, a reason to see a professional — so a reassuring answer reached
-/// the user, in every language, as an alarming one. Every deflection now
-/// asserts nothing about the user's state, which is true whichever way the
-/// original sentence pointed.
+/// tell "There's no sign of overtraining" from "You're overtrained". A
+/// replacement sentence that asserts a finding (accumulated stress, heavier
+/// training than usual, numbers outside the usual range, a notable pattern, a
+/// reason to see a professional) turns a reassuring answer into an alarming
+/// one, in every language. Every deflection asserts nothing about the user's
+/// state, which is true whichever way the original sentence pointed.
 final class CoachVoiceGuardNegationTests: XCTestCase {
-    /// Fragments of the old replacement sentences, each a claim about the
-    /// user that the model had not made.
+    /// Fragments of replacement sentences that would each make a claim about
+    /// the user that the model had not made.
     private static let assertedFindings = [
         "accumulated stress", "heavier than usual", "outside your usual range",
         "notable pattern", "Worth checking", "not symptoms of any condition",

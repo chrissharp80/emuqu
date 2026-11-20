@@ -394,7 +394,7 @@ final class MedicalQueryGuardTests: XCTestCase {
     /// friends have no bounded, low-false-positive spelling, and the system
     /// prompt's MEDICAL BOUNDARY block remains the second leg for it. If this
     /// ever starts being refused, this test fails and the coverage claim above
-    /// gets updated — the previous version of this test passed either way.
+    /// gets updated.
     func testLeetSpeakRemainsUncovered() {
         XCTAssertNil(
             MedicalQueryGuard.classify("do I have 4F1B"),
@@ -558,7 +558,7 @@ final class MedicalQueryGuardTests: XCTestCase {
         return regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) != nil
     }
 
-    /// Ordinary sentences that bare entries used to match: "take care",
+    /// Ordinary sentences that bare entries would match: "take care",
     /// "recipe", an emphasis-free "this is your", and everyday adverbs.
     func testEverydayWordsAreNotMedicalClaims() {
         let clean: [(MedicalTermLexicon.Concept, String)] = [

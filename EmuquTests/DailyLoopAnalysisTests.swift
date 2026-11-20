@@ -302,9 +302,9 @@ final class DailyLoopAnalysisTests: XCTestCase {
     }
 
     /// The same underloading day under a load the shared advice gate holds
-    /// (Foster monotony 2.5, strain 2,000): the loop no longer calls today a
-    /// green light and Tomorrow no longer opens a window for intervals. The
-    /// gate was not consulted here before, so both lines invited a hard day.
+    /// (Foster monotony 2.5, strain 2,000): the loop does not call today a
+    /// green light and Tomorrow does not open a window for intervals, so
+    /// neither line invites a hard day.
     func testUnderloadingDropsTheGreenLightWhenTheGateHoldsThePush() {
         var a = makeAnalysis(
             workout: makeWorkout(alphas: [0.95], peakHR: 110, trimp: 30, tsb: 8, atl: 32, ctl: 40),
@@ -322,7 +322,7 @@ final class DailyLoopAnalysisTests: XCTestCase {
         XCTAssertFalse(a.tomorrowAction.contains("open window"), a.tomorrowAction)
     }
 
-    /// Regression guard: the same high-recovery easy day, but
+    /// The same high-recovery easy day, but
     /// the athlete is cumulatively loaded (TSB ≤ −5). `.underloading` would tell
     /// them to push on top of accumulated fatigue, so it must become
     /// `.absorbing` instead.

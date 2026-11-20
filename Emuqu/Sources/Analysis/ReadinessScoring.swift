@@ -237,7 +237,7 @@ enum ReadinessScoring {
     /// conservative response to an abrupt change in workload, on the general
     /// principle that bodies absorb gradual change better than abrupt change.
     ///
-    /// The detraining penalty (ACWR < 0.8) has been removed. Multiple
+    /// There is no detraining penalty (ACWR < 0.8). Multiple
     /// meta-analyses found no evidence for the 0.8-1.3 "sweet spot"
     /// (Impellizzeri et al. 2020, Coyne et al. 2018, BJSM 2021 editorial).
     /// ACWR < 0.8 during short rest periods (2-7 days) reflects normal
@@ -262,7 +262,7 @@ enum ReadinessScoring {
     ///      the measurement when they disagree on a clearly-recovered
     ///      morning.
     ///
-    /// Real tester case: CTL=16, ACWR=1.63 undampened produces
+    /// Example: CTL=16, ACWR=1.63 undampened produces
     /// a 21.5% raw penalty, dragging readiness to 3.6/10 "Fatigued"
     /// while the HRV-Readiness pill simultaneously shows 10.0/10 "Ready".
     /// With the dampeners: confidence factor = 16/50 = 0.32 shrinks the
@@ -285,9 +285,9 @@ enum ReadinessScoring {
     /// The raw overreaching penalty, scaled by the low-CTL confidence ramp and
     /// capped by the autonomic-state rescue — see `applyACWRModifier`.
     /// `internal` rather than `private` so it can be tested directly.
-    /// The dampener is a fix for a named user-facing bug
-    /// (tester report: CTL 16 / ACWR 1.63 read "Fatigued" while the
-    /// HRV pill read "Ready") and a mutation can delete it with a green suite.
+    /// The dampener stops a low-CTL ACWR spike (e.g. CTL 16 / ACWR 1.63)
+    /// reading "Fatigued" while the HRV pill reads "Ready", and a mutation
+    /// can delete it with a green suite.
     /// It cannot be isolated through `calculateReadiness`, because
     /// `applyRecoveryModulation` runs afterwards and its `modelTrust` term is
     /// ALSO CTL-dependent and larger — so a test that goes through the public

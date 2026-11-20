@@ -272,8 +272,8 @@ final class SleepBoundaryResolver: Sendable {
     /// This HR-drop heuristic thresholds against deep-sleep bradycardia,
     /// which consolidates LATER than actual sleep onset — so on a night where
     /// HR doesn't drop below the ceiling until well in, it reports a bogus
-    /// long onset (one night reported 66 min when the Apple Watch had true
-    /// onset at 5 min, skewing the HRV band late and the score with it). The
+    /// long onset (66 min where the Apple Watch has true onset at 5 min,
+    /// skewing the HRV band late and the score with it). The
     /// recording STARTS at bedtime, so onset can't plausibly be an hour of
     /// lying awake; typical latency is 10-20 min. The window times are on the
     /// wall clock, the clock `SleepConstants.isPlausibleHROnsetLatency` takes.

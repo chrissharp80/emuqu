@@ -116,10 +116,7 @@ enum UserDefaultsKeys {
 // MARK: - Physical Unit Conversions
 
 /// Canonical physical-unit conversion factors. Single source of truth so the
-/// same conversion cannot drift between call sites — it previously did:
-/// feet-per-metre was written as both `3.281` and `3.280_84`, metres-per-degree
-/// latitude as both `111_320` and `111_000`, and mph-per-(m/s) as both
-/// `2.236_936` and `2.23694`.
+/// same conversion cannot drift between call sites.
 enum UnitConstants {
     /// Feet per metre (exact: 1 / 0.3048 = 3.280839895…).
     static let feetPerMeter: Double = 3.280_84

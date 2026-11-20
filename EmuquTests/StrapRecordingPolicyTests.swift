@@ -175,7 +175,7 @@ final class StrapRecordingPolicyTests: XCTestCase {
 
     // MARK: - Morning download
 
-    /// The regression this pins: an H10 that reconnects after a night with the
+    /// An H10 that reconnects after a night with the
     /// phone locked has its "recording on device" flag cleared, and a morning
     /// download that refuses on that flag alone leaves the night on the
     /// strap. The flag is the app's memory; the file is on the strap either way.
@@ -261,8 +261,8 @@ final class StrapRecordingPolicyTests: XCTestCase {
 
     // MARK: - Which recording is whose
 
-    /// strap-copies Bug 1: Recover with saved state for tonight filed the
-    /// previous night's file under tonight's session.
+    /// Recover with saved state for tonight must not file the previous
+    /// night's file under tonight's session.
     func testOnlyARecordingStartedDuringTheSessionBelongsToIt() {
         let tonight = Date(timeIntervalSince1970: 1_790_000_000)
         let lastNight = tonight.addingTimeInterval(-24 * 3600)
@@ -280,8 +280,8 @@ final class StrapRecordingPolicyTests: XCTestCase {
 
     // MARK: - What the Record screen offers
 
-    /// strap-copies Bug 9: the strap keeps every downloaded recording, and the
-    /// Recover card offered the same, already-saved night on every connect.
+    /// The strap keeps every downloaded recording, and the Recover card must
+    /// not offer the same, already-saved night on every connect.
     func testADownloadedRecordingIsNotOfferedAgain() {
         XCTAssertFalse(unrecovered(downloaded: true, held: true))
         XCTAssertTrue(unrecovered(downloaded: false), "a recording never downloaded is the user's missing data")

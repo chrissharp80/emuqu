@@ -7,23 +7,21 @@ import Security
 ///
 /// ## Why this exists
 ///
-/// Two defects, both from the same root cause — the writer and the reader each
-/// decided independently how a payload was framed:
+/// When the writer and the reader each decide independently how a payload is
+/// framed, they disagree:
 ///
-///   • **Live backups**: `CloudKitLiveBackupManager` encrypted on write and
-///     decompressed on read without decrypting. A backup written today could
-///     not be read back today, on the same device, with the key present. It
-///     did not surface as an error either: the decode returned nil and
-///     `compactMap` dropped it, so an unreadable backup looked like no backup.
+///   • **Live backups**: encrypting on write and decompressing on read
+///     without decrypting makes a backup unreadable even on the same device
+///     with the key present, and silently so: the decode returns nil and
+///     `compactMap` drops it, so an unreadable backup looks like no backup.
 ///
-///   • **Session payloads**: they were encrypted with the archive key, which is
-///     not synchronizable — correct for local files, wrong for a cloud backup
-///     whose entire purpose is restoring onto a *different* device. Phone B would generate its own key, authenticated
-///     decryption would fail, and the "legacy" fallback would hand compressed
-///     garbage to the decoder.
+///   • **Session payloads**: the archive key is not synchronizable, correct
+///     for local files but wrong for a cloud backup whose entire purpose is
+///     restoring onto a *different* device. Phone B would generate its own
+///     key, authenticated decryption would fail, and the "legacy" fallback
+///     would hand compressed garbage to the decoder.
 ///
-/// One codec, used by both directions, removes the class of bug rather than
-/// the two instances.
+/// One codec, used by both directions, keeps the two sides in agreement.
 ///
 /// ## Key placement
 ///
@@ -52,8 +50,8 @@ import Security
 /// AES-GCM authentication rejects a wrong key outright, so trying is safe.
 /// Writers all choose the same key (`primaryAccount`) once their Keychains
 /// have converged, so the set stops growing. The original shared account is
-/// still read, and preferred, so records and devices from before this change
-/// keep working. `hasUsableKey` reports whether a key exists to encrypt with; it does
+/// still read, and preferred, so records and devices that use only that
+/// account keep working. `hasUsableKey` reports whether a key exists to encrypt with; it does
 /// NOT assert that another device can decrypt, because a local Keychain read
 /// cannot establish that iCloud Keychain is on and has synced.
 ///
@@ -71,7 +69,7 @@ enum CloudPayloadCodec {
     static let version: UInt8 = 1
 
     private static let keychainService = "com.chrissharp.flowrecovery.cloud"
-    /// The single shared account every key used to live under.
+    /// The original single shared account, still read and preferred.
     static let legacyAccount = "cloud-payload-key-v1"
     /// Keys created from now on: this prefix plus a UUID, one account per key.
     static let accountPrefix = "cloud-payload-key-id-"

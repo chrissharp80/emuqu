@@ -11,7 +11,7 @@ import UIKit
 extension VoiceConversationController {
     // MARK: - TTS
 
-    /// Hallucination guard (item #9). Before TTS, scan
+    /// Hallucination guard. Before TTS, scan
     /// the chunk for numeric claims that contradict the live
     /// workout snapshot or the app's own values (TSB / ATL / CTL / ACWR,
     /// RMSSD, recovery score) and rewrite the offending span to the
@@ -28,10 +28,8 @@ extension VoiceConversationController {
     /// PhoneticOverrides is the FINAL stage — it sees post-normalized
     /// text and emits the NSAttributedString.
     ///
-    /// Wrap speak in the SafeObjC shim. The AI's TTS path
-    /// is what the beta tester feared crashing their workout. After a
-    /// phone-call interruption (logged 5 min before the workout
-    /// started), AVSpeechSynthesizer.speak can raise
+    /// Wrap speak in the SafeObjC shim. After a
+    /// phone-call interruption, AVSpeechSynthesizer.speak can raise
     /// NSInternalInconsistencyException on the first attempted
     /// utterance. Swift's `try` doesn't catch it — an uncaught
     /// NSException is SIGABRT. The shim @try/@catches.
@@ -154,7 +152,7 @@ extension VoiceConversationController {
         return (providerID, name)
     }
 
-    /// Hallucination-guard pre-flight (item #9). Verifies each numeric
+    /// Hallucination-guard pre-flight. Verifies each numeric
     /// claim in `text` against the live workout snapshot, then against the
     /// app's own values (`MetricsVerifier.verifyAppStateClaims`: training
     /// load, overnight RMSSD and recovery score), so the user hears the

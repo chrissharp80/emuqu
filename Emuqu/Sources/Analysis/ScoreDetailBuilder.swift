@@ -315,7 +315,7 @@ enum ScoreDetailBuilder {
     }
 
     /// Duration-debt override. "Only 5h 5m of
-    /// sleep" + score 9.0/10 is contradictory copy (a user report). The score is
+    /// sleep" + score 9.0/10 is contradictory copy. The score is
     /// efficiency-weighted (96% efficiency reads as "locked in") but a high
     /// score with hours well below target hides the duration shortfall. The
     /// narrative names the tradeoff explicitly when hours are short, using

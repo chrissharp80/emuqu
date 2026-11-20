@@ -35,9 +35,8 @@ extension FitnessTabView {
         )
     }
 
-    /// Until now nothing set `showImporter`: the file importer and its result
-    /// handler both existed and were unreachable, which is a feature the code
-    /// claims to have and does not.
+    /// Sets `showImporter`, the only way to reach the GPX file importer and
+    /// its result handler.
     private var gpxImportMenuButton: some View {
         Button { showImporter = true } label: { gpxImportMenuLabel }
     }

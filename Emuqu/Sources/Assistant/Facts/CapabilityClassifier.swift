@@ -11,17 +11,16 @@ import NaturalLanguage
 /// > just needs to be pointed at capability prototypes, not complexity
 /// > prototypes."
 ///
-/// Why: the prior design asked *"how complex is this question?"* and
-/// optimised cost on the assumption that simple-looking questions need
-/// only simple models. That collapsed when a simple-looking question
-/// turned out to need a tool the cheap model didn't have. Real
-/// failure mode: the user asks *"can you see the top of the last
+/// Why: asking *"how complex is this question?"* and optimising cost on
+/// the assumption that simple-looking questions need only simple models
+/// fails when a simple-looking question needs a tool the cheap model
+/// doesn't have. For example, the user asks *"can you see the top of the last
 /// hill"* — eight words, looks like a Quick lookup — but answering it
 /// requires a tool that fetches per-tick GPS + altitude samples from
 /// a workout JSON. Apple Intelligence (the Quick tier) discards the
 /// `tools` array; question is unanswerable.
 ///
-/// The fix axes ask *"what does this question need?"*:
+/// The axes ask *"what does this question need?"*:
 ///
 /// 1. **`needsTools`** — explicit action verbs (email, directions,
 ///    save route, list contacts) OR data lookups that go beyond the

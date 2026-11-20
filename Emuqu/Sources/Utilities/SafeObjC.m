@@ -1,4 +1,4 @@
-// 2026-05-11 — See SafeObjC.h. Bare-minimum @try/@catch wrapper
+// See SafeObjC.h. Bare-minimum @try/@catch wrapper
 // around `[AVAudioEngine startAndReturnError:]` so the Swift
 // caller can recover from NSException instead of SIGABRT.
 
@@ -93,7 +93,7 @@ BOOL FRSafePrepareAudioEngine(AVAudioEngine *engine,
     }
 }
 
-// 2026-05-21 — Audit pass. Wrap every AVAudio NSException-prone call.
+// Wraps every AVAudio NSException-prone call.
 
 BOOL FRSafeRemoveTap(AVAudioInputNode *node,
                      AVAudioNodeBus bus,

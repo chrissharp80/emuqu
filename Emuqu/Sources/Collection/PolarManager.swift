@@ -285,8 +285,7 @@ final class PolarManager: NSObject {
     /// Maximum streaming buffer size — safety cap to prevent unbounded growth.
     /// Sized in beats, not seconds: 250,000 beats is about 35 hours at an
     /// average of 120 bpm and 60 hours at 70 bpm (roughly 10 MB of points),
-    /// well beyond any realistic session. The old 100,000 ran out after about
-    /// 24 hours at 70 bpm, not the 28 its comment claimed.
+    /// well beyond any realistic session.
     static let maxStreamingBufferSize = 250_000
 
     /// Throttle UI updates — only push recentRRPoints every N beats to reduce SwiftUI work.

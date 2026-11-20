@@ -74,12 +74,9 @@ final class RRCollectorObservableStateTests: XCTestCase {
     /// only changes how long a genuinely broken one waits before failing.
     ///
     /// A 1.0 s deadline against an 80 ms coalescing window
-    /// is ample on a developer Mac and not ample under Thread Sanitizer.
-    /// CI run 33174007833 failed `testNotifyArchiveChangedForwardsToArchiveSignal`
-    /// and `testArchiveSignalIsInjectable` in the sanitized job while the same
-    /// tests passed unsanitized in the same run, and TSan reported zero races —
-    /// so the debounce simply had not fired yet, on a build where everything
-    /// runs several times slower. Ten seconds is still ~125x the window.
+    /// is ample on a developer Mac and not ample under Thread Sanitizer, where
+    /// everything runs several times slower and the debounce may simply not
+    /// have fired yet. Ten seconds is still ~125x the window.
     private func waitForVersion(
         _ signal: ArchiveSignal,
         toReach expected: Int,

@@ -291,8 +291,8 @@ final class WorkoutVoiceCoach {
     /// "Coach here." is said once per
     /// session, later mid-conversation interruptions
     /// just cut the AI's voice and start the alert
-    /// with "Coach alert —" — the user reported it sounded
-    /// "like one continuous conversation." When the coach
+    /// with "Coach alert —", which sounds like one continuous
+    /// conversation. When the coach
     /// is about to PREEMPT an in-flight AI conversation, we
     /// re-announce the handoff so the speaker switch is
     /// unambiguous in headphones. When the AI is idle (no
@@ -308,7 +308,7 @@ final class WorkoutVoiceCoach {
 
     /// Prefix trigger-engine alert text with a clear lead-in so the user
     /// can tell an automated alert apart from the conversational AI's
-    /// voice (item #11). Only alerts carry it: mile-marker and route lines
+    /// voice. Only alerts carry it: mile-marker and route lines
     /// announce themselves by their shape ("Mile 3 in 8:45", "In 200 feet,
     /// turn right").
     static func taggedAlertText(_ message: String) -> String {

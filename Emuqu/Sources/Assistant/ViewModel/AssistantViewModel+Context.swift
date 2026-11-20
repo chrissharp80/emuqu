@@ -101,7 +101,7 @@ extension AssistantViewModel {
     what they asked about, and what the assistant advised. Plain text only — no \
     headings, no markdown.
 
-    **PRUNING RULES (Feature 4, bug list 2026-05-05):**
+    **PRUNING RULES:**
     - DROP stale live telemetry: specific HR values, pace numbers, grade percentages, \
       GPS coordinates, road names, weather readings. The user's app has live tools \
       for those — they're not worth carrying in summary.

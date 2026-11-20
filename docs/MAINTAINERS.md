@@ -386,21 +386,20 @@ The largest, most stateful layer. Owns hardware and the recording state machine.
 - `WorkoutRecorder.swift` (+`+Lifecycle`, `+Ticker`, `+Start`, `+Stop`, `+Metrics`) — live workout; with `WorkoutLocationManager`, `WorkoutMotion`, `WorkoutPedometer`, `WorkoutHR`. `WorkoutAIContextBuilder` owns everything the assistant is told about a workout in progress (context snapshot, route topology, climbs ahead, live weather, interval progress, threshold breaches, split paces, grade) — the recorder's largest piece that is not the recording pipeline.
 - Extra devices: `Concept2Manager` (PM5 rower), `FootPodManager` (Stryd RSC + FTMS bike), `ZwiftPeripheralBroadcaster`.
 - Recording support: `BackgroundAudioManager` (per-cue audio session for spoken workout cues), `BreathingAudioManager`, `IntervalController`, `SleepMergingPipeline` (`SleepData` itself is in `Models/`), `TrainingLoad`/`TrainingMetrics`, `RecoveryVitals`, `SessionState`, `RecordingPhase`.
-- **Pure logic lifted out of the big three** (2026-09-01). Each of these was
-  `private static` on a 3,000–5,000-line class, which meant it could only be
-  reached through one entry point and could not be tested at all. Each is now a
-  namespace or value type with its own suite:
+- **Pure logic kept out of the big three.** Each of these is a namespace or
+  value type with its own test suite, so it can be reached and tested without
+  going through a 3,000–5,000-line class:
 
-  | Type | What it owns | Why it left |
+  | Type | What it owns | Why it is separate |
   |---|---|---|
   | `METLookup` | Ainsworth / Concept2 MET tables by sport and pace | Feeds active energy written to Apple Health; the tables had no test |
   | `WorkoutTickState` | `TrackBackupWatermark`, `AutoPauseDetector` | Compare-then-assign across three cursors, and two counters plus their thresholds, that only ever moved together |
   | `WorkoutStartCue` | Haptic + chime + TTS start confirmation, pre-warmed | Self-contained mechanism with a pre-warm contract stated in a comment halfway down a lifecycle extension |
-  | `SleepRefreshPolicy` | May sleep be refreshed; is it an improvement; what to update | Two production regressions (2026-08-03 scoring window, 2026-08-05 onset move) in logic no test could reach |
-  | `HRSleepEstimator` | Sleep boundaries inferred from heart rate alone | Its onset clamp had to be fixed three times in three sibling detectors before all of them had it |
+  | `SleepRefreshPolicy` | May sleep be refreshed; is it an improvement; what to update | Scoring-window and onset logic that needs direct tests |
+  | `HRSleepEstimator` | Sleep boundaries inferred from heart rate alone | One onset clamp shared by every HR-based detector |
 
-  Where an external caller already existed, a one-line forwarder stayed behind
-  (`HealthKitManager.estimateSleepFromHR`), so no call site changed meaning.
+  Where an external caller needs the old entry point, a one-line forwarder
+  keeps it (`HealthKitManager.estimateSleepFromHR`).
 
 ### 5.3 `Assistant/` — the "Flo" AI subsystem (~115 files)
 
@@ -438,7 +437,7 @@ settings singleton — drives launch gating), `RRModels`, `WorkoutMetadata` /
 
 ### 5.6b `Emuqu/Sources/Models/SleepSchedule.swift`
 
-Extracted from `UserSettings.swift` 2026-08-18 when that file crossed the
+Kept separate from `UserSettings.swift` to hold that file under the
 1,500-line budget. Owns every derived sleep time — overnight window, morning
 cutoff, daytime-HR window, nap window — all as pure functions of a reference
 date. Covered by `AcquisitionPureLogicTests`, which pins the direction of the
@@ -453,13 +452,11 @@ production types (`SleepBoundaryResolver`, `HRVAnalysisPipeline`,
 `ReanalysisService`, `SessionRecoveryService`, `MorningProcessingService`,
 `SessionAcceptanceService`) and substituted by `MockHealthKitService` in tests.
 
-`AnalysisServiceProtocol`, `PolarManagerProtocol` and `SessionRepositoryProtocol`
-were **removed 2026-08-18**. Each had a single conformer and no production call
-site that used it as a type; two had no test double either. That is precisely
-the "interfaces with one implementation" the refactor spec's completion
-checklist forbids. Two had already been emptied to tombstone comments because
-deleting a file with explicit pbxproj build membership was awkward —
-`scripts/remove_swift_file.py` now does that cleanly, so they are gone.
+There are no other protocols here. A protocol with a single conformer and no
+production call site that uses it as a type is the "interfaces with one
+implementation" the refactor spec's completion checklist forbids. To delete a
+Swift file with explicit pbxproj build membership, use
+`scripts/remove_swift_file.py`.
 
 ### 5.8 `Utilities/` (~22 files)
 
@@ -793,10 +790,10 @@ forwarders (`collector.isOvernightStreaming`) are plain computed properties;
 under `@Observable` they track through to the sub-object, but prefer the
 sub-object in views so the dependency is visible.
 
-**Observation framework, everywhere (completed 2026-09-03).** Every observable
+**Observation framework, everywhere.** Every observable
 type is `@Observable`; the `legacy_observable_object_budget` ratchet (§10) sits
-at zero and new `ObservableObject` conformers fail CI. What used to be Combine
-`$property` sinks — the collector's device-status proxies, the HealthKit
+at zero and new `ObservableObject` conformers fail CI. Code that reacts to a
+property change (the collector's device-status proxies, the HealthKit
 version counters, the voice controller's streaming observers, the workout
 recorder's strap and heart-rate subscriptions, the history filter debounce —
 are `ObservationLoop.observe` calls (`Emuqu/Sources/Utilities/ObservationLoop.swift`): a
@@ -836,14 +833,12 @@ labels are pervasive; there is a `LocalizationSmokeUITests` and
 No DI framework. **Production composition root:** `AppDependencies`, with
 `RRCollector.makeDefault()` wiring the collector's own graph on top of it.
 **Test seam:** one live protocol in `Protocols/` — `HealthKitServiceProtocol`,
-mocked by `MockHealthKitService`. `AnalysisServiceProtocol`,
-`PolarManagerProtocol` and `SessionRepositoryProtocol` were deleted outright
-(see §5.7): each had a single conformer and no production call site that used it
-as a type, which is the "interfaces with one implementation" the refactor spec
-forbids. Don't go looking for them; there are no tombstone files either.
+mocked by `MockHealthKitService`. There are no other protocol seams (see
+§5.7): a protocol with a single conformer and no production call site that uses
+it as a type is the "interfaces with one implementation" the refactor spec
+forbids.
 Elsewhere: concrete types reached through **`AppDependencies`**
-(`Emuqu/Sources/Utilities/AppDependencies.swift`), the composition root added
-2026-09-03. It is the one place that names the singletons (`Type.shared` is
+(`Emuqu/Sources/Utilities/AppDependencies.swift`), the composition root. It is the one place that names the singletons (`Type.shared` is
 read there and nowhere else — `scripts/check_no_shared_outside_root.sh`), grouped
 by layer (`app`, `analysis`, `assistant`, `collection`, `location`,
 `providers`, `services`, `storage`). Every accessor resolves lazily, so no
@@ -892,7 +887,7 @@ Two things to know before you touch this:
   behind it.
 - **The anchor is written by the one-time history check, and by one
   deliberate migration.** A sandbox receipt anchors nothing.
-  `migrateLegacyTestFlightFlag` promotes the pre-2026-08-22
+  `migrateLegacyTestFlightFlag` promotes the legacy
   `storekit.lastKnownTestFlight` UserDefaults flag into a permanent grant.
   That flag was itself only ever written from a genuine sandbox-receipt
   check, so the evidence is real, one generation removed — and this migration
@@ -1129,7 +1124,7 @@ zero on both counters:
 thirteen. A partial pass makes the number worse even though the code is better,
 so finish a file or revert it.
 
-Recipe that worked four times:
+Recipe:
 
 1. Lift each top-level child of the `Form` / `List` / `VStack` into its own
    property, named from its `// MARK:` comment or its `header:` literal.
@@ -1141,11 +1136,11 @@ Recipe that worked four times:
 5. If the type body then passes 500 lines, move the sections to a sibling
    `+Sections.swift` (see `RecordView+Sections.swift`).
 
-Traps, each of which cost a build here:
+Traps:
 
 - **A block that reads a closure parameter or an outer `let` cannot become a
   parameterless property.** `cannot find 'x' in scope`. Make it a function
-  taking the value. Hit three times: `isImperial`, `providerID`, `entry`.
+  taking the value.
 - **`private` does not reach across files.** Moving sections to `+Sections.swift`
   means widening the members they use — *and the nested types*, because a
   `private struct` also forces every property using it to stay private.
@@ -1154,23 +1149,22 @@ Traps, each of which cost a build here:
   run `make lint` before `xcodebuild` — it turns a forty-minute discovery into a
   two-second one.
 - **Use `scripts/add_swift_file.py`** to register a new file. Registering by hand
-  put a Views file in the Models group and produced a "build input file cannot
-  be found" for a path that plainly existed.
-- **Check the path is new before writing it.** Writing a "new"
-  `RecordView+Sections.swift` over the one that already existed destroyed 201
-  lines of working view code, and only a `cannot find 'tagSelectionSection' in
-  scope` from an unrelated file surfaced it.
-- **Verify by counting lines against a backup, not by reading the diff.** Two
-  separate scripts silently dropped whole blocks — a `.sheet(item: $emailURL)`
-  in one case — and nothing failed. The file just got shorter.
+  can put a file in the wrong group and produce a "build input file cannot
+  be found" for a path that plainly exists.
+- **Check the path is new before writing it.** Writing a "new" file over one
+  that already exists destroys working code, and the only symptom may be a
+  `cannot find '…' in scope` from an unrelated file.
+- **Verify by counting lines against a backup, not by reading the diff.** A
+  script can silently drop a whole block, such as a `.sheet(item:)`, and
+  nothing fails. The file just gets shorter.
 - **A modifier chain belongs with the view it hangs off.** Lifting only the
   balanced `HStack { … }` block leaves `.frame(…)`/`.background(…)` dangling at
   the call site: still correct, unreadable, and it defeats the point.
 - **`if let x = …` binds `x` exactly as a leading `let` does.** A block lifted
   out of that branch compiles to `cannot find 'x' in scope`; the fix is the same
   as for closure parameters — pass it in.
-- **Comments count toward the 20 lines.** Several declarations sat at 22–25
-  because of a paragraph explaining the first child. Move it to a `///` doc
+- **Comments count toward the 20 lines.** A paragraph explaining the first
+  child can push a declaration over. Move it to a `///` doc
   comment on the member it describes; that is where a reader looks for it
   anyway.
 - **MapKit content is not a `View`.** `MapPolyline`/`Marker` conform to
@@ -1184,18 +1178,16 @@ Traps, each of which cost a build here:
   without its `label:` leaves the label stranded and the file stops parsing —
   which SwiftFormat reports as "Unexpected token }" a long way from the cause.
 - **Never rewrite identifiers with a bare regex.** Renaming `stress` to
-  `v.stress` across a file turned the sentence "Combined with high stress
-  markers" into "…high v.stress markers" — user-visible copy, corrupted
+  `v.stress` across a file also turns the sentence "Combined with high stress
+  markers" into "…high v.stress markers", corrupting user-visible copy
   silently. Pass values as parameters (or re-bind them at the top of the new
   function) so the body needs no rewriting at all.
 - **Check the rebuilt member BOTH ways, not just for loss.** A one-sided
-  "nothing went missing" check passed while a bad slice pasted the same block
-  twice: `trainingAndVitalsSections` came back eighteen lines LONGER than it
-  went in and still looked clean. Compare the line multiset before and after in
+  "nothing went missing" check passes when a bad slice pastes the same block
+  twice, so the member comes back longer than it went in and still looks clean. Compare the line multiset before and after in
   both directions and declare every intentional structural change.
-- **Take line numbers from a printed listing, never from arithmetic.** Every
-  hand-computed `i + 27` in this pass was wrong at least once, and each mistake
-  cost a build. Print the member with absolute indices first, then slice with
+- **Take line numbers from a printed listing, never from arithmetic.** A
+  hand-computed `i + 27` goes wrong, and each mistake costs a build. Print the member with absolute indices first, then slice with
   those numbers.
 - **Re-indent with SwiftFormat's `indent` rule, per file.** The repo config
   disables `indent` to avoid tree-wide churn, so a lifted block keeps whatever
@@ -1211,8 +1203,7 @@ Traps, each of which cost a build here:
   underlying type". A body with an explicit `return` must NOT have it.
 - **Rebuilding an `if / else if` chain is where blocks get dropped.** Replace
   each branch BODY in place, walking the branches back-to-front so the earlier
-  indexes stay valid. Rewriting the whole chain in one splice ate both branches
-  twice here.
+  indexes stay valid. Rewriting the whole chain in one splice can eat both branches.
 - **A listing tool that prints 0-based half-open spans while your slicer is
   1-based inclusive breaks three files before you notice.** The symptom is
   always the same shape — a stray `}`, a duplicated line, a block indented one
@@ -1221,8 +1212,8 @@ Traps, each of which cost a build here:
   away.
 - **A capture guard belongs in the tool, not in your head.** Refuse to lift any
   block that references a name bound above it — closure parameters, `let`/`var`,
-  `if let`, `for … in`, tuple patterns. Every one of those that slipped through
-  came back as `cannot find 'x' in scope` at build time, minutes later.
+  `if let`, `for … in`, tuple patterns. Each one that slips through comes back as
+  `cannot find 'x' in scope` at build time, minutes later.
 - **Do not run a lifting tool to fixpoint over the tree.** Lift one named
   member at a time, against a file you have read.
 - **`@ViewBuilder` is not free to re-add.** After a splice, check the attribute
@@ -1230,8 +1221,8 @@ Traps, each of which cost a build here:
   declaration now follows the comment block, and `[Double]` does not conform to
   `View`.
 - **Reuse of a member name across two types in one file is fine; across one type
-  it is `invalid redeclaration`.** Two `lastSyncRow`s in `SettingsPages+Data`
-  looked like different structs and were not.
+  it is `invalid redeclaration`.** Two members with the same name can look
+  like they belong to different structs when they share one.
 - **Grouping a long argument list two-per-line is a legitimate fix.** Several
   declarations sat at 21–24 lines purely because a call site put one argument on
   each line. Pairing the ones that belong together (`avgRMSSD:` with
@@ -1316,9 +1307,8 @@ lists them all as possible callers, and only certain edges trigger re-checks.
   the script gates from `make ci` that need only bash and python (no SwiftLint,
   no Xcode), including the code-map check. On a pull request it also writes the
   code-map impact report to the job summary. About a minute. `main` requires
-  this job and the `ci.yml` jobs above to pass (the ruleset names each one;
-  `release-build` has to be added to it by name), on a branch that is up to date
-  with `main`, before anything merges.
+  this job ("Script gates (no Xcode)") to pass before anything merges; the
+  `ci.yml` jobs above are advisory.
 - **`security.yml`** — `workflow_dispatch` only — CodeQL over the Swift
   (macOS) and dependency review (ubuntu).
 - **`performance.yml`** — `workflow_dispatch` only — `AnalysisPerformanceTests`.
@@ -1328,16 +1318,12 @@ lists them all as possible callers, and only certain edges trigger re-checks.
 
 ### Dependency upgrade constraints
 
-`polar-ble-sdk` is on **8.3.0**, and RxSwift is no longer in the graph.
+`polar-ble-sdk` is on **8.3.0**, and RxSwift is not in the graph.
 
-Upgraded 2026-08-31. This section previously argued for staying on 6.13.0; that
-reasoning is kept below because it is still the right way to think about the
-constraint, but the conclusion changed.
-
-**The constraint.** Polar 6.13.0 pinned `RxSwift` with `.exact("6.5.0")`, and
+**The constraint.** Polar 6.13.0 pins `RxSwift` with `.exact("6.5.0")`, and
 RxSwift 6.5.0 ships no `PrivacyInfo.xcprivacy`. RxSwift is on Apple's list of
 SDKs required to carry one, so an upload could draw **ITMS-91061**. The `.exact`
-pin meant RxSwift could not be bumped on its own.
+pin means RxSwift cannot be bumped on its own.
 
 **Why 7.x is not the answer.** Polar 7.0.0–7.1.0 move to RxSwift 6.8.0, the
 first release with the manifest — but 7.x sets `path: "Sources"` without
@@ -1347,27 +1333,25 @@ dependency: 'RxTest' / 'RxBlocking' / 'iOSCommunications'`. Verified by
 resolving and building it: every error came from inside the SDK. That is a
 packaging bug in Polar, not something callers configure around.
 
-**What 8.2.0 changed.** It narrows the target path and drops RxSwift entirely,
-which removes the manifest problem at the root rather than satisfying it. The
-cost was migrating the acquisition layer off the reactive API:
+**Why 8.x.** From 8.2.0 the SDK narrows the target path and drops RxSwift
+entirely, which removes the manifest problem at the root rather than
+satisfying it. The acquisition layer uses the async API:
 
-- `Disposable` → `Task`, `dispose()` → `cancel()`. Cancellation now propagates
-  into the `for try await` loop instead of tearing a subscription down from
-  outside, so a loop body finishes its iteration rather than being cut
-  mid-write.
-- Every `withCheckedThrowingContinuation` wrapper around an Rx `Single` is
-  gone. Those had a failure mode the new shape cannot have: a stream that
-  neither completed nor errored leaked the continuation and hung the caller.
-- `fetchStoredExerciseList` → `listExercises`; `getOfflineRecordingStatus` and
-  `requestRecordingStatus` now return values directly.
+- Subscriptions are `Task`s, stopped with `cancel()`. Cancellation propagates
+  into the `for try await` loop, so a loop body finishes its iteration rather
+  than being cut mid-write.
+- There are no `withCheckedThrowingContinuation` wrappers, so a stream that
+  neither completes nor errors cannot leak a continuation and hang the caller.
+- Stored exercises come from `listExercises`; `getOfflineRecordingStatus` and
+  `requestRecordingStatus` return values directly.
 
-**What 8.3.0 changed, and what the app does about 8.x.** 8.3.0 adds
+**8.3.0 and the 8.x readiness contract.** 8.3.0 adds
 `deviceDisconnected(_:info:)` with a disconnect reason and recovery action (the
 app stops reconnecting on a lost pairing) and retries service discovery. The
 8.x readiness contract is the one to understand: `bleSdkFeatureReady` is only
 delivered inside a ten-second window after discovery, although the
-documentation says late features are reported too. Gating on that report left
-a slow H10 connected with no heart rate. The link now treats an unreported
+documentation says late features are reported too. Gating on that report would
+leave a slow H10 connected with no heart rate, so the link treats an unreported
 feature as worth trying and lets the SDK's per-call guard refuse it locally —
 see [`ARCHITECTURE.md` → Strap Link and Reconnection](ARCHITECTURE.md#strap-link-and-reconnection).
 

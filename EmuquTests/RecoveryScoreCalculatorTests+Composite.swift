@@ -455,7 +455,8 @@ extension RecoveryScoreCalculatorTests {
     /// The score reads wrist temperature as tonight minus the user's own
     /// baseline, as the Help Center and the report say. The stored reading is
     /// offset by a population 36.5 °C, so a cool sleeper (normally −2.0 on that
-    /// scale) running a fever at −1.3 used to score the temperature part 100.
+    /// scale) running a fever at −1.3 would otherwise score the temperature
+    /// part 100.
     func testWristTemperatureIsScoredAgainstThePersonalBaseline() {
         let breakdown = temperatureOnlyBreakdown(wristTemperature: -1.3, baseline: -2.0)
         let vitals = breakdown.factors.first { $0.label == "Vitals" }

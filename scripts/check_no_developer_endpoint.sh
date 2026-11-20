@@ -13,10 +13,8 @@
 # Rule 2 is the one that matters. A first-party telemetry endpoint would not
 # announce itself as an SDK — it would be one `URL(string:)` in a service class,
 # and nothing else in CI would notice. Adding a host here is a deliberate act
-# that shows up in a diff next to the reason.
-#
-# Written 2026-08-27, after a reader assumed the app collected data and
-# nothing in the repository could prove otherwise in one command.
+# that shows up in a diff next to the reason. It lets anyone prove in one
+# command that the app sends data nowhere it should not.
 
 set -uo pipefail
 

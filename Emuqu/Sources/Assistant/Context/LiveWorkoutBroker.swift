@@ -17,9 +17,8 @@ import os
 final class LiveWorkoutBroker: Sendable {
     static let shared = LiveWorkoutBroker()
 
-    /// 12 s, not 5 s. With 5 s the AI
-    /// "sometimes reads live session data correctly, other times the
-    /// same tools return nothing." Root cause: the recorder publishes
+    /// 12 s, not 5 s. With 5 s the AI's live tools intermittently
+    /// return nothing: the recorder publishes
     /// each tick (1 Hz) but the main actor can stall briefly during
     /// AI-chat streaming bursts or on-demand work, dropping the next
     /// tick by 5+ seconds. The freshness gate then rejects the

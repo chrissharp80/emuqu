@@ -5,10 +5,9 @@ import Foundation
 ///
 /// The dashboard's `calculateTrainingMetrics` path and the AI's
 /// `training.load.*` tools both read from here so they can never disagree
-/// with each other. Before this cache existed, the AI tools read from the
-/// stale `HRVSession.trainingSnapshot` frozen at session-accept time,
-/// which returned pre-TRIMP-fix values for weeks after the Banister 0.64
-/// scaling correction landed.
+/// with each other. The AI tools do not read the
+/// `HRVSession.trainingSnapshot` frozen at session-accept time for current
+/// load, because a frozen snapshot does not pick up later scoring changes.
 ///
 /// Refresh is async + HealthKit-sourced. Sync callers (AI fact resolver)
 /// get a snapshot of the last-known value immediately and — when stale —

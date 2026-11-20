@@ -107,10 +107,10 @@ extension MorningProcessingService {
         debugLog("[MorningProcessingService] Using cached sleep data: \(cached.nightSleepMinutes) min — skipping poll loop")
         return buildSleepPollResult(from: cached, effectiveStartDate: effectiveStartDate)
     }
-    /// 15 × 2s = 30s max poll. Lowered from 60s after a Verity-Sense user
-    /// (streaming-only, no device backup) reported staring at a spinner
-    /// every morning while we waited for Apple Watch sleep data that may
-    /// never arrive (Watch not worn / sync delayed). The SleepDetail
+    /// 15 × 2s = 30s max poll. A longer poll leaves a streaming-only user
+    /// (no device backup, e.g. Verity Sense) staring at a spinner every
+    /// morning while we wait for Apple Watch sleep data that may never
+    /// arrive (Watch not worn / sync delayed). The SleepDetail
     /// "Refresh Sleep Data" button + the vitals/sleep observers handle
     /// late arrivals without forcing the user to wait synchronously.
     func pollHealthKitSleep(

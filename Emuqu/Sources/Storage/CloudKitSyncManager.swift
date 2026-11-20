@@ -633,14 +633,12 @@ final class CloudKitSyncManager {
     /// Called on app launch and when returning to foreground.
     ///
     /// Runs inside a `LogCorrelation` scope so the push/pull/conflict lines it
-    /// emits stay distinguishable from a recording's, which is the overlap that
-    /// made the "21 days since I had a cloud sync" report so slow to diagnose —
-    /// both flows were logging into one undifferentiated stream.
+    /// emits stay distinguishable from a recording's rather than mixed into
+    /// one undifferentiated stream.
     ///
-    /// Diagnostic logging on every entry. A user reported
-    /// "21 days since I had a cloud sync" but no error showed in the debug
-    /// log, which meant we couldn't tell which of the early-bail conditions
-    /// was firing. Every call logs whether it proceeded or why it didn't.
+    /// Diagnostic logging on every entry, so a sync that silently stops
+    /// shows which of the early-bail conditions is firing. Every call logs
+    /// whether it proceeded or why it didn't.
     func performFullSync() async {
         let correlation = LogCorrelation.begin("sync")
         defer { LogCorrelation.end(correlation) }
@@ -678,8 +676,7 @@ final class CloudKitSyncManager {
     /// remote record (`lastSyncProgressAt`) — for `syncStuckThresholdSec`, it
     /// is hung (network wedge, CloudKit wedge, record save with no timeout).
     /// Force-reset and let the caller proceed. Without this, ONE hung sync
-    /// froze sync forever — the user saw "Syncing…" with no progress and 28
-    /// days since the last successful sync. A slow sync that keeps
+    /// would freeze sync forever, showing "Syncing…" with no progress. A slow sync that keeps
     /// progressing is not stuck, the rule the body's watchdog follows.
     /// Returns false when the in-flight sync is still to be believed (or none
     /// has started its body).
@@ -747,10 +744,10 @@ final class CloudKitSyncManager {
     ///
     /// Only stamp `lastSyncDate` when records could actually
     /// move. Stamping it while `schemaUnavailable` (or after a swallowed pull
-    /// failure) made Settings show "Last Sync: just now" / "Up to date" on a
-    /// device where zero records had synced — the beta user had no way to see
-    /// sync was broken, and the `performFullSyncIfNeeded` interval gate then
-    /// suppressed retries as if the sync had worked. A push that could not
+    /// failure) would make Settings show "Last Sync: just now" / "Up to date"
+    /// on a device where zero records had synced, hiding that sync is broken,
+    /// and the `performFullSyncIfNeeded` interval gate would then suppress
+    /// retries as if the sync had worked. A push that could not
     /// prepare sessions for a reason the user can act on
     /// (`lastPushErrorMessage`) ends the same way.
     private func finishSuccessfulSync(pushed: Int, startedAt: Date) {

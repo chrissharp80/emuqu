@@ -649,7 +649,7 @@ final class SleepDataPlausibilityTests: XCTestCase {
         )
     }
 
-    /// The exact regression: a 12.8-min clip (21:45–21:58) with the following
+    /// A 12.8-min clip (21:45–21:58) with the following
     /// night's 7-hour block (21:58 → 04:58) attached. Overlap ≈ 0 → reject.
     func testRejectsFullNightOnShortClip() {
         let recStart = Date(timeIntervalSince1970: 1_785_600_000)
@@ -678,7 +678,7 @@ final class SleepDataPlausibilityTests: XCTestCase {
     /// Strap LEFT RUNNING for hours past wake (recording ≫ sleep) — the app
     /// explicitly supports this (History slots by sleepEnd for exactly this
     /// case), so the real sleep block must be accepted even though it's a small
-    /// fraction of the very long recording. Regression guard: a denominator of
+    /// fraction of the very long recording. A denominator of
     /// the recording duration (rather than the shorter span) would reject this.
     func testAcceptsStrapLeftRunningLongPastWake() {
         let recStart = Date(timeIntervalSince1970: 1_785_600_000)

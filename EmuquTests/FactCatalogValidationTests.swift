@@ -193,14 +193,13 @@ final class FactCatalogValidationTests: XCTestCase {
 
     // MARK: 9. Every catalog key round-trips through registry dispatch
 
-    /// Regression guard for the first-namespace dispatch bug.
     /// Several namespaces legally share a head token (six register as
     /// "app"; "workout" hosts both the historical and the live-coaching
     /// resolvers). The registry must reach entries in EVERY namespace
-    /// under a shared head, not just the first registered one — the old
-    /// dispatch tried only the first head match and then excluded the
-    /// whole head-group from the fallback scan, stranding every entry in
-    /// 2nd+ same-head namespaces behind "no such key".
+    /// under a shared head, not just the first registered one. A dispatch
+    /// that tried only the first head match and then excluded the whole
+    /// head-group from the fallback scan would strand every entry in 2nd+
+    /// same-head namespaces behind "no such key".
     ///
     /// Catalog-driven: derive a concrete key for each read entry and
     /// assert `resolve()` lands on the entry. Any result OTHER than the

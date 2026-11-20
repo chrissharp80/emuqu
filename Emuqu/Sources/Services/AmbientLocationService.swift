@@ -70,11 +70,10 @@ final class AmbientLocationService: NSObject, @unchecked Sendable {
     /// Whether some caller has asked for updates since the last `stop()`.
     ///
     /// iOS calls `locationManagerDidChangeAuthorization` when the manager is
-    /// created and on every authorization change, and that callback used to
-    /// start updates unconditionally — so merely touching this singleton (the
-    /// background `stop()` does) began streaming location for a user who had
-    /// granted permission somewhere else, with no feature asking for it. The
-    /// callback now resumes only a start someone actually requested.
+    /// created and on every authorization change. The callback resumes only
+    /// a start someone actually requested, so merely touching this singleton
+    /// (the background `stop()` does) does not stream location for a user
+    /// who granted permission somewhere else, with no feature asking for it.
     private var _startRequested = false
     /// Latest fix observed from any source — this manager's own
     /// foreground stream OR a forwarded fix from

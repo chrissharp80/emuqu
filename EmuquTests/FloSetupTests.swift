@@ -1,9 +1,9 @@
 @testable import Emuqu
 import XCTest
 
-/// With no Apple Intelligence and no API key the Flo tab used to show disabled
-/// suggestion chips under "Tap a suggestion above": a dead end. It now shows
-/// the setup screen, which says what Flo needs and opens Settings → Flo.
+/// With no Apple Intelligence and no API key the Flo tab shows the setup
+/// screen, which says what Flo needs and opens Settings → Flo, rather than
+/// disabled suggestion chips that lead nowhere.
 @MainActor
 final class FloSetupTests: XCTestCase {
     func testNoUsableModelShowsSetupWhicheverProviderIsSelected() {

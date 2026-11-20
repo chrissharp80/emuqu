@@ -33,11 +33,10 @@ extension MainTabView {
     /// the current load finishes. Requests while another tab is showing are
     /// deferred until the Dashboard is shown.
     ///
-    /// A user log showed
-    /// `[MainTabView] scenePhase → active — refreshing dashboard` firing
-    /// THREE TIMES in a row after a single audio interruption (system
-    /// quirk: backgrounded → inactive → active toggles trigger N
-    /// `.onChange` callbacks within a few hundred ms). Requests that land
+    /// A single audio interruption can fire
+    /// `[MainTabView] scenePhase → active — refreshing dashboard` several
+    /// times in a row (system quirk: backgrounded → inactive → active
+    /// toggles trigger N `.onChange` callbacks within a few hundred ms). Requests that land
     /// while a load runs collapse into one trailing reload; a request within
     /// 50 ms of the last load start is deferred to the end of that window
     /// rather than dropped, so a change that lands just after a very fast load

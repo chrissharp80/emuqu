@@ -16,8 +16,8 @@ name: CI
 # "Script gates (no Xcode)" job in gates.yml. A red run here shows on the
 # pull request or commit but does not block a merge by itself.
 on:
-  # 2026-08-28 — scope added because a full run is expensive and most of the
-  # cost buys very little most of the time. Measured on run 33202282889:
+  # The `scope` input exists because a full run is expensive and most of the
+  # cost buys very little most of the time. Typical cost of a full run:
   #
   #     Lint + tech-debt budgets      1.4 min real       14 billable
   #     Strict concurrency (ubuntu)   0.1 min real        0 billable
@@ -27,8 +27,7 @@ on:
   #                                                    1083 billable
   #
   # macOS bills at 10x, and 66 of the tests job's 88 minutes are the UI target
-  # alone — 61% of a whole run. Six full runs in one day exhausted a month's
-  # included minutes and most of the spending cap, which is what prompted this.
+  # alone, 61% of a whole run.
   #
   # Pull requests and pushes to main carry no inputs, so `inputs.scope` is
   # empty there: the jobs gated on `scope != 'gates'` run, and the tests job
@@ -130,10 +129,8 @@ jobs:
       - name: Resolve the budget baseline
         id: baseline
         # `github.event.before` is a PUSH-event field and is empty on pull
-        # requests, dispatches and calls; reading it, the script always printed
-        # "no PR baseline … Skipping", and exited 0. The ratchet reported
-        # success while comparing nothing, for every run that mattered,
-        # confirmed in run 33313057950's own log.
+        # requests, dispatches and calls, so it cannot serve as the baseline:
+        # the ratchet would compare nothing and report success.
         #
         # The parent commit is the right default for a repo that commits
         # straight to main: it answers "did this change raise a budget?".
@@ -297,8 +294,7 @@ jobs:
         run: ./scripts/check_no_shared_outside_root.sh
 
       # `1 ..< xs.count` traps when xs is empty — `1 ..< 0` is an invalid
-      # range, not an empty one. Six instances were found on 2026-09-01, three
-      # of them latent crashes in shipped code.
+      # range, not an empty one.
       - name: Empty-range loop guard
         run: ./scripts/check_empty_range_loops.sh
 
@@ -319,7 +315,7 @@ jobs:
       # `verify_tests_fail.sh` mutates production source and restores it in an
       # EXIT trap. A killed run skips the trap, and one such mutation — the
       # pNN50 threshold, 50 ms silently shipped as 75 — was committed. This is
-      # the backstop, and until 2026-09-01 it ran in neither CI nor `make ci`.
+      # the backstop.
       - name: No leaked test mutations
         run: ./scripts/check_no_leaked_mutations.sh
 
@@ -339,8 +335,8 @@ jobs:
       - name: Date-to-millisecond conversions are guarded
         run: ./scripts/check_date_ms_conversion.sh
 
-      # Every file count in MAINTAINERS.md had drifted, most by 50% or more.
-      # An orientation document whose numbers are wrong misdirects the reader.
+      # An orientation document whose numbers are wrong misdirects the reader,
+      # so the file counts in MAINTAINERS.md must match the tree.
       - name: Documented file counts match the tree
         run: ./scripts/check_doc_file_counts.sh
 
@@ -350,8 +346,8 @@ jobs:
         run: ./scripts/check_snapshot_references.sh
 
       # AcknowledgementsView is a hand-maintained mirror of
-      # Package.resolved and had already drifted once (2026-07-07 restored 8
-      # missing transitive pins). Same drift-guard shape as the Info.plist one.
+      # Package.resolved, so it can drift. Same drift-guard shape as the
+      # Info.plist one.
       - name: SBOM drift (Package.resolved vs in-app acknowledgements)
         run: ./scripts/check_sbom_drift.sh
 
@@ -424,15 +420,12 @@ jobs:
   # The project builds in Swift 6 language mode with
   # `SWIFT_STRICT_CONCURRENCY = complete` in all eight target-level build
   # configurations, so
-  # the compiler fails the ordinary build on a new isolation hazard: the
-  # `tests` job below already enforces what a counting build used to measure.
+  # the compiler fails the ordinary build on a new isolation hazard, and the
+  # `tests` job below enforces it.
   #
-  # Keeping both meant paying for a clean macOS build — ~8 wall-clock minutes,
-  # and macOS Actions minutes bill at 10x — to re-derive an answer another job
-  # had already produced. What the counting build caught that a normal build
-  # cannot is someone REMOVING the setting, which would turn everything green
-  # while nothing was checked. That needs no build, so it runs on Ubuntu in
-  # seconds.
+  # What a normal build cannot catch is someone REMOVING the setting, which
+  # would turn everything green while nothing was checked. That needs no
+  # build, so it runs on Ubuntu in seconds.
   strict-concurrency:
     name: Strict concurrency enabled
     runs-on: ubuntu-latest
@@ -454,10 +447,9 @@ jobs:
     if: inputs.scope != 'gates'
     runs-on: macos-26
     # A hung macOS job bills at 10x, so this is a cost ceiling as much as a liveness one.
-    # 2026-11-19 — was 45. The sanitized step took 20 to 40 min across the
-    # October and November runs (40 on 2026-10-26), so 45 left almost no
-    # headroom. 60 is 1.5x the slowest run seen. The step prints its progress
-    # every minute, so a slow run can be told apart from a hung one.
+    # The sanitized step takes 20 to 40 min; 60 is 1.5x the slowest run seen.
+    # The step prints its progress every minute, so a slow run can be told
+    # apart from a hung one.
     timeout-minutes: 60
     steps:
       - name: Checkout
@@ -475,19 +467,17 @@ jobs:
           echo "- Thread Sanitizer (unit suite): ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
 
   # Release compiles with the optimizer, and some diagnostics exist only
-  # there. An optimizer-only "weak reference will always be nil" warning,
-  # made an error by warnings-as-errors, once failed every Release build
-  # while every Debug build and test run here passed. The first place it
-  # would have shown was the TestFlight archive.
+  # there: an optimizer-only warning, made an error by warnings-as-errors,
+  # passes every Debug build and test run. Without this job the first place
+  # it would show is the TestFlight archive.
   #
-  # Its own job, in parallel with `tests`: inside that job it cost ~21 of the
-  # 110 minutes on a slow runner, and a full-scope run (UI target included)
-  # was cut off at the limit with every test so far passing (run 44714304108).
+  # It runs as its own job, in parallel with `tests`, so a full-scope run
+  # fits the time limit.
   release-build:
     name: Release build
     if: inputs.scope != 'gates'
     runs-on: macos-26
-    # A from-scratch Release build; measured ~21 min on a slow runner.
+    # A from-scratch Release build takes about 21 minutes on a slow runner.
     timeout-minutes: 45
     steps:
       - name: Checkout
@@ -515,21 +505,15 @@ jobs:
     if: inputs.scope != 'gates'
     runs-on: macos-26
     # measured ~88 min incl. the UI target; a hung macOS job bills at 10x, so this is a cost ceiling as much as a liveness one.
-    # 2026-08-28 — was 75. Run 33191820285 was cancelled at 76.8 min with one
-    # test left: build 7.5 min, unit suite 2.1 min, UI suite 66 min for 67
-    # tests. The suite is genuinely this long on a runner, so 75 could never
-    # have gone green. 110 leaves room for the retry the script allows itself.
+    # A full run is roughly build 7.5 min, unit suite 2.1 min, UI suite 66 min.
+    # 110 leaves room for the retry the script allows itself.
     timeout-minutes: 110
     env:
       TEST_SCOPE: ${{ inputs.scope == 'full' && 'full' || 'unit' }}
-      # Was a hardcoded `MIN_COVERAGE: "90"`, which could
-      # never pass: half the app target is SwiftUI view bodies that unit tests
-      # cannot execute, and the suite deadlocked before the gate ever ran. The
-      # floors now live in `.ci/min_coverage.txt` (overall) and
-      # `.ci/min_coverage_logic.txt` (logic layers, ex-Views) and are derived
-      # from measurement, then ratcheted — same pattern as the other budgets.
-      # Deliberately NOT set here so the committed floors are the single source
-      # of truth; an env value would silently override them.
+      # MIN_COVERAGE is deliberately NOT set here. The floors live in
+      # `.ci/min_coverage.txt` (overall) and `.ci/min_coverage_logic.txt`
+      # (logic layers, ex-Views), derived from measurement, then ratcheted, and
+      # an env value would silently override them.
       SCHEME: Emuqu
       PROJECT: Emuqu.xcodeproj
       RESULT_BUNDLE: build/TestResults.xcresult
@@ -547,16 +531,8 @@ jobs:
         run: echo "value=$(./scripts/select_simulator_destination.sh $SCHEME $PROJECT)" >> "$GITHUB_OUTPUT"
 
       # Scope comes from the job `env:` above, which reads the dispatch input.
-      #
-      # 2026-08-29 — this step used to hardcode `TEST_SCOPE: full`, and a step
-      # `env:` beats a job `env:`. So the `scope` input added the day before
-      # looked like it worked — the `gates` run did skip this job entirely —
-      # while a `unit` run silently executed the full suite anyway. Run
-      # 33230172290 was dispatched as `unit`, ran the UI target for 65 minutes,
-      # and failed on three UI tests it was never meant to touch.
-      #
-      # Verifying that the expensive jobs were skipped is not the same as
-      # verifying that the cheap scope is cheap, and only the first was checked.
+      # Do not set `TEST_SCOPE` in a step `env:`: a step `env:` beats a job
+      # `env:`, and a `unit` run would then execute the full suite.
       - name: Run tests with coverage
         env:
           DESTINATION: ${{ steps.destination.outputs.value }}

@@ -64,9 +64,8 @@ final class WorkoutLocationManager: NSObject {
     /// Individual bad fixes still get filtered; the track just isn't purist.
     private let accuracyThresholdMeters: Double = 65
     /// Movement below this threshold between consecutive fixes is ignored to
-    /// prevent jitter-inflated distance while stationary. Raised from 1.5m
-    /// to 3.5m after field reports of "distance grew while I sat in my
-    /// chair" — stationary GPS easily produces 2–3 m of apparent movement
+    /// prevent jitter-inflated distance while stationary. Stationary GPS
+    /// easily produces 2–3 m of apparent movement
     /// per fix. 3.5 m (~2 casual steps) is the floor where "you're actually
     /// walking" becomes statistically distinguishable from "you're still".
     /// True slow walks (0.5 m/s) register once every ~7 s at this threshold —
@@ -113,9 +112,9 @@ final class WorkoutLocationManager: NSObject {
     /// this buffer on finalize via `BarometricAltitudeProcessor`, which
     /// applies a symmetric 15-sample moving average, then 2 m hysteresis on
     /// the smoothed signal (a climb or descent is committed once the altitude
-    /// turns back 2 m from its extreme). This replaces the old
-    /// threshold-at-collect-time approach that was sensitive to noise
-    /// spikes and couldn't be re-processed later.
+    /// turns back 2 m from its extreme). Smoothing at finalize rather than
+    /// thresholding at collect time resists noise spikes and can be
+    /// re-processed later.
     private(set) var barometricSamples: [(timestamp: Date, altitudeMeters: Double)] = []
     /// The altimeter's previous raw reading, and the climb made while paused.
     /// Samples are stored with that climb taken out, so walking uphill back

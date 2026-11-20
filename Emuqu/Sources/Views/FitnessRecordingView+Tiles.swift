@@ -459,8 +459,7 @@ extension FitnessRecordingView {
     ///
     /// When phase is .finalizing the gesture no-ops (the
     /// recorder's `case .recording = phase else { return }` guard eats the
-    /// second tap silently, which made users think the button was broken and
-    /// force-quit). The button morphs to a "Saving…" affordance so the held
+    /// second tap silently, which reads as a broken button). The button morphs to a "Saving…" affordance so the held
     /// tap is visibly acknowledged and held gestures are ignored.
     var stopButton: some View {
         withHoldGesture(stopButtonSurface)

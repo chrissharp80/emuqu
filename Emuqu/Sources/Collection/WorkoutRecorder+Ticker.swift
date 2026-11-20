@@ -28,8 +28,7 @@ extension WorkoutTicker {
     /// not worth it without a measurable regression to fix.
     ///
     /// Without the explicit run-loop mode the elapsed clock can freeze
-    /// (a user log showed `0:05` for ~22 wall-clock seconds while the user
-    /// watched). Root cause: `Timer.scheduledTimer(withTimeInterval:repeats:)`
+    /// for tens of seconds, because `Timer.scheduledTimer(withTimeInterval:repeats:)`
     /// adds the timer to the current run loop in `.default` mode, and
     /// `.default` is PAUSED while the user is interacting with the UI
     /// (scrolling, holding the Hold-to-end button, etc.). Use

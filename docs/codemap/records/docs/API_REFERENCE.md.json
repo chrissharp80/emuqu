@@ -8,8 +8,8 @@
  "units": [
   {
    "key": "§ Emuqu — API Reference",
-   "hash": "bb67f6fd5b50034a",
-   "does": "Title plus two dated notes: sleep domain types (SleepData, SleepStage, SleepStageInterval, SleepStageProvenance, SleepSegment, HRSleepQuality, SleepBoundarySource, SleepBoundaryValidation) are top-level in Models/SleepDomain.swift with HealthKitManager typealiases; every observable type is @Observable, none ObservableObject, nothing @Published; RRCollector forwards to five sub-objects; async does not imply background; errors typed from Errors.swift. Typealiases confirmed at Emuqu/Sources/Collection/HealthKitManager.swift:98-105; Errors.swift exists at Emuqu/Sources/Utilities/Errors.swift.",
+   "hash": "ed69bae8d2c268f6",
+   "does": "Title plus two notes: sleep domain types (SleepData, SleepStage, SleepStageInterval, SleepStageProvenance, SleepSegment, HRSleepQuality, SleepBoundarySource, SleepBoundaryValidation) are top-level in Models/SleepDomain.swift so Analysis/ signatures do not name the HealthKit I/O class, with HealthKitManager typealiases and the bare name preferred in new code; every observable type is @Observable, none ObservableObject, nothing @Published; RRCollector forwards to five sub-objects; async means the call can suspend, not that it runs in the background: an async method on a @MainActor type runs its synchronous body on the main actor, and work moved off is done explicitly with Task.detached or a nonisolated function; errors typed from Errors.swift. Typealiases at Emuqu/Sources/Collection/HealthKitManager.swift; Errors.swift at Emuqu/Sources/Utilities/Errors.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)",
@@ -23,12 +23,12 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(from:)": "234cde2b3e88a71c",
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(from:)": "8c90b8bb3a7e0374",
     "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "f6e5f489bd3b0b44",
     "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "46cf8d8d2290f40e",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4",
-    "Emuqu/Sources/Utilities/Errors.swift::var PipelineError.errorDescription": "8705d307c25baebe"
+    "Emuqu/Sources/Utilities/Errors.swift::var PipelineError.errorDescription": "e264dfc56dfef25a"
    }
   },
   {
@@ -669,8 +669,8 @@
   },
   {
    "key": "§ Emuqu — API Reference > Analysis Pipeline > RecoveryScoreCalculator",
-   "hash": "c6d8dd0552e0abaa",
-   "does": "RecoveryScoreCalculator: composite is HRV+Sleep+Vitals 60/25/15 (training removed; trainingMetrics/trainingContext accepted but unused); Comeback mode 80/20/0; ScoringConfiguration with init(from:) and memberwise init; ScoreBreakdown (0-100 composite, tier 1/2/3, factors HRV/Sleep/Vitals, penalties 'currently only SpO2 -10 if <95%', scoringVersion v3.2.oct2026 or 'unversioned' when decoded); ScoreFactor; ScoringParameters V1/V2, default V2; ScoreInputs; two calculateWithBreakdown overloads (TrainingContext overload: useBaselineHRV substitutes baseline, perceivedReadiness 0-1 clamped blended 30% with 70% baseline HRV factor); calculateVitalsScore; zToRecoveryScore; calculateTier1; calculateSleepScore; fosterMonotonyStrain; zToPercentileScore. Weights confirmed Constants.swift:399-445; version ScoringVersion.swift:37; unused params RecoveryScoreCalculator.swift:453-501; perceived blend :566-618.",
+   "hash": "bf87292f80839fdd",
+   "does": "RecoveryScoreCalculator: composite is HRV+Sleep+Vitals 60/25/15 (training load not in the composite; trainingMetrics/trainingContext stay on the API for caller stability but are not consumed by the score); Comeback mode 80/20/0; ScoringConfiguration with init(from:) and memberwise init; ScoreBreakdown (0-100 composite, tier 1/2/3, factors HRV/Sleep/Vitals, penalties only SpO2 -10 if <95% with RR and temperature feeding the Vitals sub-score, scoringVersion v3.2.oct2026 or 'unversioned' when decoded); ScoreFactor; ScoringParameters V1/V2, default V2; ScoreInputs; two calculateWithBreakdown overloads (TrainingContext overload: useBaselineHRV substitutes baseline, perceivedReadiness 0-1 clamped blended 30% with 70% baseline HRV factor); calculateVitalsScore (0-100 Vitals sub-score at 15% weight, nil without vitals so the caller falls back to Tier 2); zToRecoveryScore; calculateTier1; calculateSleepScore; fosterMonotonyStrain; zToPercentileScore. Weights in Constants.swift ScoringWeights; version in ScoringVersion.swift; unused params and perceived blend in RecoveryScoreCalculator.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)",
@@ -739,7 +739,7 @@
   },
   {
    "key": "§ Emuqu — API Reference > Analysis Pipeline > VitalsScoring",
-   "hash": "6e8a2a1ef103bd50",
+   "hash": "bf73ec4000594613",
    "does": "VitalsScoring: applyVitalsOverrides applies only the SpO2 -10 (<95%) penalty, min 0; vitalsPenaltyDescriptions; claims the file also contains calculate() overloads, label(for:), message(for:), toTenScale. applyVitalsOverrides/vitalsPenaltyDescriptions confirmed VitalsScoring.swift:335-352 (enum VitalsScoring, forwarded from RecoveryScoreCalculator+VitalsForwarding.swift).",
    "entry": null,
    "calls": [
@@ -756,7 +756,7 @@
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.applyVitalsOverrides(score:vitals:)": "f0397d7baeeb3345",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.vitalsPenaltyDescriptions(_:)": "0ea700efdb37767c",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.applyVitalsOverrides(score:vitals:)": "bee8a87cab5f89b4",
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "0d8a08e676f447a9",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "34df3121aac914dd",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsPenaltyDescriptions(_:)": "d83cbf4456fd2b51"
    }
   },
@@ -1063,8 +1063,8 @@
    }
   },
   {
-   "key": "§ Emuqu — API Reference > Services > BreadcrumbStore (2026-04-29)",
-   "hash": "8d8ead2774f81902",
+   "key": "§ Emuqu — API Reference > Services > BreadcrumbStore",
+   "hash": "d63859463d78de03",
    "does": "BreadcrumbFix (from CLLocation), BreadcrumbTrail (crow-fly and walked distance), BreadcrumbStore singleton with archiveRetentionLimit 50, active-trail load/save/archiveActive/clear/hasActiveTrail/hasArchiveFile and archive loadArchive/archive/eraseArchive; archiveActive removes active.json only after appendToArchive succeeded and otherwise logs an error and keeps the trail active (BreadcrumbStore.swift:263-273); files Breadcrumbs/active.json and Breadcrumbs/archive.json in the App Group container with completeUntilFirstUserAuthentication and atomic writes; falls back to Documents then tmp when the App Group is unavailable.",
    "entry": null,
    "calls": [
@@ -1104,8 +1104,8 @@
    }
   },
   {
-   "key": "§ Emuqu — API Reference > Services > BreadcrumbRecorder (2026-04-29)",
-   "hash": "10e227729f526dee",
+   "key": "§ Emuqu — API Reference > Services > BreadcrumbRecorder",
+   "hash": "9fe08e6034564cc6",
    "does": "BreadcrumbRecorder @MainActor @Observable CLLocationManager wrapper for Get Me Back: kCLLocationAccuracyNearestTenMeters, 10 m distance filter, commit when 25 m moved or 30 s elapsed, drops fixes with horizontalAccuracy > 100, heading via startUpdatingHeading, forwards every fix to AmbientLocationService.record. Confirmed BreadcrumbRecorder.swift:69-96, :218-226, :141, :275-285 (forwards via AppDependencies.current.location.ambientLocationService).",
    "entry": null,
    "calls": [
@@ -1129,14 +1129,12 @@
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()": "e1cb44bb7ee7483c",
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.engage(label:)": "126f1d33f58e0219",
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.locationManager(_:didUpdateLocations:)": "c32601556600dbdb",
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.shouldCommit(_:)": "5d2ea44eabbaeb7b",
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.updateLabel(_:)": "afe08ca58c10c437",
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.updateResolvedOriginLabel(_:)": "d7fac78371d6cee5"
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.shouldCommit(_:)": "5d2ea44eabbaeb7b"
    }
   },
   {
-   "key": "§ Emuqu — API Reference > Services > AmbientLocationService (2026-04-29)",
-   "hash": "321fcd5adb252838",
+   "key": "§ Emuqu — API Reference > Services > AmbientLocationService",
+   "hash": "cb307e9e149cfdb7",
    "does": "AmbientLocationService singleton cache for AI location tools: start (foreground gate)/stop/record/cachedResolvedAddress(maxAgeSec 30)/cachedLocation(maxAgeSec 60); own CLLocationManager at kCLLocationAccuracyHundredMeters with 50 m filter, fed by WorkoutLocationManager and BreadcrumbRecorder; NSLock-guarded. Confirmed AmbientLocationService.swift:64-289 (accuracy/filter :101-102, NSLock :68); feeders WorkoutLocationManager.swift:456 and BreadcrumbRecorder.swift:284.",
    "entry": null,
    "calls": [
@@ -1158,8 +1156,8 @@
    }
   },
   {
-   "key": "§ Emuqu — API Reference > Services > DirectionsService (2026-04-29)",
-   "hash": "22e5f0532b6c6442",
+   "key": "§ Emuqu — API Reference > Services > DirectionsService",
+   "hash": "ef8b879a108086ab",
    "does": "DirectionsService.resolveRoute(from:to:mode:) for the AI directions.routeTo tool: destination via MKLocalSearch POI, RoadGeocodingService.geocodeAddress, or the breadcrumb origin; route via MKDirections; returns first 3 step instructions and engages ActiveRouteSession. Confirmed DirectionsService.swift:67-168 (prefix(3) at :80, engage at :76); POI picks the nearest result within a 25 km box (:136-150) and the breadcrumb origin is read through AppDependencies.current.location.breadcrumbStore (:126).",
    "entry": null,
    "calls": [
@@ -1177,18 +1175,18 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engage(route:destinationLabel:destinationCoord:)": "0e28ca3dd0310c0e",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "b54fe126660d8722",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "f80525a8222cb7ff",
     "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.breadcrumbOrigin()": "21e2195020282e99",
     "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.geocodedAddress(_:)": "382c877943384f74",
     "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.mapKitRoute(from:to:mode:)": "c1cd0724be9c5f67",
-    "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.nearestPOI(matching:near:)": "11adf08d3e8cad29",
+    "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.nearestPOI(matching:near:)": "ccbac92f25363f96",
     "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.resolveDestination(_:near:)": "2803243a45ea88a3",
-    "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.resolveRoute(from:to:mode:)": "8527dec920d8b4c3"
+    "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.resolveRoute(from:to:mode:)": "d087ceda36c15908"
    }
   },
   {
-   "key": "§ Emuqu — API Reference > Services > ActiveRouteSession (2026-04-29)",
-   "hash": "d96e8ff46fdc5fa0",
+   "key": "§ Emuqu — API Reference > Services > ActiveRouteSession",
+   "hash": "2afe0c4047156e17",
    "does": "ActiveRouteSession singleton holding an MKRoute and sticky step index: engage/disengage/snapshot/currentStep(for:), Snapshot and StepResult structs; currentStep walks forward only, returns upcoming instruction, distances and arrival. Confirmed ActiveRouteSession.swift:31-260 (advanceStepIndex only increases index, lookahead 5 steps at :221-236).",
    "entry": null,
    "calls": [
@@ -1204,17 +1202,17 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.advanceStepIndex(for:)": "b380341ce3776347",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)": "074edeb377d65cad",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.disengage()": "cc31108ef4706d1c",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)": "2681f2bbcbb3c4af",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.disengage()": "4dcb1fe75435621b",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engage(route:destinationLabel:destinationCoord:)": "0e28ca3dd0310c0e",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.hasArrived(at:lastStep:)": "0d408a76713550e0",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.snapshot()": "236e3a0832306138"
    }
   },
   {
-   "key": "§ Emuqu — API Reference > Services > AudioSessionCoordinator (2026-04-29)",
-   "hash": "52efa15c2d566e6c",
-   "does": "AudioSessionCoordinator singleton is the single owner of AVAudioSession.setCategory; Claimant {voice, workoutCue, dictation, workoutCoach, breathingGuide}; Mode {voiceRecord, playback}; claim/release/hasActiveClaims; only breathingGuide ducks; .playAndRecord wins when voice is claimed; skips redundant setCategory. Code has no workoutCoach case (see flag).",
+   "key": "§ Emuqu — API Reference > Services > AudioSessionCoordinator",
+   "hash": "0f94562f34e9b549",
+   "does": "AudioSessionCoordinator singleton is the single owner of AVAudioSession.setCategory; Claimant {voice, workoutCue, dictation, workoutCoach, breathingGuide}; Mode {voiceRecord, playback}; claim/release/hasActiveClaims; only breathingGuide ducks; .playAndRecord wins when voice is claimed; skips redundant setCategory.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)",

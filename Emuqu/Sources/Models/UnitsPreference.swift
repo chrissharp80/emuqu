@@ -118,9 +118,8 @@ enum UnitsPreference: String, Codable, CaseIterable, Identifiable {
 // the App Group UserDefaults suite (not `UserDefaults.standard`), with the
 // app's other preference keys.
 //
-// On first read after this change, we migrate any prior `.standard`
-// value into the suite so users who had set a preference under the old
-// scheme don't lose it.
+// On first read, a value stored in `.standard` is migrated into the
+// suite so a preference saved there is not lost.
 enum UnitsPreferenceStore {
     private static let key = "fitness.unitsPreference"
     private static var suite: UserDefaults { SharedUserDefaults.appGroup }

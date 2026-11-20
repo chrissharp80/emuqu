@@ -3,12 +3,9 @@ set -euo pipefail
 
 # Every Swift file on disk must be a member of a build target.
 #
-# 2026-08-20 — a file-split wrote a new extension to a path that ALREADY
-# existed (`HelpContent+Articles.swift`), silently destroying the five help
-# categories it defined. The build caught it, but only because those symbols
-# were referenced; a file of purely additive code would have vanished with no
-# error at all. This is the cheap check that would have caught it directly:
-# every `.swift` under the app target is referenced by project.pbxproj.
+# A file of purely additive code that is in no target vanishes from the build
+# with no error at all. This checks that every `.swift` under the source roots
+# is referenced by project.pbxproj.
 
 # The project file and the roots are relative: from any other directory the
 # roots would hold no files and the gate would report clean.
@@ -16,14 +13,8 @@ cd "$(dirname "$0")/.."
 
 PROJECT="${1:-Emuqu.xcodeproj/project.pbxproj}"
 
-# This scanned `Emuqu` only, so nothing under `EmuquTests`,
-# `EmuquUITests` or the watch app was ever checked for target membership. That
-# mattered because `scripts/add_swift_file.py` advertised `EmuquTests` support
-# while hardcoding the APP target's Sources phase: a test file added with the
-# mandated tool joined the wrong target, and the guard whose entire job is
-# "every Swift file is in a build target" was pointed away from the one
-# directory where the tool was broken. Both are fixed; the roots are now every
-# directory that carries first-party Swift.
+# The roots are every directory that carries first-party Swift, test targets
+# and the watch app included.
 SOURCE_ROOTS=("${@:2}")
 if (( ${#SOURCE_ROOTS[@]} == 0 )); then
     SOURCE_ROOTS=("Emuqu" "EmuquTests" "EmuquUITests" "EmuquWatch Watch App")
@@ -52,16 +43,11 @@ done
 # to remove one. Those files are counted as covered, and the count is printed
 # so the exemption is visible rather than silent.
 #
-# 2026-08-25 — and no file may be in the SAME Sources phase twice. A duplicate
-# row does not fail loudly — it fails as "Multiple commands produce
-# .../Foo.stringsdata", which reads like a build-system problem rather than a
-# project-file problem. It happened while splitting `RecordView.swift`: the new
-# extension was written to a path that already existed AND was already
-# registered, so registering it again produced exactly that error. The same
-# sitting also proved the destructive half of the original bug is still live —
-# writing to an existing path silently replaced 201 lines of working view code.
-# Check the path before you write it. A file compiled into two different
-# targets is listed once in each phase and is not a duplicate.
+# No file may be in the SAME Sources phase twice. A duplicate row does not
+# fail loudly: it fails as "Multiple commands produce .../Foo.stringsdata",
+# which reads like a build-system problem rather than a project-file problem.
+# A file compiled into two different targets is listed once in each phase and
+# is not a duplicate.
 python3 - "$PROJECT" "${SOURCE_ROOTS[@]}" <<'PY'
 import pathlib
 import re

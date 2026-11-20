@@ -16,9 +16,7 @@ import Foundation
 /// remains buffered for the next delta. On turn end, `finalize()` flushes
 /// the remainder.
 ///
-/// It began as a straight extraction of the controller's in-class
-/// chunking; the decimal-point and link/URL rules came later and move some
-/// cuts (a "." in "42.3" or in a link's address no longer ends a chunk).
+/// A "." in "42.3" or in a link's address does not end a chunk.
 final class SpokenTextChunker {
     /// Set of characters that mark sentence boundaries for chunking.
     private static let sentenceEnders: Set<Character> = [".", "!", "?", "\n"]
@@ -84,8 +82,8 @@ final class SpokenTextChunker {
     /// Cutting there would speak "42." and "3" as two utterances. A "."
     /// followed by a letter ("polar.com", "e.g") is not an ender either, and
     /// no ".", "!" or "?" inside a link or URL is (the "?" of "/a?b=1",
-    /// "[Why?](…)"): cutting a markdown link inside it left a half link the
-    /// markdown stripping no longer recognised, and the voice read the
+    /// "[Why?](…)"): cutting a markdown link inside it leaves a half link the
+    /// markdown stripping does not recognise, and the voice reads the
     /// brackets and the address aloud. A newline always ends a chunk.
     private func isSentenceBoundary(at index: String.Index) -> Bool {
         let character = pendingBuffer[index]

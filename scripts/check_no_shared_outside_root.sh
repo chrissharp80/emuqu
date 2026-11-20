@@ -2,11 +2,10 @@
 #
 # `Type.shared` is read in the composition root and nowhere else.
 #
-# Why this exists (2026-09-03). The app had 689 `.shared` reads spread over
-# views, services, view models and the assistant's fact resolvers, which made
-# the middle of the app untestable with a substitute and made "who depends on
-# what" unreadable. `AppDependencies` is now the one place that names the
-# singletons; everything else is injected — `@Environment(\.dependencies)` in
+# Why this exists. `.shared` reads spread through the app make it untestable
+# with a substitute and make "who depends on what" unreadable.
+# `AppDependencies` is the one place that names the singletons; everything
+# else is injected: `@Environment(\.dependencies)` in
 # views, an `init` parameter defaulting to `.current` in classes, and
 # `AppDependencies.current` in static helpers.
 #

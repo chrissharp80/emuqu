@@ -47,9 +47,7 @@ struct WorkoutLiveNamespace: FactNamespaceResolver {
     /// EWMA replay can lag `cache.current` by up to ~4 s during cache
     /// refresh (see TrainingMetricsCache:184 detached task), a direct read
     /// returns a different number than the Dashboard during that
-    /// window. User report: Dashboard CTL 35.9 / ATL 56.6 /
-    /// TSB -20.7 while Grok via `workout.live.today_readiness` returned
-    /// CTL 35.2 / ATL 53.1 / TSB -17.9 in the same minute. Routing
+    /// window. Routing
     /// through the registry makes `workout.live.today_readiness`,
     /// `training.load.*`, and the Dashboard share one source of truth.
     func liveTrainingLoad() -> (atl: Double, ctl: Double, tsb: Double)? {

@@ -8,8 +8,8 @@
  "units": [
   {
    "key": "§ ADR 006 — Swift 6 language mode is the concurrency gate",
-   "hash": "8da63f97fd7c2a33",
-   "does": "Claims Swift 6 mode + SWIFT_STRICT_CONCURRENCY=complete in all eight configurations, check_strict_concurrency_enabled.sh fails CI if any leaves it, escape count fell from 30 to .ci/unchecked_sendable_budget.txt, and lists the remaining escapes (StrapAPI, WhisperKit feeder, AmbientLocationService, ActiveRouteSession, backups, SessionArchive, BaselineTracker, ConversationStore, SystemDiagnosticsManager, KeyboardPerfSignpost); background readers must use settingsSnapshot. Verified: project.pbxproj has 8 'SWIFT_VERSION = 6.0' and 8 'SWIFT_STRICT_CONCURRENCY = complete' lines and 2 warnings-as-errors; budget 14 equals the 14 real annotations.",
+   "hash": "6fe3715074fc6440",
+   "does": "Claims Swift 6 mode + SWIFT_STRICT_CONCURRENCY=complete in all eight configurations, check_strict_concurrency_enabled.sh fails CI if any leaves it, the escape count is the figure in .ci/unchecked_sendable_budget.txt, and lists the remaining escapes (StrapAPI, WhisperKit feeder, AmbientLocationService, ActiveRouteSession, backups, SessionArchive, BaselineTracker, ConversationStore, SystemDiagnosticsManager, KeyboardPerfSignpost); background readers must use settingsSnapshot; there is no diagnostic budget, the compiler is the gate. Verified: project.pbxproj has 8 'SWIFT_VERSION = 6.0' and 8 'SWIFT_STRICT_CONCURRENCY = complete' lines; budget 14.",
    "entry": null,
    "calls": [
     "scripts/check_strict_concurrency_enabled.sh::fn fail",

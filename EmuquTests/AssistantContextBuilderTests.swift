@@ -10,14 +10,12 @@ import XCTest
 final class AssistantContextBuilderTests: XCTestCase {
     /// Capture-and-restore, not fire-and-forget.
     ///
-    /// `NSTimeZone.default` is **process-global**. Ten test classes set it to
-    /// UTC in `class setUp()` and none of them put it back, so every test class
-    /// that happened to run afterwards in the same process silently inherited
-    /// UTC. `LiveReadinessTests` computes "today" from `Date()` against the
-    /// current calendar, so between 19:00 and midnight US-Central (when the UTC
-    /// date is already tomorrow) four of its tests failed — a genuine
-    /// time-of-day flake that was invisible only because the suite used to
-    /// deadlock before reaching them.
+    /// `NSTimeZone.default` is **process-global**. A class that sets it to UTC
+    /// in `class setUp()` and does not put it back leaks UTC into every test
+    /// class that runs after it in the same process. `LiveReadinessTests`
+    /// computes "today" from `Date()` against the current calendar, so between
+    /// 19:00 and midnight US-Central (when the UTC date is already tomorrow)
+    /// its tests would fail.
     private static let savedDefaultTimeZone = OSAllocatedUnfairLock<TimeZone?>(initialState: nil)
     override class func setUp() {
         super.setUp()
@@ -287,7 +285,7 @@ final class AssistantContextBuilderTests: XCTestCase {
         XCTAssertEqual(context.yesterday?.recoveryScore, 6)
     }
 
-    // MARK: - Cloud live-state pushes today's facts (2026-08 regression)
+    // MARK: - Cloud live-state pushes today's facts
 
     /// With an EMPTY data block — today's recovery / HRV / sleep tool-only —
     /// a model that doesn't reliably call tools (e.g. Grok) answers "I don't

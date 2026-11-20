@@ -104,9 +104,8 @@ extension SessionArchive {
     /// Do NOT reassign `jsonData = decrypted`
     /// and hash the plaintext: the file on disk stays as ciphertext, and
     /// `_retrieve` hashes the bytes-as-stored, so every subsequent read of a
-    /// repaired encrypted session would fail with `ArchiveError.hashMismatch`
-    /// (a tester's debug log showed exactly that on a session
-    /// after running repair). Always hash the bytes-as-stored, matching the
+    /// repaired encrypted session would fail with `ArchiveError.hashMismatch`.
+    /// Always hash the bytes-as-stored, matching the
     /// write-path contract in `_archive` / `batchArchive` /
     /// `relinkSameNightSessions`.
     private static func decodeRepairable(_ fileData: Data, id: UUID) -> HRVSession? {

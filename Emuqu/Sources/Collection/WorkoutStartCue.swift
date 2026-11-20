@@ -55,13 +55,11 @@ enum WorkoutStartCue {
     )
 
     /// Pre-warmed haptic generators. Init + first `.notificationOccurred` on a
-    /// cold Taptic Engine has been observed in user logs to block the calling
-    /// thread for hundreds of ms to several seconds — measurable as part of the
-    /// 14-second hang between `announce.fire` and `step=location.startTracking`
-    /// in `hrv_debug_log_1778675167.txt`. Keep one of each retained for the
+    /// cold Taptic Engine can block the calling thread for hundreds of ms to
+    /// several seconds. Keep one of each retained for the
     /// app's life and call `prepare()` at launch so the engine is warm when
     /// the user taps Start. Never construct UI*FeedbackGenerator() inline on
-    /// the workout-start hot path again.
+    /// the workout-start hot path.
     @MainActor static let notificationFeedback = UINotificationFeedbackGenerator()
     @MainActor static let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
 
@@ -116,13 +114,9 @@ enum WorkoutStartCue {
     /// inside the detached Task serialises behind whatever
     /// else the main actor is doing — and at workout-start the
     /// main actor is rendering `FitnessRecordingView` for the first
-    /// time (8 ObservedObjects, charts, map). A beta tester log
-    /// showed `off-main utter+voice=11560ms` —
-    /// 11.5 s of dead silence between Recorder.start returning
-    /// and the "Walk started" announcement, because the MainActor
-    /// hop was queued behind the view-mount work. The user
-    /// perceived it as "took forever to start the workout."
-    /// Passing the value in eliminates the hop entirely.
+    /// time (8 ObservedObjects, charts, map), so the hop can leave
+    /// seconds of silence between Recorder.start returning and the
+    /// "Walk started" announcement. Passing the value in eliminates the hop entirely.
     @MainActor
     private static func speakStartAnnouncementOffMain(sportName: String) {
         // The app's language, not the phone's, for both words and voice: an
@@ -198,8 +192,6 @@ enum WorkoutStartCue {
     /// OR speak() blocks, the workout-start UX shouldn't pay for
     /// it. After 800 ms we just stop waiting — the user lost the
     /// spoken "Walk started" but the workout already started.
-    /// A beta tester log showed 11.5 s of this
-    /// path stalling and being perceived as "took forever."
     ///
     /// The cancel it sends is honoured once the stalled voice lookup returns
     /// (`buildAndSpeakStartUtterance` skips the cue then); a stall inside

@@ -6,10 +6,9 @@ import os
 //
 // `HKSampleQuery` / `HKStatisticsQuery` have NO built-in timeout.
 // At wake the HealthKit store is busy ingesting the Watch's overnight data, and
-// any unbounded query can hang for many seconds — a field log
-// caught a daytime-resting-HR query hanging 19 SECONDS before returning, and
-// because it was awaited inline in morning HRV analysis it stalled the whole
-// morning and froze the record screen. This extension is the ONE place a
+// any unbounded query can hang for many seconds (a daytime-resting-HR query
+// can take 19 SECONDS to return), and one awaited inline in morning HRV
+// analysis stalls the whole morning and freezes the record screen. This extension is the ONE place a
 // HealthKit query continuation lives: every raw query is executed through
 // `runBoundedQuery` / `runBoundedThrowingQuery`, which enforce a timeout +
 // `manager.healthStore.stop(query)` + resume-once on EVERY query. No raw
@@ -190,10 +189,10 @@ extension HeartRateHealthQueries {
     /// Bounded via the shared `runBoundedThrowingQuery` wrapper (single source
     /// of truth for timeout + manager.healthStore.stop + resume-once). `HKSampleQuery`
     /// has no built-in timeout, and at wake the HealthKit store is busy
-    /// ingesting the Watch's overnight data — a field log caught
-    /// this exact query hanging 19 SECONDS before returning "insufficient
-    /// samples", and since it's awaited inline in the morning HRV analysis it
-    /// stalled the whole morning and froze the record screen mid-transition.
+    /// ingesting the Watch's overnight data, so this query can hang for
+    /// 19 SECONDS before returning "insufficient samples", and since it's
+    /// awaited inline in the morning HRV analysis that would stall the whole
+    /// morning and freeze the record screen mid-transition.
     /// Daytime resting HR is an OPTIONAL refinement to the ANS metrics — the
     /// analysis is fully valid without it — so on timeout we proceed with no
     /// samples (→ nil via the caller's `count >= 10` guard) rather than making

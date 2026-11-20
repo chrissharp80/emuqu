@@ -636,14 +636,13 @@ extension ArchiveMigrations {
         let links: [UUID]
     }
 
-    /// Re-link unlinked same-night overnight sessions. Fixes sessions that were
-    /// recorded as split-sleep but not linked because the resume button was hidden
-    /// or the old 6-hour night anchor failed to group them.
+    /// Re-link unlinked same-night overnight sessions: segments of one
+    /// split-sleep night that are stored without their links.
     ///
     /// Each night's read-modify-write runs under the lock. Done outside it, a
     /// concurrent archive of the same session (a sleep refresh, a rescore)
-    /// landed between the read and the write and was overwritten, or its new
-    /// file hash was replaced in the index with a stale one. It is rare work —
+    /// could land between the read and the write and be overwritten, or its
+    /// new file hash be replaced in the index with a stale one. It is rare work —
     /// only nights with unlinked segments — so the short hold is the right trade.
     func relinkSameNightSessions() {
         let workItems = relinkWorkItems()
@@ -704,9 +703,10 @@ extension ArchiveMigrations {
     /// One night, locked: skipped when the parent changed since phase 1 (the
     /// next launch looks again), otherwise rewritten and its entry patched.
     /// The index is saved with each night, under the same lock as the file
-    /// write: saved once at the end, the cached lookups kept the old file
-    /// hash until then (a read in between failed its integrity check), and a
-    /// crash in between left files the stored index no longer matched.
+    /// write: saved once at the end, the cached lookups would keep the old
+    /// file hash until then (a read in between would fail its integrity
+    /// check), and a crash in between would leave files the stored index no
+    /// longer matched.
     ///
     /// A failed index save puts the parent's previous file and entry back
     /// (`ArchiveStore.rollBackWrite`): the stored index would otherwise keep
@@ -806,9 +806,9 @@ extension ArchiveMigrations {
     ///
     /// Routed through `SessionFileCodec` (the shared encode →
     /// encrypt-if-available → hash codec) so this site can never drift from
-    /// that contract. No plaintext-fallback warn log here, preserving
-    /// this site's historical silent fallback (`_archive`/`archiveBatch` each
-    /// keep their own log lines). The write also carries an explicit
+    /// that contract. No plaintext-fallback warn log here: this site falls
+    /// back silently (`_archive`/`archiveBatch` each keep their own log
+    /// lines). The write also carries an explicit
     /// protection class, matching every other archive write site: `.atomic`
     /// alone replaces the file and drops the directory-inherited protection
     /// class (the EPERM-storm root cause, see the note in

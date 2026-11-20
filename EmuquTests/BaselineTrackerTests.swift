@@ -76,7 +76,7 @@ final class BaselineTrackerTests: XCTestCase {
         return session
     }
 
-    /// Regression — an `.insufficient` session (an awake/too-short
+    /// An `.insufficient` session (an awake/too-short
     /// partial, e.g. a pre-sleep recording paused while still up) must never
     /// enter the rolling baseline. Its depressed RMSSD would drag the anchor
     /// down and corrupt the NEXT morning's recovery score.
@@ -124,7 +124,7 @@ final class BaselineTrackerTests: XCTestCase {
         )
     }
 
-    /// The regression this gate exists for.
+    /// The case this gate exists for.
     ///
     /// Without this gate a 30-minute partial with an absurdly HIGH RMSSD sails
     /// into the baseline, because the only other gate in front of it
@@ -275,8 +275,8 @@ final class BaselineTrackerTests: XCTestCase {
         return base ?? Date()
     }
 
-    /// A long, clean quick reading used to enter the baseline (no
-    /// `hrvDataQuality`, so it counted as reliable). Only overnight readings
+    /// A long, clean quick reading stays out of the baseline even though it has
+    /// no `hrvDataQuality` and so would count as reliable. Only overnight readings
     /// describe the resting state the baseline is.
     func testQuickReadingNeverEntersBaseline() {
         let tracker = makeTracker()
@@ -285,9 +285,9 @@ final class BaselineTrackerTests: XCTestCase {
         XCTAssertEqual(tracker.daysCollected, 0)
     }
 
-    /// Slots used to be calendar days: a night started at 23:00 and its 02:30
-    /// continuation took two slots, while 02:30 and 23:30 on the same date
-    /// (two different nights) fought for one. Each part is three hours or
+    /// Slots are nights, not calendar days: a night started at 23:00 and its
+    /// 02:30 continuation share one slot, while 02:30 and 23:30 on the same
+    /// date (two different nights) take two. Each part is three hours or
     /// more so the structural gate admits it.
     func testSlotsAreKeyedByNightNotCalendarDay() {
         let tracker = makeTracker()
@@ -298,8 +298,8 @@ final class BaselineTrackerTests: XCTestCase {
         XCTAssertEqual(tracker.daysCollected, 2, "02:30 and 23:30 on June 2 are different nights")
     }
 
-    /// The saved score's baseline used to include the night being scored.
-    /// The scoring stats leave that night's slot out.
+    /// The saved score's baseline excludes the night being scored: the
+    /// scoring stats leave that night's slot out.
     func testScoringStatsExcludeTheScoredNight() throws {
         let tracker = makeTracker()
         for day in 1 ... 4 {

@@ -60,10 +60,10 @@ final class LaunchCoordinator {
     /// Either the dashboard signals ready or the 6 s ceiling fires — whichever
     /// lands first.
     ///
-    /// The ceiling resumes the parked waiter itself. It used to be a sibling
-    /// task in a task group, which never worked: a group waits for every child,
-    /// and a parked continuation ignores cancellation, so a dashboard load that
-    /// never finished held every housekeeping job — migrations, iCloud sync —
+    /// The ceiling resumes the parked waiter itself. A sibling task in a task
+    /// group would not work: a group waits for every child, and a parked
+    /// continuation ignores cancellation, so a dashboard load that never
+    /// finished would hold every housekeeping job (migrations, iCloud sync)
     /// forever.
     private func awaitDashboardReadyOrTimeout() async {
         if dashboardReady { return }

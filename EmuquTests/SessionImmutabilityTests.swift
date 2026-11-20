@@ -3,13 +3,12 @@ import XCTest
 
 /// §13.3 Integrity Contract (docs/FLOWCHART.md): opening or re-scoring an
 /// archived session must produce an IDENTICAL frozen score. This suite guards
-/// against one specific way it drifted.
+/// against one specific way it can drift.
 ///
-/// The bug: three of the four `ReanalysisService` re-score compute paths
-/// defaulted `useBaselineHRV` to `false`. An `.insufficient` / `.preSleep`
-/// session is scored off BASELINE HRV at acceptance (its own RMSSD is
-/// untrustworthy); when a later sleep-edit / training-only re-score recomputed
-/// it WITHOUT that fallback, the frozen score moved — violating §13.3.
+/// An `.insufficient` / `.preSleep` session is scored off BASELINE HRV at
+/// acceptance (its own RMSSD is untrustworthy). A sleep-edit or training-only
+/// re-score that recomputes it WITHOUT that fallback, as a `useBaselineHRV`
+/// defaulting to `false` would, moves the frozen score and violates §13.3.
 ///
 /// The re-score path derives the flag from
 /// the session's own reliability, so a re-score reproduces the accepted value.

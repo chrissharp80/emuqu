@@ -155,9 +155,8 @@ final class RawRRBackup: @unchecked Sendable {
     /// like right before the app was killed, used by
     /// `CrashLogManager.recordTermination` to populate the termination
     /// report with actionable forensics (not just "iOS killed it").
-    /// User reported a SIGKILL log that said nothing about when the
-    /// crash actually happened or where their data went; this surfaces
-    /// both.
+    /// A bare SIGKILL report says nothing about when the crash actually
+    /// happened or where the data went; this surfaces both.
     ///
     /// Lockless and static: the singleton may not be fully initialised
     /// at termination-report write time, and we don't want to take any
@@ -357,8 +356,8 @@ final class RawRRBackup: @unchecked Sendable {
     /// queued before its write, so a process killed between the two leaves
     /// it queued, and taken off again if the write throws, since nothing new
     /// reached disk. An encrypted write clears the entry only once it has
-    /// landed: cleared first, a failed rewrite left the old plaintext on disk
-    /// with nothing queued to repair it.
+    /// landed: cleared first, a failed rewrite would leave the old plaintext
+    /// on disk with nothing queued to repair it.
     static func writeEntry(_ entry: BackupEntry, to url: URL, sessionId: UUID) throws {
         let encoded = try encodedEntry(entry)
         let wasPending = PendingEncryptionLedger.pending(in: .rawBackup).contains(sessionId)
@@ -783,7 +782,7 @@ extension RawRRBackup {
     /// The size of whichever file holds the session's beats: the append-only
     /// points file while recording, or the whole-night file a stop writes
     /// (which replaces the append files, so reading only the points file
-    /// reported a saved night as missing).
+    /// would report a saved night as missing).
     fileprivate static func backupFileSize(
         of entry: BackupIndex, sessionId: UUID, in backupDirectory: URL, fileManager fm: FileManager
     ) -> Int64? {

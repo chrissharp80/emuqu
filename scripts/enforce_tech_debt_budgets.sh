@@ -129,9 +129,8 @@ def strip_comments(source: str) -> str:
 # Apple framework singletons are not this app dependency-injection debt.
 # `URLSession.shared`, `UIApplication.shared` and the rest belong to the
 # platform API; no version of this codebase injects them away, so counting
-# them makes the number unmovable and therefore meaningless. Every
-# `.shared` outside the composition root was one of these when this exclusion
-# was added: the app singletons are already confined to the root, which
+# them makes the number unmovable and therefore meaningless. The app
+# singletons are confined to the composition root, which
 # `check_no_shared_outside_root.sh` proves separately. What stays counted is
 # the composition root list, which is the number that can still grow.
 PLATFORM_SINGLETONS = (

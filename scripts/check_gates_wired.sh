@@ -2,11 +2,10 @@
 #
 # CI guard: every gate in `scripts/` actually runs in CI.
 #
-# Why this exists (2026-09-01). A gate that CI never invokes is a gate that does
-# not exist, and it is indistinguishable from a working one when you read the
-# directory listing. Two gates in this repository shipped wired into the
-# `Makefile` only, so they ran when someone remembered `make ci` locally and
-# never on a push.
+# Why this exists. A gate that CI never invokes is a gate that does not exist,
+# and it is indistinguishable from a working one when you read the directory
+# listing. A gate wired into the `Makefile` only runs when someone remembers
+# `make ci` locally and never on a push.
 #
 # Two workflows, two questions:
 #

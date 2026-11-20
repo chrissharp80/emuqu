@@ -328,9 +328,9 @@ final class ScoringCharacterizationTests: XCTestCase {
         XCTAssertLessThan(withoutPerceived.compositeScore, 100)
     }
 
-    /// The missing-sleep deduction is a listed penalty, not a hidden one. It
-    /// used to be subtracted inside the tier-1 sum, so the breakdown showed a
-    /// 10-point gap with no penalty and explained it as "Your baselines have
+    /// The missing-sleep deduction is a listed penalty, not a hidden one.
+    /// Subtracted inside the tier-1 sum, it would leave the breakdown showing
+    /// a 10-point gap with no penalty, explained as "Your baselines have
     /// improved since this session".
     func testMissingSleepPenaltyIsAppliedListedAndExplained() {
         let breakdown = missingSleepBreakdown(perceived: nil)
@@ -369,8 +369,8 @@ final class ScoringCharacterizationTests: XCTestCase {
     /// An out-of-domain perceived value must not escape 0…100.
     ///
     /// Two assertions, because the composite clamp alone would mask a missing
-    /// input clamp: `perceived = 100` produced a factor score of 10,000 and a
-    /// composite of 3050.4 before this was fixed. The FACTOR must be in range
+    /// input clamp: without it `perceived = 100` gives a factor score of 10,000
+    /// and a composite of 3050.4. The FACTOR must be in range
     /// too, or the breakdown the user reads contradicts the number.
     func testPerceivedReadinessOutsideItsDomainCannotBreakTheRange() {
         for perceived in [-5.0, 0, 0.5, 1.0, 100.0, 1e9, Double.nan] {
@@ -447,12 +447,11 @@ final class ScoringCharacterizationTests: XCTestCase {
         XCTAssertEqual(RecoveryScoreCalculator.applyFreshnessBonus(base, morningATL: 30, atl: 40), base)
     }
 
-    // MARK: - M26: the low-CTL confidence ramp on the ACWR penalty
+    // MARK: - The low-CTL confidence ramp on the ACWR penalty
     //
-    // From a tester report: CTL 16, ACWR 1.63
-    // produced a 21.5% penalty and a "Fatigued" readout while the HRV pill
-    // simultaneously read 10.0 "Ready". The fix for a reported user-facing bug
-    // was untested.
+    // At low CTL an unramped penalty is overconfident: CTL 16, ACWR 1.63
+    // would give a 21.5% penalty and a "Fatigued" readout while the HRV pill
+    // read 10.0 "Ready".
 
     func testACWRPenaltyRampsLinearlyWithCTL() {
         let full = RecoveryScoreConstants.Readiness.acwrFullConfidenceCTL

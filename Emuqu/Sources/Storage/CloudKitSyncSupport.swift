@@ -135,9 +135,9 @@ final class CloudKitSettingsSync {
     /// "Back Up Settings" button.
     ///
     /// True only when the settings were saved to iCloud. Anything else also
-    /// leaves `status` as `.error` with the reason: a push that was skipped
-    /// or lost a conflict used to leave `status` unchanged, and the button
-    /// reported a backup that never happened.
+    /// leaves `status` as `.error` with the reason, including a push that was
+    /// skipped or lost a conflict, so the button never reports a backup that
+    /// did not happen.
     @discardableResult
     func pushImmediately() async -> Bool {
         switch await performPush() {

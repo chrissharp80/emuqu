@@ -35,13 +35,14 @@ extension ArchiveStore {
         return trashed + quarantined.map { quarantineDirectory.appendingPathComponent($0) }
     }
 
-    /// The file is kept, not erased. Restore used to rebuild the session
-    /// from its raw beats, which lost its tags, notes, morning feeling and
-    /// sleep edits, and brought a workout back as an overnight reading.
+    /// The file is kept, not erased, so a restore brings the session back as
+    /// it was. Rebuilding it from its raw beats would lose its tags, notes,
+    /// morning feeling and sleep edits, and bring a workout back as an
+    /// overnight reading.
     ///
     /// The moved file is dated now: a move keeps the date of the session's
     /// last write, and `expiredDeletionIds` falls back to the file's date when no
-    /// deletion time is recorded, which discarded an old session's file at
+    /// deletion time is recorded, which would discard an old session's file at
     /// the next launch instead of after 90 days.
     ///
     /// Throws when the file could not be moved; it is then left where it was,

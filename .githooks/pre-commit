@@ -3,24 +3,13 @@ set -euo pipefail
 
 # Pre-commit gate.
 #
-# Two changes from the original, both learned the hard way on 2026-08-18:
+# It never runs `swiftformat` in write mode. Reformatting the codebase is a
+# decision, not a side effect of typing `git commit`; run `make format`
+# deliberately when you want it.
 #
-# 1. It no longer runs `swiftformat` in WRITE mode over the whole repo.
-#    The original did — `swiftformat --quiet Emuqu EmuquTests` rewrites files
-#    in place — and it had never actually fired, because neither tool was
-#    installed on this machine. The moment SwiftFormat was installed, the very
-#    next commit would have silently reformatted **416 of 540 files**, mixing an
-#    enormous unrelated diff into whatever was being committed. Among those
-#    changes: 189 `redundantSwiftUIGroup` rewrites (which can change SwiftUI
-#    layout) and 745 added trailing commas that SwiftLint's `trailing_comma`
-#    rule then flags, blowing the committed warning budget.
-#
-#    Reformatting the codebase is a decision, not a side effect of typing
-#    `git commit`. Run `make format` deliberately when you want it.
-#
-# 2. It no longer skips silently when a tool is missing. A gate that quietly
-#    does nothing is worse than no gate, because it reads as passing. Missing
-#    tools now fail the commit with the install command.
+# It never skips silently when a tool is missing. A gate that quietly does
+# nothing reads as passing, so a missing tool fails the commit with the
+# install command.
 #
 # Bypass for a genuine emergency: `git commit --no-verify`.
 

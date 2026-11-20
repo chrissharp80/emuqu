@@ -39,8 +39,8 @@ struct OnboardingHealthPage: View {
     private var hk: HealthKitManager { collector.healthKit }
 
     /// The buttons are pinned above the page dots rather than scrolled with
-    /// the content. At the end of the scroll view, "Skip for now" landed on
-    /// the page indicator on a 390pt-wide iPhone, and a tap there went back a
+    /// the content. At the end of the scroll view, "Skip for now" would sit on
+    /// the page indicator on a 390pt-wide iPhone, where a tap goes back a
     /// page instead of skipping.
     ///
     /// The status card (or the reason the sheet never opened) arrives at the
@@ -225,11 +225,11 @@ struct OnboardingHealthPage: View {
         }
     }
 
-    /// What happens on Connect, in words. This used to be a drawn imitation
-    /// of a system alert with "Allow" and "Don't Allow" buttons; Apple Health
-    /// actually shows a full-screen sheet of per-type switches, so the drawing
-    /// was wrong, and a mock system prompt with a primed "Allow" is the kind
-    /// of pre-permission screen Guideline 5.1.1(iv) warns against.
+    /// What happens on Connect, in words rather than a drawn system alert:
+    /// Apple Health shows a full-screen sheet of per-type switches, not an
+    /// "Allow" / "Don't Allow" alert, and a mock system prompt with a primed
+    /// "Allow" is the kind of pre-permission screen Guideline 5.1.1(iv) warns
+    /// against.
     private var nextStepNote: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "iphone")

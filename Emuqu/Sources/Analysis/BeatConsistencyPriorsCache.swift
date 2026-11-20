@@ -15,12 +15,9 @@ import Foundation
 /// "Calibrating — 0 of 14 nights" (an empty `priorBaselineFeatures` →
 /// nil baseline → `.calibrating(0, 14)` from the scorer).
 ///
-/// User report: backed out and re-entered HRV view three
-/// times in a row, each entry paid the full 5–10 s tax because nothing
-/// persisted between view destructions. The diagnostic log proved the
-/// work was completing correctly (`accepted=18 rejected={...} cancelled=false`)
-/// but the view's `@State priorBaselineFeatures` reset to `[]` on
-/// every new view instance.
+/// Without a cache, every re-entry into the HRV view pays the full
+/// 5–10 s again, because the view's `@State priorBaselineFeatures` resets
+/// to `[]` on every new view instance.
 ///
 /// # What this cache does
 ///
@@ -107,10 +104,8 @@ final class BeatConsistencyPriorsCache {
     /// bump means a workout finalizing (dozens of archive writes across
     /// recording + scoring + CloudKit sync) repeatedly nukes the entire
     /// overnight-priors cache, and the Beat Consistency card re-walks
-    /// ~17 sessions × ~1.3 s = ~21 s on EVERY open during/after a workout
-    /// (user report "beat consistency still spins"; the exported
-    /// log showed back-to-back 21 s `accepted=17` walks). Invalidate
-    /// ONLY the session that actually changed.
+    /// ~17 sessions × ~1.3 s = ~21 s on EVERY open during/after a workout.
+    /// Invalidate ONLY the session that actually changed.
     ///
     /// A nil object does not drop the whole cache. The
     /// legacy broadcast `ArchiveSignal.notifyChanged()` posts `object: nil`
@@ -119,8 +114,7 @@ final class BeatConsistencyPriorsCache {
     /// Fitness-tab edits — ~13 call sites), so treating nil as "bulk
     /// change" nukes the whole disk cache several times per normal day of
     /// use and forces the next HRV-tab open back into the ~21 s full
-    /// re-walk ("beat consistency
-    /// still doesn't work right"). Features are immutable per session id,
+    /// re-walk. Features are immutable per session id,
     /// so a coarse "something changed somewhere" signal only ever requires
     /// DROPPING entries whose sessions no longer exist (single delete,
     /// delete-all); everything still present in the archive stays valid.

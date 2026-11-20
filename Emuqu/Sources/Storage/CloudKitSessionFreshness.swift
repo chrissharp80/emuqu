@@ -140,10 +140,11 @@ enum CloudKitSessionFreshness {
     ///
     /// `restoring` (the session was restored from the Trash on this device)
     /// overrides a server tombstone whatever its stamp: a restore does not
-    /// stamp an edit, and yielding to the tombstone left it in iCloud with
-    /// nothing for the pull to import. A server record already carrying the
-    /// restore marker keeps it, since every upload writes `isDeleted = 0`:
-    /// losing it let a device that deleted the session earlier delete it again.
+    /// stamp an edit, and yielding to the tombstone would leave it in iCloud
+    /// with nothing for the pull to import. A server record already carrying
+    /// the restore marker keeps it, since every upload writes `isDeleted = 0`:
+    /// losing it would let a device that deleted the session earlier delete
+    /// it again.
     /// Server fields this build no longer writes (older builds wrote plaintext
     /// health values) are cleared, so the record holds only what `local` holds.
     static func overwrite(

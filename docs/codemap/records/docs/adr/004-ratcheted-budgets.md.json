@@ -79,8 +79,8 @@
   },
   {
    "key": "§ 004 — Debt is ratcheted, never waived > Why not a hard zero",
-   "hash": "7d0775f2f2f2759c",
-   "does": "Argues against aspirational hard-zero gates, citing the old 90% coverage gate that could never pass. Current coverage floors are .ci/min_coverage.txt 44, min_coverage_logic.txt 45, min_coverage_views.txt 43.5; no 90% figure remains in README.md or docs/runbooks.",
+   "hash": "010e96fd6ddcc4c1",
+   "does": "Argues against aspirational hard-zero gates: a coverage gate requiring a figure the suite cannot reach never passes, so nobody runs it, while the docs keep stating the figure; a measured ceiling blocks regression and only moves one way. Current coverage floors are .ci/min_coverage.txt 44, min_coverage_logic.txt 45, min_coverage_views.txt 43.5; no 90% figure remains in README.md or docs/runbooks.",
    "entry": null,
    "calls": [
     ".github/workflows/ci.yml::step tests/Run tests with coverage"
@@ -94,20 +94,14 @@
   },
   {
    "key": "§ 004 — Debt is ratcheted, never waived > Consequence",
-   "hash": "d9b4b1ce3644ad02",
-   "does": "Claims .ci numbers are a debt inventory; eighteen waivers went to zero, the last oversized types were split (aggregate_type_size_budget 0, aggregate_type_excess_budget 0), and remaining static composition-root reads are counted in .ci/shared_usage_budget.txt (90). Consistent with .ci contents.",
+   "hash": "0737ce8323274792",
+   "does": "Claims the .ci numbers are a debt inventory, the honest measure of what is still outstanding, and that the ceilings are debt inventories rather than assurance targets.",
    "entry": null,
-   "calls": [
-    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root",
-    ".github/workflows/ci.yml::step lint-and-budgets/Aggregate type size"
-   ],
+   "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {
-    ".github/workflows/ci.yml::step lint-and-budgets/Aggregate type size": "620c84ee17554303",
-    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "f618f94a3a7cb84c"
-   }
+   "deps": {}
   }
  ],
  "deps": {}

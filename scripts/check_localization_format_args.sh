@@ -123,7 +123,7 @@ for key, entry in catalogue["strings"].items():
             actual = arguments(value)
             # In a string that is formatted at all, every "%" must belong to a
             # specifier or be "%%". A lone "% " is undefined to the formatter:
-            # zh-Hans once shipped "已校正 %lld% 的心搏".
+            # for example "已校正 %lld% 的心搏".
             if expected and "%" in SPEC.sub("", value):
                 failures.append((key, locale, label, 'has a lone "%" (write "%%" for a percent sign)', value))
             for position, kinds in sorted(actual.items()):

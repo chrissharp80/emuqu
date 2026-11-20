@@ -1,10 +1,10 @@
 import Foundation
 import os
 
-/// Programmatic hallucination guard for the AI coach (item #9).
+/// Programmatic hallucination guard for the AI coach.
 ///
 /// The system-prompt overlay tells the model "don't invent numbers,"
-/// but the user has reported the coach quoting metrics that contradict
+/// but the coach can still quote metrics that contradict
 /// the live snapshot. Prompt-level guardrails are necessary but not
 /// sufficient; this module is the runtime backstop.
 ///

@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
 """Generate an SPDX 2.3 software bill of materials from Package.resolved.
 
-Both external audits (2026-08-26, 2026-08-27) filed the same finding: the
-repository has good pinning discipline — `Package.resolved` is committed, every
-GitHub Action is SHA-pinned, and `check_sbom_drift.sh` proves the in-app
-acknowledgements screen mirrors the lockfile — but produces no machine-readable
-SBOM, so an automated supply-chain scanner has nothing to read.
-
-That is a gap in *evidence*, not in practice, and it is the cheapest kind to
-close: every fact needed is already in the lockfile, pinned to a commit SHA.
+`Package.resolved` is committed, every GitHub Action is SHA-pinned, and
+`check_sbom_drift.sh` proves the in-app acknowledgements screen mirrors the
+lockfile. This adds the machine-readable SBOM an automated supply-chain scanner
+reads; every fact needed is already in the lockfile, pinned to a commit SHA.
 
 Writes SPDX JSON, which is the format SCA tooling and GitHub's dependency
 graph both accept. Deterministic: same lockfile in, byte-identical file out, so

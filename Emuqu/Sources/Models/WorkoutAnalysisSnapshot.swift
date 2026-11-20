@@ -28,8 +28,8 @@ struct WorkoutAnalysisSnapshot: Codable, Equatable {
     /// Version history:
     /// - v1: initial schema.
     /// - v2: α1 first-cross detector gained a 120 s warmup
-    ///   window + 30 s sustain requirement (the user-reported "threshold
-    ///   crossing at 4:00 on a Zone-1 walk" bug). Moving-time detection
+    ///   window + 30 s sustain requirement (so a Zone-1 walk does not
+    ///   report a threshold crossing at 4:00). Moving-time detection
     ///   switched from "pace > 0" (which failed at casual walk speeds
     ///   because of a 2.5-m GPS-delta gate upstream) to OR-of-three-signals
     ///   + elapsed-seconds accumulation. Stored v1 snapshots carry the

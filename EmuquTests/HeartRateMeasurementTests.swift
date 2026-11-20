@@ -1,13 +1,13 @@
 @testable import Emuqu
 import XCTest
 
-/// Decoding the Heart Rate Measurement characteristic the app now reads
+/// Decoding the Heart Rate Measurement characteristic the app reads
 /// directly.
 ///
-/// The beats used to come through the Polar SDK's decoder. They must come out
-/// of this one identically — the same rate, the same intervals to the
-/// millisecond — or every HRV figure recorded after the switch would shift
-/// against the history it is compared with. Two of these packets are real ones
+/// The beats must come out of this decoder exactly as the Polar SDK's decoder
+/// gives them, the same rate and the same intervals to the millisecond, or
+/// every HRV figure would shift against the history it is compared with.
+/// Two of these packets are real ones
 /// the H10 sent, copied from a field log.
 final class HeartRateMeasurementTests: XCTestCase {
     private func parse(_ bytes: [UInt8]) -> StrapHRSample? {

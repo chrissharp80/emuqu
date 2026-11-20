@@ -2,8 +2,8 @@ import Foundation
 
 /// The interval announcements in the app language, spoken as written when
 /// they can't go through the AI: Flo switched off, its notice not accepted,
-/// or the provider without consent. They used to go silent then, and a
-/// structured workout lost every step change.
+/// or the provider without consent. Without them a structured workout would
+/// announce no step changes in those cases.
 enum IntervalSpokenCue {
     static func step(_ step: IntervalStep, number: Int, of total: Int) -> String {
         let bundle = LanguageManager.appBundle

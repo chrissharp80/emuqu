@@ -163,7 +163,7 @@ enum AppKnowledgeBase {
       More → Settings → Flo → "Web Search" section → enable the toggle, then tap "Get a Tavily API key" if needed and paste it into the field. Searches are restricted to authority domains (PubMed, manufacturer docs, training science) — supplement-spam sites are excluded.
     - **Switch the speech recognizer to WhisperKit** (open-source, better in noise, ~100 MB on-device model on first use):
       More → Settings → Flo → "Speech recognizer" → pick "WhisperKit (open-source)". Switch takes effect at the next voice session start. Apple is the fallback if WhisperKit fails to load.
-    - **Keep clipboard contents from auto-clearing** (default ON since 2026-05-07 — ideas don't get lost when an alert preempts you):
+    - **Keep clipboard contents from auto-clearing** (on by default, so ideas don't get lost when an alert preempts you):
       More → Settings → Flo → "Clipboard" → toggle "Keep copied content until I paste it".
     - **Set the home address for "lead me home" routing**:
       More → Settings → Biometrics → Home Address.

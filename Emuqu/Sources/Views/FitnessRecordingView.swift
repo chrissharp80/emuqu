@@ -51,9 +51,8 @@ struct FitnessRecordingView: View {
     /// this to true after one runloop tick (~50ms). The runloop ticks
     /// fire any deferred `Task { @MainActor }` work in between — which
     /// is where GPS / pedometer / foot-pod / watch-bridge setup all
-    /// live. A beta tester log showed 12 s of
-    /// dead-silence main thread between phase=.recording and those
-    /// deferred Tasks firing; lazy-rendering the heavy cards collapses
+    /// live. A heavy first mount can hold the main thread for seconds
+    /// before those deferred Tasks fire; lazy-rendering the heavy cards collapses
     /// the body's first-mount cost so the runloop has cycles to spare.
     @State private var heavySubcardsReady = false
 
@@ -129,7 +128,7 @@ struct FitnessRecordingView: View {
         recordingBackground
         // A bottom-aligned overlay, not `.safeAreaInset(edge: .bottom)`.
         // With iOS 26's floating-pill TabView,
-        // `safeAreaInset` no longer anchors content right above the tab
+        // `safeAreaInset` does not anchor content right above the tab
         // bar — it renders Talk + Hold buttons hundreds of points
         // higher, sitting on top of the Steps/Elevation row in the
         // scroll. Overlay alignment is deterministic regardless of the

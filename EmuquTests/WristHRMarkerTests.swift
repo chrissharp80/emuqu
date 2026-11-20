@@ -132,8 +132,7 @@ final class WristHRMarkerTests: XCTestCase {
         XCTAssertEqual(WorkoutTrackBackup.firstIndex(in: rows, after: 1), 0)
     }
 
-    /// A row holding a value that is not a finite number is backed up (it
-    /// once failed to encode and was skipped while the cursor counted it) and
+    /// A row holding a value that is not a finite number is backed up and
     /// recovered with that value missing, so the archive, whose encoder
     /// rejects NaN and infinity, can save the workout. Its other values stay.
     func testCrashBackupRecoversNonFiniteValuesAsMissing() throws {

@@ -398,7 +398,7 @@ final class DataSourceSelectorTests: XCTestCase {
     }
 
     func testMergePoints_ClusteredStreamingDuplicates_AllSkipped() {
-        // Regression: a tight cluster of streaming points around one internal
+        // A tight cluster of streaming points around one internal
         // beat must ALL be skipped, not just the first. Three streaming beats
         // at +10/+20/+30ms of the internal at 10_000 collapse to one output.
         let internalPoints = [

@@ -12,10 +12,6 @@ jobs:
   # its steps, so the two can never drift apart: SwiftLint, the tech-debt
   # budgets, the FDA copy perimeter, strict-concurrency, the thread sanitizer
   # and the full test suite all have to pass before anything is archived.
-  #
-  # 2026-08-22 — before this, `deploy` was the only job in the file and the
-  # workflow was `workflow_dispatch`-only, so a single click shipped whatever
-  # was on the branch straight to testers with nothing checked at all.
   quality-gate:
     if: github.repository_owner == 'chrissharp80'
     uses: ./.github/workflows/ci.yml

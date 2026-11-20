@@ -125,9 +125,7 @@ extension VoiceAudioPipeline {
         auditBufferActivity(bufferCopy)
     }
 
-    /// Route through `FRSafeInstallTap`. Beta tester
-    /// crash log (SIGABRT at signal 6, stack inside AVFAudio's
-    /// installTap path at offset +1652) — `installTap` raises
+    /// Route through `FRSafeInstallTap`. `installTap` raises
     /// Objective-C `NSException` on a format-mismatch / already-
     /// tapped condition that the pre-flight `setVoiceProcessingEnabled`
     /// toggle can introduce. Swift can't catch NSException; the
@@ -341,25 +339,22 @@ extension VoiceAudioPipeline {
         startFreshRecognitionTask()
     }
 
-    /// Deliberately NOT a permissive `default → restart`. With one, a user
-    /// reported "it didn't seem as able to hear me as it was before
-    /// you 'improved' it": the permissive default
-    /// meant ANY error during .listening triggered a fresh
+    /// Deliberately NOT a permissive `default → restart`. A permissive
+    /// default would mean ANY error during .listening triggers a fresh
     /// recognition task, including transient errors where the
-    /// existing task was about to deliver a final result. That
-    /// killed in-flight transcription mid-utterance and made
-    /// recognition feel sluggish / drop words. The 1.5 s cooldown
-    /// wasn't enough — the cancel-and-restart cycle itself drops
+    /// existing task is about to deliver a final result. That
+    /// kills in-flight transcription mid-utterance and makes
+    /// recognition feel sluggish / drop words. A 1.5 s cooldown
+    /// is not enough: the cancel-and-restart cycle itself drops
     /// any audio buffered in the task's internal pipeline.
     ///
-    /// Back to the original: restart ONLY on the two known-safe
+    /// So: restart ONLY on the two known-safe
     /// codes (1110 "no speech" + 301 "cancelled"). Other errors
     /// mean the task is genuinely terminating; the next user
     /// turn's natural begin will start a fresh task. The
-    /// "voice silently dies" failure mode the permissive default
-    /// was meant to catch should be handled instead by the
+    /// "voice silently dies" failure mode is handled by the
     /// long-idle / first-partial / stalled-transcript watchdogs
-    /// already in VoiceConversationController+Audio.swift, which
+    /// in VoiceConversationController+Audio.swift, which
     /// are smarter about distinguishing dead-task from
     /// healthy-but-quiet states.
     ///

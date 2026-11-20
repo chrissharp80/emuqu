@@ -4,8 +4,8 @@
 //
 //  Apple Intelligence has a 4,096-token window that holds the instructions,
 //  the tool descriptions, the transcript, every tool result the model reads
-//  back mid-generation, and the reply. Tool results used to be uncapped, and
-//  both built-in suggestion chips failed with `exceededContextWindowSize`.
+//  back mid-generation, and the reply. Uncapped tool results overflow it,
+//  and the built-in suggestion chips fail with `exceededContextWindowSize`.
 //  These tests pin the budget that stops that, and the error policy that
 //  decides what happens when Apple still fails.
 //

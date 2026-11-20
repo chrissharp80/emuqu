@@ -34,13 +34,13 @@ final class FactValueTests: XCTestCase {
         XCTAssertEqual(FactValue.double(1.234).humanReadable, "1.23")
     }
 
-    /// Regression test for an unescaped `.` in the trailing-zero strip.
+    /// The trailing-zero strip must escape its `.`.
     ///
-    /// The pattern was `#".?0+$"#`, where the wildcard matched the digit in
-    /// front of the zeros: `5.2` formats as "5.20", the regex ate "20", and
-    /// the assistant was handed "5." with the value gone. Every double whose
-    /// two-decimal form ends in exactly one zero was affected — x.10 through
-    /// x.90, which is most of the metrics the model quotes.
+    /// With `#".?0+$"#` the wildcard matches the digit in front of the zeros:
+    /// `5.2` formats as "5.20", the regex eats "20", and the assistant is
+    /// handed "5." with the value gone. That hits every double whose
+    /// two-decimal form ends in exactly one zero, x.10 through x.90, which is
+    /// most of the metrics the model quotes.
     func testSingleDecimalDoubleKeepsItsValue() {
         XCTAssertEqual(FactValue.double(5.2).humanReadable, "5.2")
         XCTAssertEqual(FactValue.double(5.10).humanReadable, "5.1")

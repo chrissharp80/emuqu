@@ -80,7 +80,7 @@ final class SessionRecoveryClassificationTests: XCTestCase {
         XCTAssertEqual(classify(beats: 0, durationSec: 0), .quick)
     }
 
-    // MARK: - The log formatter no longer traps
+    // MARK: - The log formatter does not trap
 
     func testSecondsFormatterRejectsNonFiniteValues() {
         // The duration comes from dates in a backup file. Forcing
