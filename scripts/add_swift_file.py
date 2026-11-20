@@ -123,19 +123,14 @@ def find_group_id_for_path(content, folder_path):
     return None
 
 
-# Which build target owns each supported folder. This map
-# did not exist, and `find_sources_build_phase_id` hardcoded the APP target's
-# Sources phase (A0000001004) for every path. The docstring advertised
-# `EmuquTests`, `EmuquTests/Helpers` and `EmuquTests/Mocks`, and a file added to
-# any of them landed in the app target's compile phase: the group was right, the
-# membership was wrong, and the build failed with
+# Which build target owns each supported folder. Without it a test file would
+# land in the app target's compile phase: the group would be right, the
+# membership wrong, and the build would fail with
 #
 #     file 'X.swift' is part of module 'Emuqu'; ignoring import
 #     compilation search paths unable to resolve module dependency: 'XCTest'
 #
-# which reads as a broken file rather than a broken tool. That is the exact
-# failure this script exists to prevent, and `check_no_orphan_swift.sh` could
-# not catch it either because it only scans `Emuqu/`.
+# which reads as a broken file rather than a broken tool.
 TARGET_FOR_PREFIX = (
     ('EmuquUITests', 'EmuquUITests'),
     ('EmuquTests', 'EmuquTests'),

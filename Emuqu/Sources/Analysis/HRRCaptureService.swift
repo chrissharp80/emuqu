@@ -232,10 +232,9 @@ final class HRRCaptureService {
     /// The strap's current HR, or nil when it has stopped supplying one — in
     /// which case the caller falls through to Tier 2/3.
     ///
-    /// Diagnostic logging. User report: "Both tier-1 and
-    /// tier-2 failed in the 60–120s window." Failing silently —
-    /// `0 samples` in the workout-stop log with no indication of which tier
-    /// failed or why — is useless. Each exit names itself, so a failure log
+    /// Diagnostic logging. A silent failure (`0 samples` in the
+    /// workout-stop log with no indication of which tier failed or why)
+    /// cannot be diagnosed. Each exit names itself, so a failure log
     /// tells us strap-dropped vs strap-streaming-but-buffer-empty vs auth.
     ///
     /// These are NOT `.warning` (which surfaces as "Recent Problems" in

@@ -47,14 +47,12 @@ final class ArchiveMigrationParityTests: XCTestCase {
 
     /// Capture-and-restore, not fire-and-forget.
     ///
-    /// `NSTimeZone.default` is **process-global**. Ten test classes set it to
-    /// UTC in `class setUp()` and none of them put it back, so every test class
-    /// that happened to run afterwards in the same process silently inherited
-    /// UTC. `LiveReadinessTests` computes "today" from `Date()` against the
-    /// current calendar, so between 19:00 and midnight US-Central (when the UTC
-    /// date is already tomorrow) four of its tests failed — a genuine
-    /// time-of-day flake that was invisible only because the suite used to
-    /// deadlock before reaching them.
+    /// `NSTimeZone.default` is **process-global**. A class that sets it to UTC
+    /// in `class setUp()` and does not put it back leaks UTC into every test
+    /// class that runs after it in the same process. `LiveReadinessTests`
+    /// computes "today" from `Date()` against the current calendar, so between
+    /// 19:00 and midnight US-Central (when the UTC date is already tomorrow)
+    /// its tests would fail.
     private static let savedDefaultTimeZone = OSAllocatedUnfairLock<TimeZone?>(initialState: nil)
     override class func setUp() {
         super.setUp()

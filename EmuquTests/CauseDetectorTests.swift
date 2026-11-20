@@ -400,13 +400,11 @@ final class CauseDetectorTests: XCTestCase {
     /// The biggest-deviation rules describe physiology; they never name,
     /// forecast or presume an illness (App Store 1.4.1).
     ///
-    /// These rules used to ship "Severe HRV Crash … likely acute illness …
-    /// Consider staying home and monitoring for symptoms" and "Possible Immune
-    /// Response" under a "Full pattern match" / "Clear pattern match" badge.
     /// The thresholds were never evaluated against illness outcomes, so the
-    /// titles now name the pattern and the explanations list common causes
-    /// with illness last. The copy linter forbids the old phrasings in
-    /// source; this pins what the two detectors actually emit.
+    /// titles name the pattern and the explanations list common causes with
+    /// illness last. The copy linter forbids illness phrasings such as
+    /// "likely acute illness" or "Possible Immune Response" in source; this
+    /// pins what the two detectors actually emit.
     func testSevereAndMetricCausesDescribePhysiologyNotIllness() {
         let context = createContext(rmssd: 15.0, stressIndex: 300.0)
         let causes = SevereCauseDetector().detectCauses(in: context)

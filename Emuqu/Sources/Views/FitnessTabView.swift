@@ -462,12 +462,9 @@ struct FitnessTabView: View {
     /// wrong with the tab.
     @ToolbarContentBuilder
     private var fitnessToolbar: some ToolbarContent {
-        // Trailing toolbar: ⬇ download GPX. The unit
-        // dropdown was removed from legacy and moved to
-        // Settings → Profile. So:
-        // no unit picker in this toolbar (Settings → Profile
-        // & Health is its canonical home), GPX-download takes the
-        // trailing slot per spec.
+        // Trailing toolbar: ⬇ download GPX. No unit picker in this
+        // toolbar (Settings → Profile & Health is its canonical home),
+        // so GPX-download takes the trailing slot per spec.
         ToolbarItem(placement: .topBarTrailing) { fitnessDataMenu }
     }
 

@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
 # The file counts in `docs/MAINTAINERS.md` must match the tree.
 #
-# Why this exists (2026-09-01). Every count in that document had drifted, most
-# by 50% or more: `EmuquTests` documented as 90 files against 162 actual,
-# `Assistant/` as 74 against 107, `Views/` as 145 against 193. Nobody noticed
-# because nothing checked. An orientation document whose numbers are wrong is
-# worse than one with no numbers — a new maintainer uses them to decide where
-# the weight of the codebase sits, and these said the wrong thing.
+# Why this exists. An orientation document whose numbers are wrong is worse
+# than one with no numbers: a new maintainer uses them to decide where the
+# weight of the codebase sits, and the counts drift unless something checks.
 #
 # A 15% tolerance, because these are deliberately written as "~N" approximations
 # and a gate that fails on every added file would be turned off within a week.

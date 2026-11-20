@@ -27,7 +27,7 @@ final class HealthKitManager {
 
     // MARK: - Properties
 
-    // Bumped from `private` to `internal` so extensions in HealthKitManager+*.swift
+    // Internal, not `private`, so extensions in HealthKitManager+*.swift
     // files (e.g. +Sleep, +Vitals, +HeartRate, +Training, +HRV) can reach the
     // shared HealthKit store and settings provider.
     let healthStore = HKHealthStore()
@@ -77,7 +77,7 @@ final class HealthKitManager {
 
     /// Current sleep schedule from user settings. Used to derive overnight windows,
     /// morning cutoffs, and daytime HR query windows instead of hardcoded clock times.
-    /// Bumped from `private` to `internal` so extension files can derive overnight
+    /// Internal, not `private`, so extension files can derive overnight
     /// windows when querying HealthKit (e.g. HealthKitManager+Sleep.swift).
     var sleepSchedule: SleepSchedule {
         settingsProvider().sleepSchedule
@@ -312,9 +312,9 @@ final class HealthKitManager {
 
     /// Back-publish past workouts to Apple Health.
     ///
-    /// Users who onboarded before workoutType was added to the auth
-    /// set (or who initially denied) ended up with a long history of
-    /// archived workouts that never reached HealthKit. Once they grant
+    /// Users who had not granted workout write access (or who initially
+    /// denied it) can have a history of archived workouts that never reached
+    /// HealthKit. Once they grant
     /// the supplementary permission (`ensureWriteAuthorizationFresh`
     /// re-prompts at launch), this method walks the archive, exports anything still flagged
     /// `healthKitExportedAt == nil`, and stamps each one on success
@@ -545,8 +545,7 @@ final class HealthKitManager {
     /// every time. Without this guard such a session stays eligible, so every
     /// foreground retries the same doomed write until the retry ceiling burns
     /// through, and each failure re-archives the session to record the count.
-    /// A field log shows exactly one candidate failing this way out of 112: the
-    /// one-second stub a crashed recording left behind.
+    /// The usual case is the one-second stub a crashed recording leaves behind.
     nonisolated static func needsBackfill(_ session: HRVSession) -> Bool {
         guard session.healthKitExportedAt == nil,
               (session.healthKitExportFailureCount ?? 0) < HRVSession.healthKitExportRetryCeiling,
@@ -808,7 +807,7 @@ final class HealthKitManager {
         }
     }
     /// Active observer query for sleep data arrival.
-    /// Bumped from `private` to `internal` so the start/stop methods in
+    /// Internal, not `private`, so the start/stop methods in
     /// HealthKitManager+SleepTrends.swift can manage it across files.
     var sleepObserverQuery: HKQuery?
     /// Incremented each time new sleep data arrives in HealthKit.

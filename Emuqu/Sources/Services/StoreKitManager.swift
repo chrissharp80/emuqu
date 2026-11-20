@@ -524,7 +524,7 @@ final class StoreKitManager {
     ///
     /// Developer-installed builds (DEBUG, or an Xcode install Apple has
     /// verified) auto-grant — see `isDeveloperInstall` docs for the
-    /// tester-on-DEBUG case this fixes. That path deliberately does NOT write
+    /// tester-on-DEBUG case. That path deliberately does NOT write
     /// the beta anchor: a developer install is not a beta tester, and
     /// stamping a permanent entitlement from it would follow that Apple ID
     /// onto the App Store build forever.
@@ -789,11 +789,11 @@ final class StoreKitManager {
     ///
     /// True for DEBUG builds (Xcode Run) and any install Apple has verified as
     /// an Xcode build. A sandbox receipt is not one: TestFlight and App Review
-    /// installs carry it, and both meet the customer's paywall. This is
-    /// the case of a tester who had a DEBUG build pushed to their phone
-    /// via Xcode, no receipt, no TestFlight, no purchase → paywall blocked their
-    /// launch + the StoreKit `loadProducts()` call asked them to sign in to
-    /// Apple. Both wrong.
+    /// installs carry it, and both meet the customer's paywall. It covers
+    /// a tester with a DEBUG build pushed to their phone via Xcode (no
+    /// receipt, no TestFlight, no purchase), whose launch would otherwise be
+    /// blocked by the paywall while the StoreKit `loadProducts()` call asks
+    /// them to sign in to Apple.
     ///
     /// Every route here is positive evidence. A missing App Store receipt is
     /// not: StoreKit 2 does not promise the file exists, so reading its

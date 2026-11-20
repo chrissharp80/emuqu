@@ -2,15 +2,13 @@
 #
 # CI guard: user-facing decimal formatting must name a locale.
 #
-# Why this exists (2026-08-23). `String(format: "%.1f", x)` takes NO locale, and
-# with no locale Foundation formats POSIX-style — the decimal separator is always
-# ".". The app ships 16 non-English localizations, and in de/fr/es/it/pt and the
-# rest the separator is ",". So every metric on every screen, and every number in
-# the PDF report, rendered as "3.5" to users whose language writes "3,5". There
-# were 905 such call sites and not one of them passed a locale.
+# Why this exists. `String(format: "%.1f", x)` takes NO locale, and with no
+# locale Foundation formats POSIX-style: the decimal separator is always ".".
+# The app ships 16 non-English localizations, and in de/fr/es/it/pt and the
+# rest the separator is ",", so a metric would render as "3.5" to users whose
+# language writes "3,5".
 #
-# The fix is `String(format: "%.1f", locale: .current, x)`. This guard keeps it
-# that way.
+# The required form is `String(format: "%.1f", locale: .current, x)`.
 #
 # SCOPE — deliberately narrow, and the narrowness is the point:
 #

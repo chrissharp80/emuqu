@@ -166,8 +166,7 @@ enum SleepResolver {
     private static func resolveSessionAndWatch(_ ctx: Context) -> Resolution {
         let envelope = row1Envelope(ctx)
         // Drop iPhone "asleepUnspecified" that fires before the
-        // Watch detected actual sleep onset. Beta tester report: sleep claimed
-        // 8 PM start, Apple Health (Watch detail) showed 9:30 PM. iPhone's
+        // Watch detected actual sleep onset. iPhone's
         // phone-usage-based auto-detect routinely pre-labels the 1–2 hour
         // window of "phone down + lights low" as sleep, dragging the displayed
         // sleep start backward by an hour or more.
@@ -351,12 +350,10 @@ enum SleepResolver {
     /// heart-rate and motion signals and accurately track falling
     /// asleep.
     ///
-    /// Beta tester report: a session showed sleep starting at 8 PM
-    /// but Apple Health (Watch-sourced detail) showed actual sleep onset
-    /// at 9:30 PM. Root cause: iPhone wrote `asleepUnspecified [8:00 PM,
-    /// 9:30 PM]`, Watch wrote `asleepCore [9:30 PM, ...]` and `asleepDeep
-    /// [...]`. Both contributed to `sleepStages.map(\.start).min()`,
-    /// which picked 8 PM from the iPhone sample.
+    /// For example, iPhone writes `asleepUnspecified [8:00 PM, 9:30 PM]`
+    /// and Watch writes `asleepCore [9:30 PM, ...]` and `asleepDeep
+    /// [...]`. Unfiltered, both feed `sleepStages.map(\.start).min()`,
+    /// which picks 8 PM from the iPhone sample.
     ///
     /// Filter rules:
     ///   • If NO Watch detailed stages exist → keep iPhone samples as-is
@@ -591,15 +588,15 @@ enum SleepResolver {
     ///
     /// Provenance detection is productType-led. A bundle-identifier check
     /// — `bundleIdentifier.hasPrefix("com.apple.health") && !contains("watch")`
-    /// — is unreliable: Apple Watch sleep stages are written to HK by
+    /// — would be unreliable: Apple Watch sleep stages are written to HK by
     /// the iOS Health app *after* sync, with bundleIdentifier
     /// `com.apple.health.<deviceUUID>`. The UUID rarely contains "watch",
     /// so Watch samples are almost always misclassified as `.iphone`.
-    /// That makes `dropIphoneEarlySleepGuesses` a no-op against the
-    /// actual bug shape (a beta tester's night: 8 PM sleep start from
-    /// iPhone auto-detect, 9:30 PM truth from Watch detail).
+    /// That would make `dropIphoneEarlySleepGuesses` a no-op against an
+    /// 8 PM sleep start from iPhone auto-detect with a 9:30 PM onset in
+    /// Watch detail.
     ///
-    /// New rule: examine `sourceRevision.productType` first — Apple sets
+    /// Rule: examine `sourceRevision.productType` first — Apple sets
     /// it to the device model that ORIGINATED the sample ("Watch6,1",
     /// "iPhone15,2", etc.) regardless of which device synced it.
     /// Falls back to `HKMetadataKeyWasUserEntered` (treat manual entries

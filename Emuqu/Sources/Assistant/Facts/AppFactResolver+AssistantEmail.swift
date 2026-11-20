@@ -232,8 +232,7 @@ extension AssistantMemoryNamespace {
     // falling back to the generic recipient when the
     // category-specific one isn't set. Reading just
     // the category field leaves the composer blank when only the
-    // generic is configured (user report: "AI assistant
-    // continues having trouble with the emailing").
+    // generic is configured.
     // Same precedence as `resolvedDefaultEmailRecipient`.
     private func emailDefaults(for category: String) -> (to: String, cc: String) {
         let settings = AppDependencies.current.app.settingsManager.settingsSnapshot

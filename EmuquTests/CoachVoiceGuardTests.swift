@@ -549,7 +549,7 @@ final class CoachVoiceGuardTests: XCTestCase {
         }
     }
 
-    // MARK: - Streaming split (the fix for "scrubbed after it was on screen")
+    // MARK: - Streaming split (nothing is scrubbed after it is on screen)
 
     func testSplitHoldsBackAnIncompleteSentence() {
         let split = CoachVoiceGuard.splitAtLastSentenceBoundary("All good. You may have")

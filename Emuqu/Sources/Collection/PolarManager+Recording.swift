@@ -46,9 +46,9 @@ extension StrapRecordingCoordinator {
     /// rescued.
     ///
     /// Arming never runs while the session that wants it is ending or while
-    /// another transfer is using the strap (`requireArmingAllowed`): in a
-    /// field log the morning stop woke the arming loop, which cleared and
-    /// started the strap during the morning download.
+    /// another transfer is using the strap (`requireArmingAllowed`), so the
+    /// morning stop cannot wake the arming loop into clearing and starting the
+    /// strap during the morning download.
     func startFreshRecording(while stillWanted: () -> Bool = { true }) async throws {
         try requireArmingAllowed(stillWanted)
         if await deviceIsRecording() { try await setAsideRunningRecording() }

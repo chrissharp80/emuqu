@@ -43,8 +43,7 @@ struct TrendsV2View: View {
 
     @State private var selectedRange: TimeRange = .thirty
     /// Default metric is **Recovery Score**. Showing
-    /// RMSSD by default would invite the same averaging trap users hit
-    /// before the .overnight filter landed: the recovery score is the
+    /// RMSSD by default would invite an averaging trap: the recovery score is the
     /// number users already see on the dashboard, the one they want to
     /// see trending. RMSSD / SDNN / HR / Stress remain in the picker.
     @State var selectedMetric: Metric = .recoveryScore

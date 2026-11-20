@@ -237,8 +237,8 @@ extension EmuquApp {
     /// The retry is the part that matters: the first attempt almost always
     /// fires while iOS is busy, and the second lands cleanly.
     /// Not after "Skip for now" on onboarding's Apple Health page. That
-    /// choice used to last until the next launch, which put the Health
-    /// sheet in front of the user with no context. Access is then asked
+    /// choice lasts across launches, so the Health sheet never appears with
+    /// no context. Access is then asked
     /// for only from something the user taps: the dashboard's Get started
     /// row, Settings → Wearables, or Settings → Permissions.
     private func requestHealthKitAuthorizationIfOnboarded() {
@@ -254,13 +254,10 @@ extension EmuquApp {
     /// Pre-fetch road context at launch so the first
     /// workout tap doesn't have to wait for the geocoding pipeline.
     ///
-    /// User report: "geocoding. that's your problem … why do that to
-    /// start the walk and not do it when the app loads in the background
-    /// so the person is located?" Diagnostic confirmed: at workout
-    /// start the first GPS fix can take 20–30 s on a cold daemon, then
-    /// the tile-search + CLGeocoder + cross-street pipeline adds another
-    /// 10–15 s of staged timeouts before `current` is populated. Moving
-    /// that work to a delayed Task here means by the time the user is
+    /// At workout start the first GPS fix can take 20–30 s on a cold
+    /// daemon, then the tile-search + CLGeocoder + cross-street pipeline
+    /// adds another 10–15 s of staged timeouts before `current` is
+    /// populated. Doing that work in a delayed Task here means by the time the user is
     /// ready to start a walk, `AppDependencies.current.location.roadGeocodingService.current`
     /// already holds a fresh `RoadContext` and the workout ticker's
     /// first `refreshIfNeeded` no-ops on the time/movement gate.
@@ -338,7 +335,7 @@ extension EmuquApp {
     /// so the first Start tap doesn't pay the Taptic Engine's cold start.
     ///
     /// Launch touches no audio: it neither activates the audio session nor
-    /// speaks. The one speech cost that used to land on the first Start tap,
+    /// speaks. The one speech cost that would land on the first Start tap,
     /// enumerating the installed voices, is paid off the main actor by
     /// `WorkoutStartCue.prewarm(forLanguage:)` (see
     /// `EmuquApp.prewarmSpeechVoices`). Each spoken cue activates the session
@@ -525,10 +522,9 @@ extension EmuquApp {
     /// The launch iCloud sync; nil before onboarding is finished. NEVER
     /// skipped in Low Power Mode, and it has no delay of its own: it waits
     /// only on the coordinator's housekeeping gate (dashboard ready, or 6 s).
-    /// Reason: a beta tester had a
-    /// CloudKit zone-not-found death spiral going — every sync
-    /// cycle was failing with "Zone does not exist" for 20 pending
-    /// sessions, hammering CPU + battery. The zone-recreate fix
+    /// Reason: a missing CloudKit zone makes every sync cycle fail with
+    /// "Zone does not exist" for each pending session, hammering CPU +
+    /// battery. The zone recreate
     /// (CloudKitSyncManager.recreateZoneAfterNotFound) needs to
     /// actually RUN to heal that state. If we skip sync entirely
     /// in LPM, the zone stays broken forever and the app stays
@@ -536,8 +532,8 @@ extension EmuquApp {
     /// errors to retry).
     ///
     /// Not before onboarding is finished: the Backup page is where the user
-    /// says whether to sync, and a reinstall pulled its old sessions down
-    /// before they reached it. Finishing onboarding runs the sync instead.
+    /// says whether to sync, and a reinstall would pull its old sessions
+    /// down before they reached it. Finishing onboarding runs the sync instead.
     private func launchSyncWork() -> (@Sendable () async -> Void)? {
         let syncManagerJob = syncManager
         guard settingsManager.settings.hasCompletedOnboarding else {
@@ -559,20 +555,18 @@ extension EmuquApp {
     /// `healthKit.requestAuthorization`: the dashboard appears immediately
     /// using the cached purchase state from last launch, the refresh runs as
     /// a background task, and the paywall gate re-evaluates when it
-    /// completes. (User report: "from the time I open it I wait.")
+    /// completes.
     ///
     /// The launch housekeeping it schedules is staggered + delayed so the UI
-    /// can render and become responsive before heavy I/O kicks in. iPhone 11
-    /// with 20 pending CloudKit sessions hit a worst case where everything
-    /// fired simultaneously and the app was unresponsive for many seconds
-    /// (a field report).
+    /// can render and become responsive before heavy I/O kicks in. Fired
+    /// all at once (on an iPhone 11 with 20 pending CloudKit sessions, say),
+    /// it leaves the app unresponsive for many seconds.
     ///
     /// Low Power Mode awareness: in LPM the prewarm delays are multiplied by
     /// `launchDelayMultiplier`, and the workout-load backfill (with its
     /// training-metrics refresh) and the temp-asymmetry rescore are skipped.
-    /// User report: the app was draining the battery whenever foreground,
-    /// even with no session active — these housekeeping tasks were the
-    /// culprit. The archive migrations and the iCloud sync still run once
+    /// These housekeeping tasks drain the battery whenever the app is in
+    /// the foreground, even with no session active. The archive migrations and the iCloud sync still run once
     /// (see `launchSyncWork`).
     func loadDataAndContinue() {
         NSLog("[App][launch] loadDataAndContinue() entered (dataLoaded=\(dataLoaded))")
@@ -662,7 +656,7 @@ extension EmuquApp {
     /// entitlement. Overriding only the entitlement leaves the guard below as
     /// the first thing the gate hits, so with `paywallEnabled` off the screen
     /// becomes unreachable and its three UI tests fail on a product decision
-    /// rather than a regression — which is how they failed. The paywall is
+    /// rather than a regression. The paywall is
     /// code that ships in the binary and will be switched on; it has to stay
     /// provable while it is off. The argument is compiled out of Release.
     private func paywallModal() -> LaunchModal? {

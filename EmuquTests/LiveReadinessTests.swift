@@ -16,8 +16,8 @@ final class LiveReadinessTests: XCTestCase {
     /// counts as *today*. Anchored to `Date()`, that silently breaks between
     /// midnight and ~06:00 local: six hours before 01:06 is 19:06 *yesterday*,
     /// so `todayPrimary` correctly excludes it and four tests fail. It is a real
-    /// time-of-day flake, not a product bug — the same class of fragility as the
-    /// `NSTimeZone.default` leak fixed in the same pass.
+    /// time-of-day flake, not a product bug, the same class of fragility as a
+    /// leaked `NSTimeZone.default`.
     ///
     /// Noon leaves ≥6 h of same-day headroom in every time zone, so the fixtures
     /// mean what they say whenever the suite happens to run.

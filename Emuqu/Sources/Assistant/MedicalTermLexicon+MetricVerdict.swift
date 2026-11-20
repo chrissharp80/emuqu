@@ -67,7 +67,7 @@ extension MedicalTermLexicon {
             "early[- ]warning\\s+system",
             "strong\\s+predictor",
             // Evidence superlatives: naming a metric or a strap as the
-            // reference method. The app's own copy no longer makes these claims.
+            // reference method. The app's own copy does not make these claims.
             "gold[\\s-]+standard", "ecg[\\s-]+grade", "most\\s+validated",
             "best\\s+single\\s+predictor", "stronger\\s+heart", "adaptable\\s+cardiovascular",
             "[ée]talon[\\s-]+or", "qualit[ée]\\s+ecg",                                        // fr

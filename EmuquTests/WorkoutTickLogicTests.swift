@@ -219,12 +219,12 @@ final class WorkoutTickLogicTests: XCTestCase {
         XCTAssertEqual(decision, cleared(.strapNotConnected))
     }
 
-    // MARK: - Lost-walk regression
+    // MARK: - Start grace
 
-    /// From a field log: a tick watchdog forced a strap reconnect 1 s into a
-    /// walk, tearing down the strap's service setup; the process was gone
-    /// before the next heartbeat and the walk was lost. The tick no longer
-    /// touches the link at all, and it says nothing for the whole start grace.
+    /// A strap reconnect forced 1 s into a walk tears down the strap's service
+    /// setup, and the process can be gone before the next heartbeat, losing
+    /// the walk. The tick does not touch the link at all, and it says nothing
+    /// for the whole start grace.
     func testNothingIsSaidDuringTheStartGrace() {
         for feed in [StrapFeedHealth.Status.waitingForStrap, .settingUp, .stalled] {
             for elapsed in 0 ... Int(Arbitration.strapNoticeGraceSec) {

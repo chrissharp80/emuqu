@@ -244,12 +244,11 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Analysis Algorithms",
-   "hash": "5fd9ea69523b4644",
-   "does": "Claims RecoveryScoreCalculator keeps composite entry points with +Composite/+Tiers/+Training extensions; ScoringVersion.current = v3.2.oct2026; training load is not a composite tier; ReadinessScoring, VitalsScoring and ScoreDetailBuilder were split out with forwarding extensions; WindowSelection split into +Scoring (findBestWindow, selectWindowByMethod, analyzeAtPosition), +Evaluation and +Filters. Code matches: ScoringVersion.swift:37 current = \"v3.2.oct2026\"; all named files exist; the three functions are in WindowSelection+Scoring.swift (:83, :554, :724).",
+   "hash": "35c5843788fbf579",
+   "does": "Says RecoveryScoreCalculator keeps the composite entry points and display helpers with +Composite/+Tiers/+Training extensions; ScoringVersion.current = v3.2.oct2026; training load is not a composite tier; ReadinessScoring, VitalsScoring and ScoreDetailBuilder are their own types to keep RecoveryScoreCalculator under the 1500-line limit, each with a forwarding extension (+ReadinessForwarding, +VitalsForwarding, +DetailForwarding) so call sites use the RecoveryScoreCalculator API; WindowSelection split into +Scoring (findBestWindow, selectWindowByMethod, analyzeAtPosition), +Evaluation and +Filters. Code: ScoringVersion.swift current = \"v3.2.oct2026\"; all named files exist; the three functions are in WindowSelection+Scoring.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.calculate(_:trainingContext:config:ansBalance:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectWindowByMethod(_:in:flags:sleepStartMs:wakeTimeMs:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.analyzeAtPosition(in:flags:targetMs:)"
@@ -266,25 +265,21 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Analysis Algorithms > Artifact Detection",
-   "hash": "f4ef421a0133d9ac",
-   "does": "Claims rolling-median artifact detection with a centred 50-beat insertion-sorted window; technical if RR<300 or >2000 (confidence 1.0); extra if RR<median*0.5; short ectopic if RR<median*0.7 and deviation >20%; long ectopic if RR>median*1.2; missed if RR>median*1.5; minRR raised to 300 ms in Constants.swift. Code matches: HRVConstants.Artifacts.windowSize=50, RRInterval.minimum=300/maximum=2000, ArtifactDetector.Config ectopic 0.20/missed 0.50/extra 0.30; classify -> shortBeatFlags/longBeatFlags. Undocumented: a beat between 0.7 and 0.8 of the median is flagged ectopic by the generic ratio>0.20 branch (ArtifactDetection.swift:61), and in the short branch every beat below 0.7*median already has ratio>0.3 so the 'deviation >20%' condition is always true.",
+   "hash": "f00457012ab6df36",
+   "does": "Says rolling-median artifact detection with a centred 50-beat insertion-sorted window, each beat checked in order against its window median, every flag at confidence 1.0: technical if RR<300 or >2000 ms (minRR/maxRR in Constants.swift); extra if RR<median*(1-0.50) (extraThreshold); missed if RR>median*(1+0.50) (missedThreshold); otherwise ectopic if the deviation from the median exceeds 20% on either side (ectopicThreshold 0.20). Code: HRVConstants.Artifacts.windowSize=50, RRInterval.minimum=300/maximum=2000; ArtifactDetector.classify returns technical when out of range, extra below median*(1-extraThreshold 0.50), missed above median*(1+missedThreshold 0.50), ectopic when |RR-median|/median > ectopicThreshold 0.20, each with confidence 1.0.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)",
     "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.classify(rrMs:median:)",
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.shortBeatFlags(rr:median:ratio:)",
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.longBeatFlags(rr:median:ratio:)",
     "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.computeRollingMedian(_:windowSize:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.classify(rrMs:median:)": "6c413577ca564e84",
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.computeRollingMedian(_:windowSize:)": "deee4ec70514c56e",
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "603a4d925fb360fb",
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.longBeatFlags(rr:median:ratio:)": "9e61ebf73719db70",
-    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.shortBeatFlags(rr:median:ratio:)": "f7caacd0c831fcf0"
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.classify(rrMs:median:)": "2aa2579258b7c635",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.computeRollingMedian(_:windowSize:)": "0bdf5993ffbac364",
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.detectArtifacts(in:)": "58bfe64fc444721d"
    }
   },
   {
@@ -339,8 +334,8 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Analysis Algorithms > DFA Analysis",
-   "hash": "fe243ccba9884edf",
-   "does": "Claims DFA integrates (RR-mean), uses log-spaced boxes 4..N/4, linear detrend per box, log-log slope; alpha1 boxes 4-16, alpha2 16-64 requiring >=256 beats; overnight DFA (NonlinearAnalyzer and each WindowSelector candidate) interpolates removed beats (artifact, or in selection also ectopic/out of range) and splits at recording breaks with no box across a split, boxes up to a quarter of the longest segment; SD1 from the same adjacent pairs as RMSSD/SDSD; entropy templates inside runs of neighbours; alpha1 bands 0.75-1.0 organized, 0.6-0.75 flexible, >1.0 high variability, <0.6 anti-correlated; bands drive window selection and a +/-5 Tier-1 adjustment; Tools/copy_linter blocks verdict language. Code matches: DFAAnalyzer.compute(segments:) returns nil below 64 beats, maxBox = longest segment/4, alpha2Exponent requires forDFA=256; DFAAnalyzer.compute(window:)/interpolatedSegments; WindowSelector.scoredBlock and NonlinearAnalyzer.metrics(for:successiveDifferences:) call it; RecoveryWindow.optimalAlpha1Range 0.75...1.0, flexible 0.60...0.75; dfaAlpha1Adjustment +5; Tools/copy_linter/prohibited_terms.json lists the 'gold standard'/'load-bearing' patterns.",
+   "hash": "52a135e098da112b",
+   "does": "Says DFA integrates (RR-mean), uses log-spaced boxes 4..N/4, linear detrend per box, log-log slope; alpha1 boxes 4-16, alpha2 16-64 requiring >=256 beats; overnight DFA (NonlinearAnalyzer and each WindowSelector candidate) interpolates removed beats (artifact, or in selection also ectopic/out of range) and splits at recording breaks with no box across a split, boxes up to a quarter of the longest segment; SD1 from the same adjacent pairs as RMSSD/SDSD; entropy templates inside runs of neighbours; alpha1 bands 0.75-1.0 organized, 0.6-0.75 flexible, >1.0 high variability, <0.6 anti-correlated; band names are internal vocabulary for window selection and scoring, not validated readiness classifications, and user-facing copy does not present them as such (0.75 anchor is from graded-exercise protocols; cited N3 alpha1 0.78 +/- 0.21 straddles the 0.75 floor). Code: DFAAnalyzer.compute(segments:) returns nil below 64 beats, maxBox = longest segment/4, alpha2Exponent requires forDFA=256; DFAAnalyzer.compute(window:)/interpolatedSegments; WindowSelector.scoredBlock and NonlinearAnalyzer.metrics(for:successiveDifferences:) call it; RecoveryWindow.optimalAlpha1Range 0.75...1.0, flexible 0.60...0.75; dfaAlpha1Adjustment +5; Tools/copy_linter/prohibited_terms.json lists 'gold standard'/'load-bearing' patterns.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
@@ -731,8 +726,8 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Recovery Score Calculation > Vitals overrides (post-composite, all tiers)",
-   "hash": "e88591be7c11aa81",
-   "does": "Claims only SpO2 keeps a post-composite penalty: 24-h average SpO2 < 95% -> -10; constants centralised in ScoringWeights (Constants.swift) and RecoveryScoreConstants (Constants+RecoveryScore.swift). Code matches: fetchOxygenSaturation uses a 24-h discreteAverage window; RecoveryVitals.isSpO2Concerning = spo2 < 95; applyVitalsOverrides subtracts RecoveryScoreConstants.Vitals.spo2Penalty (10). RecoveryScoreConstants.Vitals still declares respiratoryPenalty and temperature penalties for the removed post-composite rules.",
+   "hash": "357538b5ef8d8036",
+   "does": "Says only SpO2 keeps a post-composite penalty: 24-h average SpO2 < 95% -> -10; respiratory rate and wrist temperature carry no post-composite penalty and feed the Vitals factor (Tier 3) as a continuous sub-score; constants centralised in ScoringWeights (Constants.swift) and RecoveryScoreConstants (Constants+RecoveryScore.swift). Code: fetchOxygenSaturation uses a 24-h discreteAverage window; RecoveryVitals.isSpO2Concerning = spo2 < 95; applyVitalsOverrides subtracts RecoveryScoreConstants.Vitals.spo2Penalty (10).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.applyVitalsOverrides(score:vitals:)",
@@ -747,7 +742,7 @@
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.applyVitalsOverrides(score:vitals:)": "bee8a87cab5f89b4",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsPenaltyDescriptions(_:)": "d83cbf4456fd2b51",
     "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.fetchOxygenSaturation(relativeTo:)": "6ea6fd80e5164f9a",
-    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isSpO2Concerning": "49a3d7fabe5624e5"
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isSpO2Concerning": "48ae2f1291e92d8b"
    }
   },
   {
@@ -807,7 +802,7 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Training Readiness Calculation > Capacity Ratio Model",
-   "hash": "de0158b3a61526c5",
+   "hash": "893c7ae050f16472",
    "does": "Claims acuteFatigue = sum TRIMP*0.30*exp(-h/24) over the last 72 h (today's TRIMP*0.35 without them); effectiveLoad = ATL + acute; ratio = effectiveLoad/CTL when CTL>=3.2, piecewise 0->100, 0.8->85, 1.0->70, 1.3->50, 1.5->30, 2.0+->10; below CTL 3.2 readiness = max(10, 100 - (ATL + undamped acute)*0.5). Code matches computeAcuteFatigue, computeBaseReadiness, mapCapacityRatioToReadiness and RecoveryScoreConstants.Readiness.",
    "entry": null,
    "calls": [
@@ -819,15 +814,15 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "c6894f9bcbb37dd6",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "510a4cb6f29ffc87",
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "75d9c9855af3f587"
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)": "55b0e28838dc4f17",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "9b7372d63af0f799",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "c73d8f4cc0baddaa"
    }
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Training Readiness Calculation > ACWR Modifier (Training Readiness only — NOT the recovery score)",
-   "hash": "b20c9f61db758a1a",
-   "does": "Claims ACWR modifier on readiness only: no effect 0.8-1.3, >1.3 penalty min(5% + (ACWR-1.3)*50%, 40%), no detraining penalty, multiplied by min(CTL/50,1), capped at 10% when recovery >= 70; ACWR not named in user copy per system-prompt rules 11 and 13. Code matches applyACWRModifier/dampenedACWRPenalty and AIProvider+SystemPromptText.swift rules 11 (line 103) and 13 (line 119). RecoveryScoreConstants.Readiness still declares acwrDetrainingThreshold/PenaltySlope/PenaltyCap, which nothing reads.",
+   "hash": "e28d9de01d181eda",
+   "does": "Says ACWR modifier on readiness only: no effect 0.8-1.3, >1.3 penalty min(5% + (ACWR-1.3)*50%, 40%), no detraining penalty, two dampeners: multiplied by min(CTL/50,1), capped at 10% when recovery >= 70; ACWR not named in user copy per system-prompt rules 11 and 13. Code: applyACWRModifier/dampenedACWRPenalty and AIProvider+SystemPromptText.swift rules 11 and 13.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)",
@@ -837,7 +832,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "af43b21bcbbeaaaa",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.applyACWRModifier(_:acuteChronicRatio:ctl:recoveryScore:)": "b0963f4cef77ab75",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.dampenedACWRPenalty(acr:ctl:recoveryScore:)": "79a326701b55ae38"
    }
   },
@@ -981,8 +976,8 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Sleep Pipeline > HR-Estimated Sleep (fallback, not extension)",
-   "hash": "6c5a6f8b86db8d20",
-   "does": "Claims when HealthKit has zero sleep, MorningResultsViewModel.estimateSleepFallback tries the RR-derived estimate (estimateSleepFromHR) then passive Watch HR (estimateSleepFromHealthKitHR over the window extended to the schedule end); passive algorithm: 20-min rolling average, >=8 BPM range, threshold at range midpoint, onset = first 2 consecutive points below threshold, accepted only within a 20-min wall-clock latency, else bedtime (a later detection is a misfire), wake = end of last below-threshold block; minimumSamples 12, minimumSleepMinutes 120; AutoSleepExtension is never constructed outside SleepResolverTests; DashboardViewModel/WatchSleepDetector do not exist. Code matches: estimateSleepFallback (MorningResultsViewModel.swift:488), smoothHRSamples(windowMinutes: 20) at HealthKitManager+Sleep.swift:418, hrSleepThreshold, plausibleSleepOnset (SleepConstants.isPlausibleHROnsetLatency), sleepWake, estimateSleepFromHealthKitHR(minimumSamples: 12, minimumSleepMinutes: 120); grep finds AutoSleepExtension( only in EmuquTests/SleepResolverTests.swift; no DashboardViewModel or checkForExtendedSleep in Swift sources.",
+   "hash": "c0e8f7bb86f5a1a5",
+   "does": "Says when HealthKit has zero sleep, MorningResultsViewModel.estimateSleepFallback tries the RR-derived estimate (estimateSleepFromHR) then passive Watch HR (estimateSleepFromHealthKitHR over the window extended to the schedule end); passive algorithm: 20-min rolling average, >=8 BPM range, threshold at range midpoint, onset = first 2 consecutive points below threshold, accepted only within a 20-min wall-clock latency, else bedtime (a later detection is a misfire), wake = end of last continuous below-threshold block; minimumSamples 12, minimumSleepMinutes 120; AutoSleepExtension is threaded through fetchSleepData but never constructed outside SleepResolverTests, so no post-strap sleep extension path ships; the detector is the threshold heuristic, with no ECDF or percentile detector, kept deliberately. Code: estimateSleepFallback (MorningResultsViewModel.swift), smoothHRSamples(windowMinutes: 20) in HealthKitManager+Sleep.swift, hrSleepThreshold, plausibleSleepOnset (SleepConstants.isPlausibleHROnsetLatency), sleepWake, estimateSleepFromHealthKitHR(minimumSamples: 12, minimumSleepMinutes: 120); AutoSleepExtension( appears only in EmuquTests/SleepResolverTests.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.estimateSleepFallback(for:)",
@@ -1348,7 +1343,7 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > AI Assistant",
-   "hash": "1b6ae89548e49a63",
+   "hash": "d53bb8446a47fd58",
    "does": "Claims Sources/Assistant is a provider-agnostic assistant over six providers (Apple on-device, Anthropic, OpenAI, Gemini, Grok, DeepSeek) with details in FLO_ARCHITECTURE.md; chat tab is MainTabView.Tab.coach, mid-workout voice is WorkoutVoiceCoach, AssistantSubsystem drives badges. Code: AIProvider.swift declares cases apple, anthropic, openai, gemini, grok, deepseek and enum AssistantSubsystem; MainTabView has case coach.",
    "entry": null,
    "calls": [
@@ -1383,28 +1378,28 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.fingerprint(for:)": "a4476dba8f515d35",
-    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.get(forSessionId:matching:)": "c6a3e36e5c6f1a2a",
-    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.set(_:forSessionId:fingerprint:)": "fba692c6cd1caeb1",
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.fingerprint(for:)": "c0554047e540ac3d",
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.get(forSessionId:matching:)": "d024662b701b5ad1",
+    "Emuqu/Sources/Assistant/Chat/AnalysisSummaryCache.swift::func AnalysisSummaryCache.set(_:forSessionId:fingerprint:)": "46efa3f1289aec1c",
     "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.annotate(_:archive:)": "9d7c347586e27bec",
     "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.parseSessionURL(_:)": "e61c241203f085c3",
     "Emuqu/Sources/Assistant/Chat/AssistantInbox.swift::func AssistantInbox.requestOpen()": "6f0bbfe0076abce6",
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.start()": "9bf901206ea4e90b",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.start()": "ba5c684196dfff57",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.systemPromptBlock()": "4323ea47776c5cdb",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "cd1e9cbfac8ca743",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.liveStateDayLabel(_:now:)": "bdfa54d8a2381dc9",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.recentWorkoutLines()": "b5938025759440bd",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)": "212ef74d72560eb7",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.thirtyDayTotalLine(sevenDayCount:)": "42d9775e0ac577c7",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLiveStateLine(now:)": "f01fe165fab46080",
-    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklyRollupLines()": "c11fbe69339d0e68",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.thirtyDayTotalLine(sevenDayCount:)": "5f2aeff7cb2409fb",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.todayLiveStateLine(now:)": "76b783d1470340ac",
+    "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.weeklyRollupLines()": "07b741b4eb794e54",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.workoutBits(_:dateFormatter:)": "bb5c41d36becad6f",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.buildWorkoutHistory(sessions:)": "f58e48a07ff99a13",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.computeOrFetchSummary(session:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:liveLoadSnapshot:baselineStats:)": "d11abc02db99ba6f",
-    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.workoutHistoryEntry(_:)": "e6aa8841d9bbb77e",
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "b26556448903f9ff",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.makeRecognitionRequest(for:)": "ccca613235661451",
-    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.asFactSheet()": "7e95617405d9b444",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.computeOrFetchSummary(session:recentSessions:sleepInput:sleepTrend:trainingContext:userSettings:liveLoadSnapshot:baselineStats:)": "3106ce8eafd01216",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.workoutHistoryEntry(_:)": "b3fe5d28c936d06c",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "08324bd52931b06a",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.makeRecognitionRequest(for:)": "43a6575fb08de9e9",
+    "Emuqu/Sources/Assistant/WorkoutAIContext.swift::func WorkoutAIContext.asFactSheet()": "5e5eb22264301b10",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.analysisSummary": "b7cbd1dd74622cfb",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.askFloButton(_:)": "0afd84b5b4ddc7b5",
     "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.askFloMenu": "e8b5eac60c534ff7",
@@ -1545,8 +1540,8 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Navigation & Location Subsystems > `WorkoutLocationManager`",
-   "hash": "c982bcc3ed65269a",
-   "does": "Claims WorkoutLocationManager uses kCLLocationAccuracyBestForNavigation with background location, owns the altimeter, and is lazily created on first access. Code: desiredAccuracy BestForNavigation and allowsBackgroundLocationUpdates = true (WorkoutLocationManager.swift:145,213); it owns a CMAltimeter (doc says CLAltimeter, which is not an Apple type); WorkoutRecorder.location creates it lazily on first read (WorkoutRecorder.swift:155-160).",
+   "hash": "50cf9f0deade8211",
+   "does": "Says WorkoutLocationManager uses kCLLocationAccuracyBestForNavigation with the location background mode, is active during a recording workout, owns the altimeter for barometric elevation, and is lazily created on first access (start() for GPS sports) so the recorder's init does not pay the CLLocationManager + altimeter setup on the main actor. Code: desiredAccuracy BestForNavigation and allowsBackgroundLocationUpdates = true in WorkoutLocationManager.swift; it owns a CMAltimeter; WorkoutRecorder.location creates it lazily on first read.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.record(_:)"
@@ -1681,8 +1676,8 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Dependency Injection > RRCollector decomposition (sub-objects + SwiftUI observation)",
-   "hash": "b38afc21aed118fa",
-   "does": "Claims RRCollector was decomposed into @Observable sub-objects (ArchiveSignal, DeviceStatus, SessionState, StreamingLifecycle, MorningCoordination) and holds no observable state itself; every observable type is @Observable with no ObservableObject/@Published (ratchet .ci/legacy_observable_object_budget.txt = 0); Combine bindings became ObservationLoop; Swift 6 strict concurrency; unchecked Sendable listed in scripts/check_unchecked_sendable.sh. Code: the budget file reads 0 and enforce_tech_debt_budgets.sh scans only the Emuqu directory; RRCollector is @Observable and still declares tracked stored properties (deviceFetchPolicy, useDeviceBackupForOvernight, overnightDeviceBackupActive, isOvernightEnding, sessionStartTime, lastSeenReconnectCount, inFlightReanalyses, isAutoRefreshingSleep) and a Combine 'cancellables' set; the Watch app's WatchSessionManager, WatchStrapConnector and WatchWorkoutManager are ObservableObject with @Published.",
+   "hash": "1e4c0988a3f8e4b0",
+   "does": "Says RRCollector is decomposed into @MainActor @Observable sub-objects (ArchiveSignal, DeviceStatus, SessionState, StreamingLifecycle, MorningCoordination) holding the live state, with views observing the sub-object they need; every observable type is @Observable with no ObservableObject/@Published/objectWillChange (ratchet .ci/legacy_observable_object_budget.txt = 0); property-change reactions use self-re-arming withObservationTracking loops via ObservationLoop (Emuqu/Sources/Utilities/ObservationLoop.swift), delivered on the main actor after the mutation, with untracked plumbing @ObservationIgnored; Swift 6 language mode with complete strict concurrency and warnings as errors, and the patterns used (main-actor stores with nonisolated lock-backed snapshots, Sendable analysis types, StrapAPI wrapping the Polar SDK, Sendable payloads across framework callbacks, main-actor theme palette); remaining @unchecked Sendable / nonisolated(unsafe) listed in scripts/check_unchecked_sendable.sh. Code: the budget file reads 0; ObservationLoop.observe re-arms after each change; CollectorSessionControl.bindBatteryAndReconnect uses it.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)",
@@ -1698,7 +1693,7 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Dependency Injection > Extraction pattern for oversized types",
-   "hash": "a9bb7a58e691eb18",
+   "hash": "dd1cb1c759765be0",
    "does": "Claims check_aggregate_type_size.sh with ratchets .ci/aggregate_type_size_budget.txt and .ci/aggregate_type_excess_budget.txt, extracted helpers hold the parent strongly, unowned banned by scripts/check_no_unowned.sh, forwarding extensions keep APIs. The named scripts and budget files exist in scripts/ and .ci/.",
    "entry": null,
    "calls": [
@@ -1728,9 +1723,9 @@
    }
   },
   {
-   "key": "§ Emuqu — Architecture & Algorithms > Home-screen Widget — REMOVED (2026-07-03)",
-   "hash": "c2665cfa4c4ea335",
-   "does": "Claims the widget extension and WidgetDataPublisher were removed and DataPurgeService still erases widget.* keys. Code: no WidgetDataPublisher or WidgetCenter call exists in Emuqu/Sources; DataPurgeService.swift:647-658 lists widget.todayScore/todayVerdict/todayDate/last3Days/totalSessions for erasure. EmuquUITests/WidgetIntegrationUITests.swift still exists.",
+   "key": "§ Emuqu — Architecture & Algorithms > Home-screen widget",
+   "hash": "8c72c2db38c71288",
+   "does": "Says the app has no home-screen widget, Lock Screen accessory or Live Activity and nothing writes widget data to the App Group UserDefaults; DataPurgeService still erases the widget.* keys so values left by an earlier build are cleaned up, to be removed only once no supported upgrade path can carry them; the App Group entitlement stays for the archive, raw-RR backups, conversation store, user facts and unit preferences. Code: no WidgetDataPublisher or WidgetCenter call exists in Emuqu/Sources; DataPurgeService lists widget.todayScore/todayVerdict/todayDate/last3Days/totalSessions for erasure.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLegacySharedState()",
@@ -1739,14 +1734,11 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLegacySharedState()": "bd6e0e9096cc3d48",
-    "EmuquUITests/WidgetIntegrationUITests.swift::func WidgetIntegrationUITests.testBackgroundForegroundCycleSurvives()": "34a32aaf33bafd24"
-   }
+   "deps": {}
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Apple Watch app",
-   "hash": "8315530fd5a9fe61",
+   "hash": "1425065c10d3103e",
    "does": "Claims the Watch app is embedded in the iOS build, mirrors phone workout state over WatchConnectivity (WatchConnectivityBridge on phone, WatchSessionManager on wrist), with WatchApp, WatchLiveView, WatchWorkoutManager, WatchStrapConnector files. All named files exist in EmuquWatch Watch App/ and Emuqu/Sources/Services/WatchConnectivityBridge.swift; embedding is a project.pbxproj fact not verified here.",
    "entry": null,
    "calls": [
@@ -1756,7 +1748,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.boot()": "5eabea06d36d7da6"
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.boot()": "a5ec0a0a99759886"
    }
   },
   {
@@ -1778,7 +1770,7 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Known Limitations",
-   "hash": "98b7153110dce507",
+   "hash": "fcd1315d9b948ffe",
    "does": "Lists known limitations (no per-device window config, baseline not synced, no seasonal adjustment, no periodization, TRIMPi not implemented, Banister k sex split 1.92/1.67 with male fallback, Polar battery hours counter hoursRecordedSinceBatteryChanged vs H10 400 h / Verity 30 h, no multisport, no interval editor, no road closures). Code: WorkoutAnalyzer.swift:28-29 documents k=1.92/1.67; PolarManager.swift:65 H10 capacity 400 h; hoursRecordedSinceBatteryChanged read by RecordingStatusViews.swift:15.",
    "entry": null,
    "calls": [
@@ -1797,13 +1789,13 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recalculateBaseline()": "5913d71cf596b63e",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "3adb0e0ea37e3f5f",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recalculateBaseline()": "e3832f816a21e0ba",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "f33747d3f9768073",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.recordRecordingHours(_:)": "568275b6e254e507",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.specRecordingHours": "d1e3b3d94aa50cfc",
     "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.applyLevelUpdate(from:batteryLevel:)": "6031ca4c1242972f",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "3c2c607e76ead82c",
-    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recordRecordingHours(_:)": "b046416554838434",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recomputeStaleness()": "2bbe0ada88e62d35",
+    "Emuqu/Sources/Collection/StrapBatteryUsageTracker.swift::func StrapBatteryUsageTracker.recordRecordingHours(_:)": "a22e7eccfe177387",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.banisterSex(for:)": "c82288923a782cc7",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.runAnalyzer(sport:rrPoints:startDate:track:settings:unitsPreference:)": "9bdec37ebc712f47",
     "Emuqu/Sources/Views/RecordingStatusViews.swift::var DeviceInfoPanelView.recordedSinceUpdateSummary": "133e993c2297af39"
@@ -1826,8 +1818,8 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Fitness Tab — Workout Subsystem > Subsystems",
-   "hash": "ca47db55e958709d",
-   "does": "Claims per-subsystem behaviour: LiveDFAAnalyzer 2-min window every 20 s with a +/-20% Kubios-style filter (cleanRRForDFA); WorkoutAlpha1Reanalyzer replays the pipeline; TopoElevationService NED 10 m then SRTM 30 m with a 15 m climb threshold; HRRCaptureService 120 s capture with strap/Watch/HealthKit tiers; LiveWorkoutBroker treats snapshots >12 s as nil; RouteLibrary.findMatch after ~500 m, both directions, <=30 m mean distance, routes in App Group saved_routes.json with legacy migration; WeatherService MET Norway with >=10 min between requests, 30-min TTL, 5 km refetch; RoadGeocodingService 15 m/60 s, 8 failures/30 s, 600 ms per-climb pacing; Concept2Manager PM5 0x0031/0x0032/0x0036 with power outside 1-1500 W dropped; FootPodManager RSC 0x1814 plus FTMS 0x1826/0x2AD2; ZwiftPeripheralBroadcaster 0x180D/0x1818 gated by enableZwiftBroadcast; WorkoutThreshold debounce 30 s / cooldown 120 s with Bool? evaluate; WorkoutPDFReport maxPDFPoints 250. Code matches: LiveDFAAnalyzer init(windowSec: 120, cadenceSec: 20) and ectopicRatio 0.20; HRRCaptureService captureWindowSec 120; LiveWorkoutBroker.staleAfterSec 12; RouteLibrary detectionTriggerMeters 500 / matchToleranceMeters 30; WeatherService cacheTTL 30 min, minimumRequestInterval 10 min, 5_000 m; SavedRoute climb geocoding sleeps 600_000_000 ns; Concept2Manager.plausibleStrokePowerWatts 1...1_500 (service UUID is the Concept2 128-bit ce060030-...); FootPodManager 1814/1826/2AD2; Zwift UUIDs and enableZwiftBroadcast default false; WorkoutThreshold defaults 30/120. RoadGeocodingService is described as a CLGeocoder wrapper but resolves via MKLocalSearch tiles first (see the 983 record).",
+   "hash": "ad27847e25b74303",
+   "does": "Says per-subsystem behaviour: LiveDFAAnalyzer 2-min window every 20 s with a +/-20% Kubios-style filter (cleanRRForDFA); WorkoutAlpha1Reanalyzer replays the pipeline; TopoElevationService NED 10 m then SRTM 30 m with a 15 m climb threshold; HRRCaptureService 120 s capture with strap/Watch/HealthKit tiers, strap streaming kept alive through the capture window so Tier 1 has strap data; LiveWorkoutBroker treats snapshots >12 s as nil; RouteLibrary.findMatch after ~500 m, both directions, <=30 m mean distance, routes in App Group saved_routes.json with legacy migration; WeatherService MET Norway with >=10 min between requests, 30-min TTL, 5 km refetch; RoadGeocodingService 15 m/60 s, 8 failures/30 s, 600 ms per-climb pacing; Concept2Manager PM5 0x0031/0x0032/0x0036 with power outside 1-1500 W dropped; FootPodManager RSC 0x1814 plus FTMS 0x1826/0x2AD2; ZwiftPeripheralBroadcaster 0x180D/0x1818 gated by enableZwiftBroadcast; WorkoutThreshold debounce 30 s / cooldown 120 s with Bool? evaluate; WorkoutPDFReport maxPDFPoints 250. Code: LiveDFAAnalyzer init(windowSec: 120, cadenceSec: 20) and ectopicRatio 0.20; HRRCaptureService captureWindowSec 120; LiveWorkoutBroker.staleAfterSec 12; RouteLibrary detectionTriggerMeters 500 / matchToleranceMeters 30; WeatherService cacheTTL 30 min, minimumRequestInterval 10 min, 5_000 m; SavedRoute climb geocoding sleeps 600_000_000 ns; Concept2Manager.plausibleStrokePowerWatts 1...1_500; FootPodManager 1814/1826/2AD2; Zwift UUIDs and enableZwiftBroadcast default false; WorkoutThreshold defaults 30/120.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)",
@@ -1844,17 +1836,17 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)": "5656cbdeb6baee1a",
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "26547ccaed8e1da6",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "ef22a598a8881280",
     "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)": "2662dacd6f0a9521",
-    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)": "db5846f46dc6a468",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.update(heartRate:powerWatts:)": "297cbefb6dac851f",
+    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)": "3446776e2575bc4f",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.update(heartRate:powerWatts:)": "88d1cd9b077c9eb7",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.evaluate(hrBPM:hrZone:powerWatts:ftpWatts:paceSecPerKm:alpha1:cadenceSPM:distanceMeters:elapsedSec:elevationGainMeters:gradePercent:)": "e26f6460819ce7f2",
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.performLookup(at:enrichCrossStreet:)": "f715486ad279534a"
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.performLookup(at:enrichCrossStreet:)": "f1ca30241f252cbe"
    }
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Fitness Tab — Workout Subsystem > Training load math (research-backed)",
-   "hash": "e013c588121ba9e9",
+   "hash": "2af1300b7553c8ad",
    "does": "Claims Banister TRIMP with male A=0.64,k=1.92 and female A=0.86,k=1.67 by settings.biologicalSex; hrTSS = TRIMP / one-hour-at-LTHR TRIMP * 100 (nil without anchors); power TSS (NP/FTP)^2*h*100; LTHR override else 0.88*maxHR; resting HR override -> baseline -> 60; CTL/ATL/TSB over a 180-day zero-seeded window, sub-1-minute workouts dropped. Code: WorkoutAnalyzer.banisterTRIMP picks TrainingConstants.TRIMP male/female scale and weighting by BanisterSex, falls back to Edwards 5-zone when HRrest/HRmax missing (computeTRIMP / edwardsTRIMPFallback); computeHrTSS / oneHourAtLTHRTRIMP; LTHR fallback 0.88 documented at WorkoutAnalyzer.swift:55-62; TrainingHealthQueries+Queries.swift:626 documents the 180-day lookback.",
    "entry": null,
    "calls": [
@@ -1868,7 +1860,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "3adb0e0ea37e3f5f",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "f33747d3f9768073",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)": "dbca3958b68fa5b2",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeTRIMP(rrPoints:userMaxHR:userRestingHR:sex:)": "fb025816dc1f63c5",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.edwardsTRIMPFallback(hrs:userMaxHR:)": "237eed38bd155d62",
@@ -1877,7 +1869,7 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Fitness Tab — Workout Subsystem > α1-derived LT1 estimate",
-   "hash": "c62e7d1fd91b0f80",
+   "hash": "1a4af78c14dbfce5",
    "does": "Claims the post-summary shows the HR at a clean downward alpha1 crossing of 0.75 as an aerobic-threshold (LT1) estimate, never suggests it as LTHR, and it does not feed TRIMP/hrTSS. LT1 display code lives in Alpha1ReportCards+Report.swift, ThresholdCards.swift, WorkoutHeroCard.swift and WorkoutAnalysisSnapshot; ThresholdCards.swift contains no LTHR reference.",
    "entry": null,
    "calls": [
@@ -1898,10 +1890,9 @@
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.alpha1Explainer": "3107559229c53c9a",
     "Emuqu/Sources/Views/FitnessPostSummaryView+ThresholdForwarding.swift::var FitnessPostSummaryView.alpha1LT1EstimateCard": "6ab0638570f7f47e",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryFeelingAndAlpha1": "b0ac0e64ed34571e",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)": "5b701a2276624df8",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.alpha1LT1EstimateCard": "a1a164fc69226783",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.lt1CardHeader": "b85c3d8add2c744d",
-    "Emuqu/Sources/Views/WorkoutHeroCard.swift::func WorkoutHeroCard.bandAppearance(_:)": "154c623c03b08450"
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::func ThresholdCards.detectAlpha1Crossings(samples:)": "c559c56d407c8548",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.alpha1LT1EstimateCard": "025fb4e741cb7fad",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.lt1CardHeader": "b85c3d8add2c744d"
    }
   },
   {
@@ -1935,9 +1926,9 @@
    }
   },
   {
-   "key": "§ Emuqu — Architecture & Algorithms > Fitness Tab — Workout Subsystem > Elevation: barometric signal processing for the headline total > Retroactive (pre-barometer-fix sessions)",
-   "hash": "0c23f75b605aa8f8",
-   "does": "Claims pre-buffer sessions fall back to TopoElevationService DEM lookup (OpenTopoData NED 10 m / SRTM 30 m) with a 15 m sustained-climb threshold. Code: TopoElevationService.elevations(sustainedClimbThreshold: 15.0).",
+   "key": "§ Emuqu — Architecture & Algorithms > Fitness Tab — Workout Subsystem > Elevation: barometric signal processing for the headline total > Retroactive (sessions without barometric samples)",
+   "hash": "6f3f424d53ffd927",
+   "does": "Says sessions that carry no barometric samples fall back to TopoElevationService DEM lookup (OpenTopoData NED 10 m for US / SRTM 30 m elsewhere) with a 15 m sustained-climb threshold. Code: TopoElevationService.elevations(sustainedClimbThreshold: 15.0).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)"

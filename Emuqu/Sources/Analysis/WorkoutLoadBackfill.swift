@@ -3,11 +3,10 @@ import Foundation
 
 /// One-shot retroactive backfill that runs
 /// `RouteTRIMPEstimator` against archived workouts that finalized
-/// BEFORE the estimator was wired into the live finalize path. The
-/// user reported recent walks showing "1 TRIMP" on the Load page
-/// because their strap dropped, no Stryd power was captured, and
-/// `extrapolatedTRIMP` was nil — so `preferredTrainingLoad` fell all
-/// the way through to a junk Banister value. New workouts get the
+/// without an estimate. When the strap dropped, no Stryd power was
+/// captured, and `extrapolatedTRIMP` is nil, `preferredTrainingLoad`
+/// falls all the way through to a junk Banister value (a walk shows
+/// "1 TRIMP" on the Load page). New workouts get the
 /// estimate at finalize; this fills in the back catalogue so the Load
 /// page, recent-workouts list, ATL/CTL chain, and the AI coach all
 /// read coherent numbers without forcing the user to re-record.

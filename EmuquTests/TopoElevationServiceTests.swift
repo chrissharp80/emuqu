@@ -15,14 +15,14 @@ final class TopoElevationServiceTests: XCTestCase {
         TopoElevationService.sustainedClimb(in: elevations, threshold: threshold)
     }
 
-    // MARK: - The bug this fixed
+    // MARK: - Quantised elevations inside a climb
 
     func testQuantisedClimbIsNotDiscarded() {
         // DEM elevations are quantised — OpenTopoData returns discrete metres
         // — so equal consecutive samples are routine mid-climb. Treating a
-        // flat step as a direction reversal chopped this 20 m climb into four
-        // 5 m fragments and the threshold discarded every one: reported gain
-        // was ZERO.
+        // flat step as a direction reversal would chop this 20 m climb into
+        // four 5 m fragments and the threshold would discard every one,
+        // reporting a gain of ZERO.
         let climb: [Double] = [0, 0, 5, 5, 10, 10, 15, 15, 20, 20]
         let result = gainLoss(climb)
         XCTAssertEqual(result.gain, 20, accuracy: 0.001, "a quantised 20 m climb is still 20 m")

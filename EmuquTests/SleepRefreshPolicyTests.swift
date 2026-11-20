@@ -137,11 +137,11 @@ final class SleepRefreshPolicyTests: XCTestCase {
         XCTAssertTrue(verdict.shouldUpdate)
     }
 
-    // MARK: - Verdict: onset move (regression)
+    // MARK: - Verdict: onset move
 
-    /// The exact regression: HR estimated onset 117 min in, Apple says 5 min,
-    /// with a similar TOTAL. Keying only on minutes skipped both gates and
-    /// left the score computed from a bogus window.
+    /// HR estimated onset 117 min in, Apple says 5 min, with a similar TOTAL.
+    /// Keying only on minutes would skip both gates and leave the score
+    /// computed from a bogus window.
     func testALargeOnsetMoveAtTheSameTotalStillRescores() {
         let prior = makeSleep(startOffsetMin: 117, minutes: 343, source: .hrEstimated)
         let session = makeSession(sleepSnapshot: prior, sleepStartMs: 117 * 60_000)
@@ -242,12 +242,12 @@ final class SleepRefreshPolicyTests: XCTestCase {
         ))
     }
 
-    // MARK: - applyFreshSleep (regression)
+    // MARK: - applyFreshSleep
 
     /// The critical one: `sleepStartMs` / `sleepEndMs` are what
     /// WindowSelection scores from; the snapshot is display-only. Updating
-    /// only the snapshot left the display corrected and the score computed
-    /// from the stale HR-estimated window.
+    /// only the snapshot would leave the display corrected and the score
+    /// computed from the stale HR-estimated window.
     func testApplyingFreshSleepMovesTheScoringBoundariesNotJustTheDisplay() {
         var session = makeSession(
             sleepSnapshot: makeSleep(startOffsetMin: 117, minutes: 343, source: .hrEstimated),

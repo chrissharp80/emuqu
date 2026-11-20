@@ -26,12 +26,10 @@ extension SessionRecoveryService {
         // Without this, every
         // recovered session gets `recoveryScore = nil` and the
         // dashboard falls back to computing the score LIVE on every
-        // render. Beta user report: the backup
-        // recovery completed fine but the hero score never settled
-        // — `[DIAG] calculateRecoveryScore: no frozen score —
-        // calculating LIVE` fires hundreds of times per minute
-        // because the frozen field is permanently nil, and the user
-        // has to tap "Reanalyze" manually to get a score that sticks. The
+        // render: the hero score never settles, `[DIAG]
+        // calculateRecoveryScore: no frozen score — calculating LIVE`
+        // fires hundreds of times per minute, and the user has to tap
+        // "Reanalyze" to get a score that sticks. The
         // caller passes the same `computeRecoveryScore(for:from:)` helper
         // that the normal-acceptance path uses.
         computeRecoveryScore: (_ session: HRVSession, _ analysisResult: HRVAnalysisResult?) async -> RecoveryScoreOutcome? = { _, _ in nil }
@@ -61,11 +59,9 @@ extension SessionRecoveryService {
     ///
     /// Quality gate. A backup with too few beats can't be a real
     /// overnight session; a typical overnight captures 28,000+ beats
-    /// (≈ 7 hours × 70 bpm). Beta tester report: a 22-minute partial backup
-    /// (≈ 1,500 beats) was auto-recovered as `.overnight`, landed on Monday's
-    /// recovery night, and replaced Monday's real overnight score on the
-    /// dashboard. The user's complaint: "wtf … how did it replace a whole
-    /// night."
+    /// (≈ 7 hours × 70 bpm). A short partial backup (a 22-minute one holds
+    /// ≈ 1,500 beats) recovered as `.overnight` would land on that recovery
+    /// night and could replace the real overnight score on the dashboard.
     ///
     ///   • ≥ 4,000 beats AND ≥ 60 min → `.overnight` (≈ 1 hour at 65 bpm, the
     ///     minimum credible "the user actually slept under the strap").

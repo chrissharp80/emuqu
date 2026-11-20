@@ -23,8 +23,6 @@ struct StrapPPIReading: Equatable, Sendable {
 ///
 /// ## Why one long-lived subscription
 ///
-/// It used to be two: a "live HR monitor" opened at connect, and a second
-/// stream opened when a session started — which cancelled the monitor first.
 /// SDK 8.x shares one upstream per device between subscribers and tears it down
 /// when the last subscriber leaves; cancelling one subscriber and opening
 /// another in the same breath can race that teardown and end the new stream.

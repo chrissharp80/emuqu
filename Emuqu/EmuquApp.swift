@@ -493,21 +493,20 @@ struct EmuquApp: App {
     }
 
     /// Ambient location starts at foreground, not lazily on Coach
-    /// open. Beta tester report: the AI assistant had no location awareness
-    /// during workouts or outside them, because the cache was never warm before
-    /// he asked.
+    /// open, so the cache is warm by the time the AI assistant is asked about
+    /// location, during workouts or outside them.
     ///
     /// The cold-launch cost this gets blamed for is the geocoder prewarm, not
-    /// `startUpdatingLocation()` itself. The geocoder path now uses MKLocalSearch
+    /// `startUpdatingLocation()` itself. The geocoder path uses MKLocalSearch
     /// map tiles first (sub-second) with CLGeocoder only as fallback, and
     /// respects the cross-call 1 s rate floor. Net cost of starting the stream
     /// at foreground is the same 100 mW the workout / Get-Me-Back paths already
     /// pay — negligible. Backgrounding still tears down.
     ///
     /// Never prompts, and runs only for a feature that uses the fix. A
-    /// foreground transition is not a user action: `start()` here showed the
+    /// foreground transition is not a user action: `start()` here would show the
     /// location permission prompt on first launch, over onboarding, with
-    /// nothing on screen saying what it was for. The prompt now comes from the
+    /// nothing on screen saying what it was for. The prompt comes from the
     /// features that need it (an assistant question that needs a fix, Get Me
     /// Back, workouts); this only resumes a permission already given, and only
     /// for the assistant. Heat tracking reads the weather saved with each
@@ -664,12 +663,9 @@ struct EmuquApp: App {
             // Watch-initiated workout control. The Watch's
             // Start/Stop/Pause/Resume/Acknowledge gestures post these
             // notifications via WCSession → onStart/Stop/etc closures
-            // wired above. The listeners USED to live on FitnessTabView,
-            // which meant they only fired once the user had opened the
-            // Fitness tab in the current app session — Watch gestures
-            // before that point landed in NotificationCenter with no one
-            // listening. Lifted to app-level here so they're always on,
-            // and the shared `RecorderBox` is pre-bound at launch (next
+            // wired above. They live at app level, not on FitnessTabView, so
+            // they listen from launch: a Watch gesture made before the user
+            // opens the Fitness tab still reaches a listener. The shared `RecorderBox` is pre-bound at launch (next
             // Task) so the Watch's first Start gesture has a recorder
             // ready to go. These are the only start/stop/pause/resume
             // handlers; FitnessTabView listens only to the
@@ -686,11 +682,9 @@ struct EmuquApp: App {
         // Cold start: kick off the deferred
         // boot() methods on the heavy singletons now that the first
         // frame has paint-committed. Each call is idempotent and
-        // does the work that was previously synchronous in init.
-        // Per-boot timing lives in `runDeferredBoot()` (below) — a field
-        // log showed ~6.3 s of main-thread work right here on cold launch
-        // with nothing instrumented, so the culprit was
-        // invisible. Kept OUT of this closure to avoid tripping the
+        // does work kept out of init so it does not delay first paint.
+        // Per-boot timing lives in `runDeferredBoot()` (below) so slow
+        // main-thread work on cold launch shows up in the log. Kept OUT of this closure to avoid tripping the
         // Swift type-checker on an already-huge `.task` body.
         runDeferredBoot()
         bootArchiveOffMain()
@@ -722,7 +716,7 @@ struct EmuquApp: App {
         // Archive orphan reconcile + tombstone walk, run here rather
         // than in SessionArchive.init (the first @State,
         // built synchronously before first paint) so a full-directory
-        // scan + per-orphan decode no longer blocks launch. Runs
+        // scan + per-orphan decode does not block launch. Runs
         // off-main; SessionArchive is a plain class (not @MainActor).
         let archiveForBoot = collector.archive
         Task.detached(priority: .utility) { archiveForBoot.boot() }
@@ -868,8 +862,8 @@ struct EmuquApp: App {
 
     /// Push the user's settings to iCloud on launch so the cloud
     /// copy stays current even if the user only edits settings on a single
-    /// device per session. Backed up so a crash that wipes the local file (the
-    /// bug fixed in this same change set) can be recovered from
+    /// device per session. Backed up so a crash that wipes the local file can
+    /// be recovered from
     /// Settings → Diagnostics → "Restore from iCloud".
     ///
     /// Pauses briefly first so the launch critical path is not contending with

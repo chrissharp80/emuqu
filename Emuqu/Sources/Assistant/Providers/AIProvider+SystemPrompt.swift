@@ -246,9 +246,9 @@ enum AssistantSystemPrompt {
     /// Anything that changes turn-to-turn. Lives outside the cache prefix so
     /// the cache survives across calls even when these sections move.
     ///
-    /// **Current time** was moved out of the stable prefix (it sat immediately
-    /// after `base`) because it changes every second and was invalidating
-    /// Anthropic's prompt cache on every send.
+    /// **Current time** stays out of the stable prefix because it changes
+    /// every second and would invalidate Anthropic's prompt cache on every
+    /// send.
     ///
     /// When a workout is active, mark
     /// it explicitly. Without this, the first turn after the user

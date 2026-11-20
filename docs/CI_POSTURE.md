@@ -12,22 +12,11 @@ Every pull request and every push to `main` runs two workflows:
   parallel; a run takes 30 to 40 minutes, set by Thread Sanitizer and the tests
   job, which each take 20 to 40 minutes on a runner.
 
-`main` requires both before anything merges.
+`main` requires the `gates.yml` job ("Script gates (no Xcode)") before anything merges. The `ci.yml` jobs run on the same pull request and are advisory.
 
 The repository is public, and standard GitHub-hosted runners cost public
 repositories no Actions minutes. The UI target and the full coverage floors
 (scope `full`, about 90 minutes) run on demand and before every release.
-
-## The arithmetic, while the repository was private
-
-Until the repository went public, macOS Actions minutes billed at **10×** the
-Linux rate against a 3,000-minute plan, about **300 macOS minutes a month**. A
-full run of the macOS jobs (`tests`, `thread-sanitizer`, `lint-and-budgets`)
-was ~108 wall-clock minutes, about 1,080 billable (run 33202282889): fewer than
-three full runs a month. That is why `ci.yml` was manual-only and why it has a
-`scope` input. Public repositories are not billed for standard GitHub-hosted
-runners, so the constraint no longer applies; the scopes remain because the UI
-target is still the slow part of a run.
 
 ## What actually enforces quality here
 
@@ -203,8 +192,8 @@ it when the analysis or storage code changes.
 ### Runs are scoped, because a full one is expensive
 
 `ci.yml` takes a `scope` on dispatch; pull requests and pushes run `unit`.
-Billable minutes as measured on run 33202282889, while the repository was
-private (a public repository is not billed for these runners):
+Approximate billable minutes per scope at macOS rates (a public repository is
+not billed for these runners):
 
 | scope | what runs | billable minutes |
 |---|---|---|
@@ -216,8 +205,8 @@ macOS bills at 10x, and 66 of the tests job's 88 minutes are the UI target on
 its own — 61% of a whole run for the part least likely to catch a regression in
 a given change.
 
-`workflow_call` still defaults to `full`, so the TestFlight deploy gate is
-unchanged: a release is checked against everything, exactly as before.
+`workflow_call` defaults to `full`, so the TestFlight deploy gate checks a
+release against everything.
 
 ### The compiler is one of the gates
 
@@ -256,11 +245,11 @@ fails a raise that has no written justification.
   a UI flow can reach `main` and is caught at the latest by the release gate.
   `make ci` runs the full suite locally, which is a discipline, not an
   enforcement.
-- **The UI target is not a required check.** `main` requires the Linux
-  `gates.yml` job and the four macOS jobs that run at scope `unit` (lint and
-  budgets, strict concurrency, Thread Sanitizer, tests with coverage), against
-  a branch that is up to date with `main`. The UI flows and the full coverage
-  floors are not part of that and run only at scope `full`.
+- **Only the Linux gates are a required check.** `main` requires the
+  `gates.yml` job. The four macOS jobs at scope `unit` (lint and budgets,
+  strict concurrency, Thread Sanitizer, tests with coverage) run on every pull
+  request but are advisory. The UI flows and the full coverage floors run only
+  at scope `full`.
 
 ## For reviewers
 
@@ -285,10 +274,6 @@ If your finding is *"there is no evidence the checks pass"*, look at the `CI`
 run on the pull request, or on the commit for a push to `main`. Its run summary
 has one line per macOS job with the scope and the result. For the UI target
 and the full coverage floors, ask for a run at scope `full`.
-
-If your finding is *"the macOS jobs should be required checks on `main`"*, they
-are. Each went through the same sequence as the Linux `gates.yml` job: run on
-every pull request, build a record of green runs, then become required.
 
 `sbom.spdx.json` covers the app and its 11
 resolved packages with versions, commit SHAs, Package URLs and licences, and

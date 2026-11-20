@@ -4,11 +4,11 @@ import XCTest
 /// `get_session` is described to the model as an overnight lookup, and it
 /// must resolve as one.
 ///
-/// It used to search workouts only: "How was my session last night?" came
-/// back as the afternoon run, a night that existed came back "not recorded",
-/// and an id lookup returned a night dressed in a workout's fields with no
-/// HRV in it. The archive here holds what made that visible — overnights
-/// that start, end and are filed on the same local day as a run.
+/// A workouts-only search would answer "How was my session last night?" with
+/// the afternoon run, call a night that exists "not recorded", and return an
+/// id lookup as a night dressed in a workout's fields with no HRV in it. The
+/// archive here holds what makes that visible: overnights that start, end
+/// and are filed on the same local day as a run.
 @MainActor
 final class GetSessionOvernightTests: XCTestCase {
     private struct Fixture {

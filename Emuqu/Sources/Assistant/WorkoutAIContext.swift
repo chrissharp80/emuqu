@@ -537,9 +537,7 @@ struct WorkoutAIContext: Equatable {
     /// whether the data path exists. When a foot pod is connected we
     /// ALWAYS emit a line — value when present, "silent" when the
     /// BLE packet hasn't arrived this tick. Without that, every BLE
-    /// gap looked indistinguishable to the AI from "no foot pod
-    /// paired", which surfaced as the user's "foot pod data not
-    /// reaching the AI" complaint (item #5).
+    /// gap would look to the AI like "no foot pod paired".
     private func cadenceAndPowerLines() -> [String] {
         var out = ["footPodConnected=\(footPodActive)"]
         if let cad = cadenceStepsPerMin, cad > 0 {

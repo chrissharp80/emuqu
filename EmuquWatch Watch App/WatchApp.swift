@@ -37,9 +37,9 @@ struct WatchApp: App {
         }
     }
 
-    /// Reopening the Watch app mid-workout used to offer a NEW session.
-    /// Returning to the foreground re-pulls the current state so the live one
-    /// is restored instead (a pull already in flight from launch answers it).
+    /// Returning to the foreground re-pulls the current state so reopening the
+    /// Watch app mid-workout restores the live session rather than offering a
+    /// new one (a pull already in flight from launch answers it).
     /// Going to the background ends any strap discovery scan: continuous
     /// background BLE on the wrist is a battery sink.
     private func followScenePhase(_ phase: ScenePhase) {

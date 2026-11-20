@@ -115,18 +115,17 @@ extension ArchiveStore {
 
     /// What the stored copy of a session actually turned out to hold.
     ///
-    /// Three outcomes, not two. The version of this that had two conflated the
-    /// last two, and reported "existing file unreadable by hash-checked AND raw
-    /// readers … already unrecoverable on disk" whenever the file read
-    /// perfectly well and simply had no beats in it.
+    /// Three outcomes, not two. With two, a file that reads perfectly well
+    /// and simply has no beats in it would be reported as "existing file
+    /// unreadable by hash-checked AND raw readers … already unrecoverable on
+    /// disk".
     ///
     /// That is not a rare shape. It is every workout recorded without a chest
     /// strap, every GPX or Apple Health import, and every recording that died
-    /// before its first beat — and each of them logged a data-loss error, at
+    /// before its first beat, and each would log a data-loss error, at
     /// `.error` level, into the user-facing Recent Problems list, on every
-    /// re-archive. A field log did exactly this for a one-second walk that had
-    /// captured nothing, and the message sent the reader hunting a storage
-    /// fault that had never happened.
+    /// re-archive, sending the reader hunting a storage fault that never
+    /// happened.
     enum StoredRRSeries {
         /// Beats found. `viaRawDecode` is true when the hash-checked read
         /// failed and the hash-agnostic reader rescued them — worth saying,
@@ -175,9 +174,9 @@ extension ArchiveStore {
     /// decrypt/decode failure, or an entry the id lookup no longer finds)
     /// must NOT fall through to the standalone
     /// write — that would create the exact same-night duplicate this exists to
-    /// prevent. It throws instead. Returning the existing entry reported the
-    /// new night as archived while its beats went nowhere: every caller then
-    /// flagged the raw backup archived and cleared the recording marker,
+    /// prevent. It throws instead. Returning the existing entry would report
+    /// the new night as archived while its beats went nowhere: every caller
+    /// would then flag the raw backup archived and clear the recording marker,
     /// leaving the night in a backup due for deletion. Thrown, the callers
     /// skip both, so the backup stays unarchived and Lost Sessions can recover
     /// the night once the read succeeds.
@@ -210,11 +209,10 @@ extension ArchiveStore {
     /// addition to `.atomic`. The directory-level `setAttributes`
     /// in `createArchiveDirectoryIfNeeded` does NOT propagate to NEW files in
     /// all iOS versions, because `.atomic` writes go through a temp file +
-    /// rename and the rename can drop the inherited attribute. The user's
-    /// debug log (hrv_debug_log_1778148804.txt) showed 1,557 EPERM read
-    /// failures over 7 days against just-written session files — root cause
-    /// was the new file being written with the strict default protection class
-    /// even though the directory was already downgraded. Setting the option
+    /// rename and the rename can drop the inherited attribute. The new file
+    /// is then written with the strict default protection class even though
+    /// the directory was downgraded, and reads of just-written session files
+    /// fail with EPERM while the device is locked. Setting the option
     /// explicitly here bypasses the inheritance gap.
     ///
     /// If the archive.index save fails, roll back both the in-memory mutation and the
@@ -695,8 +693,8 @@ extension ArchiveStore {
     ///
     /// Diagnostic: every delete leaves a breadcrumb
     /// in the log naming the session, its date, its type, and its
-    /// recovery score. If a session goes missing from history
-    /// (a real user report), grepping the log for
+    /// recovery score. If a session goes missing from history,
+    /// grepping the log for
     /// `[Archive] delete:` will say whether the deletion was a user
     /// action / migration / sync conflict and exactly when it ran.
     ///

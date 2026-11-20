@@ -49,9 +49,9 @@ extension MorningProcessingService {
     /// The incoming session's beat count decides direction. If
     /// existing same-night entries have substantially more clean data, the new
     /// session shouldn't claim primary — link the new TO the existing as a
-    /// child segment, not vice versa. Beta tester bug: a 22-min
-    /// partial-backup recovery superseded Monday's 8-hour overnight session
-    /// and ended up showing as Monday's dashboard score.
+    /// child segment, not vice versa, so a short partial-backup recovery
+    /// cannot supersede the night's full overnight session and show as
+    /// that day's dashboard score.
     ///
     /// Sharing the night's anchor is not enough: the user's merge gap
     /// ("Segments within 4.5 hours count as one night", or their custom

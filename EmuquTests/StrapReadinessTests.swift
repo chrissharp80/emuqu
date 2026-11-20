@@ -4,9 +4,9 @@ import XCTest
 /// Tests for what the app believes the current strap link can do.
 ///
 /// Polar SDK 8.x reports readiness only inside a ten-second window after
-/// service discovery. The app used to wait for those reports and never got
-/// them on a slow link — the strap connected and no heart rate ever arrived.
-/// These pin the rules that replaced that: a report is believed, a summary
+/// service discovery, and on a slow link those reports never come, so waiting
+/// for them would leave a connected strap with no heart rate.
+/// These pin the rules instead: a report is believed, a summary
 /// that leaves a feature out lets the SDK's own per-call guard decide, and
 /// nothing learned about one link survives into the next.
 final class StrapReadinessTests: XCTestCase {

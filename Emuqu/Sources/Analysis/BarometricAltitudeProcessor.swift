@@ -96,8 +96,7 @@ enum BarometricAltitudeProcessor {
     ///      deltas above 1 m even when no real climb happened. Each one
     ///      adds 1-3 m of fake gain.
     ///
-    /// Field reports of that gate: ~2.3× overcount on a real 117 m walk
-    /// (385 ft real → 274 m / 900 ft reported). Same root cause across users.
+    /// On a real 117 m walk that gate can overcount ~2.3× (274 m).
     ///
     /// Instead, a hysteresis pass over the smoothed altitude: track the
     /// highest (or lowest) point of the current climb (or descent) and commit

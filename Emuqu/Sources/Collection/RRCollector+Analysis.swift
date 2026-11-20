@@ -14,8 +14,8 @@ extension MorningSessionPipeline {
     /// Scored the way acceptance scores (`SessionAcceptanceService.scoreBreakdown`):
     /// the recording's HRV quality decides whether the baseline stands in, the
     /// user's perceived readiness is blended in, and staleness is measured from
-    /// the night, not from now. A session recovered from backup used to freeze
-    /// a score computed without any of the three.
+    /// the night, not from now, so a session recovered from backup freezes the
+    /// same score acceptance would.
     ///
     /// The snapshots are returned too so the caller can persist
     /// them onto the session. If this function fetched sleep + vitals,

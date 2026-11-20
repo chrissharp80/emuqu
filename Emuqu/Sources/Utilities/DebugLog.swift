@@ -204,9 +204,9 @@ final class DebugLogger {
     /// Problems" catalog.
     ///
     /// One hop per burst, not one per line. A strap connect or a sync logs
-    /// hundreds of lines in a few seconds, and each hop used to mutate the
-    /// observed `entries` array and rescan all of it for week-old lines —
-    /// main-thread work landing exactly when the Polar SDK's readiness check,
+    /// hundreds of lines in a few seconds, and a hop per line would mutate the
+    /// observed `entries` array and rescan all of it for week-old lines each
+    /// time, main-thread work landing exactly when the Polar SDK's readiness check,
     /// which runs on the main run loop against a ten-second deadline, needs
     /// the thread.
     private func recordPendingEntries() {

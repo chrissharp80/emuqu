@@ -607,9 +607,7 @@ MorningResultsViewModel loads sleep for the session
 and threaded through `fetchSleepData` → `SleepMergingPipeline` → `SleepResolver`, but nothing in
 the app constructs one — every production call site passes nil, and only `SleepResolverTests`
 builds one. There is no "took the strap off, went back to bed, app annexed the extra sleep" path
-in the shipping build. Earlier revisions of this section charted that flow
-(`checkForExtendedSleep`, a merge that re-froze the archive) as though it shipped; it did not,
-and `DashboardViewModel` no longer exists at all.
+in the shipping build.
 
 ---
 
@@ -670,9 +668,9 @@ And `collector.runDeferredSessionMigrationsIfNeeded()`
       marks itself complete since there's nothing to repair.
   └→ runWorkoutSleepCleanupIfNeeded()
       Guarded by `didRunWorkoutSleepCleanup_v1`. One-shot — strips
-      sleepSnapshot from `.workout`-typed sessions where the
-      pre-2026-04-30 morning-reading selector erroneously attached
-      one. Other workout fields untouched.
+      sleepSnapshot from `.workout`-typed sessions that carry one
+      (a workout session has no sleep snapshot). Other workout
+      fields untouched.
   └→ runNapRepairMigrationIfNeeded()
       Guarded by `FlowRecovery.napRepairBackfill.v1.done`. Credits a
       nap before the night against sleep debt and rescores; each
@@ -808,7 +806,7 @@ when the merge added at least one non-nil field.
 |------|---------|---|
 | `RecoveryScoreDetailView` vitals refresh | View open, and each HK vitals observer fire (`MorningCoordination.vitalsDataVersion`) while it is open | Fills `vitalsSnapshot` nil fields with fresh HK values (`RecoveryVitalsBackfill`), scoped to the displayed session. Strap-derived RHR (`session.analysisResult.timeDomain.meanHR`) always wins over HK daytime RHR. This is the only path that writes late vitals to the archive: there is no dashboard refresh, so vitals that arrive after acceptance reach Trends, the Coach context and PDFs only once this screen has been opened for that session. (`VitalsDetailV2View` re-fetches on the same signal for display only and writes nothing.) |
 | Frozen `sleepSnapshot` at scoring | Reanalysis / rescore | Any non-nil frozen snapshot is used unchanged, even an empty one (`MorningProcessingService.scoringHealthData`, `RRCollector+Analysis`); HK is fetched only when there is no snapshot. Nothing heals an empty or corrupt snapshot except `autoRefreshTodaysSleepIfImproved`, and only for today's session. |
-| `autoRefreshTodaysSleepIfImproved` | `HealthKitManager.sleepDataVersion` bump (Apple Watch sleep sync) | Skips entirely when `session.sleepUserAdjusted == true` (2026-06-10 — user timeline edits are the source of truth; this path previously had no guard and resurrected auto boundaries over manual edits on every HK sleep arrival). Otherwise, if the fresh HK data passes the improvement gate it rewrites `session.sleepSnapshot` directly and re-archives; if the delta also crosses the rescore threshold (≥ 20 min or first snapshot) it additionally posts `.flowRecoveryRescoreNeeded` for the rescore listener. |
+| `autoRefreshTodaysSleepIfImproved` | `HealthKitManager.sleepDataVersion` bump (Apple Watch sleep sync) | Skips entirely when `session.sleepUserAdjusted == true` (user timeline edits are the source of truth, so an HK sleep arrival never puts auto boundaries back over a manual edit). Otherwise, if the fresh HK data passes the improvement gate it rewrites `session.sleepSnapshot` directly and re-archives; if the delta also crosses the rescore threshold (≥ 20 min or first snapshot) it additionally posts `.flowRecoveryRescoreNeeded` for the rescore listener. |
 | `installRescoreListener` | `.flowRecoveryRescoreNeeded` notification | Reanalyzes the session via the user-initiated path; new score is captured in `PendingScoreChange` for the dashboard banner (§16.4). |
 
 ### 13.3 Integrity contract
@@ -845,9 +843,8 @@ SleepTimelineEditorView
         ├─ ALL .unspecified intervals (user-declared, iPhone, Watch,
         │  HRV-derived) count toward totalSleepMinutes
         │     → do NOT count toward deep/core/REM sub-minutes
-        │     (2026-06-10 — was user-provenance-only, which saved a
-        │      0-minute total for iPhone-only nights and let the next
-        │      automatic HK refresh overwrite the user's edit)
+        │     (so an iPhone-only night saves a real total and the
+        │      next automatic HK refresh can't overwrite the user's edit)
         ├─ Interval-less envelope segments (strap-only / HR-estimated
         │  nights) count their envelope duration as unspecified sleep
         └─ Provenance preserved per interval
@@ -1047,8 +1044,8 @@ Live workout:
     ├─ Optional: core.polarManager.startStreaming()    (if strap source)
     ├─ location.startTracking()                         (if GPS sport;
     │     LAZY-init of WorkoutLocationManager — first access constructs
-    │     CLLocationManager + CMAltimeter. Pre-2026-04-29 this happened
-    │     in WorkoutRecorder.init() and froze the tab swap for 2-3 s.)
+    │     CLLocationManager + CMAltimeter, which keeps that 2-3 s cost
+    │     out of WorkoutRecorder.init() and the tab swap.)
     ├─ pedometer.start()                                (foot-based sports)
     ├─ footPodManager.start() / Concept2Manager.startScan() / FTMS subscribe
     ├─ watchBridge.startWatchWorkoutSession(sport:)     (Watch parallel)
@@ -1160,7 +1157,7 @@ User taps Stop → WorkoutRecorder.stop():
   ├─ NOTE: we do NOT stopStreaming() yet; HRR Tier-1 needs the strap
   │         still broadcasting for the next 120 s.
   ├─ location.stopTracking(), pedometer.stop(), watchBridge.stop()
-  ├─ LiveWorkoutBroker.clear()  (AI no longer reports "live")
+  ├─ LiveWorkoutBroker.clear()  (AI stops reporting "live")
   ├─ finalizeSession(rrPoints:stopDate:hrrSamples:[])
   │     WorkoutAnalyzer.analyze(
   │         sport:,
@@ -1228,7 +1225,7 @@ User taps Stop → WorkoutRecorder.stop():
           Tier 3 (Apple): HKQuantityType.heartRateRecoveryOneMinute ±5 min
         AFTER capture:
           polarManager.stopStreaming()
-          polarManager.disconnect()  ← 2026-04-29: drop the BLE link
+          polarManager.disconnect()  ← drop the BLE link
                                        so the strap battery stops
                                        draining. Voice chat (if any)
                                        continues without live HR —
@@ -1311,8 +1308,8 @@ RoadGeocodingService.reverse(location)
 
 ## 18b. Fitness — Retroactive Repair Actions
 
-Two one-shot actions on the summary sheet repair historical sessions
-recorded before quality fixes landed.
+Two one-shot actions on the summary sheet repair the elevation and α1
+data of an already-recorded session.
 
 ```
 Look up real elevation (post-summary action)

@@ -6,8 +6,7 @@ import XCTest
 /// `UserSettings+Codable` is the app's forward/backward compatibility surface:
 /// every field decodes with a default so a schema change never drops a user's
 /// settings. That makes a changed default a silent behaviour change for
-/// existing users rather than a formatting choice — and until now only four of
-/// roughly eighty fields were asserted anywhere.
+/// existing users rather than a formatting choice.
 ///
 /// Two tests cover all of them: the empty payload pins every decode default
 /// against `init()`, and the round trip moves every stored field off its

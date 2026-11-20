@@ -5,16 +5,11 @@
 #
 # The same trap wears a second face: `for i in 0 ..< (xs.count - 2)`. It reads
 # as "stop two short", but on a collection of 0 or 1 it is `0 ..< -1` or
-# `0 ..< -2` — invalid, not empty, and it crashes exactly the same way. Found
-# twice in `HRSleepEstimator` on 2026-09-01, where both were safe only because
-# every caller happened to guard. This gate covers both shapes.
+# `0 ..< -2`: invalid, not empty, and it crashes exactly the same way. This
+# gate covers both shapes.
 #
-# Why this exists (2026-09-01). Four instances were found in one session —
-# `TopoElevationService.sustainedClimb`, `Route.risingRuns`,
-# `HRVSleepStageClassifier.windowVariability`, `TimeDomainAnalysis`,
-# `Verification.findMaxGap` and `DataSourceSelector.findGaps`. Every one was
-# reachable only through a caller that happened to guard, which is exactly the
-# kind of safety that evaporates when a new caller appears.
+# Why this exists. A loop that is safe only because every caller happens to
+# guard loses that safety when a new caller appears.
 #
 # A guard in the enclosing function satisfies this gate only when it is strong
 # enough: `0 ..< (xs.count - N)` needs `xs.count >= N` (or `> N-1`,

@@ -8,17 +8,9 @@
 # builds one, or an `init()` that does, therefore prompts every user the moment
 # the owning object exists — including users who never turned the feature on.
 #
-# Why this exists (2026-09-01). `ZwiftPeripheralBroadcaster` carries the warning
-# twice, in two separate comments:
-#
-#     // Their getters MUST NOT touch `peripheralManager`, or they'd
-#     // force-create the CBPeripheralManager and trigger the iOS
-#     // bluetooth-peripheral permission prompt on users who never enabled the
-#     // feature.
-#
-# Written twice because it is easy to undo and expensive when undone: a surprise
-# Bluetooth prompt is an App Review question and a trust cost, and it is invisible
-# in a simulator run. The comments were the only thing enforcing it.
+# Why this exists. Eager construction is easy to introduce and expensive when
+# it ships: a surprise Bluetooth prompt is an App Review question and a trust
+# cost, and it is invisible in a simulator run.
 #
 # `lazy var` is fine — that is construction on first access, which is the fix,
 # not the defect. Creation inside a function body is fine for the same reason.

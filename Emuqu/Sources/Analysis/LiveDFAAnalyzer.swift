@@ -399,7 +399,7 @@ final class LiveDFAAnalyzer {
         fitQuality = nil
     }
 
-    /// Diagnostic log. Users have reported α1 staying above
+    /// Diagnostic log for α1 staying above
     /// 1.0 during HR 150–170 efforts. The Kubios-style ±20 % ectopic filter can
     /// over-correct at high intensity (real intensity-driven beat-to-beat shifts
     /// get flagged), smoothing the very variability DFA needs to drop α1 into

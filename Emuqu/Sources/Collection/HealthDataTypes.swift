@@ -216,9 +216,8 @@ struct HealthWorkoutSummary: Codable {
     /// short to count.
     ///
     /// Kept out of `fromAppArchive` for cyclomatic complexity; almost all
-    /// of that function is this per-entry transform. The comments on the
-    /// helpers below each record a
-    /// specific field incident (the 827-minute duration, the missing
+    /// of that function is this per-entry transform. The helpers below each
+    /// guard a specific failure (an 827-minute duration, the missing
     /// `.mets` tier).
     ///
     /// Lightweight decode — skips `rrSeries`, which is the expensive part. A

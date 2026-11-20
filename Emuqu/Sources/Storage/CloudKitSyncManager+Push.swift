@@ -547,12 +547,11 @@ extension CloudKitSyncManager {
     /// Returns true if creation succeeded, false otherwise (caller can
     /// then disable sync to stop a retry storm).
     ///
-    /// **Why this exists:** A beta tester had their CloudKit
-    /// zone disappear server-side (likely an iCloud account state
-    /// transition). Every push attempt then failed with
-    /// `Zone does not exist` and was queued for retry — 20 sessions
-    /// retrying every sync cycle, infinite loop, hammering CPU + battery
-    /// on their iPhone 11. `ensureZoneExists` alone only runs on
+    /// **Why this exists:** A CloudKit zone can disappear server-side
+    /// (likely an iCloud account state transition). Every push attempt
+    /// then fails with `Zone does not exist` and is queued for retry, so
+    /// every pending session retries every sync cycle in an endless loop,
+    /// hammering CPU + battery. `ensureZoneExists` alone only runs on
     /// first sync and caches its result; once `zoneCreated = true`, it
     /// never re-attempts even when the zone is clearly gone.
     func recreateZoneAfterNotFound() async -> Bool {

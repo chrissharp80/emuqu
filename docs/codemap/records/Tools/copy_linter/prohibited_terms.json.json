@@ -1,12 +1,12 @@
 {
  "file": "Tools/copy_linter/prohibited_terms.json",
- "hash": "bb3c28911a19b25c",
- "role": "Config for lint.py: the FDA copy perimeter. Keys: user_facing_prohibited (62 {pattern,reason} regexes, nearly all (?i)), coach_response_prohibited (5 regexes; not read by lint.py — consumed by scripts/check_perimeter_sync.sh), allowlist_strings (10 exact strings exempt everywhere, one Dutch), allowlist_paths (20 path prefixes), scan_paths (Emuqu/Sources/, EmuquWatch Watch App/, Emuqu/Localizable.xcstrings, Emuqu/Help.xcstrings), negation_guards (4 regexes), plus many _comment/_note keys recording audit history.",
+ "hash": "159813a1aaf1cbc4",
+ "role": "Config for lint.py: the FDA copy perimeter. Keys: user_facing_prohibited (62 {pattern,reason} regexes, nearly all (?i)), coach_response_prohibited (5 regexes; not read by lint.py — consumed by scripts/check_perimeter_sync.sh), allowlist_strings (10 exact strings exempt everywhere, one Dutch), allowlist_paths (20 path prefixes), scan_paths (Emuqu/Sources/, EmuquWatch Watch App/, Emuqu/Localizable.xcstrings, Emuqu/Help.xcstrings), negation_guards (4 regexes), plus explanatory _comment, _allowlist_strings_note, _allowlist_paths_note and _negation_guards_note strings.",
  "types": [],
  "state": [
   "file:Tools/copy_linter/prohibited_terms.json"
  ],
- "toplevel": "Pure data; read by Tools/copy_linter/lint.py:main, scripts/check_perimeter_sync.sh (asserts MedicalTermLexicon covers user_facing_prohibited and coach_response_prohibited) and mutated temporarily by scripts/verify_gates_fail.sh:428-429. The header _comment (line 2) still describes scope as \"Swift String literals in Views/Components/Onboarding\", superseded by _scan_note_2026_08_22.",
+ "toplevel": "Pure data; read by Tools/copy_linter/lint.py:main, scripts/check_perimeter_sync.sh (asserts MedicalTermLexicon covers user_facing_prohibited and coach_response_prohibited) and mutated temporarily by scripts/verify_gates_fail.sh:431-432. The header _comment describes the scope as user-facing strings under scan_paths (app and Watch sources and both string catalogues) and coach_response_prohibited as applying to Flo's replies.",
  "units": [],
  "deps": {}
 }

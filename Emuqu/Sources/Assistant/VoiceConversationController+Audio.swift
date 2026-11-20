@@ -24,7 +24,7 @@ extension VoiceAudioPipeline {
 
     @MainActor
     static func announceVoiceChatStart() {
-        // Light haptic — "impact soft" was introduced for exactly this kind
+        // Light haptic: "impact soft" is meant for exactly this kind
         // of subtle UI confirmation.
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         AudioServicesPlaySystemSound(voiceStartChimeSoundID)
@@ -535,8 +535,8 @@ extension VoiceAudioPipeline {
     ///
     /// Merely re-arming listening and hoping the
     /// user would speak again is not enough: if they didn't, the queued turn would dispatch
-    /// silently (text in chat, no TTS) and the user reported "messages not
-    /// sending" because they never heard a spoken reply. So we eagerly
+    /// silently (text in chat, no TTS) and to the user it would look like
+    /// the message never sent, because no spoken reply comes. So we eagerly
     /// subscribe to `$isStreaming` so the moment our queued send fires
     /// (isStreaming flips false → true after the in-flight one finishes), we
     /// hook up TTS observation for the new turn. The user's message IS
@@ -779,14 +779,12 @@ extension VoiceAudioPipeline {
     }
 
     /// Voice-mode network / API failure
-    /// recovery. User-reported scenario: voice chat is happening,
-    /// a network error fires, the chat banner shows the error
-    /// text, but the voice UI dies silently — user keeps walking,
-    /// says something into AirPods, hears nothing back, eventually
-    /// looks at the phone, dismisses the banner, has to tap the
-    /// talk button again to start over. Brutal hands-free UX.
+    /// recovery. Without it, a network error during voice chat shows the
+    /// error in the chat banner while the voice UI dies silently: the user
+    /// speaks, hears nothing back, and has to look at the phone and tap the
+    /// talk button again.
     ///
-    /// The fix: if the stream ended with `errorMessage` set AND we
+    /// If the stream ended with `errorMessage` set AND we
     /// captured zero spoken text (so the synthesizer queue is
     /// empty and `didFinish` will never fire on its own), speak a
     /// short recovery line ourselves. That line drains through

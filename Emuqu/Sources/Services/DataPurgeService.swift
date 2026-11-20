@@ -406,32 +406,24 @@ enum DataPurgeService {
     ///
     /// ## Why this exists
     ///
-    /// A hand-maintained list of stores to delete drifts: one that wiped
-    /// exactly two App Group subdirectories — `HRVArchive/` and `RRBackup/` —
-    /// left every other file in every container in place. Enumerating the
-    /// types in `Emuqu/Sources` that write to the App Group, Application
-    /// Support or Documents and cross-checking them against such a list found
-    /// eight stores missed, including:
+    /// A hand-maintained list of stores to delete drifts: it can only ever be
+    /// as complete as the last person to remember to update it, and a store
+    /// missing from it survives the purge. Stores outside `HRVArchive/` and
+    /// `RRBackup/` hold data as sensitive as the archive, for example:
     ///
     ///   * `saved_routes.json`   — route trackpoints and geocoded road names
-    ///                             (PRECISE LOCATION), the same data class the
-    ///                             breadcrumb step was added to remove
-    ///   * `email_contacts.json` — contact names, addresses and notes, written
-    ///                             with `.completeFileProtectionUntilFirstUserAuthentication`
-    ///                             under a comment reading "Contact emails are PII"
+    ///                             (PRECISE LOCATION)
+    ///   * `email_contacts.json` — contact names, addresses and notes
     ///   * `user_settings.json`  — age, body weight, resting HR, max HR, LTHR,
     ///                             FTP, sleep schedule
     ///   * `Assistant/artifacts.json`, `UIStateCache.json`,
     ///     `TrainingMetricsCache.json`, `beat_consistency_priors.json`,
     ///     `HRVOffline/pending.json`
     ///
-    /// The list-what-to-delete design is why: it can only ever be as complete
-    /// as the last person to remember to update it, and `DataPurgeServiceTests`
-    /// asserted on `Report` fields, so a store absent from the `Report` was
-    /// invisible to the tests too. The structure of the test mirrored the
-    /// structure of the defect.
+    /// Tests that assert on `Report` fields cannot see a store absent from
+    /// the `Report` either.
     ///
-    /// So the design is inverted. The named steps above still run (they own
+    /// The named steps above still run (they own
     /// UserDefaults keys, the Keychain and in-memory state, which a file sweep
     /// cannot reach, and their per-step reporting is what the user reads). This
     /// sweep then removes everything else in every container that this

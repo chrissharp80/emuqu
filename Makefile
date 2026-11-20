@@ -30,15 +30,15 @@ infoplist-guard:
 	@./scripts/check_privacy_manifest_vocabulary.sh
 	@./scripts/check_infoplist_key_drift.sh
 
-# `.shared` is read only in the composition root (2026-09-03).
+# `.shared` is read only in the composition root.
 shared-root-guard:
 	@./scripts/check_no_shared_outside_root.sh
 
-# Dated changelog comments — ratchets down (2026-09-03).
+# Dated changelog comments: a budget that ratchets down.
 dated-comment-budget:
 	@./scripts/check_dated_comment_budget.sh
 
-# No `unowned` back-references — the class of crash removed on 2026-09-03.
+# No `unowned` back-references: a use after its owner is freed crashes.
 no-unowned-guard:
 	@./scripts/check_no_unowned.sh
 
@@ -137,10 +137,8 @@ skip-budget:
 
 # Every debt budget sits at its measured value, and every gate is `count >
 # budget`. Without this, the cheapest way to go green is to edit the budget.
-# 2026-08-26 — pass an explicit baseline. With no argument and no
-# GITHUB_BASE_REF/BUDGET_BASE_REF the script prints "no PR baseline … Skipping"
-# and exits 0, which is exactly how `make ci` invoked it: locally, raising
-# .ci/try_optional_budget.txt from 377 to 999 passed.
+# It is given an explicit baseline: with no argument and no
+# GITHUB_BASE_REF/BUDGET_BASE_REF the script skips and exits 0.
 #
 # The baseline is where this branch left origin/main (their merge base), so a
 # raise already committed on the branch is compared, not only an uncommitted
@@ -234,28 +232,25 @@ sbom:
 sbom-check:
 	@python3 scripts/generate_sbom.py --check
 
-# 2026-08-26 — the build-time perimeter and the two runtime guards had three
-# separate term lists and nothing reconciled them, so `atrial fibrillation`,
-# `diagnose`, `pathology`, `cure`, `prescription`, `FDA-cleared` and five more
-# were forbidden in static copy and unhandled in model output. This proves the
-# runtime lexicon still covers every build-time term.
+# The build-time perimeter and the two runtime guards keep separate term
+# lists. This proves the runtime lexicon still covers every build-time term,
+# so nothing forbidden in static copy goes unhandled in model output.
 perimeter-sync:
 	@./scripts/check_perimeter_sync.sh
 
-# 2026-09-02 — the copy linter matches phrasings, so a claim can outrun it by
+# The copy linter matches phrasings, so a claim can outrun it by
 # rephrasing. The register classifies every operative heuristic by validation
 # status; this keeps it complete and its cited tests real.
 science-register:
 	@./scripts/check_science_register.sh
 
-# 2026-09-02 — rankingWeight must not surface as a confidence, and a change to
+# rankingWeight must not surface as a confidence, and a change to
 # any scoring constant must be accompanied by a scoring-version bump.
 scoring-governance:
 	@./scripts/check_scoring_governance.sh
 
-# 2026-08-26 — eight of nine `File.swift:NNN` citations in comments pointed past
-# the end of the file they named, all broken by the same splitting refactor.
-# A line number in a cross-file citation is on a timer in this repo.
+# A `File.swift:NNN` citation in a comment breaks silently when the file is
+# split or edited. This checks that each one still points inside the file.
 comment-citations:
 	@./scripts/check_comment_citations.sh
 
@@ -267,11 +262,10 @@ comment-citations:
 aggregate-type-size:
 	@./scripts/check_aggregate_type_size.sh
 
-# 2026-08-26 — three localization gates measured catalogue->locale,
-# lookup->bundle and code->catalogue, and all three read 100%. Nothing measured
-# catalogue->code, which is the direction an orphan runs in: edit a literal and
-# the old key stays behind, translated into sixteen locales, requested by
-# nothing.
+# The other localization gates measure catalogue->locale, lookup->bundle and
+# code->catalogue. This one measures catalogue->code, the direction an orphan
+# runs in: edit a literal and the old key stays behind, translated into sixteen
+# locales, requested by nothing.
 localization-orphan-guard:
 	@./scripts/check_localization_orphans.sh
 

@@ -193,7 +193,7 @@ final class SpokenTextChunkerTests: XCTestCase {
     // MARK: - Links
 
     /// A dot inside a streaming link is not a sentence end: cutting there
-    /// left half a link that the stripper no longer recognised.
+    /// would leave half a link that the stripper does not recognise.
     func testDotInsideALinkDoesNotSplitIt() {
         let chunker = SpokenTextChunker()
         XCTAssertNil(chunker.append(delta: "See [Polar's page](https://polar."))

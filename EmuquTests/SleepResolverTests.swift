@@ -263,7 +263,7 @@ final class SleepResolverTests: XCTestCase {
 
     // #10b Edge — a third-party "asleep" block over the Watch's own stages
     // counts once. Watch core/deep/REM 0–480 plus an `asleepUnspecified`
-    // 0–480 from another app used to total ~16 h.
+    // 0–480 from another app totals 8 h, not ~16 h.
     func test10b_edge_crossStageOverlapCountedOnce() {
         let stages = [
             makeStage(.core, from: 0, to: 200),
@@ -351,14 +351,14 @@ final class SleepResolverTests: XCTestCase {
         XCTAssertEqual(result.sleepData.awakeMinutes, 90)
     }
 
-    // #12b Regression — a crash-interrupted overnight arrives with
-    // a COLLAPSED recording envelope: `endDate` was nil, so callers pass
-    // `endDate ?? startDate`, giving a zero-length `[start, start]` envelope.
-    // The Apple Watch still recorded a full night. Before the fix the clip
-    // `guard start < end` dropped every stage → totalSleepMinutes 0, sleepStart
-    // nil; the dashboard `sleepSnapshot` was written empty and no refresh could
-    // ever recover it (every refresh re-ran the same clip). The recording
-    // envelope must never be able to erase real Watch sleep.
+    // #12b A crash-interrupted overnight arrives with a COLLAPSED recording
+    // envelope: `endDate` is nil, so callers pass `endDate ?? startDate`,
+    // giving a zero-length `[start, start]` envelope. The Apple Watch still
+    // recorded a full night. A clip on `guard start < end` would drop every
+    // stage (totalSleepMinutes 0, sleepStart nil), write the dashboard
+    // `sleepSnapshot` empty, and no refresh could recover it, since every
+    // refresh re-runs the same clip. The recording envelope must never be
+    // able to erase real Watch sleep.
     func test12b_row1_collapsedEnvelopeDoesNotEraseWatchSleep() {
         let collapsed = DateInterval(start: t(0), end: t(0)) // endDate == startDate
         let samples = [

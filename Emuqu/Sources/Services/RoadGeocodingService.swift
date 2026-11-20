@@ -58,10 +58,8 @@ final class RoadGeocodingService {
     /// we throttle to one lookup every `recoveryRetrySec` seconds and
     /// keep trying. Real CLGeocoder failures are usually transient
     /// (network blip, rate limit elsewhere on the device) and resolve
-    /// within a minute. The previous "permanent backoff for the rest
-    /// of the workout" was wrong: if the FIRST lookup failed we'd
-    /// never try again, leaving the AI without road context for the
-    /// whole walk.
+    /// within a minute. A permanent backoff would leave the AI without
+    /// road context for the whole walk if the FIRST lookup failed.
     var backoffStartedAt: Date?
     /// Last road we logged a "no cross-street
     /// candidates" line for, so the steady-state failure (MapKit lacks
@@ -82,8 +80,7 @@ final class RoadGeocodingService {
     private static let recoveryRetrySec: TimeInterval = 30
     /// Movement threshold. The user crosses 15 m often enough that the
     /// road name stays current as they turn corners. Larger values
-    /// (25 m, 50 m) produced the user report "Location resolver
-    /// is returning stale or incorrect street names": at a fast walk
+    /// (25 m, 50 m) return stale or incorrect street names: at a fast walk
     /// the user can cross 25 m in ~10 s — and at a corner crossing,
     /// the cached "previous road" still wins long enough for an AI
     /// query to use the wrong name. 15 m at a casual walk is ~10 s,
@@ -460,9 +457,8 @@ final class RoadGeocodingService {
     /// Skip the cross-street enrichment
     /// during prewarm. The overpass-api fetch (RoadGraphService) hits
     /// an external server that's both rate-limited and occasionally
-    /// unreachable — beta tester log showed a 60 s NSURLErrorTimedOut
-    /// happening DURING the launch window, queueing up against
-    /// dashboard rendering, training-cache refresh, iCloud sync, and
+    /// unreachable, and a 60 s NSURLErrorTimedOut during the launch window
+    /// queues up against dashboard rendering, training-cache refresh, iCloud sync, and
     /// archive migrations all firing in the same 10 s. Cross-street
     /// is enrichment, not a core "where am I" need; computing it on
     /// first AI interaction or first workout tick is fast enough that

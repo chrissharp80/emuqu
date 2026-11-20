@@ -6,9 +6,9 @@ import Foundation
 extension OvernightStreamingCoordinator {
     /// Arm the H10's internal recording for the night.
     ///
-    /// The H10 enumerates its recording feature lazily and unpredictably — a
-    /// minute after connecting in one field log, nearly four in another — and
-    /// every fixed ceiling tried has turned out too short. So there is no
+    /// The H10 enumerates its recording feature lazily and unpredictably,
+    /// anywhere from one to nearly four minutes after connecting, so no fixed
+    /// ceiling is safe. So there is no
     /// ceiling: the arming waits on the strap's readiness for as long as the
     /// night lasts, across drops and reconnects, and arms the moment the SDK
     /// accepts the start. Starting a few minutes late costs nothing; streaming
@@ -34,7 +34,7 @@ extension OvernightStreamingCoordinator {
     /// The night is ending (the morning stop or a pause). Marked before the
     /// stop sequence touches the stream or the link, so the link change it
     /// causes cannot wake the arming loop into clearing and starting the
-    /// strap during the morning download — a field log showed exactly that.
+    /// strap during the morning download.
     /// The loop is cancelled and waited for (bounded) before the caller goes
     /// on to stop and download the strap.
     func endDeviceRecordingArming() async {

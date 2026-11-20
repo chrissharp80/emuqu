@@ -80,7 +80,7 @@ extension RawRRBackup {
 /// File names of one-shot backups: `<uuid>_<stamp>.json`.
 ///
 /// The stamp is the write time in milliseconds, raised past any name already
-/// taken, so no two writes share a file. Files written before this change
+/// taken, so no two writes share a file. Older files
 /// carry whole seconds (10 digits); `parse` reads both forms as milliseconds.
 enum OneShotBackupName {
     /// A name for a backup of `sessionId` written at `now` for which

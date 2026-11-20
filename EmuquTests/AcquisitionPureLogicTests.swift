@@ -167,12 +167,10 @@ final class AcquisitionPureLogicTests: XCTestCase {
         }
     }
 
-    /// Regression: this window was inverted for every schedule that sleeps
-    /// through midnight — including the shipped default of 22:00 + 8 h.
-    /// `daytimeHRStart` shifted wake forward a day and `daytimeHREnd` did not
-    /// shift bedtime, so start landed a full day after end. Both bounds go
-    /// straight into an `HKQuery` predicate, so the query matched nothing and
-    /// daytime resting HR silently never resolved for anybody.
+    /// The daytime window starts before it ends for every schedule, including
+    /// ones that sleep through midnight like the default 22:00 + 8 h. Both
+    /// bounds go straight into an `HKQuery` predicate, so an inverted window
+    /// matches nothing and daytime resting HR never resolves.
     func testDaytimeHRWindowIsOrdered() {
         for bedtimeHour in 0 ... 23 {
             let schedule = SleepSchedule(bedtimeHour: bedtimeHour, bedtimeMinute: 0, sleepHours: 8.0)
@@ -202,8 +200,8 @@ final class AcquisitionPureLogicTests: XCTestCase {
 
     /// An anchor after midnight — a morning reading, a night started at 00:15,
     /// `fetchLastNightSleep`'s start-of-day — must get THIS morning's wake.
-    /// It used to get tomorrow's, so the window spanned two nights and
-    /// re-scoring an old reading added both nights' sleep together.
+    /// Tomorrow's would make the window span two nights, and re-scoring an
+    /// old reading would add both nights' sleep together.
     func testAnchorAfterMidnightWindowHoldsOneNight() {
         let schedule = SleepSchedule(bedtimeHour: 22, bedtimeMinute: 30, sleepHours: 8.0)
         for anchor in [date(2026, 6, 2, 0, 0), date(2026, 6, 2, 0, 15), date(2026, 6, 2, 7, 0)] {
@@ -227,8 +225,8 @@ final class AcquisitionPureLogicTests: XCTestCase {
     }
 
     /// An AM bedtime: 02:00 with 7 h sleep wakes at 09:00 the same calendar day
-    /// as the window opens (00:00). The end used to be taken from the anchor's
-    /// day without a shift, so for a 23:00 anchor it fell BEFORE the start.
+    /// as the window opens (00:00). For a 23:00 anchor the end must still
+    /// fall after the start.
     func testAMBedtimeWindowEndsAfterItsStart() {
         let schedule = SleepSchedule(bedtimeHour: 2, bedtimeMinute: 0, sleepHours: 7.0)
         let anchor = date(2026, 6, 1, 23, 0)
@@ -461,15 +459,14 @@ final class AcquisitionPureLogicTests: XCTestCase {
 
     /// `morningCutoff(relativeTo:)` anchors on the night, like
     /// `overnightWindowEnd`: an anchor after midnight gets THIS morning's
-    /// cutoff. It used to add a day whenever the schedule crossed midnight.
+    /// cutoff, not the next day's.
     func testMorningCutoffRelativeToAfterMidnightIsThisMorning() {
         let schedule = SleepSchedule(bedtimeHour: 22, bedtimeMinute: 30, sleepHours: 8.0)
         XCTAssertEqual(schedule.morningCutoff(relativeTo: date(2026, 6, 2, 1, 0)), date(2026, 6, 2, 10, 30))
         XCTAssertEqual(schedule.morningCutoff(relativeTo: date(2026, 6, 1, 23, 0)), date(2026, 6, 2, 10, 30))
     }
 
-    /// The morning rule used to be true for every end time (the cutoff landed
-    /// a day late). An afternoon end belongs to the coming night, whose
+    /// An afternoon end belongs to the coming night, whose
     /// window has not opened, so it is not a morning reading.
     func testIsMorningReadingOnlyInsideItsOwnNight() {
         let schedule = SleepSchedule(bedtimeHour: 22, bedtimeMinute: 30, sleepHours: 8.0)

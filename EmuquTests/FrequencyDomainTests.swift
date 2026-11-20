@@ -206,9 +206,9 @@ final class FrequencyDomainTests: XCTestCase {
     }
 
     /// Below one Welch segment the single-window periodogram runs. The taper
-    /// used to span the zero padding too, so a 35-s window got only part of
-    /// the Hann shape and the power was scaled by the padded length: a sine
-    /// of A²/2 = 1250 ms² read ~750.
+    /// and the power scaling follow the signal, not the zero padding; a taper
+    /// over the padding gives a 35-s window only part of the Hann shape, and a
+    /// sine of A²/2 = 1250 ms² reads ~750.
     func testShortWindowPowerIsScaledToTheSignalNotThePadding() {
         let fs = 4.0
         let signal = (0 ..< 140).map { 50.0 * sin(2 * .pi * 0.25 * Double($0) / fs) }

@@ -271,7 +271,7 @@ the one place both the dashboard and the AI read from, so they can't disagree:
 
 ## Where it does and doesn't go
 
-- **Recovery Score:** NOT included (ACWR was removed from it). The score
+- **Recovery Score:** NOT included. The score
   is HRV 0.60 / Sleep 0.25 / Vitals 0.15 (`ScoringWeights.Tier3`). Rationale in
   the `Constants.swift` comment above `enum ScoringWeights`: training load
   already manifests downstream as suppressed HRV / elevated RHR, so scoring it

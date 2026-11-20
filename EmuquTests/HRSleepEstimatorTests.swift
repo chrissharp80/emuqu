@@ -59,7 +59,7 @@ final class HRSleepEstimatorTests: XCTestCase {
         XCTAssertNil(HRSleepEstimator.plausibleSleepOnset(smoothed, threshold: 65, windowStart: start))
     }
 
-    /// THE regression. This detector thresholds against deep-sleep
+    /// This detector thresholds against deep-sleep
     /// bradycardia, which consolidates ~an hour after true onset, so on some
     /// nights it reports a bogus long onset and shrinks the night. Recording
     /// starts at bedtime, so onset cannot plausibly be an hour of lying awake:

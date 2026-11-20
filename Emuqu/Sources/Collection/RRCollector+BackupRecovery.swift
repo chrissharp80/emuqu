@@ -893,10 +893,9 @@ private func newestWorkoutBackup(among candidates: [UUID], in rawBackup: RawRRBa
 
 /// Bound auto-recovery attempts per session. Recovering a large strap
 /// session is memory-heavy; if iOS kills the app mid-recovery BEFORE the
-/// crash flag clears, the next launch retries — a relaunch loop (field log:
-/// one session auto-recovered 5×). After a few tries, stop auto-recovering
-/// and defer to the manual "Recover session" card so we quit fighting the
-/// OS. Data stays safe in the backups either way.
+/// crash flag clears, the next launch retries, a relaunch loop. After a few
+/// tries, stop auto-recovering and defer to the manual "Recover session" card
+/// so we quit fighting the OS. Data stays safe in the backups either way.
 ///
 /// One dictionary holds the count of the workout being recovered only:
 /// recording an attempt drops any other workout's count and a recovery
