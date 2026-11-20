@@ -8,8 +8,8 @@
  "units": [
   {
    "key": "§ CI posture",
-   "hash": "32831c3c1ad81a6c",
-   "does": "Claims every pull request and push to main runs gates.yml (bash/python gates including the code map, ubuntu, about a minute, the one status check main requires) and ci.yml at scope unit (SwiftLint and budgets, strict concurrency, macOS build, unit suite with the Views coverage floor, unit suite under Thread Sanitizer, jobs in parallel, about 15-20 minutes); public repositories pay no minutes for standard runners; the UI target and full coverage floors (scope full, about 90 minutes) run on demand and before every release. Code: gates.yml and ci.yml trigger on pull_request and push to branches [main]; testflight.yml calls ci.yml. The required check is a repository ruleset setting, not visible in the repo.",
+   "hash": "9eaaf1132256055f",
+   "does": "Claims every pull request and push to main runs gates.yml (bash/python gates including the code map, ubuntu, about a minute) and ci.yml at scope unit (SwiftLint and budgets, strict concurrency, macOS build, unit suite with the Views coverage floor, unit suite under Thread Sanitizer, jobs in parallel, a run taking 30 to 40 minutes because Thread Sanitizer and the tests job each take 20 to 40 minutes on a runner), and that main requires both before anything merges; public repositories pay no minutes for standard runners; the UI target and full coverage floors (scope full, about 90 minutes) run on demand and before every release. Code: gates.yml and ci.yml trigger on pull_request and push to branches [main]; testflight.yml calls ci.yml. The required checks are a repository ruleset setting, not visible in the repo.",
    "entry": null,
    "calls": [
     ".github/workflows/gates.yml::job script-gates",
@@ -26,7 +26,7 @@
     ".github/workflows/ci.yml::job lint-and-budgets": "a4472fcc86e48a24",
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
     ".github/workflows/ci.yml::job tests": "be43d3924046dfa3",
-    ".github/workflows/ci.yml::job thread-sanitizer": "1af3ef404705660f",
+    ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859",
     ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64",
     ".github/workflows/gates.yml::step script-gates/Code map is current": "816d6727b1d4d826"
    }
@@ -47,7 +47,7 @@
    "deps": {
     ".github/workflows/ci.yml::job lint-and-budgets": "a4472fcc86e48a24",
     ".github/workflows/ci.yml::job tests": "be43d3924046dfa3",
-    ".github/workflows/ci.yml::job thread-sanitizer": "1af3ef404705660f"
+    ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859"
    }
   },
   {
@@ -266,7 +266,7 @@
    "branches": [],
    "deps": {
     ".github/workflows/ci.yml::job tests": "be43d3924046dfa3",
-    ".github/workflows/ci.yml::job thread-sanitizer": "1af3ef404705660f",
+    ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859",
     ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64",
     ".github/workflows/security.yml::job codeql": "64078fc4677fac05",
     ".github/workflows/security.yml::job dependency-review": "f544cc3ea5ca4098",
@@ -293,7 +293,7 @@
     ".github/workflows/ci.yml::job lint-and-budgets": "a4472fcc86e48a24",
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
     ".github/workflows/ci.yml::job tests": "be43d3924046dfa3",
-    ".github/workflows/ci.yml::job thread-sanitizer": "1af3ef404705660f",
+    ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859",
     ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64"
    }
   },

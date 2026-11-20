@@ -1,14 +1,43 @@
 {
  "file": "scripts/check_thread_sanitizer.sh",
- "hash": "3988ccec14c7b192",
+ "hash": "134a768280f6d1a6",
  "role": "CI gate (ci.yml thread-sanitizer job when inputs.scope != 'gates'; make thread-sanitizer) that runs the EmuquTests unit target under Thread Sanitizer and fails on any TSan warning or test failure.",
  "types": [],
  "state": [
   "env:SCHEME/PROJECT/TSAN_DERIVED_DATA (default build/DD-tsan)/DESTINATION",
   "file:$TMPDIR/tsan.XXXXXX log (temp, removed on EXIT)",
+  "mem:heartbeat (pid of the progress subshell, empty when none is running)",
   "env:GITHUB_STEP_SUMMARY (append)"
  ],
- "toplevel": "set -euo pipefail; sources lib/preflight.sh (no cd to repo root; relies on cwd). DESTINATION defaults to select_simulator_destination.sh output. gate_mktemp log (exit on failure). Runs `xcodebuild test -enableThreadSanitizer YES -only-testing:EmuquTests` into the log with set +e; gate_require_nonempty on the log (empty -> exit 70). Counts 'WARNING: ThreadSanitizer', \"' passed\", \"' failed\" lines. races>0 -> prints 20 lines after each warning, exit 1. status != 0: if failed>0 prints first 20 failed lines; else greps build-error markers (both greps `|| true`, so no match or SIGPIPE cannot end the script) and tails 40 log lines; exits with xcodebuild's status. Else appends summary.",
- "units": [],
- "deps": {}
+ "toplevel": "set -euo pipefail; sources lib/preflight.sh (no cd to repo root; relies on cwd). DESTINATION defaults to select_simulator_destination.sh output. gate_mktemp log (exit on failure); EXIT trap runs stop_heartbeat and removes the log. Starts a background heartbeat subshell (stderr discarded) that every 60 s prints the minutes elapsed and the count of \"' passed\" lines in the log so far. Runs `xcodebuild test -enableThreadSanitizer YES -only-testing:EmuquTests` into the log with set +e, then stop_heartbeat and prints the total minutes taken. gate_require_nonempty on the log (empty -> exit 70). Counts 'WARNING: ThreadSanitizer', \"' passed\", \"' failed\" lines. races>0 -> prints 20 lines after each warning, exit 1. status != 0: if failed>0 prints first 20 failed lines; else greps build-error markers (both greps `|| true`, so no match or SIGPIPE cannot end the script) and tails 40 log lines; exits with xcodebuild's status. Else appends summary.",
+ "units": [
+  {
+   "key": "fn stop_heartbeat",
+   "hash": "20f18311fe0f429a",
+   "does": "Stops the progress subshell: does nothing when heartbeat is empty; otherwise kills the subshell's children (its pending sleep) with pkill -P, kills the subshell, waits for it, and clears heartbeat. Every step ignores failure.",
+   "entry": "Called after xcodebuild returns and from the EXIT trap.",
+   "calls": [
+    "ext:pkill",
+    "ext:kill",
+    "ext:wait"
+   ],
+   "reads": [
+    "mem:heartbeat"
+   ],
+   "writes": [
+    "mem:heartbeat"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "heartbeat is empty",
+     "effect": "returns 0 without doing anything"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {
+  "scripts/check_thread_sanitizer.sh::fn stop_heartbeat": "0d77903c8a784aeb"
+ }
 }
