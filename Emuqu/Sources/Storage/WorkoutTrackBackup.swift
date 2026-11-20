@@ -138,33 +138,60 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     /// a fast set-membership check, no disk I/O.
     private var headerWritten: Set<UUID> = []
 
+    /// A value that is not a finite number (a NaN pace or an infinite
+    /// speed, which a sensor can produce) is written as a string, and read
+    /// back by the decoder below. With the default `.throw` the row failed to
+    /// encode, so a whole tick was missing from the stream.
+    private static let nonFiniteStrings = (positiveInfinity: "Infinity", negativeInfinity: "-Infinity", nan: "NaN")
+
     private let encoder: JSONEncoder = {
         let e = JSONEncoder()
         e.dateEncodingStrategy = .iso8601
+        e.nonConformingFloatEncodingStrategy = .convertToString(
+            positiveInfinity: WorkoutTrackBackup.nonFiniteStrings.positiveInfinity,
+            negativeInfinity: WorkoutTrackBackup.nonFiniteStrings.negativeInfinity,
+            nan: WorkoutTrackBackup.nonFiniteStrings.nan
+        )
         return e
     }()
 
     private let decoder: JSONDecoder = {
         let d = JSONDecoder()
         d.dateDecodingStrategy = .iso8601
+        d.nonConformingFloatDecodingStrategy = .convertFromString(
+            positiveInfinity: WorkoutTrackBackup.nonFiniteStrings.positiveInfinity,
+            negativeInfinity: WorkoutTrackBackup.nonFiniteStrings.negativeInfinity,
+            nan: WorkoutTrackBackup.nonFiniteStrings.nan
+        )
         return d
     }()
 
     // MARK: - Initialization
 
-    init() {
-        let containerURL = AppConfig.sharedContainerURL()
-        directory = containerURL.appendingPathComponent("WorkoutBackup", isDirectory: true)
-        if !fileManager.fileExists(atPath: directory.path) {
-            do {
-                try fileManager.createDirectory(
-                    at: directory,
-                    withIntermediateDirectories: true,
-                    attributes: [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication]
-                )
-            } catch {
-                debugLog("[WorkoutTrackBackup] Failed to create directory: \(error)")
-            }
+    convenience init() {
+        self.init(directory: AppConfig.sharedContainerURL().appendingPathComponent("WorkoutBackup", isDirectory: true))
+    }
+
+    /// A backup kept in `directory`; the app's lives in the shared container
+    /// (`init()`), tests use their own.
+    init(directory: URL) {
+        self.directory = directory
+        createDirectoryIfNeeded()
+    }
+
+    /// Created with the class that lets a workout keep writing while the
+    /// device is locked. Run at init and again after `purgeAll`, whose
+    /// caller may have removed the folder itself.
+    private func createDirectoryIfNeeded() {
+        guard !fileManager.fileExists(atPath: directory.path) else { return }
+        do {
+            try fileManager.createDirectory(
+                at: directory,
+                withIntermediateDirectories: true,
+                attributes: [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication]
+            )
+        } catch {
+            debugLog("[WorkoutTrackBackup] Failed to create directory: \(error)")
         }
     }
 
@@ -379,15 +406,15 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     /// Append one slice of JSON-encoded items as line-delimited JSON.
     /// Centralised so all three streams use the same FileHandle pattern,
     /// the same fall-back-on-corruption logic, and the same logging.
+    /// False, with nothing written, when a row does not encode: the caller's
+    /// cursor counts rows on disk, so every row is written or none.
     private func appendJSONL(
         url: URL,
         items: [some Encodable],
         sessionId: UUID,
         streamName: String
     ) -> Bool {
-        guard !items.isEmpty else { return false }
-        let blob = encodeLines(items, sessionId: sessionId, streamName: streamName)
-        guard !blob.isEmpty else { return false }
+        guard !items.isEmpty, let blob = encodeLines(items, sessionId: sessionId, streamName: streamName) else { return false }
         guard fileManager.fileExists(atPath: url.path) else {
             return write(blob, to: url, sessionId: sessionId, streamName: streamName, label: "initial write")
         }
@@ -405,8 +432,9 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     }
 
     /// The bytes may still read even though the handle would not open: rewrite
-    /// them with the new slice rather than setting them aside. Only a file that
-    /// won't read either is moved aside and started fresh.
+    /// them with the new slice rather than setting them aside (atomically, so
+    /// a kill mid-write leaves the old file whole). Only a file that won't
+    /// read either is moved aside and started fresh.
     /// When the file can be neither read nor moved aside, nothing is written:
     /// a fresh write would replace the rows it still holds. The cursor stays
     /// put and the next tick tries again.
@@ -433,16 +461,28 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     /// the launch count only counts complete rows, so that row is written again
     /// now, and appended after the fragment it would fuse with it into one line
     /// that decodes as neither.
+    ///
+    /// A write that throws may have written part of the slice. The cursor is
+    /// not advanced, so the next tick appends the whole slice again; the file
+    /// is cut back to where this append started so those rows are not in it
+    /// twice (`RawRRBackup.appendThroughHandle` does the same).
     private func appendToExisting(_ blob: Data, at url: URL) -> AppendOutcome {
         guard let handle = try? FileHandle(forUpdating: url) else { return .couldNotOpen }
         defer { _ = attempt("WorkoutTrackBackup.close") { try handle.close() } }
+        let start: UInt64
         do {
             try dropTornTail(handle)
-            try handle.seekToEnd()
+            start = try handle.seekToEnd()
+        } catch {
+            debugLog("[WorkoutTrackBackup] Append to \(url.lastPathComponent) failed: \(error)", level: .warning)
+            return .writeFailed
+        }
+        do {
             try handle.write(contentsOf: blob)
             return .appended
         } catch {
             debugLog("[WorkoutTrackBackup] Append to \(url.lastPathComponent) failed: \(error)", level: .warning)
+            attempt("WorkoutTrackBackup.truncateFailedAppend") { try handle.truncate(atOffset: start) }
             return .writeFailed
         }
     }
@@ -474,26 +514,33 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         return attempt("WorkoutTrackBackup.move") { try fileManager.moveItem(at: url, to: preserved) } != nil
     }
 
-    /// Encode each item on its own line. An item that fails to encode is
-    /// logged and skipped rather than losing the whole slice.
-    private func encodeLines(_ items: [some Encodable], sessionId: UUID, streamName: String) -> Data {
+    /// Encode each item on its own line. The encoder writes non-finite
+    /// numbers as strings (`nonFiniteStrings`), so the rows these streams
+    /// hold always encode; one that still throws is logged and fails the
+    /// whole slice (nil) rather than leaving a gap the cursor would count as
+    /// written.
+    private func encodeLines(_ items: [some Encodable], sessionId: UUID, streamName: String) -> Data? {
         var blob = Data()
-        for item in items {
-            do {
+        do {
+            for item in items {
                 blob.append(try encoder.encode(item))
                 blob.append(0x0A) // newline
-            } catch {
-                debugLog("[WorkoutTrackBackup] \(streamName) encode failed for \(sessionId.uuidString.prefix(8)): \(error)")
             }
+        } catch {
+            debugLog("[WorkoutTrackBackup] \(streamName) encode failed for \(sessionId.uuidString.prefix(8)): \(error)", level: .error)
+            return nil
         }
         return blob
     }
 
+    /// Atomic, as `RawRRBackup` writes a points file it rewrites: the rewrite
+    /// fallback replaces rows already on disk, and a kill or a full disk part
+    /// way through a plain write left the stream truncated.
     private func write(
         _ blob: Data, to url: URL, sessionId: UUID, streamName: String, label: String
     ) -> Bool {
         do {
-            try blob.write(to: url, options: [.completeFileProtectionUntilFirstUserAuthentication])
+            try blob.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
             return true
         } catch {
             debugLog("[WorkoutTrackBackup] \(streamName) \(label) failed for \(sessionId.uuidString.prefix(8)): \(error)")
@@ -537,18 +584,24 @@ final class WorkoutTrackBackup: @unchecked Sendable {
             return nil
         }
 
-        let track = decodeJSONL(url: trackURL(sessionId), as: PersistedFix.self).map(\.asCLLocation)
-        let samples = decodeJSONL(url: samplesURL(sessionId), as: WorkoutSample.self)
-        let baro = decodeJSONL(url: baroURL(sessionId), as: PersistedBaro.self)
-        let healthKitHROffsets = decodeJSONL(url: healthKitHRURL(sessionId), as: Int.self)
-
         return Recovered(
             header: header,
-            track: track,
-            samples: samples,
-            healthKitHROffsets: healthKitHROffsets,
-            barometricSamples: baro
+            track: recoveredTrack(sessionId),
+            // The archive cannot encode NaN or infinity: a sample keeps its
+            // row with those values cleared.
+            samples: decodeJSONL(url: samplesURL(sessionId), as: WorkoutSample.self).map(\.finiteValuesOnly),
+            healthKitHROffsets: decodeJSONL(url: healthKitHRURL(sessionId), as: Int.self),
+            barometricSamples: decodeJSONL(url: baroURL(sessionId), as: PersistedBaro.self).filter { $0.altitudeMeters.isFinite }
         )
+    }
+
+    /// The backed-up fixes as locations, without any whose position or
+    /// altitude is not a finite number: the archive cannot encode those, and
+    /// a fix without a position is no point on the route.
+    private func recoveredTrack(_ sessionId: UUID) -> [CLLocation] {
+        decodeJSONL(url: trackURL(sessionId), as: PersistedFix.self)
+            .filter { $0.latitude.isFinite && $0.longitude.isFinite && $0.altitude.isFinite }
+            .map(\.asCLLocation)
     }
 
     private func logHeaderlessStreams(_ sessionId: UUID) {
@@ -620,9 +673,27 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     /// raw GPS tracks (precise location), so right-to-erasure requires them to
     /// go. Outside this, a backup is removed only by `discard` once its
     /// workout is archived; nothing removes them by age.
+    ///
+    /// The caller's sweep may already have removed the folder, so there is
+    /// nothing left to list: every cursor and header flag is cleared anyway,
+    /// or the next workout of a session seen this launch would append past a
+    /// count no file holds, and the folder is made again, or every later write
+    /// failed until relaunch. On `appendQueue`, like `discard`.
     func purgeAll() {
-        for id in allSessionIdsOnDisk() {
-            discard(id)
+        appendQueue.sync {
+            for id in allSessionIdsOnDisk() {
+                discardSerialized(id)
+            }
+            lock.lock()
+            trackCursor.removeAll()
+            sampleCursor.removeAll()
+            baroCursor.removeAll()
+            healthKitHRCursor.removeAll()
+            sampleLastKey.removeAll()
+            healthKitHRLastKey.removeAll()
+            headerWritten.removeAll()
+            lock.unlock()
+            createDirectoryIfNeeded()
         }
     }
 }
@@ -637,6 +708,26 @@ protocol OrderedBackupRow: Encodable {
 /// One row per counted second, each at a later `offsetSec`.
 extension WorkoutSample: OrderedBackupRow {
     var backupOrderKey: Int { offsetSec }
+}
+
+extension WorkoutSample {
+    /// The same row with every value that is not a finite number cleared to
+    /// nil. The archive's encoder rejects NaN and infinity, so one such value
+    /// failed the save of the whole workout; a missing reading loses only
+    /// itself.
+    var finiteValuesOnly: WorkoutSample {
+        WorkoutSample(
+            offsetSec: offsetSec, heartRate: heartRate,
+            distanceMeters: finiteOrNil(distanceMeters), paceSecPerKm: finiteOrNil(paceSecPerKm),
+            cadenceStepsPerMin: finiteOrNil(cadenceStepsPerMin), altitudeMeters: finiteOrNil(altitudeMeters),
+            alpha1: finiteOrNil(alpha1), mets: finiteOrNil(mets), powerWatts: powerWatts
+        )
+    }
+}
+
+/// `value` when it is a finite number, else nil.
+private func finiteOrNil(_ value: Double?) -> Double? {
+    value.flatMap { $0.isFinite ? $0 : nil }
 }
 
 /// A wrist-HR marker is the `offsetSec` of its row.

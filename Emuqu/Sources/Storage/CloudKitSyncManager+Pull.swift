@@ -367,12 +367,14 @@ extension CloudPullCoordinator {
     /// Handle a soft-deleted remote record by deleting the local copy if it exists.
     /// The copy is not kept in this device's Trash: the deletion was made, and
     /// can be undone or made final, on the other device. Kept here, a session
-    /// deleted for good there could be restored here.
+    /// deleted for good there could be restored here. So the file is removed
+    /// directly (`deleteWithoutTrash`), and a Trash that cannot take it does
+    /// not stop the deletion.
     func handleDeletedRecord(sessionId: UUID, sessionIdString: String) -> (new: Int, deleted: Int) {
         var deletedCount = 0
         if manager.archive.exists(sessionId) {
             do {
-                try manager.archive.delete(sessionId)
+                try manager.archive.deleteWithoutTrash(sessionId)
                 manager.archive.discardTrashed(sessionId)
                 deletedCount = 1
             } catch {

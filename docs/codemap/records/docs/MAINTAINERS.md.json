@@ -248,7 +248,7 @@
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/Debt budgets ratchet down only": "336e7a9de9707672",
     ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)": "13438c24dcea9cc9",
-    "Makefile::target budget-monotonicity": "ecb87460dba7db67",
+    "Makefile::target budget-monotonicity": "f2990c87cb8c36d4",
     "Makefile::target spec-conformance": "76fac68887ff9527",
     "scripts/check_refactor_spec_conformance.sh::fn measure_spec": "56d6204c2017cb66",
     "scripts/check_refactor_spec_conformance.sh::fn over": "341bf1022cffa220",
@@ -376,13 +376,13 @@
    "does": "Claims Services/ (~50; actual 49) holds StoreKitManager + EntitlementAnchor, WatchConnectivityBridge, DataPurgeService, the morning/recovery services, the location/road/nav stack, LanguageManager, NarrativeLanguage, WeatherService, WebSearchService. Named types exist.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:scope:)"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:scope:)": "d4c01d95aaae9bef"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)": "2c4e0f1253cea3a1"
    }
   },
   {
@@ -410,7 +410,7 @@
    "calls": [
     "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)",
     "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager()",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday",
     "Emuqu/Sources/Models/RRModels.swift::var RRPoint.isPhysiologicallyValid",
     "Emuqu/Sources/Models/Sport.swift::var Sport.displayName",
@@ -425,7 +425,8 @@
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)",
     "Makefile::target doc-counts-guard",
-    ".github/workflows/ci.yml::step lint-and-budgets/Documented file counts match the tree"
+    ".github/workflows/ci.yml::step lint-and-budgets/Documented file counts match the tree",
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:)"
    ],
    "reads": [],
    "writes": [],
@@ -448,7 +449,9 @@
     "Emuqu/Sources/Models/WorkoutAnalysisSnapshot.swift::var WorkoutAnalysisSnapshot.needsRebuild": "ef26992659ba790b",
     "Emuqu/Sources/Models/Sport.swift::var Sport.displayName": "e04a40813a53feb6",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "6f839942402cc192",
-    "Makefile::target doc-counts-guard": "81cc0795ce562bec"
+    "Makefile::target doc-counts-guard": "81cc0795ce562bec",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)": "337f4aa734a10f94",
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:)": "82228c7d635edc98"
    }
   },
   {
@@ -643,10 +646,10 @@
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)": "5c9bb3b18af92a73",
     "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.computeRecoveryScore(for:from:)": "4a5ceb4ba655d800",
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.gatherOvernightData()": "c9507fb0c711b5de",
-    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.gatherOvernightData()": "d4cc527edc47c8ab",
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.gatherOvernightData()": "867ac72b9cc49e72",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fallbackToDeviceFetch(baseSession:streamingPoints:reconnectCount:isVeritySense:)": "539574fae32dc71a",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.startOvernightStreaming(sessionType:useDeviceInternalBackup:)": "6d4649c1577db78b",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopOvernightStreaming()": "3867ffa449b8c959",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopOvernightStreaming()": "575d0b0cd63c0721",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.startOvernightStreaming(sessionType:useDeviceInternalBackup:)": "e9c4df85c5c05b87",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.stopOvernightStreaming()": "ee06838a39537c65",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)": "d0b0b578fa7f7968",
@@ -1077,8 +1080,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 10. Build, test, CI & tooling > Local quality loop",
-   "hash": "edfefcb97fa71b86",
-   "does": "Claims make targets format, lint, test, test-coverage, debt-budget, ci, setup-hooks (hook runs SwiftFormat, SwiftLint and the code map), codemap-guard (records and re-checks), codemap-impact, codemap-report, ci-local, ci-local-unit, budget-monotonicity, localization-bundle-guard, localization-resolution-guard, uitest-reset-guard, skip-budget, fixed-font-budget (all exist in Makefile); scripts/simulate_ci.sh parses ci.yml run blocks; verify_gates_fail.sh, verify_tests_fail.sh, evidence_report.sh exist; budget ratchet compares HEAD with HEAD~1.",
+   "hash": "89c96ef80f3eb97a",
+   "does": "Claims make targets format, lint, test, test-coverage, debt-budget, ci, setup-hooks (hook runs SwiftFormat, SwiftLint and the code map), codemap-guard (records and re-checks), codemap-impact, codemap-report, ci-local, ci-local-unit (the gates plus the Release build, unit suite and Thread Sanitizer), budget-monotonicity, localization-bundle-guard, localization-resolution-guard, uitest-reset-guard, skip-budget, fixed-font-budget (all exist in Makefile); scripts/simulate_ci.sh parses ci.yml run blocks; verify_gates_fail.sh, verify_tests_fail.sh, evidence_report.sh exist; budget ratchet compares HEAD with HEAD~1.",
    "entry": null,
    "calls": [
     "Makefile::target format",
@@ -1107,10 +1110,10 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target budget-monotonicity": "ecb87460dba7db67",
-    "Makefile::target ci": "de372d3ddd101741",
+    "Makefile::target budget-monotonicity": "f2990c87cb8c36d4",
+    "Makefile::target ci": "314d826a23831255",
     "Makefile::target ci-local": "e2b0391dda4db254",
-    "Makefile::target ci-local-unit": "519d050012868454",
+    "Makefile::target ci-local-unit": "8e51d93d38811f72",
     "Makefile::target codemap-guard": "31a759d3fd34483c",
     "Makefile::target codemap-impact": "03eba22ded671ba7",
     "Makefile::target codemap-report": "fa3a55e61f6b2688",
@@ -1127,7 +1130,7 @@
     "Makefile::target uitest-reset-guard": "368e1ce40cd6fbc2",
     "scripts/evidence_report.sh::fn budget": "a927bad97b8838e4",
     "scripts/verify_gates_fail.sh::fn check": "628cb3d9d277ffae",
-    "scripts/verify_tests_fail.sh::fn mutate": "e9b411096264e708"
+    "scripts/verify_tests_fail.sh::fn mutate": "b17da90a86fc42d2"
    }
   },
   {
@@ -1239,7 +1242,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "a4472fcc86e48a24",
+    ".github/workflows/ci.yml::job lint-and-budgets": "c16025f9ed6e67fc",
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
     ".github/workflows/ci.yml::job tests": "be43d3924046dfa3",
     ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859",
@@ -1374,13 +1377,13 @@
    "does": "Claims four runbooks in docs/runbooks (incident-response, hotfix, app-store-rejection, data-deletion → DataPurgeService); all files exist.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:scope:)"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:scope:)": "d4c01d95aaae9bef"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)": "2c4e0f1253cea3a1"
    }
   },
   {

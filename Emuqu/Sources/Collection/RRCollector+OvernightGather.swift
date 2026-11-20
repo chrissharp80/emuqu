@@ -35,7 +35,8 @@ extension MorningSessionPipeline {
         return OvernightStreamingCoordinator.OvernightDataResult(
             points: chosen.points, baseSession: baseSession, streamingBeats: streamingPoints.count,
             deviceBeats: internalPoints?.isEmpty == false ? internalPoints?.count : nil,
-            dataSource: chosen.source, reconnectCount: reconnectCount
+            dataSource: chosen.source, reconnectCount: reconnectCount,
+            downloadedPoints: internalPoints
         )
     }
 
@@ -74,8 +75,9 @@ extension MorningSessionPipeline {
     }
 
     /// Downloaded strap beats go to their own backup, dated by the night's
-    /// start, so Lost Sessions can recover them.
-    private func rescueDownloadedBeats(_ internalPoints: [RRPoint]?, baseSession: HRVSession) {
+    /// start, so Lost Sessions can recover them. A pause the archive would not
+    /// take rescues the strap's beats it holds the same way.
+    func rescueDownloadedBeats(_ internalPoints: [RRPoint]?, baseSession: HRVSession) {
         guard let internalPoints, !internalPoints.isEmpty else { return }
         do {
             try collector.rawBackup.backup(
@@ -89,6 +91,8 @@ extension MorningSessionPipeline {
     }
 
     /// Flip every published flag to the post-stream "saving" state in one hop.
+    /// The night stays live through `StreamingLifecycle.isEndingOvernight`,
+    /// which the caller's claim holds until the night is saved or failed.
     func publishGatherSavingState(streamingPoints: [RRPoint], elapsedHours: Double) async {
         await MainActor.run {
             collector.morningStatus = .saving(beats: streamingPoints.count)

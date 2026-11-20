@@ -374,19 +374,19 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "db217136d3ed0694",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.consentGateAllowsDispatch(provider:voiceMode:)": "71ef29af1a6b5d05",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.reserveAssistantPlaceholderTurn(provider:model:tier:)": "caf49cc95b47c101",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.routeTurnAndLogOverride()": "11927a0e1a2f8438",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runDispatchedTurn(provider:model:voiceMode:turnID:generation:)": "d27847d5d73fbf07",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runDispatchedTurn(provider:model:voiceMode:turnID:generation:)": "08052b6f3b81ab52",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::var AssistantViewModel.router": "595bc400ab38a743",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.unavailableMessage(for:)": "0978ef80e2cdeecf"
    }
   },
   {
    "key": "func AssistantTurnRouter.runDispatchedTurn(provider:model:voiceMode:turnID:generation:)",
-   "hash": "42bd7c6072d9897a",
-   "does": "Dispatch task body: refresh training metrics, assemble context/tools, compose the system prompt (toolMode = tools non-empty), run the stream under the error policy, drop an empty assistant turn; then, if the generation is still current, finishCurrentTurn (Apple dispatcher release + post-stream effects); finally finishStream, which may drain a send queued during the stream. Checking the generation before finishStream keeps a queued send's dispatch from making this completed turn look stale.",
+   "hash": "1ca113b95b6e6ff5",
+   "does": "Dispatch task body: refresh training metrics, assemble context/tools, compose the system prompt (toolMode = tools non-empty), run the stream under the error policy (which reports whether the reply completed normally), drop an empty assistant turn; then, if the generation is still current, report an empty reply when the turn was dropped (reportEmptyReply) and finishCurrentTurn with that completion flag (Apple dispatcher release + post-stream effects); finally finishStream, which may drain a send queued during the stream. Checking the generation before finishStream keeps a queued send's dispatch from making this completed turn look stale.",
    "entry": "Task created in AssistantTurnRouter.dispatch() (Routing:245)",
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.refreshPreFlightMetrics()",
@@ -394,9 +394,10 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.composeSystemPromptForTurn(rendered:voiceMode:toolMode:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runStreamWithErrorPolicy(_:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dropEmptyAssistantTurn(_:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.finishCurrentTurn(provider:turnID:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.finishCurrentTurn(provider:turnID:completed:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.finishStream(generation:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.reportEmptyReply()"
    ],
    "reads": [
     "mem:AssistantViewModel.streamGeneration"
@@ -406,28 +407,64 @@
     {
      "at": "+18",
      "cond": "streamGeneration still this turn's (no Stop, no newer send)",
-     "effect": "finishCurrentTurn; else skip it (a cancelled/superseded turn gets no post-stream effects)."
+     "effect": "the steps below; else skip them (a cancelled/superseded turn gets no post-stream effects and no empty-reply error)."
+    },
+    {
+     "at": "+19",
+     "cond": "the empty assistant turn was dropped",
+     "effect": "reportEmptyReply"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.assembleContextAndTools(provider:model:)": "f70445efa100496a",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.composeSystemPromptForTurn(rendered:voiceMode:toolMode:)": "2bd88afd1be6e1fe",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dropEmptyAssistantTurn(_:)": "0edb86b01c10cdd8",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.finishCurrentTurn(provider:turnID:)": "f60a191bae8e8faa",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dropEmptyAssistantTurn(_:)": "8a2dced836dac806",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.finishCurrentTurn(provider:turnID:completed:)": "ab66cd13a6e72abf",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.refreshPreFlightMetrics()": "593d387d4ee295ff",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runStreamWithErrorPolicy(_:)": "4717b77a611a1b22",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.reportEmptyReply()": "f5f0666dbcb4eb7f",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runStreamWithErrorPolicy(_:)": "5782a6471a18e91d",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "4418043899d6c1da",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.finishStream(generation:)": "b8ac2a61fe69d99a"
    }
   },
   {
-   "key": "func AssistantTurnRouter.finishCurrentTurn(provider:turnID:)",
-   "hash": "0074e1b7649ee42e",
-   "does": "End of a turn that is still the current generation: releases the Apple tool dispatcher's registry after an Apple turn, then applies the post-stream effects (final CoachVoiceGuard scrub, background fact extraction).",
+   "key": "func AssistantTurnRouter.reportEmptyReply()",
+   "hash": "bd27c1f97d010605",
+   "does": "For a current-generation turn that left no text: when no error explains it (errorMessage nil) and the task is not cancelled, logs a warning and sets errorMessage to 'No answer came back from the AI. Try asking again.', so the chat banner shows it and voice mode speaks its recovery line instead of going silent.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:String(localized:bundle:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "ext:Task.isCancelled"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.errorMessage"
+   ],
+   "writes": [
+    "mem:AssistantViewModel.errorMessage"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "an error is already set, or the task is cancelled",
+     "effect": "returns; else sets errorMessage"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "db217136d3ed0694",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func AssistantTurnRouter.finishCurrentTurn(provider:turnID:completed:)",
+   "hash": "d8d6e310bbd12272",
+   "does": "End of a turn that is still the current generation: releases the Apple tool dispatcher's registry after an Apple turn, then applies the post-stream effects (final CoachVoiceGuard scrub; background fact extraction only when completed, i.e. the reply completed normally).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.setRegistry(_:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:)"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:completed:)"
    ],
    "reads": [],
    "writes": [
@@ -442,15 +479,15 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.setRegistry(_:)": "7a197fc21f230ee1",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:)": "56dc41f5a275e3f0",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:completed:)": "5ccb5440e0ec2793",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015"
    }
   },
   {
    "key": "func AssistantTurnRouter.dropEmptyAssistantTurn(_:)",
-   "hash": "68bfc3bcbe6b8f66",
-   "does": "Removes the reserved assistant turn and saves when it still exists and its text is blank.",
+   "hash": "e08898b2b4df8a66",
+   "does": "Removes the reserved assistant turn and saves when it still exists and its text is blank; returns whether it removed the turn.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)",
@@ -467,7 +504,7 @@
     {
      "at": "+1",
      "cond": "turn missing OR not assistant OR has text",
-     "effect": "return; else remove and save"
+     "effect": "returns false; else removes, saves and returns true"
     }
    ],
    "deps": {
@@ -639,13 +676,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.currentContext()": "81b3769a876d3fed",
+    "Emuqu/Sources/Assistant/Chat/AssistantContextSource.swift::func AssistantContextSource.currentContext()": "81f34dab249168e0",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.compactRender(includeAmbientLocation:)": "cd1e9cbfac8ca743",
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.beginTurn()": "577ae7f9f8e770ca",
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.catalogHash()": "1edf45a008a24431",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)": "6e267e4281afc6e6",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)": "570e4d9e26321981",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.unsummarizedTurns(in:)": "bbfdd1346697c650",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.updateSummaryWith(droppedTurns:provider:model:contextRendered:)": "6c4240e5786650be",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.updateSummaryWith(droppedTurns:provider:model:contextRendered:)": "51214a0678d1ddc5",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.publishAppleDispatcher(provider:factRegistry:)": "250d45d0bfe9c9d3",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.retrieveTools(_:registry:outbound:)": "50cb732ecafd4ab8",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.checkCatalogHashStability(newHash:)": "5d28f00018130a24",
@@ -736,8 +773,8 @@
   },
   {
    "key": "func AssistantTurnRouter.runStreamWithErrorPolicy(_:)",
-   "hash": "7dfb99b1238f40ce",
-   "does": "Runs the tool-use loop; CancellationError is swallowed (partial reply kept); fallbackable AIProviderError goes to handleFallbackableFailure; any other error goes to handleStreamFailure.",
+   "hash": "6c38015307ddd761",
+   "does": "Runs the tool-use loop and returns whether the reply completed normally: true when the loop finished; CancellationError is swallowed (partial reply kept) and returns false; a fallbackable AIProviderError goes to handleFallbackableFailure, whose result (a fallback answered) is returned; any other error goes to handleStreamFailure (which marks a turn that kept text incomplete) and returns false.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)",
@@ -750,33 +787,38 @@
    "branches": [
     {
      "at": "+7",
-     "cond": "catch CancellationError",
-     "effect": "swallowed; partial text kept"
+     "cond": "loop finished",
+     "effect": "return true"
     },
     {
-     "at": "+11",
-     "cond": "catch AIProviderError where isFallbackable",
-     "effect": "try the fallback chain"
+     "at": "+8",
+     "cond": "catch CancellationError",
+     "effect": "swallowed; partial text kept; return false"
     },
     {
      "at": "+13",
-     "cond": "catch other error (incl. guardrail refusals)",
-     "effect": "surface via handleStreamFailure"
+     "cond": "catch AIProviderError where isFallbackable",
+     "effect": "return handleFallbackableFailure (true only if a fallback answered)"
+    },
+    {
+     "at": "+15",
+     "cond": "catch other error (incl. guardrail and blocked-reply refusals)",
+     "effect": "surface via handleStreamFailure; return false"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isFallbackable": "d013db8ccf81b1c5",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.handleFallbackableFailure(_:attempt:)": "a5f6164e328e6746",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isFallbackable": "282db2562f4830f6",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.handleFallbackableFailure(_:attempt:)": "318e8bbb9f53741d",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "4418043899d6c1da",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handleStreamFailure(error:turnID:)": "3d6cccded1dbc94b",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handleStreamFailure(error:turnID:)": "1752a15105b1d89f",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)": "466acc0532c80c31",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
    "key": "func AssistantTurnRouter.handleFallbackableFailure(_:attempt:)",
-   "hash": "e2af2273f0732f95",
-   "does": "Computes the allowed fallback chain (ordered providers filtered by TurnRouter.failureFallback for mode/selection), logs the primary failure; with no chain surfaces a PickedModelFailure; else walks fallbacks and surfaces the original error if all fail.",
+   "hash": "25a4054ad87dffc6",
+   "does": "Computes the allowed fallback chain (ordered providers filtered by TurnRouter.failureFallback for mode/selection), logs the primary failure; with no chain surfaces a PickedModelFailure and returns false; else walks the fallbacks (tryFallbacks), surfaces the original error through handleStreamFailure when every fallback failed, and returns true only when a fallback answered.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.orderedFallbackProviders(after:)",
@@ -796,20 +838,25 @@
     {
      "at": "+9",
      "cond": "chain empty",
-     "effect": "handleStreamFailure(PickedModelFailure) and return"
+     "effect": "handleStreamFailure(PickedModelFailure); return false"
     },
     {
      "at": "+19",
-     "cond": "no fallback succeeded",
+     "cond": "tryFallbacks ended .failed (every fallback failed)",
      "effect": "handleStreamFailure(original error)"
+    },
+    {
+     "at": "+20",
+     "cond": "ending == .answered",
+     "effect": "return true; .stopped / .blocked / .failed return false"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveNavigation.swift::func WorkoutLiveCoachingNamespace.routingMode(_:)": "b8dcd07893b5fbfc",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "4418043899d6c1da",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handleStreamFailure(error:turnID:)": "3d6cccded1dbc94b",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handleStreamFailure(error:turnID:)": "1752a15105b1d89f",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.orderedFallbackProviders(after:)": "a52875ed68367c9d",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.tryFallbacks(_:outbound:tools:factRegistry:turnID:voiceMode:)": "cd8119920f6404b2",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.tryFallbacks(_:outbound:tools:factRegistry:turnID:voiceMode:)": "0e212d4b30031999",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.allowedFallbacks(_:under:)": "106ac48cad33a9e9",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "0c985becfe5c2b42",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
@@ -819,14 +866,14 @@
    }
   },
   {
-   "key": "func AssistantTurnRouter.applyPostStreamEffects(turnID:)",
-   "hash": "e5d7366b239024a0",
-   "does": "If the live assistant turn exists and is non-empty, runs the final CoachVoiceGuard scrub and background fact extraction.",
+   "key": "func AssistantTurnRouter.applyPostStreamEffects(turnID:completed:)",
+   "hash": "1110de065f295312",
+   "does": "If the live assistant turn exists and is non-empty, runs the final CoachVoiceGuard scrub, then background fact extraction, which goes ahead only when completed (the reply completed normally).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.liveTurnIndex(for:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.scrubForCoachVoice(at:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.extractFactsInBackground(from:)"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.extractFactsInBackground(from:completed:)"
    ],
    "reads": [
     "mem:AssistantViewModel.turns"
@@ -840,7 +887,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.extractFactsInBackground(from:)": "bea831559125cc42",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.extractFactsInBackground(from:completed:)": "8729adde218fa242",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.liveTurnIndex(for:)": "ec85bf698a65a4c2",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.scrubForCoachVoice(at:)": "ac46feb1eaf09e88"
    }
@@ -903,11 +950,12 @@
    "deps": {}
   },
   {
-   "key": "func AssistantTurnRouter.extractFactsInBackground(from:)",
-   "hash": "69af9f27c6f55c5a",
-   "does": "When auto-extract is on and the turn before the assistant turn is a user turn, launches a detached background Task running runAutoFactExtraction with both texts.",
+   "key": "func AssistantTurnRouter.extractFactsInBackground(from:completed:)",
+   "hash": "85ce9d3955a545a2",
+   "does": "When auto-extract is on and factExtractionExchange returns an exchange (the reply completed normally, is not marked incomplete, and follows a user turn), launches a detached background Task running runAutoFactExtraction with the user and reply texts.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.factExtractionExchange(in:at:completed:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.runAutoFactExtraction(userText:assistantText:)"
    ],
    "reads": [
@@ -918,19 +966,38 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "auto-extract disabled OR assistant index < 1",
-     "effect": "return"
-    },
-    {
-     "at": "+3",
-     "cond": "preceding turn is not a user turn",
+     "cond": "auto-extract disabled OR no exchange to read",
      "effect": "return"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.autoExtractEnabled": "dd33e78cb9e18d0d",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.runAutoFactExtraction(userText:assistantText:)": "6a5b45d18c46389d"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.runAutoFactExtraction(userText:assistantText:)": "6a5b45d18c46389d",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.factExtractionExchange(in:at:completed:)": "7b4c40b544fb5b1e",
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.factsStore(_:)": "9fc43e3ad82d134b"
    }
+  },
+  {
+   "key": "func AssistantTurnRouter.factExtractionExchange(in:at:completed:)",
+   "hash": "3f7ea1876abc228d",
+   "does": "Pure selection of what fact extraction reads after a turn: the (userText, assistantText) of the user turn before assistantIndex and the reply at it. Nil unless completed is true, the index is in range and at least 1, the reply is not marked incomplete, and the turn before it is a user turn.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "not completed, index out of range or < 1, or reply incomplete",
+     "effect": "return nil"
+    },
+    {
+     "at": "+8",
+     "cond": "preceding turn is not a user turn",
+     "effect": "return nil"
+    }
+   ],
+   "deps": {}
   },
   {
    "key": "func AssistantTurnRouter.snapshotUserFacts()",

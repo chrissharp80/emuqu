@@ -94,7 +94,9 @@ final class ReanalysisServiceTests: XCTestCase {
         super.tearDown()
     }
 
-    private func makeService() -> ReanalysisService {
+    /// `analysis` answers both analysis closures (window and full session),
+    /// once per reanalysis pass; nil fails the pass.
+    private func makeService(analysis: @escaping () -> HRVAnalysisResult? = { nil }) -> ReanalysisService {
         let healthKit = MockHealthKitService()
         let windowSelector = WindowSelector()
         let artifactDetector = ArtifactDetector()
@@ -112,8 +114,8 @@ final class ReanalysisServiceTests: XCTestCase {
                 HRVAnalysisPipeline.ANSConfiguration(baselineRMSSD: 40, vo2Max: nil, trainingLoadAdjustment: 0)
             },
             trainingContextProvider: { _ in nil },
-            analyzeWithWindow: { _, _, _, _ in nil },
-            analyzeFullSession: { _, _ in nil },
+            analyzeWithWindow: { _, _, _, _ in analysis() },
+            analyzeFullSession: { _, _ in analysis() },
             onArchiveChanged: {},
             onSessionUploaded: { _ in }
         )
@@ -160,6 +162,234 @@ final class ReanalysisServiceTests: XCTestCase {
         try archive.archive(session)
         XCTAssertFalse(makeService().updateSessionSleepBoundaries(sessionId: session.id, sleepData: watchNight(minutes: 420)))
         XCTAssertEqual(try archive.retrieve(session.id)?.sleepSnapshot?.nightSleepMinutes, 300)
+    }
+
+    // MARK: - Writing a rescore
+
+    /// A rescore works from the copy it read. An edit the user saved to the
+    /// archive while it ran survives the rescore's write, and the write
+    /// still lands the new score.
+    func testAnEditSavedWhileARescoreRanSurvivesItsWrite() throws {
+        var read = overnight()
+        read.recoveryScore = 6.1
+        try archive.archive(read)
+        try archive.updateTags(read.id, tags: [ReadingTag.alcohol], notes: "late dinner")
+        try archive.update(read.id, requestingReupload: false) { $0.morningFeeling = 2 }
+        var rescored = read
+        rescored.recoveryScore = 7.4
+
+        let outcome = try RescoreWrite.write(rescored, readFrom: read, kind: .scoreOnly(healedTraining: false), to: archive)
+
+        let stored = try XCTUnwrap(try archive.retrieve(read.id))
+        XCTAssertEqual(stored.recoveryScore, 7.4)
+        XCTAssertEqual(stored.tags, [ReadingTag.alcohol])
+        XCTAssertEqual(stored.notes, "late dinner")
+        XCTAssertEqual(stored.morningFeeling, 2)
+        guard case .written(let written) = outcome else { return XCTFail("expected a write, got \(outcome)") }
+        XCTAssertEqual(written.tags, [ReadingTag.alcohol], "callers get the session as written")
+    }
+
+    /// A rescored session the archive does not hold is archived as it is.
+    func testARescoreOfASessionNotYetArchivedIsArchivedAsItIs() throws {
+        var session = overnight()
+        session.recoveryScore = 7.4
+        session.notes = "from the card"
+
+        let outcome = try RescoreWrite.write(session, readFrom: session, kind: .reanalysis(healedTraining: false), to: archive)
+
+        guard case .written(let written) = outcome else { return XCTFail("expected a write, got \(outcome)") }
+        XCTAssertEqual(written.notes, "from the card")
+        XCTAssertEqual(try archive.retrieve(session.id)?.recoveryScore, 7.4)
+    }
+
+    /// The HealthKit export stamp and the AI context are written while a
+    /// rescore can run. Putting the stamp back to nil would export the same
+    /// samples again, so both stay as the archive holds them.
+    func testARescoreKeepsTheExportStampAndAIContextSavedWhileItRan() throws {
+        var read = overnight()
+        read.recoveryScore = 6.1
+        try archive.archive(read)
+        let exportedAt = nightStart.addingTimeInterval(9 * 3600)
+        try archive.update(read.id, requestingReupload: false) {
+            $0.healthKitExportedAt = exportedAt
+            $0.aiContext = ["coaching": "easy day"]
+        }
+        var rescored = read
+        rescored.recoveryScore = 7.4
+
+        _ = try RescoreWrite.write(rescored, readFrom: read, kind: .reanalysis(healedTraining: false), to: archive)
+
+        let stored = try XCTUnwrap(try archive.retrieve(read.id))
+        XCTAssertEqual(stored.recoveryScore, 7.4)
+        XCTAssertEqual(stored.healthKitExportedAt, exportedAt)
+        XCTAssertEqual(stored.aiContext, ["coaching": "easy day"])
+    }
+
+    /// A score-only pass sets the score and nothing it does not compute: the
+    /// window mark, the artifact flags and the quality class stay as stored.
+    func testAScoreOnlyWriteLeavesTheWindowFlagsAndQualityAlone() throws {
+        var read = overnight()
+        read.recoveryScore = 6.1
+        read.windowUserAdjusted = true
+        read.hrvDataQuality = .insufficient
+        try archive.archive(read)
+        var rescored = read
+        rescored.recoveryScore = 7.4
+        rescored.windowUserAdjusted = nil
+        rescored.hrvDataQuality = .preSleep
+        rescored.artifactFlags = []
+
+        _ = try RescoreWrite.write(rescored, readFrom: read, kind: .scoreOnly(healedTraining: false), to: archive)
+
+        let stored = try XCTUnwrap(try archive.retrieve(read.id))
+        XCTAssertEqual(stored.recoveryScore, 7.4)
+        XCTAssertEqual(stored.windowUserAdjusted, true)
+        XCTAssertEqual(stored.hrvDataQuality, .insufficient)
+        XCTAssertNil(stored.artifactFlags)
+    }
+
+    /// A sleep edit saved while a reanalysis ran changes an input of its
+    /// score. Nothing is written from the stale run; the pass runs again from
+    /// the stored copy, and the score written is the one the new sleep gives.
+    func testASleepEditDuringAReanalysisIsScoredFromTheNewSleep() async throws {
+        var night = overnight()
+        night.rrSeries = RRSeries(points: Self.beats(count: 900), sessionId: night.id, startDate: nightStart)
+        night.sleepSnapshot = watchNight(minutes: 300)
+        try archive.archive(night)
+        let read = try XCTUnwrap(try archive.retrieve(night.id))
+        var passes = 0
+        let service = makeService { [archive = self.archive, nightStart = self.nightStart] in
+            passes += 1
+            if passes == 1 { Self.editSleep(of: read.id, in: archive, nightStart: nightStart) }
+            return Self.analysis(at: nightStart)
+        }
+
+        let written = await service.reanalyzeSession(read)
+
+        let stored = try XCTUnwrap(try archive.retrieve(night.id))
+        XCTAssertEqual(passes, 2, "the stale run was not written; the pass ran again")
+        XCTAssertEqual(stored.sleepSnapshot?.nightSleepMinutes, 420)
+        let expected = service.deterministicRecoveryScore(for: stored, result: Self.analysis(at: nightStart)).score
+        XCTAssertEqual(try XCTUnwrap(stored.recoveryScore), expected, accuracy: 0.0001)
+        XCTAssertEqual(written?.recoveryScore, stored.recoveryScore)
+    }
+
+    /// A window picked by hand while an automatic reanalysis ran is the
+    /// user's: the reanalysis writes nothing over it and does not run again.
+    func testAManualWindowPickedDuringAnAutomaticReanalysisSurvives() async throws {
+        var night = overnight()
+        night.rrSeries = RRSeries(points: Self.beats(count: 900), sessionId: night.id, startDate: nightStart)
+        night.recoveryScore = 6.1
+        try archive.archive(night)
+        let read = try XCTUnwrap(try archive.retrieve(night.id))
+        var passes = 0
+        let service = makeService { [archive = self.archive, nightStart = self.nightStart] in
+            passes += 1
+            Self.pickWindow(of: read.id, in: archive)
+            return Self.analysis(at: nightStart)
+        }
+
+        let written = await service.reanalyzeSession(read)
+
+        let stored = try XCTUnwrap(try archive.retrieve(night.id))
+        XCTAssertNil(written)
+        XCTAssertEqual(passes, 1)
+        XCTAssertEqual(stored.windowUserAdjusted, true)
+        XCTAssertEqual(stored.recoveryScore, 8.8, "the manual pick's own score")
+    }
+
+    /// Every stored field of the session is either computed by a rescore or
+    /// kept from the archived copy. A field added to `HRVSession` fails here
+    /// until it is classified, so a rescore cannot silently write it back.
+    func testEveryStoredSessionFieldIsClassifiedForARescoreWrite() {
+        let fields = Set(Mirror(reflecting: overnight()).children.compactMap(\.label))
+        let computed = RescoreWrite.computedFields
+        let stored = RescoreWrite.storedFields
+        XCTAssertTrue(computed.isDisjoint(with: stored), "a field is either computed or kept, not both")
+        XCTAssertEqual(computed.union(stored), fields)
+    }
+
+    /// Beats with a little variation, a second apart in a 1 s rhythm.
+    private static func beats(count: Int) -> [RRPoint] {
+        var tMs: Int64 = 0
+        return (0 ..< count).map { i in
+            let rr = 1000 + [20, -5, -20, 5][i % 4]
+            tMs += Int64(rr)
+            return RRPoint(t_ms: tMs, rr_ms: rr)
+        }
+    }
+
+    /// An analysis carrying its own training context, so scoring it never
+    /// asks HealthKit for the load.
+    private static func analysis(at date: Date) -> HRVAnalysisResult {
+        var result = HRVAnalysisResult(
+            windowStart: 0, windowEnd: 400,
+            timeDomain: TimeDomainMetrics(
+                meanRR: 1000, sdnn: 30, rmssd: 35, pnn50: 12, sdsd: 30, meanHR: 60, sdHR: 3, triangularIndex: nil
+            ),
+            frequencyDomain: nil,
+            nonlinear: NonlinearMetrics(
+                sd1: 25, sd2: 40, sd1Sd2Ratio: 0.6, sampleEntropy: 1.5, approxEntropy: 1.3,
+                dfaAlpha1: 0.85, dfaAlpha2: nil, dfaAlpha1R2: 0.95
+            ),
+            ansMetrics: nil, artifactPercentage: 1, cleanBeatCount: 400, analysisDate: date
+        )
+        result.trainingContext = TrainingContext(
+            atl: 0, ctl: 0, tsb: 0, yesterdayTrimp: 0, vo2Max: nil, daysSinceHardWorkout: nil, recentWorkouts: nil
+        )
+        return result
+    }
+
+    /// The user's sleep edit, saved while the reanalysis runs.
+    private static func editSleep(of id: UUID, in archive: SessionArchive, nightStart: Date) {
+        do {
+            try archive.update(id, requestingReupload: false) {
+                $0.sleepSnapshot = SleepData(
+                    date: nightStart, inBedStart: nightStart,
+                    sleepStart: nightStart.addingTimeInterval(600),
+                    sleepEnd: nightStart.addingTimeInterval(600 + 450 * 60),
+                    totalSleepMinutes: 420, inBedMinutes: 450,
+                    deepSleepMinutes: 60, remSleepMinutes: 90, awakeMinutes: 30, sleepEfficiency: 93,
+                    boundarySource: .healthKit, segments: [], stageIntervals: [],
+                    boundaryValidation: nil, hrSleepQuality: nil
+                )
+                $0.sleepUserAdjusted = true
+            }
+        } catch {
+            XCTFail("the sleep edit was not saved: \(error)")
+        }
+    }
+
+    /// The user's manual window pick, with the score it gives, saved while
+    /// the reanalysis runs.
+    private static func pickWindow(of id: UUID, in archive: SessionArchive) {
+        do {
+            try archive.update(id, requestingReupload: false) {
+                $0.windowUserAdjusted = true
+                $0.recoveryScore = 8.8
+            }
+        } catch {
+            XCTFail("the window pick was not saved: \(error)")
+        }
+    }
+
+    // MARK: - Unlinking a segment
+
+    /// A linked segment that can be read is unlinked: the parent drops the
+    /// link and the call reports true, which is what lets the report take the
+    /// segment off its list.
+    func testUnlinkingALinkedSegmentDropsTheLinkAndReportsTrue() throws {
+        let segment = HRVSession(
+            id: UUID(), startDate: nightStart.addingTimeInterval(2 * 3600), endDate: nightStart.addingTimeInterval(3 * 3600),
+            state: .complete, sessionType: .overnight, rrSeries: nil, analysisResult: nil, artifactFlags: nil
+        )
+        var parent = overnight()
+        parent.linkedSessionIds = [segment.id]
+        try archive.archive(segment)
+        try archive.archive(parent)
+
+        XCTAssertTrue(makeService().unlinkSegment(segmentId: segment.id, fromSession: parent.id))
+        XCTAssertNil(try archive.retrieve(parent.id)?.linkedSessionIds)
     }
 
     // MARK: - Re-score vitals

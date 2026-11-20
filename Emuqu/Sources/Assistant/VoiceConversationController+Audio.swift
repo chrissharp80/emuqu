@@ -728,16 +728,23 @@ extension VoiceAudioPipeline {
     /// nothing has been marked safe.
     ///
     /// A cursor below what was already spoken means the view model rewound
-    /// the round (text spoken before a tool call was cut): the spoken
-    /// position follows it back, so the next round is spoken from its start
-    /// instead of skipping its first characters.
+    /// the text: a round's text spoken before a tool call was cut, or a
+    /// failed reply was taken out for a fallback's answer. The spoken
+    /// position follows it back, so the new text is spoken from its start
+    /// instead of skipping its first characters, and the part of the
+    /// withdrawn text still waiting in the chunker (an unfinished sentence)
+    /// is dropped rather than spoken in front of it. What was already spoken
+    /// stays spoken.
     @MainActor
     private func speakUpToCursor(turns: [ChatTurn], cursors: [UUID: Int]) {
         guard let idx = controller.activeAssistantIndex, idx >= 0, idx < turns.count else { return }
         let turn = turns[idx]
         guard turn.role == .assistant else { return }
         let safeLen = min(cursors[turn.id] ?? 0, turn.text.count)
-        if safeLen < controller.spokenCharCursor { controller.spokenCharCursor = safeLen }
+        if safeLen < controller.spokenCharCursor {
+            controller.textChunker.withdrawLast(controller.spokenCharCursor - safeLen)
+            controller.spokenCharCursor = safeLen
+        }
         guard safeLen > controller.spokenCharCursor else { return }
         let start = turn.text.index(turn.text.startIndex, offsetBy: controller.spokenCharCursor)
         let end = turn.text.index(turn.text.startIndex, offsetBy: safeLen)

@@ -130,14 +130,36 @@ extension RecordView {
     }
 
     /// The archive rewrite (decrypt, encode, write) runs off the main actor.
-    /// A failure is logged: for a reading not archived yet it is expected,
-    /// and acceptance saves the in-memory copy.
+    /// A failure on the reading still awaiting acceptance is expected (it may
+    /// not be archived yet) and only logged: acceptance archives the
+    /// in-memory copy, which holds these tags. So is a reading the archive no
+    /// longer holds (discarded or deleted meanwhile): there is nothing left to
+    /// tag. Any other reading is archived and is not saved again, so a
+    /// failure loses the edit and is reported (`tagSaveFailureMessage`), as
+    /// History reports its own.
     func writeTagsToArchive(_ id: UUID, tags: [ReadingTag], notes: String?) async {
+        let acceptanceSavesTags = sessionState.needsAcceptance && sessionState.currentSession?.id == id
         let archive = collector.archive
         do {
             try await Task.detached { try archive.updateTags(id, tags: tags, notes: notes) }.value
+        } catch SessionArchive.ArchiveError.fileNotFound, SessionArchive.ArchiveError.sessionWasDeleted {
+            debugLog("[RecordView] Tags not written: \(id.uuidString.prefix(8)) is not in the archive")
         } catch {
             debugLog("[RecordView] Tags not written to the archive for \(id.uuidString.prefix(8)): \(error)")
+            guard !acceptanceSavesTags else { return }
+            tagSaveFailureMessage = String(localized: "Couldn't save: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
+        }
+    }
+
+    /// The tag-save failure alert, on the Record screen and on each report
+    /// cover: an alert on the screen cannot show while a cover is over it, so
+    /// `shown` lets exactly one of them present it.
+    func withTagSaveFailureAlert(_ content: some View, shown: Bool) -> some View {
+        content.alert(
+            tagSaveFailureMessage ?? "",
+            isPresented: Binding(get: { shown && tagSaveFailureMessage != nil }, set: { if !$0 { tagSaveFailureMessage = nil } })
+        ) {
+            Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
         }
     }
 
@@ -152,7 +174,9 @@ extension RecordView {
     /// reading while it is still the current one (acceptance archives that
     /// copy), and into the archived copy. The report hands them over after
     /// the toolbar Done has started acceptance, so these writes land after
-    /// `persistTagsAndNotes`'s and the report's edits are what is kept.
+    /// `persistTagsAndNotes`'s and the report's edits are what is kept. A
+    /// write that fails on an archived reading is reported
+    /// (`writeTagsToArchive`).
     func saveReportTags(_ tags: [ReadingTag], notes: String?, sessionId: UUID) {
         applyTagsInMemory(tags, notes: notes, sessionId: sessionId)
         Task { await writeTagsToArchive(sessionId, tags: tags, notes: notes) }

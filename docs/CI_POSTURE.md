@@ -31,16 +31,21 @@ target is still the slow part of a run.
 
 ## What actually enforces quality here
 
-The checks did not go away. They moved to the machine that can afford to run
-them:
+Everything `ci.yml` runs also runs on the developer's Mac:
 
 ```bash
 make ci
 ```
 
-That runs **every gate plus the full test suite** — the identical scripts CI
-invokes, against the identical budget files in `.ci/`. On the developer's Mac it
-costs nothing and takes about forty minutes.
+That runs **every gate, the Release build, the unit suite under Thread
+Sanitizer, and the full test suite** (UI target and all three coverage floors)
+— the identical scripts CI invokes, against the identical budget files in
+`.ci/`. It costs nothing, and Thread Sanitizer and the UI target make it the
+slow part of a day. It is a discipline, not an enforcement: nothing records
+that it ran. Two differences from GitHub are deliberate: it runs the test suite
+at scope `full` where a pull request runs `unit`, and the budget ratchet
+compares with the branch's merge base with `origin/main` (below) where CI
+compares with the parent commit or the pull request's base.
 
 `./scripts/evidence_report.sh` prints the live counts; nothing in this document
 restates a number the tooling already knows, because a restated number rots.
@@ -48,16 +53,19 @@ restates a number the tooling already knows, because a restated number rots.
 ### Running CI locally before pushing
 
 ```bash
-make ci-local          # every gate, ~2 minutes, free
-make ci-local-unit     # the above plus the unit suite
+make ci-local          # scope gates: every gate, ~2 minutes, free
+make ci-local-unit     # scope unit: the above plus the Release build, the unit suite and Thread Sanitizer
 ```
 
 `scripts/simulate_ci.sh` **parses `.github/workflows/ci.yml` and executes its
 `run:` blocks in order**. It keeps no list of its own, so it cannot drift from
 the workflow: a step added to CI is picked up automatically, and a step it does
-not know how to run locally is a hard error rather than a silent skip. Only two
-steps are genuinely unrunnable on a developer machine — selecting the runner's
-Xcode and `brew install` — and neither can fail a build.
+not know how to run locally is a hard error rather than a silent skip. Which
+jobs run comes from each job's own `if:`, evaluated against the scope, so the
+script runs the same jobs GitHub runs for that scope. Only two steps are
+genuinely unrunnable on a developer machine — selecting the runner's Xcode and
+installing the pinned SwiftLint onto the runner's `PATH` — and neither can fail
+a build.
 
 Run it **after committing**: the budget-ratchet gate compares `HEAD` against
 `HEAD~1`, so an uncommitted budget change is invisible to it exactly as it would
@@ -65,8 +73,9 @@ be on the runner. The script says so when the tree is dirty.
 
 ### The gates
 
-Grouped by what they protect. Every one is a script in `scripts/`, run
-identically by `make ci`, `make ci-local`, and GitHub Actions.
+Grouped by what they protect. Every one is a script in `scripts/`, run by
+`make ci`, `make ci-local`, and GitHub Actions; only the budget ratchet's
+baseline differs between them (below).
 
 | Area | Gates |
 | --- | --- |
@@ -94,9 +103,12 @@ not read, so every widening of a gate ships with its own plant.
 `scripts/enforce_*.sh` and failing if any of them has no plant and no recorded
 reason for the exemption. Adding a gate and proving it are one change.
 
-`check_budget_monotonicity.sh` skips when given no baseline. To check
-uncommitted budget edits, pass one explicitly:
-`check_budget_monotonicity.sh HEAD`.
+`check_budget_monotonicity.sh` skips when given no baseline. `make
+budget-monotonicity` passes one: the merge base of `HEAD` and `origin/main`, so
+a raise already committed on the branch is compared as well as an uncommitted
+one, or `HEAD` alone (and it says so) in a clone with no `origin/main`.
+`BUDGET_BASE_REF=<ref>` overrides it. `ci.yml` compares with the parent commit;
+`gates.yml` with the pull request's base or the tip before the push.
 
 ### Three questions, not one
 

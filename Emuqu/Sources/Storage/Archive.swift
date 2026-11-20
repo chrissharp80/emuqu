@@ -78,8 +78,10 @@ final class SessionArchive: @unchecked Sendable {
     /// `index`: every read AND write MUST hold `archiveLock`. External callers
     /// use the locked `deletedIds` accessor.
     var deletedSessionIds: Set<UUID> = []
-    /// Set when `index.json` exists but could not be read at launch; the
-    /// in-memory index is then incomplete. Same lock contract as `index`.
+    /// Set when `index.json` exists but could not be read at launch, or did
+    /// not decode and could not be moved aside; the in-memory index is then
+    /// incomplete, and a save reads the file again first. Same lock contract
+    /// as `index`.
     var indexReadFailed = false
     /// Set when `index.json` read but did not decode this launch (the bytes
     /// were moved aside and the in-memory index started empty), so the index
@@ -90,7 +92,8 @@ final class SessionArchive: @unchecked Sendable {
     /// (`IndexEntriesFromNewerBuild`). Same lock contract as `index`.
     var newerBuildIndexEntries = IndexEntriesFromNewerBuild()
     /// The same for `deleted.json`: the in-memory tombstones are then only
-    /// the ones with a recorded deletion time, until the file reads.
+    /// the ones with a recorded deletion time, until the file reads (or,
+    /// undecodable, is moved aside).
     var deletedIndexReadFailed = false
     let fileManager = FileManager.default
     let archiveLock = NSLock()

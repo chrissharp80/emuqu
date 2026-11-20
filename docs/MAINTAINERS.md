@@ -982,7 +982,7 @@ make codemap-impact # everything this branch's changes can affect, against origi
 make codemap-report # browsable map in build/codemap (serve it with python3 -m http.server)
 
 make ci-local      # every gate the WORKFLOW runs, ~2 min, no simulator
-make ci-local-unit # the above plus the unit suite
+make ci-local-unit # the above plus the Release build, unit suite and Thread Sanitizer
 ```
 
 **Run `make ci-local` before every push.** `scripts/simulate_ci.sh` parses

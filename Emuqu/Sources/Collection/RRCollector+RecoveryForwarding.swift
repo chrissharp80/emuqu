@@ -1,6 +1,7 @@
 import Foundation
 
-// Recovery lives in `SessionRecoveryCoordinator` — 1,557 lines kept
+// Recovery lives in `SessionRecoveryCoordinator` (its extensions in
+// `RRCollector+Recovery.swift` and `RRCollector+BackupRecovery.swift`), kept
 // out of what was the largest type in the codebase.
 //
 // These forwarders exist so the ~29 call sites across the app and the test
@@ -8,9 +9,9 @@ import Foundation
 // collector's recovery API; the behaviour lives one reference away.
 
 extension RRCollector {
-    /// The recovery subsystem. Lazy because most launches never recover
-    /// anything, and building it eagerly would put an object on the cold-start
-    /// path for a case that usually does not arise.
+    /// The recovery subsystem, built afresh on every access. The coordinator
+    /// is a value holding only this collector, so building one costs nothing
+    /// and there is no stored instance to keep in step.
     var recovery: SessionRecoveryCoordinator {
         SessionRecoveryCoordinator(collector: self)
     }

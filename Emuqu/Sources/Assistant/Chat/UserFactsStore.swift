@@ -217,6 +217,18 @@ final class UserFactsStore {
         return facts.count - before
     }
 
+    /// The facts the file holds once every write already queued has run:
+    /// empty when there is no file, nil when it cannot be read or decoded.
+    /// Delete All My Data reads its result back with it.
+    func persistedFacts() -> [Fact]? {
+        let url = fileURL
+        return queue.sync {
+            guard FileManager.default.fileExists(atPath: url.path) else { return [] }
+            guard let data = attempt("UserFactsStore.readBack", { try Data(contentsOf: url) }) else { return nil }
+            return Self.decodedFacts(data)
+        }
+    }
+
     /// Renders the facts as a system-prompt block. Empty string when no facts.
     /// Returns something like:
     ///   "Things to remember about this user (set by them earlier):\n• I'm training for a marathon\n• I had a cold last week"

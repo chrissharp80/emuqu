@@ -228,6 +228,137 @@ final class ArchiveIntegrityTests: XCTestCase {
         XCTAssertNil(retrieved)
     }
 
+    /// A session the Trash cannot take (here a file stands where its folder
+    /// goes) stays archived and the delete throws. The file was deleted
+    /// instead, losing the copy a restore brings back.
+    func testADeleteTheTrashCannotTakeLeavesTheSessionArchived() throws {
+        let session = createTestSession()
+        testSessionIds.append(session.id)
+        _ = try archive.archive(session)
+        XCTAssertTrue(FileManager.default.createFile(atPath: archive.store.trashDirectory.path, contents: Data()))
+
+        XCTAssertThrowsError(try archive.delete(session.id))
+
+        XCTAssertTrue(archive.exists(session.id))
+        XCTAssertFalse(archive.wasIntentionallyDeleted(session.id))
+        XCTAssertEqual(try archive.retrieve(session.id)?.id, session.id)
+    }
+
+    /// An entry whose file is already gone has nothing for the Trash to keep:
+    /// it is deleted and tombstoned rather than refused on every attempt.
+    func testASessionWhoseFileIsGoneCanStillBeDeleted() throws {
+        let session = createTestSession()
+        testSessionIds.append(session.id)
+        _ = try archive.archive(session)
+        try FileManager.default.removeItem(at: archiveDirectory.appendingPathComponent("\(session.id.uuidString).json"))
+
+        try archive.delete(session.id)
+
+        XCTAssertFalse(archive.exists(session.id))
+        XCTAssertTrue(archive.wasIntentionallyDeleted(session.id))
+    }
+
+    /// A deletion made on another device removes the file without the Trash,
+    /// so a Trash that cannot take it does not stop the deletion.
+    func testADeletionFromAnotherDeviceDoesNotNeedTheTrash() throws {
+        let session = createTestSession()
+        testSessionIds.append(session.id)
+        _ = try archive.archive(session)
+        XCTAssertTrue(FileManager.default.createFile(atPath: archive.store.trashDirectory.path, contents: Data()))
+
+        try archive.deleteWithoutTrash(session.id)
+
+        XCTAssertFalse(archive.exists(session.id))
+        XCTAssertTrue(archive.wasIntentionallyDeleted(session.id))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: archiveDirectory.appendingPathComponent("\(session.id.uuidString).json").path))
+    }
+
+    /// A tombstoned session's file a failed delete left in the archive folder
+    /// is removed with its Trash copy: once the tombstone is forgotten the
+    /// orphan scan would adopt it back. A file of an id that is not
+    /// tombstoned may be a live write, and an archived session's is live: both
+    /// are kept.
+    func testDiscardingTheTrashRemovesOnlyALeftoverFileOfATombstonedSession() throws {
+        let kept = createTestSession()
+        testSessionIds.append(kept.id)
+        _ = try archive.archive(kept)
+        let deletedId = UUID()
+        let untombstonedId = UUID()
+        try archive.markAsDeleted(deletedId)
+        defer { attempt("test.forgetDeleted") { try archive.unmarkAsDeleted(deletedId) } }
+        let leftover = archiveDirectory.appendingPathComponent("\(deletedId.uuidString).json")
+        let notTombstoned = archiveDirectory.appendingPathComponent("\(untombstonedId.uuidString).json")
+        try Data("{}".utf8).write(to: leftover)
+        try Data("{}".utf8).write(to: notTombstoned)
+
+        archive.discardTrashed(deletedId)
+        archive.discardTrashed(untombstonedId)
+        archive.discardTrashed(kept.id)
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: leftover.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: notTombstoned.path))
+        XCTAssertEqual(try archive.retrieve(kept.id)?.id, kept.id)
+    }
+
+    /// While the index has not loaded, a tombstoned id's file may still be
+    /// one the index lists: it is kept.
+    func testDiscardingTheTrashKeepsALeftoverFileWhileTheIndexIsUnread() throws {
+        let deletedId = UUID()
+        try FileManager.default.createDirectory(at: archiveDirectory, withIntermediateDirectories: true)
+        try Data("not an index".utf8).write(to: archiveDirectory.appendingPathComponent("index.json"))
+        try JSONEncoder().encode([deletedId.uuidString]).write(to: archiveDirectory.appendingPathComponent("deleted.json"))
+        let leftover = archiveDirectory.appendingPathComponent("\(deletedId.uuidString).json")
+        try Data("{}".utf8).write(to: leftover)
+
+        archive.discardTrashed(deletedId)
+
+        XCTAssertFalse(archive.hasCompleteIndex)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: leftover.path))
+    }
+
+    // MARK: - Unreadable index files
+
+    /// An index that does not decode and cannot be moved aside is left as it
+    /// is: the next save throws instead of writing a near-empty list over it.
+    func testAnUndecodableIndexThatCannotBeSetAsideIsNotWrittenOver() throws {
+        let indexFile = archiveDirectory.appendingPathComponent("index.json")
+        let unreadable = Data("not an index".utf8)
+        try FileManager.default.createDirectory(at: archiveDirectory, withIntermediateDirectories: true)
+        try unreadable.write(to: indexFile)
+        try occupySetAsideNames(of: indexFile)
+
+        XCTAssertThrowsError(try archive.archive(createTestSession()))
+
+        XCTAssertEqual(try Data(contentsOf: indexFile), unreadable)
+        XCTAssertFalse(archive.hasCompleteIndex)
+    }
+
+    /// The same for the deleted list, whose loss let iCloud bring deleted
+    /// sessions back.
+    func testAnUndecodableDeletedListThatCannotBeSetAsideIsNotWrittenOver() throws {
+        let deletedFile = archiveDirectory.appendingPathComponent("deleted.json")
+        let unreadable = Data("not a list".utf8)
+        try FileManager.default.createDirectory(at: archiveDirectory, withIntermediateDirectories: true)
+        try unreadable.write(to: deletedFile)
+        try occupySetAsideNames(of: deletedFile)
+
+        XCTAssertThrowsError(try archive.unmarkAsDeleted(UUID()))
+
+        XCTAssertEqual(try Data(contentsOf: deletedFile), unreadable)
+    }
+
+    /// Puts a folder at every name the set-aside of `file` can take from a
+    /// second ago to half a minute ahead, so its move fails.
+    private func occupySetAsideNames(of file: URL) throws {
+        let now = Int(Date().timeIntervalSince1970)
+        for second in (now - 1) ... (now + 30) {
+            let name = "\(file.lastPathComponent).unreadable_\(second)"
+            try FileManager.default.createDirectory(
+                at: file.deletingLastPathComponent().appendingPathComponent(name), withIntermediateDirectories: false
+            )
+        }
+    }
+
     // MARK: - Tag and Notes Management
 
     /// Test updating tags

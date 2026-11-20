@@ -49,8 +49,10 @@ struct MorningResultsView: View {
     /// Optional callback for user-initiated sleep adjustments (exclude/boundary changes)
     var onAdjustSleep: ((SleepData) -> Void)?
 
-    /// Optional callback to unlink a segment from the same-night merge
-    var onUnlinkSegment: ((UUID) -> Void)?
+    /// Optional callback to unlink a segment from the same-night merge.
+    /// Returns whether the unlink was stored; the sheet removes the segment
+    /// only when it was.
+    var onUnlinkSegment: ((UUID) -> Bool)?
 
     /// Linked segment time ranges for split-night recordings. Nil for standalone sessions.
     var linkedSegments: [LinkedSegmentInfo]?
@@ -69,6 +71,9 @@ struct MorningResultsView: View {
     @State var showingUnlinkConfirmation = false
     @State var pendingUnlinkSegmentId: UUID?
     @State var removedSegmentIds: Set<UUID> = []
+    /// The last segment unlink was not stored: the segment stays linked and
+    /// listed, and the "couldn't remove" alert says so.
+    @State var segmentUnlinkFailed = false
 
     /// Why the last PDF or RR export produced no file; drives the
     /// "Export failed" alert. Nil when there is nothing to report.
@@ -146,7 +151,7 @@ struct MorningResultsView: View {
         onApplyManualResult: ((HRVAnalysisResult) async -> HRVSession?)? = nil,
         onUpdateSleep: ((SleepData) -> Void)? = nil,
         onAdjustSleep: ((SleepData) -> Void)? = nil,
-        onUnlinkSegment: ((UUID) -> Void)? = nil,
+        onUnlinkSegment: ((UUID) -> Bool)? = nil,
         linkedSegments: [LinkedSegmentInfo]? = nil
     ) {
         self.session = session
@@ -507,7 +512,7 @@ struct MorningResultsView: View {
     }
 
     private func withDialogs(_ content: some View) -> some View {
-        content
+        withSegmentUnlinkFailedAlert(content)
             .confirmationDialog(
                 Text(String(localized: "Delete Reading", bundle: LanguageManager.appBundle)),
                 isPresented: $showingDeleteConfirmation,
@@ -524,6 +529,16 @@ struct MorningResultsView: View {
                 isPresented: $showingUnlinkConfirmation,
                 titleVisibility: .visible
             ) { removeSegmentActions } message: { removeSegmentMessage }
+    }
+
+    /// Raised by `unlinkPendingSegment` when the unlink was not stored.
+    private func withSegmentUnlinkFailedAlert(_ content: some View) -> some View {
+        content.alert(
+            String(localized: "Couldn't remove this segment. Try again.", bundle: LanguageManager.appBundle),
+            isPresented: $segmentUnlinkFailed
+        ) {
+            Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
+        }
     }
 
     @ViewBuilder
@@ -561,13 +576,17 @@ struct MorningResultsView: View {
         }
     }
 
+    /// The segment leaves the list only once the unlink is stored; when it
+    /// is not, it stays listed (still linked and scored) and the alert says so.
     private func unlinkPendingSegment() {
-        if let segmentId = pendingUnlinkSegmentId {
-            _ = withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
-                removedSegmentIds.insert(segmentId)
-            }
-            onUnlinkSegment?(segmentId)
-            pendingUnlinkSegmentId = nil
+        guard let segmentId = pendingUnlinkSegmentId else { return }
+        pendingUnlinkSegmentId = nil
+        guard onUnlinkSegment?(segmentId) == true else {
+            segmentUnlinkFailed = true
+            return
+        }
+        _ = withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
+            removedSegmentIds.insert(segmentId)
         }
     }
 
@@ -588,10 +607,6 @@ struct MorningResultsView: View {
     private func withLifecycle(_ content: some View) -> some View {
         content
             .task { await hydrateAndLoad() }
-            .onChange(of: morningCoordination.isDeviceFetchInProgress) { _, inProgress in
-                guard !inProgress else { return }
-                refetchSleepIfNotAdjusted()
-            }
             .onChange(of: morningCoordination.sleepDataVersion) { _, _ in
                 refetchSleepIfNotAdjusted()
             }

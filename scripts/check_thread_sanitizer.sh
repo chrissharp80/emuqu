@@ -23,7 +23,7 @@ source "$(dirname "$0")/lib/preflight.sh"
 # instrumentation is prohibitive for a per-PR gate.
 #
 # This is slow — a full instrumented build plus an instrumented test run. It is
-# its own CI job and is deliberately not in `make ci`.
+# its own CI job, and `make ci` runs it after the static gates.
 
 SCHEME="${SCHEME:-Emuqu}"
 PROJECT="${PROJECT:-Emuqu.xcodeproj}"
@@ -75,9 +75,13 @@ echo "Sanitized build and test run took $(( ($(date +%s) - started) / 60 )) min.
 # An empty log would read as zero races and zero failures.
 gate_require_nonempty "$log" "the xcodebuild log"
 
+# Test CASES, not suites: a `Test Suite '…' passed` line is not a test that ran.
+# xcodebuild writes `Test Case '-[EmuquTests.Foo testBar]' passed (…)` serially
+# and `Test case 'Foo.testBar()' passed on 'Clone 1 of …'` from parallel
+# workers; both are counted.
 races="$(grep -c 'WARNING: ThreadSanitizer' "$log" || true)"
-passed="$(grep -c "' passed" "$log" || true)"
-failed="$(grep -c "' failed" "$log" || true)"
+passed="$(grep -cE "Test [Cc]ase '[^']+' passed" "$log" || true)"
+failed="$(grep -cE "Test [Cc]ase '[^']+' failed" "$log" || true)"
 
 echo "Thread Sanitizer: ${races} race reports across ${passed} passing tests (${failed} failed)."
 
@@ -108,6 +112,18 @@ if (( status != 0 )); then
         tail -40 "$log" >&2
     fi
     exit "$status"
+fi
+
+# Zero races means nothing when nothing ran. A run that selects no tests (a
+# renamed target, a filter that matches nothing, a test bundle that never
+# loaded) exits 0 with no warnings, which is a pass that measured nothing.
+if (( passed == 0 )); then
+    echo >&2
+    echo "ERROR: xcodebuild exited 0 but no test case ran under Thread Sanitizer," >&2
+    echo "so zero race reports is not evidence of anything." >&2
+    echo "--- last 40 lines of the xcodebuild log ---" >&2
+    tail -40 "$log" >&2
+    exit 1
 fi
 
 if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then

@@ -73,6 +73,21 @@ final class UIStateCache {
         persist()
     }
 
+    /// Delete All My Data: drops both snapshots so nothing paints them
+    /// afterwards and the next `setDashboard` / `setFitness` does not write
+    /// the other one back. The purge's sweep removed the file; a removal is
+    /// queued behind any write still pending, so a write that lands after
+    /// the sweep is removed again.
+    func forgetAfterPurge() {
+        dashboard = nil
+        fitness = nil
+        guard let url = Self.persistenceURL else { return }
+        Self.writeQueue.async {
+            guard FileManager.default.fileExists(atPath: url.path) else { return }
+            attempt("uiStateCache.remove") { try FileManager.default.removeItem(at: url) }
+        }
+    }
+
     // MARK: - Persistence
 
     private struct Store: Codable {

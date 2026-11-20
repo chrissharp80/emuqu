@@ -173,7 +173,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()": "432fda2fb1468ab1",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()": "38654eadca6211af",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.pauseOvernightStreaming()": "0feb0f5a78537026"
    }
   },
@@ -262,8 +262,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardDeviceRecording()": "ac79719d246287d0",
-    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardOvernightRecording()": "ba01ab1660ae0826",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardDeviceRecording()": "932e7e7a74e2df46",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardOvernightRecording()": "22835f2820029c3a",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.startOvernightRecording()": "102151158fd99ab0"
@@ -284,7 +284,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardPausedRecording()": "b4d1d30a28d0b7e9",
+    "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.discardPausedRecording()": "7a82c6c6c8265199",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997"
    }
   },
@@ -356,7 +356,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopOvernightStreaming()": "3867ffa449b8c959",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopOvernightStreaming()": "575d0b0cd63c0721",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.stopOvernightStreaming()": "ee06838a39537c65",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.applyStopOutcome(_:navigateOnSuccess:)": "29b0c68fda108f03"
    }
@@ -388,7 +388,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.stopSession()": "aaeebe4b253032ba",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.stopSession()": "bcd0a4c0d11d8fee",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::func RRCollector.stopSession()": "99fe00abef91710a",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
     "Emuqu/Sources/Views/RecordView+Actions.swift::func RecordView.applyStopOutcome(_:navigateOnSuccess:)": "29b0c68fda108f03",
@@ -549,15 +549,15 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.stopStreamingSession()": "be73d91403ece112",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::func CollectorSessionControl.stopStreamingSession()": "88216ae44333d382",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.stopStreamingSession()": "3efb0b2423a2272e",
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.persistTagsAndNotes(for:)": "33c63d50b5d929aa"
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.persistTagsAndNotes(for:)": "af8c82c75a853891"
    }
   },
   {
    "key": "func RecordView.acceptSession()",
-   "hash": "5e18b21b422572eb",
-   "does": "Save for a reading awaiting acceptance (Save button, morning sheet Done, Continue to Dashboard): Task persists tags/notes onto the current session, accepts it in the collector (error logged only), then clears tags, notes and selectedSessionType.",
+   "hash": "a0d51702f2352505",
+   "does": "Save for a reading awaiting acceptance (Save button, morning sheet Done, Continue to Dashboard): Task persists tags/notes onto the current session, accepts it in the collector, then clears tags, notes and selectedSessionType. When acceptance fails the selection is kept (the reading still awaits acceptance and the pipeline has set lastError), so Save again writes the same tags and notes; when there was no complete session to accept the selection is cleared as after a save.",
    "entry": "Save button in RecordView.acceptanceButtons (RecordView+Sections.swift:34)",
    "calls": [
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.persistTagsAndNotes(for:)",
@@ -582,15 +582,20 @@
     },
     {
      "at": "+5",
-     "cond": "catch from acceptSession",
-     "effect": "error logged here; a runAcceptance failure was already written to lastError by the pipeline (RRCollector+Acceptance.swift:15) so the Error alert shows; noSessionToAccept is not surfaced; tags/notes are cleared either way (already applied to currentSession in memory)"
+     "cond": "acceptSession threw noSessionToAccept",
+     "effect": "logged; falls through to clear the selection"
+    },
+    {
+     "at": "+7",
+     "cond": "acceptSession threw anything else",
+     "effect": "logged and return: tags, notes and session type kept; the pipeline already set lastError, so the Error alert shows"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.acceptSession()": "7e9c09414b14c39e",
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.acceptSession()": "f362c4967d2e9405",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.persistTagsAndNotes(for:)": "33c63d50b5d929aa"
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.persistTagsAndNotes(for:)": "af8c82c75a853891"
    }
   },
   {

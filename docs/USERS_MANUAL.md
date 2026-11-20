@@ -740,7 +740,7 @@ The assistant maintains a persistent list of facts about you that get injected i
 
 - Add manually: **Settings → Flo → What the AI Remembers** → type a fact (e.g., "I'm prepping for a marathon", "I have a stress fracture", "Always answer concisely"). Tap +.
 - Add from chat: long-press any message → **Remember this**.
-- Auto-add: toggle **Auto-remember things** in Settings. After every response the assistant runs a tiny background extraction pass and adds any new facts it identifies. Free on Apple, ~fraction of a cent on connected models. Off by default.
+- Auto-add: toggle **Auto-remember things** in Settings. After every response that completes the assistant runs a tiny background extraction pass and adds any new facts it identifies. Free on Apple, ~fraction of a cent on connected models. Off by default.
 - Remove: swipe a fact in Settings, or **Forget everything** to wipe.
 
 Stored on this device only — never sent anywhere except the AI provider you're chatting with at the time.
@@ -945,7 +945,7 @@ Chart labels adapt to context: "Overnight Summary" / "Heart Rate Overnight" / "H
 
 ### Notes Section
 - Text field for session notes
-- Notes and tag changes are saved when you tap **Done** or close the report (a swipe down included)
+- Notes and tag changes are saved when you tap **Done** or close the report (a swipe down included). **Discard** throws the reading away, and its tag and note changes with it
 
 ### Action Buttons
 - **"Email Report"**: Choose the sections; Emuqu builds a PDF report and attaches it to a new email:
@@ -1584,7 +1584,7 @@ API keys are stored in the iOS Keychain on this device only — they are never s
 - **Advanced Diagnostics Toggle**: When enabled, reveals diagnostic tools (archive diagnostics, repair, raw log viewer) inline.
 
 ### Advanced Data Controls
-- **Delete All My Data**: erases everything the app stores on this iPhone and its iCloud copy, and removes your API keys. You type the phrase `DELETE MY DATA`, then confirm once more. It cannot be undone. The free-trial record and the encryption keys stay in the keychain; they hold no health data.
+- **Delete All My Data**: erases everything the app stores on this iPhone and its iCloud copy, and removes your API keys. You type the phrase `DELETE MY DATA`, then confirm once more. It cannot be undone. It is unavailable while a recording is in progress (a reading, a night, even paused, a strap recording or a workout) or a reading is waiting to be accepted: stop the recording, or accept or discard the reading, first. The free-trial record and the encryption keys stay in the keychain; they hold no health data.
 
 ### Help & Support
 - **Help Center**: Opens the searchable help article library (see [Help Center](#help-center) section below)

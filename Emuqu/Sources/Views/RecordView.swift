@@ -36,6 +36,10 @@ struct RecordView: View {
     @State var sleepEditSaveFailed = false
     /// Discarding a quick reading from its report failed to delete it.
     @State var quickDiscardFailed = false
+    /// Why a tag or note edit on an archived reading was not stored; drives
+    /// the "Couldn't save" alert (`withTagSaveFailureAlert`). Nil when there is
+    /// nothing to report.
+    @State var tagSaveFailureMessage: String?
     @State var selectedSessionType: SessionType? = .overnight
     @State var cachedRecentSessions: [HRVSession] = []
     /// Interrupted-workout (crash) recover-from-strap UI state.
@@ -102,15 +106,21 @@ struct RecordView: View {
             .onChange(of: deviceStatus.connectedDeviceType) { _, _ in coerceCaptureModeForDevice() }
     }
 
-    /// The scroll surface plus everything it can present over itself.
+    /// The scroll surface plus everything it can present over itself. The
+    /// tag-save failure alert shows here only while no cover is up; each
+    /// report cover carries its own.
     private var recordSurface: some View {
-        recordScroll
+        withTagSaveFailureAlert(recordScroll, shown: !isResultsCoverPresented)
             .navigationTitle(String(localized: "Record", bundle: LanguageManager.appBundle))
             .background(AppTheme.background)
             .sheet(isPresented: $showingTagPicker) { tagPickerSheet }
             .fullScreenCover(item: $pendingMorningPresentation) { preScoreCover($0) }
             .fullScreenCover(item: $morningPresentation) { morningCover($0) }
             .fullScreenCover(item: $quickPresentation) { quickCover($0) }
+    }
+
+    private var isResultsCoverPresented: Bool {
+        pendingMorningPresentation != nil || morningPresentation != nil || quickPresentation != nil
     }
 
     // MARK: - Body structure
@@ -336,22 +346,36 @@ struct RecordView: View {
 
     /// Auto-accept overnight/nap session and clear UI state. The tags and
     /// notes picked before the night go onto the session the re-score
-    /// archives (`scoreLatestVersion`) before they are cleared.
+    /// archives (`scoreLatestVersion`), and only reach the archive that way;
+    /// when that re-archive is not stored the user is told (`finishAutoAccept`).
+    /// The selection is cleared either way, so it never lands on another night.
     func autoAcceptOvernight() {
         debugLog("[AutoAccept] autoAcceptOvernight called")
         Task {
+            let tagsStored: Bool
             if let session = sessionState.currentSession {
-                await scoreLatestVersion(of: session)
+                tagsStored = await scoreLatestVersion(of: session)
             } else {
                 debugLog("[AutoAccept] currentSession is nil — skipping")
+                tagsStored = true
             }
-            await MainActor.run {
-                collector.clearAcceptanceState()
-                selectedTags.removeAll()
-                sessionNotes = ""
-                debugLog("[AutoAccept] clearAcceptanceState done")
-            }
+            await MainActor.run { finishAutoAccept(tagsStored: tagsStored) }
         }
+    }
+
+    /// Leaves review and clears the pre-night selection: it belongs to this
+    /// night only, so it must never carry over onto the next one. When the
+    /// re-archive carrying the tags and notes the user picked was not stored,
+    /// the tag-save failure alert says so first.
+    private func finishAutoAccept(tagsStored: Bool) {
+        collector.clearAcceptanceState()
+        if !tagsStored, !selectedTags.isEmpty || !sessionNotes.isEmpty {
+            debugLog("[AutoAccept] Re-archive not stored — the pre-night tags and notes were not saved", level: .warning)
+            tagSaveFailureMessage = String(localized: "The tags and notes you picked for this reading couldn't be saved. Add them again from History.", bundle: LanguageManager.appBundle)
+        }
+        selectedTags.removeAll()
+        sessionNotes = ""
+        debugLog("[AutoAccept] clearAcceptanceState done")
     }
 
     /// Read from the archive to get the latest version — background
@@ -363,12 +387,15 @@ struct RecordView: View {
     /// @MainActor view isolation, so a sync call would freeze the UI for the
     /// whole-night payload at wake time. `retrieveFullSessionAsync` runs it on
     /// a detached task.
-    private func scoreLatestVersion(of session: HRVSession) async {
+    ///
+    /// True when the re-scored session, carrying the pre-night tags and
+    /// notes, was re-archived.
+    private func scoreLatestVersion(of session: HRVSession) async -> Bool {
         debugLog("[AutoAccept] currentSession=\(session.id.uuidString.prefix(8)), source=\(session.dataSourceSummary?.selectedSource ?? "nil")")
         let retrieved = await collector.retrieveFullSessionAsync(session.id)
         let latestSession = preSessionTagged(retrieved ?? session)
         debugLog("[AutoAccept] archive.retrieve(\(session.id.uuidString.prefix(8))): \(retrieved == nil ? "FAILED — using in-memory session" : "OK"), source=\(latestSession.dataSourceSummary?.selectedSource ?? "nil")")
-        await collector.updateCompositeRecoveryScore(for: latestSession, exportMetrics: true)
+        return await collector.updateCompositeRecoveryScore(for: latestSession, exportMetrics: true)
     }
 
 }

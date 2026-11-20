@@ -117,7 +117,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.applyProtectionAttributes(at:filename:failureCount:)": "cfcc9c7023f8f26b",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.applyProtectionAttributes(at:filename:failureCount:)": "1274242eed7d576b",
     "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -125,7 +125,7 @@
   {
    "key": "func SessionArchive.applyProtectionAttributes(at:filename:failureCount:)",
    "hash": "35eec51a162801db",
-   "does": "Under archiveLock (which every session write holds, so a plaintext write cannot slip between the check and the attribute change): leaves a session file still pending re-encryption (isPendingPlaintextSessionFile against PendingEncryptionLedger.pending) at its stricter class and returns true; otherwise sets the until-first-unlock protection attributes, and when that throws rewrites the file with the explicit protection option. After the lock, a failure is logged (first 5) and returns false.",
+   "does": "Under archiveLock (which every session write holds, so a plaintext write cannot slip between the check and the attribute change): leaves a file holding a copy of a session still pending re-encryption (isPendingPlaintextSessionFile against PendingEncryptionLedger.pending: its archived, Trash or quarantined file) at its stricter class and returns true; otherwise sets the until-first-unlock protection attributes, and when that throws rewrites the file with the explicit protection option. After the lock, a failure is logged (first 5) and returns false.",
    "entry": null,
    "calls": [
     "ext:NSLock.withLock",
@@ -143,7 +143,7 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "file is <id>.json of a pending plaintext session",
+     "cond": "file is a copy of a pending plaintext session (<id>.json, Trash/<id>.session, a quarantined <id>[.<stamp>].json)",
      "effect": "skipped; returns true (protection kept)"
     },
     {
@@ -165,7 +165,7 @@
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func rewriteWithProtection(at:)": "e8a97c0c9d12d0f3",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.protectionAttributes": "90bfb89d8d932951",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func isPendingPlaintextSessionFile(_:pending:)": "efda1ffd150a2abc",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func isPendingPlaintextSessionFile(_:pending:)": "57fd87f67445a47e",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "3a3880893754edfe",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -186,8 +186,8 @@
   },
   {
    "key": "func SessionArchive.loadIndex()",
-   "hash": "9c5927200c41b5db",
-   "does": "Loads index.json into memory: missing file → nothing; read error → keeps file, sets indexReadFailed for retry; entries decoded one by one (decodeIndex): the decoded ones become index and the ones a newer build wrote (undecodable here, or from a newer schema) are kept raw in newerBuildIndexEntries so saveIndex writes them back; bytes that are not an index at all → index=[], indexDecodeFailed=true and the file moved aside so boot's orphan scan re-adopts sessions.",
+   "hash": "a117768b0ecff7f4",
+   "does": "Loads index.json into memory: missing file → nothing; read error → keeps file, sets indexReadFailed for retry; entries decoded one by one (decodeIndex): the decoded ones become index and the ones a newer build wrote (undecodable here, or from a newer schema) are kept raw in newerBuildIndexEntries so saveIndex writes them back; bytes that are not an index at all → index=[], indexDecodeFailed=true and the file moved aside so boot's orphan scan re-adopts sessions. When that move fails the file is still in place, and indexReadFailed is set as for a read error, so the next save re-reads it and is blocked until it moves.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.decodeIndex(_:)",
@@ -219,19 +219,19 @@
     {
      "at": "+14",
      "cond": "catch decode error (not an index array)",
-     "effect": "logs, index=[] (caches NOT reset), indexDecodeFailed=true, preserveUnreadableIndex"
+     "effect": "logs, index=[] (caches NOT reset), indexDecodeFailed=true, preserveUnreadableIndex; indexReadFailed = the move failed"
     }
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.decodeIndex(_:)": "490abd62725fecf3",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.preserveUnreadableIndex()": "660440cb0244e1e2",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.preserveUnreadableIndex()": "c3d9984c59efe191",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func SessionArchive.mergeIndexThatFailedToLoad()",
-   "hash": "6d9414f9158fb95b",
-   "does": "If the launch read failed, re-reads index.json (throwing while still unreadable) and merges on-disk entries (decodeIndex) not already in memory and not deleted, and the newer build's raw entries into newerBuildIndexEntries (merge keeps ones already held); bytes that are not an index move aside and set indexDecodeFailed.",
+   "hash": "f5deeaab45b513aa",
+   "does": "If the launch read failed, re-reads index.json (throwing while still unreadable) and merges on-disk entries (decodeIndex) not already in memory and not deleted, and the newer build's raw entries into newerBuildIndexEntries (merge keeps ones already held); bytes that are not an index set indexDecodeFailed and are moved aside, and when that move fails indexReadFailed is set again and the decode error thrown, so no save writes over them.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.decodeIndex(_:)",
@@ -261,14 +261,19 @@
     {
      "at": "+12",
      "cond": "catch decode error on retry",
-     "effect": "logs, sets indexDecodeFailed, moves file aside; in-memory index kept and saved over it by the caller"
+     "effect": "logs, sets indexDecodeFailed, moves the file aside; the in-memory index is then kept and saved over it by the caller"
+    },
+    {
+     "at": "+15",
+     "cond": "the move aside failed",
+     "effect": "indexReadFailed=true and the decode error thrown: the caller does not save"
     }
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.merge(_:)": "4f8a8a99d7259b7b",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.decodeIndex(_:)": "490abd62725fecf3",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.preserveUnreadableIndex()": "660440cb0244e1e2",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.preserveUnreadableIndex()": "c3d9984c59efe191",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -307,8 +312,8 @@
   },
   {
    "key": "func SessionArchive.preserveUnreadableIndex()",
-   "hash": "4a117b209abca4d7",
-   "does": "Renames the index file to '<name>.unreadable_<epoch>' and logs a warning when the move succeeds.",
+   "hash": "68202ba33ff6887d",
+   "does": "Renames the index file to '<name>.unreadable_<epoch>', logs a warning and returns true when the move succeeds; returns false (attempt logs the error) when it fails and the file is still in place.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
@@ -322,8 +327,8 @@
    "branches": [
     {
      "at": "+3",
-     "cond": "moveItem succeeded",
-     "effect": "warning logged; on failure attempt logs and returns nil (index stays in place to be overwritten by next save)"
+     "cond": "moveItem failed",
+     "effect": "return false; else log warning, return true"
     }
    ],
    "deps": {
@@ -333,8 +338,8 @@
   },
   {
    "key": "func SessionArchive.loadDeletedIndex()",
-   "hash": "caa12fe04e26b12c",
-   "does": "Loads deleted session ids from the deleted-index file. A read error (data protection) keeps the file, sets deletedIndexReadFailed and stands in the ids with recorded deletion times until it reads (merged before the next save / at boot); a decode error sets the file aside (setAsideUnreadableDeletedIndex) and rebuilds the set from ArchiveStore's UserDefaults deletion times.",
+   "hash": "1f302bb52a17220e",
+   "does": "Loads deleted session ids from the deleted-index file. A read error (data protection) keeps the file, sets deletedIndexReadFailed and stands in the ids with recorded deletion times until it reads (merged before the next save / at boot); a decode error sets the file aside (setAsideUnreadableDeletedIndex) and rebuilds the set from ArchiveStore's UserDefaults deletion times, and when the set-aside fails also sets deletedIndexReadFailed, so the next save re-reads the file and is blocked until it moves.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -365,20 +370,20 @@
     {
      "at": "+13",
      "cond": "catch decode error",
-     "effect": "sets the file aside, rebuilds from recorded deletion times"
+     "effect": "sets the file aside (deletedIndexReadFailed = the move failed), rebuilds from recorded deletion times"
     }
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.decodeDeletedIds(_:)": "b0db905559a76b15",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.setAsideUnreadableDeletedIndex(_:)": "62e6f76eca5e9709",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.setAsideUnreadableDeletedIndex(_:)": "a2de457d6683b0f7",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.idsWithRecordedDeletionTime()": "049c937dc2641260",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func SessionArchive.mergeDeletedIndexThatFailedToLoad()",
-   "hash": "50a58363add6c1d2",
-   "does": "If the launch read of deleted.json failed, re-reads it (throwing while still unreadable) and unions its ids into deletedSessionIds; a decode failure sets the file aside. Caller holds archiveLock (saveDeletedIndex, retryFailedIndexLoad).",
+   "hash": "0e6c74761ec2e29c",
+   "does": "If the launch read of deleted.json failed, re-reads it (throwing while still unreadable) and unions its ids into deletedSessionIds; a decode failure sets the file aside, and when that move fails sets deletedIndexReadFailed again and throws the decode error, so no save writes over it. Caller holds archiveLock (saveDeletedIndex, retryFailedIndexLoad).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.decodeDeletedIds(_:)",
@@ -404,11 +409,16 @@
      "at": "+6",
      "cond": "decode fails",
      "effect": "file set aside; in-memory set kept"
+    },
+    {
+     "at": "+7",
+     "cond": "the set-aside failed",
+     "effect": "deletedIndexReadFailed=true, throw the decode error"
     }
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.decodeDeletedIds(_:)": "b0db905559a76b15",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.setAsideUnreadableDeletedIndex(_:)": "62e6f76eca5e9709"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.setAsideUnreadableDeletedIndex(_:)": "a2de457d6683b0f7"
    }
   },
   {
@@ -426,8 +436,8 @@
   },
   {
    "key": "func SessionArchive.setAsideUnreadableDeletedIndex(_:)",
-   "hash": "86a5121afbfa7158",
-   "does": "Logs the decode error and moves deleted.json to deleted.json.unreadable_<epoch> (attempt logs a failed move). The caller rebuilds or keeps the in-memory set.",
+   "hash": "d84a798c3acd525f",
+   "does": "Logs the decode error and moves deleted.json to deleted.json.unreadable_<epoch>; returns whether the move succeeded (attempt logs a failed move, and the file is then still in place). The caller rebuilds or keeps the in-memory set.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -462,7 +472,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeDeletedIndexThatFailedToLoad()": "62eebd8ac6ab6b27",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeDeletedIndexThatFailedToLoad()": "69d3c72f9def1bbd",
     "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.indexEncoder": "0dea00d1e12c27f4"
    }
   },
@@ -488,7 +498,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.indexData(for:deleted:)": "c12e9eb29fed867b",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeIndexThatFailedToLoad()": "68b99ca3219a9c2c"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeIndexThatFailedToLoad()": "5997370a765d1f0e"
    }
   },
   {

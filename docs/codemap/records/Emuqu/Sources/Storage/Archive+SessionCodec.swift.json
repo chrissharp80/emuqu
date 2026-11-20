@@ -8,7 +8,7 @@
   "SessionArchive: extension — deriveSleepIndexFields helpers"
  ],
  "state": [],
- "toplevel": "File-private free function encryptOrReportFailure.",
+ "toplevel": "File-private free function encryptOrReportFailure, which encrypts through AppDependencies.current.storage.encryptionManager.",
  "units": [
   {
    "key": "func SessionArchive.SessionFileCodec.sha256Hex(_:)",
@@ -24,27 +24,26 @@
    "deps": {}
   },
   {
-   "key": "func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)",
-   "hash": "80c91b82352ba5f6",
+   "key": "func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:)",
+   "hash": "d7f325373ea20c37",
    "does": "Inside an autoreleasepool: JSON-encodes the session with the caller's encoder, encrypts it when possible, and returns (bytes, sha256 of bytes, format) — plaintext with .plaintextPendingEncryption when encryption is unavailable or fails. Encoding errors propagate.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func encryptOrReportFailure(_:onFailure:)",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.sha256Hex(_:)",
-    "closure:onPlaintextFallback (default no-op; no call site passes one)"
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func encryptOrReportFailure(_:)",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.sha256Hex(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+16",
+     "at": "+15",
      "cond": "encryption produced bytes",
      "effect": "return encrypted + hash + .encrypted; else plaintext + hash + .plaintextPendingEncryption"
     }
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.sha256Hex(_:)": "47479f1bcfe2c38f",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func encryptOrReportFailure(_:onFailure:)": "f600c993f4a905de"
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func encryptOrReportFailure(_:)": "ccfccb4b9320771f"
    }
   },
   {
@@ -118,9 +117,9 @@
    }
   },
   {
-   "key": "func encryptOrReportFailure(_:onFailure:)",
-   "hash": "46b9843ee10fa184",
-   "does": "Returns encrypted bytes, or nil (calling onFailure) when the encryption manager is unavailable or encrypt throws (error logged at .error).",
+   "key": "func encryptOrReportFailure(_:)",
+   "hash": "19f4d5c3cf261f96",
+   "does": "Returns the bytes encrypted by the app's EncryptionManager (AppDependencies.current.storage.encryptionManager), or nil when that manager is unavailable or encrypt throws (error logged at .error).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable",
@@ -133,12 +132,12 @@
     {
      "at": "+2",
      "cond": "manager not available",
-     "effect": "onFailure, return nil (no log)"
+     "effect": "return nil (no log)"
     },
     {
-     "at": "+8",
+     "at": "+5",
      "cond": "catch: encrypt threw",
-     "effect": "log error, onFailure, return nil"
+     "effect": "log error, return nil"
     }
    ],
    "deps": {

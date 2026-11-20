@@ -1,9 +1,11 @@
 import CryptoKit
 import Foundation
 
-// The on-disk session file codec: encoding and decoding one session file, with
-// its own encryption and integrity handling, depending on nothing else in the
-// archive beyond the shared coders.
+// The on-disk session file codec: encoding and decoding one session file and
+// its integrity hash, depending on nothing else in the archive beyond the
+// shared coders. Encryption is not the codec's own: it uses the app's
+// `EncryptionManager` (`AppDependencies.current.storage.encryptionManager`)
+// and reports when that could not encrypt.
 
 extension SessionArchive {
     // MARK: - Session File Codec
@@ -46,14 +48,9 @@ extension SessionArchive {
             case plaintextPendingEncryption
         }
 
-        /// `onPlaintextFallback` runs when encryption is unavailable or the
-        /// encrypt call fails. No call site passes one today: each reacts to
-        /// the returned `format` instead.
-
         static func encodeForDisk(
             _ session: HRVSession,
-            encoder: JSONEncoder,
-            onPlaintextFallback: () -> Void = {}
+            encoder: JSONEncoder
         ) throws -> (bytes: Data, hash: String, format: DiskFormat) {
             // Drain in an autoreleasepool. This is the single
             // biggest transient in the overnight-stop path: encoding an
@@ -66,7 +63,7 @@ extension SessionArchive {
             // here frees it immediately. No behavior change — same bytes, same hash.
             try autoreleasepool {
                 let plaintext = try encoder.encode(session)
-                if let encrypted = encryptOrReportFailure(plaintext, onFailure: onPlaintextFallback) {
+                if let encrypted = encryptOrReportFailure(plaintext) {
                     return (encrypted, sha256Hex(encrypted), .encrypted)
                 }
                 return (plaintext, sha256Hex(plaintext), .plaintextPendingEncryption)
@@ -115,17 +112,13 @@ extension SessionArchive {
 /// which discarded the error entirely — so a genuine encryption defect
 /// and a locked Keychain were indistinguishable in the logs, and both
 /// looked like "encryption unavailable".
-private func encryptOrReportFailure(_ plaintext: Data, onFailure: () -> Void) -> Data? {
+private func encryptOrReportFailure(_ plaintext: Data) -> Data? {
     let manager = AppDependencies.current.storage.encryptionManager
-    guard manager.isAvailable else {
-        onFailure()
-        return nil
-    }
+    guard manager.isAvailable else { return nil }
     do {
         return try manager.encrypt(plaintext)
     } catch {
         debugLog("[Archive] encrypt failed, falling back pending re-encryption: \(error)", level: .error)
-        onFailure()
         return nil
     }
 }

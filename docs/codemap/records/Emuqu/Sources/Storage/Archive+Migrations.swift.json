@@ -1,10 +1,11 @@
 {
  "file": "Emuqu/Sources/Storage/Archive+Migrations.swift",
- "hash": "bade0aa5324a23d0",
+ "hash": "b51dcb928786e9d6",
  "role": "ArchiveMigrations' deferred repairs: flag-gated index backfills (recovery score, endDate, meanHR/stress, sleep index fields, legacy Elite HRV stress/score), duplicate quarantine of same-night overnights, and re-linking of same-night split segments, plus the reupload notification name.",
  "types": [
   "ArchiveMigrations: extension — migrations over SessionArchive state",
   "ArchiveMigrations.MigrationFlag: enum (private) — UserDefaults done-flag keys",
+  "ArchiveMigrations.QuarantineMove: struct (private) — a retired file's quarantine and archive URLs",
   "ArchiveMigrations.RelinkWork: struct (private) — parent entry, file URL, ids to link",
   "ArchiveMigrations.RelinkResult: struct (private) — new hash and link chain",
   "Notification.Name: extension — flowRecoveryArchiveSessionsNeedReupload"
@@ -15,7 +16,7 @@
   "ud:FlowRecovery.migration.metrics.v1.done",
   "ud:FlowRecovery.migration.sleepIndexFields.v1.done",
   "notif:flowRecoveryArchiveSessionsNeedReupload (declared here; userInfo['sessionIds']: Set<UUID>)",
-  "file:<archiveDirectory>/QuarantinedDuplicates/<uuid>.json and README.txt",
+  "file:<archiveDirectory>/QuarantinedDuplicates/<uuid>.json (or <uuid>.<ms>.json when the name is taken) and README.txt",
   "static ArchiveMigrations.quarantineReadme (README text)",
   "static ArchiveMigrations.relinkEncoder (iso8601, prettyPrinted+sortedKeys)",
   "ud:FlowRecovery.migration.legacyEliteIndex.v1.done"
@@ -47,8 +48,8 @@
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateRecoveryScores()": "b60491853b274d71",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateSleepIndexFields()": "918ea66fe1806d96",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relinkSameNightSessions()": "3d58a77a5be6a8fc",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.removeDuplicates()": "4932a441c7c983a1",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptPendingSessions(in:)": "a1d67d0c48c3ba9e"
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.removeDuplicates()": "349f9e8ec8c5e07c",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptPendingSessions(in:)": "7691596c91c3e28b"
    }
   },
   {
@@ -471,8 +472,8 @@
   },
   {
    "key": "func ArchiveMigrations.removeDuplicates()",
-   "hash": "a113d9294269eed2",
-   "does": "Unless merge mode is .off: picks same-night overnight duplicates (≥85% contained in a better-ranked keeper, nights older than 24 h, unlinked), moves their files to QuarantinedDuplicates/ outside the lock, then under the lock retires them from the index with tombstones (retireQuarantined); when either index save fails, the in-memory state is put back and the moved files are moved back (restoreFromQuarantine), so the stored index never names a moved file.",
+   "hash": "2b6f718351c7b1f8",
+   "does": "Unless merge mode is .off: picks same-night overnight duplicates (≥85% contained in a better-ranked keeper, nights older than 24 h, unlinked), moves their files to QuarantinedDuplicates/ outside the lock (each under a name no earlier copy holds), then under the lock retires them from the index with tombstones (retireQuarantined); when either index save fails, the in-memory state is put back and the moved files are moved back from where quarantine put them (restoreFromQuarantine), and any file that will not move back stays retired, so the index never names a file that is not there.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicateQuarantineWork()",
@@ -511,15 +512,15 @@
      "effect": "return without touching the index"
     },
     {
-     "at": "+13",
+     "at": "+16",
      "cond": "catch: retireQuarantined threw (an index save failed)",
-     "effect": "log warning, move the quarantined files back"
+     "effect": "log warning, move the quarantined files back (each from its recorded quarantine URL)"
     }
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicateQuarantineWork()": "ff8a759a74b9b6f5",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.quarantineFiles(_:)": "d038110dbfe098b8",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.restoreFromQuarantine(_:)": "f563937bd56c9eef",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.quarantineFiles(_:)": "a5c1abf0aeaa31eb",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.restoreFromQuarantine(_:)": "e2eafaa0cb1b1817",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.retireQuarantined(_:)": "b4c3c202f3eca77f",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -564,26 +565,57 @@
   },
   {
    "key": "func ArchiveMigrations.restoreFromQuarantine(_:)",
-   "hash": "7158546eb11d8744",
-   "does": "Moves each quarantined file from QuarantinedDuplicates/ back to its archive path; a failed move is logged (attempt).",
+   "hash": "c1cc65c21920bb93",
+   "does": "Caller holds archiveLock, after retireQuarantined rolled the index back. Moves each quarantined file from its recorded quarantine URL back to its archive path (attempt logs a failure). Ids whose file did not move back are retired again: removed from the in-memory index, tombstoned and given a deletion time; then deleted.json and index.json are saved separately, so a failed tombstone save does not keep the index naming a file in quarantine (without its tombstone a duplicate can come back from iCloud: a duplicate, not a lost night). A failed index save is logged at .error and the in-memory state is written by the next save.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.recordDeletionTime(_:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()",
     "ext:FileManager.moveItem"
    ],
-   "reads": [],
+   "reads": [
+    "mem:SessionArchive.index"
+   ],
    "writes": [
     "file:<archiveDirectory>/<uuid>.json",
-    "file:<archiveDirectory>/QuarantinedDuplicates/"
+    "file:<archiveDirectory>/QuarantinedDuplicates/",
+    "mem:SessionArchive.index",
+    "mem:SessionArchive.deletedSessionIds",
+    "ud:archive.deletionTimes",
+    "file:<archiveDirectory>/deleted.json",
+    "file:<archiveDirectory>/index.json"
    ],
    "branches": [
     {
      "at": "+2",
-     "cond": "for each moved file",
-     "effect": "move back"
+     "cond": "a move back fails",
+     "effect": "that id is stranded"
+    },
+    {
+     "at": "+6",
+     "cond": "every file moved back",
+     "effect": "return; the rolled-back index is right"
+    },
+    {
+     "at": "+10",
+     "cond": "tombstone save fails",
+     "effect": "logged; the index is still saved"
+    },
+    {
+     "at": "+11",
+     "cond": "index save fails",
+     "effect": "log error; memory keeps them retired for the next save"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "38a4b1f67bd1c949",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "8c0f1c459dbeaae2",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.recordDeletionTime(_:)": "458c4130b9c80d9d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
@@ -613,10 +645,11 @@
   },
   {
    "key": "func ArchiveMigrations.quarantineFiles(_:)",
-   "hash": "c93c559f1743938f",
-   "does": "Ensures QuarantinedDuplicates/ (+README) exists and moves each work file there, returning the ids whose move succeeded.",
+   "hash": "fbd76a79abcdd0d6",
+   "does": "Ensures QuarantinedDuplicates/ (+README) exists and moves each work file there, returning, for each id whose move succeeded, the URL its file now has.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.quarantineDirectory",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.prepareQuarantineDirectory(at:)",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.moveToQuarantine(_:id:dir:)"
    ],
@@ -627,25 +660,26 @@
    ],
    "branches": [
     {
-     "at": "+4",
-     "cond": "for each work item where moveToQuarantine succeeded",
-     "effect": "insert id"
+     "at": "+5",
+     "cond": "moveToQuarantine returned nil",
+     "effect": "no entry for that id"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.moveToQuarantine(_:id:dir:)": "9d989682b589173c",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.prepareQuarantineDirectory(at:)": "e0500c9e5b6c516f"
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.moveToQuarantine(_:id:dir:)": "109b2cc752fe342c",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.prepareQuarantineDirectory(at:)": "e0500c9e5b6c516f",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.quarantineDirectory": "a1f2b4692c652f1b"
    }
   },
   {
    "key": "func ArchiveMigrations.moveToQuarantine(_:id:dir:)",
-   "hash": "09e8539dedab4320",
-   "does": "Moves one session file into the quarantine dir, replacing an existing file of the same name; false when the source is already gone (another run moved it) or the move throws.",
+   "hash": "f8aadd1d951f4f98",
+   "does": "Moves one session file into the quarantine dir under unusedQuarantineURL (its own name, or <name>.<ms>.json when a file of that name is already there, which is kept) and returns the new URL; nil when the source is already gone (another run moved it) or the move throws. Nothing in quarantine is removed.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.unusedQuarantineURL(for:in:fileManager:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:FileManager.moveItem",
-    "ext:FileManager.removeItem"
+    "ext:FileManager.moveItem"
    ],
    "reads": [
     "file:<archiveDirectory>/<uuid>.json"
@@ -656,24 +690,46 @@
    ],
    "branches": [
     {
-     "at": "+2",
+     "at": "+1",
      "cond": "source file missing",
-     "effect": "log 'already moved by another run' and return false"
+     "effect": "log 'already moved by another run' and return nil"
     },
     {
-     "at": "+7",
-     "cond": "destination already exists",
-     "effect": "remove it first"
-    },
-    {
-     "at": "+13",
-     "cond": "catch: remove/move threw",
-     "effect": "log, return false (entry kept)"
+     "at": "+10",
+     "cond": "catch: move threw",
+     "effect": "log, return nil (entry kept)"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.unusedQuarantineURL(for:in:fileManager:)": "82d6b5f14e8955e3",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
+  },
+  {
+   "key": "func ArchiveMigrations.unusedQuarantineURL(for:in:fileManager:)",
+   "hash": "8d03b20647b47022",
+   "does": "The URL in `dir` with the source file's name when nothing is there; otherwise <base>.<ms>.<ext>, the stamp starting at now in milliseconds and raised past any name taken. Reads only file existence.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.fileExists"
+   ],
+   "reads": [
+    "file:<archiveDirectory>/QuarantinedDuplicates/ (existence)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "own name free",
+     "effect": "return it"
+    },
+    {
+     "at": "+5",
+     "cond": "stamped name taken",
+     "effect": "stamp += 1"
+    }
+   ],
+   "deps": {}
   },
   {
    "key": "func ArchiveMigrations.linkedSessionIdSet(in:)",
@@ -1095,7 +1151,7 @@
    "does": "Encodes with relinkEncoder (encrypt if available), writes through writeArchiveBytes (protection by format; the ledger entry restored if the write throws), returns hash of bytes-as-written; logs and returns nil on error.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:)",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func writeArchiveBytes(_:to:format:sessionID:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -1114,7 +1170,7 @@
    "deps": {
     "Emuqu/Sources/Storage/Archive+Migrations.swift::let ArchiveMigrations.relinkEncoder": "6fd8c9b00a7c25d5",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func writeArchiveBytes(_:to:format:sessionID:)": "b0adb3c1e0c04836",
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)": "b2d76b7ce6014d3e",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:)": "b2d76b7ce6014d3e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.SearchResultRoute.hash(into:)": "1987e98d1e24873d"
    }

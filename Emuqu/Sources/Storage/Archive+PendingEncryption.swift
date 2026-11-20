@@ -29,13 +29,16 @@ func archiveWriteOptions(
     }
 }
 
-/// Whether `filename` (relative to the archive directory) is the session file,
-/// `<id>.json`, of a session in `pending`: plaintext whose
-/// `.completeFileProtection` the launch protection walk
-/// (`SessionArchive.upgradeExistingFileProtection`) must not lower.
+/// Whether `filename` (relative to the archive directory) is a copy of a
+/// session in `pending`: its file `<id>.json`, its Trash file
+/// `Trash/<id>.session`, or a duplicate quarantined as `<id>.json` or
+/// `<id>.<stamp>.json`. Plaintext whose `.completeFileProtection` the launch
+/// protection walk (`SessionArchive.upgradeExistingFileProtection`) must not
+/// lower.
 func isPendingPlaintextSessionFile(_ filename: String, pending: Set<UUID>) -> Bool {
     let name = (filename as NSString).lastPathComponent
-    guard name.hasSuffix(".json"), let id = UUID(uuidString: String(name.dropLast(5))) else { return false }
+    guard ["json", "session"].contains((name as NSString).pathExtension),
+          let id = UUID(uuidString: String(name.prefix(36))) else { return false }
     return pending.contains(id)
 }
 
@@ -75,24 +78,64 @@ func reencryptPendingSessions(in archive: SessionArchive) {
         debugLog("[Archive] \(pending.count) session(s) await re-encryption; key still unavailable", level: .error)
         return
     }
+    // An index that did not load lists only part of the archive: a pending id
+    // missing from it may still have its plaintext file here.
+    guard archive.hasCompleteIndex else {
+        debugLog("[Archive] \(pending.count) session(s) await re-encryption; index not loaded, retried next launch", level: .warning)
+        return
+    }
     debugLog("[Archive] re-encrypting \(pending.count) session(s) written under a locked Keychain")
     for id in pending {
         reencryptOne(id, in: archive)
     }
 }
 
-/// Rewrite one session encrypted. The write clears it from the ledger only if
-/// it really came out encrypted (`archiveWriteOptions`); an `encrypt` that
-/// throws again writes plaintext and keeps it queued. The index hash is
+/// Rewrite every copy this archive holds of one session encrypted: the
+/// archived file, through the archive's own write, and any copy in the Trash
+/// or in quarantine, in place.
+///
+/// The id leaves the ledger only once no copy here is still plaintext. The
+/// archived rewrite clears it (`archiveWriteOptions`), so it is recorded again
+/// while a parked copy could not be rewritten. A session not in the index
+/// leaves the ledger once its parked copies are encrypted, when it has one or
+/// a tombstone says it was deleted here. An id this archive neither lists,
+/// tombstones nor holds a copy of stays queued: the ledger is shared by every
+/// archive in the process, so it may be another archive's session.
+private func reencryptOne(_ id: UUID, in archive: SessionArchive) {
+    guard let parked = archive.store.parkedCopies(of: id) else { return }
+    let parkedEncrypted = parked.map { reencryptParkedCopy($0, id: id, in: archive) }.allSatisfy { $0 }
+    if archive.exists(id) {
+        reencryptArchived(id, in: archive)
+        if !parkedEncrypted { PendingEncryptionLedger.record(id) }
+    } else if parkedEncrypted, !parked.isEmpty || archive.wasIntentionallyDeleted(id) {
+        PendingEncryptionLedger.clear(id)
+    }
+}
+
+/// Rewrite the archived session encrypted. The write clears it from the ledger
+/// only if it really came out encrypted (`archiveWriteOptions`); an `encrypt`
+/// that throws again writes plaintext and keeps it queued. The index hash is
 /// refreshed because the bytes on disk change.
 ///
-/// Only a session that no longer exists leaves the ledger without being
-/// rewritten. A read that fails for any other reason — most often a launch
-/// in the background while the device is locked, when the file's protection
-/// class keeps it closed — leaves it queued for the next launch; clearing it
-/// there would leave the plaintext on disk with nothing left to repair it.
-private func reencryptOne(_ id: UUID, in archive: SessionArchive) {
-    guard let session = pendingSession(id, in: archive) else { return }
+/// An index entry whose file is gone (`fileNotFound`) has no plaintext left
+/// there, and leaves the ledger once every parked copy is encrypted
+/// (`clearOnceParkedCopiesAreEncrypted`). Any other failed read leaves it
+/// queued for the next launch: most often a launch in the background while the
+/// device is locked, when the file's protection class keeps it closed.
+/// Clearing it there would leave the plaintext on disk with nothing left to
+/// repair it.
+private func reencryptArchived(_ id: UUID, in archive: SessionArchive) {
+    let session: HRVSession
+    do {
+        guard let found = try archive.retrieveLightweight(id) else { return }
+        session = found
+    } catch SessionArchive.ArchiveError.fileNotFound {
+        clearOnceParkedCopiesAreEncrypted(id, in: archive)
+        return
+    } catch {
+        debugLog("[Archive] re-encryption deferred for \(id.uuidString.prefix(8)) — file not readable yet: \(error)", level: .warning)
+        return
+    }
     do {
         // Through the locked entry point: `_archive` expects its caller to hold
         // `archiveLock`, and this runs from a detached migration beside every
@@ -104,21 +147,31 @@ private func reencryptOne(_ id: UUID, in archive: SessionArchive) {
     }
 }
 
-/// The queued session, read back for rewriting. Nil when there is nothing to
-/// do now: gone from the archive (the queue entry is cleared) or not readable
-/// yet (left queued for the next launch).
-private func pendingSession(_ id: UUID, in archive: SessionArchive) -> HRVSession? {
+/// Clear the entry of an indexed session whose file is gone, once every
+/// parked copy is encrypted. A delete can move the file into the Trash after
+/// `reencryptOne` handled the parked copies, so they are handled again here;
+/// one that cannot be listed or rewritten keeps the entry queued.
+private func clearOnceParkedCopiesAreEncrypted(_ id: UUID, in archive: SessionArchive) {
+    guard let parked = archive.store.parkedCopies(of: id),
+          parked.allSatisfy({ reencryptParkedCopy($0, id: id, in: archive) }) else { return }
+    PendingEncryptionLedger.clear(id)
+}
+
+/// Rewrite a Trash or quarantine copy encrypted, in place, unless it already
+/// is. Under `archiveLock`, which `delete` holds while it moves a file into
+/// the Trash, so a newer copy is not overwritten with these bytes. False when
+/// it could not be read, encrypted or written.
+private func reencryptParkedCopy(_ url: URL, id: UUID, in archive: SessionArchive) -> Bool {
+    archive.archiveLock.lock()
+    defer { archive.archiveLock.unlock() }
     do {
-        guard let found = try archive.retrieveLightweight(id) else {
-            PendingEncryptionLedger.clear(id)
-            return nil
-        }
-        return found
-    } catch SessionArchive.ArchiveError.fileNotFound {
-        PendingEncryptionLedger.clear(id)
-        return nil
+        let stored = try Data(contentsOf: url)
+        guard !ArchiveStore.looksEncrypted(stored) else { return true }
+        let sealed = try AppDependencies.current.storage.encryptionManager.encrypt(ArchiveStore.plaintextBytes(stored, id: id))
+        try sealed.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        return true
     } catch {
-        debugLog("[Archive] re-encryption deferred for \(id.uuidString.prefix(8)) — file not readable yet: \(error)", level: .warning)
-        return nil
+        debugLog("[Archive] re-encryption deferred for \(url.lastPathComponent): \(error)", level: .warning)
+        return false
     }
 }

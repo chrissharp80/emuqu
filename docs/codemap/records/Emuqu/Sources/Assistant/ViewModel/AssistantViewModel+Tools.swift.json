@@ -1,18 +1,19 @@
 {
  "file": "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift",
- "hash": "086ef7d8d6bed054",
+ "hash": "ac43a47bf6d83c96",
  "role": "Extension of AssistantToolRunner: the provider tool-use loop (stream a round, buffer/scrub text, collect tool calls, resolve them via CompactToolRouter with an 8-call budget, feed results back), prompt-audit and usage telemetry, round-end text policy (speakable cursor / rewind / MetricsVerifier), stream-failure handling, provider fallback chain, and finishStream (which drains a queued send).",
  "types": [
   "AssistantToolRunner: extension — tool loop, fallback, finish",
   "AssistantToolRunner.PendingToolCall: struct — one tool_use from a round",
   "AssistantToolRunner.ToolLoopState: private struct — outbound, toolRounds, totalToolCalls, budgetExhausted",
-  "AssistantToolRunner.RoundContext: private struct — per-loop constants"
+  "AssistantToolRunner.RoundContext: private struct — per-loop constants",
+  "AssistantToolRunner.FallbackEnding: enum — how a fallback attempt ended (answered, stopped, blocked, failed)"
  ],
  "state": [
   "static AssistantToolRunner.maxToolCallsPerTurn = 8 (also read by AppleToolDispatcher.swift:114)",
   "uses mem:LLMRequestAudit (in-memory FIFO of 10), mem:LLMCacheTelemetry, mem:AssistantViewModel.pendingSendOnFinish/streamGeneration/isStreaming/streamTask/errorMessage/speakableTextCursor"
  ],
- "toplevel": "Static maxToolCallsPerTurn and nested structs only.",
+ "toplevel": "Static maxToolCallsPerTurn, nested structs and the FallbackEnding enum only.",
  "units": [
   {
    "key": "func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)",
@@ -450,8 +451,8 @@
   },
   {
    "key": "func AssistantToolRunner.handleStreamFailure(error:turnID:)",
-   "hash": "c24e9ca0353360ce",
-   "does": "Sets errorMessage from the error (LocalizedError description or localizedDescription), removes the turn if it is an empty assistant turn, and saves.",
+   "hash": "3207e1e970712002",
+   "does": "Sets errorMessage from the error (LocalizedError description or localizedDescription); for the live assistant turn, removes it when its text is empty and otherwise marks it incomplete (ChatTurn.incomplete: the bubble notes it, truncateForSend withholds it); saves.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)",
@@ -473,23 +474,55 @@
     },
     {
      "at": "+2",
-     "cond": "turn exists, is assistant and text empty",
-     "effect": "remove it; partial text otherwise kept"
+     "cond": "turn exists and is assistant",
+     "effect": "the step below; else nothing to change"
+    },
+    {
+     "at": "+3",
+     "cond": "text empty",
+     "effect": "remove the turn; else incomplete = true (partial text kept)"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "e9f79b449cb7a7c9",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "db217136d3ed0694",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "46c518f41fe08672"
    }
   },
   {
-   "key": "func AssistantToolRunner.rewriteAssistantTurnProvider(turnID:providerID:modelID:)",
-   "hash": "ca3847503a20231c",
-   "does": "Re-stamps the live turn's providerID/modelID to the provider that answered and saves.",
+   "key": "func AssistantToolRunner.setAsidePartialText(turnID:)",
+   "hash": "35ceaa1eeb531b78",
+   "does": "Before a fallback runs: takes the live turn's text (the failed provider's partial reply) out of it, sets the turn's speakable cursor to 0 (voice follows it back and speaks the fallback's text from its start) and returns the text taken; nil when the turn is gone. Does not save.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.turns"
+   ],
+   "writes": [
+    "mem:AssistantViewModel.turns",
+    "mem:AssistantViewModel.speakableTextCursor"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "turn gone",
+     "effect": "return nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "46c518f41fe08672"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.settleFallback(_:failedPartial:provider:model:turnID:)",
+   "hash": "9adb75fc502ff8d5",
+   "does": "Applies settle to the live turn with the fallback's provider id and model apiID, then saves.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.settle(_:after:failedPartial:providerID:modelID:)",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)"
    ],
    "reads": [
@@ -501,45 +534,53 @@
    ],
    "branches": [
     {
-     "at": "+5",
-     "cond": "turn gone",
-     "effect": "return"
+     "at": "+7",
+     "cond": "no set-aside text (turn was gone) or turn gone now",
+     "effect": "return without saving"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "46c518f41fe08672"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "46c518f41fe08672",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ending(ofFailedFallback:)": "bfc847dc4f3c5957",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.settle(_:after:failedPartial:providerID:modelID:)": "74b2074aed20c5ee"
    }
   },
   {
-   "key": "func AssistantToolRunner.discardUnspokenPartialText(turnID:)",
-   "hash": "fc243e1bc6dbf37b",
-   "does": "Cuts the live turn's text back to the speakable cursor (0 if never advanced) before a fallback re-runs; does not save.",
+   "key": "func AssistantToolRunner.settle(_:after:failedPartial:providerID:modelID:)",
+   "hash": "97192f3a6ea6c6cd",
+   "does": "Pure: decides what the reserved turn holds after a fallback. When the fallback's text stands (.answered, or .stopped with non-blank text) re-stamps providerID/modelID to the fallback and keeps the text; otherwise (.stopped with no text, .blocked, .failed) puts failedPartial back as the text and leaves the badge as it was.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.isEmptyAssistantTurn(_:)"
    ],
-   "reads": [
-    "mem:AssistantViewModel.turns",
-    "mem:AssistantViewModel.speakableTextCursor"
-   ],
-   "writes": [
-    "mem:AssistantViewModel.turns"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "turn gone",
-     "effect": "return"
+     "at": "+8",
+     "cond": ".answered",
+     "effect": "fallback text stands"
     },
     {
-     "at": "+2",
-     "cond": "?? cursor missing",
-     "effect": "0 → text emptied"
+     "at": "+9",
+     "cond": ".stopped",
+     "effect": "stands when the turn is not blank"
+    },
+    {
+     "at": "+10",
+     "cond": ".blocked or .failed",
+     "effect": "does not stand"
+    },
+    {
+     "at": "+12",
+     "cond": "fallback text stands",
+     "effect": "re-stamp providerID/modelID; else text = failedPartial"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "46c518f41fe08672"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.isEmptyAssistantTurn(_:)": "c75ff2d872f46944",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ending(ofFailedFallback:)": "bfc847dc4f3c5957"
    }
   },
   {
@@ -604,8 +645,8 @@
   },
   {
    "key": "func AssistantToolRunner.tryFallbacks(_:outbound:tools:factRegistry:turnID:voiceMode:)",
-   "hash": "b948cd619e1fa5ab",
-   "does": "Tries each fallback in order; returns true on the first that handled (answered or cancelled), false if all failed.",
+   "hash": "b248148ac12bbb82",
+   "does": "Tries each fallback in order and returns the first ending other than .failed (.answered, .stopped, or .blocked, already shown); returns .failed when every fallback failed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runFallback(provider:model:outbound:tools:factRegistry:turnID:voiceMode:)"
@@ -620,25 +661,69 @@
     },
     {
      "at": "+13",
-     "cond": "handled",
-     "effect": "return true"
+     "cond": "ending != .failed",
+     "effect": "return it"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runFallback(provider:model:outbound:tools:factRegistry:turnID:voiceMode:)": "04ce02b69744aa24"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ending(ofFailedFallback:)": "bfc847dc4f3c5957",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runFallback(provider:model:outbound:tools:factRegistry:turnID:voiceMode:)": "6ede6bd02eba5633"
    }
   },
   {
    "key": "func AssistantToolRunner.runFallback(provider:model:outbound:tools:factRegistry:turnID:voiceMode:)",
-   "hash": "6982d214140b5042",
-   "does": "Composes a fallback system prompt, discards unspoken partial text, runs the tool loop on the fallback with the history re-cut to the fallback's own token budget (fallbackOutbound; tools/registry only if non-Apple and tools exist), re-stamps the badge on success; cancellation counts as handled; on any other error logs, cuts the failed fallback's own partial text back to what voice spoke, and returns false.",
+   "hash": "a3439908a784c2f8",
+   "does": "Takes the failed provider's partial reply out of the turn (setAsidePartialText), then runs the fallback (runFallbackLoop: its prompt and tool loop), so the fallback's answer replaces the partial text instead of following it. On a finished loop the ending is .answered, or .failed when the turn came back blank (endingOfFinishedFallback); on CancellationError .stopped; on any other error .blocked for a safety stop or .failed (ending(ofFailedFallback:)). settleFallback then keeps the fallback's text under its badge or puts the partial reply back; a thrown error goes on to endFailedFallback. Returns the ending.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.setAsidePartialText(turnID:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runFallbackLoop(provider:model:outbound:tools:factRegistry:turnID:voiceMode:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.endingOfFinishedFallback(provider:turnID:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.settleFallback(_:failedPartial:provider:model:turnID:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ending(ofFailedFallback:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.endFailedFallback(_:ending:provider:turnID:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AssistantViewModel.turns",
+    "mem:AssistantViewModel.speakableTextCursor",
+    "file:conversation.json (ConversationStore, App Group)"
+   ],
+   "branches": [
+    {
+     "at": "+15",
+     "cond": "loop finished",
+     "effect": "ending from endingOfFinishedFallback; settle; return it"
+    },
+    {
+     "at": "+18",
+     "cond": "catch CancellationError",
+     "effect": "settle .stopped; return .stopped"
+    },
+    {
+     "at": "+21",
+     "cond": "catch other error",
+     "effect": "settle .blocked/.failed; return endFailedFallback(...)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.endFailedFallback(_:ending:provider:turnID:)": "2ea331e1b52cf360",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ending(ofFailedFallback:)": "bfc847dc4f3c5957",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.endingOfFinishedFallback(provider:turnID:)": "b7811a618f3fa367",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runFallbackLoop(provider:model:outbound:tools:factRegistry:turnID:voiceMode:)": "3562e21737110265",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.setAsidePartialText(turnID:)": "4152b377e310858b",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.settleFallback(_:failedPartial:provider:model:turnID:)": "db71c4ebf5273a04"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.runFallbackLoop(provider:model:outbound:tools:factRegistry:turnID:voiceMode:)",
+   "hash": "1947bf7b1fe87065",
+   "does": "One fallback's run: composes its system prompt (fallbackSystemPrompt), logs the fallback, and runs the tool loop on it with the history re-cut to the fallback's own token budget (fallbackOutbound); tools and registry only when the fallback is not Apple and tools exist. Throws what the loop throws.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.fallbackSystemPrompt(provider:supportsTools:voiceMode:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.discardUnspokenPartialText(turnID:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.fallbackOutbound(for:turnID:primaryOutbound:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.rewriteAssistantTurnProvider(turnID:providerID:modelID:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -647,32 +732,96 @@
    ],
    "branches": [
     {
-     "at": "+17",
+     "at": "+15",
      "cond": "supportsTools ?: (tools)",
      "effect": "tools else []"
     },
     {
-     "at": "+18",
+     "at": "+16",
      "cond": "supportsTools ?: (registry)",
      "effect": "factRegistry else nil"
-    },
-    {
-     "at": "+22",
-     "cond": "catch CancellationError",
-     "effect": "return true (treated as resolved)"
-    },
-    {
-     "at": "+24",
-     "cond": "catch other error",
-     "effect": "log, discard the fallback's unspoken text, return false (error not surfaced here)"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.discardUnspokenPartialText(turnID:)": "a2df6544935ce9d7",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.fallbackOutbound(for:turnID:primaryOutbound:)": "2ca381f5c67de8e8",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.fallbackSystemPrompt(provider:supportsTools:voiceMode:)": "a7a8b2019cbe14bb",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.rewriteAssistantTurnProvider(turnID:providerID:modelID:)": "078057fde77b3eb9",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)": "466acc0532c80c31",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.endingOfFinishedFallback(provider:turnID:)",
+   "hash": "c1b931fbd8cd0d04",
+   "does": "Ending of a fallback whose tool loop finished: .answered, or .failed (logged) when the live turn is a blank assistant turn, so the next fallback may answer.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.isEmptyAssistantTurn(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:AssistantViewModel.turns"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "turn gone or not blank",
+     "effect": "return .answered"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.isEmptyAssistantTurn(_:)": "c75ff2d872f46944",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "46c518f41fe08672",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.ending(ofFailedFallback:)",
+   "hash": "016d811f492e991f",
+   "does": "Pure: .blocked when the error is an AIProviderError safety stop (isBlockedReply), else .failed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isBlockedReply"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not an AIProviderError or not a blocked reply",
+     "effect": "return .failed"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isBlockedReply": "95de7c208812608e"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.endFailedFallback(_:ending:provider:turnID:)",
+   "hash": "c7fb1f6489654966",
+   "does": "Ends a fallback that threw, after its own partial text has gone and the failed provider's partial reply is back: for .blocked logs, shows the refusal through handleStreamFailure (banner; the partial reply is marked incomplete) and returns .blocked so the chain stops and the request is never sent to the next vendor; otherwise logs and returns .failed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handleStreamFailure(error:turnID:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:AssistantViewModel.turns",
+    "mem:AssistantViewModel.errorMessage",
+    "file:conversation.json (ConversationStore, App Group)"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "ending is not .blocked",
+     "effect": "log, return .failed (error not surfaced here)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ending(ofFailedFallback:)": "bfc847dc4f3c5957",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handleStreamFailure(error:turnID:)": "1752a15105b1d89f",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -697,7 +846,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)": "6e267e4281afc6e6",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)": "570e4d9e26321981",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.liveTurnIndex(for:)": "46c518f41fe08672"
    }
   },

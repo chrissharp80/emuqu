@@ -1088,21 +1088,22 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.capWorkoutSampleMemory()": "37d92c991693c41d",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.makeSample(sport:paceSecPerKm:)": "2bdddb952b60501a",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift::func WorkoutTicker.makeSample(sport:paceSecPerKm:)": "20ae000dd5ffd5f9",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.currentPaceSecPerKm": "d4b9223cfe3622c0",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2"
    }
   },
   {
    "key": "func WorkoutTicker.makeSample(sport:paceSecPerKm:)",
-   "hash": "134372da3442157d",
-   "does": "Builds one WorkoutSample from current recorder values, with METs from WorkoutRecorder.estimateMETs (pace-based) and user max HR.",
+   "hash": "929a972b4a0a5ca0",
+   "does": "Builds one WorkoutSample from current recorder values, with METs from WorkoutRecorder.estimateMETs (pace-based) and user max HR, then clears any value that is not a finite number to nil (finiteValuesOnly), since the archive cannot encode NaN or infinity.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.estimateMETs(sport:paceSecPerKm:heartRate:userMaxHR:)",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location",
-    "closure:settingsProvider"
+    "closure:settingsProvider",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::var WorkoutSample.finiteValuesOnly"
    ],
    "reads": [
     "mem:WorkoutHR.currentHR",
@@ -1127,6 +1128,7 @@
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "f306ef98d67e6cfb",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::var WorkoutSample.finiteValuesOnly": "7e65abae37dc65d0",
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.currentAlpha1(_:)": "3469ad2da77e627e"
    }
   },

@@ -1,15 +1,20 @@
 {
  "file": "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift",
- "hash": "f164bba60596db89",
- "role": "AnthropicProvider extension holding request shaping: prompt-cache split of the system prompt, tool declarations (only for sends that carry tools; Anthropic server-side web_search replacing the app's Tavily tool), URLRequest construction, and the SSE line reader that rejects a stream cut before message_stop.",
+ "hash": "10aa84bc67587d4b",
+ "role": "AnthropicProvider extension holding request shaping: prompt-cache split of the system prompt, tool declarations (only for sends that carry tools; Anthropic server-side web_search replacing the app's Tavily tool), URLRequest construction, the SSE line reader that rejects a stream cut before message_stop, and the continuation of replies the server web search paused (pause_turn): the reply's raw content blocks are rebuilt from the stream and sent back as the assistant's message, at most maxPauseContinuations times.",
  "types": [
-  "AnthropicProvider: extension — request assembly + SSE"
+  "AnthropicProvider: extension — request assembly + SSE",
+  "AnthropicProvider: extension — paused-turn continuation",
+  "AnthropicProvider.PausedTurn: struct — the content blocks of a paused reply",
+  "AnthropicProvider.ReplyContent: struct — one reply's raw content blocks, rebuilt from its stream events",
+  "AnthropicProvider.RequestBody: extension — resending(pausedContent:)"
  ],
  "state": [
   "mem:AnthropicProvider.serverWebSearchToolName = \"web_search\" (static let)",
+  "mem:AnthropicProvider.maxPauseContinuations = 3 (static let)",
   "net:api.anthropic.com headers: anthropic-version 2023-06-01, anthropic-beta extended-cache-ttl-2025-04-11"
  ],
- "toplevel": "",
+ "toplevel": "Static serverWebSearchToolName and maxPauseContinuations; the PausedTurn and ReplyContent declarations.",
  "units": [
   {
    "key": "func AnthropicProvider.cacheAwareSystemBlocks(_:)",
@@ -117,12 +122,12 @@
   },
   {
    "key": "func AnthropicProvider.consumeSSE(_:continuation:)",
-   "hash": "82a5fb966975a0a8",
-   "does": "Reads the SSE byte stream line by line: blank line resets the event name, \"event:\" lines record it, \"data:\" payloads are passed to handle(); checks task cancellation per line. A stream that ends before message_stop was cut, and throws URLError(.networkConnectionLost) (ProviderStream maps it to a fallbackable .network) instead of passing a truncated reply as complete.",
+   "hash": "698c6b6bf27265c8",
+   "does": "Reads a reply's SSE line sequence (the URL session's lines, or a test's) line by line: a blank line resets the event name, an \"event:\" line records it, \"data:\" payloads are passed to handle(); checks task cancellation per line. When the sequence ends, a cancelled task throws CancellationError, so Stop reads as cancellation. A stream that ends before message_stop was cut, and throws URLError(.networkConnectionLost) (ProviderStream maps it to a fallbackable .network) instead of passing a truncated reply as complete. Otherwise returns a PausedTurn with the reply's raw content blocks when it stopped with pause_turn, or nil. On every exit (deferred) flushUsage records message_start's usage if nothing recorded it yet, so a reply that failed after message_start still reports its usage.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.handle(eventName:data:state:continuation:)",
-    "ext:URLSession.AsyncBytes.lines",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.flushUsage(_:final:to:)",
     "ext:Task.checkCancellation"
    ],
    "reads": [
@@ -132,37 +137,250 @@
    "branches": [
     {
      "at": "+6",
+     "cond": "defer on every exit",
+     "effect": "flushUsage (no-op once usage was recorded or with no message_start)"
+    },
+    {
+     "at": "+7",
      "cond": "for each line",
      "effect": "loop until stream ends; throws on network error/cancellation"
     },
     {
-     "at": "+8",
-     "cond": "line empty",
-     "effect": "clears lastEventName and continues"
+     "at": "+9",
+     "cond": "line empty or starts with event:",
+     "effect": "empty clears lastEventName, event: stores the trimmed name; continue"
     },
     {
-     "at": "+12",
-     "cond": "line starts with event:",
-     "effect": "stores trimmed event name and continues"
-    },
-    {
-     "at": "+16",
+     "at": "+14",
      "cond": "line does not start with data:",
      "effect": "skipped (comments, id:, retry:)"
     },
     {
-     "at": "+18",
+     "at": "+16",
      "cond": "payload empty or not UTF-8",
      "effect": "skipped; else handle(eventName:data:) which may throw"
     },
     {
-     "at": "+21",
+     "at": "+19",
+     "cond": "task cancelled when the sequence ended",
+     "effect": "throws CancellationError"
+    },
+    {
+     "at": "+20",
      "cond": "stream ended without message_stop",
      "effect": "throws URLError(.networkConnectionLost)"
+    },
+    {
+     "at": "+21",
+     "cond": "reply paused ?:",
+     "effect": "PausedTurn(content blocks), else nil"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.handle(eventName:data:state:continuation:)": "9cf14f6e92438cca"
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::var AnthropicProvider.ReplyContent.orderedBlocks": "d7573c5122a23205",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.flushUsage(_:final:to:)": "235406e06fc8fde4",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.handle(eventName:data:state:continuation:)": "349a1f3d121af575"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.continuingPausedTurns(_:continuation:perform:)",
+   "hash": "dbfae607907de2c4",
+   "does": "Runs the body through perform; while the reply pauses, sends the body again with all paused content so far appended as one assistant message (resending), so the chat layer sees one continuous reply. After maxPauseContinuations (3) continuations a reply that still pauses is logged and ends with a '…' text delta and .done.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.RequestBody.resending(pausedContent:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "closure:perform"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "for the first request and each allowed continuation",
+     "effect": "perform"
+    },
+    {
+     "at": "+8",
+     "cond": "reply completed (perform returned nil)",
+     "effect": "return"
+    },
+    {
+     "at": "+12",
+     "cond": "still paused after the bound",
+     "effect": "log, yield '…' and .done"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.RequestBody.resending(pausedContent:)": "ee9376b46de80bba",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "var AnthropicProvider.ReplyContent.orderedBlocks",
+   "hash": "96956c1806798586",
+   "does": "The rebuilt blocks in index order, without text blocks whose text is empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "text block with empty text",
+     "effect": "left out"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func AnthropicProvider.ReplyContent.record(_:)",
+   "hash": "ff9dbf8c2b5791d9",
+   "does": "One stream event: content_block_start / _delta / _stop go to start / apply / stop; any other event is ignored.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.ReplyContent.start(_:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.ReplyContent.apply(_:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.ReplyContent.stop(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "content_block_start",
+     "effect": "start"
+    },
+    {
+     "at": "+3",
+     "cond": "content_block_delta",
+     "effect": "apply"
+    },
+    {
+     "at": "+4",
+     "cond": "content_block_stop",
+     "effect": "stop"
+    },
+    {
+     "at": "+5",
+     "cond": "other",
+     "effect": "ignored"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.ReplyContent.apply(_:)": "86c55258076dd18a",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.ReplyContent.start(_:)": "060a9dd9ee4a7ae7",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.ReplyContent.stop(_:)": "50a8121f8c5b8652"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.ReplyContent.start(_:)",
+   "hash": "64a1485011a46838",
+   "does": "Stores content_block as sent, under its index.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no index or no content_block",
+     "effect": "return"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func AnthropicProvider.ReplyContent.apply(_:)",
+   "hash": "3ba1ad7ed354d58f",
+   "does": "Adds a delta to its open block: text_delta, thinking_delta and signature_delta append to text / thinking / signature; input_json_delta appends to the held partial input; citations_delta appends its citation to the block's citations; other deltas are ignored.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.ReplyContent.append(_:to:at:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no index, block not started, or no delta",
+     "effect": "return"
+    },
+    {
+     "at": "+4",
+     "cond": "text_delta / thinking_delta / signature_delta",
+     "effect": "append to the field"
+    },
+    {
+     "at": "+7",
+     "cond": "input_json_delta",
+     "effect": "held as partial input"
+    },
+    {
+     "at": "+8",
+     "cond": "citations_delta",
+     "effect": "citation appended (none: return)"
+    },
+    {
+     "at": "+11",
+     "cond": "other",
+     "effect": "ignored"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.ReplyContent.append(_:to:at:)": "72111ae32f833bdd"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.ReplyContent.stop(_:)",
+   "hash": "b27e2659be8a8987",
+   "does": "When the stopped block has held partial input that parses as a JSON object, sets it as the block's input; otherwise the block keeps the input it was sent with (a parse failure is logged by attempt).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:JSONSerialization.jsonObject"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no index, no or empty partial input, or not a JSON object",
+     "effect": "return"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+   }
+  },
+  {
+   "key": "func AnthropicProvider.ReplyContent.append(_:to:at:)",
+   "hash": "1e8c535415336c7c",
+   "does": "Appends a string piece to the block's string field (starting from empty).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "value is not a string",
+     "effect": "return"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func AnthropicProvider.RequestBody.resending(pausedContent:)",
+   "hash": "225139d4207941d3",
+   "does": "The same request with one assistant message appended whose content is the paused blocks as raw ContentBlocks.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::var AnthropicProvider.ReplyContent.blocks": "d7573c5122a23205"
    }
   }
  ],

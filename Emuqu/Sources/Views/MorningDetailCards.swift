@@ -24,9 +24,8 @@ struct MorningDetailCards {
     let result: HRVAnalysisResult
     let recentSessions: [HRVSession]
     let collector: RRCollector
-    let morningCoordination: MorningCoordination
     let linkedSegments: [LinkedSegmentInfo]?
-    let onUnlinkSegment: ((UUID) -> Void)?
+    let onUnlinkSegment: ((UUID) -> Bool)?
     let onToggleTag: (ReadingTag) -> Void
 
     // Dynamic Type sizes resolve in the view (`@ScaledMetric` cannot live in an

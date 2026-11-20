@@ -393,7 +393,6 @@ final class RRCollector {
     var isPaused: Bool
     var pausedSession: HRVSession?
     var morningStatus: MorningProcessingStatus?
-    var isDeviceFetchInProgress: Bool
     var sleepDataVersion: Int
     var archiveVersion: Int
     var fetchProgress: PolarManager.FetchProgress?
@@ -447,7 +446,7 @@ final class RRCollector {
     func applyManualAnalysis(_ session: HRVSession, result: HRVAnalysisResult) async -> HRVSession?
     @discardableResult
     func updateSessionSleepBoundaries(sessionId: UUID, sleepData: SleepData, isUserAdjustment: Bool = false) -> Bool
-    func unlinkSegment(segmentId: UUID, fromSession: UUID)
+    func unlinkSegment(segmentId: UUID, fromSession: UUID) -> Bool
     func notifyArchiveChanged()
 
     // MARK: - Session Loading
@@ -1484,7 +1483,8 @@ final class ReanalysisService {
         isUserAdjustment: Bool = false
     ) -> Bool
 
-    func unlinkSegment(segmentId: UUID, fromSession sessionId: UUID)
+    @discardableResult
+    func unlinkSegment(segmentId: UUID, fromSession sessionId: UUID) -> Bool
 
     /// Shared insufficient-data classifier. Applied identically at initial
     /// scoring (MorningProcessingService) and reanalysis so a session can't

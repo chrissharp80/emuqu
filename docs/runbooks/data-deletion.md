@@ -76,6 +76,9 @@ The user types `DELETE MY DATA` and confirms. That action invokes `DataPurgeServ
 - AI conversation history (`ConversationStore`)
 - AI memory facts (`UserFactsStore`)
 - Health-disclaimer + AI-disclaimer acceptance flags
+- The profile in the settings (age, body weight, heart-rate markers, FTP,
+  sleep schedule), reset to defaults and read back from disk
+- The personal HRV baseline, on disk and in memory
 - Persistent debug log + crash logs
 - Units preference
 - Get Me Back trails (GPS breadcrumbs)
@@ -86,6 +89,12 @@ The user types `DELETE MY DATA` and confirms. That action invokes `DataPurgeServ
 It does not remove Apple Health samples the app wrote (the result tells the
 user how to remove them in the Health app), and it keeps the purchase/trial
 anchor — a wipe is not a refund.
+
+The delete is unavailable while a recording is in progress (a quick reading,
+a night, paused or still being analysed, a strap recording, or a workout) or
+a reading is waiting to be accepted; the page says so under the button. The
+user stops the recording, or accepts or discards the reading, and then runs
+it.
 
 Direct the user to that flow first. It's faster than waiting for you.
 

@@ -105,10 +105,12 @@ The path must be written exactly as shown; the reason is for the reader.
 `gates.yml` is the guard that enforces this: on a push to `main` it compares
 every budget with the commit before the push, and on a pull request with the
 target branch, and fails on any loosening without a matching trailer in that
-range. Locally, `make budget-monotonicity` compares the working tree with
-`HEAD`. That catches an uncommitted raise, but it cannot see a trailer you have
-not committed yet, nor a raise you already committed; for those, run
-`BUDGET_BASE_REF=origin/main make budget-monotonicity`. Treat an increase as a
+range. Locally, `make budget-monotonicity` compares the working tree with the
+merge base of `HEAD` and `origin/main`, so it sees a raise you already
+committed on the branch as well as an uncommitted one, and reads trailers from
+every commit the branch adds; it cannot see a trailer you have not committed
+yet. Without an `origin/main` it compares with `HEAD` only and says so.
+`BUDGET_BASE_REF=<ref>` picks another baseline. Treat an increase as a
 decision, not a formality.
 
 ### Adding a new Swift file
@@ -158,13 +160,10 @@ build, the unit suite and Thread Sanitizer on every pull request; the UI target
 runs only on demand and before a release (see
 [`docs/CI_POSTURE.md`](docs/CI_POSTURE.md)). So `make ci`, which includes the
 UI target, is the gate rather than a convenience. `make ci` runs lint, budgets, spec conformance,
-localization, copy perimeter, documentation links, and the full test suite
-with coverage. The test suite is the slow part, because the UI target drives a
-real simulator. Two checks that `ci.yml` runs are not part of `make ci`,
-because each needs a build of its own: `make thread-sanitizer` (the unit suite
-under Thread Sanitizer) and `make release-build` (the Release configuration
-compiles). Run them as well when a change touches concurrency or could differ
-under the optimizer.
+localization, copy perimeter, documentation links, the Release build
+(`make release-build`), the unit suite under Thread Sanitizer
+(`make thread-sanitizer`), and the full test suite with coverage. The test
+suite is the slow part, because the UI target drives a real simulator.
 
 `make codemap-impact` lists everything your branch's changes can affect; the
 pull request gets the same list in the `gates.yml` job summary. Check each

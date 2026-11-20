@@ -20,7 +20,7 @@ extension RRCollector {
     func installRescoreListener() { reanalysis.installRescoreListener() }
     func installCloudKitSnapshotBackfillListener() { reanalysis.installCloudKitSnapshotBackfillListener() }
     func autoRefreshTodaysSleepIfImproved() async { await reanalysis.autoRefreshTodaysSleepIfImproved() }
-    func unlinkSegment(segmentId: UUID, fromSession sessionId: UUID) {
+    func unlinkSegment(segmentId: UUID, fromSession sessionId: UUID) -> Bool {
         reanalysis.unlinkSegment(segmentId: segmentId, fromSession: sessionId)
     }
 

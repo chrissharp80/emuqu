@@ -1,18 +1,18 @@
 {
  "file": "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift",
- "hash": "b8cdedb118a686f3",
- "role": "RawRRBackup extension that rebuilds the backup index from on-disk files (append-format headers and one-shot <uuid>_<stamp>.json backups) when backup_index.json does not decode, plus OneShotBackupName, the single place one-shot file names are made and parsed (millisecond stamps, never reused; legacy second stamps still parse).",
+ "hash": "c62680ceb68fafd9",
+ "role": "RawRRBackup extension that rebuilds the backup index from on-disk files (append-format headers and one-shot <uuid>_<stamp>.json backups) when backup_index.json does not decode, plus OneShotBackupName, the single place one-shot file names are made and parsed (millisecond stamps, never reused; legacy second stamps still parse), and which lists a session's plaintext one-shot files and judges whether the indexed backup provably replaced one.",
  "types": [
   "RawRRBackup: extension — index recovery",
-  "OneShotBackupName: enum — makes and parses one-shot backup file names"
+  "OneShotBackupName: enum — makes and parses one-shot backup file names; lists plaintext ones and judges which are superseded"
  ],
  "state": [],
  "toplevel": "",
  "units": [
   {
    "key": "func RawRRBackup.recoverIndexFromFiles()",
-   "hash": "3ff5d1fc6fab0ed7",
-   "does": "Renames the undecodable index to backup_index.json.unreadable_<ts>, lists the backup directory, builds entries from *_header.json files and from one-shot files (latest per session, excluding ids already found via headers), logs counts and returns them.",
+   "hash": "cd63f067e7ce4c22",
+   "does": "Renames the undecodable index to backup_index.json.unreadable_<ts>, lists the backup directory, builds entries from *_header.json files and from one-shot files (latest per session, excluding ids already found via headers), logs counts and returns them with replaceable = whether the rename succeeded (false: the file is still at indexFile and must not be saved over).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
@@ -37,12 +37,17 @@
      "at": "+4",
      "cond": "directory listing failed",
      "effect": "?? [] → returns no entries (index becomes empty)"
+    },
+    {
+     "at": "+3",
+     "cond": "rename failed",
+     "effect": "replaceable=false (logged by attempt)"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.latestOneShotPerSession(_:)": "fd5b5faa19ff30f8",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.latestOneShotPerSession(_:)": "466edc9b1b48101d",
     "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.recoveredEntry(fromHeaderNamed:)": "47dd3752796189b8",
-    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.recoveredEntry(fromOneShotNamed:)": "34f4424a9b68b1de",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.recoveredEntry(fromOneShotNamed:)": "090dc62f3eb5027d",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
@@ -217,6 +222,145 @@
    "writes": [],
    "branches": [],
    "deps": {}
+  },
+  {
+   "key": "func OneShotBackupName.files(of:in:)",
+   "hash": "d62cf20153d88a36",
+   "does": "Lists `directory` and returns the URLs of every one-shot file of the session (parse id matches), indexed or not. Throws when the listing fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.parse(_:)",
+    "ext:FileManager.contentsOfDirectory"
+   ],
+   "reads": [
+    "file:RRBackup/ (listing)"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.parse(_:)": "ef97a1a3f041353b"
+   }
+  },
+  {
+   "key": "func OneShotBackupName.plaintextFiles(of:in:except:)",
+   "hash": "061f40568a3efc31",
+   "does": "The session's one-shot files (files(of:in:)) other than `current` whose bytes do not start with the encrypted 'FR' prefix (read memory-mapped). Throws when the listing or a read fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.files(of:in:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)",
+    "ext:Data(contentsOf:options:)"
+   ],
+   "reads": [
+    "file:RRBackup/ (listing)",
+    "file:RRBackup/<uuid>_<t>.json"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)": "d617abae8ea527b1",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.files(of:in:)": "c41df8bafc601514"
+   }
+  },
+  {
+   "key": "func OneShotBackupName.indexedMs(_:)",
+   "hash": "46b6767909350f18",
+   "does": "When the indexed backup was written, in ms: its one-shot file's stamp, or a streaming row's lastBackupTime; 0 when neither is known.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.writtenMs(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "one-shot row / streaming row",
+     "effect": "file stamp / lastBackupTime in ms (0 if nil)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.writtenMs(_:)": "1d0e34b875b01e4d"
+   }
+  },
+  {
+   "key": "func OneShotBackupName.fullerUnindexedBackup(than:in:)",
+   "hash": "671235310b48a41c",
+   "does": "Returns nil when the row's write time (indexedMs) or beat count (backedUpCount, or beatCount for a one-shot row) is unknown, as for a row rebuilt from a header. Otherwise walks the session's one-shot files other than the indexed one, plain or encrypted, whatever their stamp; decodes each (decodeLegacyBackup decrypts sealed ones; failures logged by attempt) and keeps only the fullest so far for this session that holds strictly more beats than the row, so at most two decoded entries are alive at once. Returns it, or nil. Strictly more: an adopted source then holds as many as the new row and is not adopted again. Throws when the listing fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.indexedMs(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.files(of:in:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.decodeLegacyBackup(at:)"
+   ],
+   "reads": [
+    "file:RRBackup/ (listing)",
+    "file:RRBackup/<uuid>_<t>.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "row's time or count unknown",
+     "effect": "nil"
+    },
+    {
+     "at": "+4",
+     "cond": "for each unindexed one-shot file",
+     "effect": "decode and compare"
+    },
+    {
+     "at": "+6",
+     "cond": "undecodable, another id, or not fuller than the best so far (or the row)",
+     "effect": "skip; else it becomes the fullest"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.files(of:in:)": "c41df8bafc601514",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.indexedMs(_:)": "f10479cb7365a415",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.decodeLegacyBackup(at:)": "3c9f14b13a29d54b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+   }
+  },
+  {
+   "key": "func OneShotBackupName.isSuperseded(_:by:)",
+   "hash": "7d7065e4064cb101",
+   "does": "True only when `entry` exists, the file's name stamp is earlier than the indexed backup's (its one-shot file's stamp, or a streaming row's lastBackupTime in ms; 0 when neither), and the file decodes (decodeLegacyBackup) to no more beats than the row holds (backedUpCount ?? beatCount). A later file — one a process killed before its index save left, possibly the fullest copy — or one that does not decode is not replaced.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.writtenMs(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.indexedMs(_:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.decodeLegacyBackup(at:)"
+   ],
+   "reads": [
+    "file:RRBackup/<uuid>_<t>.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no index row",
+     "effect": "false"
+    },
+    {
+     "at": "+2",
+     "cond": "file not older than the indexed backup (indexedMs), or does not decode",
+     "effect": "false"
+    },
+    {
+     "at": "+5",
+     "cond": "beats compared",
+     "effect": "true when no more than the row holds"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.indexedMs(_:)": "f10479cb7365a415",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.writtenMs(_:)": "1d0e34b875b01e4d",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.decodeLegacyBackup(at:)": "3c9f14b13a29d54b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+   }
   }
  ],
  "deps": {}

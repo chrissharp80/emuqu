@@ -132,6 +132,79 @@ final class WristHRMarkerTests: XCTestCase {
         XCTAssertEqual(WorkoutTrackBackup.firstIndex(in: rows, after: 1), 0)
     }
 
+    /// A row holding a value that is not a finite number is backed up (it
+    /// once failed to encode and was skipped while the cursor counted it) and
+    /// recovered with that value missing, so the archive, whose encoder
+    /// rejects NaN and infinity, can save the workout. Its other values stay.
+    func testCrashBackupRecoversNonFiniteValuesAsMissing() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("WristHRMarkerTests-\(UUID().uuidString)", isDirectory: true)
+        defer { XCTAssertNoThrow(try FileManager.default.removeItem(at: directory)) }
+        let backup = WorkoutTrackBackup(directory: directory)
+        let id = UUID()
+        let samples = [
+            WorkoutSample(offsetSec: 1, heartRate: 120, paceSecPerKm: .nan),
+            WorkoutSample(offsetSec: 2, heartRate: 121, mets: .infinity),
+            WorkoutSample(offsetSec: 3, heartRate: 122)
+        ]
+        let baro = [Date(timeIntervalSince1970: 1_001), Date(timeIntervalSince1970: 1_002)].enumerated().map {
+            WorkoutTrackBackup.PersistedBaro(timestamp: $0.element, altitudeMeters: $0.offset == 0 ? .nan : 12)
+        }
+        backup.appendIncremental(
+            sessionId: id, sport: .run, startDate: Date(timeIntervalSince1970: 1_000), track: [],
+            samples: samples, healthKitHROffsets: [], barometricSamples: baro
+        )
+
+        let recovered = try XCTUnwrap(backup.retrieve(id))
+
+        XCTAssertEqual(recovered.samples.map(\.offsetSec), [1, 2, 3])
+        XCTAssertEqual(recovered.samples.map(\.heartRate), [120, 121, 122])
+        XCTAssertNil(recovered.samples[0].paceSecPerKm)
+        XCTAssertNil(recovered.samples[1].mets)
+        XCTAssertEqual(recovered.barometricSamples.map(\.altitudeMeters), [12])
+        XCTAssertNoThrow(try SessionArchive.sessionEncoder.encode(recovered.samples))
+    }
+
+    /// `finiteValuesOnly` rebuilds a sample field by field through an init
+    /// whose parameters default to nil, so a field added to `WorkoutSample`
+    /// and not carried over there would silently become nil. This fails
+    /// until the new field is carried over and the count updated.
+    func testFiniteValuesOnlyCarriesEveryField() {
+        let sample = WorkoutSample(
+            offsetSec: 7, heartRate: 140, distanceMeters: 1_000, paceSecPerKm: 300, cadenceStepsPerMin: 170,
+            altitudeMeters: 12, alpha1: 0.8, mets: 9, powerWatts: 250
+        )
+        XCTAssertEqual(Mirror(reflecting: sample).children.count, 9, "WorkoutSample gained a field: carry it over in finiteValuesOnly")
+        XCTAssertEqual(sample.finiteValuesOnly, sample)
+    }
+
+    /// "Delete All My Data" removes the backup folder before `purgeAll`
+    /// runs. The purge still forgets what it had written and makes the folder
+    /// again, so the next workout is backed up from its first row.
+    func testCrashBackupWritesAgainAfterAPurgeThatFoundNoFolder() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("WristHRMarkerTests-\(UUID().uuidString)", isDirectory: true)
+        defer { XCTAssertNoThrow(try FileManager.default.removeItem(at: directory)) }
+        let backup = WorkoutTrackBackup(directory: directory)
+        let id = UUID()
+        let start = Date(timeIntervalSince1970: 1_000)
+        let samples = (1 ... 3).map { WorkoutSample(offsetSec: $0, heartRate: 120) }
+        backup.appendIncremental(
+            sessionId: id, sport: .run, startDate: start, track: [],
+            samples: samples, healthKitHROffsets: [], barometricSamples: []
+        )
+        try FileManager.default.removeItem(at: directory)
+
+        backup.purgeAll()
+        let wrote = backup.appendIncremental(
+            sessionId: id, sport: .run, startDate: start, track: [],
+            samples: samples, healthKitHROffsets: [], barometricSamples: []
+        )
+
+        XCTAssertTrue(wrote)
+        XCTAssertEqual(try XCTUnwrap(backup.retrieve(id)).samples.count, 3)
+    }
+
     // MARK: - Recovery
 
     func testRebuildKeepsOnlyMarkersOfRowsItKept() {

@@ -39,9 +39,11 @@ final class RecoveryScoreFeedbackStore {
     }
 
     /// Delete the saved feedback log. Called by Delete All My Data, the only
-    /// way it is removed. Nothing to do when no earlier version saved one.
-    func clearAll() {
+    /// way it is removed, which reports the error this throws when the file
+    /// is there and cannot be removed. Nothing to do when no earlier version
+    /// saved one.
+    func clearAll() throws {
         guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
-        attempt("scoreFeedback.remove") { try FileManager.default.removeItem(at: fileURL) }
+        try FileManager.default.removeItem(at: fileURL)
     }
 }

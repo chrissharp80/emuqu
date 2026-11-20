@@ -20,10 +20,14 @@ extension CollectorSessionControl {
     /// stale batch races the immediate binders. That cross-cadence race is the
     /// record-screen flicker / "collapsed to one line" at wake (the source
     /// flags flip together but the throttled mirror settles a beat later with a
-    /// stale combination). Each DeviceStatus field has exactly ONE writer,
-    /// updated immediately on its own publisher — no throttle, no batch race,
-    /// and less main-thread work (no per-HR-update diff). ⚠️ Verify the record
-    /// screen on device (streaming start/stop + wake).
+    /// stale combination). Each of those fields is written immediately by its
+    /// own binder — no throttle, no batch race, and less main-thread work (no
+    /// per-HR-update diff). Only one binder writes each field, except
+    /// `isStreaming`: it is derived from the strap's flag OR streaming mode, so
+    /// both `bindStreamingState` and `onStreamingModeChanged` write it, and the
+    /// stop paths (the quick-reading stop, the overnight gather and discard)
+    /// clear it directly as the stream ends. ⚠️ Verify the record screen on
+    /// device (streaming start/stop + wake).
     func setupBindings() {
         bindPolarErrorForwarding()
         bindRecordingStateTracking()

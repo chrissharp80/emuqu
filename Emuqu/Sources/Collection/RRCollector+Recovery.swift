@@ -33,9 +33,12 @@ extension SessionRecoveryCoordinator {
 
     /// A session of this app is recording right now, and the strap's
     /// recording is its own: an internal-mode or overnight night, or a
-    /// workout's backup. Recovery flows leave that recording alone.
+    /// workout's backup. Recovery flows leave that recording alone. A night
+    /// being ended is still live: its ending stops and downloads the strap.
     var strapRecordingBelongsToLiveSession: Bool {
-        if collector.isCollecting || collector.isOvernightStreaming { return true }
+        if collector.isCollecting || collector.isOvernightStreaming || collector.streamingLifecycle.isEndingOvernight {
+            return true
+        }
         guard let recorder = AppDependencies.current.app.recorderBox.recorder else { return false }
         return recorder.phase == .recording || recorder.phase == .finalizing
     }
