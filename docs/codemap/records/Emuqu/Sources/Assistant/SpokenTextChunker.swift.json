@@ -76,6 +76,23 @@
    "deps": {}
   },
   {
+   "key": "func SpokenTextChunker.withdrawLast(_:)",
+   "hash": "e72899e67c8ddf52",
+   "does": "Drops the last count characters of pendingBuffer (all of it when count exceeds it): takes back rewound text that was appended but not yet emitted. No-op for count <= 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "count <= 0",
+     "effect": "return"
+    }
+   ],
+   "deps": {}
+  },
+  {
    "key": "func SpokenTextChunker.drainCompletedSentence()",
    "hash": "2a86f9b6c11c748e",
    "does": "Finds the last index where isSentenceBoundary is true, cuts the buffer after it, keeps the rest buffered, and returns the trimmed+markdown-stripped head or nil if it is empty.",

@@ -1,17 +1,18 @@
 {
  "file": "EmuquTests/ProviderStreamTests.swift",
- "hash": "405748723a8650b5",
- "role": "XCTest suites over the cloud providers' streams: ProviderStreamTests checks ProviderStream.make's error mapping (URLError → .network / .cancelled, CancellationError → .cancelled, provider and unrelated errors pass through), normal event delivery, and that a consumer leaving cancels the operation; OpenAICompatibleReasoningTests checks the reasoning fields OpenAICompatibleStreamer.requestFor writes for DeepSeek (thinking disabled), OpenAI (reasoning_effort none) and Grok (neither); OpenAICompatibleEndOfStreamTests, GeminiEndOfStreamTests and AnthropicEndOfStreamTests replay in-memory SSE lines through each provider's consumeSSE (via SSEReplay) and check how a reply ends: a clean close without the terminal signal is a dropped connection, the terminal signal completes, a malformed event throws, a token-cap stop ends with '…', a safety stop is a non-fallbackable .blockedReply, a repeated finish reason adds one '…', a cut or unparseable tool call is never emitted, and a mid-stream server failure is the overloaded modelUnavailable. EndOfStreamCancellationTests checks that each reader, cancelled before its lines end cleanly, throws CancellationError rather than a dropped connection.",
+ "hash": "15cfe895691bd7ea",
+ "role": "XCTest suites over the cloud providers' streams and the chat layer's handling of a reply that failed partway: ProviderStreamTests checks ProviderStream.make's error mapping (URLError → .network / .cancelled, CancellationError → .cancelled, provider and unrelated errors pass through), normal event delivery, and that a consumer leaving cancels the operation; OpenAICompatibleReasoningTests checks the reasoning fields OpenAICompatibleStreamer.requestFor writes for DeepSeek (thinking disabled), OpenAI (reasoning_effort none) and Grok (neither); OpenAICompatibleEndOfStreamTests, GeminiEndOfStreamTests and AnthropicEndOfStreamTests replay in-memory SSE lines through each provider's consumeSSE (via SSEReplay) and check how a reply ends: a clean close without the terminal signal is a dropped connection, the terminal signal completes, a malformed event throws, a token-cap stop ends with '…', a safety stop is a non-fallbackable .blockedReply, a repeated finish reason adds one '…', a cut or unparseable tool call is never emitted, a mid-stream server failure is the overloaded modelUnavailable, and (Gemini, Anthropic) usage that arrived before a failure is still reported. EndOfStreamCancellationTests checks that each reader, cancelled before its lines end cleanly, throws CancellationError rather than a dropped connection. PartialReplyTests checks ChatTurn.incomplete (old transcripts decode as complete, the mark survives storage, truncateForSend withholds it), the fallback splice (AssistantToolRunner.settle), the fact-extraction gate (AssistantTurnRouter.factExtractionExchange) and that AssistantViewModel.collect returns nothing for a failed or timed-out stream.",
  "types": [
   "ProviderStreamTests: class — XCTestCase over ProviderStream",
   "ProviderStreamTests.Unrelated: private enum Error — a non-provider error",
   "OpenAICompatibleReasoningTests: class — XCTestCase over OpenAICompatibleStreamer.requestFor body JSON",
   "SSEReplay: enum — replays SSE lines through a provider line reader inside ProviderStream.make and records the outcome",
-  "SSEReplay.Outcome: struct — text, tool names and inputs, whether .done arrived, and the error",
+  "SSEReplay.Outcome: struct — text, tool names and inputs, input and output tokens of each .usage event, whether .done arrived, and the error",
   "OpenAICompatibleEndOfStreamTests: class — XCTestCase over OpenAICompatibleStreamer.consumeSSE",
   "GeminiEndOfStreamTests: class — XCTestCase over GeminiProvider.consumeSSE",
   "AnthropicEndOfStreamTests: class — XCTestCase over AnthropicProvider.consumeSSE",
-  "EndOfStreamCancellationTests: class — XCTestCase over the three consumeSSE readers under cancellation"
+  "EndOfStreamCancellationTests: class — XCTestCase over the three consumeSSE readers under cancellation",
+  "PartialReplyTests: @MainActor class — XCTestCase over replies that failed partway (ChatTurn.incomplete, truncateForSend, settle, factExtractionExchange, collect)"
  ],
  "state": [],
  "toplevel": "",
@@ -511,8 +512,8 @@
   },
   {
    "key": "func SSEReplay.run(_:)",
-   "hash": "ca635247c13c58f9",
-   "does": "Runs a provider line-reader operation inside ProviderStream.make (so thrown errors are mapped as in the app), drains the stream and returns an Outcome: concatenated text deltas, each tool call's name and input, whether .done arrived, and the error the stream finished with.",
+   "hash": "37e8a1c794a88b7a",
+   "does": "Runs a provider line-reader operation inside ProviderStream.make (so thrown errors are mapped as in the app), drains the stream and returns an Outcome: concatenated text deltas, each tool call's name and input, the input and output tokens of each .usage event, whether .done arrived, and the error the stream finished with.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)",
@@ -540,15 +541,15 @@
     {
      "at": "+12",
      "cond": ".usage",
-     "effect": "ignored"
+     "effect": "input and output tokens appended"
     },
     {
-     "at": "+14",
+     "at": "+15",
      "cond": ".done",
      "effect": "endedWithDone = true"
     },
     {
-     "at": "+18",
+     "at": "+19",
      "cond": "stream threw",
      "effect": "error recorded"
     }
@@ -556,9 +557,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.failure(from:)": "2e9dd013a0b15db6",
     "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "08722a68117b042e",
-    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)": "baa234c133b6664d",
-    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.event(_:_:)": "77d9bd56fa2ec600",
-    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleEndOfStreamTests.text(_:finish:)": "674d7be9a6608374"
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)": "baa234c133b6664d"
    }
   },
   {
@@ -577,7 +576,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.consumeSSE(_:providerID:continuation:)": "9f74985f618acaab",
     "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)": "8965c0bed0b1cf6e",
-    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.run(_:)": "9ed275e41694e309"
+    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.run(_:)": "f32e2dd57e18979a"
    }
   },
   {
@@ -844,9 +843,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)": "e74fe87ea9a72eba",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)": "05bcc359c8556e76",
     "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)": "8965c0bed0b1cf6e",
-    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.run(_:)": "9ed275e41694e309"
+    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.run(_:)": "f32e2dd57e18979a"
    }
   },
   {
@@ -1015,6 +1014,40 @@
    }
   },
   {
+   "key": "func GeminiEndOfStreamTests.testFailureMidStreamStillReportsUsage()",
+   "hash": "2b61a454bc741399",
+   "does": "A chunk carrying usageMetadata (200 prompt, 3 candidate tokens) followed by a malformed event: the malformed-event error is thrown and one .usage with 200 input / 3 output tokens is still reported.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)": "cf41e587b2d8564d",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.invalidResponseMessage": "8f7ad88b295bce1b"
+   }
+  },
+  {
+   "key": "func GeminiEndOfStreamTests.testSafetyStopReportsItsOwnUsage()",
+   "hash": "9325af9f02ed9710",
+   "does": "A SAFETY-stopped chunk that carries usageMetadata: .blockedReply(gemini, SAFETY) is thrown and that chunk's 9 output tokens are reported.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.blockedReply"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)": "cf41e587b2d8564d",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.blockedReply": "16010666bd820a08"
+   }
+  },
+  {
    "key": "func AnthropicEndOfStreamTests.replay(_:)",
    "hash": "62d7711727190ea8",
    "does": "Replays the lines through AnthropicProvider.consumeSSE and returns the outcome.",
@@ -1028,9 +1061,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "7f624a8dd0c86b76",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "7e53e25865256ded",
     "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)": "8965c0bed0b1cf6e",
-    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.run(_:)": "9ed275e41694e309"
+    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.run(_:)": "f32e2dd57e18979a"
    }
   },
   {
@@ -1250,6 +1283,63 @@
    }
   },
   {
+   "key": "var AnthropicEndOfStreamTests.messageStart",
+   "hash": "6aec850a8fcc4225",
+   "does": "SSE lines of a message_start event whose usage is 120 input / 1 output tokens.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.sseEvent(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.sseEvent(_:_:)": "77d9bd56fa2ec600"
+   }
+  },
+  {
+   "key": "func AnthropicEndOfStreamTests.testCutStreamStillReportsStartUsage()",
+   "hash": "799ca6d2ccc2722d",
+   "does": "message_start then text with no message_stop: a network error, and one .usage with message_start's 120 input tokens.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)",
+    "EmuquTests/ProviderStreamTests.swift::var AnthropicEndOfStreamTests.messageStart",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textEvent(_:)",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.isNetworkError"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)": "43ceccab35b5aded",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textEvent(_:)": "2e33b365dfe56d9a",
+    "EmuquTests/ProviderStreamTests.swift::var AnthropicEndOfStreamTests.messageStart": "e03a91e2e52b86d0",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.isNetworkError": "3d5afd4a92dbe4a5"
+   }
+  },
+  {
+   "key": "func AnthropicEndOfStreamTests.testCompletedReplyReportsUsageOnce()",
+   "hash": "721a3a7614f793df",
+   "does": "message_start, text, end_turn stop: no error and exactly one .usage (120 input, the delta's 5 output tokens).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)",
+    "EmuquTests/ProviderStreamTests.swift::var AnthropicEndOfStreamTests.messageStart",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textEvent(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.stop(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.replay(_:)": "43ceccab35b5aded",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.stop(_:)": "62f573dbbf617221",
+    "EmuquTests/ProviderStreamTests.swift::func AnthropicEndOfStreamTests.textEvent(_:)": "2e33b365dfe56d9a",
+    "EmuquTests/ProviderStreamTests.swift::var AnthropicEndOfStreamTests.messageStart": "e03a91e2e52b86d0"
+   }
+  },
+  {
    "key": "func EndOfStreamCancellationTests.errorFromCancelledReader(_:)",
    "hash": "40f4544b451823ea",
    "does": "Runs a reader in a task that cancels itself before reading (UnsafeCurrentTask.cancel) and returns what the task threw, or nil.",
@@ -1291,11 +1381,280 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "7f624a8dd0c86b76",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)": "e74fe87ea9a72eba",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "7e53e25865256ded",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)": "05bcc359c8556e76",
     "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.consumeSSE(_:providerID:continuation:)": "9f74985f618acaab",
     "EmuquTests/ProviderStreamTests.swift::func EndOfStreamCancellationTests.errorFromCancelledReader(_:)": "2b625dceda9dee1b",
     "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)": "8965c0bed0b1cf6e"
+   }
+  },
+  {
+   "key": "func PartialReplyTests.storeDecoder()",
+   "hash": "61c7c87793869ab9",
+   "does": "A JSONDecoder with ISO 8601 dates, as ConversationStore decodes the transcript.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func PartialReplyTests.incompleteReply()",
+   "hash": "2b216ee82b6a134b",
+   "does": "An assistant ChatTurn 'Your sleep was' with incomplete set, as handleStreamFailure leaves a failed partial reply.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "9a474c3f1ee99094"
+   }
+  },
+  {
+   "key": "func PartialReplyTests.testTranscriptsWrittenBeforeTheFieldDecodeAsComplete()",
+   "hash": "86888cebd36a4d90",
+   "does": "A stored transcript JSON without the incomplete key (one user, one assistant turn) decodes with both texts and no turn marked incomplete.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func PartialReplyTests.storeDecoder()",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(from:)": "09537b2fccd19a28",
+    "EmuquTests/ProviderStreamTests.swift::func PartialReplyTests.storeDecoder()": "69751f8b2900de13"
+   }
+  },
+  {
+   "key": "func PartialReplyTests.testTheIncompleteMarkSurvivesStorage()",
+   "hash": "acf756b22853da62",
+   "does": "An incomplete reply encoded with ISO 8601 dates and decoded again is still incomplete.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func PartialReplyTests.storeDecoder()",
+    "EmuquTests/ProviderStreamTests.swift::func PartialReplyTests.incompleteReply()",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(from:)": "09537b2fccd19a28",
+    "EmuquTests/ProviderStreamTests.swift::func PartialReplyTests.incompleteReply()": "8f68d82b46f0c2d4",
+    "EmuquTests/ProviderStreamTests.swift::func PartialReplyTests.storeDecoder()": "69751f8b2900de13"
+   }
+  },
+  {
+   "key": "func PartialReplyTests.testIncompleteRepliesAreWithheldFromTheOutboundHistory()",
+   "hash": "17ae000a0365ebec",
+   "does": "user / incomplete reply / user through truncateForSend(.anthropic): kept is the two user turns, dropped is empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func PartialReplyTests.incompleteReply()",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "9a474c3f1ee99094",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)": "570e4d9e26321981",
+    "EmuquTests/ProviderStreamTests.swift::func PartialReplyTests.incompleteReply()": "8f68d82b46f0c2d4"
+   }
+  },
+  {
+   "key": "func PartialReplyTests.settled(_:fallbackText:)",
+   "hash": "7c5287e494a1cdbf",
+   "does": "Builds an assistant turn holding fallbackText under an Apple badge and runs AssistantToolRunner.settle on it with the given ending, failed partial 'Your sleep was' and fallback anthropic / claude-sonnet.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.settle(_:after:failedPartial:providerID:modelID:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "9a474c3f1ee99094",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.settle(_:after:failedPartial:providerID:modelID:)": "74b2074aed20c5ee"
+   }
+  },
+  {
+   "key": "func PartialReplyTests.testAnsweredFallbackReplacesThePartialText()",
+   "hash": "a09ca58232688fd2",
+   "does": ".answered: the turn holds only the fallback's text, badged anthropic / claude-sonnet.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func PartialReplyTests.settled(_:fallbackText:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func PartialReplyTests.settled(_:fallbackText:)": "cafab9e03f9a395e"
+   }
+  },
+  {
+   "key": "func PartialReplyTests.testStoppedFallbackKeepsWhatItShowedUnderItsBadge()",
+   "hash": "f50fda7b5e8ae84b",
+   "does": ".stopped with fallback text: the text stays and the badge is the fallback's.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func PartialReplyTests.settled(_:fallbackText:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func PartialReplyTests.settled(_:fallbackText:)": "cafab9e03f9a395e"
+   }
+  },
+  {
+   "key": "func PartialReplyTests.testStoppedFallbackWithNoTextBringsThePartialTextBack()",
+   "hash": "9b8fd8c528892ffb",
+   "does": ".stopped with no fallback text: the failed partial text comes back under the original (Apple) badge.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func PartialReplyTests.settled(_:fallbackText:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func PartialReplyTests.settled(_:fallbackText:)": "cafab9e03f9a395e"
+   }
+  },
+  {
+   "key": "func PartialReplyTests.testFailedFallbackBringsThePartialTextBackUnderItsBadge()",
+   "hash": "9dd8b434b882697f",
+   "does": "For .failed and .blocked: the fallback's own text goes, the failed partial text comes back, and provider and model stay the original Apple ones.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func PartialReplyTests.settled(_:fallbackText:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::func PartialReplyTests.settled(_:fallbackText:)": "cafab9e03f9a395e"
+   }
+  },
+  {
+   "key": "var PartialReplyTests.exchange",
+   "hash": "04350d75941fb0b2",
+   "does": "A user message about a May marathon and the assistant's reply.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "9a474c3f1ee99094"
+   }
+  },
+  {
+   "key": "func PartialReplyTests.testFactsAreReadFromACompletedReply()",
+   "hash": "5953e9942598f23b",
+   "does": "factExtractionExchange(completed: true) returns the user text and the reply text.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::var PartialReplyTests.exchange",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.factExtractionExchange(in:at:completed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.factExtractionExchange(in:at:completed:)": "7b4c40b544fb5b1e",
+    "EmuquTests/ProviderStreamTests.swift::var PartialReplyTests.exchange": "012665376ca3389a"
+   }
+  },
+  {
+   "key": "func PartialReplyTests.testFactsAreNotReadFromAReplyThatDidNotComplete()",
+   "hash": "a65131b6fbae58b7",
+   "does": "factExtractionExchange(completed: false) returns nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::var PartialReplyTests.exchange",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.factExtractionExchange(in:at:completed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.factExtractionExchange(in:at:completed:)": "7b4c40b544fb5b1e",
+    "EmuquTests/ProviderStreamTests.swift::var PartialReplyTests.exchange": "012665376ca3389a"
+   }
+  },
+  {
+   "key": "func PartialReplyTests.testFactsAreNeverReadFromAnIncompleteReply()",
+   "hash": "fdb137640f5dfb32",
+   "does": "With the reply marked incomplete, factExtractionExchange returns nil even when completed is true.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::var PartialReplyTests.exchange",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.factExtractionExchange(in:at:completed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.factExtractionExchange(in:at:completed:)": "7b4c40b544fb5b1e",
+    "EmuquTests/ProviderStreamTests.swift::var PartialReplyTests.exchange": "012665376ca3389a"
+   }
+  },
+  {
+   "key": "func PartialReplyTests.testCollectReturnsNothingForAStreamThatFailedPartway()",
+   "hash": "0c34cf63e193b673",
+   "does": "A stream that yields text and then finishes with a network error: collect returns nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.collect(_:timeoutSec:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.collect(_:timeoutSec:)": "bf1088b06f58af5e"
+   }
+  },
+  {
+   "key": "func PartialReplyTests.testCollectReturnsNothingForAStreamThatTimesOut()",
+   "hash": "4ed3eddd43cc1029",
+   "does": "A stream that yields text and never finishes: collect with a 1 s timeout returns nil; the stream is finished afterwards.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.collect(_:timeoutSec:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.collect(_:timeoutSec:)": "bf1088b06f58af5e"
+   }
+  },
+  {
+   "key": "func PartialReplyTests.testCollectReturnsTheTextOfACompletedStream()",
+   "hash": "9c5db95d13afea3a",
+   "does": "A stream that yields text, .done and finishes: collect returns the text.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.collect(_:timeoutSec:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.collect(_:timeoutSec:)": "bf1088b06f58af5e"
    }
   }
  ],

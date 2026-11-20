@@ -199,4 +199,25 @@ final class SpokenTextChunkerTests: XCTestCase {
         XCTAssertNil(chunker.append(delta: "See [Polar's page](https://polar."))
         XCTAssertEqual(chunker.append(delta: "com/sense) for more. Next"), "See Polar's page for more.")
     }
+
+    // MARK: - Withdrawing rewound text
+
+    /// When the text being read is rewound (a fallback replaces a failed
+    /// reply), its unspoken tail is dropped, not spoken in front of the
+    /// replacement.
+    func testWithdrawnTailIsNotSpokenBeforeTheReplacement() {
+        let chunker = SpokenTextChunker()
+        XCTAssertEqual(chunker.append(delta: "You slept well. Your HRV was"), "You slept well.")
+        chunker.withdrawLast("You slept well. Your HRV was".count)
+        XCTAssertFalse(chunker.hasPendingContent)
+        XCTAssertEqual(chunker.append(delta: "Seven hours of sleep."), "Seven hours of sleep.")
+    }
+
+    /// Only the withdrawn characters go; text before them stays buffered.
+    func testWithdrawKeepsTheTextBeforeTheRewind() {
+        let chunker = SpokenTextChunker()
+        XCTAssertNil(chunker.append(delta: "Based on your data"))
+        chunker.withdrawLast(" data".count)
+        XCTAssertEqual(chunker.pendingBuffer, "Based on your")
+    }
 }

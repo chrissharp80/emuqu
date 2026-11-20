@@ -457,6 +457,42 @@
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.isSentenceBoundary(at:)": "8894c260978577ab",
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.stripMarkdownForSpeech(_:)": "e04a3b97f7baba8b"
    }
+  },
+  {
+   "key": "func SpokenTextChunkerTests.testWithdrawnTailIsNotSpokenBeforeTheReplacement()",
+   "hash": "157c815f11c0cd39",
+   "does": "After 'You slept well.' is emitted, withdrawing the whole appended text empties the buffer, and the next sentence is emitted on its own.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.withdrawLast(_:)",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::var SpokenTextChunker.hasPendingContent"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)": "11b7d59f422f3990",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.withdrawLast(_:)": "411fed959a6b495d",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::var SpokenTextChunker.hasPendingContent": "1d3fc6e50efc1e03"
+   }
+  },
+  {
+   "key": "func SpokenTextChunkerTests.testWithdrawKeepsTheTextBeforeTheRewind()",
+   "hash": "2aef73ec49b945a2",
+   "does": "Withdrawing ' data' from a buffered 'Based on your data' leaves 'Based on your'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.withdrawLast(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)": "11b7d59f422f3990",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.withdrawLast(_:)": "411fed959a6b495d"
+   }
   }
  ],
  "deps": {}

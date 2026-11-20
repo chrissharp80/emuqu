@@ -231,7 +231,22 @@ struct ChatBubble: View, Equatable {
         VStack(alignment: turn.role == .user ? .trailing : .leading, spacing: 4) {
             assistantSubsystemHeader
             bubbleText
+            incompleteNote
             providerFooter
+        }
+    }
+
+    /// A small note under a reply whose stream failed partway
+    /// (`ChatTurn.incomplete`), so the text reads as cut off rather than as
+    /// a finished answer, after a relaunch too. Captioned like the provider
+    /// footer below it.
+    @ViewBuilder
+    private var incompleteNote: some View {
+        if turn.role == .assistant, turn.incomplete {
+            Label(String(localized: "Incomplete reply", bundle: LanguageManager.appBundle), systemImage: "exclamationmark.circle")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .padding(.leading, 4)
         }
     }
 

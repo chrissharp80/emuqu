@@ -1111,7 +1111,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.finishResponseFromAssistant()": "6ebb4d6440a98ffd",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.speakUpToCursor(turns:cursors:)": "c9d3a07991f00b12",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.speakUpToCursor(turns:cursors:)": "fd8650cdca0b5ac9",
     "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.streamEdge(of:)": "e11a1255eb8c28db",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelAssistantObservers()": "4283ff5361b1771c",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.audio": "d607730c7c553774",
@@ -1121,10 +1121,12 @@
   },
   {
    "key": "func VoiceAudioPipeline.speakUpToCursor(turns:cursors:)",
-   "hash": "078d3b6f48398a44",
-   "does": "Takes the active assistant turn's text up to the published speakable cursor (Characters). A cursor below what was already spoken (the view model rewound a round whose sentences were spoken before a tool call) pulls spokenCharCursor back to it, so the next round is spoken from its start. Feeds the unspoken delta to the chunker and speaks any completed sentence; updates spokenCharCursor and currentResponseText.",
+   "hash": "bead3bdd428dbfc6",
+   "does": "Takes the active assistant turn's text up to the published speakable cursor (Characters). A cursor below what was already spoken (the view model rewound a round whose sentences were spoken before a tool call, or took a failed reply out for a fallback's answer) withdraws the rewound characters still buffered in the chunker and pulls spokenCharCursor back to it, so the new text is spoken from its start with no unspoken fragment in front. Feeds the unspoken delta to the chunker and speaks any completed sentence; updates spokenCharCursor and currentResponseText.",
    "entry": "Observation change delivery (ObservationLoop onChange from observeAssistantStreaming)",
    "calls": [
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.withdrawLast(_:)",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)"
    ],
    "reads": [
@@ -1153,20 +1155,22 @@
     {
      "at": "+6",
      "cond": "safeLen < spokenCharCursor (rewind)",
-     "effect": "spokenCharCursor = safeLen"
+     "effect": "chunker.withdrawLast(spokenCharCursor - safeLen); spokenCharCursor = safeLen"
     },
     {
-     "at": "+7",
+     "at": "+10",
      "cond": "safeLen > spokenCharCursor",
      "effect": "false: return (no new safe text)"
     },
     {
-     "at": "+13",
+     "at": "+16",
      "cond": "chunker returned a sentence",
      "effect": "true: controller.speak(chunk)"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)": "11b7d59f422f3990",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.withdrawLast(_:)": "411fed959a6b495d",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "579381859ae4cd85"
    }
   },

@@ -91,7 +91,9 @@ final class AssistantViewModel {
 
     /// The newest dropped turn already folded into `priorSummary`. Only turns
     /// dropped after it are summarised, so an over-budget history does not
-    /// trigger a summary call on every send. In memory only: after a relaunch
+    /// trigger a summary call on every send. A summary that failed or timed
+    /// out leaves it where it was, so the next send tries those turns again.
+    /// In memory only: after a relaunch
     /// the first over-budget send folds the dropped turns once more.
     @ObservationIgnored var summarizedThroughTurnID: UUID?
 

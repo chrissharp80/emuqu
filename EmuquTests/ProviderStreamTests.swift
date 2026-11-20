@@ -159,6 +159,9 @@ enum SSEReplay {
         var text = ""
         var toolNames: [String] = []
         var toolInputs: [String] = []
+        /// One entry per `.usage` event.
+        var inputTokens: [Int] = []
+        var outputTokens: [Int] = []
         var endedWithDone = false
         var error: Error?
 
@@ -207,8 +210,9 @@ enum SSEReplay {
                 case let .toolUse(_, name, inputJSON):
                     outcome.toolNames.append(name)
                     outcome.toolInputs.append(inputJSON)
-                case .usage:
-                    break
+                case let .usage(input, output, _, _):
+                    outcome.inputTokens.append(input)
+                    outcome.outputTokens.append(output)
                 case .done:
                     outcome.endedWithDone = true
                 }
@@ -397,6 +401,24 @@ final class GeminiEndOfStreamTests: XCTestCase {
         let outcome = await replay([#"data: {"error":{"code":503,"message":"The model is overloaded.","status":"UNAVAILABLE"}}"#])
         XCTAssertTrue(outcome.isModelUnavailable, "\(String(describing: outcome.error))")
     }
+
+    /// Tokens billed before a failure are still reported: the last
+    /// `usageMetadata` seen when a later event throws.
+    func testFailureMidStreamStillReportsUsage() async {
+        let withUsage = #"data: {"candidates":[{"content":{"role":"model","parts":[{"text":"Partial "}]}}],"usageMetadata":{"promptTokenCount":200,"candidatesTokenCount":3}}"#
+        let outcome = await replay([withUsage, #"data: {"candidates":["#])
+        XCTAssertEqual(outcome.invalidResponseMessage, "malformed Google stream event")
+        XCTAssertEqual(outcome.inputTokens, [200])
+        XCTAssertEqual(outcome.outputTokens, [3])
+    }
+
+    /// The chunk that throws counts too: a safety stop's own usage is reported.
+    func testSafetyStopReportsItsOwnUsage() async {
+        let blocked = #"data: {"candidates":[{"content":{"role":"model","parts":[{"text":"hidden"}]},"finishReason":"SAFETY"}],"usageMetadata":{"promptTokenCount":200,"candidatesTokenCount":9}}"#
+        let outcome = await replay([blocked])
+        XCTAssertEqual(outcome.blockedReply, "gemini: SAFETY")
+        XCTAssertEqual(outcome.outputTokens, [9])
+    }
 }
 
 /// Anthropic's reply is complete only after `message_stop`; its stop reason
@@ -483,6 +505,26 @@ final class AnthropicEndOfStreamTests: XCTestCase {
         let outcome = await replay(sseEvent("error", #"{"type":"error","error":{"type":"overloaded_error","message":"Overloaded"}}"#))
         XCTAssertTrue(outcome.isModelUnavailable, "\(String(describing: outcome.error))")
     }
+
+    private var messageStart: [String] {
+        sseEvent("message_start", #"{"type":"message_start","message":{"usage":{"input_tokens":120,"output_tokens":1}}}"#)
+    }
+
+    /// A stream cut after `message_start` still reports the usage that event
+    /// carried, so the billed prompt is not lost from the telemetry.
+    func testCutStreamStillReportsStartUsage() async {
+        let outcome = await replay(messageStart + textEvent("Your sleep was"))
+        XCTAssertTrue(outcome.isNetworkError, "\(String(describing: outcome.error))")
+        XCTAssertEqual(outcome.inputTokens, [120])
+    }
+
+    /// A completed reply reports one usage event, with the final output count.
+    func testCompletedReplyReportsUsageOnce() async {
+        let outcome = await replay(messageStart + textEvent("Slept well.") + stop("end_turn"))
+        XCTAssertNil(outcome.error)
+        XCTAssertEqual(outcome.inputTokens, [120])
+        XCTAssertEqual(outcome.outputTokens, [5])
+    }
 }
 
 /// Stop cancels the reader's task. A reader whose lines then end cleanly
@@ -516,5 +558,159 @@ final class EndOfStreamCancellationTests: XCTestCase {
             let error = await errorFromCancelledReader(read)
             XCTAssertTrue(error is CancellationError, "\(name): \(String(describing: error))")
         }
+    }
+}
+
+// MARK: - Replies that failed partway
+
+/// A reply whose stream failed after some text was shown: it is stored as
+/// incomplete, kept out of the next request, replaced by a fallback's answer,
+/// and never read for facts or summarised.
+@MainActor
+final class PartialReplyTests: XCTestCase {
+    private func storeDecoder() -> JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }
+
+    /// A reply whose stream failed after "Your sleep was", as
+    /// `handleStreamFailure` leaves it.
+    private func incompleteReply() -> ChatTurn {
+        var turn = ChatTurn(role: .assistant, text: "Your sleep was")
+        turn.incomplete = true
+        return turn
+    }
+
+    /// Transcripts written before the field existed decode, as complete.
+    func testTranscriptsWrittenBeforeTheFieldDecodeAsComplete() throws {
+        let legacy = Data("""
+        [{"id":"\(UUID().uuidString)","role":"user","text":"How did I sleep?","createdAt":"2026-05-01T07:00:00Z"},
+         {"id":"\(UUID().uuidString)","role":"assistant","text":"Seven hours.","createdAt":"2026-05-01T07:00:05Z",
+          "providerID":"anthropic","modelID":"claude","localOnly":false}]
+        """.utf8)
+        let decoded = try storeDecoder().decode([ChatTurn].self, from: legacy)
+        XCTAssertEqual(decoded.map(\.text), ["How did I sleep?", "Seven hours."])
+        XCTAssertFalse(decoded.contains { $0.incomplete })
+    }
+
+    /// The mark survives the conversation store's encoding, so after a
+    /// relaunch the reply still reads as cut off.
+    func testTheIncompleteMarkSurvivesStorage() throws {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let decoded = try storeDecoder().decode([ChatTurn].self, from: try encoder.encode([incompleteReply()]))
+        XCTAssertEqual(decoded.first?.incomplete, true)
+    }
+
+    /// An incomplete reply is not sent as if it were the model's answer,
+    /// and is not handed to the summariser either.
+    func testIncompleteRepliesAreWithheldFromTheOutboundHistory() {
+        let history = [
+            ChatTurn(role: .user, text: "How did I sleep?"),
+            incompleteReply(),
+            ChatTurn(role: .user, text: "And my HRV?")
+        ]
+        let (kept, dropped) = AssistantViewModel.truncateForSend(history, provider: .anthropic)
+        XCTAssertEqual(kept.map(\.text), ["How did I sleep?", "And my HRV?"])
+        XCTAssertTrue(dropped.isEmpty)
+    }
+
+    // MARK: Fallback splice
+
+    /// The reserved turn as the fallback left it (the failed provider's
+    /// partial text having been taken out first), settled after `ending`.
+    private func settled(_ ending: AssistantToolRunner.FallbackEnding, fallbackText: String) -> ChatTurn {
+        var turn = ChatTurn(role: .assistant, text: fallbackText, providerID: .apple, modelID: "apple-on-device")
+        AssistantToolRunner.settle(&turn, after: ending, failedPartial: "Your sleep was", providerID: .anthropic, modelID: "claude-sonnet")
+        return turn
+    }
+
+    /// The fallback's answer replaces the failed partial text, under the
+    /// fallback's badge.
+    func testAnsweredFallbackReplacesThePartialText() {
+        let turn = settled(.answered, fallbackText: "You slept 7 h 40 min.")
+        XCTAssertEqual(turn.text, "You slept 7 h 40 min.")
+        XCTAssertEqual(turn.providerID, .anthropic)
+        XCTAssertEqual(turn.modelID, "claude-sonnet")
+    }
+
+    func testStoppedFallbackKeepsWhatItShowedUnderItsBadge() {
+        let turn = settled(.stopped, fallbackText: "You slept")
+        XCTAssertEqual(turn.text, "You slept")
+        XCTAssertEqual(turn.providerID, .anthropic)
+    }
+
+    func testStoppedFallbackWithNoTextBringsThePartialTextBack() {
+        let turn = settled(.stopped, fallbackText: "")
+        XCTAssertEqual(turn.text, "Your sleep was")
+        XCTAssertEqual(turn.providerID, .apple)
+    }
+
+    /// A failed or refused fallback leaves none of its own text, and the
+    /// failed provider's partial reply comes back under its own badge.
+    func testFailedFallbackBringsThePartialTextBackUnderItsBadge() {
+        for ending in [AssistantToolRunner.FallbackEnding.failed, .blocked] {
+            let turn = settled(ending, fallbackText: "You slept 7")
+            XCTAssertEqual(turn.text, "Your sleep was", "\(ending)")
+            XCTAssertEqual(turn.providerID, .apple, "\(ending)")
+            XCTAssertEqual(turn.modelID, "apple-on-device", "\(ending)")
+        }
+    }
+
+    // MARK: Fact extraction
+
+    private var exchange: [ChatTurn] {
+        [
+            ChatTurn(role: .user, text: "I'm training for a marathon in May."),
+            ChatTurn(role: .assistant, text: "Then this week matters.")
+        ]
+    }
+
+    func testFactsAreReadFromACompletedReply() {
+        let read = AssistantTurnRouter.factExtractionExchange(in: exchange, at: 1, completed: true)
+        XCTAssertEqual(read?.userText, "I'm training for a marathon in May.")
+        XCTAssertEqual(read?.assistantText, "Then this week matters.")
+    }
+
+    /// A stopped, refused or failed reply is not read for facts.
+    func testFactsAreNotReadFromAReplyThatDidNotComplete() {
+        XCTAssertNil(AssistantTurnRouter.factExtractionExchange(in: exchange, at: 1, completed: false))
+    }
+
+    func testFactsAreNeverReadFromAnIncompleteReply() {
+        var turns = exchange
+        turns[1].incomplete = true
+        XCTAssertNil(AssistantTurnRouter.factExtractionExchange(in: turns, at: 1, completed: true))
+    }
+
+    // MARK: Background collection (summary and fact extraction)
+
+    /// A stream that fails after some text yields nothing, so neither a
+    /// partial summary nor a partial fact list is used, and the summary
+    /// marker does not move past turns that were not summarised.
+    func testCollectReturnsNothingForAStreamThatFailedPartway() async {
+        let (stream, continuation) = AsyncThrowingStream<AIStreamEvent, Error>.makeStream()
+        continuation.yield(.textDelta("The user is training for"))
+        continuation.finish(throwing: AIProviderError.network("The network connection was lost."))
+        let collected = await AssistantViewModel.collect(stream, timeoutSec: 5)
+        XCTAssertNil(collected)
+    }
+
+    func testCollectReturnsNothingForAStreamThatTimesOut() async {
+        let (stream, continuation) = AsyncThrowingStream<AIStreamEvent, Error>.makeStream()
+        continuation.yield(.textDelta("The user is training for"))
+        let collected = await AssistantViewModel.collect(stream, timeoutSec: 1)
+        continuation.finish()
+        XCTAssertNil(collected)
+    }
+
+    func testCollectReturnsTheTextOfACompletedStream() async {
+        let (stream, continuation) = AsyncThrowingStream<AIStreamEvent, Error>.makeStream()
+        continuation.yield(.textDelta("Training for a May marathon."))
+        continuation.yield(.done)
+        continuation.finish()
+        let collected = await AssistantViewModel.collect(stream, timeoutSec: 5)
+        XCTAssertEqual(collected, "Training for a May marathon.")
     }
 }

@@ -117,11 +117,12 @@
   },
   {
    "key": "func AnthropicProvider.consumeSSE(_:continuation:)",
-   "hash": "2ed853fb6cc1cdfd",
-   "does": "Reads a reply's SSE line sequence (the URL session's lines, or a test's) line by line: blank line resets the event name, \"event:\" lines record it, \"data:\" payloads are passed to handle(); checks task cancellation per line. When the sequence ends, a cancelled task throws CancellationError, so Stop reads as cancellation. A stream that ends before message_stop was cut, and throws URLError(.networkConnectionLost) (ProviderStream maps it to a fallbackable .network) instead of passing a truncated reply as complete.",
+   "hash": "40d86dc45cec5ea6",
+   "does": "Reads a reply's SSE line sequence (the URL session's lines, or a test's) line by line: blank line resets the event name, \"event:\" lines record it, \"data:\" payloads are passed to handle(); checks task cancellation per line. When the sequence ends, a cancelled task throws CancellationError, so Stop reads as cancellation. A stream that ends before message_stop was cut, and throws URLError(.networkConnectionLost) (ProviderStream maps it to a fallbackable .network) instead of passing a truncated reply as complete. On every exit (deferred) flushUsage records message_start's usage if nothing recorded it yet, so a reply that failed after message_start still reports its usage.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.handle(eventName:data:state:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.flushUsage(_:final:to:)",
     "ext:Task.checkCancellation"
    ],
    "reads": [
@@ -131,41 +132,47 @@
    "branches": [
     {
      "at": "+6",
+     "cond": "defer on every exit",
+     "effect": "flushUsage (no-op once usage was recorded or with no message_start)"
+    },
+    {
+     "at": "+7",
      "cond": "for each line",
      "effect": "loop until stream ends; throws on network error/cancellation"
     },
     {
-     "at": "+8",
+     "at": "+9",
      "cond": "line empty",
      "effect": "clears lastEventName and continues"
     },
     {
-     "at": "+12",
+     "at": "+13",
      "cond": "line starts with event:",
      "effect": "stores trimmed event name and continues"
     },
     {
-     "at": "+16",
+     "at": "+17",
      "cond": "line does not start with data:",
      "effect": "skipped (comments, id:, retry:)"
     },
     {
-     "at": "+18",
+     "at": "+19",
      "cond": "payload empty or not UTF-8",
      "effect": "skipped; else handle(eventName:data:) which may throw"
     },
     {
-     "at": "+21",
+     "at": "+22",
      "cond": "task cancelled when the sequence ended",
      "effect": "throws CancellationError"
     },
     {
-     "at": "+21",
+     "at": "+23",
      "cond": "stream ended without message_stop",
      "effect": "throws URLError(.networkConnectionLost)"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.flushUsage(_:final:to:)": "235406e06fc8fde4",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.handle(eventName:data:state:continuation:)": "cd668b2f3711d45b"
    }
   }

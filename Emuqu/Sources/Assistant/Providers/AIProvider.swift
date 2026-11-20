@@ -198,6 +198,18 @@ struct ChatTurn: Codable, Identifiable, Hashable, Sendable {
     /// be a claim this cannot support.
     var localOnly: Bool = false
 
+    /// Whether this reply's stream failed after some of its text was shown.
+    ///
+    /// The text the user saw stays in the bubble, with a note that the reply
+    /// is incomplete, so after a relaunch it still reads as cut off rather
+    /// than as a finished answer. History assembly (`truncateForSend`) leaves
+    /// it out of the next request, so a model is never told it gave this
+    /// fragment as a complete reply. A reply the user stopped is not marked.
+    ///
+    /// Decodes to `false` when absent: transcripts written before this
+    /// existed carry no record of how their replies ended.
+    var incomplete: Bool = false
+
     init(
         id: UUID = UUID(),
         role: Role,
@@ -220,8 +232,8 @@ struct ChatTurn: Codable, Identifiable, Hashable, Sendable {
         self.localOnly = localOnly
     }
 
-    /// Decoded by hand so a missing `localOnly` means `false` rather than a
-    /// decode failure.
+    /// Decoded by hand so a missing `localOnly` or `incomplete` means `false`
+    /// rather than a decode failure.
     ///
     /// A default value on a stored property does NOT make Swift's synthesised
     /// `Codable` tolerate a missing key — the synthesised decoder still
@@ -244,6 +256,7 @@ struct ChatTurn: Codable, Identifiable, Hashable, Sendable {
         subsystem = try container.decodeIfPresent(AssistantSubsystem.self, forKey: .subsystem)
         routedTierRaw = try container.decodeIfPresent(Int.self, forKey: .routedTierRaw)
         localOnly = try container.decodeIfPresent(Bool.self, forKey: .localOnly) ?? false
+        incomplete = try container.decodeIfPresent(Bool.self, forKey: .incomplete) ?? false
     }
 }
 
