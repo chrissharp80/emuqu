@@ -422,8 +422,9 @@ final class ReanalysisService {
 
     /// Archive write also runs off main — overnight sessions serialize
     /// to 1.5 MB+ JSON and blocked the UI noticeably on the main actor.
-    /// SessionArchive is NSLock-protected internally. The user's entries are
-    /// kept as the archive holds them at the write (`writeKeepingUserEntries`).
+    /// SessionArchive is NSLock-protected internally. Only the computed
+    /// fields are written; the rest stay as the archive holds them at the
+    /// write (`writeRescore`).
     /// Returns the session as written; nil when the write failed.
     private func persist(_ updatedSession: HRVSession) async -> HRVSession? {
         let archive = archive
@@ -431,7 +432,7 @@ final class ReanalysisService {
         let sessionToArchive: HRVSession
         do {
             sessionToArchive = try await Task.detached(priority: .userInitiated) {
-                try Self.writeKeepingUserEntries(rescored, to: archive)
+                try Self.writeRescore(rescored, to: archive)
             }.value
         } catch {
             debugLog("[ReanalysisService] Failed to save re-analyzed session: \(error)")
@@ -448,36 +449,66 @@ final class ReanalysisService {
         return sessionToArchive
     }
 
-    /// Write a rescored session over the archived one under the archive's own
-    /// lock (`SessionArchive.update`), taking the user's entries from the
-    /// archived copy as it is at the write. A rescore reads the session,
-    /// works for seconds and writes back; an edit saved in between (tags or
-    /// notes in History, the morning feeling on the review card) would
-    /// otherwise be put back to what the rescore read. A session the archive
-    /// does not hold is archived as it is. Returns what was written.
-    nonisolated static func writeKeepingUserEntries(_ rescored: HRVSession, to archive: SessionArchive) throws -> HRVSession {
+    /// Write a rescored session onto the archived one under the archive's own
+    /// lock (`SessionArchive.update`). The rescore owns only what it computes
+    /// (`applyRescoredFields`); every other field is the archived copy's as it
+    /// is at the write. A rescore reads the session, works for seconds and
+    /// writes back; anything saved in between (tags or notes in History, the
+    /// morning feeling on the review card, the HealthKit export stamp, the
+    /// AI context) would otherwise be put back to what the rescore read, and
+    /// an export stamp put back to nil exports the same samples again. A
+    /// session the archive does not hold is archived as it is. Returns what
+    /// was written.
+    nonisolated static func writeRescore(_ rescored: HRVSession, to archive: SessionArchive) throws -> HRVSession {
         guard archive.exists(rescored.id) else {
             _ = try archive.archive(rescored)
             return rescored
         }
         var written = rescored
         try archive.update(rescored.id, requestingReupload: false) { stored in
-            written = rescored
-            carryUserEntries(from: stored, to: &written)
-            stored = written
+            applyRescoredFields(from: rescored, to: &stored)
+            written = stored
         }
         return written
     }
 
-    /// The fields only the user sets: tags, notes, the morning feeling and
-    /// its context tags, and the perceived readiness.
-    nonisolated static func carryUserEntries(from stored: HRVSession, to session: inout HRVSession) {
-        session.tags = stored.tags
-        session.notes = stored.notes
-        session.morningFeeling = stored.morningFeeling
-        session.morningFeelingTags = stored.morningFeelingTags
-        session.perceivedReadiness = stored.perceivedReadiness
+    /// The fields a rescore computes, set from the rescored session: the
+    /// window's analysis and its artifact flags, the cleared manual-window
+    /// mark, the data-quality class, the score, its breakdown and frozen
+    /// readiness, and the training snapshot it was scored on. Named in
+    /// `rescoreComputedFields`.
+    nonisolated static func applyRescoredFields(from rescored: HRVSession, to session: inout HRVSession) {
+        session.analysisResult = rescored.analysisResult
+        session.artifactFlags = rescored.artifactFlags
+        session.windowUserAdjusted = rescored.windowUserAdjusted
+        session.hrvDataQuality = rescored.hrvDataQuality
+        session.recoveryScore = rescored.recoveryScore
+        session.scoreBreakdown = rescored.scoreBreakdown
+        session.frozenReadiness = rescored.frozenReadiness
+        session.trainingSnapshot = rescored.trainingSnapshot
     }
+
+    /// Every stored field of `HRVSession`, classified for `writeRescore`.
+    /// A test checks that the two sets together name every stored field, so
+    /// a field added to the session is classified before a rescore can
+    /// write it. Computed: set from the rescore (`applyRescoredFields`).
+    nonisolated static let rescoreComputedFields: Set<String> = [
+        "analysisResult", "artifactFlags", "windowUserAdjusted", "hrvDataQuality",
+        "recoveryScore", "scoreBreakdown", "frozenReadiness", "trainingSnapshot",
+    ]
+
+    /// Kept from the archived copy at the write: the recording and its
+    /// identity, the beats the rescore read (the archive's own), the user's
+    /// entries and adjustments, the sleep and vitals snapshots, and the
+    /// export, sync and AI bookkeeping.
+    nonisolated static let rescoreStoredFields: Set<String> = [
+        "sourceSchemaVersion", "id", "startDate", "endDate", "state", "sessionType", "rrSeries",
+        "tags", "notes", "importedMetrics", "deviceProvenance", "sleepStartMs", "sleepEndMs",
+        "sleepSegments", "linkedSessionIds", "pausedDate", "dataSourceSummary", "sleepSnapshot",
+        "sleepUserAdjusted", "napRepaired", "autoWindowResult", "autoWindowScore", "vitalsSnapshot",
+        "healthKitExportedAt", "healthKitExportFailureCount", "modifiedAt", "aiContext",
+        "perceivedReadiness", "morningFeeling", "morningFeelingTags", "workoutMetadata",
+    ]
 
     private func applyRecoveryScore(
         to session: inout HRVSession,
@@ -669,14 +700,14 @@ final class ReanalysisService {
 
     /// Recovery score / training factor / ATL / CTL are PHI and debugLog is
     /// user-exportable. Log that a score recompute occurred and whether the
-    /// score changed, without the numeric health values. The user's entries
-    /// are kept as the archive holds them at the write
-    /// (`writeKeepingUserEntries`); returns the session as written.
+    /// score changed, without the numeric health values. Only the computed
+    /// fields are written; the rest stay as the archive holds them at the
+    /// write (`writeRescore`). Returns the session as written.
     private func persistRescore(
         _ updated: HRVSession, previous: (score: Double, trainingLoad: [Double])
     ) -> HRVSession? {
         do {
-            let written = try Self.writeKeepingUserEntries(updated, to: archive)
+            let written = try Self.writeRescore(updated, to: archive)
             onArchiveChanged()
             Task { [onSessionUploaded] in onSessionUploaded(written) }
             let current = Self.scoreFingerprint(of: written)
