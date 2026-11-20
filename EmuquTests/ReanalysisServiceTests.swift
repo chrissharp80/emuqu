@@ -94,7 +94,9 @@ final class ReanalysisServiceTests: XCTestCase {
         super.tearDown()
     }
 
-    private func makeService() -> ReanalysisService {
+    /// `analysis` answers both analysis closures (window and full session),
+    /// once per reanalysis pass; nil fails the pass.
+    private func makeService(analysis: @escaping () -> HRVAnalysisResult? = { nil }) -> ReanalysisService {
         let healthKit = MockHealthKitService()
         let windowSelector = WindowSelector()
         let artifactDetector = ArtifactDetector()
@@ -112,8 +114,8 @@ final class ReanalysisServiceTests: XCTestCase {
                 HRVAnalysisPipeline.ANSConfiguration(baselineRMSSD: 40, vo2Max: nil, trainingLoadAdjustment: 0)
             },
             trainingContextProvider: { _ in nil },
-            analyzeWithWindow: { _, _, _, _ in nil },
-            analyzeFullSession: { _, _ in nil },
+            analyzeWithWindow: { _, _, _, _ in analysis() },
+            analyzeFullSession: { _, _ in analysis() },
             onArchiveChanged: {},
             onSessionUploaded: { _ in }
         )
@@ -176,13 +178,14 @@ final class ReanalysisServiceTests: XCTestCase {
         var rescored = read
         rescored.recoveryScore = 7.4
 
-        let written = try ReanalysisService.writeRescore(rescored, to: archive)
+        let outcome = try RescoreWrite.write(rescored, readFrom: read, kind: .scoreOnly(healedTraining: false), to: archive)
 
         let stored = try XCTUnwrap(try archive.retrieve(read.id))
         XCTAssertEqual(stored.recoveryScore, 7.4)
         XCTAssertEqual(stored.tags, [ReadingTag.alcohol])
         XCTAssertEqual(stored.notes, "late dinner")
         XCTAssertEqual(stored.morningFeeling, 2)
+        guard case .written(let written) = outcome else { return XCTFail("expected a write, got \(outcome)") }
         XCTAssertEqual(written.tags, [ReadingTag.alcohol], "callers get the session as written")
     }
 
@@ -192,8 +195,9 @@ final class ReanalysisServiceTests: XCTestCase {
         session.recoveryScore = 7.4
         session.notes = "from the card"
 
-        let written = try ReanalysisService.writeRescore(session, to: archive)
+        let outcome = try RescoreWrite.write(session, readFrom: session, kind: .reanalysis(healedTraining: false), to: archive)
 
+        guard case .written(let written) = outcome else { return XCTFail("expected a write, got \(outcome)") }
         XCTAssertEqual(written.notes, "from the card")
         XCTAssertEqual(try archive.retrieve(session.id)?.recoveryScore, 7.4)
     }
@@ -213,7 +217,7 @@ final class ReanalysisServiceTests: XCTestCase {
         var rescored = read
         rescored.recoveryScore = 7.4
 
-        _ = try ReanalysisService.writeRescore(rescored, to: archive)
+        _ = try RescoreWrite.write(rescored, readFrom: read, kind: .reanalysis(healedTraining: false), to: archive)
 
         let stored = try XCTUnwrap(try archive.retrieve(read.id))
         XCTAssertEqual(stored.recoveryScore, 7.4)
@@ -221,15 +225,152 @@ final class ReanalysisServiceTests: XCTestCase {
         XCTAssertEqual(stored.aiContext, ["coaching": "easy day"])
     }
 
+    /// A score-only pass sets the score and nothing it does not compute: the
+    /// window mark, the artifact flags and the quality class stay as stored.
+    func testAScoreOnlyWriteLeavesTheWindowFlagsAndQualityAlone() throws {
+        var read = overnight()
+        read.recoveryScore = 6.1
+        read.windowUserAdjusted = true
+        read.hrvDataQuality = .insufficient
+        try archive.archive(read)
+        var rescored = read
+        rescored.recoveryScore = 7.4
+        rescored.windowUserAdjusted = nil
+        rescored.hrvDataQuality = .preSleep
+        rescored.artifactFlags = []
+
+        _ = try RescoreWrite.write(rescored, readFrom: read, kind: .scoreOnly(healedTraining: false), to: archive)
+
+        let stored = try XCTUnwrap(try archive.retrieve(read.id))
+        XCTAssertEqual(stored.recoveryScore, 7.4)
+        XCTAssertEqual(stored.windowUserAdjusted, true)
+        XCTAssertEqual(stored.hrvDataQuality, .insufficient)
+        XCTAssertNil(stored.artifactFlags)
+    }
+
+    /// A sleep edit saved while a reanalysis ran changes an input of its
+    /// score. Nothing is written from the stale run; the pass runs again from
+    /// the stored copy, and the score written is the one the new sleep gives.
+    func testASleepEditDuringAReanalysisIsScoredFromTheNewSleep() async throws {
+        var night = overnight()
+        night.rrSeries = RRSeries(points: Self.beats(count: 900), sessionId: night.id, startDate: nightStart)
+        night.sleepSnapshot = watchNight(minutes: 300)
+        try archive.archive(night)
+        let read = try XCTUnwrap(try archive.retrieve(night.id))
+        var passes = 0
+        let service = makeService { [archive = self.archive, nightStart = self.nightStart] in
+            passes += 1
+            if passes == 1 { Self.editSleep(of: read.id, in: archive, nightStart: nightStart) }
+            return Self.analysis(at: nightStart)
+        }
+
+        let written = await service.reanalyzeSession(read)
+
+        let stored = try XCTUnwrap(try archive.retrieve(night.id))
+        XCTAssertEqual(passes, 2, "the stale run was not written; the pass ran again")
+        XCTAssertEqual(stored.sleepSnapshot?.nightSleepMinutes, 420)
+        let expected = service.deterministicRecoveryScore(for: stored, result: Self.analysis(at: nightStart)).score
+        XCTAssertEqual(try XCTUnwrap(stored.recoveryScore), expected, accuracy: 0.0001)
+        XCTAssertEqual(written?.recoveryScore, stored.recoveryScore)
+    }
+
+    /// A window picked by hand while an automatic reanalysis ran is the
+    /// user's: the reanalysis writes nothing over it and does not run again.
+    func testAManualWindowPickedDuringAnAutomaticReanalysisSurvives() async throws {
+        var night = overnight()
+        night.rrSeries = RRSeries(points: Self.beats(count: 900), sessionId: night.id, startDate: nightStart)
+        night.recoveryScore = 6.1
+        try archive.archive(night)
+        let read = try XCTUnwrap(try archive.retrieve(night.id))
+        var passes = 0
+        let service = makeService { [archive = self.archive, nightStart = self.nightStart] in
+            passes += 1
+            Self.pickWindow(of: read.id, in: archive)
+            return Self.analysis(at: nightStart)
+        }
+
+        let written = await service.reanalyzeSession(read)
+
+        let stored = try XCTUnwrap(try archive.retrieve(night.id))
+        XCTAssertNil(written)
+        XCTAssertEqual(passes, 1)
+        XCTAssertEqual(stored.windowUserAdjusted, true)
+        XCTAssertEqual(stored.recoveryScore, 8.8, "the manual pick's own score")
+    }
+
     /// Every stored field of the session is either computed by a rescore or
     /// kept from the archived copy. A field added to `HRVSession` fails here
     /// until it is classified, so a rescore cannot silently write it back.
     func testEveryStoredSessionFieldIsClassifiedForARescoreWrite() {
         let fields = Set(Mirror(reflecting: overnight()).children.compactMap(\.label))
-        let computed = ReanalysisService.rescoreComputedFields
-        let stored = ReanalysisService.rescoreStoredFields
+        let computed = RescoreWrite.computedFields
+        let stored = RescoreWrite.storedFields
         XCTAssertTrue(computed.isDisjoint(with: stored), "a field is either computed or kept, not both")
         XCTAssertEqual(computed.union(stored), fields)
+    }
+
+    /// Beats with a little variation, a second apart in a 1 s rhythm.
+    private static func beats(count: Int) -> [RRPoint] {
+        var tMs: Int64 = 0
+        return (0 ..< count).map { i in
+            let rr = 1000 + [20, -5, -20, 5][i % 4]
+            tMs += Int64(rr)
+            return RRPoint(t_ms: tMs, rr_ms: rr)
+        }
+    }
+
+    /// An analysis carrying its own training context, so scoring it never
+    /// asks HealthKit for the load.
+    private static func analysis(at date: Date) -> HRVAnalysisResult {
+        var result = HRVAnalysisResult(
+            windowStart: 0, windowEnd: 400,
+            timeDomain: TimeDomainMetrics(
+                meanRR: 1000, sdnn: 30, rmssd: 35, pnn50: 12, sdsd: 30, meanHR: 60, sdHR: 3, triangularIndex: nil
+            ),
+            frequencyDomain: nil,
+            nonlinear: NonlinearMetrics(
+                sd1: 25, sd2: 40, sd1Sd2Ratio: 0.6, sampleEntropy: 1.5, approxEntropy: 1.3,
+                dfaAlpha1: 0.85, dfaAlpha2: nil, dfaAlpha1R2: 0.95
+            ),
+            ansMetrics: nil, artifactPercentage: 1, cleanBeatCount: 400, analysisDate: date
+        )
+        result.trainingContext = TrainingContext(
+            atl: 0, ctl: 0, tsb: 0, yesterdayTrimp: 0, vo2Max: nil, daysSinceHardWorkout: nil, recentWorkouts: nil
+        )
+        return result
+    }
+
+    /// The user's sleep edit, saved while the reanalysis runs.
+    private static func editSleep(of id: UUID, in archive: SessionArchive, nightStart: Date) {
+        do {
+            try archive.update(id, requestingReupload: false) {
+                $0.sleepSnapshot = SleepData(
+                    date: nightStart, inBedStart: nightStart,
+                    sleepStart: nightStart.addingTimeInterval(600),
+                    sleepEnd: nightStart.addingTimeInterval(600 + 450 * 60),
+                    totalSleepMinutes: 420, inBedMinutes: 450,
+                    deepSleepMinutes: 60, remSleepMinutes: 90, awakeMinutes: 30, sleepEfficiency: 93,
+                    boundarySource: .healthKit, segments: [], stageIntervals: [],
+                    boundaryValidation: nil, hrSleepQuality: nil
+                )
+                $0.sleepUserAdjusted = true
+            }
+        } catch {
+            XCTFail("the sleep edit was not saved: \(error)")
+        }
+    }
+
+    /// The user's manual window pick, with the score it gives, saved while
+    /// the reanalysis runs.
+    private static func pickWindow(of id: UUID, in archive: SessionArchive) {
+        do {
+            try archive.update(id, requestingReupload: false) {
+                $0.windowUserAdjusted = true
+                $0.recoveryScore = 8.8
+            }
+        } catch {
+            XCTFail("the window pick was not saved: \(error)")
+        }
     }
 
     // MARK: - Unlinking a segment
