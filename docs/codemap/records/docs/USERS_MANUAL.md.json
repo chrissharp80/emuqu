@@ -2824,19 +2824,23 @@
   },
   {
    "key": "§ Emuqu User Manual > Settings Tab > Advanced Data Controls",
-   "hash": "aa5fa0e503c7dd8f",
-   "does": "Claims Delete All My Data erases device and iCloud data and API keys after typing DELETE MY DATA plus a confirmation; trial record and encryption keys stay in the keychain. Matches DataPurgeService (defaultsKeepList entitlement anchor) and DeleteAllDataPage confirmPhrase.",
+   "hash": "67afc940f9aa1318",
+   "does": "Claims Delete All My Data erases device and iCloud data and API keys after typing DELETE MY DATA plus a confirmation; it is unavailable while a recording is in progress (a reading, a night even paused, a strap recording or a workout) or a reading is waiting to be accepted, until the user stops it or accepts or discards the reading; trial record and encryption keys stay in the keychain. Matches DataPurgeService (defaultsKeepList entitlement anchor, isRecordingInProgress and the Refusal.recordingInProgress refusal) and DeleteAllDataPage (confirmPhrase, the button disabled while recordingInProgress).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.recordingFooter",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isRecordingInProgress(collector:workout:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)": "9a2648c48755b855",
-    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()": "793fbdf93f12d7c6"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isRecordingInProgress(collector:workout:)": "0ae1baecd7e62774",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)": "2c4e0f1253cea3a1",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()": "bbcd769501f1bbb8",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.recordingFooter": "4fb05587e1544120"
    }
   },
   {

@@ -22,8 +22,9 @@ import SwiftUI
 ///
 /// The action is also disabled, with the reason shown under it, while a
 /// recording is under way (a quick reading, a night, a strap recording or a
-/// workout): the recording would write its data back after the delete.
-/// `DataPurgeService` refuses on its own in that case too.
+/// workout) or a reading is waiting to be accepted: either would write its
+/// data back after the delete. `DataPurgeService` refuses on its own in that
+/// case too.
 struct DeleteAllDataPage: View {
     @Environment(RRCollector.self) var collector
     @Environment(SettingsManager.self) var settingsManager
@@ -244,8 +245,8 @@ struct DeleteAllDataPage: View {
     }
 
     /// Keeps the report, or the reason the purge was refused: a recording is
-    /// under way (one can start after the button was tapped), and then
-    /// nothing was deleted.
+    /// under way (one can start after the button was tapped) or a reading is
+    /// waiting to be accepted, and then nothing was deleted.
     private func runPurge() async {
         do {
             report = try await DataPurgeService.purgeAllUserData(

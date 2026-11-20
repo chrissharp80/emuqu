@@ -143,7 +143,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)": "9a2648c48755b855",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)": "2c4e0f1253cea3a1",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "28134c325b02f133"
    }
   },
@@ -1840,7 +1840,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)": "9a2648c48755b855",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)": "2c4e0f1253cea3a1",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "28134c325b02f133"
    }
   },
@@ -1875,16 +1875,16 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isRecordingInProgress(collector:workout:)": "f3261a3ff39a560f",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)": "9a2648c48755b855",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isRecordingInProgress(collector:workout:)": "0ae1baecd7e62774",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)": "2c4e0f1253cea3a1",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "28134c325b02f133",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()": "fffeaf00f1e291cc"
    }
   },
   {
    "key": "func DataPurgeServiceTests.testEveryCollectorRecordingStateCounts()",
-   "hash": "e55867f93b0049ac",
-   "does": "On fresh SnapshotFixtures collectors, asserts isRecordingInProgress is true with isCollecting, isOvernightStreaming, isPaused, recordingPhase .analyzing, or deviceStatus.isRecordingOnDevice set, and false with recordingPhase .awaitingAcceptance.",
+   "hash": "1762020b1804d5cf",
+   "does": "On fresh SnapshotFixtures collectors, asserts isRecordingInProgress is true with isCollecting, isOvernightStreaming, isPaused, recordingPhase .analyzing, deviceStatus.isRecordingOnDevice, recordingPhase .awaitingAcceptance or needsAcceptance set, and false for an idle collector.",
    "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
    "calls": [
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()",
@@ -1892,7 +1892,8 @@
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isPaused",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance"
    ],
    "reads": [],
    "writes": [
@@ -1900,16 +1901,18 @@
     "mem:StreamingLifecycle.isOvernightStreaming",
     "mem:StreamingLifecycle.isPaused",
     "mem:SessionState.recordingPhase",
-    "mem:DeviceStatus.isRecordingOnDevice"
+    "mem:DeviceStatus.isRecordingOnDevice",
+    "mem:SessionState.needsAcceptance"
    ],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "f52c78dcfaca1b83",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isPaused": "2adbcfd04fa8941f",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "b611e0c61d35d899",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isRecordingInProgress(collector:workout:)": "f3261a3ff39a560f",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isRecordingInProgress(collector:workout:)": "0ae1baecd7e62774",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()": "fffeaf00f1e291cc"
    }
   },
@@ -1931,7 +1934,7 @@
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::init WorkoutRecorder(core:conversation:location:footPod:settingsProvider:)": "896a364be22825e0",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "1594d0dd9fa6bbb7",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isRecordingInProgress(collector:workout:)": "f3261a3ff39a560f",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isRecordingInProgress(collector:workout:)": "0ae1baecd7e62774",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()": "fffeaf00f1e291cc"
    }
   }

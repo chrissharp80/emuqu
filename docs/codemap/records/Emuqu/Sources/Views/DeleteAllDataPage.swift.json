@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Views/DeleteAllDataPage.swift",
  "hash": "1d09fc856113efb2",
- "role": "Settings → Privacy → Advanced Data Controls → 'Delete All My Data' page: explains what is removed, gates the wipe behind typing 'DELETE MY DATA' plus a confirmation dialog and keeps it disabled, with the reason shown, while a recording is under way, then runs DataPurgeService.purgeAllUserData and shows the report or the refusal.",
+ "role": "Settings → Privacy → Advanced Data Controls → 'Delete All My Data' page: explains what is removed, gates the wipe behind typing 'DELETE MY DATA' plus a confirmation dialog and keeps it disabled, with the reason shown, while a recording is under way or a reading is waiting to be accepted, then runs DataPurgeService.purgeAllUserData and shows the report or the refusal.",
  "types": [
   "DeleteAllDataPage: struct (View) — GDPR/CCPA delete-all page"
  ],
@@ -31,7 +31,7 @@
   {
    "key": "var DeleteAllDataPage.recordingInProgress",
    "hash": "671df343a3ba6a09",
-   "does": "Whether a recording is under way, from DataPurgeService.isRecordingInProgress over the environment collector and the app's workout recorder (dependencies.app.recorderBox.recorder). Both are observable, so the page re-renders when a recording starts or stops.",
+   "does": "Whether a recording is under way or a reading is waiting to be accepted, from DataPurgeService.isRecordingInProgress over the environment collector and the app's workout recorder (dependencies.app.recorderBox.recorder). Both are observable, so the page re-renders when a recording starts or stops.",
    "entry": "SwiftUI evaluates it while rendering the parent view body",
    "calls": [
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isRecordingInProgress(collector:workout:)",
@@ -43,7 +43,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isRecordingInProgress(collector:workout:)": "f3261a3ff39a560f",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isRecordingInProgress(collector:workout:)": "0ae1baecd7e62774",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox": "59f6a0baabb8c1c8",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
@@ -63,7 +63,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()": "793fbdf93f12d7c6"
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()": "bbcd769501f1bbb8"
    }
   },
   {
@@ -199,14 +199,14 @@
    "deps": {
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.deleteSectionLabel": "c5e782c6151edb6f",
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.phraseMatches": "82e1882c3d480239",
-    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.recordingFooter": "08f4726381e00ce7",
-    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.recordingInProgress": "48181d1508200666"
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.recordingFooter": "4fb05587e1544120",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.recordingInProgress": "624c422dc4e62c6b"
    }
   },
   {
    "key": "var DeleteAllDataPage.recordingFooter",
    "hash": "a1acb9f8d0d9522e",
-   "does": "While recordingInProgress, the section footer text DataPurgeService.Refusal.recordingInProgress's localized description (stop the recording in progress first, and why); otherwise nothing.",
+   "does": "While recordingInProgress, the section footer text DataPurgeService.Refusal.recordingInProgress's localized description (stop the recording in progress, or accept or discard the reading waiting for review, first, and why); otherwise nothing.",
    "entry": "SwiftUI evaluates it while rendering the parent view body",
    "calls": [
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.recordingInProgress",
@@ -222,8 +222,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Refusal.errorDescription": "85111aa82636e973",
-    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.recordingInProgress": "48181d1508200666"
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Refusal.errorDescription": "9f9ab2ec5bbfbed4",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.recordingInProgress": "624c422dc4e62c6b"
    }
   },
   {
@@ -353,7 +353,7 @@
   {
    "key": "func DeleteAllDataPage.performPurge()",
    "hash": "c95aee131b70f98f",
-   "does": "Sets isPurging, then in a Task awaits runPurge (which keeps the purge's Report, or the refusal while a recording is under way), clears isPurging and clears the typed confirmation phrase so a rerun (the iCloud-failure retry) needs the phrase typed again.",
+   "does": "Sets isPurging, then in a Task awaits runPurge (which keeps the purge's Report, or the refusal while a recording is under way or a reading is waiting to be accepted), clears isPurging and clears the typed confirmation phrase so a rerun (the iCloud-failure retry) needs the phrase typed again.",
    "entry": "Called from confirmation dialog destructive button",
    "calls": [
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.runPurge()"
@@ -365,13 +365,13 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.runPurge()": "4c3d9ca7a1caf478"
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.runPurge()": "40a8805b0bf61a82"
    }
   },
   {
    "key": "func DeleteAllDataPage.runPurge()",
    "hash": "de154faf760d7014",
-   "does": "Awaits DataPurgeService.purgeAllUserData(archive, rawBackup, cloudSync, settingsManager) — refused while a recording is under way, otherwise remote CloudKit zone deletion then local container/defaults/keychain wipe. On success stores the Report and clears refusal; on refusal stores the refusal's localized description and keeps the earlier report (nothing was deleted).",
+   "does": "Awaits DataPurgeService.purgeAllUserData(archive, rawBackup, cloudSync, settingsManager) — refused while a recording is under way or a reading is waiting to be accepted, otherwise remote CloudKit zone deletion then local container/defaults/keychain wipe. On success stores the Report and clears refusal; on refusal stores the refusal's localized description and keeps the earlier report (nothing was deleted).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)"
@@ -400,7 +400,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)": "9a2648c48755b855"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)": "2c4e0f1253cea3a1"
    }
   }
  ],
