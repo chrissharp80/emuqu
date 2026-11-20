@@ -270,33 +270,71 @@ final class RRCollectorSaveResultTests: XCTestCase {
 
     // MARK: - Rescore during review
 
-    /// A rescore of the night on the review card reaches the card's copy,
-    /// which Accept archives, and keeps what the user entered on the card.
-    func testARescoredNightReachesTheReviewCardWithTheCardsEntries() {
+    /// A night on the review card that this review saved to the archive,
+    /// awaiting acceptance, with nothing entered on it yet.
+    private func reviewCard() -> HRVSession {
         var card = night()
         card.recoveryScore = 6.1
+        collector.currentSession = card
+        collector.needsAcceptance = true
+        collector.sessionState.reviewArchivedSessionId = card.id
+        collector.sessionState.reviewArchivedEntries = SessionState.ReviewEntries(of: card)
+        return card
+    }
+
+    /// A rescore of the night the review saved reaches the card, which Accept
+    /// archives. Entries made on the card are kept; one left alone there
+    /// takes the archive's (an edit made in History).
+    func testARescoreOfTheReviewedNightReachesTheCardKeepingTheCardsEdits() {
+        var card = reviewCard()
         card.tags = [ReadingTag.alcohol]
         card.notes = "late dinner"
-        card.morningFeeling = 4
         collector.currentSession = card
-        var rescored = card
+        var rescored = HRVSession(
+            id: card.id, startDate: card.startDate, endDate: card.endDate, state: .complete,
+            sessionType: .overnight, rrSeries: nil, analysisResult: nil, artifactFlags: nil
+        )
         rescored.recoveryScore = 7.4
-        rescored.tags = []
-        rescored.notes = nil
-        rescored.morningFeeling = nil
+        rescored.morningFeeling = 2
 
-        collector.reanalysis.adoptArchivedCopy(rescored)
+        collector.reanalysis.finishRescore(sessionId: card.id, prior: nil, updated: rescored, reason: "sleep")
 
         XCTAssertEqual(collector.currentSession?.recoveryScore, 7.4)
-        XCTAssertEqual(collector.currentSession?.tags, [ReadingTag.alcohol])
-        XCTAssertEqual(collector.currentSession?.notes, "late dinner")
-        XCTAssertEqual(collector.currentSession?.morningFeeling, 4)
+        XCTAssertEqual(collector.currentSession?.tags, [ReadingTag.alcohol], "edited on the card")
+        XCTAssertEqual(collector.currentSession?.notes, "late dinner", "edited on the card")
+        XCTAssertEqual(collector.currentSession?.morningFeeling, 2, "left alone on the card, edited in History")
+    }
+
+    /// Stop, Retry or Recover into a night already archived leaves the
+    /// archive alone until Accept, so the card holds a newer night than the
+    /// archive. A rescore of the archived copy must not replace it.
+    func testARescoreOfTheOldArchivedCopyLeavesANewerReviewNightAlone() {
+        var card = reviewCard()
+        collector.sessionState.reviewArchivedSessionId = nil
+        card.recoveryScore = 8.2
+        collector.currentSession = card
+        var oldArchived = card
+        oldArchived.recoveryScore = 5.0
+
+        collector.reanalysis.finishRescore(sessionId: card.id, prior: nil, updated: oldArchived, reason: "sleep")
+
+        XCTAssertEqual(collector.currentSession?.recoveryScore, 8.2)
+    }
+
+    /// No session awaits acceptance: a rescore leaves the current session.
+    func testARescoreWithNothingAwaitingAcceptanceLeavesTheCurrentSession() {
+        let card = reviewCard()
+        collector.needsAcceptance = false
+        var rescored = card
+        rescored.recoveryScore = 7.4
+
+        collector.reanalysis.finishRescore(sessionId: card.id, prior: nil, updated: rescored, reason: "sleep")
+
+        XCTAssertEqual(collector.currentSession?.recoveryScore, 6.1)
     }
 
     func testAnotherSessionsArchivedCopyLeavesTheReviewCardAlone() {
-        var card = night()
-        card.recoveryScore = 6.1
-        collector.currentSession = card
+        let card = reviewCard()
         var other = night()
         other.recoveryScore = 7.4
 

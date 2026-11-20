@@ -310,10 +310,11 @@ extension SessionReanalysisCoordinator {
     }
 
     /// The night on the review card is the one Accept archives, so a rescore
-    /// of it is carried onto the card's copy (`adoptArchivedCopy`); Accept
-    /// would otherwise write the score from before the rescore back.
+    /// of the archive's copy of it is carried onto the card when the card
+    /// holds that copy (`adoptArchivedCopy`); Accept would otherwise write
+    /// the score from before the rescore back.
     @MainActor
-    private func finishRescore(sessionId: UUID, prior: Double?, updated: HRVSession, reason: String) {
+    func finishRescore(sessionId: UUID, prior: Double?, updated: HRVSession, reason: String) {
         recordPendingScoreChangeIfMeaningful(
             sessionId: sessionId, prior: prior, updated: updated.recoveryScore, reason: reason
         )
@@ -322,15 +323,30 @@ extension SessionReanalysisCoordinator {
     }
 
     /// Replace `currentSession` with the archived copy of the same session,
-    /// keeping what the user has entered on the card that only the in-memory
-    /// copy may hold yet: the tags, the notes and the morning feeling.
+    /// but only when the card holds the archive's copy: the night this
+    /// review saved (`reviewArchivedSessionId`) or the paused night. A card
+    /// that merged a download into a night already archived holds a newer
+    /// night than the archive, which only Accept replaces, so it is left as
+    /// it is.
+    ///
+    /// Of the user's entries (tags, notes, morning feeling), one changed on
+    /// the card since it last matched the archive (`reviewArchivedEntries`)
+    /// is kept; the others come from the archived copy, which then holds any
+    /// edit made elsewhere, in History for instance.
     @MainActor
     func adoptArchivedCopy(_ archived: HRVSession) {
-        guard let current = collector.currentSession, current.id == archived.id else { return }
+        let state = collector.sessionState
+        guard let current = collector.currentSession, current.id == archived.id,
+              state.reviewArchivedSessionId == archived.id || collector.pausedSession?.id == archived.id
+        else { return }
+        let matched = state.reviewArchivedEntries.flatMap { $0.sessionId == archived.id ? $0 : nil }
         var adopted = archived
-        adopted.tags = current.tags
-        adopted.notes = current.notes
-        adopted.morningFeeling = current.morningFeeling ?? archived.morningFeeling
+        if let matched {
+            if current.tags != matched.tags { adopted.tags = current.tags }
+            if current.notes != matched.notes { adopted.notes = current.notes }
+            if current.morningFeeling != matched.morningFeeling { adopted.morningFeeling = current.morningFeeling }
+            state.reviewArchivedEntries = SessionState.ReviewEntries(of: archived)
+        }
         collector.currentSession = adopted
     }
 
@@ -542,8 +558,8 @@ extension SessionReanalysisCoordinator {
     /// rescore threshold (delta < 20 min). If the snapshot is
     /// written to the archive but neither `collector.currentSession` nor the archive
     /// signal is updated, the displayed sleep stays stale until a
-    /// manual "Refresh Sleep Data". The tags, notes and feeling entered on
-    /// the review card are kept (`adoptArchivedCopy`).
+    /// manual "Refresh Sleep Data". Only a card holding the archive's copy
+    /// takes it, keeping the entries made on the card (`adoptArchivedCopy`).
     private func republishRefreshedSession(_ session: HRVSession) {
         adoptArchivedCopy(session)
         collector.archiveSignal.notifyChanged()

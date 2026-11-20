@@ -156,7 +156,10 @@ extension MorningSessionPipeline {
             try collector.archive.archive(finalSession)
             retireRawBackupIfSafe(finalSession)
             collector.archiveSignal.notifyChanged()
-            if isNewEntry { collector.sessionState.reviewArchivedSessionId = finalSession.id }
+            if isNewEntry {
+                collector.sessionState.reviewArchivedSessionId = finalSession.id
+                collector.sessionState.reviewArchivedEntries = SessionState.ReviewEntries(of: finalSession)
+            }
         } catch {
             debugLog("[RRCollector] Failed to pre-archive session for review: \(error)", level: .error)
             collector.lastError = error

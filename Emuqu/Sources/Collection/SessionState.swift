@@ -54,6 +54,28 @@ final class SessionState {
     /// in the archive before this review began.
     var reviewArchivedSessionId: UUID?
 
+    /// The user's own entries on a session, as one value to compare.
+    struct ReviewEntries: Equatable {
+        let sessionId: UUID
+        let tags: [ReadingTag]
+        let notes: String?
+        let morningFeeling: Int?
+
+        init(of session: HRVSession) {
+            sessionId = session.id
+            tags = session.tags
+            notes = session.notes
+            morningFeeling = session.morningFeeling
+        }
+    }
+
+    /// The tags, notes and feeling the archive held for the reviewed night
+    /// when the card last matched it: when the review saved the night, and
+    /// each time a rescore was carried onto the card. An entry on the card
+    /// that differs from these was made on the card and wins over the
+    /// archive's; one that matches gives way to an edit made elsewhere.
+    var reviewArchivedEntries: ReviewEntries?
+
     /// Cached result of `findRecentPausedSession()` — surfaces the resume
     /// banner. Refreshed on every archive signal bump.
     var recentPausedSession: HRVSession?

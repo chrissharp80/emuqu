@@ -12,7 +12,7 @@
  "units": [
   {
    "key": "func CollectorSessionControl.discardOvernightRecording()",
-   "hash": "77af443280285c88",
+   "hash": "d4df58b12a90c944",
    "does": "Ends the in-progress overnight stream keeping nothing: claims the night's ending (StreamingLifecycle.claimOvernightEnding) before its first suspension, so a discard while a Stop or pause is ending the night, or a second discard, returns nil untouched; logs, ends device-recording arming, notes whether this night armed the strap (overnightDeviceBackupActive), stops streaming without gathering (stopStreamingWithoutKeeping), clears the strap's internal recording only when this night armed it, removes the session's raw RR backup and iCloud live backup, clears the persisted recording record, releases the ending, returns the recorder to the paused parent (first linked session) when that is an archived paused session or to idle otherwise, sets lastError to PolarError.fetchFailed(strapCopyKeptReason) when the strap copy could not be cleared, notifies archive observers and returns DiscardOutcome(strapCopyKept:). No session is scored or archived.",
    "entry": "Through RRCollector.discardOvernightRecording() from the Record screen's Discard confirmation (RecordView.discardRecording(startOver:)).",
    "calls": [
@@ -23,18 +23,18 @@
     "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.clearStrapCopy()",
     "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.removeKeptCopies(of:)",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()",
-    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.releaseOvernightEnding()",
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.releaseOvernightEnding(_:)",
     "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.returnToParentPauseOrIdle(parentId:)",
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()"
    ],
    "reads": [
     "mem:StreamingLifecycle.isOvernightStreaming",
-    "mem:StreamingLifecycle.isEndingOvernight",
+    "mem:StreamingLifecycle.overnightEndingClaim",
     "mem:RRCollector.currentSession",
     "mem:RRCollector.overnightDeviceBackupActive"
    ],
    "writes": [
-    "mem:StreamingLifecycle.isEndingOvernight",
+    "mem:StreamingLifecycle.overnightEndingClaim",
     "mem:RRCollector.lastError",
     "ud:UserDefaultsKeys.persistedRecordingState",
     "file:RRBackup/<uuid>*",
@@ -79,8 +79,8 @@
     "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.endDeviceRecordingArming()": "0dce982272449f6a",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "0f40f13f892158e2",
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
-    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.claimOvernightEnding()": "005f6e11160630ac",
-    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.releaseOvernightEnding()": "426e2f8167fd384d",
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.claimOvernightEnding()": "11d9cea625c618c0",
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.releaseOvernightEnding(_:)": "13e955880d47b9aa",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -212,6 +212,7 @@
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "5eae42c737d4ab45",
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "10513f633fc5c63f",
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::var StreamingLifecycle.isEndingOvernight": "5b2ad0671cdd7076",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },

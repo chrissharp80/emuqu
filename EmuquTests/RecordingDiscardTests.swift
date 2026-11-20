@@ -158,15 +158,29 @@ final class RecordingDiscardTests: XCTestCase {
 
     // MARK: - One ending per night
 
-    func testOnlyOneCallerCanClaimANightsEnding() {
+    func testOnlyOneCallerCanClaimANightsEnding() throws {
         let lifecycle = StreamingLifecycle()
-        XCTAssertFalse(lifecycle.claimOvernightEnding(), "no night is streaming")
+        XCTAssertNil(lifecycle.claimOvernightEnding(), "no night is streaming")
         lifecycle.isOvernightStreaming = true
-        XCTAssertTrue(lifecycle.claimOvernightEnding())
-        XCTAssertFalse(lifecycle.claimOvernightEnding(), "a second caller may not end the same night")
-        lifecycle.releaseOvernightEnding()
+        let first = try XCTUnwrap(lifecycle.claimOvernightEnding())
+        XCTAssertNil(lifecycle.claimOvernightEnding(), "a second caller may not end the same night")
+        lifecycle.releaseOvernightEnding(first)
         XCTAssertFalse(lifecycle.isEndingOvernight)
-        XCTAssertTrue(lifecycle.claimOvernightEnding(), "a released ending can be claimed again")
+        XCTAssertNotNil(lifecycle.claimOvernightEnding(), "a released ending can be claimed again")
+    }
+
+    /// A claim dropped for a new night no longer holds anything: releasing
+    /// it late leaves the new night's ending claimed.
+    func testAStaleClaimDroppedForANewNightCannotReleaseTheNextOne() throws {
+        let lifecycle = StreamingLifecycle()
+        lifecycle.isOvernightStreaming = true
+        let stale = try XCTUnwrap(lifecycle.claimOvernightEnding())
+
+        XCTAssertTrue(lifecycle.dropStaleOvernightEnding())
+        let current = try XCTUnwrap(lifecycle.claimOvernightEnding())
+        lifecycle.releaseOvernightEnding(stale)
+
+        XCTAssertEqual(lifecycle.overnightEndingClaim, current)
     }
 
     /// Stop, Pause and Discard each claim the night's ending before they
@@ -177,7 +191,7 @@ final class RecordingDiscardTests: XCTestCase {
         let collector = makeCollector()
         let session = HRVSession(sessionType: .overnight)
         try startRecording(session, on: collector)
-        XCTAssertTrue(collector.streamingLifecycle.claimOvernightEnding())
+        XCTAssertNotNil(collector.streamingLifecycle.claimOvernightEnding())
 
         let stopped = await collector.stopOvernightStreaming()
         let paused = await collector.pauseOvernightStreaming()
@@ -189,6 +203,7 @@ final class RecordingDiscardTests: XCTestCase {
         XCTAssertNil(paused)
         XCTAssertNil(discarded)
         XCTAssertFalse(strapDiscarded)
+        XCTAssertNil(collector.lastError, "the strap-only discard never asked the strap")
         XCTAssertNil(strapStopped)
         XCTAssertTrue(collector.isOvernightStreaming)
         XCTAssertTrue(collector.isCollecting)
@@ -206,14 +221,14 @@ final class RecordingDiscardTests: XCTestCase {
         let collector = makeCollector()
         let session = HRVSession(sessionType: .overnight)
         try startRecording(session, on: collector)
-        XCTAssertTrue(collector.streamingLifecycle.claimOvernightEnding())
+        let claim = try XCTUnwrap(collector.streamingLifecycle.claimOvernightEnding())
         collector.isOvernightStreaming = false
         collector.isCollecting = false
 
         XCTAssertTrue(collector.recovery.liveRecordingIds().contains(session.id))
         XCTAssertTrue(collector.recovery.strapRecordingBelongsToLiveSession)
 
-        collector.streamingLifecycle.releaseOvernightEnding()
+        collector.streamingLifecycle.releaseOvernightEnding(claim)
 
         XCTAssertFalse(collector.recovery.liveRecordingIds().contains(session.id))
         XCTAssertFalse(collector.recovery.strapRecordingBelongsToLiveSession)
@@ -227,7 +242,7 @@ final class RecordingDiscardTests: XCTestCase {
         isolateFromHostPausedNight(collector)
         let session = HRVSession(sessionType: .overnight)
         try startRecording(session, on: collector)
-        XCTAssertTrue(collector.streamingLifecycle.claimOvernightEnding())
+        XCTAssertNotNil(collector.streamingLifecycle.claimOvernightEnding())
         collector.isOvernightStreaming = false
         collector.currentSession?.state = .failed
         collector.persistPausedSessionState(sessionId: session.id)

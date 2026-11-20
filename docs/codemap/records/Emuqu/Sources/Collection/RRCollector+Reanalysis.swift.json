@@ -441,7 +441,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
-    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.finishRescore(sessionId:prior:updated:reason:)": "0ddfe6be42f94017",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.finishRescore(sessionId:prior:updated:reason:)": "357596120a3f3499",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)": "5739f13875226ec6",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.recomputeTrainingOnly(sessionId:priorScore:reason:)": "e67268071f5b9b5c",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.scoreOnlyFallback(sessionId:priorScore:reason:)": "93cd0af7c86bff7d",
@@ -475,7 +475,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
-    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.finishRescore(sessionId:prior:updated:reason:)": "0ddfe6be42f94017",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.finishRescore(sessionId:prior:updated:reason:)": "357596120a3f3499",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::var SessionReanalysisCoordinator.reanalysisService": "d4017a5f3f69aafc",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.recomputeScoreOnly(sessionId:)": "6a9fbe4b428b6b57",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
@@ -507,7 +507,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
-    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.finishRescore(sessionId:prior:updated:reason:)": "0ddfe6be42f94017",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.finishRescore(sessionId:prior:updated:reason:)": "357596120a3f3499",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::var SessionReanalysisCoordinator.reanalysisService": "d4017a5f3f69aafc",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.recomputeScoreOnly(sessionId:)": "6a9fbe4b428b6b57",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
@@ -515,8 +515,8 @@
   },
   {
    "key": "func SessionReanalysisCoordinator.finishRescore(sessionId:prior:updated:reason:)",
-   "hash": "f793e93786e315cb",
-   "does": "Records a pending score change if meaningful; while a session awaits acceptance, carries the rescored session onto currentSession when it is that session (adoptArchivedCopy, keeping the card's tags, notes and feeling) so Accept archives the new score; bumps the archive signal.",
+   "hash": "e0b49eda2f541aca",
+   "does": "Records a pending score change if meaningful; while a session awaits acceptance, offers the rescored session to the card (adoptArchivedCopy, which takes it only when the card holds the archive's copy of that session) so Accept archives the new score; bumps the archive signal.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)",
@@ -541,30 +541,45 @@
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "dd1d381f6262b4a9",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "b611e0c61d35d899",
-    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.adoptArchivedCopy(_:)": "30c9a8ca43e368fa",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.adoptArchivedCopy(_:)": "43796119c333b684",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)": "407d7a2fb0f9bc29"
    }
   },
   {
    "key": "func SessionReanalysisCoordinator.adoptArchivedCopy(_:)",
-   "hash": "9973a461d35ae6d7",
-   "does": "When currentSession is the same session as the archived copy, replaces it with the archived copy but keeps currentSession's tags and notes, and its morningFeeling (falling back to the archived one when nil); otherwise does nothing.",
+   "hash": "dc1a14c095368117",
+   "does": "When currentSession is the same session as the archived copy and the card holds the archive's copy (the id is reviewArchivedSessionId or the paused session), replaces it with the archived copy. With reviewArchivedEntries recorded for this id, each of tags, notes and morning feeling that differs on the card from those entries is kept from the card, the others come from the archived copy, and the entries are then reset to the archived copy's; without them the archived copy is taken whole. Otherwise does nothing.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Collection/SessionState.swift::init SessionState.ReviewEntries(of:)"
+   ],
    "reads": [
-    "mem:RRCollector.currentSession"
+    "mem:RRCollector.currentSession",
+    "mem:SessionState.reviewArchivedSessionId",
+    "mem:StreamingLifecycle.pausedSession",
+    "mem:SessionState.reviewArchivedEntries"
    ],
    "writes": [
-    "mem:RRCollector.currentSession"
+    "mem:RRCollector.currentSession",
+    "mem:SessionState.reviewArchivedEntries"
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "no currentSession, or a different id",
+     "at": "+2",
+     "cond": "no currentSession, a different id, or the card is not the archive's copy (neither reviewArchivedSessionId nor the paused session)",
      "effect": "returns, nothing changed"
+    },
+    {
+     "at": "+7",
+     "cond": "reviewArchivedEntries recorded for this id",
+     "effect": "per entry: card value kept when it differs from the recorded one; entries reset to the archived copy's"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "dcc084a0adcf0b2b",
+    "Emuqu/Sources/Collection/SessionState.swift::init SessionState.ReviewEntries(of:)": "6aaab0fdba9aba60",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
+   }
   },
   {
    "key": "func SessionReanalysisCoordinator.installCloudKitSnapshotBackfillListener()",
@@ -782,7 +797,7 @@
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.freshPlausibleSleep(for:sessionEnd:)": "86fee1a199afe296",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.loadTodaysOvernightSession()": "35991bfbdb262357",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.persistRefreshedSleep(_:sessionId:)": "98ebd7d39f8c396a",
-    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.republishRefreshedSession(_:)": "8dbd3c9a1838a317",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.republishRefreshedSession(_:)": "717e5c22bbe9afcf",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func postSleepRescoreRequest(sessionId:fresh:verdict:)": "e78b61406e6798cc",
     "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.autoSleepRefreshAllowed(for:)": "3ca1e1186e686210",
     "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "26cb9251401b7661",
@@ -879,7 +894,7 @@
   {
    "key": "func SessionReanalysisCoordinator.republishRefreshedSession(_:)",
    "hash": "43304afa025c859e",
-   "does": "Carries the refreshed session onto currentSession when it is the same session (adoptArchivedCopy, keeping the card's tags, notes and feeling) and bumps the archive signal.",
+   "does": "Offers the refreshed session to the card (adoptArchivedCopy: taken only when the card holds the archive's copy, keeping entries made on the card) and bumps the archive signal.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.adoptArchivedCopy(_:)",
@@ -895,7 +910,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "dd1d381f6262b4a9",
-    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.adoptArchivedCopy(_:)": "30c9a8ca43e368fa"
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.adoptArchivedCopy(_:)": "43796119c333b684"
    }
   },
   {

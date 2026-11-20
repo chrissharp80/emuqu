@@ -77,12 +77,12 @@
   },
   {
    "key": "func CollectorSessionControl.pauseOvernightStreaming()",
-   "hash": "9da962993b443db8",
+   "hash": "d98cc54834932ab8",
    "does": "Pause: claims the night's ending (StreamingLifecycle.claimOvernightEnding) before its first suspension and releases it on return, so a second pause (a tap while reconnect exhaustion auto-pauses), a Stop or a Discard returns nil untouched; holds a background-task assertion from BackgroundTaskAssertion.forRecordingStop (\"OvernightPause\") until it returns and marks the persisted recording record stop-requested; ends the arming loop, captures the original session, gathers the night (stream stop, backup, strap download, source choice); analyses and archives it as .paused when there is enough data, else saves a short paused session with the raw beats. Returns the paused session, or nil when the paused night could not be archived.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.claimOvernightEnding()",
-    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.releaseOvernightEnding()",
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.releaseOvernightEnding(_:)",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.forRecordingStop(named:)",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()",
     "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.endDeviceRecordingArming()",
@@ -92,12 +92,12 @@
    ],
    "reads": [
     "mem:StreamingLifecycle.isOvernightStreaming",
-    "mem:StreamingLifecycle.isEndingOvernight",
+    "mem:StreamingLifecycle.overnightEndingClaim",
     "mem:RRCollector.currentSession",
     "ud:UserDefaultsKeys.persistedRecordingState"
    ],
    "writes": [
-    "mem:StreamingLifecycle.isEndingOvernight",
+    "mem:StreamingLifecycle.overnightEndingClaim",
     "ud:UserDefaultsKeys.persistedRecordingState"
    ],
    "branches": [
@@ -121,10 +121,10 @@
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.gatherOvernightData()": "c9507fb0c711b5de",
     "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.endDeviceRecordingArming()": "0dce982272449f6a",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "0f40f13f892158e2",
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseWithFullAnalysis(data:)": "fd658e43b23e66da",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseWithFullAnalysis(data:)": "65805fdc167d7945",
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseWithShortRecording(originalSession:)": "dfa4025bae7d5f4f",
-    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.claimOvernightEnding()": "005f6e11160630ac",
-    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.releaseOvernightEnding()": "426e2f8167fd384d",
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.claimOvernightEnding()": "11d9cea625c618c0",
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.releaseOvernightEnding(_:)": "13e955880d47b9aa",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()": "12e7c44b52c0986c",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.forRecordingStop(named:)": "c3840e6ca84c5e4e",
@@ -133,8 +133,8 @@
   },
   {
    "key": "func CollectorSessionControl.pauseWithFullAnalysis(data:)",
-   "hash": "0fe9f30cc5637383",
-   "does": "Full pause: merges the parent, publishes .analyzing, runs processOvernightData without review (no acceptance state, no pre-archive as .complete), marks the result .paused with pausedDate now, archives it and — only when that write succeeded — swaps the recording marker for the paused one, publishes paused UI state and returns the session. When the archive write fails: backs up the chosen points under a fresh id (rescueDownloadedBeats) unless the source is \"streaming\" (those beats are already in the stream's backup), publishes the unsaved pause (publishUnsavedPause) and returns nil.",
+   "hash": "8e2c0be2eede21c5",
+   "does": "Full pause: merges the parent, publishes .analyzing, runs processOvernightData without review (no acceptance state, no pre-archive as .complete), marks the result .paused with pausedDate now, archives it and — only when that write succeeded — swaps the recording marker for the paused one, publishes paused UI state and returns the session. When the archive write fails: backs up the strap beats the gather downloaded (data.downloadedPoints) under a fresh id (rescueDownloadedBeats), whichever source was chosen, publishes the unsaved pause (publishUnsavedPause) and returns nil.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.mergeParentSessionData(data:)",
@@ -157,7 +157,7 @@
     {
      "at": "+13",
      "cond": "archiveAndPersistPause failed",
-     "effect": "rescue the chosen points when dataSource is not \"streaming\", publishUnsavedPause, return nil"
+     "effect": "rescue the downloaded strap beats (nothing when none were downloaded), publishUnsavedPause, return nil"
     }
    ],
    "deps": {
@@ -422,7 +422,7 @@
    "deps": {
     "Emuqu/Sources/Collection/PolarManager+Streaming.swift::func PolarManager.startStreaming()": "d153b9f71804fe63",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func DeviceProvenance.streaming(from:)": "75333fdfabc78b0c",
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.commitResumedSession(_:)": "0e7a70d3c5dbf792",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.commitResumedSession(_:)": "c25375b94c948477",
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.launchResumeDeviceBackupRecording()": "4d41140cca67c011",
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.linkChildToParent(childId:parentId:)": "7f719ed3cd244b4b",
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.parentSessionType(of:)": "489b73ba45dd183c",
@@ -434,26 +434,31 @@
   },
   {
    "key": "func CollectorSessionControl.commitResumedSession(_:)",
-   "hash": "cb9584328e46905c",
-   "does": "Resets collector state for the resumed child, persists recording state, clears the paused marker, restarts the 1 Hz timer and restarts the diagnostics sampler the pause's gather stopped.",
+   "hash": "7a104b6ec6ad02d8",
+   "does": "Resets collector state for the resumed child, drops any stale ending claim (dropStaleEndingClaim), persists recording state, clears the paused marker, restarts the 1 Hz timer and restarts the diagnostics sampler the pause's gather stopped.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resetStateForResumedSession(_:)",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)",
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.clearPausedSessionState()",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.startOvernightStreamingTimer()",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.startSamplingDuringRecording()"
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.startSamplingDuringRecording()",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.dropStaleEndingClaim()"
    ],
    "reads": [],
    "writes": [
     "ud:PersistedRecordingState",
-    "ud:RRCollector.pausedSessionId"
+    "ud:RRCollector.pausedSessionId",
+    "mem:StreamingLifecycle.overnightEndingClaim"
    ],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)": "819342ac0cbfaaea",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.dropStaleEndingClaim()": "04c5e78b6b088a53",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.startOvernightStreamingTimer()": "533e5580e093a188",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "0f40f13f892158e2",
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.clearPausedSessionState()": "883940648d7804a2",
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resetStateForResumedSession(_:)": "40525fe451f44fee",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
@@ -585,14 +590,15 @@
   },
   {
    "key": "func CollectorSessionControl.finalizeFromPause()",
-   "hash": "f77ca15fa806f164",
-   "does": "Done on a paused session: marks it .complete and re-archives; when that write fails the night stays paused (archive still holds it paused; Resume/Done remain). Otherwise updates the baseline tracker, publishes it; with analysis sets needsAcceptance/awaitingAcceptance and reviewArchivedSessionId, else returns to idle; clears paused state and marker.",
+   "hash": "8466a723fbaab916",
+   "does": "Done on a paused session: marks it .complete and re-archives; when that write fails the night stays paused (archive still holds it paused; Resume/Done remain). Otherwise updates the baseline tracker, publishes it; with analysis sets needsAcceptance/awaitingAcceptance and reviewArchivedSessionId, else returns to idle; records the session's tags, notes and feeling in reviewArchivedEntries; clears paused state and marker.",
    "entry": "Called from RecordView Done (RecordView+Actions.swift:80) and the battery-critical observer (RRCollector+Bindings.swift:205).",
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.rearchiveFinalized(_:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings",
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.clearPausedSessionState()"
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.clearPausedSessionState()",
+    "Emuqu/Sources/Collection/SessionState.swift::init SessionState.ReviewEntries(of:)"
    ],
    "reads": [
     "mem:RRCollector.pausedSession"
@@ -606,7 +612,8 @@
     "mem:RRCollector.isPaused",
     "mem:RRCollector.recordingPhase",
     "mem:RRCollector.pausedSession",
-    "ud:RRCollector.pausedSessionId"
+    "ud:RRCollector.pausedSessionId",
+    "mem:SessionState.reviewArchivedEntries"
    ],
    "branches": [
     {
@@ -625,7 +632,7 @@
      "effect": "reviewArchivedSessionId = id; else nil"
     },
     {
-     "at": "+14",
+     "at": "+15",
      "cond": "needsAcceptance",
      "effect": "phase .awaitingAcceptance; else .idle"
     }
@@ -637,6 +644,7 @@
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.clearPausedSessionState()": "883940648d7804a2",
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.rearchiveFinalized(_:)": "4a028b3608c73f19",
+    "Emuqu/Sources/Collection/SessionState.swift::init SessionState.ReviewEntries(of:)": "6aaab0fdba9aba60",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "1081bb9067e9730e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
