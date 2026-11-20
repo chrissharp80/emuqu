@@ -258,7 +258,8 @@ extension AnthropicProvider {
             case "input_json_delta": partialInput[index, default: ""] += (delta["partial_json"] as? String) ?? ""
             case "citations_delta":
                 guard let citation = delta["citation"] else { return }
-                byIndex[index]?["citations"] = ((byIndex[index]?["citations"] as? [Any]) ?? []) + [citation]
+                let citations = (byIndex[index]?["citations"] as? [Any]) ?? []
+                byIndex[index]?["citations"] = citations + [citation]
             default: break
             }
         }
@@ -275,7 +276,8 @@ extension AnthropicProvider {
 
         private mutating func append(_ value: Any?, to field: String, at index: Int) {
             guard let piece = value as? String else { return }
-            byIndex[index]?[field] = ((byIndex[index]?[field] as? String) ?? "") + piece
+            let sofar = (byIndex[index]?[field] as? String) ?? ""
+            byIndex[index]?[field] = sofar + piece
         }
     }
 }
