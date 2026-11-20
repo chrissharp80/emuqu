@@ -205,10 +205,66 @@ enum DataPurgeService {
         }
     }
 
+    /// Why a purge did not start.
+    enum Refusal: Error, LocalizedError {
+        /// A recording is under way (see `isRecordingInProgress`).
+        case recordingInProgress
+
+        var errorDescription: String? {
+            switch self {
+            case .recordingInProgress:
+                String(localized: "Stop the recording in progress first. A reading, night or workout that keeps recording would save its data again after the delete.", bundle: LanguageManager.appBundle)
+            }
+        }
+    }
+
+    /// Whether a recording is under way: a quick reading, an overnight
+    /// stream (also while it is paused or its stopped night is being
+    /// analysed), a recording on the strap, or a workout (also while it is
+    /// paused or being finalised). A purge while one runs is undone by it:
+    /// the recording still holds its beats in memory and writes them back to
+    /// the emptied backups, and its session is archived when it stops. A
+    /// night waiting for the user to accept it is not recording.
+    static func isRecordingInProgress(collector: RRCollector?, workout: WorkoutRecorder?) -> Bool {
+        if let collector, collectorIsRecording(collector) { return true }
+        if let workout, workoutIsRecording(workout) { return true }
+        return false
+    }
+
+    private static func collectorIsRecording(_ collector: RRCollector) -> Bool {
+        if collector.isCollecting || collector.isOvernightStreaming || collector.isPaused || collector.isRecordingOnDevice {
+            return true
+        }
+        return switch collector.recordingPhase {
+        case .streaming, .overnightStreaming, .deviceRecording, .paused, .analyzing: true
+        case .idle, .awaitingAcceptance: false
+        }
+    }
+
+    /// `.recording` covers a paused workout too: pausing keeps the phase.
+    private static func workoutIsRecording(_ workout: WorkoutRecorder) -> Bool {
+        switch workout.phase {
+        case .recording, .finalizing: true
+        case .idle, .finished, .failed: false
+        }
+    }
+
+    /// The running app's answer: `RRCollector.current` and the app's workout
+    /// recorder.
+    private static var appIsRecording: Bool {
+        isRecordingInProgress(collector: RRCollector.current, workout: AppDependencies.current.app.recorderBox.recorder)
+    }
+
     /// Executes the full purge. Best-effort: each step runs independently and
     /// failures are collected into the report rather than aborting the rest.
     /// Async because the remote CloudKit deletion is awaited (it's serialized
     /// behind any in-flight sync, so it can take a few seconds).
+    ///
+    /// Throws `Refusal.recordingInProgress`, before deleting anything, while
+    /// a recording is under way. `recordingInProgress` answers that: nil
+    /// asks `isRecordingInProgress` about the running collector
+    /// (`RRCollector.current`) and the app's workout recorder
+    /// (`appIsRecording`); tests pass their own answer.
     ///
     /// `deleteRemote` is a test seam: unit tests inject a stub so the suite
     /// never fires a REAL zone deletion against whatever iCloud account the
@@ -229,13 +285,14 @@ enum DataPurgeService {
         cloudSync: CloudKitSyncManager,
         settingsManager: SettingsManager,
         baselineTracker: BaselineTracker? = nil,
+        recordingInProgress: (@MainActor () -> Bool)? = nil,
         deleteRemote: (() async -> Bool)? = nil,
         scope: PurgeScope = .device
-    ) async -> Report {
+    ) async throws(Refusal) -> Report {
+        guard !(recordingInProgress?() ?? appIsRecording) else { throw Refusal.recordingInProgress }
         var errors: [String] = []
         let remoteDeleted = await purgeRemote(cloudSync: cloudSync, deleteRemote: deleteRemote, errors: &errors)
-        let settingsFile = settingsManager.settingsURL
-        let sweptFiles = sweepAndForget(archive: archive, rawBackup: rawBackup, scope: scope, liveSettingsFile: settingsFile, errors: &errors)
+        let sweptFiles = sweepAndForget(archive: archive, rawBackup: rawBackup, scope: scope, liveSettingsFile: settingsManager.settingsURL, errors: &errors)
         let sweptDefaults = sweepAllDefaults(scope: scope, errors: &errors)
         let directories = purgeDirectories(settingsManager: settingsManager, cloudSync: cloudSync, scope: scope, errors: &errors)
         resetBaseline(baselineTracker ?? RRCollector.current?.baselineTracker)
