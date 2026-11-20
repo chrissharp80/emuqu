@@ -206,14 +206,14 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.hydrated(_:)": "6b37419b50eda923",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyze(_:series:method:)": "0166afc0b619c8ca",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyze(_:series:method:)": "890d84055d67df05",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func ReanalysisService.reanalyze(_:series:method:)",
-   "hash": "68d8369e97034cd0",
-   "does": "Analysis pass: derives end date (endDate or start+12h), stored sleep bounds, runs detection+window selection off-main against the scoring baseline, analyses the window (or full session), applies quality gate, re-scores with wake-time training, persists; returns updated session or nil.",
+   "hash": "22e754108bdbd58c",
+   "does": "Analysis pass: derives end date (endDate or start+12h), stored sleep bounds, runs detection+window selection off-main against the scoring baseline, analyses the window (or full session), applies quality gate, re-scores with wake-time training, persists; returns the session as written (the user's entries as the archive held them at the write) or nil.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.analysisBounds(for:sessionEndDate:)",
@@ -240,8 +240,8 @@
     },
     {
      "at": "+21",
-     "cond": "persist succeeded",
-     "effect": "false: return nil (archive write failed, logged in persist); true: return updatedSession"
+     "cond": "persist result",
+     "effect": "nil: return nil (archive write failed, logged in persist); else return the session as written"
     }
    ],
    "deps": {
@@ -249,10 +249,11 @@
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.analysisResult(for:heavy:)": "df18a168457f0a9a",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.applyAnalysis(_:to:)": "3d701511cf3142cf",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.detectAndSelectWindow(series:method:sleepStartMs:wakeTimeMs:baselineStats:)": "bcc5625dac07bc55",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.persist(_:)": "5187cecc910303e6",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.persist(_:)": "4b2309bd638de876",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.rescore(_:analysisResult:original:sessionEndDate:)": "ffd33de1787e64f5",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringBaseline(for:)": "30f174216b2c12e0",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.flags(count:flagged:)": "644bfb993c7bd1d9"
    }
   },
   {
@@ -441,14 +442,14 @@
   },
   {
    "key": "func ReanalysisService.persist(_:)",
-   "hash": "b1cc34499fb163c3",
-   "does": "Archives the session on a detached task; on success invalidates the OrganizedZonesCache entry, feeds the session into BaselineTracker.update, fires onArchiveChanged and schedules onSessionUploaded (CloudKit force re-upload). Returns false on archive failure.",
+   "hash": "bc20a10d37df78e4",
+   "does": "Writes the session on a detached task through writeKeepingUserEntries (the archived copy's tags, notes, feeling, feeling tags and perceived readiness carried onto it under the archive lock); on success invalidates the OrganizedZonesCache entry, feeds the written session into BaselineTracker.update, fires onArchiveChanged, schedules onSessionUploaded (CloudKit force re-upload) with it and returns it. Returns nil on archive failure.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.writeKeepingUserEntries(_:to:)",
     "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.invalidate(_:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)",
-    "closure:settingsProvider — collector.settingsManager.settings (sleepSchedule for BaselineTracker.update, line 444)",
+    "closure:settingsProvider — collector.settingsManager.settings (sleepSchedule for BaselineTracker.update)",
     "closure:onArchiveChanged — set by SessionReanalysisCoordinator.makeReanalysisService (RRCollector+Reanalysis.swift:36) to collector.archiveSignal.notifyChanged()",
     "closure:onSessionUploaded — set by makeReanalysisService (RRCollector+Reanalysis.swift:39) to Task{cloudSync.forceReuploadSession(session)}",
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()",
@@ -456,7 +457,9 @@
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "ext:Task.detached"
    ],
-   "reads": [],
+   "reads": [
+    "archive:SessionArchive (user entries at the write)"
+   ],
    "writes": [
     "archive:SessionArchive.archive",
     "mem:OrganizedZonesCache",
@@ -466,21 +469,66 @@
    ],
    "branches": [
     {
-     "at": "+7",
-     "cond": "archive write throws",
-     "effect": "catch: log the error and return false (no baseline update, no upload); no throw: continue to side effects and return true"
+     "at": "+8",
+     "cond": "the write throws",
+     "effect": "catch: log the error and return nil (no baseline update, no upload); no throw: side effects and return the written session"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "741bb32eafe0edde",
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "dd1d381f6262b4a9",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.rescored(_:result:training:)": "ef680740ce0eda12",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.writeKeepingUserEntries(_:to:)": "c7cb1a219be4ea55",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.forceReuploadSession(_:)": "28d40115a90d94c4",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Views/OrganizedZonesCache.swift::func OrganizedZonesCache.invalidate(_:)": "9df76aee83053c94"
    }
+  },
+  {
+   "key": "func ReanalysisService.writeKeepingUserEntries(_:to:)",
+   "hash": "7ee737f0c35345aa",
+   "does": "Writes a rescored session: when the archive does not hold its id, archives it as it is and returns it; otherwise, inside SessionArchive.update (one read-change-write under the archive lock, requestingReupload false), replaces the stored copy with the rescored one carrying the stored copy's user entries (carryUserEntries) and returns that. Throws what the archive throws.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.carryUserEntries(from:to:)"
+   ],
+   "reads": [
+    "archive:SessionArchive"
+   ],
+   "writes": [
+    "archive:SessionArchive.archive",
+    "notif:.flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "id not in the archive",
+     "effect": "archive the rescored session as it is and return it"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.carryUserEntries(from:to:)": "1052f36237cf33f2",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.rescored(_:result:training:)": "ef680740ce0eda12",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db"
+   }
+  },
+  {
+   "key": "func ReanalysisService.carryUserEntries(from:to:)",
+   "hash": "f2cfc31edf8ce215",
+   "does": "Copies tags, notes, morningFeeling, morningFeelingTags and perceivedReadiness from one session onto another.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
   },
   {
    "key": "func ReanalysisService.applyRecoveryScore(to:analysisResult:frozenTraining:originalSession:)",
@@ -609,7 +657,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.healedTrainingContext(for:result:)": "ef512826bcd9e2fb",
-    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.persistRescore(_:previous:)": "053398f44dac7742",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.persistRescore(_:previous:)": "18935ba578795971",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.rescored(_:result:training:)": "ef680740ce0eda12",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoreFingerprint(of:)": "bca5267ad097d63d",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
@@ -771,11 +819,11 @@
   },
   {
    "key": "func ReanalysisService.persistRescore(_:previous:)",
-   "hash": "7c65f54ec5125007",
-   "does": "Archives the re-scored session, fires onArchiveChanged and a Task calling onSessionUploaded, logs whether score/training load changed (without values); returns the session or nil on archive failure.",
+   "hash": "b2df57fe2e960a6a",
+   "does": "Writes the re-scored session through writeKeepingUserEntries (user entries taken from the archived copy at the write), fires onArchiveChanged and a Task calling onSessionUploaded with the written session, logs whether score/training load changed (without values); returns the written session or nil on archive failure.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.writeKeepingUserEntries(_:to:)",
     "closure:onArchiveChanged — set by SessionReanalysisCoordinator.makeReanalysisService (RRCollector+Reanalysis.swift:36) to collector.archiveSignal.notifyChanged()",
     "closure:onSessionUploaded — set by makeReanalysisService (RRCollector+Reanalysis.swift:39) to Task{cloudSync.forceReuploadSession(session)}",
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()",
@@ -783,7 +831,9 @@
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoreFingerprint(of:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
-   "reads": [],
+   "reads": [
+    "archive:SessionArchive (user entries at the write)"
+   ],
    "writes": [
     "archive:SessionArchive.archive",
     "mem:ArchiveSignal.version",
@@ -791,20 +841,20 @@
    ],
    "branches": [
     {
-     "at": "+11",
+     "at": "+10",
      "cond": "score / training load changed vs previous fingerprint",
      "effect": "only selects 'changed'/'unchanged' text in the log"
     },
     {
-     "at": "+13",
-     "cond": "archive write throws",
+     "at": "+12",
+     "cond": "the write throws",
      "effect": "catch: log and return nil; caller sees no update"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "dd1d381f6262b4a9",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoreFingerprint(of:)": "bca5267ad097d63d",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.writeKeepingUserEntries(_:to:)": "c7cb1a219be4ea55",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.forceReuploadSession(_:)": "28d40115a90d94c4",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
