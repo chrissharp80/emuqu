@@ -293,7 +293,7 @@
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.splitOnCacheMarker(_:)": "c484c39a3bf962e3",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::let ProviderHTTP.streamSession": "755d0d1ab8a8cbe4",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.buildContents(messages:toolRounds:liveStateBlock:)": "f55ee02505c471d4",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)": "e74fe87ea9a72eba",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)": "05bcc359c8556e76",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.makeRequest(url:apiKey:body:)": "a85a659d63cd1b4e",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.streamEndpoint(for:)": "4f76cde6f5eaecff",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.throwForStatus(_:bytes:)": "3fcbabd0a28a7378",
@@ -341,13 +341,46 @@
   },
   {
    "key": "func GeminiProvider.consumeSSE(_:continuation:)",
-   "hash": "53d121ea6bcf8367",
-   "does": "Reads a reply's SSE line sequence (the URL session's lines, or a test's): each non-empty data: payload is parsed by ProviderHTTP.eventObject (a payload that is not a JSON object throws) and handled by handleChunk (which throws on an error object, a blocked prompt or a failing finish reason). After the stream it yields one .usage from the last usageMetadata; then a cancelled task throws CancellationError, so Stop reads as cancellation; then, when no candidate carried a finishReason, the stream was cut and it throws URLError(.networkConnectionLost) (a fallbackable .network via ProviderStream); otherwise it yields .done.",
+   "hash": "f27f93e4bad50252",
+   "does": "Reads a reply's SSE line sequence (the URL session's lines, or a test's) through readChunks, which parses each non-empty data: payload (ProviderHTTP.eventObject; a payload that is not a JSON object throws) and hands it to handleChunk (which throws on an error object, a blocked prompt or a failing finish reason). When reading throws, it yields one .usage from the last usageMetadata seen and rethrows. After the stream it yields one .usage from the last usageMetadata; then a cancelled task throws CancellationError, so Stop reads as cancellation; then, when no candidate carried a finishReason, the stream was cut and it throws URLError(.networkConnectionLost) (a fallbackable .network via ProviderStream); otherwise it yields .done.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.readChunks(_:state:continuation:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.yieldUsage(_:to:)",
+    "ext:Task.checkCancellation"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "readChunks threw (reading, parsing or a chunk)",
+     "effect": "yieldUsage(last usage), rethrow"
+    },
+    {
+     "at": "+12",
+     "cond": "task cancelled when the sequence ended",
+     "effect": "throws CancellationError"
+    },
+    {
+     "at": "+13",
+     "cond": "no candidate carried a finishReason",
+     "effect": "throws URLError(.networkConnectionLost); otherwise yields .done"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.readChunks(_:state:continuation:)": "53c005c6b680d48d",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.yieldUsage(_:to:)": "e1e51f6f8a363a72"
+   }
+  },
+  {
+   "key": "func GeminiProvider.readChunks(_:state:continuation:)",
+   "hash": "eaf725cea837476c",
+   "does": "Reads the line sequence, checking task cancellation per line: each non-empty data: payload is parsed by ProviderHTTP.eventObject and handled by handleChunk with the shared state; other lines are skipped. Throws what reading, parsing or a chunk throws.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.eventObject(_:provider:)",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.handleChunk(_:state:continuation:)",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.yieldUsage(_:to:)",
     "ext:Task.checkCancellation"
    ],
    "reads": [],
@@ -367,28 +400,17 @@
      "at": "+9",
      "cond": "payload empty",
      "effect": "skipped"
-    },
-    {
-     "at": "+14",
-     "cond": "task cancelled when the sequence ended",
-     "effect": "throws CancellationError"
-    },
-    {
-     "at": "+14",
-     "cond": "no candidate carried a finishReason",
-     "effect": "throws URLError(.networkConnectionLost); otherwise yields .done"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.eventObject(_:provider:)": "df8778803c546b39",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.handleChunk(_:state:continuation:)": "492a1d50bcf3cb5c",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.yieldUsage(_:to:)": "e1e51f6f8a363a72"
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.handleChunk(_:state:continuation:)": "533818a482312df2"
    }
   },
   {
    "key": "func GeminiProvider.handleChunk(_:state:continuation:)",
-   "hash": "46f77d444dbb452b",
-   "does": "One parsed chunk: an {\"error\":...} object (ProviderHTTP.streamFailure, the overloaded modelUnavailable for a 5xx code) or a blocked prompt (blockedPrompt) throws; a finish reason that ends the reply as a failure (stopFailure: safety stops, malformed function call) throws before the chunk's parts are shown; otherwise each content part becomes a text delta or a synthesized tool use (yieldPart), a MAX_TOKENS stop logs and yields a '…' text delta, any finish reason marks the reply finished, and the chunk's usageMetadata replaces the held one.",
+   "hash": "ba432b3fae0b69f7",
+   "does": "One parsed chunk: first the chunk's usageMetadata replaces the held one (so a chunk that throws still counts); then an {\"error\":...} object (ProviderHTTP.streamFailure, the overloaded modelUnavailable for a 5xx code) or a blocked prompt (blockedPrompt) throws; a finish reason that ends the reply as a failure (stopFailure: safety stops, malformed function call) throws before the chunk's parts are shown; otherwise each content part becomes a text delta or a synthesized tool use (yieldPart), a MAX_TOKENS stop logs and yields a '…' text delta, and any finish reason marks the reply finished.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.streamFailure(in:provider:)",
@@ -404,33 +426,33 @@
    "branches": [
     {
      "at": "+5",
+     "cond": "chunk has usageMetadata",
+     "effect": "replaces lastUsage; ?? keeps the previous one"
+    },
+    {
+     "at": "+6",
      "cond": "error object or blocked prompt",
      "effect": "throws"
     },
     {
-     "at": "+7",
+     "at": "+8",
      "cond": "finish reason is a failure",
      "effect": "throws stopFailure's error"
     },
     {
-     "at": "+8",
+     "at": "+9",
      "cond": "for each content part",
      "effect": "yieldPart"
     },
     {
-     "at": "+11",
+     "at": "+12",
      "cond": "MAX_TOKENS",
      "effect": "logs and yields '…'"
     },
     {
-     "at": "+15",
+     "at": "+16",
      "cond": "any finish reason",
      "effect": "state.finished = true"
-    },
-    {
-     "at": "+16",
-     "cond": "chunk has usageMetadata",
-     "effect": "replaces lastUsage; ?? keeps the previous one"
     }
    ],
    "deps": {

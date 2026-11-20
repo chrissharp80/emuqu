@@ -20,8 +20,8 @@
  "units": [
   {
    "key": "func AssistantViewModel.updateSummaryWith(droppedTurns:provider:model:contextRendered:)",
-   "hash": "340ef5502c1165ae",
-   "does": "Sends a summarisation prompt for the newly dropped turns (merged with priorSummary) to the turn's provider with summarizerSystem and collects text with a 5 s timeout. If the dispatched task was cancelled meanwhile (Stop, Clear conversation, Delete All My Data) it writes nothing. Otherwise it marks summarizedThroughTurnID = last dropped turn id (even when the summary failed or came back empty, so the next send does not stall on the same turns again) and hands the text to storeSummary. The contextRendered argument is ignored.",
+   "hash": "f44245294222066e",
+   "does": "Sends a summarisation prompt for the newly dropped turns (merged with priorSummary) to the turn's provider with summarizerSystem and collects text with a 5 s timeout. If the dispatched task was cancelled meanwhile (Stop, Clear conversation, Delete All My Data) it writes nothing. If the summary stream failed or timed out (collect returned nil) it logs a warning and writes nothing either, leaving summarizedThroughTurnID where it was so the next send summarises the same turns again. Otherwise it marks summarizedThroughTurnID = last dropped turn id (also when the completed summary is empty) and hands the text to storeSummary. The contextRendered argument is ignored.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.summarizationPrompt(_:)",
@@ -30,6 +30,7 @@
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)",
     "dyn:AIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:) → Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift:91|Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/GrokProvider.swift::func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)|Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::func OpenAIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.storeSummary(_:droppedCount:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "ext:Task.isCancelled"
    ],
    "reads": [
@@ -44,20 +45,26 @@
      "at": "+14",
      "cond": "task cancelled while collecting",
      "effect": "return without touching the marker or the summary (a partial summary of a stopped or wiped conversation is discarded)."
+    },
+    {
+     "at": "+15",
+     "cond": "collect returned nil (summary stream failed or timed out)",
+     "effect": "log warning and return; marker and summary unchanged."
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func AIProvider.send(messages:model:contextRendered:systemPrompt:)": "653a27bc681d0691",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "9a474c3f1ee99094",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.collect(_:timeoutSec:)": "bf1088b06f58af5e",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.storeSummary(_:droppedCount:)": "60faa702082db88f",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.summarizationPrompt(_:)": "19c19ae004938a07"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.storeSummary(_:droppedCount:)": "5fefafc8e6141b55",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.summarizationPrompt(_:)": "19c19ae004938a07",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func AssistantViewModel.storeSummary(_:droppedCount:)",
-   "hash": "a1cf63f33ebbacc6",
-   "does": "Trims the collected summary; when non-empty stores it as priorSummary and persists it to UserDefaults (assistant.priorSummary); when nil or empty logs a warning naming how many dropped turns were left out and keeps the previous summary.",
+   "hash": "8b0bf970c05e7465",
+   "does": "Trims the collected summary of a completed stream; when non-empty stores it as priorSummary and persists it to UserDefaults (assistant.priorSummary); when empty logs a warning naming how many dropped turns were left out and keeps the previous summary.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -71,7 +78,7 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "collected nil or blank",
+     "cond": "trimmed summary blank",
      "effect": "log warning and return; else store and persist."
     }
    ],
@@ -151,8 +158,8 @@
   },
   {
    "key": "func AssistantViewModel.truncateForSend(_:provider:)",
-   "hash": "2e755dff4ad9b6fc",
-   "does": "Filters out localOnly and empty-assistant turns, then walks newest→oldest keeping turns while the estimated token sum (+4 per turn) fits the provider budget (always keeping the newest); returns (kept, dropped-older-prefix).",
+   "hash": "8914411a099c794b",
+   "does": "Filters out localOnly turns, empty assistant turns and incomplete replies (ChatTurn.incomplete), then walks newest→oldest keeping turns while the estimated token sum (+4 per turn) fits the provider budget (always keeping the newest); returns (kept, dropped-older-prefix). Filtered turns appear in neither list.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)",
@@ -321,7 +328,7 @@
   },
   {
    "key": "func AssistantViewModel.collect(_:timeoutSec:)",
-   "hash": "8cb1281ac24d39d7",
+   "hash": "5249867977bf488a",
    "does": "Returns the stream's text drained within timeoutSec (drainRacingTimeout). A provider error or the timeout is caught, logged as a warning with the error description, and returns nil.",
    "entry": null,
    "calls": [

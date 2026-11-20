@@ -43,14 +43,14 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()",
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:)"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:completed:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "fa79c3bca0f486d3",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:)": "56dc41f5a275e3f0",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:completed:)": "5ccb5440e0ec2793",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()": "9ae5cc4573f169ef",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "9b3d0ecd257813a4"
    }
@@ -104,8 +104,8 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 3. Turn Lifecycle > 3.3 `dispatch()` — `AssistantViewModel+Routing.swift`",
-   "hash": "5049019de44c191a",
-   "does": "Claims dispatch() on AssistantTurnRouter routes, re-checks key/consent, reserves a placeholder turn, bumps streamGeneration and starts runDispatchedTurn, which refreshes metrics, assembles context (Apple compactRender, others none; truncateForSend; ToolRetriever targetK 40; trimTools), composes the prompt, runs the stream with error policy (guardrail refusals shown; fallbackable errors go to handleFallbackableFailure, which cuts orderedFallbackProviders to TurnRouter.failureFallback and shows PickedModelFailure when nothing is allowed, or the original error when every fallback fails), drops an empty turn, and if still the current generation sets the 'No answer came back from the AI' error for a dropped turn with no error set that was not stopped (reportEmptyReply, so voice speaks its recovery line), clears the Apple registry and applies CoachVoiceGuard + background fact extraction, then finishStream(generation:) dispatches a queued message. Matches AssistantViewModel+Routing.swift:286-346,670-733.",
+   "hash": "ab58bedb0eedf99e",
+   "does": "Claims dispatch() on AssistantTurnRouter routes, re-checks key/consent, reserves a placeholder turn, bumps streamGeneration and starts runDispatchedTurn, which refreshes metrics, assembles context (Apple compactRender, others none; truncateForSend; ToolRetriever targetK 40; trimTools), composes the prompt, runs the stream with error policy (guardrail refusals shown; fallbackable errors go to handleFallbackableFailure, which cuts orderedFallbackProviders to TurnRouter.failureFallback and shows PickedModelFailure when nothing is allowed, or the original error when every fallback fails; a fallback's answer replaces the failed partial text under the fallback's badge, the partial text comes back when none answers, and a failure that leaves text marks the reply incomplete), drops an empty turn, and if still the current generation sets the 'No answer came back from the AI' error for a dropped turn with no error set that was not stopped (reportEmptyReply, so voice speaks its recovery line), clears the Apple registry and applies CoachVoiceGuard + background fact extraction (only for a reply that completed normally), then finishStream(generation:) dispatches a queued message. Matches AssistantViewModel+Routing.swift (runDispatchedTurn, runStreamWithErrorPolicy, handleFallbackableFailure, applyPostStreamEffects) and AssistantViewModel+Tools.swift (runFallback, settle, handleStreamFailure).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()",
@@ -115,7 +115,7 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.refreshPreFlightMetrics()",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.assembleContextAndTools(provider:model:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runStreamWithErrorPolicy(_:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:completed:)",
     "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.retrieve(query:tools:targetK:catalogHash:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.orderedFallbackProviders(after:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.handleFallbackableFailure(_:attempt:)",
@@ -123,30 +123,36 @@
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.allowedFallbacks(_:under:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.composeSystemPromptForTurn(rendered:voiceMode:toolMode:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dropEmptyAssistantTurn(_:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.finishCurrentTurn(provider:turnID:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.finishCurrentTurn(provider:turnID:completed:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.finishStream(generation:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.reportEmptyReply()"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.reportEmptyReply()",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runFallback(provider:model:outbound:tools:factRegistry:turnID:voiceMode:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.settle(_:after:failedPartial:providerID:modelID:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handleStreamFailure(error:turnID:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.retrieve(query:tools:targetK:catalogHash:)": "32aa0a67a7332b75",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:)": "56dc41f5a275e3f0",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:completed:)": "5ccb5440e0ec2793",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.assembleContextAndTools(provider:model:)": "f70445efa100496a",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.composeSystemPromptForTurn(rendered:voiceMode:toolMode:)": "2bd88afd1be6e1fe",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()": "9ae5cc4573f169ef",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dropEmptyAssistantTurn(_:)": "8a2dced836dac806",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.finishCurrentTurn(provider:turnID:)": "f60a191bae8e8faa",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.handleFallbackableFailure(_:attempt:)": "a5f6164e328e6746",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.finishCurrentTurn(provider:turnID:completed:)": "ab66cd13a6e72abf",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.handleFallbackableFailure(_:attempt:)": "318e8bbb9f53741d",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.refreshPreFlightMetrics()": "593d387d4ee295ff",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.reportEmptyReply()": "f5f0666dbcb4eb7f",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.reserveAssistantPlaceholderTurn(provider:model:tier:)": "caf49cc95b47c101",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.routeTurnAndLogOverride()": "11927a0e1a2f8438",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runDispatchedTurn(provider:model:voiceMode:turnID:generation:)": "e49b3622301bf0ac",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runStreamWithErrorPolicy(_:)": "4717b77a611a1b22",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runDispatchedTurn(provider:model:voiceMode:turnID:generation:)": "08052b6f3b81ab52",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runStreamWithErrorPolicy(_:)": "5782a6471a18e91d",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.finishStream(generation:)": "b8ac2a61fe69d99a",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handleStreamFailure(error:turnID:)": "1752a15105b1d89f",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.orderedFallbackProviders(after:)": "a52875ed68367c9d",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runFallback(provider:model:outbound:tools:factRegistry:turnID:voiceMode:)": "6ede6bd02eba5633",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.settle(_:after:failedPartial:providerID:modelID:)": "74b2074aed20c5ee",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.allowedFallbacks(_:under:)": "106ac48cad33a9e9",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "0c985becfe5c2b42"
    }
@@ -513,8 +519,8 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.recordTier3UsageAndCheck()": "547bcb9efd8f00ad",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.handleFallbackableFailure(_:attempt:)": "a5f6164e328e6746",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runStreamWithErrorPolicy(_:)": "4717b77a611a1b22",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.handleFallbackableFailure(_:attempt:)": "318e8bbb9f53741d",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runStreamWithErrorPolicy(_:)": "5782a6471a18e91d",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.orderedFallbackProviders(after:)": "a52875ed68367c9d",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.allowedFallbacks(_:under:)": "106ac48cad33a9e9",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "0c985becfe5c2b42",
@@ -678,8 +684,8 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 12. Conversation Persistence and Truncation > 12.1 `ChatTurn` — `Emuqu/Sources/Assistant/Providers/AIProvider.swift`",
-   "hash": "8c44fc92a5a8c49d",
-   "does": "Claims ChatTurn fields including subsystem and localOnly, with local-only turns never leaving the device.",
+   "hash": "8884000e98dfcc5b",
+   "does": "Claims ChatTurn fields including subsystem, localOnly and incomplete, with local-only turns never leaving the device, an incomplete reply (stream failed after text was shown) noted in the bubble and never sent as history, and both flags decoding as false when absent.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)",
@@ -688,19 +694,23 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.summarizationPrompt(_:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.appendExchange(user:assistant:localOnly:)"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.appendExchange(user:assistant:localOnly:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handleStreamFailure(error:turnID:)",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.incompleteNote"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(from:)": "be756343ac5264cf",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(from:)": "09537b2fccd19a28",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "9a474c3f1ee99094",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AssistantSubsystem.displayName": "a361fa85aecbe7b2",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.summarizationPrompt(_:)": "19c19ae004938a07",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)": "6e267e4281afc6e6",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)": "570e4d9e26321981",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handleStreamFailure(error:turnID:)": "1752a15105b1d89f",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.appendExchange(user:assistant:localOnly:)": "11daa6b6ede428a3",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)": "02d73fe5c6d8e8a9"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)": "02d73fe5c6d8e8a9",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.incompleteNote": "bde29a8ebaa79511"
    }
   },
   {
@@ -728,8 +738,8 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 12. Conversation Persistence and Truncation > 12.3 Truncation — `Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.",
-   "hash": "fcaadd37f6a0af27",
-   "does": "Claims token budgets Apple 1200, DeepSeek 60000, others 80000, chars/4 estimate, truncateForSend drops oldest and keeps newest, and updateSummaryWith asks for ≤ 120 words with a 5 s timeout. Matches AssistantViewModel+Context.swift:98-151, :30, :75.",
+   "hash": "f5f7abba232aa57e",
+   "does": "Claims token budgets Apple 1200, DeepSeek 60000, others 80000, chars/4 estimate, truncateForSend drops oldest, keeps newest and withholds local-only, empty assistant and incomplete turns, and updateSummaryWith asks for ≤ 120 words with a 5 s timeout and, when the summary failed or timed out, stores nothing and leaves summarizedThroughTurnID in place. Matches AssistantViewModel+Context.swift (conversationTokenBudget, truncateForSend, updateSummaryWith).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)",
@@ -745,8 +755,8 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)": "e3b46c70fc101f71",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)": "6e267e4281afc6e6",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.updateSummaryWith(droppedTurns:provider:model:contextRendered:)": "64cbb4b678594599"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.truncateForSend(_:provider:)": "570e4d9e26321981",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.updateSummaryWith(droppedTurns:provider:model:contextRendered:)": "51214a0678d1ddc5"
    }
   },
   {

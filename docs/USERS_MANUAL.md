@@ -740,7 +740,7 @@ The assistant maintains a persistent list of facts about you that get injected i
 
 - Add manually: **Settings → Flo → What the AI Remembers** → type a fact (e.g., "I'm prepping for a marathon", "I have a stress fracture", "Always answer concisely"). Tap +.
 - Add from chat: long-press any message → **Remember this**.
-- Auto-add: toggle **Auto-remember things** in Settings. After every response the assistant runs a tiny background extraction pass and adds any new facts it identifies. Free on Apple, ~fraction of a cent on connected models. Off by default.
+- Auto-add: toggle **Auto-remember things** in Settings. After every response that completes the assistant runs a tiny background extraction pass and adds any new facts it identifies. Free on Apple, ~fraction of a cent on connected models. Off by default.
 - Remove: swipe a fact in Settings, or **Forget everything** to wipe.
 
 Stored on this device only — never sent anywhere except the AI provider you're chatting with at the time.

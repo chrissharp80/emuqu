@@ -235,8 +235,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func View.reportMailUnavailableAlert(isPresented:)": "8ded708bdcfe557a",
-    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.bubble": "c3535655922b26b6",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::func View.reportMailUnavailableAlert(isPresented:)": "0f48d25c92bd1b66",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.bubble": "7aabb5b307ea3b80",
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.bubbleMenu": "8d44be83030cae71",
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.spokenText": "0a37aa2b2782c515",
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var SmartProviderRouter.Tier.label": "25c976ab0009d2dd"
@@ -401,12 +401,13 @@
   },
   {
    "key": "var ChatBubble.bubble",
-   "hash": "bb2c7bd7ed925ef7",
-   "does": "VStack of subsystem header, text bubble, provider footer; trailing-aligned for user, leading for assistant.",
+   "hash": "ee82ada79f1b5852",
+   "does": "VStack of subsystem header, text bubble, incomplete-reply note, provider footer; trailing-aligned for user, leading for assistant.",
    "entry": "SwiftUI view body evaluation",
    "calls": [
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.assistantSubsystemHeader",
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.bubbleText",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.incompleteNote",
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.providerFooter"
    ],
    "reads": [],
@@ -421,7 +422,29 @@
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.assistantSubsystemHeader": "19020f00bd4256e8",
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.bubbleText": "712bc4a3592784e3",
+    "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.incompleteNote": "bde29a8ebaa79511",
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var ChatBubble.providerFooter": "90c8e90e08aa6a4a"
+   }
+  },
+  {
+   "key": "var ChatBubble.incompleteNote",
+   "hash": "f0a37ba5af92b96a",
+   "does": "For an assistant turn marked incomplete, a caption2 secondary Label 'Incomplete reply' (localized) with the exclamationmark.circle symbol under the bubble text; nothing otherwise.",
+   "entry": "SwiftUI view body evaluation",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "assistant turn AND turn.incomplete",
+     "effect": "note shown; else nothing"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {

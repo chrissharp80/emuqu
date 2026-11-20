@@ -324,6 +324,10 @@ final class GeminiProvider: AIProvider, Sendable {
     /// `ProviderStream`). A cancelled task whose sequence ended cleanly
     /// throws `CancellationError` first, so Stop reads as cancellation.
     ///
+    /// Usage is recorded on a failure too, from the last `usageMetadata` seen
+    /// (the chunk that threw included), so tokens billed for a reply that
+    /// never completed are not lost from the telemetry.
+    ///
     /// Only `data:` lines are read; comments, blank lines and `event:` lines
     /// are skipped. Takes the line sequence rather than the URL session's
     /// bytes so tests can feed it a reply.
@@ -332,6 +336,26 @@ final class GeminiProvider: AIProvider, Sendable {
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) async throws where Lines.Element == String {
         var state = StreamState()
+        do {
+            try await readChunks(lines, state: &state, continuation: continuation)
+        } catch {
+            yieldUsage(state.lastUsage, to: continuation)
+            throw error
+        }
+        yieldUsage(state.lastUsage, to: continuation)
+        try Task.checkCancellation()
+        guard state.finished else { throw URLError(.networkConnectionLost) }
+        continuation.yield(.done)
+    }
+
+    /// Each non-empty `data:` line, parsed and handed to `handleChunk`;
+    /// every other line is skipped. Throws what reading, parsing or a chunk
+    /// throws.
+    private static func readChunks<Lines: AsyncSequence>(
+        _ lines: Lines,
+        state: inout StreamState,
+        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+    ) async throws where Lines.Element == String {
         for try await line in lines {
             try Task.checkCancellation()
             guard line.hasPrefix("data:") else { continue }
@@ -340,10 +364,6 @@ final class GeminiProvider: AIProvider, Sendable {
             let json = try ProviderHTTP.eventObject(Data(payload.utf8), provider: .gemini)
             try handleChunk(json, state: &state, continuation: continuation)
         }
-        yieldUsage(state.lastUsage, to: continuation)
-        try Task.checkCancellation()
-        guard state.finished else { throw URLError(.networkConnectionLost) }
-        continuation.yield(.done)
     }
 
     /// One chunk: an error object or a blocked prompt throws; a finish
@@ -361,6 +381,7 @@ final class GeminiProvider: AIProvider, Sendable {
         state: inout StreamState,
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) throws {
+        state.lastUsage = json["usageMetadata"] as? [String: Any] ?? state.lastUsage
         if let failure = ProviderHTTP.streamFailure(in: json, provider: .gemini) ?? blockedPrompt(in: json) { throw failure }
         let reason = finishReason(in: json)
         if let reason, let failure = stopFailure(reason) { throw failure }
@@ -372,7 +393,6 @@ final class GeminiProvider: AIProvider, Sendable {
             continuation.yield(.textDelta("…"))
         }
         if reason != nil { state.finished = true }
-        state.lastUsage = json["usageMetadata"] as? [String: Any] ?? state.lastUsage
     }
 
     /// `candidates[0].finishReason`, or nil while the reply is still coming.

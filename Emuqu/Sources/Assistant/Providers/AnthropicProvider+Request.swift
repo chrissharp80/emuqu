@@ -131,6 +131,11 @@ extension AnthropicProvider {
     /// sequence ended cleanly throws `CancellationError` first, so Stop
     /// reads as cancellation.
     ///
+    /// A reply that fails after `message_start` still records the usage that
+    /// event carried, so tokens billed for a reply that never completed are
+    /// not lost from the telemetry: `flushUsage` runs on every exit, and
+    /// records nothing again once `message_delta` or `message_stop` has.
+    ///
     /// Only `data:` payloads are parsed; comment lines (`:` keep-alives) are
     /// skipped. Takes the line sequence rather than the URL session's bytes
     /// so tests can feed it a reply.
@@ -140,6 +145,7 @@ extension AnthropicProvider {
     ) async throws where Lines.Element == String {
         var lastEventName: String?
         var state = StreamState()
+        defer { flushUsage(&state, final: nil, to: continuation) }
         for try await line in lines {
             try Task.checkCancellation()
             if line.isEmpty {

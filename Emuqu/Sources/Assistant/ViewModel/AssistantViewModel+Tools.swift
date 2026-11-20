@@ -495,43 +495,94 @@ extension AssistantToolRunner {
 
     /// Resolve the live turn position by id so a
     /// failure removal can't delete the wrong (shifted) turn.
+    ///
+    /// An empty assistant turn is removed. One that kept text is marked
+    /// incomplete (`ChatTurn.incomplete`): the bubble says so, and history
+    /// assembly leaves it out of the next request.
     func handleStreamFailure(error: Error, turnID: UUID) async {
         owner.errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-        if let index = owner.liveTurnIndex(for: turnID),
-           owner.turns[index].role == .assistant, owner.turns[index].text.isEmpty {
-            owner.turns.remove(at: index)
+        if let index = owner.liveTurnIndex(for: turnID), owner.turns[index].role == .assistant {
+            if owner.turns[index].text.isEmpty {
+                owner.turns.remove(at: index)
+            } else {
+                owner.turns[index].incomplete = true
+            }
         }
         owner.store.save(owner.turns)
     }
 
-    /// Rewrite the assistant turn's provider/model
-    /// badge after a fallback answers from a different
-    /// provider than the one originally selected. Without this, the
-    /// chat bubble shows "Apple Intelligence" even when Claude
-    /// actually produced the response. The visible badge must match
-    /// the visible text.
-    /// Resolve the live turn position by id so the
-    /// badge rewrite lands on the turn we actually filled, not a shifted
-    /// neighbor.
-    func rewriteAssistantTurnProvider(
-        turnID: UUID,
-        providerID: ProviderID,
-        modelID: String
+    /// How a fallback attempt ended. `tryFallbacks` moves on only past
+    /// `.failed`, so a chain ends with the first other ending, or with
+    /// `.failed` when every fallback failed.
+    enum FallbackEnding {
+        /// The fallback finished and left text in the turn.
+        case answered
+        /// The user stopped it.
+        case stopped
+        /// Its safety stop ended the chain; the refusal is shown.
+        case blocked
+        /// It failed; the next fallback may answer.
+        case failed
+    }
+
+    /// Before a fallback re-runs the turn, take the failed provider's partial
+    /// reply out of the bubble and return it, so the fallback's answer
+    /// replaces it instead of following it. The speakable cursor goes back to
+    /// the start with the text. Voice cannot unsay what it has already spoken,
+    /// but it follows the cursor back, drops any unspoken tail of the
+    /// fragment, and speaks the fallback's answer from its first sentence.
+    /// Nil when the turn is gone. Does not save.
+    private func setAsidePartialText(turnID: UUID) -> String? {
+        guard let index = owner.liveTurnIndex(for: turnID) else { return nil }
+        let partial = owner.turns[index].text
+        owner.turns[index].text = ""
+        owner.speakableTextCursor[turnID] = 0
+        return partial
+    }
+
+    /// Settle the live turn once a fallback has run (`settle`), then save.
+    /// Does nothing when the turn is gone.
+    private func settleFallback(
+        _ ending: FallbackEnding,
+        failedPartial: String?,
+        provider: AIProvider,
+        model: ModelOption,
+        turnID: UUID
     ) {
-        guard let index = owner.liveTurnIndex(for: turnID) else { return }
-        owner.turns[index].providerID = providerID
-        owner.turns[index].modelID = modelID
+        guard let failedPartial, let index = owner.liveTurnIndex(for: turnID) else { return }
+        Self.settle(&owner.turns[index], after: ending, failedPartial: failedPartial, providerID: provider.id, modelID: model.apiID)
         owner.store.save(owner.turns)
     }
 
-    /// Before a fallback re-runs the turn, cut the failed
-    /// provider's partial reply back to what voice has already spoken (the
-    /// speakable cursor; nothing when the cursor was never advanced), so the
-    /// new answer does not read as the old fragment followed by a fresh reply.
-    private func discardUnspokenPartialText(turnID: UUID) {
-        guard let index = owner.liveTurnIndex(for: turnID) else { return }
-        let spoken = owner.speakableTextCursor[turnID] ?? 0
-        owner.turns[index].text = String(owner.turns[index].text.prefix(spoken))
+    /// The reserved turn once a fallback has run. The failed provider's
+    /// partial reply (`failedPartial`) was taken out of it first, so the
+    /// bubble shows one answer under the badge of the provider that wrote it.
+    ///
+    /// - `.answered`: the fallback's answer stays and the badge is re-stamped
+    ///   to the fallback. Without that the bubble would show "Apple
+    ///   Intelligence" over text Claude wrote.
+    /// - `.stopped`: the same when the fallback had shown text; otherwise the
+    ///   partial reply comes back.
+    /// - `.blocked`, `.failed`: the fallback's own partial text goes and the
+    ///   partial reply comes back, under the badge it had.
+    static func settle(
+        _ turn: inout ChatTurn,
+        after ending: FallbackEnding,
+        failedPartial: String,
+        providerID: ProviderID,
+        modelID: String
+    ) {
+        let fallbackTextStands = switch ending {
+        case .answered: true
+        case .stopped: !AssistantViewModel.isEmptyAssistantTurn(turn)
+        case .blocked, .failed: false
+        }
+        if fallbackTextStands {
+            turn.providerID = providerID
+            turn.modelID = modelID
+        } else {
+            turn.text = failedPartial
+        }
     }
 
     /// A provider's default model, or its first if none is flagged default.
@@ -571,11 +622,11 @@ extension AssistantToolRunner {
         return result
     }
 
-    /// Walk the fallback chain. Returns true on the
-    /// first success. Cancellation aborts the chain (treated as
-    /// success — user intent is "stop"). Each fallback's error is
-    /// logged but NOT surfaced to the user; only the original
-    /// caller's error gets surfaced if every fallback also fails.
+    /// Walk the fallback chain. Returns the first ending other than
+    /// `.failed`: an answer, the user's Stop (which aborts the chain), or a
+    /// fallback's safety stop, already shown. Each fallback's error is logged
+    /// but NOT surfaced to the user; `.failed` means every fallback failed,
+    /// and the caller then shows the original error.
     func tryFallbacks(
         _ chain: [(AIProvider, ModelOption)],
         outbound: [ChatTurn],
@@ -583,32 +634,29 @@ extension AssistantToolRunner {
         factRegistry: FactResolverRegistry?,
         turnID: UUID,
         voiceMode: Bool
-    ) async -> Bool {
+    ) async -> FallbackEnding {
         for (provider, model) in chain {
-            let handled = await runFallback(
+            let ending = await runFallback(
                 provider: provider, model: model, outbound: outbound, tools: tools,
                 factRegistry: factRegistry, turnID: turnID, voiceMode: voiceMode
             )
-            if handled { return true }
+            if ending != .failed { return ending }
         }
-        return false
+        return .failed
     }
 
-    /// One link of the chain. True when it answered (or the user cancelled).
+    /// One link of the chain.
     ///
-    /// On success, re-stamp the bubble's provider/model badge to
-    /// reflect the actual answering provider rather than the one originally
-    /// selected. The badge is what the user reads in the chat transcript ("•
-    /// Apple Intelligence"); it MUST match where the visible text came from.
-    /// On failure the fallback's own partial text is cut back to what voice
-    /// already spoke, so a failed fallback never leaves its text under the
-    /// primary provider's badge. A fallback's safety stop (`.blockedReply`)
-    /// ends the chain and is shown, as the primary's would be, rather than
-    /// sending the request on to the next vendor.
-    ///
-    /// Each fallback gets the history re-cut to ITS budget
-    /// (`fallbackOutbound`), not the primary's: an Apple primary's 1,200-token
-    /// window would otherwise starve a cloud fallback.
+    /// The failed provider's partial reply is taken out of the bubble before
+    /// the fallback runs (`setAsidePartialText`), so the fallback's answer
+    /// replaces it instead of being appended to it, and it is put back when
+    /// the fallback leaves nothing in its place (`settle`). On success the
+    /// bubble's provider/model badge is re-stamped to the fallback: the badge
+    /// is what the user reads in the chat transcript ("• Apple
+    /// Intelligence"), and it MUST match where the visible text came from.
+    /// A failed fallback never leaves its own partial text behind, and one
+    /// that finishes with no text has not answered
+    /// (`endingOfFinishedFallback`).
     private func runFallback(
         provider: AIProvider,
         model: ModelOption,
@@ -617,42 +665,89 @@ extension AssistantToolRunner {
         factRegistry: FactResolverRegistry?,
         turnID: UUID,
         voiceMode: Bool
-    ) async -> Bool {
-        let supportsTools = !tools.isEmpty && provider.id != .apple
-        let prompt = await fallbackSystemPrompt(provider: provider, supportsTools: supportsTools, voiceMode: voiceMode)
+    ) async -> FallbackEnding {
+        let failedPartial = setAsidePartialText(turnID: turnID)
         do {
-            debugLog("[Assistant] fallback → \(provider.id.rawValue):\(model.apiID)")
-            discardUnspokenPartialText(turnID: turnID)
-            try await runToolUseLoop(
-                provider: provider, model: model,
-                outbound: fallbackOutbound(for: provider, turnID: turnID, primaryOutbound: outbound), systemPrompt: prompt,
-                tools: supportsTools ? tools : [],
-                factRegistry: supportsTools ? factRegistry : nil, turnID: turnID
+            try await runFallbackLoop(
+                provider: provider, model: model, outbound: outbound, tools: tools,
+                factRegistry: factRegistry, turnID: turnID, voiceMode: voiceMode
             )
-            rewriteAssistantTurnProvider(turnID: turnID, providerID: provider.id, modelID: model.apiID)
-            return true
+            let ending = endingOfFinishedFallback(provider: provider, turnID: turnID)
+            settleFallback(ending, failedPartial: failedPartial, provider: provider, model: model, turnID: turnID)
+            return ending
         } catch is CancellationError {
-            return true // user-cancelled — treat as resolved
+            settleFallback(.stopped, failedPartial: failedPartial, provider: provider, model: model, turnID: turnID)
+            return .stopped
         } catch {
-            return await endFailedFallback(error, provider: provider, turnID: turnID)
+            let ending = Self.ending(ofFailedFallback: error)
+            settleFallback(ending, failedPartial: failedPartial, provider: provider, model: model, turnID: turnID)
+            return await endFailedFallback(error, ending: ending, provider: provider, turnID: turnID)
         }
     }
 
-    /// A fallback that threw. Its partial text is cut back to what voice
-    /// already spoke either way. A safety stop (`.blockedReply`) ends the
-    /// chain as the primary's would: it is shown through
-    /// `handleStreamFailure` and true is returned, so the request is never
-    /// sent on to the next vendor. Any other failure is logged and returns
-    /// false, which moves on to the next fallback.
-    private func endFailedFallback(_ error: Error, provider: AIProvider, turnID: UUID) async -> Bool {
-        discardUnspokenPartialText(turnID: turnID)
-        guard let blocked = error as? AIProviderError, blocked.isBlockedReply else {
+    /// The fallback's own run: its system prompt, then the tool loop, which
+    /// streams its answer into the reserved turn.
+    ///
+    /// Each fallback gets the history re-cut to ITS budget
+    /// (`fallbackOutbound`), not the primary's: an Apple primary's 1,200-token
+    /// window would otherwise starve a cloud fallback.
+    private func runFallbackLoop(
+        provider: AIProvider,
+        model: ModelOption,
+        outbound: [ChatTurn],
+        tools: [ToolSpec],
+        factRegistry: FactResolverRegistry?,
+        turnID: UUID,
+        voiceMode: Bool
+    ) async throws {
+        let supportsTools = !tools.isEmpty && provider.id != .apple
+        let prompt = await fallbackSystemPrompt(provider: provider, supportsTools: supportsTools, voiceMode: voiceMode)
+        debugLog("[Assistant] fallback → \(provider.id.rawValue):\(model.apiID)")
+        try await runToolUseLoop(
+            provider: provider, model: model,
+            outbound: fallbackOutbound(for: provider, turnID: turnID, primaryOutbound: outbound), systemPrompt: prompt,
+            tools: supportsTools ? tools : [],
+            factRegistry: supportsTools ? factRegistry : nil, turnID: turnID
+        )
+    }
+
+    /// `.answered` for a fallback whose tool loop finished, or `.failed` when
+    /// it left the reserved turn empty: an empty reply is no answer, so the
+    /// next fallback may give one and, if none does, the primary's error is
+    /// shown over its partial reply.
+    private func endingOfFinishedFallback(provider: AIProvider, turnID: UUID) -> FallbackEnding {
+        guard let index = owner.liveTurnIndex(for: turnID),
+              AssistantViewModel.isEmptyAssistantTurn(owner.turns[index]) else { return .answered }
+        debugLog("[Assistant] fallback \(provider.id.rawValue) came back empty")
+        return .failed
+    }
+
+    /// `.blocked` for a safety stop (`AIProviderError.isBlockedReply`),
+    /// `.failed` for any other error a fallback threw.
+    private static func ending(ofFailedFallback error: Error) -> FallbackEnding {
+        guard let providerError = error as? AIProviderError, providerError.isBlockedReply else { return .failed }
+        return .blocked
+    }
+
+    /// A fallback that threw (`ending` is `.blocked` or `.failed`), once its
+    /// own partial text has gone and the failed provider's partial reply is
+    /// back. A safety stop ends the chain as the primary's would: it is shown
+    /// through `handleStreamFailure`, which marks that partial reply
+    /// incomplete, so the request is never sent on to the next vendor. Any
+    /// other failure is logged, and `.failed` moves on to the next fallback.
+    private func endFailedFallback(
+        _ error: Error,
+        ending: FallbackEnding,
+        provider: AIProvider,
+        turnID: UUID
+    ) async -> FallbackEnding {
+        guard ending == .blocked else {
             debugLog("[Assistant] fallback \(provider.id.rawValue) also failed: \(error.localizedDescription)")
-            return false
+            return .failed
         }
-        debugLog("[Assistant] fallback \(provider.id.rawValue) ended the chain: \(blocked.localizedDescription)")
-        await handleStreamFailure(error: blocked, turnID: turnID)
-        return true
+        debugLog("[Assistant] fallback \(provider.id.rawValue) ended the chain: \(error.localizedDescription)")
+        await handleStreamFailure(error: error, turnID: turnID)
+        return .blocked
     }
 
     /// The history before the reserved turn, truncated to `provider`'s own

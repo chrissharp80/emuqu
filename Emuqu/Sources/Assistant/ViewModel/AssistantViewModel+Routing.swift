@@ -295,7 +295,7 @@ extension AssistantTurnRouter {
         let systemPrompt = await composeSystemPromptForTurn(
             rendered: assembled.rendered, voiceMode: voiceMode, toolMode: !assembled.tools.isEmpty
         )
-        await runStreamWithErrorPolicy(StreamAttempt(
+        let completed = await runStreamWithErrorPolicy(StreamAttempt(
             provider: provider, model: model, outbound: assembled.outbound,
             systemPrompt: systemPrompt, tools: assembled.tools,
             factRegistry: assembled.factRegistry, turnID: turnID, voiceMode: voiceMode
@@ -303,7 +303,7 @@ extension AssistantTurnRouter {
         let droppedEmptyTurn = dropEmptyAssistantTurn(turnID)
         if owner.streamGeneration == generation {
             if droppedEmptyTurn { reportEmptyReply() }
-            finishCurrentTurn(provider: provider, turnID: turnID)
+            finishCurrentTurn(provider: provider, turnID: turnID, completed: completed)
         }
         await owner.tools.finishStream(generation: generation)
     }
@@ -325,10 +325,11 @@ extension AssistantTurnRouter {
 
     /// The end of a turn that is still the current generation: release the
     /// Apple dispatcher's registry after an Apple turn, then the post-stream
-    /// effects.
-    private func finishCurrentTurn(provider: AIProvider, turnID: UUID) {
+    /// effects. `completed` is whether the reply completed normally
+    /// (`runStreamWithErrorPolicy`).
+    private func finishCurrentTurn(provider: AIProvider, turnID: UUID, completed: Bool) {
         if provider.id == .apple { AppDependencies.current.providers.appleToolDispatcher.setRegistry(nil) }
-        applyPostStreamEffects(turnID: turnID)
+        applyPostStreamEffects(turnID: turnID, completed: completed)
     }
 
     /// Removes the reserved assistant turn when the round ended with no text
@@ -672,21 +673,28 @@ extension AssistantTurnRouter {
     /// provider, through `handleFallbackableFailure`, as far as the routing
     /// mode allows; `AIProviderError.isFallbackable` is false for a refusal,
     /// so it cannot take that path either.
-    func runStreamWithErrorPolicy(_ attempt: StreamAttempt) async {
+    ///
+    /// Returns true when the reply completed normally: the tool loop
+    /// finished, or a fallback answered in its place. A stopped, refused or
+    /// failed turn returns false.
+    func runStreamWithErrorPolicy(_ attempt: StreamAttempt) async -> Bool {
         do {
             try await owner.tools.runToolUseLoop(
                 provider: attempt.provider, model: attempt.model, outbound: attempt.outbound,
                 systemPrompt: attempt.systemPrompt, tools: attempt.tools,
                 factRegistry: attempt.factRegistry, turnID: attempt.turnID
             )
+            return true
         } catch is CancellationError {
             // swallow-ok: cancellation is the expected outcome of the user tapping
             // stop; the partial response is kept and the streaming flag is dropped
             // by the caller.
+            return false
         } catch let error as AIProviderError where error.isFallbackable {
-            await handleFallbackableFailure(error, attempt: attempt)
+            return await handleFallbackableFailure(error, attempt: attempt)
         } catch {
             await owner.tools.handleStreamFailure(error: error, turnID: attempt.turnID)
+            return false
         }
     }
 
@@ -713,7 +721,9 @@ extension AssistantTurnRouter {
     /// with a cloud model selected or in Manual (every turn goes to the
     /// pick, and the error says so), Apple only in Quick, any accepted
     /// model in Auto and Deep.
-    private func handleFallbackableFailure(_ error: AIProviderError, attempt: StreamAttempt) async {
+    ///
+    /// Returns true only when a fallback answered the turn.
+    private func handleFallbackableFailure(_ error: AIProviderError, attempt: StreamAttempt) async -> Bool {
         let chain = TurnRouter.allowedFallbacks(
             owner.tools.orderedFallbackProviders(after: attempt.provider),
             under: TurnRouter.failureFallback(
@@ -725,14 +735,15 @@ extension AssistantTurnRouter {
         guard !chain.isEmpty else {
             let failure = PickedModelFailure(providerID: attempt.provider.id, underlying: error)
             await owner.tools.handleStreamFailure(error: failure, turnID: attempt.turnID)
-            return
+            return false
         }
-        let succeeded = await owner.tools.tryFallbacks(
+        let ending = await owner.tools.tryFallbacks(
             chain, outbound: attempt.outbound,
             tools: attempt.tools, factRegistry: attempt.factRegistry,
             turnID: attempt.turnID, voiceMode: attempt.voiceMode
         )
-        if !succeeded { await owner.tools.handleStreamFailure(error: error, turnID: attempt.turnID) }
+        if ending == .failed { await owner.tools.handleStreamFailure(error: error, turnID: attempt.turnID) }
+        return ending == .answered
     }
 
     /// Post-stream effects stage of `dispatch()`:
@@ -742,12 +753,14 @@ extension AssistantTurnRouter {
     /// Only ever invoked for the current stream generation (the caller
     /// `runDispatchedTurn` checks the generation before finishing the stream), so
     /// auto-fact-extraction never re-sends content for a cancelled /
-    /// superseded turn.
-    func applyPostStreamEffects(turnID: UUID) {
+    /// superseded turn. Extraction also needs `completed`, a reply that
+    /// completed normally: a stopped, refused or failed reply is not read for
+    /// facts.
+    func applyPostStreamEffects(turnID: UUID, completed: Bool) {
         guard let assistantIndex = liveTurnIndex(for: turnID),
               !owner.turns[assistantIndex].text.isEmpty else { return }
         scrubForCoachVoice(at: assistantIndex)
-        extractFactsInBackground(from: assistantIndex)
+        extractFactsInBackground(from: assistantIndex, completed: completed)
     }
 
     /// FDA copy perimeter: scrub the assistant's accumulated reply
@@ -794,14 +807,29 @@ extension AssistantTurnRouter {
 
     /// Optional: run cross-session memory extraction in the background
     /// after the visible response completes.
-    private func extractFactsInBackground(from assistantIndex: Int) {
-        guard owner.factsStore.autoExtractEnabled, assistantIndex >= 1 else { return }
-        let userTurn = owner.turns[assistantIndex - 1]
-        guard userTurn.role == .user else { return }
-        let assistantText = owner.turns[assistantIndex].text
+    private func extractFactsInBackground(from assistantIndex: Int, completed: Bool) {
+        guard owner.factsStore.autoExtractEnabled,
+              let exchange = Self.factExtractionExchange(in: owner.turns, at: assistantIndex, completed: completed)
+        else { return }
         Task.detached(priority: .background) {
-            await self.owner.runAutoFactExtraction(userText: userTurn.text, assistantText: assistantText)
+            await self.owner.runAutoFactExtraction(userText: exchange.userText, assistantText: exchange.assistantText)
         }
+    }
+
+    /// The exchange fact extraction reads: the user message and the reply at
+    /// `assistantIndex`. Nil unless the reply completed normally and is not
+    /// marked incomplete, and the turn before it is the user's message, so a
+    /// failed or partial reply is never mined for facts.
+    static func factExtractionExchange(
+        in turns: [ChatTurn],
+        at assistantIndex: Int,
+        completed: Bool
+    ) -> (userText: String, assistantText: String)? {
+        guard completed, assistantIndex >= 1, assistantIndex < turns.count,
+              !turns[assistantIndex].incomplete else { return nil }
+        let userTurn = turns[assistantIndex - 1]
+        guard userTurn.role == .user else { return nil }
+        return (userTurn.text, turns[assistantIndex].text)
     }
 
     func snapshotUserFacts() async -> String {
