@@ -13,8 +13,14 @@ extension AssistantViewModel {
     /// the actual user message is sent so the next response benefits.
     /// Bounded — never blocks more than ~5 seconds; on failure we keep going
     /// without a summary update. Better to lose a bit of context than block
-    /// the user's actual question, so a failed or empty summary still marks
-    /// the dropped turns as handled: the next send does not stall on them again.
+    /// the user's actual question.
+    ///
+    /// Only a summary whose stream completed normally is used. One that failed
+    /// or timed out (`collect` returns nil) stores nothing and leaves
+    /// `summarizedThroughTurnID` where it was, so the next send folds the same
+    /// dropped turns in again rather than losing them for good. A completed
+    /// but empty summary still marks them handled: the model saw them and
+    /// had nothing to keep, and the next send does not stall on them again.
     ///
     /// A cancelled turn (Stop, Clear conversation, Delete All My Data) writes
     /// nothing: its collected text can be a partial summary of a conversation
@@ -34,14 +40,18 @@ extension AssistantViewModel {
         // Bound at 5 seconds — summarization is best-effort.
         let collected = await Self.collect(stream, timeoutSec: 5)
         guard !Task.isCancelled else { return }
+        guard let collected else {
+            debugLog("[Assistant] summary update failed — \(droppedTurns.count) dropped turns will be summarised on the next send", level: .warning)
+            return
+        }
         summarizedThroughTurnID = droppedTurns.last?.id
         storeSummary(collected, droppedCount: droppedTurns.count)
     }
 
-    /// Persist a non-empty summary as the new `priorSummary`; an empty or
-    /// failed one is logged and leaves the previous summary in place.
-    private func storeSummary(_ collected: String?, droppedCount: Int) {
-        let trimmed = collected?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    /// Persist a non-empty summary as the new `priorSummary`; an empty one is
+    /// logged and leaves the previous summary in place.
+    private func storeSummary(_ collected: String, droppedCount: Int) {
+        let trimmed = collected.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             debugLog("[Assistant] summary update produced no text — \(droppedCount) dropped turns left out of the summary", level: .warning)
             return
@@ -128,14 +138,19 @@ extension AssistantViewModel {
     /// are never reported as `dropped` — `dropped` feeds summarisation, which
     /// is a second outbound path. See `ChatTurn.localOnly`. Empty assistant
     /// turns (a stopped or blocked reply) are withheld too: Anthropic and
-    /// Gemini reject an empty assistant message.
+    /// Gemini reject an empty assistant message. So are incomplete replies
+    /// (`ChatTurn.incomplete`, a stream that failed partway): sending one
+    /// would tell the model it gave that fragment as its answer. The user
+    /// message before it then sits next to the following one; every provider
+    /// accepts that (Anthropic merges consecutive user turns), as it already
+    /// does around a withheld empty reply.
     static func truncateForSend(
         _ turns: [ChatTurn],
         provider: ProviderID
     ) -> (kept: [ChatTurn], dropped: [ChatTurn]) {
         let budget = conversationTokenBudget(for: provider)
 
-        let turns = turns.filter { !$0.localOnly && !isEmptyAssistantTurn($0) }
+        let turns = turns.filter { !$0.localOnly && !isEmptyAssistantTurn($0) && !$0.incomplete }
         guard !turns.isEmpty else { return ([], []) }
 
         // Walk from newest to oldest, accumulating tokens. Stop when we'd exceed.
@@ -237,7 +252,9 @@ extension AssistantViewModel {
     /// Drain a stream's text deltas, giving up after `timeoutSec`. Nil on any
     /// failure (provider error or timeout), which is logged — summarisation
     /// and extraction are best-effort and never surface an error to the user.
-    private static func collect(
+    /// The text of a stream that failed partway is never returned, so neither
+    /// caller can act on a partial reply.
+    static func collect(
         _ stream: AsyncThrowingStream<AIStreamEvent, Error>,
         timeoutSec: UInt64
     ) async -> String? {

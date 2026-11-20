@@ -340,15 +340,25 @@ extension ArchiveMigrations {
         // (releasing the lock between phases lets the main thread sneak in)
         let quarantined = quarantineFiles(quarantineWork)
         guard !quarantined.isEmpty else { return }
+        let moves = quarantineWork.compactMap { work in
+            quarantined[work.0].map { QuarantineMove(id: work.0, quarantined: $0, original: work.1) }
+        }
         // Phase 3: update archive.index + tombstones under lock
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
         do {
-            try retireQuarantined(quarantined)
+            try retireQuarantined(Set(quarantined.keys))
         } catch {
             debugLog("[Archive] ⚠️ Failed to save the indexes after quarantining duplicates — moving the files back: \(error)", level: .warning)
-            restoreFromQuarantine(quarantineWork.filter { quarantined.contains($0.0) })
+            restoreFromQuarantine(moves)
         }
+    }
+
+    /// One retired file: where quarantine put it and where the index expects it.
+    private struct QuarantineMove {
+        let id: UUID
+        let quarantined: URL
+        let original: URL
     }
 
     /// Phase 3, caller holds the lock: drop the quarantined ids from the
@@ -380,12 +390,26 @@ extension ArchiveMigrations {
     }
 
     /// Move quarantined files back to where the (restored) index expects them.
-    private func restoreFromQuarantine(_ work: [(UUID, URL)]) {
-        let quarantineDir = archive.archiveDirectory.appendingPathComponent("QuarantinedDuplicates", isDirectory: true)
-        for (_, fileURL) in work {
+    /// Caller holds the lock. A file that will not move back stays retired:
+    /// its entry leaves the index again and it keeps its tombstone. The two
+    /// saves are tried apart, the index regardless of the tombstones, since
+    /// an index naming a file in quarantine fails every read of it. Without
+    /// its tombstone a retired duplicate can come back from iCloud, which
+    /// costs a duplicate, not a lost night. Whatever does not save stays in
+    /// memory for the next save to write, and is logged as an error.
+    private func restoreFromQuarantine(_ moves: [QuarantineMove]) {
+        let stranded = Set(moves.filter { move in
             attempt("Archive.dedupe.restoreFromQuarantine") {
-                try archive.fileManager.moveItem(at: quarantineDir.appendingPathComponent(fileURL.lastPathComponent), to: fileURL)
-            }
+                try archive.fileManager.moveItem(at: move.quarantined, to: move.original)
+            } == nil
+        }.map(\.id))
+        guard !stranded.isEmpty else { return }
+        archive.index.removeAll { stranded.contains($0.sessionId) }
+        archive.deletedSessionIds.formUnion(stranded)
+        stranded.forEach(ArchiveStore.recordDeletionTime)
+        attempt("Archive.dedupe.retireStrandedTombstones") { try archive.saveDeletedIndex() }
+        if attempt("Archive.dedupe.retireStrandedIndex", { try archive.saveIndex() }) == nil {
+            debugLog("[Archive] ⚠️ index still names \(stranded.count) quarantined file(s) on disk until the next save", level: .error)
         }
     }
 
@@ -414,41 +438,53 @@ extension ArchiveMigrations {
         }
     }
 
-    /// Move each duplicate's file into QuarantinedDuplicates/, returning the
-    /// ids that made it. A file that can't be moved keeps its archive.index entry —
-    /// better a visible duplicate than an archive.index pointing at nothing.
-    private func quarantineFiles(_ work: [(UUID, URL)]) -> Set<UUID> {
-        let quarantineDir = archive.archiveDirectory.appendingPathComponent("QuarantinedDuplicates", isDirectory: true)
+    /// Move each duplicate's file into QuarantinedDuplicates/, returning where
+    /// each one that made it now is. A file that can't be moved keeps its
+    /// archive.index entry — better a visible duplicate than an archive.index
+    /// pointing at nothing.
+    private func quarantineFiles(_ work: [(UUID, URL)]) -> [UUID: URL] {
+        let quarantineDir = archive.store.quarantineDirectory
         prepareQuarantineDirectory(at: quarantineDir)
-        var quarantined: Set<UUID> = []
-        for (id, fileURL) in work where moveToQuarantine(fileURL, id: id, dir: quarantineDir) {
-            quarantined.insert(id)
+        var quarantined: [UUID: URL] = [:]
+        for (id, fileURL) in work {
+            quarantined[id] = moveToQuarantine(fileURL, id: id, dir: quarantineDir)
         }
         return quarantined
     }
 
-    /// An existing file at the destination is replaced — it's a duplicate of a
-    /// duplicate, and keeping it would block the move. A missing source means
-    /// another dedupe run (launch housekeeping and a CloudKit pull can
-    /// overlap) already moved it: the copy in quarantine IS that file, so it
-    /// is left alone rather than deleted.
-    private func moveToQuarantine(_ fileURL: URL, id: UUID, dir: URL) -> Bool {
-        let destination = dir.appendingPathComponent(fileURL.lastPathComponent)
+    /// The quarantined file's new location, or nil when it was not moved. A
+    /// file already at the destination (an earlier run quarantined the same
+    /// session) is kept, and this one takes a name of its own, so nothing in
+    /// quarantine is deleted. A missing source means another dedupe run
+    /// (launch housekeeping and a CloudKit pull can overlap) already moved
+    /// it: the copy in quarantine IS that file, so it is left alone.
+    private func moveToQuarantine(_ fileURL: URL, id: UUID, dir: URL) -> URL? {
         guard archive.fileManager.fileExists(atPath: fileURL.path) else {
             debugLog("[Archive] dedupe: \(id.uuidString.prefix(8)) already moved by another run — skipped")
-            return false
+            return nil
         }
+        let destination = Self.unusedQuarantineURL(for: fileURL, in: dir, fileManager: archive.fileManager)
         do {
-            if archive.fileManager.fileExists(atPath: destination.path) {
-                try archive.fileManager.removeItem(at: destination)
-            }
             try archive.fileManager.moveItem(at: fileURL, to: destination)
             debugLog("[Archive] dedupe: quarantined duplicate \(id.uuidString.prefix(8)) → QuarantinedDuplicates/")
-            return true
+            return destination
         } catch {
             debugLog("[Archive] ⚠️ Failed to quarantine duplicate session file \(id.uuidString.prefix(8)): \(error)")
-            return false
+            return nil
         }
+    }
+
+    /// `<name>.json` in `dir`, or `<name>.<ms>.json`, raised past any name
+    /// taken, when a file of that name is already there.
+    static func unusedQuarantineURL(for fileURL: URL, in dir: URL, fileManager: FileManager) -> URL {
+        let plain = dir.appendingPathComponent(fileURL.lastPathComponent)
+        guard fileManager.fileExists(atPath: plain.path) else { return plain }
+        let base = fileURL.deletingPathExtension().lastPathComponent
+        var stamp = Int64((Date().timeIntervalSince1970 * 1000).rounded(.down))
+        while fileManager.fileExists(atPath: dir.appendingPathComponent("\(base).\(stamp).\(fileURL.pathExtension)").path) {
+            stamp += 1
+        }
+        return dir.appendingPathComponent("\(base).\(stamp).\(fileURL.pathExtension)")
     }
 
     /// Ids participating in any link relationship among the given entries —
@@ -578,8 +614,8 @@ extension ArchiveMigrations {
 
     To restore a session:
     1. Move its .json file back into the parent archive folder.
-    2. Remove its UUID (the filename) from deleted.json in the parent
-       folder — the tombstone otherwise blocks re-adoption.
+    2. Remove its UUID (the start of the filename) from deleted.json in
+       the parent folder — the tombstone otherwise blocks re-adoption.
     3. Relaunch the app; the orphan-file reconciler re-indexes it.
 
     Files here are never read by the app and may be deleted manually

@@ -34,6 +34,11 @@ Environment variables:
 ./scripts/run_tests_with_coverage.sh
 ```
 
+A run that fails with a simulator-infrastructure marker in the log (a busy
+host, an accessibility snapshot timeout, a missing `xctrunner`) is retried
+once, but only when every failed test failed with such a marker. Any other
+test failure fails the run at once.
+
 ### `check_coverage.sh`
 
 Checks app line coverage from an `.xcresult` bundle and fails if below threshold.
@@ -113,7 +118,9 @@ because it tests them as executed rather than as annotated. First run
 
 Unit suite only — the UI suite runs the app in a separate process where TSan
 would have to be injected into the runner too, at prohibitive cost for a
-per-PR gate. Slow enough to be its own CI job; not in `make ci`.
+per-PR gate. Slow enough to be its own CI job; `make ci` runs it after the
+static gates. A run in which no test case executed fails: zero races from
+zero tests is not a result.
 
 ### `remove_swift_file.py`
 

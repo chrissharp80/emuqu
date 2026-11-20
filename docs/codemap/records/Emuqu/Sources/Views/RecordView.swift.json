@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/RecordView.swift",
- "hash": "79bd3f3570bbfbe9",
+ "hash": "509de06eafce0100",
  "role": "The Record tab's root SwiftUI view: owns all Record-tab @State, lays out the section stack, presents tag picker / pre-score prompt / morning and quick results covers, routes errors and overnight auto-acceptance, and hosts the interrupted-workout strap-recovery card.",
  "types": [
   "RecordView: struct (View) — Record tab root; observes DeviceStatus/StreamingLifecycle/SessionState/MorningCoordination/SettingsManager from the environment",
@@ -9,7 +9,7 @@
  ],
  "state": [
   "@State selectedTags: Set<ReadingTag> (view-local, lost when view is recreated)",
-  "@State showingTagPicker, sessionNotes, showingError (private), morningPresentation, quickPresentation, pendingMorningPresentation, fetchFailed, isRetrying, showingDiscardConfirm, isDiscarding, sleepEditSaveFailed, quickDiscardFailed",
+  "@State showingTagPicker, sessionNotes, showingError (private), morningPresentation, quickPresentation, pendingMorningPresentation, fetchFailed, isRetrying, showingDiscardConfirm, isDiscarding, sleepEditSaveFailed, quickDiscardFailed, tagSaveFailureMessage (String?: why a tag/note edit on an archived reading was not stored)",
   "@State selectedSessionType: SessionType? = .overnight",
   "@State cachedRecentSessions: [HRVSession]",
   "@State isRecoveringWorkout, workoutRecoverMessage (private), interruptedWorkoutId: UUID?",
@@ -104,15 +104,17 @@
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.routeOvernightAcceptance(_:)": "c752bd806cbc23f9",
     "Emuqu/Sources/Views/RecordView.swift::var RecordView.errorAlertActions": "e1d305f60a8057e8",
     "Emuqu/Sources/Views/RecordView.swift::var RecordView.errorAlertMessage": "4ad6626348d4fb91",
-    "Emuqu/Sources/Views/RecordView.swift::var RecordView.recordSurface": "a76721b65c3ca0cb"
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.recordSurface": "b43df4341c27e2b1"
    }
   },
   {
    "key": "var RecordView.recordSurface",
-   "hash": "0b4ba14d55ed8128",
-   "does": "Wraps recordScroll with navigation title 'Record', background, the tag-picker sheet (showingTagPicker), and three fullScreenCovers keyed on pendingMorningPresentation (pre-score prompt), morningPresentation (morning results) and quickPresentation (quick results).",
+   "hash": "e42934873e5ad92e",
+   "does": "Wraps recordScroll in the tag-save failure alert (shown only while no results cover is up), then the navigation title 'Record', background, the tag-picker sheet (showingTagPicker), and three fullScreenCovers keyed on pendingMorningPresentation (pre-score prompt), morningPresentation (morning results) and quickPresentation (quick results).",
    "entry": "SwiftUI view composition from body.",
    "calls": [
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.withTagSaveFailureAlert(_:shown:)",
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.isResultsCoverPresented",
     "Emuqu/Sources/Views/RecordView.swift::var RecordView.recordScroll",
     "Emuqu/Sources/Views/RecordView.swift::var RecordView.tagPickerSheet",
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.preScoreCover(_:)",
@@ -124,13 +126,30 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.morningCover(_:)": "294fcc406edd9198",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickCover(_:)": "b42aaa0d984fb527",
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.withTagSaveFailureAlert(_:shown:)": "52cf0eb3686ad21e",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.morningCover(_:)": "2f285faadb281b0d",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickCover(_:)": "dfa763d941448c1d",
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.preScoreCover(_:)": "e42d4ab6c12e1334",
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.isResultsCoverPresented": "b4e5216d9c464f32",
     "Emuqu/Sources/Views/RecordView.swift::var RecordView.recordScroll": "d87abb2ed5a490d1",
     "Emuqu/Sources/Views/RecordView.swift::var RecordView.tagPickerSheet": "e91475bb5a1865e5",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
    }
+  },
+  {
+   "key": "var RecordView.isResultsCoverPresented",
+   "hash": "aaecdc4b802d99ec",
+   "does": "True while any results cover is presented: the pre-score prompt, the morning results or the quick results.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:RecordView.pendingMorningPresentation",
+    "mem:RecordView.morningPresentation",
+    "mem:RecordView.quickPresentation"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {}
   },
   {
    "key": "var RecordView.recordScroll",
@@ -177,7 +196,7 @@
    "deps": {
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.acceptanceSectionIfNeeded": "b42e8ba5fb27d1a1",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.activeSessionSection": "1b25a41646d4bcb8",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.connectionSection": "80c4b41c294d267b",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.connectionSection": "8d32930536b7ea2d",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.liveDataSection": "88328c81fb89efcf",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.morningProcessingSection": "a1c38c74ef9ef627",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.morningResultsPreviewSection": "f22e8672ffe339a5",
@@ -288,7 +307,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "2d1dbd705fabf7be"
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "10513f633fc5c63f"
    }
   },
   {
@@ -360,7 +379,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Views/RecordView.swift::func RecordView.autoAcceptOvernight()": "788751aefe610ef4"
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.autoAcceptOvernight()": "2e847620886ee304"
    }
   },
   {
@@ -549,39 +568,70 @@
   },
   {
    "key": "func RecordView.autoAcceptOvernight()",
-   "hash": "3bce71559df9ac71",
-   "does": "Task: if a current session exists, re-scores the latest archived version with the pre-session tags/notes added (scoreLatestVersion, exports metrics); then on main clears acceptance state in the collector and empties selectedTags and sessionNotes.",
+   "hash": "002b3da21bb4de32",
+   "does": "Task: if a current session exists, re-scores the latest archived version with the pre-session tags/notes added (scoreLatestVersion, exports metrics), which reports whether that re-archive was stored (true when there is no session); then on main finishAutoAccept leaves review, raises the tag-save failure alert when the picked tags/notes were not stored, and clears the pre-night selection either way.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.scoreLatestVersion(of:)",
-    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.clearAcceptanceState()",
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.finishAutoAccept(tagsStored:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "mem:SessionState.currentSession"
    ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "sessionState.currentSession != nil",
+     "effect": "true: tagsStored = await scoreLatestVersion; false: log 'currentSession is nil — skipping', tagsStored = true"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.finishAutoAccept(tagsStored:)": "11cf4135ddd4a6f7",
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.scoreLatestVersion(of:)": "c017a7c63e3f76be"
+   }
+  },
+  {
+   "key": "func RecordView.finishAutoAccept(tagsStored:)",
+   "hash": "1f07a9973f5c7ee9",
+   "does": "Clears acceptance state in the collector; when the re-archive carrying the pre-night selection was not stored and the user had picked tags or notes, logs a warning and sets tagSaveFailureMessage (\"The tags and notes you picked for this reading couldn't be saved. Add them again from History.\"). Then always empties selectedTags and sessionNotes, so the selection never carries over onto another night.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.clearAcceptanceState()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:RecordView.selectedTags",
+    "mem:RecordView.sessionNotes"
+   ],
    "writes": [
     "mem:SessionState.currentSession",
     "mem:SessionState.needsAcceptance",
-    "mem:RRCollector.recordingPhase"
+    "mem:RRCollector.recordingPhase",
+    "mem:RecordView.selectedTags",
+    "mem:RecordView.sessionNotes",
+    "mem:RecordView.tagSaveFailureMessage (re-archive not stored)"
    ],
    "branches": [
     {
-     "at": "+3",
-     "cond": "sessionState.currentSession != nil",
-     "effect": "true: await scoreLatestVersion; false: log 'currentSession is nil — skipping' and still clear acceptance state"
+     "at": "+2",
+     "cond": "!tagsStored && (selectedTags or sessionNotes non-empty)",
+     "effect": "log a warning and raise the tag-save failure alert; the selection is cleared either way"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.clearAcceptanceState()": "8db7372d1ebc39be",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Views/RecordView.swift::func RecordView.scoreLatestVersion(of:)": "0f112193ac5da9a8"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func RecordView.scoreLatestVersion(of:)",
-   "hash": "df6bb16857d99b8e",
-   "does": "Fetches the archived copy of the session off-main (falls back to the in-memory one if retrieval fails), adds the pre-session tags/notes (preSessionTagged), and recomputes/re-archives its composite recovery score with HealthKit export enabled, so the tags reach the archive with the score.",
+   "hash": "334b442309d77d3d",
+   "does": "Fetches the archived copy of the session off-main (falls back to the in-memory one if retrieval fails), adds the pre-session tags/notes (preSessionTagged), and recomputes/re-archives its composite recovery score with HealthKit export enabled, so the tags reach the archive with the score; returns whether that re-archive was stored.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)",
@@ -616,7 +666,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.updateCompositeRecoveryScore(for:exportMetrics:)": "1e223db4bb2fa1ab",
+    "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.updateCompositeRecoveryScore(for:exportMetrics:)": "dd39f1872b579f6e",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.retrieveFullSessionAsync(_:)": "151db517594e3b0d",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "693154c272cdc222",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",

@@ -8,7 +8,8 @@ PROJECT="${PROJECT:-Emuqu.xcodeproj}"
 RESULT_BUNDLE="${RESULT_BUNDLE:-build/TestResults.xcresult}"
 MIN_COVERAGE="${MIN_COVERAGE:-}"
 
-# TEST_SCOPE=unit runs only `EmuquTests` and gates on the LOGIC floor alone.
+# TEST_SCOPE=unit runs only `EmuquTests` and gates on the Views floor alone;
+# the OVERALL and LOGIC floors are reported but not enforced (see `unit` below).
 #
 # Cost. The two targets are wildly asymmetric: the unit target runs
 # in ~25 SECONDS, the UI target in ~37 MINUTES, and macOS Actions minutes bill at
@@ -20,8 +21,9 @@ MIN_COVERAGE="${MIN_COVERAGE:-}"
 # its own header: "Raising LOGIC is the meaningful goal. Raising OVERALL
 # materially requires snapshot tests for the view layer." The LOGIC floor is the
 # number that reflects test discipline, and the unit target is what moves it.
-# The UI target still runs — on a schedule and before a release — where it
-# guards the OVERALL floor and the flows a unit test cannot reach.
+# The UI target still runs at scope `full` — on demand and before every
+# release, through testflight.yml — where it guards the OVERALL and LOGIC
+# floors and the flows a unit test cannot reach. Nothing runs it on a schedule.
 TEST_SCOPE="${TEST_SCOPE:-full}"
 case "$TEST_SCOPE" in
     unit)
@@ -177,9 +179,10 @@ echo "Running tests on destination: $DESTINATION (max $MAX_TEST_WORKERS parallel
 # simulator.
 #
 # The guard is deliberately narrow. The log is grepped for exact infrastructure
-# strings, and a genuine failure is deterministic — it fails again on the retry
-# and the status is returned unchanged, so it can never be retried into a pass.
-# Two attempts, then give up honestly.
+# strings, and a run with any test failure those strings do not explain is not
+# retried at all: a retry is a second chance for the whole suite, and a test
+# that fails intermittently for a real reason would take it and pass. Two
+# attempts, then give up honestly.
 # Type-checker time limits, applied to THIS build only.
 #
 # Without these, the frontend's hard limit is the only thing that catches a
@@ -245,6 +248,36 @@ run_tests() {
     return "${PIPESTATUS[0]}"
 }
 
+# The simulator-infrastructure markers. Each is described where the retry
+# decision is made, below.
+INFRA_MARKERS='Application failed preflight checks|Failed to get matching snapshots|process main thread busy|Unknown application display identifier'
+
+# Prints each failed test case in the log whose failure the infrastructure
+# markers do not explain, one per line; prints nothing when every failure is
+# explained.
+#
+# A failed test case is explained only when XCTest recorded at least one issue
+# against it (`<file>:<line>: error: <test> : <message>`) and every such issue
+# carries a marker. One assertion message without a marker makes it a real
+# failure. So does a failed test with no recorded issue at all (a crash or a
+# timeout), and so does a failure line in a format whose test name does not
+# appear in the issue lines: anything this cannot attribute counts against the
+# retry, never for it.
+unexplained_failures() {
+    local log="$1" test_case issues
+    # `|| true`: no failed test case is a normal outcome (the runner never
+    # launched), and under pipefail grep's status 1 would end the caller.
+    { grep -oE "Test [Cc]ase '[^']+' failed" "$log" || true; } \
+        | sed -E "s/^Test [Cc]ase '(.+)' failed$/\1/" \
+        | sort -u \
+        | while IFS= read -r test_case; do
+            issues="$(grep -F -- "error: ${test_case} :" "$log" || true)"
+            if [[ -z "$issues" ]] || grep -qvE "$INFRA_MARKERS" <<< "$issues"; then
+                printf '%s\n' "$test_case"
+            fi
+        done
+}
+
 TEST_LOG="$(gate_mktemp xcodebuild-tests)" || exit $?
 trap 'rm -f "$TEST_LOG"' EXIT
 
@@ -260,7 +293,7 @@ while :; do
         break
     fi
 
-    failed_tests="$(grep -c "' failed" "$TEST_LOG" || true)"
+    failed_tests="$(grep -cE "Test [Cc]ase '[^']+' failed" "$TEST_LOG" || true)"
     # Three distinct simulator-infrastructure failures, none of them product
     # faults — each reproduces with the whole suite green and the offending
     # test passing on its own immediately afterwards:
@@ -275,21 +308,32 @@ while :; do
     #      the build products are current but the device no longer has the app,
     #      and the reinstall loses the race with the launch. Also device state,
     #      also not a product fault.
-    launch_flake="$(grep -cE 'Application failed preflight checks|Failed to get matching snapshots|process main thread busy|Unknown application display identifier' "$TEST_LOG" || true)"
+    launch_flake="$(grep -cE "$INFRA_MARKERS" "$TEST_LOG" || true)"
 
-    # The retry is NOT gated on `failed_tests == 0`. When the runner cannot
-    # launch, or an accessibility snapshot times out mid-test, XCTest
-    # *attributes* the failure to whichever test is in flight — so the marker
-    # appears alongside a non-zero failure count, and a zero-failures condition
-    # skips the retry exactly when it is needed.
+    # When the runner cannot launch, or an accessibility snapshot times out
+    # mid-test, XCTest *attributes* the failure to whichever test is in flight,
+    # so a marker usually comes with one or more failed tests. A count of zero
+    # failures cannot be the condition: it would skip the retry exactly when it
+    # is needed.
     #
-    # Retrying on the marker alone cannot mask a real regression: a genuine
-    # failure is deterministic and fails again on the retry, at which point
-    # `test_status` is returned unchanged. What the retry can do is absorb a
-    # busy host, which is the only thing these two markers ever mean.
-    if (( attempt < max_attempts )) && (( launch_flake > 0 )); then
+    # The condition is that every failed test failed BECAUSE of a marker
+    # (`unexplained_failures` above). "A genuine failure fails again on the
+    # retry" holds only for a deterministic one; a test that fails one run in
+    # five for a real reason would pass the second attempt and turn the run
+    # green. So when any failure is not the infrastructure's, the run is red
+    # now, and the retry is left for the runs it exists for: a busy host and
+    # nothing else.
+    genuine="$(unexplained_failures "$TEST_LOG")"
+    if (( attempt < max_attempts )) && (( launch_flake > 0 )) && [[ -n "$genuine" ]]; then
         echo ""
-        echo "Simulator infrastructure failure detected (${failed_tests} test(s) blamed)."
+        echo "Simulator infrastructure failure detected, but not retrying: these"
+        echo "test(s) failed for a reason the infrastructure markers do not explain:"
+        while IFS= read -r test_case; do
+            echo "  ${test_case}"
+        done <<< "$genuine"
+    elif (( attempt < max_attempts )) && (( launch_flake > 0 )); then
+        echo ""
+        echo "Simulator infrastructure failure detected (${failed_tests} test(s) blamed, each by a marker)."
         echo "That is contention, not a regression — retrying (attempt $((attempt + 1))/$max_attempts)."
         xcrun simctl shutdown all >/dev/null 2>&1 || true
         sleep 10

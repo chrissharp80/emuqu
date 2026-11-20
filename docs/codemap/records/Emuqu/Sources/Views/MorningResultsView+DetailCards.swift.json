@@ -12,8 +12,8 @@
  "units": [
   {
    "key": "func MorningDetailCards.recoveryScoreCard(breakdownMessage:)",
-   "hash": "8a004b10a576a708",
-   "does": "Hero card: clamps vm.compositeRecoveryScore to finite 0–100, colours by AppTheme.recoveryColor, stacks caption+ⓘ, ring, breakdown message, strap-sync indicator, date/quality subtitle and split-night section.",
+   "hash": "d24ea5268487d279",
+   "does": "Hero card: clamps vm.compositeRecoveryScore to finite 0–100, colours by AppTheme.recoveryColor, stacks caption+ⓘ, ring, breakdown message, date/quality subtitle and split-night section.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.compositeRecoveryScore",
@@ -21,7 +21,6 @@
     "Emuqu/Sources/Views/Theme.swift::func AppTheme.recoveryColor(_:)",
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.scoreCaption",
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::func MorningDetailCards.scoreRing(score:color:)",
-    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.strapSyncIndicator",
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.dateAndQualitySubtitle",
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.splitNightSection"
    ],
@@ -35,7 +34,6 @@
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.dateAndQualitySubtitle": "ddaf28a8fe4d1642",
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.scoreCaption": "5f63112b91df8d7a",
     "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.splitNightSection": "e79212b6d476146a",
-    "Emuqu/Sources/Views/MorningResultsView+DetailCards.swift::var MorningDetailCards.strapSyncIndicator": "fb8f936811c244b2",
     "Emuqu/Sources/Views/Theme.swift::func AppTheme.recoveryColor(_:)": "c4db2acf4b41fffe",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
@@ -100,31 +98,6 @@
     "Emuqu/Sources/Models/ScoreVerdict.swift::init ScoreVerdict(score:)": "44c36cfa15477f52",
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.localizedWord": "cf23a785bbffc060",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
-   }
-  },
-  {
-   "key": "var MorningDetailCards.strapSyncIndicator",
-   "hash": "d7364478a5539c4b",
-   "does": "Shows 'Syncing strap data' with spinner while morningCoordination.isDeviceFetchInProgress; does not gate the score.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [
-    "mem:MorningCoordination.isDeviceFetchInProgress"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "morningCoordination.isDeviceFetchInProgress",
-     "effect": "true → indicator; false → nothing"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isDeviceFetchInProgress": "a2d1375216d6d970",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
   {

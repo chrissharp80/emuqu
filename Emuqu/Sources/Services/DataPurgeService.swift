@@ -55,6 +55,9 @@ enum DataPurgeService {
         let conversationsCleared: Bool
         let userFactsCleared: Bool
         let disclaimerReset: Bool
+        /// The settings file read back after the reset holds the fresh-install
+        /// profile (age, body weight, heart-rate markers, FTP, sleep schedule).
+        let profileReset: Bool
         let assistantDisclaimerReset: Bool
         let debugLogCleared: Bool
         let crashLogsCleared: Bool
@@ -113,6 +116,7 @@ enum DataPurgeService {
                 Self.step(String(localized: "AI provider keys", bundle: b), keychainCleared, removed),
                 Self.step(String(localized: "AI conversation history", bundle: b), conversationsCleared, cleared),
                 Self.step(String(localized: "AI memory facts", bundle: b), userFactsCleared, cleared),
+                Self.step(String(localized: "Profile", bundle: b), profileReset, reset),
                 Self.step(String(localized: "Disclaimer acceptance", bundle: b), disclaimerReset, reset),
                 Self.step(String(localized: "AI assistant disclaimer", bundle: b), assistantDisclaimerReset, reset),
                 Self.step(String(localized: "Debug log", bundle: b), debugLogCleared, cleared),
@@ -201,41 +205,109 @@ enum DataPurgeService {
         }
     }
 
+    /// Why a purge did not start.
+    enum Refusal: Error, LocalizedError {
+        /// A recording is under way, or a reading is waiting to be accepted
+        /// (see `isRecordingInProgress`).
+        case recordingInProgress
+
+        var errorDescription: String? {
+            switch self {
+            case .recordingInProgress:
+                String(localized: "Stop the recording in progress, or accept or discard the reading that is waiting for review, first. Otherwise its data would be saved again after the delete.", bundle: LanguageManager.appBundle)
+            }
+        }
+    }
+
+    /// Whether a recording is under way: a quick reading, an overnight
+    /// stream (also while it is paused or its stopped night is being
+    /// analysed), a recording on the strap, or a workout (also while it is
+    /// paused or being finalised). A purge while one runs is undone by it:
+    /// the recording still holds its beats in memory and writes them back to
+    /// the emptied backups, and its session is archived when it stops. A
+    /// reading waiting for the user to accept or discard it counts too:
+    /// accepting it after the purge would archive the pre-purge session.
+    static func isRecordingInProgress(collector: RRCollector?, workout: WorkoutRecorder?) -> Bool {
+        if let collector, collectorIsRecording(collector) { return true }
+        if let workout, workoutIsRecording(workout) { return true }
+        return false
+    }
+
+    private static func collectorIsRecording(_ collector: RRCollector) -> Bool {
+        if collector.isCollecting || collector.isOvernightStreaming || collector.isPaused
+            || collector.isRecordingOnDevice || collector.needsAcceptance {
+            return true
+        }
+        return switch collector.recordingPhase {
+        case .streaming, .overnightStreaming, .deviceRecording, .paused, .analyzing, .awaitingAcceptance: true
+        case .idle: false
+        }
+    }
+
+    /// `.recording` covers a paused workout too: pausing keeps the phase.
+    private static func workoutIsRecording(_ workout: WorkoutRecorder) -> Bool {
+        switch workout.phase {
+        case .recording, .finalizing: true
+        case .idle, .finished, .failed: false
+        }
+    }
+
+    /// The running app's answer: `RRCollector.current` and the app's workout
+    /// recorder.
+    private static var appIsRecording: Bool {
+        isRecordingInProgress(collector: RRCollector.current, workout: AppDependencies.current.app.recorderBox.recorder)
+    }
+
     /// Executes the full purge. Best-effort: each step runs independently and
     /// failures are collected into the report rather than aborting the rest.
     /// Async because the remote CloudKit deletion is awaited (it's serialized
     /// behind any in-flight sync, so it can take a few seconds).
+    ///
+    /// Throws `Refusal.recordingInProgress`, before deleting anything, while
+    /// a recording is under way. `recordingInProgress` answers that: nil
+    /// asks `isRecordingInProgress` about the running collector
+    /// (`RRCollector.current`) and the app's workout recorder
+    /// (`appIsRecording`); tests pass their own answer.
     ///
     /// `deleteRemote` is a test seam: unit tests inject a stub so the suite
     /// never fires a REAL zone deletion against whatever iCloud account the
     /// simulator happens to be signed into. Production callers leave it nil,
     /// which routes to `cloudSync.deleteAllRemoteData()`. `scope` is the
     /// other one: production leaves it `.device`; tests sweep temporary
-    /// directories and a throwaway preference suite.
+    /// directories and a throwaway preference suite. `baselineTracker` is a
+    /// third: nil resets the running collector's tracker
+    /// (`RRCollector.current`), and tests pass one on a temporary file.
+    ///
+    /// The sweep runs FIRST, before the named steps. Those steps recreate
+    /// the empty archive/backup directories and rewrite settings from live
+    /// in-memory state; sweeping afterwards would delete what they had just
+    /// put back.
     static func purgeAllUserData(
         archive: SessionArchive,
         rawBackup: RawRRBackup,
         cloudSync: CloudKitSyncManager,
         settingsManager: SettingsManager,
+        baselineTracker: BaselineTracker? = nil,
+        recordingInProgress: (@MainActor () -> Bool)? = nil,
         deleteRemote: (() async -> Bool)? = nil,
         scope: PurgeScope = .device
-    ) async -> Report {
+    ) async throws(Refusal) -> Report {
+        guard !(recordingInProgress?() ?? appIsRecording) else { throw Refusal.recordingInProgress }
         var errors: [String] = []
         let remoteDeleted = await purgeRemote(cloudSync: cloudSync, deleteRemote: deleteRemote, errors: &errors)
-        // The sweep runs FIRST, before the named steps. Those steps recreate
-        // the empty archive/backup directories and rewrite settings from live
-        // in-memory state; sweeping afterwards would delete what they had just
-        // put back.
-        let sweptFiles = sweepAndForget(archive: archive, rawBackup: rawBackup, scope: scope, errors: &errors)
+        let sweptFiles = sweepAndForget(archive: archive, rawBackup: rawBackup, scope: scope, liveSettingsFile: settingsManager.settingsURL, errors: &errors)
         let sweptDefaults = sweepAllDefaults(scope: scope, errors: &errors)
         let directories = purgeDirectories(settingsManager: settingsManager, cloudSync: cloudSync, scope: scope, errors: &errors)
+        resetBaseline(baselineTracker ?? RRCollector.current?.baselineTracker)
         let fallible = purgeFallibleStores(errors: &errors)
+        let profileReset = readBackProfile(settingsManager: settingsManager, errors: &errors)
         let left = readBackClearedStores(settingsManager: settingsManager, cloudSync: cloudSync)
         return Report(
             remoteDeleted: remoteDeleted, archiveDeleted: directories.archive,
             backupsDeleted: directories.backups, cloudSyncStateReset: left.cloudSyncStateReset,
             keychainCleared: directories.keychainCleared, conversationsCleared: left.conversationsCleared,
-            userFactsCleared: left.userFactsCleared, disclaimerReset: left.disclaimerReset, assistantDisclaimerReset: left.assistantDisclaimerReset,
+            userFactsCleared: left.userFactsCleared, disclaimerReset: left.disclaimerReset,
+            profileReset: profileReset, assistantDisclaimerReset: left.assistantDisclaimerReset,
             debugLogCleared: fallible.debugLogCleared, crashLogsCleared: fallible.crashLogsCleared,
             unitsPreferenceReset: left.unitsPreferenceReset, breadcrumbsCleared: left.breadcrumbsCleared,
             residualFilesRemoved: sweptFiles, residualDefaultsRemoved: sweptDefaults, errors: errors
@@ -244,7 +316,8 @@ enum DataPurgeService {
 
     /// The steps whose store calls report no failure of their own, each read
     /// back from the store after every step ran, so the page shows "ERROR"
-    /// for a store that still holds data instead of assuming success.
+    /// for a store that still holds data instead of assuming success. Where
+    /// the store persists, what it persisted is read, not its memory.
     private struct ReadBack {
         let cloudSyncStateReset: Bool
         let conversationsCleared: Bool
@@ -255,29 +328,72 @@ enum DataPurgeService {
         let breadcrumbsCleared: Bool
     }
 
-    /// The breadcrumb checks are queued behind the store's pending clear and
-    /// erase, so they see their result.
+    /// The breadcrumb, conversation and facts checks are queued behind each
+    /// store's pending clear, erase or write, so they see its result. The
+    /// conversation and facts are read from their files: a file that cannot
+    /// be read or decoded is not reported as cleared. Both disclaimer flags
+    /// and the units preference are read from `UserDefaults`, where they are
+    /// stored; the assistant's flag must also be off in the view model, which
+    /// gates on its own copy.
     private static func readBackClearedStores(settingsManager: SettingsManager, cloudSync: CloudKitSyncManager) -> ReadBack {
         let assistant = AppDependencies.current.assistant
         let breadcrumbs = AppDependencies.current.location.breadcrumbStore
         return ReadBack(
             cloudSyncStateReset: cloudSync.lastSyncDate == nil && !cloudSync.zoneCreated,
-            conversationsCleared: assistant.conversationStore.load().isEmpty,
-            userFactsCleared: assistant.userFactsStore.facts.isEmpty,
+            conversationsCleared: assistant.conversationStore.isEmptyOnDisk(),
+            userFactsCleared: assistant.userFactsStore.facts.isEmpty && assistant.userFactsStore.persistedFacts()?.isEmpty == true,
             disclaimerReset: !settingsManager.hasAcceptedDisclaimer,
-            assistantDisclaimerReset: !assistant.assistantViewModel.hasAcceptedDisclaimer,
+            assistantDisclaimerReset: !UserDefaults.standard.bool(forKey: AssistantViewModel.disclaimerKey)
+                && !assistant.assistantViewModel.hasAcceptedDisclaimer,
             unitsPreferenceReset: UnitsPreferenceStore.current == .auto,
             breadcrumbsCleared: !breadcrumbs.hasActiveTrail() && !breadcrumbs.hasArchiveFile()
         )
+    }
+
+    /// What `purgeLocalStores` resets the settings to: a fresh install's,
+    /// with iCloud sync left off.
+    private static var purgedSettings: UserSettings {
+        var settings = UserSettings()
+        settings.iCloudSyncEnabled = false
+        return settings
+    }
+
+    /// The "Profile" line: the reset is an asynchronous write whose failure
+    /// the settings manager only logs, so the pending write is flushed here
+    /// and the file read back. It must hold `purgedSettings`; a write, read or
+    /// decode error, or any other profile on disk, is reported.
+    private static func readBackProfile(settingsManager: SettingsManager, errors: inout [String]) -> Bool {
+        let label = String(localized: "Profile", bundle: LanguageManager.appBundle)
+        do {
+            guard try settingsManager.flushedFileHolds(purgedSettings) else {
+                let detail = String(localized: "the saved settings still hold an earlier profile", bundle: LanguageManager.appBundle)
+                errors.append(String(localized: "\(label): \(detail)", bundle: LanguageManager.appBundle))
+                return false
+            }
+            return true
+        } catch {
+            errors.append(String(localized: "\(label): \(error.localizedDescription)", bundle: LanguageManager.appBundle))
+            return false
+        }
+    }
+
+    /// The personal baseline (up to 90 nights of HRV and heart rate) is held
+    /// in memory by the collector's tracker for the life of the process. Its
+    /// file went with the sweep, but the next night's `update` would have
+    /// written every remembered night back, so the tracker itself is reset;
+    /// `reset()` saves the empty baseline. No tracker (no collector, as in a
+    /// preview): nothing is held in memory.
+    private static func resetBaseline(_ tracker: BaselineTracker?) {
+        tracker?.reset()
     }
 
     /// Sweeps every container, then resets what still pointed into it: the
     /// archive's and raw backup's in-memory indexes list the deleted files
     /// until reset, and every screen showing the archive is told it changed.
     private static func sweepAndForget(
-        archive: SessionArchive, rawBackup: RawRRBackup, scope: PurgeScope, errors: inout [String]
+        archive: SessionArchive, rawBackup: RawRRBackup, scope: PurgeScope, liveSettingsFile: URL, errors: inout [String]
     ) -> Int {
-        let sweptFiles = sweepAllContainers(scope: scope, errors: &errors)
+        let sweptFiles = sweepAllContainers(scope: scope, liveSettingsFile: liveSettingsFile, errors: &errors)
         archive.resetInMemoryStateAfterPurge()
         rawBackup.resetInMemoryStateAfterPurge()
         NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: nil)
@@ -318,8 +434,9 @@ enum DataPurgeService {
     /// So the design is inverted. The named steps above still run (they own
     /// UserDefaults keys, the Keychain and in-memory state, which a file sweep
     /// cannot reach, and their per-step reporting is what the user reads). This
-    /// sweep then removes everything else in every container that is not on the
-    /// keep-list below. A future store is covered on the day it is written.
+    /// sweep then removes everything else in every container that this
+    /// function does not keep. A future store is covered on the day it is
+    /// written.
     ///
     /// `DataPurgeServiceTests.testSweepRemovesAnUnknownFileFromEveryContainer`
     /// writes a sentinel into each root and asserts it is gone — a test that
@@ -331,14 +448,20 @@ enum DataPurgeService {
     /// would read as protection and provide none. The intent — a wipe is not
     /// a refund — lives where the data actually is, in `defaultsKeepList`
     /// below.
-    private static let keepList: Set<String> = [
-        // Owned by the live `SettingsManager` singleton, which rewrites it from
-        // in-memory state on the next mutation. Deleting the file would be a
-        // race, not a wipe — `purgeLocalStores` calls `resetToDefaults()`
-        // instead, which resets the in-memory copy and lets the `didSet`
-        // persist a fresh-install profile.
-        "user_settings.json"
-    ]
+    ///
+    /// The one file kept is the settings file the live `SettingsManager`
+    /// reads and writes (`SettingsManager.settingsURL`), in its own root only.
+    /// The singleton rewrites it from in-memory state on the next mutation, so
+    /// deleting it would be a race, not a wipe: `purgeLocalStores` calls
+    /// `resetToDefaults()` instead, and `readBackProfile` checks the result on
+    /// disk. Any other `user_settings.json` — the Documents original an older
+    /// build's migration copied into the App Group and left behind — holds
+    /// the same profile and is removed like everything else.
+    private static func keptEntries(in root: URL, liveSettingsFile: URL) -> Set<String> {
+        let settingsRoot = liveSettingsFile.deletingLastPathComponent().resolvingSymlinksInPath().standardizedFileURL
+        guard root.resolvingSymlinksInPath().standardizedFileURL.path == settingsRoot.path else { return [] }
+        return [liveSettingsFile.lastPathComponent]
+    }
 
     // MARK: - Preferences sweep
 
@@ -492,35 +615,42 @@ enum DataPurgeService {
         return Set(global.keys).union(arguments.keys).union(registration.keys)
     }
 
-    /// Roots a full wipe is responsible for, each with the entries it keeps.
-    /// The App Group container also keeps its `Library/`: iOS keeps the group
-    /// suite's preferences plist (swept key by key by `sweepAllDefaults`,
-    /// while `UserDefaults` still holds it in memory) and its own caches
-    /// there, and the app writes nothing into it.
-    private static func purgeRoots(_ scope: PurgeScope) -> [(url: URL, kept: Set<String>)] {
+    /// Roots a full wipe is responsible for, each with the entries it keeps
+    /// (`keptEntries(in:liveSettingsFile:)`). The App Group container also keeps its
+    /// `Library/`: iOS keeps the group suite's preferences plist (swept key by
+    /// key by `sweepAllDefaults`, while `UserDefaults` still holds it in
+    /// memory) and its own caches there, and the app writes nothing into it.
+    static func purgeRoots(_ scope: PurgeScope, liveSettingsFile: URL) -> [(url: URL, kept: Set<String>)] {
         var roots: [(url: URL, kept: Set<String>)] = []
         if let group = scope.appGroupContainer {
-            roots.append((group, keepList.union(["Library"])))
+            roots.append((group, keptEntries(in: group, liveSettingsFile: liveSettingsFile).union(["Library"])))
         }
-        roots += scope.sandboxRoots.map { (url: $0, kept: keepList) }
+        roots += scope.sandboxRoots.map { (url: $0, kept: keptEntries(in: $0, liveSettingsFile: liveSettingsFile)) }
         return roots
     }
 
     /// Delete every file and directory in every root that is not kept.
     /// Returns how many entries were removed (see `Report.residualFilesRemoved`).
-    private static func sweepAllContainers(scope: PurgeScope, errors: inout [String]) -> Int {
+    private static func sweepAllContainers(scope: PurgeScope, liveSettingsFile: URL, errors: inout [String]) -> Int {
         var removed = 0
-        for root in purgeRoots(scope) {
+        for root in purgeRoots(scope, liveSettingsFile: liveSettingsFile) {
             removed += sweep(root: root.url, keeping: root.kept, errors: &errors)
         }
         return removed
     }
 
+    /// A root that does not exist holds nothing and is skipped. One that
+    /// exists but cannot be listed is reported: its files are still there.
     private static func sweep(root: URL, keeping kept: Set<String>, errors: inout [String]) -> Int {
         let fileManager = FileManager.default
-        guard let entries = try? fileManager.contentsOfDirectory(
-            at: root, includingPropertiesForKeys: nil, options: []
-        ) else { return 0 }
+        guard fileManager.fileExists(atPath: root.path) else { return 0 }
+        let entries: [URL]
+        do {
+            entries = try fileManager.contentsOfDirectory(at: root, includingPropertiesForKeys: nil, options: [])
+        } catch {
+            errors.append(String(localized: "Could not list \(root.lastPathComponent): \(error.localizedDescription)", bundle: LanguageManager.appBundle))
+            return 0
+        }
         var removed = 0
         for entry in entries where !kept.contains(entry.lastPathComponent) {
             do {
@@ -553,7 +683,7 @@ enum DataPurgeService {
         )
         let keychainCleared = purgeLocalStores(cloudSync: cloudSync, settingsManager: settingsManager)
         cancelMorningNotifications()
-        purgeHealthCaches()
+        purgeHealthCaches(errors: &errors)
         return (archive, backups, keychainCleared)
     }
 
@@ -666,6 +796,9 @@ enum DataPurgeService {
     /// by the assistant and written back to disk by the next add, rename or
     /// fix. The engaged turn-by-turn route (destination name and coordinate)
     /// is memory-only and is dropped too, so the voice coach stops using it.
+    /// The display cache (dashboard and fitness snapshots) and the training
+    /// load cache (current metrics and the 400-day series) go the same way:
+    /// each rewrote its pre-purge snapshot on its next persist.
     private static func forgetInMemoryStores() {
         let location = AppDependencies.current.location
         location.activeRouteSession.disengage()
@@ -674,6 +807,8 @@ enum DataPurgeService {
         location.ambientLocationService.forgetAfterPurge()
         AppDependencies.current.app.emailContactStore.forgetAfterPurge()
         AppDependencies.current.assistant.assistantArtifactStore.forgetAfterPurge()
+        AppDependencies.current.storage.uiStateCache.forgetAfterPurge()
+        AppDependencies.current.analysis.trainingMetricsCache.forgetAfterPurge()
         forgetAssistantAgreements()
     }
 
@@ -724,7 +859,8 @@ enum DataPurgeService {
     /// Heat-acclimation persisted state includes the representative GPS
     /// coordinate (precise location). These UserDefaults keys must not
     /// survive erasure; right-to-be-forgotten requires precise location to go
-    /// too.
+    /// too. `clear()` also drops the in-memory readout and cancels a refresh
+    /// in flight, so neither shows nor writes back the erased readout.
     ///
     /// LLM cache telemetry — in-memory token/turn counters + the rolling
     /// per-provider recent-turn buffer. LLMCacheTelemetry's own doc says it
@@ -742,14 +878,18 @@ enum DataPurgeService {
     /// UserDefaults.standard, RecoveryScoreFeedbackStore in an App-Group
     /// `Feedback/` JSON file. Same erasure-gap class as the breadcrumb and
     /// widget steps: without these a "Delete All My Data" left health data on
-    /// device.
-    private static func purgeHealthCaches() {
-        HeatAcclimationCache.clearPersistedData()
+    /// device. A feedback log that is there and cannot be removed is reported.
+    private static func purgeHealthCaches(errors: inout [String]) {
+        AppDependencies.current.analysis.heatAcclimationCache.clear()
         AppDependencies.current.providers.llmCacheTelemetry.reset()
         AppDependencies.current.providers.llmRequestAudit.clear()
         SleepDataCache.clear()
         RespiratoryBaselineCache.clear()
         WristTemperatureBaselineCache.clear()
-        AppDependencies.current.services.recoveryScoreFeedbackStore.clearAll()
+        do {
+            try AppDependencies.current.services.recoveryScoreFeedbackStore.clearAll()
+        } catch {
+            errors.append(String(localized: "Recovery score feedback: \(error.localizedDescription)", bundle: LanguageManager.appBundle))
+        }
     }
 }

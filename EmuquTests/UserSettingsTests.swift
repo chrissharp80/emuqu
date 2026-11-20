@@ -1,7 +1,27 @@
 @testable import Emuqu
+import os
+import UIKit
 import XCTest
 
 final class UserSettingsTests: XCTestCase {
+    /// The performance-flag mirrors every `SettingsManager.save()` writes to
+    /// the host's `UserDefaults.standard`, put back after each test so the
+    /// manager instances built here leave the host's values as they were.
+    private var savedPerformanceFlags: [(key: String, value: Any?)] = []
+    private static let performanceFlagKeys: [UserSettings.PerformanceFlagKey] = [.enableAIAssistant, .enableVoiceMode, .enableWatchConnectivity]
+
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        savedPerformanceFlags = Self.performanceFlagKeys.map { ($0.rawValue, UserDefaults.standard.object(forKey: $0.rawValue)) }
+    }
+
+    override func tearDownWithError() throws {
+        for (key, value) in savedPerformanceFlags {
+            if let value { UserDefaults.standard.set(value, forKey: key) } else { UserDefaults.standard.removeObject(forKey: key) }
+        }
+        try super.tearDownWithError()
+    }
+
     // MARK: - Defaults
 
     func testDefaultSettings() {
@@ -181,6 +201,242 @@ final class UserSettingsTests: XCTestCase {
 
         XCTAssertNil(decoded.windowUserAdjusted, "windowUserAdjusted should default to nil")
         XCTAssertNil(decoded.sleepUserAdjusted, "sleepUserAdjusted should default to nil")
+    }
+
+    // MARK: - Settings file that cannot be read
+
+    // `SettingsManager` itself has a private initializer on the app's own
+    // settings file, so these exercise the static load and copy it runs at
+    // launch, on temporary files. The held saves that follow from
+    // `.unreadableNotPreserved` live on the instance and are not covered here.
+
+    /// A settings file in its own temporary directory, removed after the test.
+    private func unreadableSettingsFile() throws -> URL {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("SettingsLoad-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        addTeardownBlock {
+            do {
+                try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: directory.path)
+                try FileManager.default.removeItem(at: directory)
+            } catch {
+                // swallow-ok: the directory is temporary.
+            }
+        }
+        let file = directory.appendingPathComponent("user_settings.json")
+        try Data("not settings".utf8).write(to: file)
+        return file
+    }
+
+    /// An unreadable file is copied aside before anything saves over it, and
+    /// the new copy replaces the one an earlier failure kept.
+    func testAnUnreadableSettingsFileIsCopiedAsideReplacingTheEarlierCopy() throws {
+        let file = try unreadableSettingsFile()
+        let backup = file.deletingLastPathComponent().appendingPathComponent(SettingsManager.unreadableBackupName)
+        try Data("earlier copy".utf8).write(to: backup)
+
+        let (loaded, outcome) = SettingsManager.load(from: file)
+
+        XCTAssertNil(loaded)
+        XCTAssertEqual(outcome, .unreadableOther)
+        XCTAssertEqual(try Data(contentsOf: backup), Data("not settings".utf8))
+        XCTAssertEqual(Set(try FileManager.default.contentsOfDirectory(atPath: file.deletingLastPathComponent().path)),
+                       [SettingsManager.unreadableBackupName, "user_settings.json"],
+                       "No temporary copy is left behind")
+    }
+
+    /// When the copy cannot be made, the load says so, which holds saves, and
+    /// the copy an earlier failure kept is still there: it is replaced only
+    /// by a copy that exists.
+    func testAFailedCopyHoldsSavesAndKeepsTheEarlierCopy() throws {
+        let file = try unreadableSettingsFile()
+        let directory = file.deletingLastPathComponent()
+        let backup = directory.appendingPathComponent(SettingsManager.unreadableBackupName)
+        try Data("earlier copy".utf8).write(to: backup)
+        // A read-only directory: no copy can be created in it.
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: directory.path)
+
+        let (loaded, outcome) = SettingsManager.load(from: file)
+
+        XCTAssertNil(loaded)
+        XCTAssertEqual(outcome, .unreadableNotPreserved)
+        XCTAssertEqual(try Data(contentsOf: backup), Data("earlier copy".utf8))
+        XCTAssertEqual(try Data(contentsOf: file), Data("not settings".utf8))
+    }
+
+    /// A Cocoa read error wrapping a POSIX code, as `Data(contentsOf:)` reports one.
+    nonisolated private static func readError(posix code: Int32) -> NSError {
+        NSError(domain: NSCocoaErrorDomain, code: NSFileReadUnknownError,
+                userInfo: [NSUnderlyingErrorKey: NSError(domain: NSPOSIXErrorDomain, code: Int(code))])
+    }
+
+    /// A read that fails for a reason that can pass (an I/O error, out of
+    /// file descriptors) leaves a file that may be intact: saves are held,
+    /// and nothing is written beside it.
+    func testAReadFailureThatCanPassHoldsSaves() throws {
+        let file = try unreadableSettingsFile()
+        for code in [EIO, EMFILE, ENFILE] {
+            let (loaded, outcome) = SettingsManager.load(from: file, read: { _ in throw Self.readError(posix: code) })
+            XCTAssertNil(loaded)
+            XCTAssertEqual(outcome, .unreadableNotPreserved, "POSIX \(code) must hold saves")
+        }
+        XCTAssertEqual(try Data(contentsOf: file), Data("not settings".utf8), "The file must be left as it was")
+    }
+
+    /// An EISDIR read error (a directory at the path) is classified as one
+    /// that can never give bytes back: nothing to keep, saves go ahead, and no
+    /// copy is written.
+    func testAnEISDIRReadErrorLeavesNothingToKeep() throws {
+        let file = try unreadableSettingsFile()
+        let (loaded, outcome) = SettingsManager.load(from: file, read: { _ in throw Self.readError(posix: EISDIR) })
+
+        XCTAssertNil(loaded)
+        XCTAssertEqual(outcome, .unreadableOther)
+        let backup = file.deletingLastPathComponent().appendingPathComponent(SettingsManager.unreadableBackupName)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: backup.path), "There were no bytes to keep a copy of")
+    }
+
+    /// File protection's refusal is a locked file; a file gone by the time it
+    /// is read is not present; a file too large to read leaves nothing to keep.
+    func testReadErrorsThatAreNotTransient() {
+        let locked = NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoPermissionError)
+        XCTAssertEqual(SettingsManager.outcome(forReadError: locked), .blockedByProtection)
+        XCTAssertEqual(SettingsManager.outcome(forReadError: NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoSuchFileError)), .fileNotPresent)
+        XCTAssertEqual(SettingsManager.outcome(forReadError: Self.readError(posix: ENOENT)), .fileNotPresent)
+        XCTAssertEqual(SettingsManager.outcome(forReadError: NSError(domain: NSCocoaErrorDomain, code: NSFileReadTooLargeError)), .unreadableOther)
+    }
+
+    // MARK: - Held saves on a manager instance
+
+    /// A reader the test controls: it fails with a POSIX read error while one
+    /// is set and reads the file otherwise, counting every read. Sendable
+    /// (its state sits behind a lock), as the manager's reader must be.
+    private final class SettingsReader: Sendable {
+        private struct State {
+            var failure: Int32?
+            var reads = 0
+        }
+        private let state = OSAllocatedUnfairLock(initialState: State())
+
+        var reads: Int { state.withLock { $0.reads } }
+
+        func setFailure(posix code: Int32?) {
+            state.withLock { $0.failure = code }
+        }
+
+        func read(_ url: URL) throws -> Data {
+            let failure = state.withLock { current -> Int32? in
+                current.reads += 1
+                return current.failure
+            }
+            if let failure { throw UserSettingsTests.readError(posix: failure) }
+            return try Data(contentsOf: url)
+        }
+    }
+
+    /// A settings file holding `maxHR` 170 in its own temporary directory,
+    /// and a manager on it whose first read fails with EIO, so saves are held.
+    @MainActor
+    private func heldManager() throws -> (SettingsManager, SettingsReader, URL) {
+        let file = try unreadableSettingsFile()
+        var onDisk = UserSettings()
+        onDisk.maxHR = 170
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        try encoder.encode(onDisk).write(to: file)
+        let reader = SettingsReader()
+        reader.setFailure(posix: EIO)
+        let manager = SettingsManager(settingsURL: file, read: { try reader.read($0) })
+        XCTAssertEqual(manager.loadOutcome, .unreadableNotPreserved, "Sanity: an EIO read holds saves")
+        return (manager, reader, file)
+    }
+
+    /// The settings the file holds once every pending write has landed.
+    @MainActor
+    private func settingsOnDisk(_ manager: SettingsManager, file: URL) throws -> UserSettings {
+        XCTAssertNil(manager.flushPendingWritesSynchronously())
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(UserSettings.self, from: Data(contentsOf: file))
+    }
+
+    /// Lets the main-actor tasks the manager scheduled (the observer
+    /// installation) run.
+    @MainActor
+    private func drainMainActor() async {
+        for _ in 0 ..< 5 { await Task.yield() }
+    }
+
+    /// A change made while saves are held reads the file again; once it reads,
+    /// the change is merged onto the file's settings and saved, not the other
+    /// way round.
+    @MainActor
+    func testAHeldChangeIsMergedOntoTheFileOnceItReads() async throws {
+        let (manager, reader, file) = try heldManager()
+        reader.setFailure(posix: nil)
+
+        manager.settings.bodyWeightKg = 80
+
+        XCTAssertEqual(manager.loadOutcome, .loaded)
+        XCTAssertEqual(manager.settings.maxHR, 170, "The file's settings were not adopted")
+        XCTAssertEqual(manager.settings.bodyWeightKg, 80, "The change made while held was lost")
+        let saved = try settingsOnDisk(manager, file: file)
+        XCTAssertEqual(saved.maxHR, 170)
+        XCTAssertEqual(saved.bodyWeightKg, 80)
+    }
+
+    /// A hold lifted before the retry observers are installed leaves none
+    /// behind, and a retry when nothing is held reads nothing: a later read
+    /// failure can no longer swap the file's settings in over a change.
+    @MainActor
+    func testARetryAfterTheHoldLiftedReadsNothingAndKeepsTheChange() async throws {
+        let (manager, reader, file) = try heldManager()
+        reader.setFailure(posix: nil)
+        manager.settings.bodyWeightKg = 80   // lifts the hold in the same turn as init
+        await drainMainActor()
+        XCTAssertTrue(manager.heldRetryObservers.isEmpty, "An observer was installed after the hold lifted")
+
+        reader.setFailure(posix: EIO)
+        let readsBefore = reader.reads
+        manager.retryLoadAfterUnlock()
+        XCTAssertEqual(reader.reads, readsBefore, "A retry with nothing held read the file")
+        XCTAssertEqual(manager.loadOutcome, .loaded)
+
+        manager.settings.maxHR = 180
+        XCTAssertEqual(try settingsOnDisk(manager, file: file).maxHR, 180, "The change after the hold lifted was not saved")
+    }
+
+    /// While held, an observer is installed for each retry notification, and
+    /// becoming active is one of them; changes within the throttle interval
+    /// read the file once between them; the observers' handler adopts the file
+    /// as soon as it reads, keeping every held change and dropping the
+    /// observers.
+    @MainActor
+    func testAHeldLoadIsRetriedOnActivationWithoutAReadPerChange() async throws {
+        XCTAssertTrue(SettingsManager.heldRetryNotifications.contains(UIApplication.didBecomeActiveNotification),
+                      "A held load must be retried when the app becomes active")
+        XCTAssertTrue(SettingsManager.heldRetryNotifications.contains(UIApplication.protectedDataDidBecomeAvailableNotification))
+        let (manager, reader, file) = try heldManager()
+        await drainMainActor()
+        XCTAssertEqual(manager.heldRetryObservers.count, SettingsManager.heldRetryNotifications.count,
+                       "One retry observer per notification while saves are held")
+
+        let readsAtLaunch = reader.reads
+        manager.settings.bodyWeightKg = 80
+        manager.settings.userRestingHR = 48
+        XCTAssertEqual(reader.reads, readsAtLaunch + 1,
+                       "Changes within \(SettingsManager.heldChangeRetryInterval) s read the held file once between them")
+        XCTAssertEqual(manager.loadOutcome, .unreadableNotPreserved)
+
+        reader.setFailure(posix: nil)
+        manager.retryLoadAfterUnlock()
+
+        XCTAssertEqual(manager.loadOutcome, .loaded)
+        XCTAssertTrue(manager.heldRetryObservers.isEmpty)
+        let saved = try settingsOnDisk(manager, file: file)
+        XCTAssertEqual(saved.maxHR, 170)
+        XCTAssertEqual(saved.bodyWeightKg, 80)
+        XCTAssertEqual(saved.userRestingHR, 48)
     }
 
     // MARK: - Helpers

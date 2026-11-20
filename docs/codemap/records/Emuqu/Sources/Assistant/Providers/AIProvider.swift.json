@@ -1,19 +1,19 @@
 {
  "file": "Emuqu/Sources/Assistant/Providers/AIProvider.swift",
- "hash": "765a4666d4c3c2c6",
- "role": "Shared vocabulary of the assistant's provider layer: ProviderID identity/branding, ModelOption catalog entries, ChatTurn transcript model (with hand-written tolerant decoder), ToolSpec/ToolExchange tool-use types, AIStreamEvent stream events, API-key redaction, AIProviderError (fallback/guardrail policy + user text), ProviderAccountReply credit/purchase detection, ProviderHTTP (the cloud streamers' shared URL session, error-body/envelope/status mapping, mid-stream error chunks, cache-marker split and <live_state> envelope), the AIProvider protocol and AnyJSON encoder.",
+ "hash": "d7afe5fefb5431af",
+ "role": "Shared vocabulary of the assistant's provider layer: ProviderID identity/branding, ModelOption catalog entries, ChatTurn transcript model (with hand-written tolerant decoder), ToolSpec/ToolExchange tool-use types, AIStreamEvent stream events, API-key redaction, AIProviderError (fallback/guardrail/blocked-reply policy + user text), ProviderAccountReply credit/purchase detection, ProviderHTTP (the cloud streamers' shared URL session, error-body/envelope/status mapping, the per-provider overloaded text, mid-stream error objects, SSE event parsing, tool-argument JSON check, cache-marker split and <live_state> envelope), the AIProvider protocol and AnyJSON encoder.",
  "types": [
   "ProviderID: enum — the six AI backends (apple, anthropic, openai, gemini, grok, deepseek) with display/vendor/symbol/privacy URL",
   "ModelOption: struct — one selectable model (apiID, context window, per-MTok prices, default flag)",
   "AssistantSubsystem: enum — which AI surface produced a turn (coach, workoutVoiceCoach, voiceConversation, coachReport)",
-  "ChatTurn: struct — one persisted chat message (role, text, provider/model, subsystem, routed tier, localOnly)",
+  "ChatTurn: struct — one persisted chat message (role, text, provider/model, subsystem, routed tier, localOnly, incomplete)",
   "ChatTurn.Role: enum — user/assistant",
   "ToolSpec: struct — tool name/description/JSON input schema sent to providers",
   "ToolSpec.InputSchema: struct — top-level object schema",
   "ToolSpec.Property: struct — one schema property",
   "ToolExchange: struct — a completed tool call + serialized result replayed in continuation requests",
   "AIStreamEvent: enum — textDelta/toolUse/usage/done stream events",
-  "AIProviderError: enum (LocalizedError) — provider failure taxonomy with isFallbackable/isAppleGuardrail and localized messages",
+  "AIProviderError: enum (LocalizedError) — provider failure taxonomy (blockedReply: a cloud vendor's safety stop) with isFallbackable/isAppleGuardrail/isBlockedReply and localized messages",
   "ProviderAccountReply: enum — string heuristics for credit-exhausted and purchase-prompt vendor replies",
   "ProviderHTTP: enum — HTTP plumbing shared by AnthropicProvider, GeminiProvider and OpenAICompatibleStreamer",
   "AIProvider: protocol — backend interface (id, models, key need, availability, tool cap, streaming send)",
@@ -23,9 +23,10 @@
  "state": [
   "mem:ProviderAccountReply.creditMarkers (private static let, 9 lowercase phrases)",
   "mem:ProviderAccountReply.purchaseMarkers (private static let, 10 lowercase phrases)",
-  "mem:ProviderHTTP.streamSession (one URLSession: waitsForConnectivity, 30 s request / 180 s resource timeouts, 4 connections per host, no URL cache)"
+  "mem:ProviderHTTP.streamSession (one URLSession: waitsForConnectivity, 30 s request / 180 s resource timeouts, 4 connections per host, no URL cache)",
+  "mem:ProviderHTTP.serverFailureTypes (private static let: server_error, overloaded_error, api_error)"
  ],
- "toplevel": "Conformances: ProviderID String/Codable/CaseIterable/Identifiable; ModelOption Codable/Hashable/Identifiable/Sendable; AssistantSubsystem String/Codable; ChatTurn Codable (synthesized encode, custom decode)/Identifiable/Hashable/Sendable with stored default localOnly=false; ToolSpec Hashable/Codable/Sendable; AIStreamEvent.usage has default 0 for cache fields; AIProviderError LocalizedError.",
+ "toplevel": "Conformances: ProviderID String/Codable/CaseIterable/Identifiable; ModelOption Codable/Hashable/Identifiable/Sendable; AssistantSubsystem String/Codable; ChatTurn Codable (synthesized encode, custom decode)/Identifiable/Hashable/Sendable with stored defaults localOnly=false and incomplete=false (a reply whose stream failed partway); ToolSpec Hashable/Codable/Sendable; AIStreamEvent.usage has default 0 for cache fields; AIProviderError LocalizedError.",
  "units": [
   {
    "key": "var ProviderID.id",
@@ -330,8 +331,8 @@
   },
   {
    "key": "init ChatTurn(from:)",
-   "hash": "e994f0b4fc83e5b4",
-   "does": "Decodable init: decodes id/role/text/createdAt as required and providerID/modelID/subsystem/routedTierRaw/localOnly as optional, so transcripts written before localOnly existed still load; a missing required key throws.",
+   "hash": "d2594b07bed076c6",
+   "does": "Decodable init: decodes id/role/text/createdAt as required and providerID/modelID/subsystem/routedTierRaw/localOnly/incomplete as optional, so transcripts written before localOnly or incomplete existed still load; a missing required key throws.",
    "entry": "Decodable synthesis replacement — invoked by JSONDecoder when the chat transcript is loaded",
    "calls": [
     "ext:Decoder.container/decodeIfPresent"
@@ -343,6 +344,11 @@
      "at": "+10",
      "cond": "localOnly key absent (decodeIfPresent nil)",
      "effect": "defaults to false (turn treated as sendable); when present uses the stored Bool"
+    },
+    {
+     "at": "+11",
+     "cond": "incomplete key absent",
+     "effect": "defaults to false (reply treated as complete); when present uses the stored Bool"
     }
    ],
    "deps": {}
@@ -395,9 +401,26 @@
    "deps": {}
   },
   {
+   "key": "var AIProviderError.isBlockedReply",
+   "hash": "2aadb67d82edda23",
+   "does": "True for .blockedReply (a cloud vendor's safety stop); read by the fallback chain, which stops on it instead of trying the next vendor.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "case is .blockedReply",
+     "effect": "true; else false"
+    }
+   ],
+   "deps": {}
+  },
+  {
    "key": "var AIProviderError.isFallbackable",
-   "hash": "425fbf11c3f8a758",
-   "does": "Fallback policy: true for missingKey/authFailed/rateLimited/network/modelUnavailable/outOfCredit and also invalidResponse/unsupportedOS/unknown; false for guardrailViolation and cancelled. Read by AssistantViewModel+Routing.swift:632 to walk the fallback chain.",
+   "hash": "5d57ad20315c3d55",
+   "does": "Fallback policy: true for missingKey/authFailed/rateLimited/network/modelUnavailable/outOfCredit and also invalidResponse/unsupportedOS/unknown; false for guardrailViolation, blockedReply and cancelled (a safety refusal, Apple's or a cloud vendor's, is never routed around). Read by AssistantViewModel+Routing.swift:632 to walk the fallback chain.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -415,7 +438,7 @@
     },
     {
      "at": "+10",
-     "cond": "guardrailViolation, cancelled",
+     "cond": "guardrailViolation, blockedReply, cancelled",
      "effect": "false"
     }
    ],
@@ -438,7 +461,7 @@
   },
   {
    "key": "var AIProviderError.errorDescription",
-   "hash": "eab44a8bbdb1b57c",
+   "hash": "d524a511dea0c236",
    "does": "LocalizedError text for each case, localized from LanguageManager.appBundle; vendor-supplied text in invalidResponse/modelUnavailable/unknown passes through vendorText, which replaces purchase prompts.",
    "entry": "LocalizedError.errorDescription — read via localizedDescription by the chat error banner",
    "calls": [
@@ -502,6 +525,11 @@
     },
     {
      "at": "+13",
+     "cond": "blockedReply(provider, _)",
+     "effect": "\"<displayName> declined to answer this. Try asking it another way.\" (the vendor's reason is not shown)"
+    },
+    {
+     "at": "+15",
      "cond": "unknown(msg)",
      "effect": "vendorText(msg) else msg"
     }
@@ -679,25 +707,116 @@
    "deps": {}
   },
   {
-   "key": "func ProviderHTTP.streamFailure(in:)",
-   "hash": "e19baa6055f2b4c7",
-   "does": "For a stream chunk that is an {\"error\":{...}} object (OpenAI-compatible and Gemini streams send one when a reply fails mid-stream after a 200), returns .invalidResponse with the redacted error message ('stream error' when it has none); nil for an ordinary chunk.",
+   "key": "func ProviderHTTP.overloadedMessage(for:)",
+   "hash": "bdd8a143e383da02",
+   "does": "Returns the localized 'try again' sentence for a provider whose servers are overloaded or failing: the catalogued 'Anthropic is overloaded…' and 'Gemini is overloaded…' sentences for those two, and '<displayName> is overloaded right now. Try again in a moment.' for the others.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)"
+    "ext:String(localized:bundle:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "chunk has no error object",
-     "effect": "returns nil"
+     "at": "+3",
+     "cond": "provider is .anthropic",
+     "effect": "'Anthropic is overloaded…'"
+    },
+    {
+     "at": "+4",
+     "cond": "provider is .gemini",
+     "effect": "'Gemini is overloaded…'"
+    },
+    {
+     "at": "+5",
+     "cond": "any other provider",
+     "effect": "'<displayName> is overloaded…'"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+   }
+  },
+  {
+   "key": "func ProviderHTTP.streamFailure(in:provider:)",
+   "hash": "aa99f5d01a2a237c",
+   "does": "For a stream payload carrying an {\"error\":{...}} object (an OpenAI-compatible or Gemini chunk, an Anthropic error event), returns the error the chat acts on: .modelUnavailable(overloadedMessage(provider)) when the error is the vendor's own failure (numeric code 500-599, or type server_error / overloaded_error / api_error), the same mapping statusError gives a 5xx; otherwise .invalidResponse with the redacted error.message ('stream error' when absent). Nil when the payload has no error object.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.overloadedMessage(for:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)"
+   ],
+   "reads": [
+    "mem:ProviderHTTP.serverFailureTypes"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no error object",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+4",
+     "cond": "code 500-599 or a server-failure type",
+     "effect": "returns .modelUnavailable(overloadedMessage)"
+    },
+    {
+     "at": "+5",
+     "cond": "error.message missing",
+     "effect": "'stream error'; returns .invalidResponse(redacted message)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.overloadedMessage(for:)": "17c60e6299c39e16",
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)": "2461162d36fc3850"
    }
+  },
+  {
+   "key": "func ProviderHTTP.eventObject(_:provider:)",
+   "hash": "70127feb8c44bd69",
+   "does": "Parses one SSE data payload as a JSON object. A payload that is not JSON, or is JSON but not an object, throws .invalidResponse('malformed <vendorName> stream event') so a broken event fails the stream instead of being skipped.",
+   "entry": null,
+   "calls": [
+    "ext:JSONSerialization.jsonObject(with:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "payload is not JSON",
+     "effect": "throws .invalidResponse('malformed <vendor> stream event')"
+    },
+    {
+     "at": "+8",
+     "cond": "JSON but not an object",
+     "effect": "throws the same error; otherwise returns the object"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.vendorName": "986602b3b3fdcd71"
+   }
+  },
+  {
+   "key": "func ProviderHTTP.isJSONObject(_:)",
+   "hash": "2acb5e311b6f5d88",
+   "does": "True when the text parses as a JSON object (a tool call's complete arguments); false for a fragment, a non-object or anything that does not parse.",
+   "entry": null,
+   "calls": [
+    "ext:JSONSerialization.jsonObject(with:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "text does not parse",
+     "effect": "returns false"
+    }
+   ],
+   "deps": {}
   },
   {
    "key": "func ProviderHTTP.splitOnCacheMarker(_:)",

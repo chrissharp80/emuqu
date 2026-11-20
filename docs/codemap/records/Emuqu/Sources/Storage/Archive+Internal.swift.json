@@ -355,13 +355,13 @@
    "does": "Encodes the session with SessionArchive.sessionEncoder (compact sortedKeys) via SessionFileCodec.encodeForDisk and returns (bytes, sha256 of bytes-as-written, the disk format). No ledger change: the write (writeArchiveBytes) handles that.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)"
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:onPlaintextFallback:)": "b2d76b7ce6014d3e",
+    "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:)": "b2d76b7ce6014d3e",
     "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionEncoder": "349bd41e509b1925",
     "Emuqu/Sources/Views/SettingsView.swift::func SettingsView.SearchResultRoute.hash(into:)": "1987e98d1e24873d"
    }
@@ -1022,14 +1022,17 @@
   },
   {
    "key": "func ArchiveStore.delete(_:)",
-   "hash": "11d00f169af80747",
-   "does": "Takes the lock; for an indexed id logs a breadcrumb, removes it from the index with a tombstone + deletion time (dropFromIndex, throws on save failure), then moves its file to Trash/ (falls back to deleting it). Unknown ids are a silent no-op.",
+   "hash": "028a2edaa92a0f09",
+   "does": "Takes the lock; for an indexed id logs a breadcrumb, removes it from the index with a tombstone + deletion time (dropFromIndex, throws on save failure), then moves its file to Trash/. When the move throws, the file is still in place: it logs, puts the entry back and untombstones it (undoDrop, which rewrites deleted.json), re-saves index.json (attempt) and rethrows, so the caller reports a delete that did not happen. Unknown ids are a silent no-op.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.dropFromIndex(_:)",
     "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.moveToTrash(_:id:)",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.undoDrop(_:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
@@ -1055,29 +1058,96 @@
      "at": "+6",
      "cond": "entry.recoveryScore nil (?? \"nil\")",
      "effect": "log shows score=nil"
+    },
+    {
+     "at": "+11",
+     "cond": "catch: moveToTrash threw",
+     "effect": "log, undoDrop, save index.json (attempt), rethrow; the session stays archived with its file"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "245124c441f7143c",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.dropFromIndex(_:)": "d01f1f3469edd083",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "8c0f1c459dbeaae2",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.dropFromIndex(_:)": "1076945f98cef7ec",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)": "703c2a2085c25cdf",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.moveToTrash(_:id:)": "627d66320754a09a",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.undoDrop(_:)": "b907535626240f39",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.moveToTrash(_:id:)": "bae2730948a9b981",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+   }
+  },
+  {
+   "key": "func ArchiveStore.deleteWithoutTrash(_:)",
+   "hash": "a5d1ea59caab841f",
+   "does": "For a session deleted on another device: under the lock, for an indexed id logs a breadcrumb and drops it from the index with a tombstone + deletion time (dropFromIndex, throws on a failed save), then removes its file directly rather than moving it to the Trash. A file already gone is fine. A failed removal (logged by attempt) falls back to moving the file into the Trash (moveToTrash, a failure logged), where discardTrashed and expiry remove it; the deletion stands either way. Unknown ids are a silent no-op.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.dropFromIndex(_:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.moveToTrash(_:id:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.fileExists",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [
+    "mem:SessionArchive.index",
+    "mem:SessionArchive.sessionIdLookup"
+   ],
+   "writes": [
+    "mem:SessionArchive.index",
+    "mem:SessionArchive.deletedSessionIds",
+    "file:<archiveDirectory>/index.json",
+    "file:<archiveDirectory>/deleted.json",
+    "ud:archive.deletionTimes",
+    "file:<archiveDirectory>/<uuid>.json (deleted)",
+    "file:<archiveDirectory>/Trash/<uuid>.session (when removal fails)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "id not indexed",
+     "effect": "return"
+    },
+    {
+     "at": "+5",
+     "cond": "an index save fails",
+     "effect": "throws; nothing removed"
+    },
+    {
+     "at": "+7",
+     "cond": "file already gone, or removed",
+     "effect": "return; the deletion stands"
+    },
+    {
+     "at": "+10",
+     "cond": "removal failed",
+     "effect": "move the file into the Trash (failure logged)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "245124c441f7143c",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.dropFromIndex(_:)": "1076945f98cef7ec",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)": "703c2a2085c25cdf",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.moveToTrash(_:id:)": "bae2730948a9b981",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
    "key": "func ArchiveStore.dropFromIndex(_:)",
-   "hash": "ca14b9c9991d852b",
-   "does": "Removes the entry from index, inserts a tombstone, records a deletion time, then saves deleted.json then index.json; on any save failure re-appends the entry, removes the tombstone and deletion time, nils caches, re-saves deleted.json (attempt) and rethrows.",
+   "hash": "c6b163f72391e8ca",
+   "does": "Removes the entry from index, inserts a tombstone, records a deletion time, then saves deleted.json then index.json; on any save failure undoes it (undoDrop: entry back, tombstone and deletion time removed, caches nil, deleted.json rewritten by attempt) and rethrows.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.recordDeletionTime(_:)",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.forgetDeletionTime(_:)",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.undoDrop(_:)"
    ],
    "reads": [
     "mem:SessionArchive.index",
@@ -1096,14 +1166,41 @@
     {
      "at": "+7",
      "cond": "catch: saveDeletedIndex or saveIndex threw",
-     "effect": "roll back in-memory index/tombstone/deletion time, rewrite deleted.json without the id (error swallowed by attempt), rethrow"
+     "effect": "undoDrop (in-memory entry, tombstone and deletion time rolled back, deleted.json rewritten without the id, error swallowed by attempt), rethrow"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "38a4b1f67bd1c949",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "907008a128361c54",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.forgetDeletionTime(_:)": "081a68f3d50e3c17",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "8c0f1c459dbeaae2",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.recordDeletionTime(_:)": "458c4130b9c80d9d",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.undoDrop(_:)": "b907535626240f39"
+   }
+  },
+  {
+   "key": "func ArchiveStore.undoDrop(_:)",
+   "hash": "3612cac1df9b84bd",
+   "does": "Puts a dropped entry back in the in-memory index, removes its tombstone and deletion time, nils the sorted/lookup caches and rewrites deleted.json without it (attempt: a failure is logged). Does not save index.json; deleted.json goes first so a later failed index save leaves the file neither listed nor tombstoned, which the next launch's orphan scan adopts back. Caller holds archiveLock.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.forgetDeletionTime(_:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SessionArchive.index",
+    "mem:SessionArchive.deletedSessionIds",
+    "ud:archive.deletionTimes",
+    "mem:SessionArchive.sortedEntriesCache",
+    "mem:SessionArchive.sessionIdLookup",
+    "file:<archiveDirectory>/deleted.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "38a4b1f67bd1c949",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.forgetDeletionTime(_:)": "081a68f3d50e3c17",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },

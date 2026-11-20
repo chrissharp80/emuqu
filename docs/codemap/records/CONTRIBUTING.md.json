@@ -84,7 +84,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Makefile::target budget-monotonicity": "ecb87460dba7db67",
+    "Makefile::target budget-monotonicity": "f2990c87cb8c36d4",
     "Makefile::target copy-perimeter": "fbee448e717c17f3",
     "Makefile::target debt-budget": "107274ad82f7d924",
     "Makefile::target localization-bundle-guard": "8c4bb22083c7e7be",
@@ -127,8 +127,8 @@
   },
   {
    "key": "§ How a change lands in Emuqu > While you work > Budgets ratchet down, never up",
-   "hash": "82bb29c124121ad7",
-   "does": ".ci/*.txt budgets (shared_usage, try_optional, legacy_observable_object, swiftlint_warning, unchecked_sendable, etc. — all exist) ratchet down. Raising a ceiling or lowering a min_* floor needs a `budget-raise-ok: .ci/<name>.txt <reason>` trailer in a commit in the compared range (path exact, reason free text — check_budget_monotonicity.sh is_allowed). gates.yml enforces it: on a push to main against the tip before the push, on a pull request against the target branch. Locally `make budget-monotonicity` (Makefile, baseline ${BUDGET_BASE_REF:-HEAD}) compares the working tree with HEAD, catching an uncommitted raise but not seeing an uncommitted trailer or an already-committed raise; `BUDGET_BASE_REF=origin/main make budget-monotonicity` checks committed work.",
+   "hash": "2ea925734778c202",
+   "does": ".ci/*.txt budgets (shared_usage, try_optional, legacy_observable_object, swiftlint_warning, unchecked_sendable, etc. — all exist) ratchet down. Raising a ceiling or lowering a min_* floor needs a `budget-raise-ok: .ci/<name>.txt <reason>` trailer in a commit in the compared range (path exact, reason free text — check_budget_monotonicity.sh is_allowed). gates.yml enforces it: on a push to main against the tip before the push, on a pull request against the target branch. Locally `make budget-monotonicity` compares the working tree with the merge base of HEAD and origin/main (seeing committed and uncommitted raises and every trailer the branch has committed, not an uncommitted trailer), falls back to HEAD with a message when there is no origin/main, and BUDGET_BASE_REF=<ref> picks another baseline. Makefile target budget-monotonicity does exactly that.",
    "entry": null,
    "calls": [
     "Makefile::target budget-monotonicity",
@@ -141,7 +141,7 @@
    "branches": [],
    "deps": {
     ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "197c125d8c622cd8",
-    "Makefile::target budget-monotonicity": "ecb87460dba7db67",
+    "Makefile::target budget-monotonicity": "f2990c87cb8c36d4",
     "Makefile::target debt-budget": "107274ad82f7d924",
     "scripts/check_budget_monotonicity.sh::fn is_allowed": "76309c9411982f50"
    }
@@ -186,8 +186,8 @@
   },
   {
    "key": "§ How a change lands in Emuqu > Before you open a pull request",
-   "hash": "2512a1224e38cd0d",
-   "does": "`make ci` is the enforcement: gates.yml runs bash/python gates on push incl. debt budgets and spec conformance; ci.yml runs SwiftLint, the macOS build, the unit suite and Thread Sanitizer on every pull request, the UI target only on demand and before a release; `make ci` (which includes the UI target) runs lint, budgets, spec conformance, localization, copy perimeter, doc links and the full test suite with coverage (Makefile ci). Says two ci.yml checks are not in `make ci`: `make thread-sanitizer` and `make release-build`, to run when a change touches concurrency or could differ under the optimizer. Adds that `make codemap-impact` lists everything the branch's changes can affect and that a pull request gets the same list in the gates.yml job summary.",
+   "hash": "b6fe937acbe6afc0",
+   "does": "`make ci` is the enforcement: gates.yml runs bash/python gates on push incl. debt budgets and spec conformance; ci.yml runs SwiftLint, the macOS build, the unit suite and Thread Sanitizer on every pull request, the UI target only on demand and before a release; `make ci` (which includes the UI target) runs lint, budgets, spec conformance, localization, copy perimeter, doc links, the Release build (`make release-build`), the unit suite under Thread Sanitizer (`make thread-sanitizer`) and the full test suite with coverage (Makefile ci lists all of them). Adds that `make codemap-impact` lists everything the branch's changes can affect and that a pull request gets the same list in the gates.yml job summary.",
    "entry": null,
    "calls": [
     "Makefile::target ci",
@@ -204,11 +204,11 @@
    "deps": {
     ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64",
     ".github/workflows/gates.yml::step script-gates/Code map impact of this pull request": "db4ba9cd8b1a58cd",
-    "Makefile::target ci": "de372d3ddd101741",
+    "Makefile::target ci": "314d826a23831255",
     "Makefile::target codemap-impact": "03eba22ded671ba7",
-    "Makefile::target release-build": "458ef16e52e4c447",
+    "Makefile::target release-build": "5357cf205e264442",
     "Makefile::target test-coverage": "2f52b6f381055f27",
-    "Makefile::target thread-sanitizer": "b83b5193474b0ddb"
+    "Makefile::target thread-sanitizer": "adfca9b867c6ab56"
    }
   },
   {

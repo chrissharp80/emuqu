@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// Personal baseline tracking for multi-night HRV trends
 /// Per design spec v8.1: Rolling 7-day baseline with deviation tracking
@@ -94,9 +95,42 @@ final class BaselineTracker: @unchecked Sendable {
     private let fileManager = FileManager.default
     private let lock = NSRecursiveLock()
     private let onBaselineUpdated: BaselineUpdater?
+    /// Why `save()` must not write over `baselineFile` yet, or nil when it may.
+    /// Set by `load()`; read and cleared under `lock`.
+    private var saveHold: SaveHold?
 
-    /// Data point for baseline calculation
-    private struct BaselineDataPoint: Codable {
+    /// Why the file at `baselineFile` must not be written over.
+    private enum SaveHold {
+        /// The file could not be read but may be intact: iOS file protection
+        /// kept it unreadable (a background launch before the first unlock),
+        /// or the read failed for a reason that can pass (out of file
+        /// descriptors, an I/O error; `FileReadFailure.transient`). It is read
+        /// again when protected data is available, the app becomes active or
+        /// goes to the background, or before the next change, and the nights
+        /// taken in meanwhile are merged onto it (`reloadAfterUnlock()`).
+        case fileNotRead
+        /// The file did not decode and the copy of its bytes could not be
+        /// written aside, so the file is the only copy of what it held. Each
+        /// save writes the copy again from `undecodableBytes`.
+        case unreadableNotSetAside
+    }
+
+    /// The bytes of a file that did not decode, kept while their copy aside
+    /// has not been written (`.unreadableNotSetAside`). Under `lock`.
+    private var undecodableBytes: Data?
+
+    /// The sleep schedule of the last `update` or `rebuildFromSessions`, which
+    /// merging the nights held in memory onto a file read after unlock needs.
+    /// Under `lock`.
+    private var lastSleepSchedule: SleepSchedule?
+
+    /// Protected-data, become-active and background observers, installed
+    /// when the file could not be read at load.
+    private let unlockObservers = NotificationTokens()
+
+    /// Data point for baseline calculation. Internal rather than `private`
+    /// so `BaselineTracker+NightReplacement.swift` can name it.
+    struct BaselineDataPoint: Codable {
         /// Session start. The night slot is derived from it.
         let date: Date
         /// Session end, for the morning-reading rule. Nil on points saved
@@ -164,6 +198,7 @@ final class BaselineTracker: @unchecked Sendable {
         self.onBaselineUpdated = onBaselineUpdated
         self.baselineFile = baselineFile
         load()
+        if saveHold == .fileNotRead { observeUnlock() }
         recalculateBaseline()
         // Sync loaded baseline on startup
         notifyBaselineChanged()
@@ -325,6 +360,8 @@ final class BaselineTracker: @unchecked Sendable {
         debugLog("[Baseline] Rebuilding from \(validSessions.count) archived sessions")
         lock.lock()
         defer { lock.unlock() }
+        lastSleepSchedule = sleepSchedule
+        reloadAfterUnlock()
         let admitted = validSessions.map { merge($0, sleepSchedule: sleepSchedule) }
         if admitted.contains(true) { commitChanges() }
         debugLog("[Baseline] Rebuild complete: \(historicalData.count) data points, baseline: \(currentBaseline != nil ? "available" : "not yet established")")
@@ -425,6 +462,8 @@ final class BaselineTracker: @unchecked Sendable {
     func update(with session: HRVSession, sleepSchedule: SleepSchedule) {
         lock.lock()
         defer { lock.unlock() }
+        lastSleepSchedule = sleepSchedule
+        reloadAfterUnlock()
         guard merge(session, sleepSchedule: sleepSchedule) else { return }
         commitChanges()
     }
@@ -508,42 +547,6 @@ final class BaselineTracker: @unchecked Sendable {
         )
     }
 
-    /// One reading per night, keyed by the night's wake date
-    /// (`SleepSchedule.nightKey`), not the calendar day: a night started at
-    /// 23:30 and its 00:30 continuation share a slot, and two different
-    /// nights never do. A morning reading always beats a non-morning one;
-    /// otherwise the newcomer has to have earned the slot outright. Static,
-    /// over the `nights` it is given, so the stored baseline and
-    /// `baselineRMSSDs` apply the one rule.
-    private static func mergeIntoNight(
-        _ dataPoint: BaselineDataPoint, into nights: inout [BaselineDataPoint], sleepSchedule: SleepSchedule
-    ) {
-        let night = sleepSchedule.nightKey(for: dataPoint.date)
-        guard let existingIndex = nights.firstIndex(
-            where: { sleepSchedule.nightKey(for: $0.date) == night }
-        ) else {
-            nights.append(dataPoint)
-            return
-        }
-        if shouldReplace(nights[existingIndex], with: dataPoint, sleepSchedule: sleepSchedule) {
-            nights[existingIndex] = dataPoint
-        }
-    }
-
-    private static func shouldReplace(
-        _ existing: BaselineDataPoint,
-        with dataPoint: BaselineDataPoint,
-        sleepSchedule: SleepSchedule
-    ) -> Bool {
-        let isMorningReading = sleepSchedule.isMorningReading(endDate: dataPoint.endDate ?? dataPoint.date)
-        let existingIsMorning = sleepSchedule.isMorningReading(endDate: existing.endDate ?? existing.date)
-        // A morning reading always wins over a non-morning one, in either
-        // direction. Like-for-like, the new window must be objectively better —
-        // it has to have earned the right, i.e. would have won window selection.
-        if isMorningReading != existingIsMorning { return isMorningReading }
-        return newWindowIsObjectivelyBetter(new: dataPoint, existing: existing)
-    }
-
     /// Notify the caller that the baseline changed (via injected callback).
     private func notifyBaselineChanged() {
         guard let baseline = currentBaseline, baseline.sampleCount >= Baseline.minimumSamples else {
@@ -591,120 +594,27 @@ final class BaselineTracker: @unchecked Sendable {
         )
     }
 
-    /// Reset baseline (start fresh)
+    /// Reset baseline (start fresh): forgets every stored night and saves the
+    /// empty baseline. A file that could not be read at load is written over
+    /// without being read first, as its nights are the ones being discarded; a file
+    /// that did not decode and whose copy could not be written aside stays
+    /// protected (`mayWriteFile()`).
     func reset() {
         lock.lock()
         defer { lock.unlock() }
         currentBaseline = nil
         historicalData = []
+        if saveHold == .fileNotRead { saveHold = nil }
         save()
     }
+
+    deinit { unlockObservers.removeAll() }
 
     // MARK: - Private Methods
 
     /// Compute the mean of values, returning nil if the array is empty.
     private static func optionalMean(_ values: [Double]) -> Double? {
         values.isEmpty ? nil : values.mean
-    }
-
-    /// Determine if new window is objectively better than existing window
-    /// New window must have "earned the right" to replace - would have won window selection
-    /// - Parameters:
-    ///   - new: New data point candidate
-    ///   - existing: Existing data point currently in baseline
-    /// - Returns: True if new window is objectively superior and should replace existing
-    private static func newWindowIsObjectivelyBetter(new: BaselineDataPoint, existing: BaselineDataPoint) -> Bool {
-        if let verdict = consolidationVerdict(new: new, existing: existing) { return verdict }
-        if let verdict = organizedRecoveryVerdict(new: new, existing: existing) { return verdict }
-        if !passesQualityGates(new: new, existing: existing) { return false }
-        return isMeaningfullyBetterScore(new: new, existing: existing)
-    }
-
-    /// 1. Consolidated windows take priority over non-consolidated: a true
-    /// consolidated recovery (sustained plateau + stable HR) beats a spike.
-    /// Nil means consolidation didn't decide it.
-    private static func consolidationVerdict(new: BaselineDataPoint, existing: BaselineDataPoint) -> Bool? {
-        let newScore = new.readinessScore ?? 0
-        let existingScore = existing.readinessScore ?? 0
-        let newConsolidated = new.isConsolidated ?? false
-        let existingConsolidated = existing.isConsolidated ?? false
-        if existingConsolidated, !newConsolidated {
-            // New must have SIGNIFICANTLY higher readiness to replace (>15% better).
-            let threshold = existingScore * BaselineConstants.consolidatedReplacementFraction
-            debugLog("[Baseline] New window not consolidated vs existing consolidated - requires >15% score improvement")
-            return newScore - existingScore > threshold
-        }
-        // Consolidated wins if the score is close (within 10% or better).
-        if newConsolidated, !existingConsolidated,
-           newScore >= existingScore * BaselineConstants.consolidatedAdvantageFraction {
-            debugLog("[Baseline] New window is consolidated vs existing non-consolidated - replacing")
-            return true
-        }
-        return nil
-    }
-
-    /// 2. With consolidation equal, organized recovery (DFA α1 0.75-1.0) is the
-    /// critical readiness signal. Nil means it didn't decide it.
-    private static func organizedRecoveryVerdict(new: BaselineDataPoint, existing: BaselineDataPoint) -> Bool? {
-        guard (new.isConsolidated ?? false) == (existing.isConsolidated ?? false) else { return nil }
-        let newOrganized = new.isOrganizedRecovery ?? false
-        let existingOrganized = existing.isOrganizedRecovery ?? false
-        if existingOrganized, !newOrganized {
-            debugLog("[Baseline] New window lacks organized recovery vs existing organized - rejecting")
-            return false
-        }
-        // Strong advantage: within 5% or better is enough.
-        if newOrganized, !existingOrganized,
-           (new.readinessScore ?? 0) >= (existing.readinessScore ?? 0) * BaselineConstants.organizedRecoveryAdvantageFraction {
-            debugLog("[Baseline] New window has organized recovery vs existing unorganized - replacing")
-            return true
-        }
-        return nil
-    }
-
-    /// 3-4. Quality control: artifact rate and HR stability must not be
-    /// meaningfully worse than what is already in the baseline.
-    private static func passesQualityGates(new: BaselineDataPoint, existing: BaselineDataPoint) -> Bool {
-        let newArtifacts = new.artifactPercentage ?? 100.0
-        let existingArtifacts = existing.artifactPercentage ?? 100.0
-
-        // Use a floor so that near-zero baselines don't reject excellent-quality windows.
-        // Without this, an existing 0.0% baseline rejects any non-zero rate (e.g. 0.5%).
-        let artifactCeiling = max(existingArtifacts * BaselineConstants.artifactCeilingMultiplier, BaselineConstants.artifactCeilingFloor)
-        if newArtifacts > artifactCeiling {
-            // New window has significantly more artifacts
-            debugLog("[Baseline] New window has high artifact rate (\(String(format: "%.1f", newArtifacts))% vs \(String(format: "%.1f", existingArtifacts))%, ceiling \(String(format: "%.1f", artifactCeiling))%) - rejecting")
-            return false
-        }
-
-        return hrStabilityAcceptable(new: new, existing: existing)
-    }
-
-    /// Lower CV is better. A window more than 30% less stable than the one it
-    /// would replace is rejected.
-    private static func hrStabilityAcceptable(new: BaselineDataPoint, existing: BaselineDataPoint) -> Bool {
-        guard let newStability = new.windowHRStability,
-              let existingStability = existing.windowHRStability else { return true }
-        guard newStability > existingStability * BaselineConstants.hrStabilityRejectMultiplier else { return true }
-        debugLog("[Baseline] New window has poor HR stability (CV \(String(format: "%.3f", newStability)) vs \(String(format: "%.3f", existingStability))) - rejecting")
-        return false
-    }
-
-    /// 5. Both windows have similar quality characteristics by now, so the new
-    /// one must be meaningfully better (>5% improvement minimum).
-    private static func isMeaningfullyBetterScore(new: BaselineDataPoint, existing: BaselineDataPoint) -> Bool {
-        let newScore = new.readinessScore ?? 0
-        let existingScore = existing.readinessScore ?? 0
-        let scoreDelta = newScore - existingScore
-        let minImprovement = existingScore * BaselineConstants.minimumImprovementFraction // 5% minimum improvement
-
-        if scoreDelta > minImprovement {
-            debugLog("[Baseline] New window is objectively better - score improvement: \(String(format: "%.1f", scoreDelta)) (>\(String(format: "%.1f", minImprovement)) threshold)")
-            return true
-        } else {
-            debugLog("[Baseline] New window does not meet improvement threshold - delta: \(String(format: "%.1f", scoreDelta)), need: >\(String(format: "%.1f", minImprovement))")
-            return false
-        }
     }
 
     /// The display baseline over the 7 most recent stored nights. The score
@@ -761,40 +671,156 @@ final class BaselineTracker: @unchecked Sendable {
 
     // MARK: - Persistence
 
+    /// Reads the stored nights (`readFile()`); a file that cannot be read or
+    /// decoded leaves the tracker empty with the hold `readFile` sets.
     private func load() {
-        guard fileManager.fileExists(atPath: baselineFile.path) else { return }
+        guard fileManager.fileExists(atPath: baselineFile.path), let stored = readFile() else { return }
+        currentBaseline = stored.baseline
+        historicalData = stored.historicalData
+    }
 
+    /// The stored baseline and nights, or nil with `saveHold` set for why not.
+    /// A failed read is classified as `SettingsManager.load(from:)` does
+    /// (`Self.hold(forReadError:)`): a file that may be intact is left in place
+    /// and holds saves until it reads; only a file that is gone or can never
+    /// give its bytes back lets saves go ahead. Bytes that do not decode are
+    /// written aside first (`setAsideUndecodable`), and saves are held only
+    /// while that write fails.
+    private func readFile() -> StoredData? {
+        let data: Data
         do {
-            let data = try Data(contentsOf: baselineFile)
+            data = try Data(contentsOf: baselineFile)
+        } catch let nsError as NSError {
+            saveHold = Self.hold(forReadError: nsError)
+            if saveHold == nil {
+                debugLog("[Baseline] baseline file is gone or can never be read — nothing to keep, starting empty: \(nsError)", level: .warning)
+            } else {
+                debugLog("[Baseline] baseline file could not be read — saves wait until it reads: \(nsError)", level: .warning)
+            }
+            return nil
+        }
+        return decodeOrSetAside(data)
+    }
+
+    /// Whether a failed read of the baseline file holds saves; the decision
+    /// `readFile()` makes, for tests.
+    static func holdsSaves(afterReadError error: NSError) -> Bool {
+        hold(forReadError: error) != nil
+    }
+
+    /// The save hold a failed read of the baseline file leaves: `.fileNotRead`
+    /// while the file may be intact (protection-locked or a read that can
+    /// pass), none when it is gone or can never give its bytes back.
+    private static func hold(forReadError error: NSError) -> SaveHold? {
+        switch FileReadFailure(error) {
+        case .locked, .transient: .fileNotRead
+        case .gone, .nothingToKeep: nil
+        }
+    }
+
+    /// The second half of `readFile()`: `data` decoded, or nil once its bytes
+    /// are written aside (no hold) or with `.unreadableNotSetAside` when that
+    /// write fails.
+    private func decodeOrSetAside(_ data: Data) -> StoredData? {
+        do {
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
-            let stored = try decoder.decode(StoredData.self, from: data)
-            currentBaseline = stored.baseline
-            historicalData = stored.historicalData
+            return try decoder.decode(StoredData.self, from: data)
         } catch {
             // A corrupt/undecodable file that fails load() silently AND
             // survives on disk means every launch re-reads the same garbage
-            // and save() can later clobber it. Quarantine the
-            // bad file aside so we start clean and never overwrite evidence.
-            debugLog("Failed to load baseline: \(error) — quarantining file")
-            quarantineCorruptFile()
+            // and save() can later clobber it. Keep its bytes aside first.
+            let keptAside = setAsideUndecodable(data)
+            debugLog(keptAside
+                ? "Failed to load baseline: \(error) — kept a copy aside"
+                : "Failed to load baseline: \(error) — its copy could not be written aside, so saves are held", level: .error)
+            saveHold = keptAside ? nil : .unreadableNotSetAside
+            return nil
         }
     }
 
-    /// Move a corrupt baseline file aside (once) so the next launch starts
-    /// from a clean slate instead of re-reading the same undecodable bytes.
-    private func quarantineCorruptFile() {
-        guard fileManager.fileExists(atPath: baselineFile.path) else { return }
-        let quarantined = baselineFile.appendingPathExtension("corrupt")
-        _ = attempt("BaselineTracker.remove") { try fileManager.removeItem(at: quarantined) } // clear any prior quarantine
-        do {
-            try fileManager.moveItem(at: baselineFile, to: quarantined)
-        } catch {
-            debugLog("Failed to quarantine corrupt baseline: \(error)")
+    /// Watches for protected data becoming available, the app becoming active
+    /// (which a suspended app sees instead) and the app going to the
+    /// background while the file could not be read, so it is read again and
+    /// the nights held in memory are saved without waiting for the next change.
+    private func observeUnlock() {
+        let names = [
+            UIApplication.protectedDataDidBecomeAvailableNotification,
+            UIApplication.didBecomeActiveNotification,
+            UIApplication.didEnterBackgroundNotification
+        ]
+        for name in names {
+            unlockObservers.add(NotificationCenter.default.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
+                self?.retryAfterUnlock()
+            })
         }
+    }
+
+    /// Notification entry for `reloadAfterUnlock()`; a no-op once the hold is gone.
+    private func retryAfterUnlock() {
+        lock.lock()
+        defer { lock.unlock() }
+        reloadAfterUnlock()
+    }
+
+    /// While the file could not be read at load, reads it again. Once it is
+    /// readable, the nights held in memory are merged onto the file's nights
+    /// (one per night, with the last sleep schedule an update or rebuild
+    /// passed), the hold lifts and the result is committed. Still unreadable:
+    /// nothing changes. Gone, or unable ever to give its bytes back: the hold
+    /// is what `readFile()` leaves, and the held nights are saved with the
+    /// next change. Caller holds `lock`.
+    private func reloadAfterUnlock() {
+        guard saveHold == .fileNotRead else { return }
+        guard fileManager.fileExists(atPath: baselineFile.path) else {
+            saveHold = nil
+            return
+        }
+        guard var nights = readFile()?.historicalData else { return }
+        if let schedule = lastSleepSchedule {
+            for point in historicalData {
+                Self.mergeIntoNight(point, into: &nights, sleepSchedule: schedule)
+            }
+        }
+        historicalData = nights
+        saveHold = nil
+        debugLog("[Baseline] baseline file readable again — merged into \(historicalData.count) nights")
+        commitChanges()
+    }
+
+    /// Writes the bytes of a file that did not decode to `<name>.corrupt`
+    /// (atomically, so an earlier copy is replaced only once the new one is
+    /// complete). On failure the bytes are kept in `undecodableBytes` for the
+    /// next save to try again. True once the copy is on disk.
+    private func setAsideUndecodable(_ data: Data) -> Bool {
+        do {
+            try data.write(to: baselineFile.appendingPathExtension("corrupt"), options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+            undecodableBytes = nil
+            return true
+        } catch {
+            undecodableBytes = data
+            return false
+        }
+    }
+
+    /// Whether `save()` may write `baselineFile`: always without a hold, and
+    /// once the held file is gone (Delete All My Data removed it). The copy of
+    /// an undecodable file is written again here; an unread file waits for
+    /// `reloadAfterUnlock()`. A save that stays held is not logged again: the
+    /// hold was logged when it was set. Caller holds `lock`.
+    private func mayWriteFile() -> Bool {
+        guard let hold = saveHold else { return true }
+        let fileGone = !fileManager.fileExists(atPath: baselineFile.path)
+        let setAside = hold == .unreadableNotSetAside && (undecodableBytes.map { setAsideUndecodable($0) } ?? true)
+        guard fileGone || setAside else { return false }
+        if setAside { debugLog("[Baseline] copy of the undecodable baseline written aside — saves resume") }
+        saveHold = nil
+        undecodableBytes = nil
+        return true
     }
 
     private func save() {
+        guard mayWriteFile() else { return }
         do {
             let stored = StoredData(baseline: currentBaseline, historicalData: historicalData)
             let encoder = JSONEncoder()

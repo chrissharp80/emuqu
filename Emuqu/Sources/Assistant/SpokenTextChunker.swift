@@ -55,6 +55,17 @@ final class SpokenTextChunker {
         pendingBuffer = ""
     }
 
+    /// Take back the last `count` characters appended, as far as they are
+    /// still buffered. The voice pipeline calls this when the text it reads
+    /// is rewound (a cut pre-tool lead-in, a failed reply a fallback
+    /// replaces), so an unspoken tail of the withdrawn text is never spoken
+    /// in front of what replaces it. Text already returned as a chunk cannot
+    /// be taken back.
+    func withdrawLast(_ count: Int) {
+        guard count > 0 else { return }
+        pendingBuffer = String(pendingBuffer.dropLast(count))
+    }
+
     private func drainCompletedSentence() -> String? {
         guard let lastEnder = pendingBuffer.indices.last(where: { isSentenceBoundary(at: $0) }) else {
             return nil

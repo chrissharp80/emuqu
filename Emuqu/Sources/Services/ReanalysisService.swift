@@ -4,8 +4,9 @@ import Foundation
 /// session mutation logic.
 ///
 /// Dependencies are injected explicitly so the service is testable without
-/// an `RRCollector` instance. One exception: `persist` drops the session's
-/// entry from `AppDependencies.current.app.organizedZonesCache`.
+/// an `RRCollector` instance. One exception: `finishReanalysisWrite` drops
+/// the session's entry from `AppDependencies.current.app.organizedZonesCache`.
+/// A rescore is written through `RescoreWrite` (end of this file).
 @MainActor
 final class ReanalysisService {
     // MARK: - Shared Readiness Computation
@@ -267,10 +268,33 @@ final class ReanalysisService {
         return await reanalyze(session, series: series, method: method)
     }
 
-    /// The analysis pass itself, after the guards.
+    /// The analysis pass, run again from the archived copy when an input the
+    /// result is computed from changed while it ran (`RescoreWrite`), up to
+    /// `RescoreWrite.runs` times. Stops without writing when a manual window
+    /// was picked meanwhile, or the inputs keep changing.
     private func reanalyze(
         _ session: HRVSession, series: RRSeries, method: WindowSelectionMethod
     ) async -> HRVSession? {
+        var read = session
+        var series = series
+        for run in 1 ... RescoreWrite.runs {
+            guard let scored = await analyzeAndScore(read, series: series, method: method) else { return nil }
+            let outcome = await persist(scored.session, readFrom: read, kind: .reanalysis(healedTraining: scored.healedTraining))
+            guard case .inputsChanged(let stored)? = outcome else { return outcome?.written }
+            guard let next = RescoreWrite.reanalysisRerun(read: read, stored: stored, run: run),
+                  let nextSeries = next.rrSeries else { return nil }
+            read = next
+            series = nextSeries
+        }
+        return nil
+    }
+
+    /// One analysis pass: window, analysis, quality class and score, on a
+    /// copy of `session`. Nil when the analysis fails. Reports whether the
+    /// training snapshot was healed, the one case the pass writes it.
+    private func analyzeAndScore(
+        _ session: HRVSession, series: RRSeries, method: WindowSelectionMethod
+    ) async -> (session: HRVSession, healedTraining: Bool)? {
         debugLog("[ReanalysisService] Re-analyzing session \(session.id) with \(series.points.count) points")
         // Copy the original session and update only what reanalysis changes.
         let sessionEndDate = session.endDate ?? session.startDate.addingTimeInterval(12 * 60 * 60)
@@ -288,9 +312,8 @@ final class ReanalysisService {
             return nil
         }
         applyAnalysis(analysisResult, to: &updatedSession)
-        await rescore(&updatedSession, analysisResult: analysisResult, original: session, sessionEndDate: sessionEndDate)
-        guard await persist(updatedSession) else { return nil }
-        return updatedSession
+        let healed = await rescore(&updatedSession, analysisResult: analysisResult, original: session, sessionEndDate: sessionEndDate)
+        return (updatedSession, healed)
     }
 
     /// Use STORED sleep boundaries for window selection so reanalysis is
@@ -358,16 +381,17 @@ final class ReanalysisService {
     }
 
     /// Re-score against the wake-time training context, then label which sleep
-    /// segment the analysis window falls in.
+    /// segment the analysis window falls in. Returns whether the training
+    /// snapshot was healed.
     private func rescore(
         _ updatedSession: inout HRVSession,
         analysisResult: HRVAnalysisResult,
         original session: HRVSession,
         sessionEndDate: Date
-    ) async {
+    ) async -> Bool {
         let frozenCandidate = session.trainingSnapshot ?? session.analysisResult?.trainingContext
         let frozenTraining = await wakeTimeTraining(candidate: frozenCandidate, sessionEndDate: sessionEndDate)
-        healTrainingSnapshot(&updatedSession, to: frozenTraining, from: frozenCandidate)
+        let healed = healTrainingSnapshot(&updatedSession, to: frozenTraining, from: frozenCandidate)
         applyRecoveryScore(
             to: &updatedSession,
             analysisResult: analysisResult,
@@ -379,6 +403,7 @@ final class ReanalysisService {
             analysisResult: analysisResult,
             originalSession: session
         )
+        return healed
     }
 
     /// Re-score against the WAKE-TIME training context, and
@@ -409,41 +434,51 @@ final class ReanalysisService {
     }
 
     /// Persist the wake context when it differs from what's stored (heals
-    /// a drifted snapshot); a no-op when it already matches.
+    /// a drifted snapshot); a no-op when it already matches. Returns whether
+    /// it healed.
     private func healTrainingSnapshot(
         _ session: inout HRVSession, to frozenTraining: TrainingContext?, from frozenCandidate: TrainingContext?
-    ) {
-        guard let healed = frozenTraining,
-              healed.atl != frozenCandidate?.atl || healed.ctl != frozenCandidate?.ctl else { return }
+    ) -> Bool {
+        guard let healed = frozenTraining, RescoreWrite.heals(healed, over: frozenCandidate) else { return false }
         // ATL / CTL are PHI and debugLog is user-exportable: log that the
         // snapshot was restored, not the values.
         debugLog("[ReanalysisService] Reanalyze: restored the wake-time trainingSnapshot (it differed from the stored one)")
         session.trainingSnapshot = healed
+        return true
     }
 
     /// Archive write also runs off main — overnight sessions serialize
     /// to 1.5 MB+ JSON and blocked the UI noticeably on the main actor.
-    /// SessionArchive is NSLock-protected internally.
-    private func persist(_ updatedSession: HRVSession) async -> Bool {
+    /// SessionArchive is NSLock-protected internally. The write is
+    /// `RescoreWrite.write`: only what this pass computed, and only when the
+    /// inputs it read are still the archive's. Nil when the write failed.
+    private func persist(
+        _ rescored: HRVSession, readFrom read: HRVSession, kind: RescoreWrite.Kind
+    ) async -> RescoreWrite.Outcome? {
         let archive = archive
-        let sessionToArchive = updatedSession
+        let outcome: RescoreWrite.Outcome
         do {
-            try await Task.detached(priority: .userInitiated) {
-                _ = try archive.archive(sessionToArchive)
+            outcome = try await Task.detached(priority: .userInitiated) {
+                try RescoreWrite.write(rescored, readFrom: read, kind: kind, to: archive)
             }.value
         } catch {
             debugLog("[ReanalysisService] Failed to save re-analyzed session: \(error)")
-            return false
+            return nil
         }
-        // Cached on-demand zones computed by the chart view are now stale
-        // (the window has changed). Drop them so the next chart render
-        // recomputes against the new window.
-        AppDependencies.current.app.organizedZonesCache.invalidate(updatedSession.id)
-        baselineTracker.update(with: updatedSession, sleepSchedule: settingsProvider().sleepSchedule)
+        if case .written(let written) = outcome { finishReanalysisWrite(written) }
+        return outcome
+    }
+
+    /// After a reanalysis was written: cached on-demand zones computed by the
+    /// chart view are stale (the window has changed), so they are dropped and
+    /// the next chart render recomputes against the new window; the baseline,
+    /// the archive signal and iCloud see the session as written.
+    private func finishReanalysisWrite(_ written: HRVSession) {
+        AppDependencies.current.app.organizedZonesCache.invalidate(written.id)
+        baselineTracker.update(with: written, sleepSchedule: settingsProvider().sleepSchedule)
         onArchiveChanged()
-        Task { onSessionUploaded(sessionToArchive) }
+        Task { onSessionUploaded(written) }
         debugLog("[ReanalysisService] Re-analysis complete")
-        return true
     }
 
     private func applyRecoveryScore(
@@ -524,7 +559,22 @@ final class ReanalysisService {
     /// scored on today's load. Builds the score with the healed context. If nothing actually changed
     /// (no corruption to fix, no other input changes), the computed score
     /// matches the existing one and we just save the same values — cheap.
+    ///
+    /// When an input the score is computed from changed while it ran
+    /// (`RescoreWrite`), it runs again from the archive, up to
+    /// `RescoreWrite.runs` times, then gives up and logs it.
     func recomputeScoreOnly(sessionId: UUID) async -> HRVSession? {
+        for _ in 1 ... RescoreWrite.runs {
+            let outcome = await scoreOnlyRun(sessionId: sessionId)
+            guard case .inputsChanged? = outcome else { return outcome?.written }
+        }
+        debugLog("[ReanalysisService] recomputeScoreOnly: inputs kept changing while it ran — giving up; the edit that changed them rescores the session")
+        return nil
+    }
+
+    /// One score-only pass from the archived copy. Nil when the session or
+    /// its analysis is missing, the composite is NaN/Inf, or the write fails.
+    private func scoreOnlyRun(sessionId: UUID) async -> RescoreWrite.Outcome? {
         guard let session = try? archive.retrieve(sessionId) else {
             debugLog("[ReanalysisService] recomputeScoreOnly: session \(sessionId.uuidString.prefix(8)) not in archive")
             return nil
@@ -535,7 +585,8 @@ final class ReanalysisService {
         }
         let healedTraining = await healedTrainingContext(for: session, result: result)
         guard let updated = rescored(session, result: result, training: healedTraining) else { return nil }
-        return persistRescore(updated, previous: Self.scoreFingerprint(of: session))
+        let healed = healedTraining.map { RescoreWrite.heals($0, over: session.trainingSnapshot ?? result.trainingContext) } ?? false
+        return persistRescore(updated, readFrom: session, kind: .scoreOnly(healedTraining: healed), previous: Self.scoreFingerprint(of: session))
     }
 
     /// `session` with the healed training context stamped on and the score,
@@ -636,20 +687,23 @@ final class ReanalysisService {
 
     /// Recovery score / training factor / ATL / CTL are PHI and debugLog is
     /// user-exportable. Log that a score recompute occurred and whether the
-    /// score changed, without the numeric health values.
+    /// score changed, without the numeric health values. The write is
+    /// `RescoreWrite.write`: only the score (and a healed training context),
+    /// and only when the inputs it read are still the archive's.
     private func persistRescore(
-        _ updated: HRVSession, previous: (score: Double, trainingLoad: [Double])
-    ) -> HRVSession? {
+        _ updated: HRVSession, readFrom read: HRVSession, kind: RescoreWrite.Kind,
+        previous: (score: Double, trainingLoad: [Double])
+    ) -> RescoreWrite.Outcome? {
         do {
-            try archive.archive(updated)
+            let outcome = try RescoreWrite.write(updated, readFrom: read, kind: kind, to: archive)
+            guard case .written(let written) = outcome else { return outcome }
             onArchiveChanged()
-            let sessionToUpload = updated
-            Task { [onSessionUploaded] in onSessionUploaded(sessionToUpload) }
-            let current = Self.scoreFingerprint(of: updated)
+            Task { [onSessionUploaded] in onSessionUploaded(written) }
+            let current = Self.scoreFingerprint(of: written)
             let scoreChanged = current.score != previous.score
             let loadChanged = current.trainingLoad != previous.trainingLoad
             debugLog("[ReanalysisService] recomputeScoreOnly: recomputed (score \(scoreChanged ? "changed" : "unchanged"), training load \(loadChanged ? "changed" : "unchanged"))")
-            return updated
+            return outcome
         } catch {
             debugLog("[ReanalysisService] recomputeScoreOnly: archive write failed: \(error)")
             return nil
@@ -736,4 +790,197 @@ final class ReanalysisService {
         debugLog("[ReanalysisService] Re-analyzed \(successCount)/\(filtered.count) sessions, \(skippedCount) manual windows preserved\(Task.isCancelled ? " (cancelled)" : "")")
         return (updated: successCount, skipped: skippedCount)
     }
+}
+
+// MARK: - Writing a rescore
+
+/// How a rescore reaches the archive. A rescore reads the session, works for
+/// seconds and writes back, while other paths save to the same session. So
+/// the write is optimistic: under the archive's lock (`SessionArchive.update`)
+/// the stored copy's inputs (what the result is computed from) are compared
+/// with the copy the rescore read. When they still match, only what this kind
+/// of rescore computes is set on the stored copy, and every other field stays
+/// as stored: tags, notes and the feeling, the HealthKit export stamp (put
+/// back to nil it exports the same samples again), the AI context. When they
+/// differ, nothing of the rescore is written (the stored copy goes back
+/// unchanged) and the caller runs again from the stored copy.
+enum RescoreWrite {
+    /// Which rescore is writing, and so what it may set.
+    enum Kind: Sendable {
+        /// `reanalyze`: the window's analysis, its artifact flags, the
+        /// cleared manual-window mark, the quality class and the score; the
+        /// training snapshot only when the pass healed it.
+        case reanalysis(healedTraining: Bool)
+        /// `recomputeScoreOnly`: the score, breakdown and frozen readiness;
+        /// the training snapshot and the analysis's training context only
+        /// when healed.
+        case scoreOnly(healedTraining: Bool)
+    }
+
+    /// What a write did.
+    enum Outcome: Sendable {
+        /// Written; the session as stored now.
+        case written(HRVSession)
+        /// An input changed since the rescore read the session; nothing of
+        /// it was written. The stored copy, to run again from.
+        case inputsChanged(HRVSession)
+
+        /// The session as written; nil when nothing was.
+        var written: HRVSession? {
+            guard case .written(let session) = self else { return nil }
+            return session
+        }
+    }
+
+    /// How many times a rescore runs before it gives up on inputs that keep
+    /// changing. Each edit that changes an input rescores the session
+    /// itself, so giving up loses nothing.
+    static let runs = 3
+
+    /// Write `rescored`, computed from `read`. A session the archive does not
+    /// hold is archived as it is.
+    static func write(_ rescored: HRVSession, readFrom read: HRVSession, kind: Kind, to archive: SessionArchive) throws -> Outcome {
+        guard archive.exists(rescored.id) else {
+            _ = try archive.archive(rescored)
+            return .written(rescored)
+        }
+        var outcome = Outcome.written(rescored)
+        try archive.update(rescored.id, requestingReupload: false) { stored in
+            guard inputsMatch(stored, read, kind: kind) else {
+                outcome = .inputsChanged(stored)
+                return
+            }
+            applyComputedFields(from: rescored, to: &stored, kind: kind)
+            outcome = .written(stored)
+        }
+        return outcome
+    }
+
+    /// Set on `session` what this kind of rescore computes, from `rescored`.
+    static func applyComputedFields(from rescored: HRVSession, to session: inout HRVSession, kind: Kind) {
+        session.recoveryScore = rescored.recoveryScore
+        session.scoreBreakdown = rescored.scoreBreakdown
+        session.frozenReadiness = rescored.frozenReadiness
+        switch kind {
+        case let .reanalysis(healedTraining):
+            session.analysisResult = rescored.analysisResult
+            session.artifactFlags = rescored.artifactFlags
+            session.windowUserAdjusted = rescored.windowUserAdjusted
+            session.hrvDataQuality = rescored.hrvDataQuality
+            if healedTraining { session.trainingSnapshot = rescored.trainingSnapshot }
+        case let .scoreOnly(healedTraining):
+            guard healedTraining else { return }
+            session.trainingSnapshot = rescored.trainingSnapshot
+            session.analysisResult?.trainingContext = rescored.analysisResult?.trainingContext
+        }
+    }
+
+    /// The stored copy a reanalysis whose inputs changed runs again from, or
+    /// nil when it stops: a manual window picked meanwhile is the user's and
+    /// is never replaced (the pick scores the session itself), a copy with
+    /// no beats cannot be analysed, and the last run gives up.
+    static func reanalysisRerun(read: HRVSession, stored: HRVSession, run: Int) -> HRVSession? {
+        if stored.windowUserAdjusted == true, read.windowUserAdjusted != true {
+            debugLog("[ReanalysisService] A window was picked by hand during the reanalysis — leaving it")
+            return nil
+        }
+        guard run < runs else {
+            debugLog("[ReanalysisService] Inputs kept changing during the reanalysis — giving up; the edit that changed them rescores the session")
+            return nil
+        }
+        guard let series = stored.rrSeries, !series.points.isEmpty else {
+            debugLog("[ReanalysisService] The archived copy has no beats to reanalyse — giving up")
+            return nil
+        }
+        return stored
+    }
+
+    /// Whether `training` heals `candidate`: its load differs, the same test
+    /// both rescores use before they replace a frozen snapshot.
+    static func heals(_ training: TrainingContext, over candidate: TrainingContext?) -> Bool {
+        training.atl != candidate?.atl || training.ctl != candidate?.ctl
+    }
+
+    /// Whether the two copies' inputs for this kind of rescore are the same.
+    /// An input that cannot be encoded counts as changed.
+    static func inputsMatch(_ stored: HRVSession, _ read: HRVSession, kind: Kind) -> Bool {
+        guard let storedInputs = encodedInputs(of: stored, kind: kind),
+              let readInputs = encodedInputs(of: read, kind: kind) else { return false }
+        return storedInputs == readInputs
+    }
+
+    private static func encodedInputs(of session: HRVSession, kind: Kind) -> Data? {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        encoder.nonConformingFloatEncodingStrategy = .convertToString(positiveInfinity: "inf", negativeInfinity: "-inf", nan: "nan")
+        do {
+            return try encoder.encode(Inputs(of: session, kind: kind))
+        } catch {
+            debugLog("[ReanalysisService] Could not compare a rescore's inputs: \(error)", level: .warning)
+            return nil
+        }
+    }
+
+    /// What a rescore's result is computed from: the beats (by count and
+    /// first and last timestamp), the sleep boundaries, segments and
+    /// snapshot, the vitals, the perceived readiness and the training
+    /// snapshot; for a score-only pass also the analysis it scores, and for a
+    /// reanalysis the manual-window mark it would clear.
+    private struct Inputs: Encodable {
+        let beatCount: Int
+        let firstBeatMs: Int64?
+        let lastBeatMs: Int64?
+        let sleepStartMs: Int64?
+        let sleepEndMs: Int64?
+        let sleepSegments: [HRVSession.SleepSegmentMs]?
+        let sleepSnapshot: SleepData?
+        let vitalsSnapshot: RecoveryVitals?
+        let perceivedReadiness: Double?
+        let trainingSnapshot: TrainingContext?
+        let analysisResult: HRVAnalysisResult?
+        let windowUserAdjusted: Bool?
+
+        init(of session: HRVSession, kind: Kind) {
+            let points = session.rrSeries?.points ?? []
+            beatCount = points.count
+            firstBeatMs = points.first?.t_ms
+            lastBeatMs = points.last?.t_ms
+            sleepStartMs = session.sleepStartMs
+            sleepEndMs = session.sleepEndMs
+            sleepSegments = session.sleepSegments
+            sleepSnapshot = session.sleepSnapshot
+            vitalsSnapshot = session.vitalsSnapshot
+            perceivedReadiness = session.perceivedReadiness
+            trainingSnapshot = session.trainingSnapshot
+            switch kind {
+            case .reanalysis:
+                analysisResult = nil
+                windowUserAdjusted = session.windowUserAdjusted
+            case .scoreOnly:
+                analysisResult = session.analysisResult
+                windowUserAdjusted = nil
+            }
+        }
+    }
+
+    /// Every stored field of `HRVSession`, classified. A test checks that the
+    /// two sets together name every stored field, so a field added to the
+    /// session is classified before a rescore can write it. Computed: set by
+    /// some rescore (`applyComputedFields`, each kind its own part).
+    static let computedFields: Set<String> = [
+        "analysisResult", "artifactFlags", "windowUserAdjusted", "hrvDataQuality",
+        "recoveryScore", "scoreBreakdown", "frozenReadiness", "trainingSnapshot"
+    ]
+
+    /// Never written by a rescore: the recording and its identity, the beats
+    /// (the archive's own), the user's entries and adjustments, the sleep and
+    /// vitals snapshots, and the export, sync and AI bookkeeping.
+    static let storedFields: Set<String> = [
+        "sourceSchemaVersion", "id", "startDate", "endDate", "state", "sessionType", "rrSeries",
+        "tags", "notes", "importedMetrics", "deviceProvenance", "sleepStartMs", "sleepEndMs",
+        "sleepSegments", "linkedSessionIds", "pausedDate", "dataSourceSummary", "sleepSnapshot",
+        "sleepUserAdjusted", "napRepaired", "autoWindowResult", "autoWindowScore", "vitalsSnapshot",
+        "healthKitExportedAt", "healthKitExportFailureCount", "modifiedAt", "aiContext",
+        "perceivedReadiness", "morningFeeling", "morningFeelingTags", "workoutMetadata"
+    ]
 }

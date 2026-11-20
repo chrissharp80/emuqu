@@ -315,17 +315,14 @@ final class RRCollectorObservableStateTests: XCTestCase {
     func testMorningCoordinationDefaults() {
         let coord = MorningCoordination()
         XCTAssertNil(coord.morningStatus)
-        XCTAssertFalse(coord.isDeviceFetchInProgress)
         XCTAssertEqual(coord.sleepDataVersion, 0)
     }
 
     func testMorningCoordinationForwardsThroughCollector() {
         collector.morningCoordination.morningStatus = .saving(beats: 500)
-        collector.morningCoordination.isDeviceFetchInProgress = true
         collector.morningCoordination.sleepDataVersion = 7
 
         XCTAssertEqual(collector.morningStatus, .saving(beats: 500))
-        XCTAssertTrue(collector.isDeviceFetchInProgress)
         XCTAssertEqual(collector.sleepDataVersion, 7)
     }
 
@@ -396,7 +393,6 @@ final class RRCollectorObservableStateTests: XCTestCase {
         collector.collectedPoints = [RRPoint(t_ms: 0, rr_ms: 800)]
         collector.needsAcceptance = true
         collector.isPaused = true
-        collector.isDeviceFetchInProgress = true
 
         collector.resetSession()
 
@@ -405,7 +401,6 @@ final class RRCollectorObservableStateTests: XCTestCase {
         XCTAssertFalse(collector.needsAcceptance)
         XCTAssertFalse(collector.isPaused)
         XCTAssertNil(collector.pausedSession)
-        XCTAssertFalse(collector.isDeviceFetchInProgress)
         XCTAssertNil(collector.verificationResult)
         XCTAssertNil(collector.recoveryWindow)
         XCTAssertNil(collector.baselineDeviation)
@@ -522,7 +517,6 @@ final class RRCollectorObservableStateTests: XCTestCase {
         XCTAssertEqual(collector.streamingElapsedSeconds, 0)
         XCTAssertEqual(collector.pausedBeatCount, 0)
         XCTAssertNil(collector.morningStatus)
-        XCTAssertFalse(collector.isDeviceFetchInProgress)
         XCTAssertFalse(collector.isDeviceConnected)
         XCTAssertFalse(collector.isStreaming)
         XCTAssertFalse(collector.hasStoredExercise)

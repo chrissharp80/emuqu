@@ -72,12 +72,14 @@ fi
 # prints "no PR baseline … Skipping" and compares nothing — every ratchet in
 # `.ci/`, all sitting exactly at their measured value, unprotected by the one
 # gate whose entire job is to stop a budget being edited instead of paid.
-# `ci.yml` (a dispatch/call-only workflow, so `github.event.before` is never
-# set) resolves the baseline itself — the `baseline-ref` input when given,
+# `ci.yml` resolves the baseline itself — the `baseline-ref` input when given,
 # else the parent commit `HEAD~1`, else `HEAD` on a root commit with budget
 # edits in the tree — and passes it as `BUDGET_BASE_REF` with
-# `BUDGET_REQUIRE_BASELINE=1`. Local runs with no baseline still skip,
-# deliberately, for the reasons above.
+# `BUDGET_REQUIRE_BASELINE=1`. `gates.yml` passes the pull request's base or
+# the tip before the push as an argument, also with a baseline required.
+# `make budget-monotonicity` passes the merge base with `origin/main` (or
+# `HEAD` where there is none). Running this script directly with no baseline
+# still skips, deliberately, for the reasons above.
 
 # No usable baseline.
 #

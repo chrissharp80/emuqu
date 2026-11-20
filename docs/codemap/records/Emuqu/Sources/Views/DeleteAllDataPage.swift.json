@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Views/DeleteAllDataPage.swift",
- "hash": "feef968df4dcc8bb",
- "role": "Settings → Privacy → Advanced Data Controls → 'Delete All My Data' page: explains what is removed, gates the wipe behind typing 'DELETE MY DATA' plus a confirmation dialog, then runs DataPurgeService.purgeAllUserData and shows the report.",
+ "hash": "1d09fc856113efb2",
+ "role": "Settings → Privacy → Advanced Data Controls → 'Delete All My Data' page: explains what is removed, gates the wipe behind typing 'DELETE MY DATA' plus a confirmation dialog and keeps it disabled, with the reason shown, while a recording is under way or a reading is waiting to be accepted, then runs DataPurgeService.purgeAllUserData and shows the report or the refusal.",
  "types": [
   "DeleteAllDataPage: struct (View) — GDPR/CCPA delete-all page"
  ],
@@ -10,9 +10,10 @@
   "mem:DeleteAllDataPage.typedConfirmation (@State)",
   "mem:DeleteAllDataPage.showingConfirmation (@State)",
   "mem:DeleteAllDataPage.report (@State DataPurgeService.Report?)",
-  "mem:DeleteAllDataPage.isPurging (@State)"
+  "mem:DeleteAllDataPage.isPurging (@State)",
+  "mem:DeleteAllDataPage.refusal (@State String?, why the last confirmed purge was refused)"
  ],
- "toplevel": "Reads RRCollector and SettingsManager from the environment. #Preview (lines 219-225) builds the page with AppDependencies.current.app.settingsManager and a fresh RRCollector(). Reached from AdvancedDataControlsPage.swift:64 and PaywallView.swift:417; snapshot-tested in PageSnapshotTests.swift:29 and driven by EmuquUITests/DataDeletionUITests.swift.",
+ "toplevel": "Reads RRCollector and SettingsManager from the environment, and the dependencies container (\\.dependencies) for the workout recorder. #Preview (lines 264-270) builds the page with AppDependencies.current.app.settingsManager and a fresh RRCollector(). Reached from AdvancedDataControlsPage.swift:64 and PaywallView.swift:417; snapshot-tested in PageSnapshotTests.swift:29 and driven by EmuquUITests/DataDeletionUITests.swift.",
  "units": [
   {
    "key": "var DeleteAllDataPage.phraseMatches",
@@ -28,6 +29,27 @@
    "deps": {}
   },
   {
+   "key": "var DeleteAllDataPage.recordingInProgress",
+   "hash": "671df343a3ba6a09",
+   "does": "Whether a recording is under way or a reading is waiting to be accepted, from DataPurgeService.isRecordingInProgress over the environment collector and the app's workout recorder (dependencies.app.recorderBox.recorder). Both are observable, so the page re-renders when a recording starts or stops.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isRecordingInProgress(collector:workout:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox"
+   ],
+   "reads": [
+    "mem:RecorderBox.recorder"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isRecordingInProgress(collector:workout:)": "0ae1baecd7e62774",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox": "59f6a0baabb8c1c8",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
+   }
+  },
+  {
    "key": "var DeleteAllDataPage.confirmationActions",
    "hash": "bb2fd504a76b6c23",
    "does": "Confirmation dialog buttons: destructive 'Delete All My Data' calls performPurge(); 'Cancel' does nothing.",
@@ -41,7 +63,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()": "15384bf66f97c8b2"
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()": "bbcd769501f1bbb8"
    }
   },
   {
@@ -84,9 +106,9 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.confirmFieldSection": "bdddc5ef7f9d4842",
-    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.deleteButtonSection": "cfda32ce7befa5e7",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.deleteButtonSection": "5fedeb2c5dae23f4",
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.purgingProgressSection": "4b8ee54e6ef41c90",
-    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.resultSection": "744f5345930d63ec",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.resultSection": "5c0716a3cf8e4e65",
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.warningSection": "643303e53a8bf639",
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.whatGetsRemovedSection": "9ae1a848258720ce",
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.whatStaysSection": "b015fe30a52563cb"
@@ -160,12 +182,14 @@
   },
   {
    "key": "var DeleteAllDataPage.deleteButtonSection",
-   "hash": "1ab80da794521808",
-   "does": "Destructive button (id deleteAllData.confirmButton) that sets showingConfirmation; disabled while purging or until phraseMatches.",
+   "hash": "3b263e11eb3fae15",
+   "does": "Destructive button (id deleteAllData.confirmButton) that sets showingConfirmation; disabled while purging, until phraseMatches, or while recordingInProgress. Its footer is recordingFooter.",
    "entry": "Button tap",
    "calls": [
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.deleteSectionLabel",
-    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.phraseMatches"
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.phraseMatches",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.recordingInProgress",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.recordingFooter"
    ],
    "reads": [],
    "writes": [
@@ -174,7 +198,32 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.deleteSectionLabel": "c5e782c6151edb6f",
-    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.phraseMatches": "82e1882c3d480239"
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.phraseMatches": "82e1882c3d480239",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.recordingFooter": "4fb05587e1544120",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.recordingInProgress": "624c422dc4e62c6b"
+   }
+  },
+  {
+   "key": "var DeleteAllDataPage.recordingFooter",
+   "hash": "a1acb9f8d0d9522e",
+   "does": "While recordingInProgress, the section footer text DataPurgeService.Refusal.recordingInProgress's localized description (stop the recording in progress, or accept or discard the reading waiting for review, first, and why); otherwise nothing.",
+   "entry": "SwiftUI evaluates it while rendering the parent view body",
+   "calls": [
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.recordingInProgress",
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Refusal.errorDescription"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "recordingInProgress",
+     "effect": "true: the explanation; false: nothing"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Refusal.errorDescription": "9f9ab2ec5bbfbed4",
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.recordingInProgress": "624c422dc4e62c6b"
    }
   },
   {
@@ -232,8 +281,8 @@
   },
   {
    "key": "var DeleteAllDataPage.resultSection",
-   "hash": "4192b292be6a9aa0",
-   "does": "When a purge report exists, 'Result' section with report.outcomeText and problemRows.",
+   "hash": "263a7cbd66cecc3e",
+   "does": "When the last confirmed purge was refused, a section with a warning Label carrying the refusal text; when a purge report exists, 'Result' section with report.outcomeText and problemRows.",
    "entry": "SwiftUI evaluates it while rendering the parent view body",
    "calls": [
     "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Report.outcomeText",
@@ -245,6 +294,11 @@
    "branches": [
     {
      "at": "+2",
+     "cond": "refusal non-nil (the last confirmed purge was refused)",
+     "effect": "true: warning section with the refusal text; false: nothing"
+    },
+    {
+     "at": "+9",
      "cond": "report non-nil (purge has finished at least once)",
      "effect": "true: Result section; false: nothing"
     }
@@ -298,27 +352,55 @@
   },
   {
    "key": "func DeleteAllDataPage.performPurge()",
-   "hash": "f6fbd66950978624",
-   "does": "Sets isPurging, then in a Task awaits DataPurgeService.purgeAllUserData(archive, rawBackup, cloudSync, settingsManager) — remote CloudKit zone deletion then local container/defaults/keychain wipe — stores the Report, clears isPurging and clears the typed confirmation phrase so a rerun (the iCloud-failure retry) needs the phrase typed again.",
+   "hash": "c95aee131b70f98f",
+   "does": "Sets isPurging, then in a Task awaits runPurge (which keeps the purge's Report, or the refusal while a recording is under way or a reading is waiting to be accepted), clears isPurging and clears the typed confirmation phrase so a rerun (the iCloud-failure retry) needs the phrase typed again.",
    "entry": "Called from confirmation dialog destructive button",
    "calls": [
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:scope:)"
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.runPurge()"
    ],
    "reads": [],
    "writes": [
     "mem:DeleteAllDataPage.isPurging",
+    "mem:DeleteAllDataPage.typedConfirmation"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.runPurge()": "40a8805b0bf61a82"
+   }
+  },
+  {
+   "key": "func DeleteAllDataPage.runPurge()",
+   "hash": "de154faf760d7014",
+   "does": "Awaits DataPurgeService.purgeAllUserData(archive, rawBackup, cloudSync, settingsManager) — refused while a recording is under way or a reading is waiting to be accepted, otherwise remote CloudKit zone deletion then local container/defaults/keychain wipe. On success stores the Report and clears refusal; on refusal stores the refusal's localized description and keeps the earlier report (nothing was deleted).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)"
+   ],
+   "reads": [],
+   "writes": [
     "mem:DeleteAllDataPage.report",
-    "mem:DeleteAllDataPage.typedConfirmation",
+    "mem:DeleteAllDataPage.refusal",
     "ck:private DB zones (deleted via purgeAllUserData)",
     "file:all app containers (swept)",
     "ud:all keys (swept)",
     "kc:AI provider keys",
     "archive:SessionArchive in-memory index (reset)",
-    "notif:flowRecoveryArchiveChanged (posted by DataPurgeService.sweepAndForget, DataPurgeService.swift:219)"
+    "notif:flowRecoveryArchiveChanged (posted by DataPurgeService.sweepAndForget)"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "purge returns a Report",
+     "effect": "report = it, refusal = nil"
+    },
+    {
+     "at": "+9",
+     "cond": "purge throws Refusal.recordingInProgress",
+     "effect": "refusal = its localized description"
+    }
+   ],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:deleteRemote:scope:)": "d4c01d95aaae9bef"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)": "2c4e0f1253cea3a1"
    }
   }
  ],

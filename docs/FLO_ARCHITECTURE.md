@@ -101,8 +101,8 @@ In order:
 1. `refreshPreFlightMetrics()`.
 2. `assembleContextAndTools` — Apple gets a `compactRender()` data block; other providers get none and use tools. `truncateForSend` trims history to the provider budget (§12); newly dropped turns are summarized. `factRegistryAndTools()` builds the registry and tool list, `ToolRetriever.retrieve` keeps the most relevant tools for this message (BM25, `targetK: 40`), and `trimTools` applies `maxToolSchemaCount`.
 3. `composeSystemPromptForTurn` → `AssistantSystemPrompt.compose(...)` (§7).
-4. `runStreamWithErrorPolicy` runs the tool loop. Cancellation is swallowed; an Apple guardrail refusal is shown as is and never sent to another provider; a fallbackable provider error (auth, rate limit, network, model unavailable) goes to `handleFallbackableFailure`, which cuts `orderedFallbackProviders` to what `TurnRouter.failureFallback` allows (§8.3). With nothing allowed, the turn fails with `PickedModelFailure` (which model failed and why); when every allowed fallback also fails, the original error is shown.
-5. Drops the assistant turn if it ended empty; if this is still the current generation, clears the Apple dispatcher's registry and runs `applyPostStreamEffects` (`CoachVoiceGuard` scrub, then background fact extraction when `UserFactsStore.autoExtractEnabled`).
+4. `runStreamWithErrorPolicy` runs the tool loop. Cancellation is swallowed; an Apple guardrail refusal is shown as is and never sent to another provider; a fallbackable provider error (auth, rate limit, network, model unavailable) goes to `handleFallbackableFailure`, which cuts `orderedFallbackProviders` to what `TurnRouter.failureFallback` allows (§8.3). With nothing allowed, the turn fails with `PickedModelFailure` (which model failed and why); when every allowed fallback also fails, the original error is shown. A fallback's answer replaces the failed provider's partial text in the bubble, under the fallback's badge; when none answers, the partial text comes back. A failure that leaves text marks the reply incomplete.
+5. Drops the assistant turn if it ended empty; if this is still the current generation, sets the "No answer came back from the AI" error when the turn was dropped with no error set and was not stopped (`reportEmptyReply`, so voice mode speaks its recovery line), clears the Apple dispatcher's registry and runs `applyPostStreamEffects` (`CoachVoiceGuard` scrub, then background fact extraction when `UserFactsStore.autoExtractEnabled` and the reply completed normally).
 6. `finishStream(generation:)`, which dispatches a message queued during the stream.
 
 ### 3.4 `runToolUseLoop` — `AssistantViewModel+Tools.swift`
@@ -340,7 +340,7 @@ Routing acts only while Apple Intelligence is the selected model. With any other
 
 ### 12.1 `ChatTurn` — `Emuqu/Sources/Assistant/Providers/AIProvider.swift`
 
-`id`, `role`, `text`, `createdAt`, `providerID`, `modelID`, `subsystem` (`AssistantSubsystem`: `.coach`, `.workoutVoiceCoach`, `.voiceConversation`, `.coachReport`), `routedTierRaw`, `localOnly`. Local-only turns (guard refusals) never leave the device.
+`id`, `role`, `text`, `createdAt`, `providerID`, `modelID`, `subsystem` (`AssistantSubsystem`: `.coach`, `.workoutVoiceCoach`, `.voiceConversation`, `.coachReport`), `routedTierRaw`, `localOnly`, `incomplete`. Local-only turns (guard refusals) never leave the device. `incomplete` marks a reply whose stream failed after some text was shown; the bubble notes it, and it is never sent as history. Both decode as `false` when absent.
 
 ### 12.2 `ConversationStore` — `Emuqu/Sources/Assistant/Chat/ConversationStore.swift`
 
@@ -348,9 +348,9 @@ Routing acts only while Apple Intelligence is the selected model. With any other
 
 ### 12.3 Truncation — `Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift`
 
-`conversationTokenBudget(for:)`: Apple 1,200; DeepSeek 60,000; Anthropic, OpenAI, Gemini, Grok 80,000. Tokens are estimated as characters / 4. `truncateForSend` drops oldest turns first, withholds local-only turns, always keeps the newest turn, and returns `(kept, dropped)`.
+`conversationTokenBudget(for:)`: Apple 1,200; DeepSeek 60,000; Anthropic, OpenAI, Gemini, Grok 80,000. Tokens are estimated as characters / 4. `truncateForSend` drops oldest turns first, withholds local-only turns, empty assistant turns and incomplete replies, always keeps the newest turn, and returns `(kept, dropped)`.
 
-`updateSummaryWith(droppedTurns:provider:model:contextRendered:)` asks the provider for a paragraph of at most 120 words that keeps lasting context and drops stale live telemetry. It becomes `priorSummary`. It gives up after 5 s without blocking the turn.
+`updateSummaryWith(droppedTurns:provider:model:contextRendered:)` asks the provider for a paragraph of at most 120 words that keeps lasting context and drops stale live telemetry. It becomes `priorSummary`. It gives up after 5 s without blocking the turn. A summary that failed or timed out is not stored and leaves `summarizedThroughTurnID` in place, so the next send summarises those turns again.
 
 ---
 

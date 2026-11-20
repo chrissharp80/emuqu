@@ -48,18 +48,19 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.stopSession()": "aaeebe4b253032ba",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.stopSession()": "bcd0a4c0d11d8fee",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording": "e742334bd5b0e8b1"
    }
   },
   {
    "key": "var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession",
-   "hash": "c5e474290f7bc606",
-   "does": "True when this app has a session recording now: collector.isCollecting or isOvernightStreaming, or the workout recorder (AppDependencies.current.app.recorderBox.recorder) is in .recording/.finalizing.",
+   "hash": "5164a82f34e67ee6",
+   "does": "True when this app has a session recording now: collector.isCollecting or isOvernightStreaming, a night's ending in progress (StreamingLifecycle.isEndingOvernight: the ending stops and downloads the strap), or the workout recorder (AppDependencies.current.app.recorderBox.recorder) is in .recording/.finalizing.",
    "entry": null,
    "calls": [],
    "reads": [
     "mem:StreamingLifecycle.isOvernightStreaming",
+    "mem:StreamingLifecycle.isEndingOvernight",
     "mem:SessionState.isCollecting",
     "mem:RecorderBox.recorder"
    ],
@@ -67,11 +68,11 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "collector.isCollecting || collector.isOvernightStreaming",
+     "cond": "collector.isCollecting || collector.isOvernightStreaming || a night's ending in progress",
      "effect": "returns true; otherwise checks the workout recorder"
     },
     {
-     "at": "+2",
+     "at": "+4",
      "cond": "no workout recorder bound in AppDependencies recorderBox",
      "effect": "returns false; otherwise returns recorder.phase is .recording or .finalizing"
     }
@@ -79,6 +80,7 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "f52c78dcfaca1b83",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::var StreamingLifecycle.isEndingOvernight": "5b2ad0671cdd7076",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "1594d0dd9fa6bbb7",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
@@ -102,7 +104,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()": "1cf85a75d85e2e34",
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession": "392cb6c9eebc8652",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession": "fa7ce1ddaae91ca0",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610"
    }
   },
@@ -185,7 +187,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Recovery.swift::func SessionRecoveryCoordinator.recoveryRefused(_:)": "f2088de676c06f4b",
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession": "392cb6c9eebc8652",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession": "fa7ce1ddaae91ca0",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "614d193cfe0e5d19",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasUnrecoveredData": "4fc7b99ece2053c6",

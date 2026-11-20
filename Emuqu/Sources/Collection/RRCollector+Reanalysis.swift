@@ -309,12 +309,45 @@ extension SessionReanalysisCoordinator {
         finishRescore(sessionId: sessionId, prior: priorScore, updated: updated, reason: reason)
     }
 
+    /// The night on the review card is the one Accept archives, so a rescore
+    /// of the archive's copy of it is carried onto the card when the card
+    /// holds that copy (`adoptArchivedCopy`); Accept would otherwise write
+    /// the score from before the rescore back.
     @MainActor
-    private func finishRescore(sessionId: UUID, prior: Double?, updated: HRVSession, reason: String) {
+    func finishRescore(sessionId: UUID, prior: Double?, updated: HRVSession, reason: String) {
         recordPendingScoreChangeIfMeaningful(
             sessionId: sessionId, prior: prior, updated: updated.recoveryScore, reason: reason
         )
+        if collector.needsAcceptance { adoptArchivedCopy(updated) }
         collector.archiveSignal.notifyChanged()
+    }
+
+    /// Replace `currentSession` with the archived copy of the same session,
+    /// but only when the card holds the archive's copy: the night this
+    /// review saved (`reviewArchivedSessionId`) or the paused night. A card
+    /// that merged a download into a night already archived holds a newer
+    /// night than the archive, which only Accept replaces, so it is left as
+    /// it is.
+    ///
+    /// Of the user's entries (tags, notes, morning feeling), one changed on
+    /// the card since it last matched the archive (`reviewArchivedEntries`)
+    /// is kept; the others come from the archived copy, which then holds any
+    /// edit made elsewhere, in History for instance.
+    @MainActor
+    func adoptArchivedCopy(_ archived: HRVSession) {
+        let state = collector.sessionState
+        guard let current = collector.currentSession, current.id == archived.id,
+              state.reviewArchivedSessionId == archived.id || collector.pausedSession?.id == archived.id
+        else { return }
+        let matched = state.reviewArchivedEntries.flatMap { $0.sessionId == archived.id ? $0 : nil }
+        var adopted = archived
+        if let matched {
+            if current.tags != matched.tags { adopted.tags = current.tags }
+            if current.notes != matched.notes { adopted.notes = current.notes }
+            if current.morningFeeling != matched.morningFeeling { adopted.morningFeeling = current.morningFeeling }
+            state.reviewArchivedEntries = SessionState.ReviewEntries(of: archived)
+        }
+        collector.currentSession = adopted
     }
 
     // MARK: - CloudKit Snapshot Backfill Listener
@@ -525,11 +558,10 @@ extension SessionReanalysisCoordinator {
     /// rescore threshold (delta < 20 min). If the snapshot is
     /// written to the archive but neither `collector.currentSession` nor the archive
     /// signal is updated, the displayed sleep stays stale until a
-    /// manual "Refresh Sleep Data".
+    /// manual "Refresh Sleep Data". Only a card holding the archive's copy
+    /// takes it, keeping the entries made on the card (`adoptArchivedCopy`).
     private func republishRefreshedSession(_ session: HRVSession) {
-        if collector.currentSession?.id == session.id {
-            collector.currentSession = session
-        }
+        adoptArchivedCopy(session)
         collector.archiveSignal.notifyChanged()
     }
 
@@ -684,8 +716,10 @@ extension SessionReanalysisCoordinator {
 
     /// Remove a linked segment from a session's same-night merge.
     /// The unlinked segment becomes a standalone session again, and the parent
-    /// session's linkedSessionIds list is updated.
-    func unlinkSegment(segmentId: UUID, fromSession sessionId: UUID) {
+    /// session's linkedSessionIds list is updated. False when nothing was
+    /// unlinked (see `ReanalysisService.unlinkSegment`): the segment stays
+    /// linked and scored, so the caller must not show it as removed.
+    func unlinkSegment(segmentId: UUID, fromSession sessionId: UUID) -> Bool {
         reanalysisService.unlinkSegment(segmentId: segmentId, fromSession: sessionId)
     }
 

@@ -23,7 +23,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "a4472fcc86e48a24",
+    ".github/workflows/ci.yml::job lint-and-budgets": "c16025f9ed6e67fc",
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
     ".github/workflows/ci.yml::job tests": "be43d3924046dfa3",
     ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859",
@@ -45,36 +45,42 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "a4472fcc86e48a24",
+    ".github/workflows/ci.yml::job lint-and-budgets": "c16025f9ed6e67fc",
     ".github/workflows/ci.yml::job tests": "be43d3924046dfa3",
     ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859"
    }
   },
   {
    "key": "§ CI posture > What actually enforces quality here",
-   "hash": "8542584b9c83d314",
-   "does": "Claims `make ci` runs every gate plus the full test suite with the identical scripts and .ci budget files CI uses. Makefile:272 ci lists the static gates, verify-gates and test-coverage; it does not include the thread-sanitizer target (Makefile:162) that ci.yml runs as its own job.",
+   "hash": "f8b6179e80722b83",
+   "does": "Claims `make ci` runs every gate, the Release build, the unit suite under Thread Sanitizer and the full test suite with the identical scripts and .ci budget files CI uses; that nothing records it ran; and that it differs from GitHub in running the tests at scope full and in comparing budgets with the merge base with origin/main rather than the parent commit or PR base. Makefile ci lists the static gates, verify-gates, release-build, thread-sanitizer and test-coverage (TEST_SCOPE defaults to full); budget-monotonicity uses the origin/main merge base; ci.yml's baseline step uses HEAD~1 and gates.yml the PR base or push-before tip.",
    "entry": null,
    "calls": [
     "Makefile::target ci",
     "Makefile::target test-coverage",
     "Makefile::target verify-gates",
+    "Makefile::target release-build",
+    "Makefile::target thread-sanitizer",
+    "Makefile::target budget-monotonicity",
     "scripts/evidence_report.sh::fn budget"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target ci": "de372d3ddd101741",
+    "Makefile::target budget-monotonicity": "f2990c87cb8c36d4",
+    "Makefile::target ci": "314d826a23831255",
+    "Makefile::target release-build": "5357cf205e264442",
     "Makefile::target test-coverage": "2f52b6f381055f27",
+    "Makefile::target thread-sanitizer": "adfca9b867c6ab56",
     "Makefile::target verify-gates": "62403efc5c06c498",
     "scripts/evidence_report.sh::fn budget": "a927bad97b8838e4"
    }
   },
   {
    "key": "§ CI posture > What actually enforces quality here > Running CI locally before pushing",
-   "hash": "3c49337829711dcf",
-   "does": "Claims make ci-local / ci-local-unit run scripts/simulate_ci.sh, which parses ci.yml and executes its run: blocks in order, treating unknown steps as errors and skipping only Xcode selection and brew install; should run after committing because the ratchet compares HEAD to HEAD~1. Makefile:260/263 call simulate_ci.sh (with --scope unit); simulate_ci.sh loads ci.yml via yaml.safe_load and has skip patterns for sudo xcode-select and brew install/update/tap.",
+   "hash": "784a9e90222cc4ff",
+   "does": "Claims make ci-local (scope gates) / ci-local-unit (scope unit, adding the Release build, unit suite and Thread Sanitizer) run scripts/simulate_ci.sh, which parses ci.yml and executes its run: blocks in order, treating unknown steps as errors, choosing jobs by evaluating each job's `if:` against the scope, and skipping only Xcode selection and the SwiftLint install onto the runner's PATH; should run after committing because the ratchet compares HEAD to HEAD~1. Makefile ci-local/ci-local-unit call simulate_ci.sh (with --scope unit); simulate_ci.sh loads ci.yml via yaml.safe_load, job_runs() evaluates `inputs.X ==/!= 'v'`, and its skip patterns match sudo xcode-select and $GITHUB_PATH (plus brew install, which ci.yml no longer uses).",
    "entry": null,
    "calls": [
     "Makefile::target ci-local",
@@ -87,15 +93,15 @@
    "branches": [],
    "deps": {
     "Makefile::target ci-local": "e2b0391dda4db254",
-    "Makefile::target ci-local-unit": "519d050012868454",
+    "Makefile::target ci-local-unit": "8e51d93d38811f72",
     "scripts/simulate_ci.sh::fn print": "5719f9e45c441417",
     "scripts/simulate_ci.sh::fn print #2": "b3fe2b74876c096a"
    }
   },
   {
    "key": "§ CI posture > What actually enforces quality here > The gates",
-   "hash": "e763954f55b9aae0",
-   "does": "Claims the listed gate groups (including a Change tracking row: the code map's records current with their code, records whose callees changed listed for re-check) are all scripts in scripts/ run identically by make ci, make ci-local and Actions; every gate except check_coverage.sh and check_thread_sanitizer.sh has a plant in verify_gates_fail.sh, whose meta-check enumerates scripts/check_*.sh and enforce_*.sh failing on any without a plant or exemption; check_budget_monotonicity.sh skips without a baseline and takes HEAD to check uncommitted edits. Code: verify_gates_fail.sh loops over check_*/enforce_* and errors on unplanted gates; check_budget_monotonicity.sh exits 0 without a baseline (no_baseline) and accepts a ref argument.",
+   "hash": "9506522801bbfea9",
+   "does": "Claims the listed gate groups (including a Change tracking row: the code map's records current with their code, records whose callees changed listed for re-check) are all scripts in scripts/ run by make ci, make ci-local and Actions, with only the budget ratchet's baseline differing; every gate except check_coverage.sh and check_thread_sanitizer.sh has a plant in verify_gates_fail.sh, whose meta-check enumerates scripts/check_*.sh and enforce_*.sh failing on any without a plant or exemption; check_budget_monotonicity.sh skips without a baseline, make budget-monotonicity passes the merge base with origin/main (or HEAD, saying so) overridable by BUDGET_BASE_REF, ci.yml compares with the parent commit and gates.yml with the PR base or push-before tip. Code: verify_gates_fail.sh loops over check_*/enforce_* and errors on unplanted gates; check_budget_monotonicity.sh exits 0 without a baseline (no_baseline) and accepts a ref argument; the Makefile target and both workflows pass the baselines described.",
    "entry": null,
    "calls": [
     "scripts/verify_gates_fail.sh::fn backup",
@@ -107,7 +113,10 @@
     ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI",
     "Makefile::target codemap-guard",
     "scripts/codemap/codemap.py::def dependency_problems",
-    "scripts/codemap/codemap.py::def budget_problems"
+    "scripts/codemap/codemap.py::def budget_problems",
+    "Makefile::target budget-monotonicity",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only"
    ],
    "reads": [],
    "writes": [],
@@ -116,6 +125,9 @@
     ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "1134d06d24e24bd1",
     ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "b220bed7db5626a6",
     ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "881cc6b476cb58aa",
+    ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "8de1e323f0a53145",
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "197c125d8c622cd8",
+    "Makefile::target budget-monotonicity": "f2990c87cb8c36d4",
     "Makefile::target codemap-guard": "31a759d3fd34483c",
     "scripts/check_budget_monotonicity.sh::fn no_baseline": "fc658970d2a0e744",
     "scripts/codemap/codemap.py::def budget_problems": "4b5252320a3020b3",
@@ -224,7 +236,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "a4472fcc86e48a24",
+    ".github/workflows/ci.yml::job lint-and-budgets": "c16025f9ed6e67fc",
     ".github/workflows/testflight.yml::job quality-gate": "bce49f9b26dee90e"
    }
   },
@@ -290,7 +302,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "a4472fcc86e48a24",
+    ".github/workflows/ci.yml::job lint-and-budgets": "c16025f9ed6e67fc",
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
     ".github/workflows/ci.yml::job tests": "be43d3924046dfa3",
     ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859",

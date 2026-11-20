@@ -189,6 +189,126 @@ final class PendingEncryptionLedgerTests: XCTestCase {
         XCTAssertFalse(isPendingPlaintextSessionFile(pending.uuidString, pending: ids))
     }
 
+    /// A pending session's copy in the Trash or in quarantine is plaintext
+    /// too, and keeps its stricter class.
+    func testTrashedAndQuarantinedCopiesOfAPendingSessionCountAsPendingPlaintext() {
+        let pending = UUID()
+        let ids: Set<UUID> = [pending]
+        XCTAssertTrue(isPendingPlaintextSessionFile("Trash/\(pending.uuidString).session", pending: ids))
+        XCTAssertTrue(isPendingPlaintextSessionFile("QuarantinedDuplicates/\(pending.uuidString).json", pending: ids))
+        XCTAssertTrue(isPendingPlaintextSessionFile("QuarantinedDuplicates/\(pending.uuidString).1790000000000.json", pending: ids))
+        XCTAssertFalse(isPendingPlaintextSessionFile("Trash/\(UUID().uuidString).session", pending: ids))
+    }
+
+    // MARK: - Archive repair pass
+
+    /// The ledger is shared by every archive in the process: an id this
+    /// archive neither lists, nor tombstones, nor holds a copy of may be
+    /// another archive's session, and stays queued.
+    func testRepairKeepsAnIdThisArchiveDoesNotKnow() throws {
+        let archive = try makeArchive()
+        let foreign = UUID()
+        PendingEncryptionLedger.record(foreign)
+
+        reencryptPendingSessions(in: archive)
+
+        XCTAssertTrue(PendingEncryptionLedger.pending.contains(foreign))
+    }
+
+    /// A session deleted here whose files are gone leaves the queue; the same
+    /// session stays queued while the index has not loaded, since the
+    /// session may still be on disk.
+    func testRepairClearsADeletedSessionOnlyOnceTheIndexHasLoaded() throws {
+        let deleted = UUID()
+        let unread = try makeArchive(deleted: [deleted], index: Data("not an index".utf8))
+        PendingEncryptionLedger.record(deleted)
+
+        reencryptPendingSessions(in: unread)
+        XCTAssertTrue(PendingEncryptionLedger.pending.contains(deleted), "cleared while the index was unread")
+
+        reencryptPendingSessions(in: try makeArchive(deleted: [deleted]))
+        if EncryptionManager.shared.isAvailable {
+            XCTAssertFalse(PendingEncryptionLedger.pending.contains(deleted))
+        }
+    }
+
+    /// An indexed session whose file is gone has no plaintext left to repair:
+    /// it leaves the queue instead of staying there for good.
+    func testRepairClearsAnIndexedSessionWhoseFileIsGone() throws {
+        let archive = try makeArchive()
+        var session = HRVSession(startDate: Date(timeIntervalSince1970: 1_790_000_000), sessionType: .quick)
+        session.endDate = session.startDate.addingTimeInterval(300)
+        _ = try archive.archive(session)
+        try FileManager.default.removeItem(at: archive.archiveDirectory.appendingPathComponent("\(session.id.uuidString).json"))
+        PendingEncryptionLedger.record(session.id)
+
+        reencryptPendingSessions(in: archive)
+
+        if EncryptionManager.shared.isAvailable {
+            XCTAssertFalse(PendingEncryptionLedger.pending.contains(session.id))
+        }
+        XCTAssertTrue(archive.exists(session.id))
+    }
+
+    /// An indexed session whose file is gone while a plaintext copy of it sits
+    /// in the Trash leaves the queue with that copy encrypted. This pins the
+    /// end state; the race that moves the file into the Trash during the pass
+    /// is not reproduced.
+    func testRepairEncryptsTheTrashCopyOfAnIndexedSessionWhoseFileIsGone() throws {
+        let archive = try makeArchive()
+        var session = HRVSession(startDate: Date(timeIntervalSince1970: 1_790_000_000), sessionType: .quick)
+        session.endDate = session.startDate.addingTimeInterval(300)
+        _ = try archive.archive(session)
+        let file = archive.archiveDirectory.appendingPathComponent("\(session.id.uuidString).json")
+        let trashed = archive.store.trashDirectory.appendingPathComponent("\(session.id.uuidString).session")
+        try FileManager.default.createDirectory(at: archive.store.trashDirectory, withIntermediateDirectories: true)
+        try FileManager.default.removeItem(at: file)
+        try SessionArchive.sessionEncoder.encode(session).write(to: trashed)
+        PendingEncryptionLedger.record(session.id)
+
+        reencryptPendingSessions(in: archive)
+
+        if EncryptionManager.shared.isAvailable {
+            XCTAssertTrue(SessionArchive.looksEncrypted(try Data(contentsOf: trashed)))
+            XCTAssertFalse(PendingEncryptionLedger.pending.contains(session.id))
+        }
+    }
+
+    /// A plaintext copy in the Trash is encrypted in place, and still
+    /// restores.
+    func testRepairEncryptsAPlaintextCopyInTheTrash() throws {
+        let archive = try makeArchive()
+        var session = HRVSession(startDate: Date(timeIntervalSince1970: 1_790_000_000), sessionType: .quick)
+        session.endDate = session.startDate.addingTimeInterval(300)
+        _ = try archive.archive(session)
+        try archive.delete(session.id)
+        let trashed = archive.store.trashDirectory.appendingPathComponent("\(session.id.uuidString).session")
+        try SessionArchive.sessionEncoder.encode(session).write(to: trashed)
+        PendingEncryptionLedger.record(session.id)
+
+        reencryptPendingSessions(in: archive)
+
+        if EncryptionManager.shared.isAvailable {
+            XCTAssertTrue(SessionArchive.looksEncrypted(try Data(contentsOf: trashed)))
+            XCTAssertFalse(PendingEncryptionLedger.pending.contains(session.id))
+        }
+        XCTAssertEqual(archive.trashedSession(session.id)?.id, session.id)
+    }
+
+    /// An archive in its own folder, removed after the test, holding the
+    /// given tombstones and, when given, these bytes as its index.
+    private func makeArchive(deleted: [UUID] = [], index: Data? = nil) throws -> SessionArchive {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("PendingEncryptionLedgerTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        addTeardownBlock { XCTAssertNoThrow(try FileManager.default.removeItem(at: directory)) }
+        if !deleted.isEmpty {
+            try JSONEncoder().encode(deleted.map(\.uuidString)).write(to: directory.appendingPathComponent("deleted.json"))
+        }
+        try index?.write(to: directory.appendingPathComponent("index.json"))
+        return SessionArchive(directory: directory)
+    }
+
     // MARK: - Raw backup rewrite
 
     /// A rewrite that fails leaves the old plaintext on disk, so its repair

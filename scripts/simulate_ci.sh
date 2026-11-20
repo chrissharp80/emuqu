@@ -15,8 +15,8 @@
 # there, and a skipped step breaks that promise.
 #
 # Usage:
-#   ./scripts/simulate_ci.sh              # gates only (fast, no simulator)
-#   ./scripts/simulate_ci.sh --scope unit # gates + the unit test suite
+#   ./scripts/simulate_ci.sh              # scope gates: lint, budgets, strict concurrency
+#   ./scripts/simulate_ci.sh --scope unit # + Release build, unit suite, Thread Sanitizer
 #   ./scripts/simulate_ci.sh --list       # show what would run, run nothing
 #
 # Run it AFTER committing. CI checks out a commit, and the budget-ratchet gate
@@ -65,6 +65,8 @@ CANNOT_RUN_LOCALLY = [
      "picks the runner's Xcode; your local one is already selected"),
     (r"\bbrew (install|update|tap)\b",
      "installs runner tooling; assumed present locally"),
+    (r"\$GITHUB_PATH",
+     "installs runner tooling onto the runner's PATH; assumed present locally"),
     (r"actions/(checkout|cache|upload-artifact|download-artifact)",
      "GitHub Actions infrastructure"),
 ]
@@ -76,9 +78,26 @@ CANNOT_RUN_LOCALLY = [
 # step. A simulator that cries wolf is one you learn to ignore.
 INPUT_DEFAULTS = {"scope": os.environ["SIMULATE_CI_SCOPE"], "baseline-ref": ""}
 
-# Jobs whose cost is the reason you are running this script at all. `gates` scope
-# runs only the cheap job, mirroring the same choice the workflow makes.
-EXPENSIVE_JOBS = {"tests", "thread-sanitizer", "strict-concurrency"}
+# Which jobs run is decided by each job's own `if:`, evaluated against the
+# scope given here, exactly as GitHub evaluates it against the dispatch input.
+# A hand-kept list of jobs to skip drifts from the workflow: it once skipped
+# strict concurrency at scope `gates` and Thread Sanitizer at scope `unit`,
+# both of which GitHub runs. A condition this cannot evaluate is an error, for
+# the same reason an unknown step is.
+def job_runs(job_name, job):
+    cond = job.get("if")
+    if cond is None:
+        return True
+    expr = str(cond).strip()
+    wrapped = re.fullmatch(r"\$\{\{\s*(.*?)\s*\}\}", expr)
+    if wrapped:
+        expr = wrapped.group(1)
+    m = re.fullmatch(r"inputs\.([\w-]+)\s*(==|!=)\s*'([^']*)'", expr)
+    if not m:
+        sys.exit(f"simulate_ci: job '{job_name}' has a condition this script cannot "
+                 f"evaluate ({cond!r}). Teach job_runs() about it rather than guess.")
+    equal = INPUT_DEFAULTS.get(m.group(1), "") == m.group(3)
+    return equal if m.group(2) == "==" else not equal
 
 steps = []
 step_ids = {}
@@ -101,9 +120,7 @@ def expand(text):
     return re.sub(r"\$\{\{([^}]*)\}\}", sub, text)
 
 for job_name, job in (wf.get("jobs") or {}).items():
-    if scope == "gates" and job_name in EXPENSIVE_JOBS:
-        continue
-    if scope == "unit" and job_name in {"thread-sanitizer"}:
+    if not job_runs(job_name, job):
         continue
     # Job-level `env:` is carried, not only step-level. That is exactly the
     # axis `ci.yml`'s own note about run 33230172290 warns on: `TEST_SCOPE` is
@@ -206,7 +223,7 @@ if failed:
 
 print(f"  {len(passed)} passed, {len(failed)} failed, {len(skipped)} not runnable locally")
 if scope == "gates":
-    print("  (scope=gates — the test, sanitizer and concurrency jobs were not run;")
-    print("   use --scope unit to include the test suite)")
+    print("  (scope=gates — the test and Thread Sanitizer jobs were not run;")
+    print("   use --scope unit to include them)")
 sys.exit(1 if failed else 0)
 PY

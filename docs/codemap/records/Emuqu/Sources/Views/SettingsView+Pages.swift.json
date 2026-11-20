@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/SettingsView+Pages.swift",
- "hash": "80058d819236e8f4",
+ "hash": "5a8b16ced15c1fb0",
  "role": "Settings sub-pages for Profile (birthday, fitness level, sex, units, default email recipients, inline email address book) and Sleep (schedule, Apple Health sleep toggles with HRV-stage retro-apply confirmation, split/merge sleep options).",
  "types": [
   "ProfileSettingsPage: struct (View) — profile form bound to SettingsManager.settings and UnitsPreferenceStore",
@@ -9,7 +9,7 @@
  ],
  "state": [
   "mem:ProfileSettingsPage.unitsPreference (@State, seeded from UnitsPreferenceStore.current → ud:fitness.unitsPreference in App Group suite)",
-  "mem:EmailContactsSection.newName/newEmail/newNotes/showInvalidEmail (@State form fields)",
+  "mem:EmailContactsSection.newName/newEmail/newNotes/showInvalidEmail/showSaveFailed (@State form fields and alerts)",
   "mem:SleepSettingsPage.isRetroApplying/retroApplyProgress/retroApplyTotal/showingRetroApplyAlert/retroApplyMessage/showingRetroApplyConfirm/pendingHRVAugmentation/isRevertingHRVToggle (@State)"
  ],
  "toplevel": "ProfileSettingsPage.unitsPreference initial value reads UnitsPreferenceStore.current (App Group UserDefaults key fitness.unitsPreference, migrating a legacy .standard value) at line 13. Environment reads: SettingsManager, LanguageManager, RRCollector, \\.dependencies. No #if blocks.",
@@ -566,15 +566,15 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/SettingsView+Pages.swift::var EmailContactsSection.addContactForm": "f1ece170f7087fdf",
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::var EmailContactsSection.addContactForm": "71f8ab36fb8ff17c",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var EmailContactsSection.existingContactsList": "be663125f72c4dc4",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var EmailContactsSection.store": "2b611a1086cb2abf"
    }
   },
   {
    "key": "var EmailContactsSection.addContactForm",
-   "hash": "f23713b9423b530a",
-   "does": "VStack of name/email/notes fields plus Add button, with an 'Invalid email' alert bound to showInvalidEmail.",
+   "hash": "e380ca7297b04d36",
+   "does": "VStack of name/email/notes fields plus Add button, with an 'Invalid email' alert bound to showInvalidEmail and a \"Your change couldn't be saved. Try again.\" alert bound to showSaveFailed.",
    "entry": "SwiftUI evaluates this view-builder property while rendering the parent",
    "calls": [
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var EmailContactsSection.newContactNameRow",
@@ -649,7 +649,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/SettingsView+Pages.swift::func EmailContactsSection.addContact()": "786824ccf9cbeac4",
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::func EmailContactsSection.addContact()": "16bfac8f3e12ed05",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var EmailContactsSection.canAdd": "28668eaf58e2972c"
    }
   },
@@ -677,7 +677,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Views/SettingsView+Pages.swift::func EmailContactsSection.contactRow(_:)": "e93a517d13e077d1",
-    "Emuqu/Sources/Views/SettingsView+Pages.swift::func EmailContactsSection.deleteContacts(at:)": "e5da7949536ce1f3",
+    "Emuqu/Sources/Views/SettingsView+Pages.swift::func EmailContactsSection.deleteContacts(at:)": "303ec448c8a02c41",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var EmailContactsSection.sortedContacts": "e3cd14090c97b45d",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var EmailContactsSection.store": "2b611a1086cb2abf"
    }
@@ -737,8 +737,8 @@
   },
   {
    "key": "func EmailContactsSection.addContact()",
-   "hash": "631ae9c16830831b",
-   "does": "Trims fields, rejects empty name/email, rejects email lacking '@' or '.' by showing the Invalid email alert, otherwise adds EmailContact(name,email,notes or nil) to the store (which persists to email_contacts.json) and clears the fields.",
+   "hash": "a412a2e74ba6117e",
+   "does": "Trims fields, rejects empty name/email, rejects email lacking '@' or '.' by showing the Invalid email alert, otherwise adds EmailContact(name,email,notes or nil) to the store (which persists to email_contacts.json) and clears the fields; when the store reports it could not save (contacts file unreadable), sets showSaveFailed and keeps the fields.",
    "entry": "Called from the Add contact button action (line 349)",
    "calls": [
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)",
@@ -747,7 +747,8 @@
    "reads": [],
    "writes": [
     "mem:EmailContactStore.contacts",
-    "file:Application Support/email_contacts.json (via LatestWinsFileWriter)"
+    "file:Application Support/email_contacts.json (via LatestWinsFileWriter)",
+    "mem:EmailContactsSection.showSaveFailed"
    ],
    "branches": [
     {
@@ -761,21 +762,26 @@
      "effect": "sets showInvalidEmail=true (alert) and returns; contact not added"
     },
     {
-     "at": "+12",
+     "at": "+11",
+     "cond": "store.add returned false",
+     "effect": "showSaveFailed = true and return; the form keeps its entry"
+    },
+    {
+     "at": "+11",
      "cond": "trimmed notes empty",
      "effect": "notes stored as nil; else trimmed notes"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "bf5d46125beaa0ed",
     "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "f94e054e920f3b1d",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var EmailContactsSection.store": "2b611a1086cb2abf"
    }
   },
   {
    "key": "func EmailContactsSection.deleteContacts(at:)",
-   "hash": "fe001acf9571d7e7",
-   "does": "Maps swipe offsets onto the current sortedContacts list and removes each contact by id from the store (persisted).",
+   "hash": "2c31c850de42717c",
+   "does": "Maps swipe offsets onto the current sortedContacts list and removes each contact by id from the store (persisted); when any remove reports it could not save, sets showSaveFailed.",
    "entry": "SwiftUI .onDelete swipe action (line 367)",
    "calls": [
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var EmailContactsSection.sortedContacts",
@@ -787,17 +793,28 @@
    ],
    "writes": [
     "mem:EmailContactStore.contacts",
-    "file:Application Support/email_contacts.json"
+    "file:Application Support/email_contacts.json",
+    "mem:EmailContactsSection.showSaveFailed"
    ],
    "branches": [
     {
-     "at": "+2",
+     "at": "+3",
      "cond": "offset index is within sortedContacts bounds",
      "effect": "removes that contact; out-of-range offsets are skipped silently"
+    },
+    {
+     "at": "+4",
+     "cond": "store.remove returned false",
+     "effect": "allRemoved = false"
+    },
+    {
+     "at": "+6",
+     "cond": "!allRemoved",
+     "effect": "showSaveFailed = true"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.remove(id:)": "cdfb61bcf59545db",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.remove(id:)": "fc70d9a4c144b593",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var EmailContactsSection.sortedContacts": "e3cd14090c97b45d",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::var EmailContactsSection.store": "2b611a1086cb2abf"
    }

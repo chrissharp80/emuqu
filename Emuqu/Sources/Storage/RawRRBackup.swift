@@ -302,10 +302,11 @@ final class RawRRBackup: @unchecked Sendable {
             id: sessionId, captureDate: captureDate ?? existing?.captureDate ?? Date(), deviceId: deviceId,
             points: points, hash: try Self.integrityHash(of: points)
         )
+        let wasPending = PendingEncryptionLedger.pending(in: .rawBackup).contains(sessionId)
         // The old files go only once the new row is on disk.
         let fileName = try writeOneShot(entry, replacing: existing)
         cleanupAppendFiles(for: sessionId)
-        removeReplacedFile(existing?.fileName, keeping: fileName)
+        removeReplacedFile(existing?.fileName, keeping: fileName, of: sessionId, wasPending: wasPending)
         if points.count < 100 {
             debugLog("[RawRRBackup] Backed up \(points.count) beats for session \(sessionId.uuidString.prefix(8))")
         }
@@ -374,14 +375,16 @@ final class RawRRBackup: @unchecked Sendable {
         if encoded.encrypted { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
     }
 
-    /// The one-shot file a new backup replaced. Its index row is gone, so
-    /// left on disk it was out of reach of Trash, discard and purge.
-    private func removeReplacedFile(_ old: String?, keeping current: String) {
+    /// The one-shot file a new backup replaced. One that will not go while it
+    /// may be plaintext (the session was queued before the write that cleared
+    /// it) queues the session again, and `reencryptBackup` removes it.
+    private func removeReplacedFile(_ old: String?, keeping current: String, of sessionId: UUID, wasPending: Bool) {
         guard let old, old != current else { return }
         do {
             try fileManager.removeItem(at: backupDirectory.appendingPathComponent(old))
         } catch {
             debugLog("[RawRRBackup] ⚠️ Failed to remove replaced backup \(old): \(error)")
+            if wasPending { PendingEncryptionLedger.record(sessionId, in: .rawBackup) }
         }
     }
 
@@ -398,19 +401,41 @@ final class RawRRBackup: @unchecked Sendable {
         }
     }
 
-    /// A backup that is gone, or no longer a one-shot file, leaves the queue;
-    /// one that cannot be read or rewritten yet stays for the next launch
-    /// (`writeEntry` keeps it queued when its write fails).
-    private func reencryptBackup(_ sessionId: UUID) {
-        guard let fileName = existingIndexEntry(sessionId)?.fileName else {
-            PendingEncryptionLedger.clear(sessionId, in: .rawBackup)
-            return
-        }
-        let url = backupDirectory.appendingPathComponent(fileName)
+    /// A backup leaves the queue once no one-shot file of it is plaintext: a
+    /// fuller one is adopted, the indexed one re-encrypted, an unindexed plain
+    /// one removed once provably replaced (`isSuperseded`); else it stays queued.
+    func reencryptBackup(_ sessionId: UUID) {
         do {
-            try Self.writeEntry(try Self.decodeLegacyBackup(at: url), to: url, sessionId: sessionId)
+            try mergeIndexIfLaunchReadFailed()
+            adoptFullerBackup(sessionId)
+            let entry = existingIndexEntry(sessionId)
+            let stale = try OneShotBackupName.plaintextFiles(of: sessionId, in: backupDirectory, except: entry?.fileName)
+            let superseded = stale.filter { OneShotBackupName.isSuperseded($0, by: entry) }
+            for url in superseded { try fileManager.removeItem(at: url) }
+            if let fileName = entry?.fileName {
+                let url = backupDirectory.appendingPathComponent(fileName)
+                try Self.writeEntry(try Self.decodeLegacyBackup(at: url), to: url, sessionId: sessionId)
+            }
+            if superseded.count < stale.count {
+                PendingEncryptionLedger.record(sessionId, in: .rawBackup)
+            } else if entry?.fileName == nil {
+                PendingEncryptionLedger.clear(sessionId, in: .rawBackup)
+            }
         } catch {
             debugLog("[RawRRBackup] re-encryption deferred for \(sessionId.uuidString.prefix(8)): \(error)", level: .warning)
+        }
+    }
+
+    /// For a queued session only: the fullest unindexed one-shot file becomes
+    /// the backup via `backup()`, archived flag kept; a failure is logged.
+    private func adoptFullerBackup(_ sessionId: UUID) {
+        do {
+            guard let indexed = existingIndexEntry(sessionId),
+                  let fuller = try OneShotBackupName.fullerUnindexedBackup(than: indexed, in: backupDirectory) else { return }
+            try backup(points: fuller.points, sessionId: sessionId, deviceId: fuller.deviceId, captureDate: fuller.captureDate)
+            if indexed.archived { markAsArchived(sessionId) }
+        } catch {
+            debugLog("[RawRRBackup] adopting a fuller backup of \(sessionId.uuidString.prefix(8)) failed: \(error)", level: .warning)
         }
     }
 
@@ -492,111 +517,6 @@ final class RawRRBackup: @unchecked Sendable {
     /// file's count for a one-shot backup.
     private static func beatCount(of entry: BackupIndex) -> Int {
         entry.backedUpCount ?? entry.beatCount
-    }
-
-    /// Beats recorded in the raw backup for `sessionId`, if a backup exists.
-    /// The recovery archiver consults this before marking a backup archived so
-    /// a truncated device fetch can't retire a backup that holds materially
-    /// more data than what was archived.
-    func backedUpBeatCount(_ sessionId: UUID) -> Int? {
-        indexLock.lock()
-        defer { indexLock.unlock() }
-        return index.first(where: { $0.id == sessionId })?.beatCount
-    }
-
-    /// Lower a backup's stored beat counts to what actually survived on disk.
-    /// Used to reconcile a torn/truncated append-only write, where the index
-    /// claims more beats than the points file holds (index says 4380, disk has
-    /// 147). Only ever LOWERS the count — we never fabricate beats we don't
-    /// have. After reconciling, the backup stops mismatching on every read and
-    /// the recovery archiver can retire it normally.
-    func reconcileBeatCount(sessionId: UUID, to actualCount: Int, claimed: Int) {
-        indexLock.lock()
-        guard let idx = index.firstIndex(where: { $0.id == sessionId }) else {
-            indexLock.unlock()
-            return
-        }
-        let entry = index[idx]
-        // Only act when it actually lowers something.
-        guard (entry.backedUpCount ?? entry.beatCount) > actualCount else {
-            indexLock.unlock()
-            return
-        }
-        index[idx] = BackupIndex(
-            id: entry.id, captureDate: entry.captureDate, fileName: entry.fileName,
-            beatCount: actualCount, hash: entry.hash, archived: entry.archived,
-            lastBackupTime: entry.lastBackupTime, backedUpCount: actualCount
-        )
-        indexLock.unlock()
-        persistReconciledCount(sessionId: sessionId, to: actualCount, claimed: claimed)
-    }
-
-    private func persistReconciledCount(sessionId: UUID, to actualCount: Int, claimed: Int) {
-        do {
-            try saveIndex()
-            debugLog("[RawRRBackup] Reconciled truncated backup \(sessionId.uuidString.prefix(8)): stored beat count lowered \(claimed) → \(actualCount) (torn write; missing beats are unrecoverable)")
-        } catch {
-            debugLog("[RawRRBackup] ⚠️ Failed to save index after reconcile: \(error)", level: .warning)
-        }
-    }
-
-    /// Mark every backup whose session the archive already holds.
-    ///
-    /// `markAsArchived` is called on each successful archive path, so the flag
-    /// is right for anything that completed in one go. It is wrong for anything
-    /// that reached the archive by another route — a CloudKit pull, a launch
-    /// recovery, a merge that reused a different session id — because no
-    /// archive call ever passed through the backup's own id.
-    ///
-    /// Those entries then sit flagged forever. A field log shows the same
-    /// fifteen at every launch across five days, and the Data settings page
-    /// renders that as a red "Unarchived recordings — 15" for a user whose data
-    /// is, in fact, safely archived. The count is meant to mean "beats that
-    /// exist only in a backup"; without this reconciliation it means "beats
-    /// that did not take the usual path", which is not a thing anyone can act
-    /// on.
-    ///
-    /// Returns how many it corrected, so the caller can log a real number.
-    @discardableResult
-    func reconcileArchived(against archivedSessionIds: Set<UUID>) -> Int {
-        indexLock.lock()
-        let corrected = Self.indicesNeedingArchivedFlag(index, archivedSessionIds: archivedSessionIds)
-        for idx in corrected { index[idx].archived = true }
-        indexLock.unlock()
-        guard !corrected.isEmpty else { return 0 }
-        do {
-            try saveIndex()
-        } catch {
-            debugLog("[RawRRBackup] ⚠️ Failed to save index after reconcile: \(error)", level: .warning)
-        }
-        return corrected.count
-    }
-
-    /// Which index positions are flagged unarchived while the archive holds
-    /// their session. Pure, so the reconciliation rule is testable without a
-    /// backup directory or an archive.
-    nonisolated static func indicesNeedingArchivedFlag(
-        _ index: [BackupIndex],
-        archivedSessionIds: Set<UUID>
-    ) -> [Int] {
-        index.indices.filter { !index[$0].archived && archivedSessionIds.contains(index[$0].id) }
-    }
-
-    /// Mark a backup as successfully archived (still kept for safety)
-    func markAsArchived(_ sessionId: UUID) {
-        indexLock.lock()
-        guard let idx = index.firstIndex(where: { $0.id == sessionId }) else {
-            indexLock.unlock()
-            return
-        }
-        index[idx].archived = true
-        indexLock.unlock()
-        do {
-            try saveIndex()
-        } catch {
-            debugLog("[RawRRBackup] ⚠️ Failed to save index after marking archived: \(error)")
-        }
-        // No logging needed - archival is already logged in Archive.swift
     }
 
     /// Incremental backup during streaming — appends only new points since last backup.
@@ -768,12 +688,7 @@ final class RawRRBackup: @unchecked Sendable {
         let entry = index.first { $0.id == sessionId }
         indexLock.unlock()
         guard let entry else { return }
-
-        if let fileName = entry.fileName {
-            let filePath = backupDirectory.appendingPathComponent(fileName)
-            _ = attempt("RawRRBackup.remove") { try fileManager.removeItem(at: filePath) }
-        }
-        cleanupAppendFiles(for: entry.id)
+        removeBackupFiles(for: entry)
 
         indexLock.lock()
         index.removeAll { $0.id == sessionId }
@@ -801,14 +716,14 @@ final class RawRRBackup: @unchecked Sendable {
         debugLog("[RawRRBackup] Purged \(toRemove.count) old archived backups")
     }
 
-    /// Remove both the legacy single file and the append-only pair.
+    /// Remove the indexed file, the unindexed one-shot files it provably
+    /// replaced (a fuller or uncountable one is kept), and the append pair.
     private func removeBackupFiles(for entry: BackupIndex) {
-        if let fileName = entry.fileName {
-            do {
-                try fileManager.removeItem(at: backupDirectory.appendingPathComponent(fileName))
-            } catch {
-                debugLog("[RawRRBackup] ⚠️ Failed to remove legacy backup \(entry.id.uuidString.prefix(8)): \(error)")
-            }
+        let oneShots = attempt("RawRRBackup.listOneShots") { try OneShotBackupName.files(of: entry.id, in: backupDirectory) } ?? []
+        let indexed = entry.fileName.map { [backupDirectory.appendingPathComponent($0)] } ?? []
+        let replaced = oneShots.filter { $0.lastPathComponent != entry.fileName && OneShotBackupName.isSuperseded($0, by: entry) }
+        for url in indexed + replaced where fileManager.fileExists(atPath: url.path) {
+            attempt("RawRRBackup.removeBackupFile") { try fileManager.removeItem(at: url) }
         }
         cleanupAppendFiles(for: entry.id)
     }

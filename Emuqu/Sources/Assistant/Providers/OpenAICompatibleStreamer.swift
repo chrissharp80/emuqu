@@ -293,7 +293,7 @@ enum OpenAICompatibleStreamer {
         if let http = response as? HTTPURLResponse, !(200 ... 299).contains(http.statusCode) {
             try await throwForStatus(http.statusCode, bytes: bytes, providerID: call.providerID)
         }
-        try await consumeSSE(bytes, continuation: continuation)
+        try await consumeSSE(bytes.lines, providerID: call.providerID, continuation: continuation)
     }
 
     /// Flatten one call into the wire request, messages included. Pure, so
@@ -334,65 +334,137 @@ enum OpenAICompatibleStreamer {
         }
     }
 
-    /// Accumulate tool_calls by index across chunks. Flush on
-    /// `finish_reason == "tool_calls"` OR on `[DONE]`. A stream that ends
-    /// with tool-call fragments still open was cut mid-call: the fragments
-    /// may be incomplete, so they are not run, and the cut is reported as a
-    /// dropped connection (which the chat layer may fall back from).
-    private static func consumeSSE(
-        _ bytes: URLSession.AsyncBytes,
-        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
-    ) async throws {
+    /// Per-request SSE state: tool calls still being assembled, and the
+    /// choice's `finish_reason` once a chunk has carried one.
+    private struct StreamState {
         var openToolCalls: [Int: PendingToolCall] = [:]
-        for try await line in bytes.lines {
+        var finishReason: String?
+    }
+
+    /// Reads the SSE lines of one reply. Tool calls accumulate by index
+    /// across chunks and flush on `finish_reason == "tool_calls"` or at the
+    /// end of the reply.
+    ///
+    /// The reply is complete only after a terminal signal: the `[DONE]`
+    /// sentinel, or a chunk whose choice carries a non-null `finish_reason`
+    /// (OpenAI, xAI and DeepSeek send that chunk, then a usage chunk, then
+    /// `[DONE]`; a compatible server that leaves `[DONE]` out still sends
+    /// the finish reason). A stream that closes with neither was cut, like
+    /// an Anthropic stream without `message_stop`: it throws
+    /// `URLError(.networkConnectionLost)`, which `ProviderStream` reports as
+    /// a dropped connection, and any open tool-call fragments are not run.
+    /// A cancelled task whose sequence ended cleanly throws
+    /// `CancellationError` first, so Stop reads as cancellation.
+    ///
+    /// Only `data:` lines are read; comments (`:` keep-alives), blank lines
+    /// and `event:` lines are skipped. Takes the line sequence rather than
+    /// the URL session's bytes so tests can feed it a reply.
+    static func consumeSSE<Lines: AsyncSequence>(
+        _ lines: Lines,
+        providerID: ProviderID,
+        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+    ) async throws where Lines.Element == String {
+        var state = StreamState()
+        for try await line in lines {
             try Task.checkCancellation()
             guard line.hasPrefix("data:") else { continue }
             let payload = line.dropFirst("data:".count).trimmingCharacters(in: .whitespaces)
             if payload.isEmpty { continue }
             if payload == "[DONE]" {
-                flushToolCalls(&openToolCalls, continuation: continuation)
-                continuation.yield(.done)
+                try finishReply(&state, continuation: continuation)
                 return
             }
-            try handleChunk(payload, openToolCalls: &openToolCalls, continuation: continuation)
+            try handleChunk(payload, providerID: providerID, state: &state, continuation: continuation)
         }
-        guard openToolCalls.isEmpty else { throw URLError(.networkConnectionLost) }
+        try Task.checkCancellation()
+        guard state.finishReason != nil else { throw URLError(.networkConnectionLost) }
+        try finishReply(&state, continuation: continuation)
     }
 
-    /// One `data:` chunk: an error object mid-stream throws it; otherwise the
-    /// choice half and the usage half are handled. A chunk that is not JSON
-    /// is skipped.
-    private static func handleChunk(
-        _ payload: String,
-        openToolCalls: inout [Int: PendingToolCall],
+    /// The end of a complete reply: any tool calls still open are flushed
+    /// (a server may finish with "stop" and leave them to the end), then
+    /// `.done`.
+    private static func finishReply(
+        _ state: inout StreamState,
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) throws {
-        guard let data = payload.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else { return }
-        if let failure = ProviderHTTP.streamFailure(in: json) { throw failure }
-        handleChoice(json, openToolCalls: &openToolCalls, continuation: continuation)
+        try flushToolCalls(&state.openToolCalls, continuation: continuation)
+        continuation.yield(.done)
+    }
+
+    /// One `data:` chunk: a payload that is not a JSON object throws
+    /// (`ProviderHTTP.eventObject`), an error object mid-stream throws it;
+    /// otherwise the choice half and the usage half are handled.
+    private static func handleChunk(
+        _ payload: String,
+        providerID: ProviderID,
+        state: inout StreamState,
+        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+    ) throws {
+        let json = try ProviderHTTP.eventObject(Data(payload.utf8), provider: providerID)
+        if let failure = ProviderHTTP.streamFailure(in: json, provider: providerID) { throw failure }
+        try handleChoice(json, providerID: providerID, state: &state, continuation: continuation)
         yieldUsage(json["usage"] as? [String: Any], to: continuation)
     }
 
-    /// The `choices[0]` half of a chunk: a text delta, tool-call fragments, or
-    /// the finish reason that flushes them.
+    /// The `choices[0]` half of a chunk: a text delta, tool-call fragments,
+    /// and the finish reason when the chunk carries one. Only the first
+    /// finish reason is acted on: a server that repeats it in a later chunk
+    /// must not add a second "…" or flush twice.
     private static func handleChoice(
         _ json: [String: Any],
-        openToolCalls: inout [Int: PendingToolCall],
+        providerID: ProviderID,
+        state: inout StreamState,
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
-    ) {
+    ) throws {
         guard let first = (json["choices"] as? [[String: Any]])?.first else { return }
         if let delta = first["delta"] as? [String: Any] {
             if let content = delta["content"] as? String, !content.isEmpty {
                 continuation.yield(.textDelta(content))
             }
             for tc in delta["tool_calls"] as? [[String: Any]] ?? [] {
-                accumulate(tc, into: &openToolCalls)
+                accumulate(tc, into: &state.openToolCalls)
             }
         }
-        if let reason = first["finish_reason"] as? String, reason == "tool_calls" {
-            flushToolCalls(&openToolCalls, continuation: continuation)
+        if let reason = first["finish_reason"] as? String, state.finishReason == nil {
+            try applyFinishReason(reason, providerID: providerID, state: &state, continuation: continuation)
+        }
+    }
+
+    /// Records the finish reason, which marks the reply complete, and acts
+    /// on it:
+    ///   • `tool_calls`: the calls are complete, so they flush.
+    ///   • `length`: the reply hit the token cap. Text ends with "…", as
+    ///     Anthropic's `max_tokens` does. Tool-call arguments still open
+    ///     were cut, so the round fails rather than run them.
+    ///   • `content_filter`: the vendor's safety filter stopped the reply,
+    ///     which throws `AIProviderError.blockedReply`.
+    ///   • `insufficient_system_resource` (DeepSeek): the server cut the
+    ///     reply for lack of capacity, which throws the same overloaded
+    ///     error as a 5xx.
+    ///   • anything else (`stop`): the reply finished normally.
+    private static func applyFinishReason(
+        _ reason: String,
+        providerID: ProviderID,
+        state: inout StreamState,
+        continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+    ) throws {
+        state.finishReason = reason
+        switch reason {
+        case "tool_calls":
+            try flushToolCalls(&state.openToolCalls, continuation: continuation)
+        case "length":
+            debugLog("[AIStreamer] \(providerID.rawValue) reply stopped early: finish_reason=length", level: .warning)
+            guard state.openToolCalls.isEmpty else {
+                throw AIProviderError.invalidResponse("the reply hit its length limit inside a tool call")
+            }
+            continuation.yield(.textDelta("…"))
+        case "content_filter":
+            throw AIProviderError.blockedReply(provider: providerID, reason: reason)
+        case "insufficient_system_resource":
+            throw AIProviderError.modelUnavailable(ProviderHTTP.overloadedMessage(for: providerID))
+        default:
+            break
         }
     }
 
@@ -436,22 +508,32 @@ enum OpenAICompatibleStreamer {
 
     /// Emit one `.toolUse` per accumulated tool_call in deterministic index
     /// order. Clears the dict so a [DONE] sentinel doesn't double-emit.
+    ///
+    /// Every call's arguments are checked before any is emitted: arguments
+    /// that do not parse as a JSON object were cut or garbled, and running
+    /// the tool on them would run it with default scope, so the round
+    /// throws `.invalidResponse` and none of the calls run.
     private static func flushToolCalls(
         _ calls: inout [Int: PendingToolCall],
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
-    ) {
-        let ordered = calls.values.sorted { $0.index < $1.index }
-        for call in ordered where !call.name.isEmpty {
-            let args = call.arguments.isEmpty ? "{}" : call.arguments
-            continuation.yield(.toolUse(id: call.id, name: call.name, inputJSON: args))
-        }
+    ) throws {
+        let ordered = calls.values.sorted { $0.index < $1.index }.filter { !$0.name.isEmpty }
         calls.removeAll(keepingCapacity: false)
+        let ready = ordered.map { (call: $0, args: $0.arguments.isEmpty ? "{}" : $0.arguments) }
+        if let broken = ready.first(where: { !ProviderHTTP.isJSONObject($0.args) }) {
+            throw AIProviderError.invalidResponse("tool call \(broken.call.name) arrived with incomplete arguments")
+        }
+        for item in ready {
+            continuation.yield(.toolUse(id: item.call.id, name: item.call.name, inputJSON: item.args))
+        }
     }
 
     /// Maps an HTTP failure to the error the chat shows. A credit failure is
     /// checked first: OpenAI sends an empty account as 429
     /// `insufficient_quota`, DeepSeek as 402, xAI as 403/429 about credits,
-    /// and none of those is a rate limit or a bad key.
+    /// and none of those is a rate limit or a bad key. A 5xx is the vendor's
+    /// own failure and maps as `ProviderHTTP.statusError` maps it for
+    /// Anthropic and Gemini: `.modelUnavailable` with the overloaded text.
     private static func throwForStatus(
         _ status: Int,
         bytes: URLSession.AsyncBytes,
@@ -468,6 +550,7 @@ enum OpenAICompatibleStreamer {
         case 429: throw AIProviderError.rateLimited
         case 404: throw AIProviderError.modelUnavailable(parsed?.message ?? bodyText)
         case 400: throw badRequestError(parsed, bodyText: bodyText, status: status)
+        case 500...599: throw AIProviderError.modelUnavailable(ProviderHTTP.overloadedMessage(for: providerID))
         default:
             throw AIProviderError.invalidResponse("HTTP \(status): \(parsed?.message ?? bodyText)")
         }

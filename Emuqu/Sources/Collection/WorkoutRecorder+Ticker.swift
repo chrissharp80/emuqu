@@ -597,6 +597,8 @@ extension WorkoutTicker {
         capWorkoutSampleMemory()
     }
 
+    /// Values that are not finite numbers are recorded as missing
+    /// (`finiteValuesOnly`): the archive cannot encode NaN or infinity.
     private func makeSample(sport: Sport, paceSecPerKm: Double?) -> WorkoutSample {
         WorkoutSample(
             offsetSec: recorder.elapsedSeconds, heartRate: recorder.currentHR,
@@ -608,7 +610,7 @@ extension WorkoutTicker {
                 userMaxHR: recorder.settingsProvider().effectiveMaxHR
             ),
             powerWatts: recorder.powerWatts
-        )
+        ).finiteValuesOnly
     }
 
     /// Tick stage — feeds this tick's distances and speeds to `recorder.livePace`.

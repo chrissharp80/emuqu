@@ -1,13 +1,56 @@
 {
  "file": "EmuquTests/UserSettingsTests.swift",
- "hash": "bfbdc5e93110511c",
+ "hash": "7ebac0c01d6594fd",
  "role": "XCTest suite for UserSettings defaults and Codable, TemperatureUnit conversions, SleepSchedule wake time and overnight window, FitnessLevel names, and HRVSession windowUserAdjusted/sleepUserAdjusted round trip.",
  "types": [
   "UserSettingsTests: class (XCTestCase) — model value tests"
  ],
- "state": [],
- "toplevel": "",
+ "state": [
+  "UserSettingsTests.SettingsReader: Sendable test reader (OSAllocatedUnfairLock state: POSIX failure to throw, read count) injected into SettingsManager(settingsURL:read:)",
+  "savedPerformanceFlags: the host's perf.* UserDefaults mirrors, saved in setUp and put back in tearDown"
+ ],
+ "toplevel": " Imports os (the reader's lock) and UIKit (the retry notification names).",
  "units": [
+  {
+   "key": "func UserSettingsTests.setUpWithError()",
+   "hash": "6c41f844040f02aa",
+   "does": "Saves the host's UserDefaults.standard values of the three performance-flag mirror keys (perf.enableAIAssistant, perf.enableVoiceMode, perf.enableWatchConnectivity).",
+   "entry": "XCTest calls it before / after each test method",
+   "calls": [],
+   "reads": [
+    "ud:perf.enableAIAssistant",
+    "ud:perf.enableVoiceMode",
+    "ud:perf.enableWatchConnectivity"
+   ],
+   "writes": [
+    "mem:UserSettingsTests.savedPerformanceFlags"
+   ],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func UserSettingsTests.tearDownWithError()",
+   "hash": "2e5db9acd056a1e7",
+   "does": "Puts each saved performance-flag mirror back in UserDefaults.standard, removing the keys that were absent.",
+   "entry": "XCTest calls it before / after each test method",
+   "calls": [],
+   "reads": [
+    "mem:UserSettingsTests.savedPerformanceFlags"
+   ],
+   "writes": [
+    "ud:perf.enableAIAssistant",
+    "ud:perf.enableVoiceMode",
+    "ud:perf.enableWatchConnectivity"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each saved key",
+     "effect": "value set back, or key removed when it was absent"
+    }
+   ],
+   "deps": {}
+  },
   {
    "key": "func UserSettingsTests.testDefaultSettings()",
    "hash": "24aa74ab426d62a2",
@@ -344,6 +387,338 @@
     "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.encode(to:)": "8f523714536d1d3f",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "8d048c0e4ae285fc",
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.makeMinimalSession()": "f1bf6701c2d8433d"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.unreadableSettingsFile()",
+   "hash": "c779a2eb4a58c623",
+   "does": "Creates a temporary directory (made writable and removed by a teardown block) holding a user_settings.json that is not settings JSON, and returns its URL.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.createDirectory",
+    "ext:FileManager.setAttributes(posixPermissions)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/SettingsLoad-<uuid>/user_settings.json"
+   ],
+   "branches": [],
+   "deps": {
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testAnUnreadableSettingsFileIsCopiedAsideReplacingTheEarlierCopy()",
+   "hash": "7569cf319d5c89ca",
+   "does": "With an earlier user_settings.unreadable.json beside an unreadable settings file, SettingsManager.load(from:) returns (nil, .unreadableOther), the copy now holds the unreadable bytes, and the directory holds exactly the two files (compared as a set; no temporary copy left).",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableBytes(_:beside:)"
+   ],
+   "reads": [
+    "file:<tmp>/SettingsLoad-<uuid>/"
+   ],
+   "writes": [
+    "file:<tmp>/SettingsLoad-<uuid>/user_settings.unreadable.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)": "4b75070cf79e4769",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableBytes(_:beside:)": "2e616cf77e8e8861",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()": "e9ff2f794bd8e2bb",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)": "337f4aa734a10f94"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testAFailedCopyHoldsSavesAndKeepsTheEarlierCopy()",
+   "hash": "8bca3b8478257402",
+   "does": "With an earlier user_settings.unreadable.json and the directory made read-only, SettingsManager.load(from:) on the unreadable file returns (nil, .unreadableNotPreserved); the earlier copy and the file keep their bytes.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableBytes(_:beside:)",
+    "ext:FileManager.setAttributes(posixPermissions)"
+   ],
+   "reads": [
+    "file:<tmp>/SettingsLoad-<uuid>/"
+   ],
+   "writes": [
+    "file:<tmp>/SettingsLoad-<uuid>/user_settings.unreadable.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)": "4b75070cf79e4769",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableFile(at:)": "007e650f9325807d",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()": "e9ff2f794bd8e2bb",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableBytes(_:beside:)": "2e616cf77e8e8861",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)": "337f4aa734a10f94"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.readError(posix:)",
+   "hash": "ebb7252b77278d00",
+   "does": "Nonisolated static: an NSError in NSCocoaErrorDomain (NSFileReadUnknownError) wrapping an NSPOSIXErrorDomain error with the given code under NSUnderlyingErrorKey.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func UserSettingsTests.testAReadFailureThatCanPassHoldsSaves()",
+   "hash": "30680d336a50c4bd",
+   "does": "For EIO, EMFILE and ENFILE read errors injected through load(from:read:), asserts (nil, .unreadableNotPreserved), and that the settings file keeps its bytes.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.readError(posix:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)"
+   ],
+   "reads": [
+    "file:<tmp>/SettingsLoad-<uuid>/user_settings.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each POSIX code",
+     "effect": "asserts held"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)": "337f4aa734a10f94",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.readError(posix:)": "b5e00162a4e71dde",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()": "e9ff2f794bd8e2bb"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testAnEISDIRReadErrorLeavesNothingToKeep()",
+   "hash": "598ad417ebe64a91",
+   "does": "Injects an EISDIR read error: load(from:read:) returns (nil, .unreadableOther) and no user_settings.unreadable.json is written.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.readError(posix:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)"
+   ],
+   "reads": [
+    "file:<tmp>/SettingsLoad-<uuid>/"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)": "337f4aa734a10f94",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.readError(posix:)": "b5e00162a4e71dde",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()": "e9ff2f794bd8e2bb"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testReadErrorsThatAreNotTransient()",
+   "hash": "4f586e92b0c432a7",
+   "does": "outcome(forReadError:): NSFileReadNoPermissionError → .blockedByProtection; NSFileReadNoSuchFileError and ENOENT → .fileNotPresent; NSFileReadTooLargeError → .unreadableOther.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.outcome(forReadError:)",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.readError(posix:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::init FileReadFailure(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.outcome(forReadError:)": "04502d1dc8fff04a",
+    "Emuqu/Sources/Models/SettingsManager.swift::init FileReadFailure(_:)": "a22c3c02670f4493",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.readError(posix:)": "b5e00162a4e71dde"
+   }
+  },
+  {
+   "key": "var UserSettingsTests.SettingsReader.reads",
+   "hash": "5fecf24c978cb0b6",
+   "does": "The number of reads so far, under the lock.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func UserSettingsTests.SettingsReader.setFailure(posix:)",
+   "hash": "660af07de549d32e",
+   "does": "Sets (or clears, with nil) the POSIX code later reads fail with, under the lock.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func UserSettingsTests.SettingsReader.read(_:)",
+   "hash": "24e2f5c6c96bca10",
+   "does": "Under the lock counts the read and takes the failure code; with one throws readError(posix:), else returns the file's bytes.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.readError(posix:)",
+    "ext:Data(contentsOf:)"
+   ],
+   "reads": [
+    "file:<tmp>/SettingsLoad-<uuid>/user_settings.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "failure set",
+     "effect": "throws it"
+    }
+   ],
+   "deps": {
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.readError(posix:)": "b5e00162a4e71dde",
+    "EmuquTests/UserSettingsTests.swift::var UserSettingsTests.SettingsReader.reads": "f51421b5ad7ba74e"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.heldManager()",
+   "hash": "3dedc02ba15af754",
+   "does": "Writes settings with maxHR 170 to a temporary user_settings.json, builds SettingsManager(settingsURL:read:) with a SettingsReader failing with EIO (setFailure(posix:)), asserts the load outcome is .unreadableNotPreserved and returns the manager, reader and file.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.readError(posix:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/SettingsLoad-<uuid>/user_settings.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:)": "82228c7d635edc98",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "1c099582675121a6",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.SettingsReader.read(_:)": "b19cc69f659cab4f",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.SettingsReader.setFailure(posix:)": "59bc1ae332b3b9ef",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.readError(posix:)": "b5e00162a4e71dde",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()": "e9ff2f794bd8e2bb"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.settingsOnDisk(_:file:)",
+   "hash": "1ba6afe3acc079be",
+   "does": "Flushes the manager's pending write (asserting no error) and decodes the settings file.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.flushPendingWritesSynchronously()"
+   ],
+   "reads": [
+    "file:<tmp>/SettingsLoad-<uuid>/user_settings.json"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.flushPendingWritesSynchronously()": "96642c2f565b8fca"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.drainMainActor()",
+   "hash": "f5246106b225735e",
+   "does": "Yields the main actor five times so tasks the manager scheduled (observer installation) run.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func UserSettingsTests.testAHeldChangeIsMergedOntoTheFileOnceItReads()",
+   "hash": "dbfc7ec67f6299f8",
+   "does": "Held manager; the reader recovers; a body-weight change re-reads the file: outcome .loaded, maxHR 170 from the file and the change kept, in memory and on disk.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.heldManager()",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.settingsOnDisk(_:file:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.saveUnlessLocked()",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryHeldLoad()"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/SettingsLoad-<uuid>/user_settings.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryHeldLoad()": "0f2b0d10bbc7dd30",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.saveUnlessLocked()": "c59772159ed0611a",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.SettingsReader.setFailure(posix:)": "59bc1ae332b3b9ef",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.heldManager()": "8a79d18a64150e50",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.settingsOnDisk(_:file:)": "ac402e308c5966e7"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testARetryAfterTheHoldLiftedReadsNothingAndKeepsTheChange()",
+   "hash": "d7506288a871f4a7",
+   "does": "Held manager; a change lifts the hold in the same turn as init; after the main actor drains no held-retry observer is installed; with the reader failing again, retryLoadAfterUnlock reads nothing and the outcome stays .loaded; a later maxHR change reaches disk.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.heldManager()",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.drainMainActor()",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.settingsOnDisk(_:file:)",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.readError(posix:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryLoadAfterUnlock()"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/SettingsLoad-<uuid>/user_settings.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryLoadAfterUnlock()": "7d65d546dc09af34",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.SettingsReader.setFailure(posix:)": "59bc1ae332b3b9ef",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.drainMainActor()": "3dc6319b06bce1d4",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.heldManager()": "8a79d18a64150e50",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.readError(posix:)": "b5e00162a4e71dde",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.settingsOnDisk(_:file:)": "ac402e308c5966e7",
+    "EmuquTests/UserSettingsTests.swift::var UserSettingsTests.SettingsReader.reads": "f51421b5ad7ba74e"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testAHeldLoadIsRetriedOnActivationWithoutAReadPerChange()",
+   "hash": "3caea12117ff7d36",
+   "does": "Asserts heldRetryNotifications contains didBecomeActive and protectedDataDidBecomeAvailable. Held manager; after the main actor drains one observer per notification is installed; two changes within heldChangeRetryInterval cost one extra read and stay held; once the reader recovers, retryLoadAfterUnlock (the observers' handler) adopts the file: outcome .loaded, observers gone, and the file holds maxHR 170 with both changes.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.heldManager()",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.drainMainActor()",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.settingsOnDisk(_:file:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryLoadAfterUnlock()"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/SettingsLoad-<uuid>/user_settings.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryLoadAfterUnlock()": "7d65d546dc09af34",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.SettingsReader.setFailure(posix:)": "59bc1ae332b3b9ef",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.drainMainActor()": "3dc6319b06bce1d4",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.heldManager()": "8a79d18a64150e50",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.settingsOnDisk(_:file:)": "ac402e308c5966e7",
+    "EmuquTests/UserSettingsTests.swift::var UserSettingsTests.SettingsReader.reads": "f51421b5ad7ba74e"
    }
   },
   {

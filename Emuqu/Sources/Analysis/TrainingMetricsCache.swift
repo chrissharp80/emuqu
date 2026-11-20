@@ -568,6 +568,35 @@ final class TrainingMetricsCache {
         lastUpdated = nil
     }
 
+    /// Delete All My Data: drops the published metrics and the day-by-day
+    /// series, and every marker that would let a refresh reuse them. A refresh
+    /// or series build in flight is cancelled and its result discarded, so
+    /// neither publishes or persists the erased figures. The purge's sweep
+    /// removed the file; a removal is queued behind any write still pending,
+    /// so a write that lands after the sweep is removed again.
+    func forgetAfterPurge() {
+        refreshTask?.cancel()
+        refreshTask = nil
+        historicalTask?.cancel()
+        historicalTask = nil
+        historicalBuildPending = false
+        lastHistoricalKey = nil
+        current = nil
+        dailySeries = [:]
+        lastUpdated = nil
+        computedAt = nil
+        lastWorkoutFingerprint = nil
+        lastComputedDay = nil
+        lastLoadSettings = nil
+        guard let url = Self.persistenceURL else { return }
+        let previous = persistTask
+        persistTask = Task.detached(priority: .utility) {
+            await previous?.value
+            guard FileManager.default.fileExists(atPath: url.path) else { return }
+            attempt("trainingMetricsCache.remove") { try FileManager.default.removeItem(at: url) }
+        }
+    }
+
     /// Force a full recompute from scratch, bypassing the incremental gate — the
     /// user-facing "Rebuild training load" safety valve (Settings ▸ Diagnostics)
     /// for when the cached series looks wrong (e.g. an external change the

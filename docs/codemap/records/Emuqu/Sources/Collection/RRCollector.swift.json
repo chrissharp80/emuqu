@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Collection/RRCollector.swift",
- "hash": "6083d20dc4030cdc",
+ "hash": "c3ae3a9c334f99b5",
  "role": "The @Observable MainActor RRCollector orchestration shell: injected dependencies, back-compat forwarders to DeviceStatus/SessionState/CollectorSessionControl, archive read helpers, strap-recovery predicates, training-context/ANS-config builders, wiring factory and deferred baseline rebuild; plus RRCollectorError and two file-scope phase label helpers.",
  "types": [
   "RRCollector: class — recording orchestrator (@Observable, @MainActor)",
@@ -20,7 +20,6 @@
   "mem:RRCollector.onStreamingComplete",
   "mem:RRCollector.streamingTimer (OSAllocatedUnfairLock box)",
   "mem:RRCollector.sessionStartTime",
-  "mem:RRCollector.cancellables",
   "mem:RRCollector.notificationObservers",
   "mem:RRCollector.lastSeenReconnectCount",
   "mem:RRCollector.pastDayTrainingLoads",
@@ -369,7 +368,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()": "432fda2fb1468ab1",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.pauseOvernightStreaming()": "38654eadca6211af",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997"
    }
   },
@@ -403,7 +402,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()": "3bf64ac9656569a1",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()": "e2c2ceb778dab145",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997"
    }
   },
@@ -1223,8 +1222,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "ae5ea790af0a89a2",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "e657d5abf4626699",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "ec38259613741ffb",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "458e791447e9fdf7",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected": "ea6ad7424667b139",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)": "3d7369730ef4c061",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6"
@@ -1268,8 +1267,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "ae5ea790af0a89a2",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "e657d5abf4626699",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)": "ec38259613741ffb",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reset()": "458e791447e9fdf7",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected": "ea6ad7424667b139",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)": "3d7369730ef4c061",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6"
@@ -1302,7 +1301,7 @@
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()",
     "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)",
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)"
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)"
    ],
    "reads": [
     "mem:AppDependencies.current"
@@ -1313,10 +1312,10 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "30cd3e6093580ceb",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "6e1cf9b3c8fe2623",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "a5f6a55fc002c5dc",
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
     "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "21e351483eeaaa15",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ac5fb66c0359130b",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.updateBaseline(rmssd:hr:)": "008a34a8314440bc",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "28134c325b02f133",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
@@ -1326,9 +1325,9 @@
    }
   },
   {
-   "key": "init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:backgroundAudioManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)",
-   "hash": "32cb843f577224a9",
-   "does": "Designated init: assigns all dependencies, defaulting nil ones (ArchiveSignal, DeviceStatus, StreamingLifecycle, MorningCoordination, SessionState, CloudKitSyncManager and BackgroundAudioManager from AppDependencies, ReconciliationManager, pipeline, SleepBoundaryResolver, acceptance and morning services via factories), then wireCollaborators.",
+   "key": "init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)",
+   "hash": "acfc84a929618446",
+   "does": "Designated init: assigns all dependencies, defaulting nil ones (ArchiveSignal, DeviceStatus, StreamingLifecycle, MorningCoordination, SessionState, CloudKitSyncManager from AppDependencies, ReconciliationManager, pipeline, SleepBoundaryResolver, acceptance and morning services via factories), then wireCollaborators.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/ArchiveSignal.swift::init ArchiveSignal(center:)",
@@ -1351,69 +1350,64 @@
    "writes": [],
    "branches": [
     {
-     "at": "+30",
+     "at": "+29",
      "cond": "archiveSignal ?? ArchiveSignal()",
      "effect": "new signal when not injected"
     },
     {
-     "at": "+31",
+     "at": "+30",
      "cond": "deviceStatus ?? DeviceStatus()",
      "effect": "new when not injected"
     },
     {
-     "at": "+32",
+     "at": "+31",
      "cond": "streamingLifecycle ?? StreamingLifecycle()",
      "effect": "new when not injected"
     },
     {
-     "at": "+33",
+     "at": "+32",
      "cond": "morningCoordination ?? MorningCoordination()",
      "effect": "new when not injected"
     },
     {
-     "at": "+34",
+     "at": "+33",
      "cond": "sessionState ?? SessionState()",
      "effect": "new when not injected"
     },
     {
-     "at": "+35",
+     "at": "+34",
      "cond": "cloudSyncManager ?? AppDependencies shared CloudKitSyncManager",
      "effect": "shared production sync manager when not injected"
     },
     {
-     "at": "+37",
-     "cond": "backgroundAudioManager ?? AppDependencies shared",
-     "effect": "shared when not injected"
-    },
-    {
-     "at": "+38",
+     "at": "+36",
      "cond": "reconciliation ?? ReconciliationManager(archive:)",
      "effect": "new when not injected"
     },
     {
-     "at": "+39",
+     "at": "+37",
      "cond": "analysisPipeline ?? makePipeline",
      "effect": "factory pipeline when not injected"
     },
     {
-     "at": "+43",
+     "at": "+41",
      "cond": "sleepBoundaryResolver ?? SleepBoundaryResolver(healthKit:)",
      "effect": "new when not injected"
     },
     {
-     "at": "+44",
+     "at": "+42",
      "cond": "acceptanceService ?? makeAcceptanceService",
      "effect": "factory when not injected"
     },
     {
-     "at": "+48",
+     "at": "+46",
      "cond": "morningProcessingService ?? makeMorningProcessingService",
      "effect": "factory when not injected"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "30cd3e6093580ceb",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "6e1cf9b3c8fe2623",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "a5f6a55fc002c5dc",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::init SleepBoundaryResolver(healthKit:)": "dce1fc4bba74d4bc",
     "Emuqu/Sources/Analysis/Verification.swift::init Verification(config:)": "68e775fef7fd01d0",
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
@@ -1422,11 +1416,10 @@
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeMorningProcessingService(_:)": "f9fcf93711e0e965",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makePipeline(artifactDetector:windowSelector:healthKit:)": "e23d6a6f75e30973",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()": "b82f95f14f120618",
-    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "a892db29af7907c0",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "28134c325b02f133",
     "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "fad2758814b0975e",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c"
    }

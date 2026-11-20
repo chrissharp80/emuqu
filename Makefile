@@ -140,11 +140,27 @@ skip-budget:
 # 2026-08-26 — pass an explicit baseline. With no argument and no
 # GITHUB_BASE_REF/BUDGET_BASE_REF the script prints "no PR baseline … Skipping"
 # and exits 0, which is exactly how `make ci` invoked it: locally, raising
-# .ci/try_optional_budget.txt from 377 to 999 passed. `HEAD` catches the case
-# the developer is actually in — an uncommitted budget edit in the working
-# tree. CI passes its own baseline: the parent commit, or a pull request's base.
+# .ci/try_optional_budget.txt from 377 to 999 passed.
+#
+# The baseline is where this branch left origin/main (their merge base), so a
+# raise already committed on the branch is compared, not only an uncommitted
+# one, and the trailer scan covers every commit the branch adds. A budget
+# lowered on origin/main since the branch point is not read as a raise here.
+# A clone with no origin/main falls back to HEAD, which still sees an
+# uncommitted edit, and says so. BUDGET_BASE_REF overrides both. CI passes its
+# own baseline: the parent commit, the tip before a push, or a pull request's
+# base.
 budget-monotonicity:
-	@./scripts/check_budget_monotonicity.sh $${BUDGET_BASE_REF:-HEAD}
+	@base="$${BUDGET_BASE_REF:-}"; \
+	if [ -z "$$base" ]; then \
+		if base="$$(git merge-base HEAD origin/main 2>/dev/null)"; then \
+			echo "budget-monotonicity: comparing with the merge base of HEAD and origin/main ($$(git rev-parse --short "$$base"))"; \
+		else \
+			base=HEAD; \
+			echo "budget-monotonicity: no origin/main here; comparing the working tree with HEAD only (commits already made are not compared; set BUDGET_BASE_REF to choose a baseline)"; \
+		fi; \
+	fi; \
+	./scripts/check_budget_monotonicity.sh "$$base"
 
 # `.font(.system(size:))` ignores the user's text-size setting. `scaledFont`
 # is the migration target; this stops the holdouts growing back.
@@ -158,7 +174,7 @@ strict-concurrency-enabled:
 
 # Data races, detected at runtime. The compiler cannot check the
 # `@unchecked Sendable` escapes; this is the evidence for them.
-# Slow — its own CI job, not part of `ci`.
+# Slow — an instrumented build and run, so `ci` runs it after the static gates.
 thread-sanitizer:
 	@./scripts/check_thread_sanitizer.sh
 
@@ -243,10 +259,11 @@ scoring-governance:
 comment-citations:
 	@./scripts/check_comment_citations.sh
 
-# 2026-08-26 — `.ci/large_swift_files_1500_budget.txt` is 0 and no FILE exceeds
-# 1500 lines, while RRCollector is 6,691 lines across 23 files. A per-file limit
-# cannot see a type that was split rather than reduced. Budget starts at the
-# measured 19 and ratchets down, same as every other budget here.
+# A per-FILE length limit (`.ci/large_swift_files_1500_budget.txt`) cannot see
+# a type that was split across files rather than reduced; RRCollector, spread
+# over its extension files, was the case that showed it. This gate sums each
+# type's lines across all its files and prints the current figures. Its budgets
+# ratchet down, same as every other budget here.
 aggregate-type-size:
 	@./scripts/check_aggregate_type_size.sh
 
@@ -284,11 +301,14 @@ ci-local-unit:
 
 # Every gate a developer runs, and the same set ci.yml runs. A gate missing
 # from this list is one nobody sees fail locally, which has happened twice
-# (`localization-orphan-guard`, `orphan-swift-guard`).
+# (`localization-orphan-guard`, `orphan-swift-guard`). That includes the two
+# builds ci.yml runs besides the tests: the Release configuration and the
+# unit suite under Thread Sanitizer.
 #
 # Order matters. Make stops at the first failing target, so the static gates
-# (seconds) come first and the test suite (the slow part) comes last.
-ci: lint lint-budget debt-budget budget-monotonicity infoplist-guard sendable-guard no-unowned-guard logger-self-reference-guard coremotion-isolation-guard hr-feed-link-guard license-header-guard dated-comment-budget shared-root-guard spec-conformance locale-format-guard sbom-guard snapshot-refs-guard empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard date-ms-guard doc-counts-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard uitest-reset-guard skip-budget fixed-font-budget orphan-swift-guard copy-perimeter perimeter-sync science-register scoring-governance comment-citations aggregate-type-size doc-links strict-concurrency-enabled no-phone-home sbom-check codemap-guard gate-preflight verify-gates test-coverage
+# (seconds) come first, then the Release build, then Thread Sanitizer, and the
+# test suite (the slow part) last.
+ci: lint lint-budget debt-budget budget-monotonicity infoplist-guard sendable-guard no-unowned-guard logger-self-reference-guard coremotion-isolation-guard hr-feed-link-guard license-header-guard dated-comment-budget shared-root-guard spec-conformance locale-format-guard sbom-guard snapshot-refs-guard empty-range-guard leaked-mutations-guard eager-prompt-guard gates-wired-guard date-ms-guard doc-counts-guard log-redaction-guard localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard uitest-reset-guard skip-budget fixed-font-budget orphan-swift-guard copy-perimeter perimeter-sync science-register scoring-governance comment-citations aggregate-type-size doc-links strict-concurrency-enabled no-phone-home sbom-check codemap-guard gate-preflight verify-gates release-build thread-sanitizer test-coverage
 
 # Every gate that builds the app writes its derived data under build/ in its
 # own directory (coverage, Thread Sanitizer, mutation runs, the clean-room

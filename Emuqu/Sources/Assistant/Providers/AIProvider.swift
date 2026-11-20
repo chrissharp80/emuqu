@@ -198,6 +198,18 @@ struct ChatTurn: Codable, Identifiable, Hashable, Sendable {
     /// be a claim this cannot support.
     var localOnly: Bool = false
 
+    /// Whether this reply's stream failed after some of its text was shown.
+    ///
+    /// The text the user saw stays in the bubble, with a note that the reply
+    /// is incomplete, so after a relaunch it still reads as cut off rather
+    /// than as a finished answer. History assembly (`truncateForSend`) leaves
+    /// it out of the next request, so a model is never told it gave this
+    /// fragment as a complete reply. A reply the user stopped is not marked.
+    ///
+    /// Decodes to `false` when absent: transcripts written before this
+    /// existed carry no record of how their replies ended.
+    var incomplete: Bool = false
+
     init(
         id: UUID = UUID(),
         role: Role,
@@ -220,8 +232,8 @@ struct ChatTurn: Codable, Identifiable, Hashable, Sendable {
         self.localOnly = localOnly
     }
 
-    /// Decoded by hand so a missing `localOnly` means `false` rather than a
-    /// decode failure.
+    /// Decoded by hand so a missing `localOnly` or `incomplete` means `false`
+    /// rather than a decode failure.
     ///
     /// A default value on a stored property does NOT make Swift's synthesised
     /// `Codable` tolerate a missing key — the synthesised decoder still
@@ -244,6 +256,7 @@ struct ChatTurn: Codable, Identifiable, Hashable, Sendable {
         subsystem = try container.decodeIfPresent(AssistantSubsystem.self, forKey: .subsystem)
         routedTierRaw = try container.decodeIfPresent(Int.self, forKey: .routedTierRaw)
         localOnly = try container.decodeIfPresent(Bool.self, forKey: .localOnly) ?? false
+        incomplete = try container.decodeIfPresent(Bool.self, forKey: .incomplete) ?? false
     }
 }
 
@@ -292,7 +305,9 @@ enum AIStreamEvent: Sendable {
     case textDelta(String)
     /// The model requested a tool call. `inputJSON` is the complete args
     /// object as a JSON string. Providers accumulate partial input deltas
-    /// internally and emit this event only once per call, fully formed.
+    /// internally and emit this event only once per call, fully formed: a
+    /// call whose arguments do not parse as a JSON object is never emitted,
+    /// and the stream throws instead.
     case toolUse(id: String, name: String, inputJSON: String)
     /// Usage accounting. `cachedInputTokens` and `cacheCreationInputTokens`
     /// are provider-aware fields used for cache-hit telemetry:
@@ -361,6 +376,12 @@ enum AIProviderError: LocalizedError {
     case outOfCredit(ProviderID)
     case cancelled
     case unknown(String)
+    /// A cloud provider's safety system stopped the reply: Gemini's safety
+    /// finish reasons, the OpenAI-compatible `content_filter`, Anthropic's
+    /// `refusal`. `reason` is the vendor's stop reason, kept for the log.
+    /// Like Apple's guardrail, it is shown as it is and never handed to
+    /// another provider.
+    case blockedReply(provider: ProviderID, reason: String)
 
     /// True when this error came from Apple Intelligence's safety
     /// filter. A refusal is shown to the user as it is and never re-sent
@@ -372,12 +393,20 @@ enum AIProviderError: LocalizedError {
         return false
     }
 
+    /// True for a cloud vendor's safety stop (`.blockedReply`). The
+    /// fallback chain stops on it instead of trying the next vendor.
+    var isBlockedReply: Bool {
+        if case .blockedReply = self { return true }
+        return false
+    }
+
     /// True when this error is something the user can
     /// reasonably expect another provider to handle. Auth / credit /
     /// rate-limit / model-not-found / network failures all qualify
-    /// (the issue is with the provider, not the request). Cancellation
-    /// and guardrail violations don't (cancellation is intentional; a
-    /// safety refusal stands and is not routed around). Used by the
+    /// (the issue is with the provider, not the request). Cancellation,
+    /// guardrail violations and blocked replies don't (cancellation is
+    /// intentional; a safety refusal, Apple's or a cloud vendor's, stands
+    /// and is not routed around). Used by the
     /// generic fallback chain in `AssistantViewModel.send`.
     var isFallbackable: Bool {
         switch self {
@@ -389,7 +418,7 @@ enum AIProviderError: LocalizedError {
             // the chat. If the same error comes back from all
             // fallbacks, the user sees the original.
             return true
-        case .guardrailViolation, .cancelled:
+        case .guardrailViolation, .blockedReply, .cancelled:
             return false
         }
     }
@@ -414,6 +443,8 @@ enum AIProviderError: LocalizedError {
         case let .modelUnavailable(msg): Self.vendorText(msg) { msg }
         case let .outOfCredit(p): Self.outOfCreditMessage(p)
         case .cancelled: String(localized: "Request cancelled.", bundle: bundle)
+        case let .blockedReply(provider, _):
+            String(localized: "\(provider.displayName) declined to answer this. Try asking it another way.", bundle: bundle)
         case let .unknown(msg): Self.vendorText(msg) { msg }
         }
     }
@@ -567,14 +598,67 @@ enum ProviderHTTP {
         }
     }
 
-    /// An `{"error":{...}}` object that arrives as a stream chunk after a 200
-    /// (OpenAI-compatible and Gemini both do this when a reply fails
-    /// mid-stream), as the error the chat layer acts on. Nil for an ordinary
-    /// chunk.
-    static func streamFailure(in json: [String: Any]) -> AIProviderError? {
+    /// The "try again" text for a provider whose servers are overloaded or
+    /// failing (HTTP 5xx, or the same condition reported mid-stream).
+    static func overloadedMessage(for provider: ProviderID) -> String {
+        let bundle = LanguageManager.appBundle
+        return switch provider {
+        case .anthropic: String(localized: "Anthropic is overloaded right now. Try again in a moment.", bundle: bundle)
+        case .gemini: String(localized: "Gemini is overloaded right now. Try again in a moment.", bundle: bundle)
+        case .apple, .openai, .grok, .deepseek:
+            String(localized: "\(provider.displayName) is overloaded right now. Try again in a moment.", bundle: bundle)
+        }
+    }
+
+    /// Error `type`s a vendor sends in a mid-stream error object for a
+    /// failure on its own side: OpenAI's `server_error`, Anthropic's
+    /// `overloaded_error` (HTTP 529) and `api_error` (HTTP 500).
+    private static let serverFailureTypes: Set<String> = ["server_error", "overloaded_error", "api_error"]
+
+    /// An `{"error":{...}}` object that arrives in the stream after a 200
+    /// (OpenAI-compatible and Gemini send it as a chunk, Anthropic as an
+    /// `error` event), as the error the chat layer acts on. Nil for an
+    /// ordinary chunk.
+    ///
+    /// A failure on the vendor's side maps as `statusError` maps a 5xx, so
+    /// the same condition reads the same before and after the stream
+    /// opened: a numeric `code` of 500–599 (Gemini's envelope) or a type in
+    /// `serverFailureTypes` becomes `.modelUnavailable(overloadedMessage)`.
+    /// Anything else is `.invalidResponse` with the vendor's message.
+    static func streamFailure(in json: [String: Any], provider: ProviderID) -> AIProviderError? {
         guard let error = json["error"] as? [String: Any] else { return nil }
+        let serverCode = (error["code"] as? Int).map { (500...599).contains($0) } ?? false
+        let serverType = (error["type"] as? String).map { serverFailureTypes.contains($0) } ?? false
+        if serverCode || serverType { return .modelUnavailable(overloadedMessage(for: provider)) }
         let message = error["message"] as? String ?? "stream error"
         return .invalidResponse(redactAPIKeys(message))
+    }
+
+    /// One SSE `data:` payload as a JSON object. A payload that is not JSON,
+    /// or is JSON but not an object, means the stream is broken: it becomes
+    /// an `AIProviderError` the chat layer can fall back from, never a
+    /// skipped event, because a skipped event can drop text or a tool call
+    /// from the middle of a reply.
+    static func eventObject(_ data: Data, provider: ProviderID) throws -> [String: Any] {
+        let malformed = AIProviderError.invalidResponse("malformed \(provider.vendorName) stream event")
+        let object: Any
+        do {
+            object = try JSONSerialization.jsonObject(with: data)
+        } catch {
+            throw malformed
+        }
+        guard let json = object as? [String: Any] else { throw malformed }
+        return json
+    }
+
+    /// True when `text` parses as a JSON object: a tool call's arguments in
+    /// full, not a fragment the stream cut short.
+    static func isJSONObject(_ text: String) -> Bool {
+        do {
+            return try JSONSerialization.jsonObject(with: Data(text.utf8)) is [String: Any]
+        } catch {
+            return false
+        }
     }
 
     /// The composed prompt cut at `AssistantSystemPrompt.Composed.cacheSplitMarker`:
@@ -642,6 +726,11 @@ protocol AIProvider {
     ///
     /// The returned stream emits `.textDelta` or `.toolUse` chunks as they
     /// arrive, then optionally a `.usage` event, then `.done` (or throws).
+    /// A cloud provider yields `.done` only after the vendor's own end-of-reply
+    /// signal; a stream that closes without one was cut and throws
+    /// `URLError(.networkConnectionLost)`, which `ProviderStream` turns into
+    /// `.network`. A reply cut at the token cap ends with a "…" text delta,
+    /// and a safety stop throws `AIProviderError.blockedReply`.
     func send(
         messages: [ChatTurn],
         model: ModelOption,

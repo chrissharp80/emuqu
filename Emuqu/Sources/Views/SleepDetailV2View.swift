@@ -232,6 +232,10 @@ struct SleepDetailV2View: View {
                 return await Self.refetchSleep(for: session, from: collector)
             },
             onRefreshAccepted: { [weak collector, session] fresh in
+                // Not a user adjustment, so false is mostly the automatic
+                // update declining a night no newer than the stored one (or
+                // one the user's own edit locks), not a failed write; it is
+                // not reported as a failure.
                 _ = collector?.updateSessionSleepBoundaries(sessionId: session.id, sleepData: fresh, isUserAdjustment: false)
                 editorSleepData = nil
             }

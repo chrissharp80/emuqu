@@ -1,13 +1,14 @@
 {
  "file": "Emuqu/Sources/Storage/Archive+Trash.swift",
  "hash": "90c5fb6319f56502",
- "role": "Trash for deleted sessions: delete moves the session file to Trash/<uuid>.session; restore reads it back; files expire after keepDays (90).",
+ "role": "Trash for deleted sessions: delete moves the session file to Trash/<uuid>.session (throwing, file left in place, when it cannot); restore reads it back; files expire after keepDays (90). Also names the quarantine folder and lists a session's copies held outside the index (Trash and quarantine) for the re-encryption pass.",
  "types": [
-  "ArchiveStore: extension — trash directory, move, read, list, expire, discard"
+  "ArchiveStore: extension — trash and quarantine directories, parked copies, move, read, list, expire, discard"
  ],
  "state": [
   "file:<archiveDirectory>/Trash/ (directory)",
-  "file:<archiveDirectory>/Trash/<uuid>.session"
+  "file:<archiveDirectory>/Trash/<uuid>.session",
+  "file:<archiveDirectory>/QuarantinedDuplicates/ (directory)"
  ],
  "toplevel": "",
  "units": [
@@ -38,16 +39,63 @@
    }
   },
   {
+   "key": "var ArchiveStore.quarantineDirectory",
+   "hash": "b7060cd98b33d562",
+   "does": "URL of <archiveDirectory>/QuarantinedDuplicates/, where duplicate cleanup moves the files of the sessions it retires.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func ArchiveStore.parkedCopies(of:)",
+   "hash": "c7fb8f618f86481f",
+   "does": "Lists the session's files held outside the index: Trash/<uuid>.session when it exists, plus every file in QuarantinedDuplicates/ whose name starts with the uuid and ends in .json (<uuid>.json, <uuid>.<stamp>.json). Returns nil when the quarantine folder exists but cannot be listed (logged by attempt), so callers cannot read that as 'no copies'.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.quarantineDirectory",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.fileExists",
+    "ext:FileManager.contentsOfDirectory"
+   ],
+   "reads": [
+    "file:<archiveDirectory>/Trash/<uuid>.session",
+    "file:<archiveDirectory>/QuarantinedDuplicates/ (listing)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no quarantine folder",
+     "effect": "return the Trash file alone (or nothing)"
+    },
+    {
+     "at": "+4",
+     "cond": "listing the quarantine folder failed",
+     "effect": "return nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)": "0a1a12556160d38a",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.quarantineDirectory": "a1f2b4692c652f1b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+   }
+  },
+  {
    "key": "func ArchiveStore.moveToTrash(_:id:)",
-   "hash": "cb6fc82b412ad90e",
-   "does": "Creates Trash/ if needed, removes any existing trash file for the id, moves the session file there and dates it now (modificationDate, so expiredDeletionIds ages it from the deletion when no deletion time is recorded; a failed date set is only logged); on a create/remove/move failure logs and deletes the original file instead.",
+   "hash": "2feade929f86a4b8",
+   "does": "When the session file is not there, returns: nothing to keep, and the delete goes ahead. Otherwise creates Trash/ if needed, removes any existing trash file for the id, moves the session file there and dates it now (modificationDate, so expiredDeletionIds ages it from the deletion when no deletion time is recorded; a failed date set is only logged). A failed create, remove or move throws, leaving the session file where it was.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory",
     "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.removeQuietly(_:id:)",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.fileExists",
+    "ext:FileManager.createDirectory",
+    "ext:FileManager.removeItem",
     "ext:FileManager.moveItem",
     "ext:FileManager.setAttributes"
    ],
@@ -60,46 +108,30 @@
    ],
    "branches": [
     {
-     "at": "+5",
-     "cond": "destination exists",
-     "effect": "remove it first"
+     "at": "+2",
+     "cond": "session file missing",
+     "effect": "return without error"
     },
     {
-     "at": "+8",
-     "cond": "catch: create/remove/move threw",
-     "effect": "log warning, removeQuietly (file deleted, only the raw backup remains)"
+     "at": "+3",
+     "cond": "Trash/ cannot be created (e.g. a file stands there)",
+     "effect": "throws; nothing moved"
+    },
+    {
+     "at": "+5",
+     "cond": "destination exists",
+     "effect": "remove it first (a failed remove throws)"
+    },
+    {
+     "at": "+6",
+     "cond": "move throws",
+     "effect": "rethrown; the session file stays in place"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.removeQuietly(_:id:)": "2449ae879b8ac7c3",
     "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)": "0a1a12556160d38a",
     "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory": "35607b44510f4479",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
-   }
-  },
-  {
-   "key": "func ArchiveStore.removeQuietly(_:id:)",
-   "hash": "ea1ea7f730b165e9",
-   "does": "Deletes the file; failure logged only.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:FileManager.removeItem"
-   ],
-   "reads": [],
-   "writes": [
-    "file:<archiveDirectory>/<uuid>.json"
-   ],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "catch: remove threw",
-     "effect": "log"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -224,34 +256,121 @@
   },
   {
    "key": "func ArchiveStore.discardTrashed(_:)",
-   "hash": "08d1bab9cf1095a9",
-   "does": "Deletes Trash/<uuid>.session if present; failure logged.",
+   "hash": "4da97a63efb0b30b",
+   "does": "Under archiveLock throughout (so a write of the session between the index check and a removal cannot lose its file): removes the Trash file (failure logged: stop). For a session still in the index, nothing more. Otherwise removes the <id>.json a failed delete left in the archive folder through removeLeftover (only for a tombstoned id with a complete index; a kept leftover stops here). Then, when it removed a Trash file or the id is tombstoned, and the session has no quarantined copy (parkedCopies empty, not nil), clears its session entry from PendingEncryptionLedger; an id with neither a copy nor a tombstone stays queued.",
    "entry": null,
    "calls": [
+    "ext:NSLock",
     "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:FileManager.removeItem"
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.removeQuietly(_:id:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.removeLeftover(of:tombstoned:)",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.parkedCopies(of:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)"
    ],
    "reads": [
-    "file:<archiveDirectory>/Trash/<uuid>.session"
+    "mem:SessionArchive.index",
+    "mem:SessionArchive.deletedSessionIds",
+    "mem:SessionArchive.indexReadFailed",
+    "mem:SessionArchive.indexDecodeFailed",
+    "file:<archiveDirectory>/Trash/<uuid>.session",
+    "file:<archiveDirectory>/QuarantinedDuplicates/ (listing)"
    ],
    "writes": [
-    "file:<archiveDirectory>/Trash/<uuid>.session"
+    "file:<archiveDirectory>/Trash/<uuid>.session",
+    "file:<archiveDirectory>/<uuid>.json (leftover of a deleted session)",
+    "ud:storage.pendingReencryption.sessionIDs"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "Trash removal failed, or the session is indexed",
+     "effect": "return"
+    },
+    {
+     "at": "+6",
+     "cond": "a leftover file is kept",
+     "effect": "return; ledger untouched"
+    },
+    {
+     "at": "+7",
+     "cond": "removed a Trash file or tombstoned, and no quarantined copy",
+     "effect": "clear the ledger entry"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)": "703c2a2085c25cdf",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.parkedCopies(of:)": "824b945ef63af701",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.removeLeftover(of:tombstoned:)": "c4e65651033a4aa7",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.removeQuietly(_:id:)": "75afa25afa9cbace",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)": "0a1a12556160d38a",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "d45edfb391017e71"
+   }
+  },
+  {
+   "key": "func ArchiveStore.removeLeftover(of:tombstoned:)",
+   "hash": "ed70a1751d032d30",
+   "does": "Caller holds archiveLock. When <archiveDirectory>/<id>.json exists, removes it only if the id is tombstoned and the index loaded in full (indexReadFailed and indexDecodeFailed false); otherwise it may be the live file of a session and is kept. True when no such file remains.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.removeQuietly(_:id:)",
+    "ext:FileManager.fileExists"
+   ],
+   "reads": [
+    "mem:SessionArchive.indexReadFailed",
+    "mem:SessionArchive.indexDecodeFailed"
+   ],
+   "writes": [
+    "file:<archiveDirectory>/<uuid>.json (leftover of a deleted session)"
    ],
    "branches": [
     {
      "at": "+2",
-     "cond": "file missing",
-     "effect": "return"
+     "cond": "no leftover",
+     "effect": "true"
     },
     {
-     "at": "+5",
-     "cond": "catch: remove threw",
-     "effect": "log warning"
+     "at": "+3",
+     "cond": "not tombstoned, or index incomplete",
+     "effect": "kept; false"
+    },
+    {
+     "at": "+4",
+     "cond": "removal",
+     "effect": "true when it went"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)": "0a1a12556160d38a",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.removeQuietly(_:id:)": "75afa25afa9cbace"
+   }
+  },
+  {
+   "key": "func ArchiveStore.removeQuietly(_:id:)",
+   "hash": "7b63e2358098f12c",
+   "does": "Removes the file at url when it exists; true when it is gone afterwards, false (logged at .warning) when the removal threw.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.fileExists",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<archiveDirectory>/<file>"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no file",
+     "effect": "true"
+    },
+    {
+     "at": "+5",
+     "cond": "removal threw",
+     "effect": "log, false"
+    }
+   ],
+   "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }

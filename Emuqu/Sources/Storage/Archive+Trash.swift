@@ -15,6 +15,26 @@ extension ArchiveStore {
         trashDirectory.appendingPathComponent("\(id.uuidString).session")
     }
 
+    /// Where duplicate cleanup moves the files of the sessions it retires.
+    var quarantineDirectory: URL {
+        archive.archiveDirectory.appendingPathComponent("QuarantinedDuplicates", isDirectory: true)
+    }
+
+    /// The session's files held outside the index: its Trash file and every
+    /// duplicate of it in quarantine (`<id>.json`, `<id>.<stamp>.json`). Nil
+    /// when the quarantine folder exists but cannot be listed, so a caller
+    /// cannot take "none" for an answer it does not have.
+    func parkedCopies(of id: UUID) -> [URL]? {
+        let fm = archive.fileManager
+        let trashed = [trashURL(for: id)].filter { fm.fileExists(atPath: $0.path) }
+        guard fm.fileExists(atPath: quarantineDirectory.path) else { return trashed }
+        guard let names = attempt("Archive.listQuarantine", { try fm.contentsOfDirectory(atPath: quarantineDirectory.path) }) else {
+            return nil
+        }
+        let quarantined = names.filter { $0.hasPrefix(id.uuidString) && $0.hasSuffix(".json") }
+        return trashed + quarantined.map { quarantineDirectory.appendingPathComponent($0) }
+    }
+
     /// The file is kept, not erased. Restore used to rebuild the session
     /// from its raw beats, which lost its tags, notes, morning feeling and
     /// sleep edits, and brought a workout back as an overnight reading.
@@ -23,28 +43,20 @@ extension ArchiveStore {
     /// last write, and `expiredDeletionIds` falls back to the file's date when no
     /// deletion time is recorded, which discarded an old session's file at
     /// the next launch instead of after 90 days.
-    func moveToTrash(_ fileURL: URL, id: UUID) {
+    ///
+    /// Throws when the file could not be moved; it is then left where it was,
+    /// so the caller can put the session back in the index. Deleting it there
+    /// lost the copy the Trash exists to keep. A file that is not there has
+    /// nothing to keep, and is not an error: an index entry whose file is gone
+    /// must still be deletable.
+    func moveToTrash(_ fileURL: URL, id: UUID) throws {
         let fm = archive.fileManager
-        do {
-            try fm.createDirectory(at: trashDirectory, withIntermediateDirectories: true)
-            let destination = trashURL(for: id)
-            if fm.fileExists(atPath: destination.path) { try fm.removeItem(at: destination) }
-            try fm.moveItem(at: fileURL, to: destination)
-            attempt("Archive.trash.dateMove") { try fm.setAttributes([.modificationDate: Date()], ofItemAtPath: destination.path) }
-        } catch {
-            debugLog("[Archive] ⚠️ Could not keep session \(id.uuidString.prefix(8)) in the trash, deleting it: \(error)", level: .warning)
-            removeQuietly(fileURL, id: id)
-        }
-    }
-
-    /// The raw backup still holds the beats, so a file that cannot be moved
-    /// is removed as before.
-    private func removeQuietly(_ fileURL: URL, id: UUID) {
-        do {
-            try archive.fileManager.removeItem(at: fileURL)
-        } catch {
-            debugLog("[Archive] ⚠️ Failed to delete file for session \(id.uuidString.prefix(8)): \(error)")
-        }
+        guard fm.fileExists(atPath: fileURL.path) else { return }
+        try fm.createDirectory(at: trashDirectory, withIntermediateDirectories: true)
+        let destination = trashURL(for: id)
+        if fm.fileExists(atPath: destination.path) { try fm.removeItem(at: destination) }
+        try fm.moveItem(at: fileURL, to: destination)
+        attempt("Archive.trash.dateMove") { try fm.setAttributes([.modificationDate: Date()], ofItemAtPath: destination.path) }
     }
 
     /// The deleted session exactly as it was archived, or nil when it was
@@ -95,13 +107,44 @@ extension ArchiveStore {
         }
     }
 
+    /// Removes the Trash file and, for a deleted session, the `<id>.json` a
+    /// failed delete left in the archive folder (`removeLeftover`). All under
+    /// `archiveLock`, so a write of the session between the index check and a
+    /// removal cannot have its file deleted. A session then not in the index
+    /// whose file this removed, or which is tombstoned, and which has no
+    /// quarantined copy, leaves the re-encryption queue; an id with neither a
+    /// copy nor a tombstone stays queued (it may be another archive's).
     func discardTrashed(_ id: UUID) {
-        let url = trashURL(for: id)
-        guard archive.fileManager.fileExists(atPath: url.path) else { return }
+        archive.archiveLock.lock()
+        defer { archive.archiveLock.unlock() }
+        let hadTrashFile = archive.fileManager.fileExists(atPath: trashURL(for: id).path)
+        guard removeQuietly(trashURL(for: id), id: id), entryById(id) == nil else { return }
+        let tombstoned = archive.deletedSessionIds.contains(id)
+        guard removeLeftover(of: id, tombstoned: tombstoned) else { return }
+        if hadTrashFile || tombstoned, parkedCopies(of: id)?.isEmpty == true { PendingEncryptionLedger.clear(id) }
+    }
+
+    /// The `<id>.json` a failed delete left in the archive folder, removed
+    /// only for a tombstoned id while the index is complete: otherwise it may
+    /// be the session's live file. True when no such file remains. Caller
+    /// holds `archiveLock`.
+    private func removeLeftover(of id: UUID, tombstoned: Bool) -> Bool {
+        let leftover = archive.archiveDirectory.appendingPathComponent("\(id.uuidString).json")
+        guard archive.fileManager.fileExists(atPath: leftover.path) else { return true }
+        guard tombstoned, !archive.indexReadFailed, !archive.indexDecodeFailed else { return false }
+        return removeQuietly(leftover, id: id)
+    }
+
+    /// Removes `url` if it is there; false (logged) when the removal failed.
+    @discardableResult
+    private func removeQuietly(_ url: URL, id: UUID) -> Bool {
+        guard archive.fileManager.fileExists(atPath: url.path) else { return true }
         do {
             try archive.fileManager.removeItem(at: url)
+            return true
         } catch {
-            debugLog("[Archive] ⚠️ Could not empty trashed session \(id.uuidString.prefix(8)): \(error)", level: .warning)
+            debugLog("[Archive] ⚠️ Could not remove \(url.lastPathComponent) of deleted session \(id.uuidString.prefix(8)): \(error)", level: .warning)
+            return false
         }
     }
 }

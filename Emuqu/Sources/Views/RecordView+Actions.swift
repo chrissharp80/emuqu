@@ -224,13 +224,20 @@ extension RecordView {
     /// Save for a reading awaiting acceptance, from the Save button, the
     /// morning sheet's Done and Continue to Dashboard alike: tags and notes,
     /// acceptance, then the picker returns to no selection.
+    ///
+    /// When acceptance fails the reading stays awaiting acceptance with the
+    /// error raised (`acceptSession` sets `lastError`), and the selection is
+    /// kept, so Save again writes the same tags and notes.
     func acceptSession() {
         Task {
             if let session = sessionState.currentSession { await persistTagsAndNotes(for: session) }
             do {
                 try await collector.acceptSession()
+            } catch RRCollector.CollectorError.noSessionToAccept {
+                debugLog("[RecordView] ⚠️ No complete session to accept")
             } catch {
                 debugLog("[RecordView] ⚠️ Failed to accept session: \(error)")
+                return
             }
             await MainActor.run {
                 selectedTags.removeAll()
