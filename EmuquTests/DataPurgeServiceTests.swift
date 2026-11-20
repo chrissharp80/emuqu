@@ -112,18 +112,22 @@ final class DataPurgeServiceTests: XCTestCase {
     /// and the singleton caches the purge forgets (routes, contacts, the
     /// display and training-load caches) are still the app's shared
     /// instances; settings are restored above.
+    ///
+    /// Nothing is recording: the answer is passed, so the host app's own
+    /// collector and workout recorder are never consulted.
     private func purge(
         remoteDeleted: Bool = true, scope customScope: DataPurgeService.PurgeScope? = nil
-    ) async -> DataPurgeService.Report {
-        await DataPurgeService.purgeAllUserData(
+    ) async throws -> DataPurgeService.Report {
+        try await DataPurgeService.purgeAllUserData(
             archive: archive, rawBackup: RawRRBackup(),
             cloudSync: CloudKitSyncManager.shared, settingsManager: SettingsManager.shared,
-            baselineTracker: baselineTracker, deleteRemote: { remoteDeleted }, scope: customScope ?? scope
+            baselineTracker: baselineTracker, recordingInProgress: { false },
+            deleteRemote: { remoteDeleted }, scope: customScope ?? scope
         )
     }
 
-    func testPurgeReturnsReportWithEveryStepAccountedFor() async {
-        let report = await purge()
+    func testPurgeReturnsReportWithEveryStepAccountedFor() async throws {
+        let report = try await purge()
 
         XCTAssertTrue(report.remoteDeleted, "Stubbed remote deletion outcome must flow into the report")
 
@@ -145,8 +149,8 @@ final class DataPurgeServiceTests: XCTestCase {
                        "the preferences sweep must not report a failure: \(report.errors)")
     }
 
-    func testReportSummaryMentionsEveryStep() async {
-        let report = await purge()
+    func testReportSummaryMentionsEveryStep() async throws {
+        let report = try await purge()
         let summary = report.summary
 
         XCTAssertTrue(summary.contains("iCloud records"), "summary must mention the remote deletion step: \(summary)")
@@ -166,8 +170,8 @@ final class DataPurgeServiceTests: XCTestCase {
 
     // MARK: - Remote Deletion Outcome (GDPR / App Store)
 
-    func testRemoteDeletionSuccessIsSurfacedInSummary() async {
-        let report = await purge()
+    func testRemoteDeletionSuccessIsSurfacedInSummary() async throws {
+        let report = try await purge()
         XCTAssertTrue(report.remoteDeleted)
         XCTAssertTrue(report.summary.contains("iCloud records: deleted"),
                       "success summary must state the remote copies were deleted: \(report.summary)")
@@ -175,8 +179,8 @@ final class DataPurgeServiceTests: XCTestCase {
                        "no iCloud error should be reported on remote success: \(report.errors)")
     }
 
-    func testRemoteDeletionFailureIsSurfacedAndLocalWipeProceeds() async {
-        let report = await purge(remoteDeleted: false)
+    func testRemoteDeletionFailureIsSurfacedAndLocalWipeProceeds() async throws {
+        let report = try await purge(remoteDeleted: false)
         // The remote failure must be honest and actionable…
         XCTAssertFalse(report.remoteDeleted)
         XCTAssertTrue(report.summary.contains("iCloud records: NOT deleted"),
@@ -202,7 +206,7 @@ final class DataPurgeServiceTests: XCTestCase {
         XCTAssertTrue(store.load().contains { $0.text == marker },
                       "Sanity: the marker turn reached disk before the purge")
 
-        _ = await purge()
+        _ = try await purge()
 
         // `clear()` runs on the store's queue; poll rather than assume it ran.
         try await waitUntil { store.load().isEmpty }
@@ -221,11 +225,11 @@ final class DataPurgeServiceTests: XCTestCase {
 
     /// Read from the file, not only from memory: `clear()` empties the list
     /// at once, and only the queued write shows whether the facts left disk.
-    func testPurgeClearsUserFactsSingleton() async {
+    func testPurgeClearsUserFactsSingleton() async throws {
         UserFactsStore.shared.add("purge-marker-\(UUID().uuidString)")
         XCTAssertFalse(UserFactsStore.shared.facts.isEmpty, "Sanity: facts seeded")
 
-        let report = await purge()
+        let report = try await purge()
 
         XCTAssertTrue(UserFactsStore.shared.facts.isEmpty,
                       "DataPurgeService should leave UserFactsStore empty")
@@ -234,10 +238,10 @@ final class DataPurgeServiceTests: XCTestCase {
         XCTAssertTrue(report.userFactsCleared)
     }
 
-    func testPurgeResetsDisclaimerFlagOnSettingsManager() async {
+    func testPurgeResetsDisclaimerFlagOnSettingsManager() async throws {
         SettingsManager.shared.hasAcceptedDisclaimer = true
 
-        _ = await purge()
+        _ = try await purge()
 
         XCTAssertFalse(SettingsManager.shared.hasAcceptedDisclaimer,
                        "Disclaimer flag should be reset to false after purge")
@@ -264,7 +268,7 @@ final class DataPurgeServiceTests: XCTestCase {
             XCTAssertNoThrow(try Data("sentinel".utf8).write(to: url), "Could not seed \(url.lastPathComponent)")
         }
 
-        _ = await purge()
+        _ = try await purge()
 
         for url in sentinels {
             XCTAssertFalse(
@@ -303,12 +307,12 @@ final class DataPurgeServiceTests: XCTestCase {
     /// enumeration — nine named keys out of 105 the app writes — so a store
     /// that keeps its state in `UserDefaults` survived "Delete All My Data"
     /// entirely. This seeds an unknown key in each suite and asserts it is gone.
-    func testSweepRemovesAnUnknownDefaultsKeyFromEverySuite() async {
+    func testSweepRemovesAnUnknownDefaultsKeyFromEverySuite() async throws {
         let key = "zz_audit_sentinel_defaults"
         appSuite.set("sentinel", forKey: key)
         groupSuite.set("sentinel", forKey: key)
 
-        _ = await purge()
+        _ = try await purge()
 
         XCTAssertNil(appSuite.object(forKey: key), "A UserDefaults key survived Delete All My Data in the app's own suite.")
         XCTAssertNil(groupSuite.object(forKey: key), "A UserDefaults key survived Delete All My Data in the App Group suite.")
@@ -323,7 +327,7 @@ final class DataPurgeServiceTests: XCTestCase {
     /// paywall immediately after they erased their data, and offline it would
     /// never resolve. Same argument for the entitlement anchor one layer down,
     /// and the migration flags are bookkeeping the purge has never touched.
-    func testPurgeLeavesEntitlementAndMigrationStateIntact() async {
+    func testPurgeLeavesEntitlementAndMigrationStateIntact() async throws {
         let mustSurvive = [
             "storekit.lastKnownPurchased",
             "storekit.lastKnownTestFlight",
@@ -335,7 +339,7 @@ final class DataPurgeServiceTests: XCTestCase {
             appSuite.set("sentinel", forKey: key)
         }
 
-        _ = await purge()
+        _ = try await purge()
 
         for key in mustSurvive {
             XCTAssertNotNil(
@@ -353,11 +357,11 @@ final class DataPurgeServiceTests: XCTestCase {
     /// persistent domain (`SettingsView+Appearance`). A preferences sweep that
     /// did not exclude the system-owned prefixes would reset the user's chosen
     /// UI language as a side effect of deleting their data.
-    func testPurgeLeavesTheChosenAppLanguageAlone() async {
+    func testPurgeLeavesTheChosenAppLanguageAlone() async throws {
         let key = "AppleLanguages"
         appSuite.set(["fr"], forKey: key)
 
-        _ = await purge()
+        _ = try await purge()
 
         XCTAssertEqual(
             appSuite.array(forKey: key) as? [String], ["fr"],
@@ -375,7 +379,7 @@ final class DataPurgeServiceTests: XCTestCase {
         XCTAssertNoThrow(try fileManager.createDirectory(at: dir, withIntermediateDirectories: true))
         XCTAssertNoThrow(try Data("x".utf8).write(to: dir.appendingPathComponent("inner.json")))
 
-        _ = await purge()
+        _ = try await purge()
 
         XCTAssertFalse(fileManager.fileExists(atPath: dir.path), "An unknown directory survived the purge.")
     }
@@ -390,7 +394,7 @@ final class DataPurgeServiceTests: XCTestCase {
         manager.settings.maxHR = 187
         manager.hasAcceptedDisclaimer = true
 
-        let report = await purge()
+        let report = try await purge()
 
         XCTAssertTrue(report.profileReset, "The purge did not confirm the profile on disk: \(report.errors)")
         let decoder = JSONDecoder()
@@ -413,7 +417,7 @@ final class DataPurgeServiceTests: XCTestCase {
             try Data(#"{"bodyWeightKg":81.5}"#.utf8).write(to: url)
         }
 
-        let report = await purge()
+        let report = try await purge()
 
         for url in copies {
             XCTAssertFalse(fileManager.fileExists(atPath: url.path),
@@ -451,21 +455,21 @@ final class DataPurgeServiceTests: XCTestCase {
             defaultsDomains: scope.defaultsDomains
         )
 
-        let report = await purge(scope: unlistable)
+        let report = try await purge(scope: unlistable)
 
         XCTAssertTrue(report.errors.contains { $0.contains("Could not list not-a-directory") },
                       "An unlistable root must be reported: \(report.errors)")
     }
 
     /// A root that is not there has nothing in it; that is not a failure.
-    func testAMissingRootIsNotReported() async {
+    func testAMissingRootIsNotReported() async throws {
         let missing = DataPurgeService.PurgeScope(
             appGroupContainer: scope.appGroupContainer,
             sandboxRoots: scope.sandboxRoots + [root.appendingPathComponent("missing", isDirectory: true)],
             defaultsDomains: scope.defaultsDomains
         )
 
-        let report = await purge(scope: missing)
+        let report = try await purge(scope: missing)
 
         XCTAssertFalse(report.errors.contains { $0.contains("Could not list") }, "\(report.errors)")
     }
@@ -483,7 +487,7 @@ final class DataPurgeServiceTests: XCTestCase {
         try Data(#"{"historicalData":[\#(nights.joined(separator: ","))]}"#.utf8).write(to: file)
         XCTAssertEqual(baselineTracker.daysCollected, 3, "Sanity: the tracker loaded the seeded nights")
 
-        _ = await purge()
+        _ = try await purge()
 
         XCTAssertEqual(baselineTracker.daysCollected, 0, "The baseline survived Delete All My Data in memory")
         XCTAssertEqual(BaselineTracker(baselineFile: file, onBaselineUpdated: nil).daysCollected, 0,
@@ -492,12 +496,107 @@ final class DataPurgeServiceTests: XCTestCase {
 
     /// A user who just deleted their iCloud copy must not have sync quietly
     /// switched back on by the reset to fresh-install defaults.
-    func testPurgeLeavesICloudSyncOff() async {
+    func testPurgeLeavesICloudSyncOff() async throws {
         let manager = SettingsManager.shared
         manager.settings.iCloudSyncEnabled = true
 
-        _ = await purge()
+        _ = try await purge()
 
         XCTAssertFalse(manager.settings.iCloudSyncEnabled, "Delete All My Data turned iCloud sync back on")
+    }
+
+    /// A recording still running holds its beats in memory: it would write
+    /// them back into the emptied backups and archive its session when it
+    /// stopped. So the purge refuses while one runs, and deletes nothing,
+    /// iCloud included.
+    func testPurgeIsRefusedWhileARecordingIsInProgress() async throws {
+        let sentinel = try XCTUnwrap(scope.appGroupContainer).appendingPathComponent("zz_recording_sentinel.json")
+        try Data("sentinel".utf8).write(to: sentinel)
+        appSuite.set(true, forKey: "zz_recording_sentinel")
+        SettingsManager.shared.hasAcceptedDisclaimer = true
+
+        do {
+            _ = try await DataPurgeService.purgeAllUserData(
+                archive: archive, rawBackup: RawRRBackup(),
+                cloudSync: CloudKitSyncManager.shared, settingsManager: SettingsManager.shared,
+                baselineTracker: baselineTracker, recordingInProgress: { true },
+                deleteRemote: {
+                    XCTFail("The iCloud deletion ran although the purge was refused")
+                    return true
+                },
+                scope: scope
+            )
+            XCTFail("Delete All My Data ran while a recording was in progress")
+        } catch {
+            XCTAssertEqual(error, .recordingInProgress)
+        }
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: sentinel.path), "A refused purge removed a file")
+        XCTAssertTrue(appSuite.bool(forKey: "zz_recording_sentinel"), "A refused purge removed a preference")
+        XCTAssertTrue(SettingsManager.shared.hasAcceptedDisclaimer, "A refused purge reset the disclaimer")
+    }
+
+    /// With nothing recording, the collector's own state lets the purge run.
+    func testPurgeProceedsWhenNothingIsRecording() async throws {
+        let collector = SnapshotFixtures.collector()
+        XCTAssertFalse(DataPurgeService.isRecordingInProgress(collector: collector, workout: nil))
+        let sentinel = try XCTUnwrap(scope.appGroupContainer).appendingPathComponent("zz_idle_sentinel.json")
+        try Data("sentinel".utf8).write(to: sentinel)
+
+        let report = try await DataPurgeService.purgeAllUserData(
+            archive: archive, rawBackup: RawRRBackup(),
+            cloudSync: CloudKitSyncManager.shared, settingsManager: SettingsManager.shared,
+            baselineTracker: baselineTracker,
+            recordingInProgress: { DataPurgeService.isRecordingInProgress(collector: collector, workout: nil) },
+            deleteRemote: { true }, scope: scope
+        )
+
+        XCTAssertTrue(report.archiveDeleted, "The purge did not run with nothing recording: \(report.errors)")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: sentinel.path), "The idle purge left a file behind")
+    }
+
+    /// Each kind of recording counts: a quick reading, an overnight stream,
+    /// a paused night, a stopped night still being analysed, and a recording
+    /// on the strap. A night waiting to be accepted has stopped recording.
+    func testEveryCollectorRecordingStateCounts() {
+        let reading = SnapshotFixtures.collector()
+        reading.isCollecting = true
+        XCTAssertTrue(DataPurgeService.isRecordingInProgress(collector: reading, workout: nil), "quick reading")
+
+        let night = SnapshotFixtures.collector()
+        night.isOvernightStreaming = true
+        XCTAssertTrue(DataPurgeService.isRecordingInProgress(collector: night, workout: nil), "overnight stream")
+
+        let paused = SnapshotFixtures.collector()
+        paused.isPaused = true
+        XCTAssertTrue(DataPurgeService.isRecordingInProgress(collector: paused, workout: nil), "paused night")
+
+        let analysing = SnapshotFixtures.collector()
+        analysing.recordingPhase = .analyzing
+        XCTAssertTrue(DataPurgeService.isRecordingInProgress(collector: analysing, workout: nil), "night being analysed")
+
+        let strap = SnapshotFixtures.collector()
+        strap.deviceStatus.isRecordingOnDevice = true
+        XCTAssertTrue(DataPurgeService.isRecordingInProgress(collector: strap, workout: nil), "strap recording")
+
+        let awaiting = SnapshotFixtures.collector()
+        awaiting.recordingPhase = .awaitingAcceptance
+        XCTAssertFalse(DataPurgeService.isRecordingInProgress(collector: awaiting, workout: nil), "night awaiting acceptance")
+    }
+
+    /// A workout counts while it records (paused included, which keeps the
+    /// phase) and while it is being finalised, not once it has finished.
+    func testAnActiveWorkoutCounts() {
+        let recorder = WorkoutRecorder(core: SnapshotFixtures.collector(), conversation: VoiceConversationController.shared)
+        XCTAssertFalse(DataPurgeService.isRecordingInProgress(collector: nil, workout: recorder), "idle workout")
+
+        recorder.lifecycle.phase = .recording
+        XCTAssertTrue(DataPurgeService.isRecordingInProgress(collector: nil, workout: recorder), "recording workout")
+
+        recorder.lifecycle.phase = .finalizing
+        XCTAssertTrue(DataPurgeService.isRecordingInProgress(collector: nil, workout: recorder), "finalising workout")
+
+        recorder.lifecycle.phase = .finished
+        XCTAssertFalse(DataPurgeService.isRecordingInProgress(collector: nil, workout: recorder), "finished workout")
     }
 }

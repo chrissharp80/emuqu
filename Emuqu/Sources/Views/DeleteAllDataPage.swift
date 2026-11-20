@@ -19,9 +19,15 @@ import SwiftUI
 /// is intentionally not localised — the magic string should be the
 /// same in every language so screenshots / support can reference one
 /// canonical invocation.
+///
+/// The action is also disabled, with the reason shown under it, while a
+/// recording is under way (a quick reading, a night, a strap recording or a
+/// workout): the recording would write its data back after the delete.
+/// `DataPurgeService` refuses on its own in that case too.
 struct DeleteAllDataPage: View {
     @Environment(RRCollector.self) var collector
     @Environment(SettingsManager.self) var settingsManager
+    @Environment(\.dependencies) var dependencies
 
     /// The verbatim phrase the user has to type. English + uppercase by
     /// design — any single-keystroke typo prevents the wipe.
@@ -31,9 +37,17 @@ struct DeleteAllDataPage: View {
     @State private var showingConfirmation = false
     @State private var report: DataPurgeService.Report?
     @State private var isPurging = false
+    /// Why the last confirmed purge did not start, when it was refused.
+    @State private var refusal: String?
 
     private var phraseMatches: Bool {
         typedConfirmation.trimmingCharacters(in: .whitespacesAndNewlines) == Self.confirmPhrase
+    }
+
+    /// The collector's and the workout recorder's state are observed, so the
+    /// button re-enables when the recording stops.
+    private var recordingInProgress: Bool {
+        DataPurgeService.isRecordingInProgress(collector: collector, workout: dependencies.app.recorderBox.recorder)
     }
 
     @ViewBuilder
@@ -133,8 +147,17 @@ struct DeleteAllDataPage: View {
             } label: {
                 deleteSectionLabel
             }
-            .disabled(isPurging || !phraseMatches)
+            .disabled(isPurging || !phraseMatches || recordingInProgress)
             .accessibilityIdentifier("deleteAllData.confirmButton")
+        } footer: {
+            recordingFooter
+        }
+    }
+
+    @ViewBuilder
+    private var recordingFooter: some View {
+        if recordingInProgress {
+            Text(DataPurgeService.Refusal.recordingInProgress.localizedDescription)
         }
     }
 
@@ -167,6 +190,13 @@ struct DeleteAllDataPage: View {
 
     @ViewBuilder
     private var resultSection: some View {
+        if let refusal {
+            Section {
+                Label(refusal, systemImage: "exclamationmark.triangle")
+                    .font(.subheadline)
+                    .foregroundColor(AppTheme.warning)
+            }
+        }
         if let report {
             Section(String(localized: "Result", bundle: LanguageManager.appBundle)) {
                 Text(report.outcomeText)
@@ -204,18 +234,29 @@ struct DeleteAllDataPage: View {
         // Async: the purge now awaits the remote CloudKit zone deletion
         // (serialized behind any in-flight sync) before the local wipe.
         Task {
-            let result = await DataPurgeService.purgeAllUserData(
-                archive: collector.archive,
-                rawBackup: collector.rawBackup,
-                cloudSync: collector.cloudSyncManager,
-                settingsManager: settingsManager
-            )
-            report = result
+            await runPurge()
             isPurging = false
             // A rerun (the retry for a failed iCloud deletion) needs the
             // phrase typed again, like the first run, so a stray second
             // confirmation cannot start another full purge.
             typedConfirmation = ""
+        }
+    }
+
+    /// Keeps the report, or the reason the purge was refused: a recording is
+    /// under way (one can start after the button was tapped), and then
+    /// nothing was deleted.
+    private func runPurge() async {
+        do {
+            report = try await DataPurgeService.purgeAllUserData(
+                archive: collector.archive,
+                rawBackup: collector.rawBackup,
+                cloudSync: collector.cloudSyncManager,
+                settingsManager: settingsManager
+            )
+            refusal = nil
+        } catch {
+            refusal = error.localizedDescription
         }
     }
 }
