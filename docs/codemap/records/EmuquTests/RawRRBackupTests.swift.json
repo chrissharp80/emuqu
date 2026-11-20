@@ -1246,11 +1246,12 @@
    }
   },
   {
-   "key": "func RawRRBackupTests.testReencryptionAdoptsAnEncryptedUnindexedFile()",
-   "hash": "18065aa62c47592d",
-   "does": "Backs up 50 points with an older plain 20-beat file, writes an 80-beat file stamped after the indexed one through writeEntry (encrypted when the key is available) and queues the session; after reencryptBackup asserts the backup reads 80 points and the older plain file is gone.",
+   "key": "func RawRRBackupTests.testReencryptionAdoptsAnEncryptedUnindexedFileOfAQueuedSession()",
+   "hash": "7b41e17356b6358a",
+   "does": "With the key available (else it returns at once): backs up 50 points with an older plain 20-beat file, writes an encrypted 80-beat file stamped after the indexed one through writeEntry (which takes the session off the queue) and queues the session again by hand, as only a session queued for another reason is repaired; after reencryptBackup asserts the backup reads 80 points and the older plain file is gone.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable",
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.writeUnindexedFile(sessionId:indexedBeats:beats:offsetMs:)",
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)",
     "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.writtenMs(_:)",
@@ -1271,8 +1272,15 @@
     "mem:PendingEncryptionLedger.cache (rawBackup store)",
     "ud:storage.pendingReencryption.rawBackupIDs"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "key unavailable",
+     "effect": "return without asserting"
+    }
+   ],
    "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "293d00b425d37802",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "a68d8c6c5a265e3c",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "e6099c40e631f44d",
     "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.writtenMs(_:)": "1d0e34b875b01e4d",
@@ -1285,24 +1293,90 @@
    }
   },
   {
-   "key": "func RawRRBackupTests.testNothingIsAdoptedOverARowWithoutATimeOrCount()",
-   "hash": "2f1f1e5a64392822",
-   "does": "In a temp directory holding an 80-beat plain one-shot file, asserts fullerUnindexedBackup returns nil for a row with no file name, write time or count (as rebuilt from a header).",
+   "key": "func RawRRBackupTests.testReencryptionAdoptsAnOlderFullerUnindexedFileOnce()",
+   "hash": "b770ece3b7866a48",
+   "does": "Backs up 50 points with an unindexed 80-beat file stamped before it; runs reencryptBackup twice and asserts the backup reads 80 points, the older file is gone, and the second pass left the indexed file as the first pass made it.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.plainBackupFile(sessionId:beats:)",
-    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.fullerUnindexedBackup(than:in:)",
-    "ext:FileManager.createDirectory"
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.writeUnindexedFile(sessionId:indexedBeats:beats:offsetMs:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reencryptBackup(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)"
+   ],
+   "reads": [
+    "file:App Group <backupDirectoryName>/ (real RawRRBackup store + backup_index.json)",
+    "mem:PendingEncryptionLedger.cache (rawBackup store)"
+   ],
+   "writes": [
+    "file:App Group <backupDirectoryName>/ (real RawRRBackup store + backup_index.json)",
+    "mem:PendingEncryptionLedger.cache (rawBackup store)",
+    "ud:storage.pendingReencryption.rawBackupIDs"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "a68d8c6c5a265e3c",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reencryptBackup(_:)": "32d6961ee416f1a9",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)": "19ab8837081da4c0",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.writeUnindexedFile(sessionId:indexedBeats:beats:offsetMs:)": "0b29f43cecc89468"
+   }
+  },
+  {
+   "key": "func RawRRBackupTests.testNothingIsAdoptedOverARowWithoutAWriteTime()",
+   "hash": "4eefcac2cf536eab",
+   "does": "Asserts fullerUnindexedBackup returns nil, beside an 80-beat file, for a streaming row with a count but no write time.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.directoryHoldingAFullerFile(of:)",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.fullerUnindexedBackup(than:in:)"
    ],
    "reads": [
     "file:RawRRBackupTests-<uuid> temp directory"
    ],
    "writes": [
+    "file:RawRRBackupTests-<uuid> temp directory (removed)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.fullerUnindexedBackup(than:in:)": "e119722e24905b0a",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.directoryHoldingAFullerFile(of:)": "0b739787f41580a7"
+   }
+  },
+  {
+   "key": "func RawRRBackupTests.testNothingIsAdoptedOverARowWithoutACount()",
+   "hash": "e88a45aa1851cd22",
+   "does": "Asserts fullerUnindexedBackup returns nil, beside an 80-beat file, for a streaming row with a write time but no count.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.directoryHoldingAFullerFile(of:)",
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.fullerUnindexedBackup(than:in:)"
+   ],
+   "reads": [
+    "file:RawRRBackupTests-<uuid> temp directory"
+   ],
+   "writes": [
+    "file:RawRRBackupTests-<uuid> temp directory (removed)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.fullerUnindexedBackup(than:in:)": "e119722e24905b0a",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.directoryHoldingAFullerFile(of:)": "0b739787f41580a7"
+   }
+  },
+  {
+   "key": "func RawRRBackupTests.directoryHoldingAFullerFile(of:)",
+   "hash": "350a4841acc5fc2a",
+   "does": "Test helper: creates a temporary directory holding one plain 80-beat one-shot file of the session and returns it; the caller removes it.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.plainBackupFile(sessionId:beats:)",
+    "ext:FileManager.createDirectory"
+   ],
+   "reads": [],
+   "writes": [
     "file:RawRRBackupTests-<uuid> temp directory"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.fullerUnindexedBackup(than:in:)": "c26a247358f41ce4",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439",
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.plainBackupFile(sessionId:beats:)": "22e51ac354b7036d"
    }

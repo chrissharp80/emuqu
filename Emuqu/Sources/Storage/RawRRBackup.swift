@@ -426,8 +426,8 @@ final class RawRRBackup: @unchecked Sendable {
         }
     }
 
-    /// The fullest unindexed one-shot file becomes the backup through `backup()`,
-    /// archived flag kept; a failure is logged and the repair goes on.
+    /// For a queued session only: the fullest unindexed one-shot file becomes
+    /// the backup via `backup()`, archived flag kept; a failure is logged.
     private func adoptFullerBackup(_ sessionId: UUID) {
         do {
             guard let indexed = existingIndexEntry(sessionId),

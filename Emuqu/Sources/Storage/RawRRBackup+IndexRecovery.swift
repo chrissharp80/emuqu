@@ -138,20 +138,25 @@ extension OneShotBackupName {
     }
 
     /// The fullest one-shot backup of the session the index does not name,
-    /// plain or encrypted, written after the indexed one (a process killed
-    /// between that write and its index save) and holding at least as many
-    /// beats, decoded; nil when there is none. `backup()` would take it, so
-    /// the repair adopts it. Nil too when the row's write time or beat count
-    /// is unknown (a row rebuilt from a header): every file would then look
-    /// newer, and the uncounted points file would be replaced.
+    /// plain or encrypted, holding more beats than the row, decoded; nil when
+    /// there is none. Such a file is left by a write whose index save never
+    /// happened (killed, or the save failed and a shorter backup followed);
+    /// `backup()` takes it, so the repair adopts it. More, not as many: the
+    /// adopted source then holds as many as the new row and is not adopted
+    /// again, and a plain one is retired as superseded. Nil when the row's
+    /// write time or beat count is unknown (a row rebuilt from a header),
+    /// whose uncounted points file `backup()` would replace. One decoded
+    /// candidate is held at a time beside the fullest so far.
     static func fullerUnindexedBackup(than entry: RawRRBackup.BackupIndex, in directory: URL) throws -> RawRRBackup.BackupEntry? {
         let indexedBeats = entry.backedUpCount ?? (entry.fileName != nil ? entry.beatCount : nil)
         guard indexedMs(entry) > 0, let indexedBeats else { return nil }
-        return try files(of: entry.id, in: directory)
-            .filter { $0.lastPathComponent != entry.fileName && writtenMs($0.lastPathComponent) > indexedMs(entry) }
-            .compactMap { url in attempt("RawRRBackup.readUnindexedFile") { try RawRRBackup.decodeLegacyBackup(at: url) } }
-            .filter { $0.id == entry.id && $0.points.count >= indexedBeats }
-            .max { $0.points.count < $1.points.count }
+        var fullest: RawRRBackup.BackupEntry?
+        for url in try files(of: entry.id, in: directory) where url.lastPathComponent != entry.fileName {
+            guard let found = attempt("RawRRBackup.readUnindexedFile", { try RawRRBackup.decodeLegacyBackup(at: url) }),
+                  found.id == entry.id, found.points.count > (fullest?.points.count ?? indexedBeats) else { continue }
+            fullest = found
+        }
+        return fullest
     }
 
     /// Whether `url`, a one-shot file the index does not name, was provably
