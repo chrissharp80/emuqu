@@ -224,7 +224,7 @@ Read tools are appended first, then actions. Duplicates by name are dropped (fir
 
 **Ranking.** A BM25 ranker [21] (k1 = 1.5, b = 0.75) filters the schema only above 40 tools, so at 39 it passes the list unchanged. The on-device provider ranks tools with the same scorer and keeps the highest-ranked ones that fit its context token budget.
 
-**Per-turn budget.** When `callsSoFar + callsThisRound > 8`, every call in that round gets `missing(rateLimited, "tool budget exceeded for this turn")`. The model has one more round to answer in text, and further tool calls are dropped. The on-device dispatcher enforces the same constant.
+**Per-turn budget.** When `callsSoFar + callsThisRound > 8`, the calls in that round that still fit under 8 resolve and each one past it gets `missing(rateLimited, "tool budget exceeded for this turn")`. The model has one more round to answer in text, and further tool calls are dropped. The on-device dispatcher enforces the same constant.
 
 **Why it works.** A few polymorphic read tools are easier for every provider to choose among than hundreds of narrow ones, and they fit the on-device context. Catalog names keep every side effect identifiable in audit logs. Sorting and deduplication make the schema bytes a pure function of the catalog, so the stable prefix caches well, and generating the index from the same list means the prompt always describes the tools that exist.
 
@@ -238,7 +238,7 @@ Two families of metrics are checked (Table 3.3). ATL and CTL are acute and chron
 
 | Family | Metrics | Source of truth | Where applied |
 |---|---|---|---|
-| Live workout | HR, power, DFA α1, HR drift | Live workout snapshot | Voice, each chunk before speech |
+| Live workout | HR, power, DFA α1, HR drift | Live workout snapshot | Chat, every tool-loop round end, before the app-state pass; voice, each chunk before speech |
 | App state | TSB, ATL, CTL, ACWR, RMSSD, recovery score, last night's sleep duration and efficiency | Training-load registry (same accessor as dashboard and tools); latest reliable overnight session; latest overnight with sleep | Chat, every tool-loop round end; voice, each chunk before speech |
 
 **Table 3.4.** Claim shapes and tolerances.
@@ -274,7 +274,7 @@ The live-workout family runs steps 2–4 without normalization and requires the 
 
 #### 3.3.3 Where verification runs
 
-In chat, verification runs at the end of every tool-loop round, including rounds that end in a tool call. It runs before the text that preceded the tool call is cleared from the visible reply, and the corrected text replaces the saved turn. In voice, each chunk passes output scrub → live-workout verification → app-state verification → preamble → speech normalization, so the corrected number is the one spoken.
+In chat, live-workout verification and then app-state verification run at the end of every tool-loop round, including rounds that end in a tool call. It runs after the text that preceded a tool call has been cleared from the visible reply, on the text that stays, and the corrected text replaces the saved turn. In voice, each chunk passes output scrub → live-workout verification → app-state verification → preamble → speech normalization, so the corrected number is the one spoken.
 
 **Why it works.** A claim about the value *now* has exactly one ground truth in app state, so it can be checked deterministically. History, averages, targets and norms do not have one; the markers keep them out of scope, so the verifier corrects only what it can know. Tolerances follow dashboard rounding and each metric's noise, so rounded or approximate statements stand. Replacing only the number-and-unit span keeps the model's sentence and reasoning intact. Normalizing spelled numbers and remapping offsets let one set of regexes serve chat and voice. The dual-scale recovery rule and precision-matched sleep tolerance accept the ways people naturally state those values.
 
@@ -620,10 +620,10 @@ Behavior is fixed by unit tests in `EmuquTests` (Table 6.1; test-function counts
 - Negation-neutral deflection buys correctness in all 17 languages at the cost of also deflecting correct denials ("there's no sign of overtraining"), and a sentence with a matched term is replaced whole.
 - The guards take precedence over prompt rules that permit general descriptions of conditions, so the coach does not deliver general information about named conditions.
 - The input guard reads the current message only, keeping its decision immediate; a question split across turns is not joined.
-- Number verification covers present-value claims for the 11 metrics in Table 3.4, in English, so historical values, averages and non-English replies are not corrected; live-workout claims are checked only on the voice path.
+- Number verification covers present-value claims for the 11 metrics in Table 3.4, in English, so historical values, averages and non-English replies are not corrected.
 - In chat the correction lands at the end of the round, after its text may have been displayed; the next-turn reminder addresses that.
 - The 21 compact read tools are static for byte stability, so availability gating applies to the per-entry schema and the action tools.
-- A round that would exceed the 8-call budget has all its calls refused, which keeps the rule simple and leaves the model one clean round to answer.
+- The 8-call budget is per turn: in the round that crosses it, the calls that still fit run and only the ones past it are refused, and the model then gets one more pass to answer, in which any further tool calls are dropped. That bounds a turn's latency, at the cost of an answer that may lack what the refused calls would have fetched.
 - The coverage gate is one-directional: build-time terms must be covered at runtime, while the runtime lexicon may be broader.
 - Model-drafted email bodies go to the system mail composer for the user to review and send, and auto-extracted memories are written by a background model call; both sit outside the output guard.
 
@@ -745,7 +745,7 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 | BM25 k1, b | 1.5, 0.75 | — | Tool ranking |
 | BM25 target K | 40 | tools | Ranker filters only above this |
 | xAI Grok schema cap | 110 | tools | Per-provider cap; does not bind at 39 tools |
-| `maxToolCallsPerTurn` | 8 | calls | Over-budget round → all calls `rateLimited` |
+| `maxToolCallsPerTurn` | 8 | calls | Calls past it in a turn → `rateLimited` |
 | Stream publish interval | 33 | ms | Throttle; sentence-complete publishing |
 | HR tolerance | 5 | bpm | Verifier |
 | Power tolerance | 15 | W | Verifier |

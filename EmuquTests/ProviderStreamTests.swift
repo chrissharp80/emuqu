@@ -525,6 +525,93 @@ final class AnthropicEndOfStreamTests: XCTestCase {
         XCTAssertEqual(outcome.inputTokens, [120])
         XCTAssertEqual(outcome.outputTokens, [5])
     }
+
+    // MARK: Paused turns
+
+    /// What the chat layer received across a paused turn's requests, and
+    /// each request's body as JSON.
+    private struct PausedReplay {
+        var text = ""
+        var doneCount = 0
+        var bodies: [[String: Any]] = []
+    }
+
+    /// Runs `continuingPausedTurns` with one canned reply per request (the
+    /// last reply repeats) and records every request body it sends.
+    private func replayPaused(_ replies: [[String]]) async throws -> PausedReplay {
+        let (events, continuation) = AsyncThrowingStream<AIStreamEvent, Error>.makeStream()
+        let first = AnthropicProvider.RequestBody(
+            model: "claude-sonnet-4-6", max_tokens: 2048, system: [],
+            messages: [.init(role: "user", content: .plain("Any news on the Boston marathon?"))],
+            stream: true, tools: nil
+        )
+        var result = PausedReplay()
+        try await AnthropicProvider.continuingPausedTurns(first, continuation: continuation) { request in
+            let body = try JSONSerialization.jsonObject(with: try JSONEncoder().encode(request)) as? [String: Any]
+            result.bodies.append(body ?? [:])
+            let reply = replies[min(result.bodies.count, replies.count) - 1]
+            return try await AnthropicProvider.consumeSSE(SSEReplay.lines(reply), continuation: continuation)
+        }
+        continuation.finish()
+        for try await event in events {
+            if case let .textDelta(text) = event { result.text += text }
+            if case .done = event { result.doneCount += 1 }
+        }
+        return result
+    }
+
+    private func textBlock(_ text: String, index: Int) -> [String] {
+        sseEvent("content_block_start", #"{"type":"content_block_start","index":\#(index),"content_block":{"type":"text","text":""}}"#)
+            + sseEvent("content_block_delta", #"{"type":"content_block_delta","index":\#(index),"delta":{"type":"text_delta","text":"\#(text)"}}"#)
+            + sseEvent("content_block_stop", #"{"type":"content_block_stop","index":\#(index)}"#)
+    }
+
+    /// A reply that searched and then paused: text, the server's search call
+    /// (input streamed as partial JSON) and its result.
+    private var pausedReply: [String] {
+        textBlock("Searching. ", index: 0)
+            + sseEvent("content_block_start", #"{"type":"content_block_start","index":1,"content_block":{"type":"server_tool_use","id":"srvtoolu_1","name":"web_search","input":{}}}"#)
+            + sseEvent("content_block_delta", #"{"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\"query\": \"Boston marathon\"}"}}"#)
+            + sseEvent("content_block_stop", #"{"type":"content_block_stop","index":1}"#)
+            + sseEvent("content_block_start", #"{"type":"content_block_start","index":2,"content_block":{"type":"web_search_tool_result","tool_use_id":"srvtoolu_1","content":[{"type":"web_search_result","url":"https://example.com/boston","title":"Boston","encrypted_content":"opaque"}]}}"#)
+            + sseEvent("content_block_stop", #"{"type":"content_block_stop","index":2}"#)
+            + stop("pause_turn")
+    }
+
+    /// A paused reply is sent back with its blocks as the assistant's
+    /// message, and the continuation finishes it: one reply, one `.done`, no
+    /// truncation marker.
+    func testPausedTurnIsContinuedWithItsContent() async throws {
+        let replay = try await replayPaused([pausedReply, textBlock("Found it.", index: 0) + stop("end_turn")])
+        XCTAssertEqual(replay.text, "Searching. Found it.")
+        XCTAssertEqual(replay.doneCount, 1)
+        XCTAssertEqual(replay.bodies.count, 2)
+        XCTAssertEqual((replay.bodies.first?["messages"] as? [[String: Any]])?.count, 1)
+
+        let messages = try XCTUnwrap(replay.bodies.last?["messages"] as? [[String: Any]])
+        XCTAssertEqual(messages.map { $0["role"] as? String }, ["user", "assistant"])
+        let blocks = try XCTUnwrap(messages.last?["content"] as? [[String: Any]])
+        XCTAssertEqual(blocks.map { $0["type"] as? String }, ["text", "server_tool_use", "web_search_tool_result"])
+        XCTAssertEqual(blocks[0]["text"] as? String, "Searching. ")
+        XCTAssertEqual((blocks[1]["input"] as? [String: Any])?["query"] as? String, "Boston marathon")
+        XCTAssertEqual(blocks[1]["id"] as? String, "srvtoolu_1")
+        let results = try XCTUnwrap(blocks[2]["content"] as? [[String: Any]])
+        XCTAssertEqual(results.first?["encrypted_content"] as? String, "opaque")
+    }
+
+    /// A reply that keeps pausing is sent back at most
+    /// `maxPauseContinuations` times, each time with all its content so far
+    /// in one assistant message, and then ends with the truncation marker.
+    func testPausedTurnStopsAfterTheContinuationBound() async throws {
+        let replay = try await replayPaused([pausedReply])
+        let limit = AnthropicProvider.maxPauseContinuations
+        XCTAssertEqual(replay.bodies.count, limit + 1)
+        XCTAssertTrue(replay.text.hasSuffix("…"))
+        XCTAssertEqual(replay.doneCount, 1)
+        let messages = try XCTUnwrap(replay.bodies.last?["messages"] as? [[String: Any]])
+        XCTAssertEqual(messages.count, 2)
+        XCTAssertEqual((messages.last?["content"] as? [Any])?.count, 3 * limit)
+    }
 }
 
 /// Stop cancels the reader's task. A reader whose lines then end cleanly
