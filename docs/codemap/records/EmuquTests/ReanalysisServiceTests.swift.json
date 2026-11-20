@@ -298,6 +298,60 @@
    }
   },
   {
+   "key": "func ReanalysisServiceTests.testAnEditSavedWhileARescoreRanSurvivesItsWrite()",
+   "hash": "6e9e3f20710aeeb3",
+   "does": "Archives a night scored 6.1, then saves tags, notes and a feeling to the archive as an edit made while a rescore ran; writes the rescore (7.4, built from the earlier copy) through writeKeepingUserEntries and asserts the archive holds 7.4 with the edited tags, notes and feeling, and that the returned session carries the tags.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.writeKeepingUserEntries(_:to:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive"
+   ],
+   "writes": [
+    "archive:SessionArchive (test directory)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.writeKeepingUserEntries(_:to:)": "c7cb1a219be4ea55",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)": "d173acbc448c38ce",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e"
+   }
+  },
+  {
+   "key": "func ReanalysisServiceTests.testARescoreOfASessionNotYetArchivedIsArchivedAsItIs()",
+   "hash": "9c10ee2c7eee9ac0",
+   "does": "Writes a rescored session the archive does not hold through writeKeepingUserEntries and asserts it keeps its own notes and is archived with its score.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.writeKeepingUserEntries(_:to:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive"
+   ],
+   "writes": [
+    "archive:SessionArchive (test directory)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.writeKeepingUserEntries(_:to:)": "c7cb1a219be4ea55",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e"
+   }
+  },
+  {
    "key": "func ReanalysisServiceTests.testUnlinkingALinkedSegmentDropsTheLinkAndReportsTrue()",
    "hash": "197588591cdc2399",
    "does": "Archives a segment and an overnight night that links it, asserts unlinkSegment reports true and the stored night no longer links anything.",

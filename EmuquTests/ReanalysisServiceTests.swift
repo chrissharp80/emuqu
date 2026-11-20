@@ -162,6 +162,42 @@ final class ReanalysisServiceTests: XCTestCase {
         XCTAssertEqual(try archive.retrieve(session.id)?.sleepSnapshot?.nightSleepMinutes, 300)
     }
 
+    // MARK: - Writing a rescore
+
+    /// A rescore works from the copy it read. An edit the user saved to the
+    /// archive while it ran survives the rescore's write, and the write
+    /// still lands the new score.
+    func testAnEditSavedWhileARescoreRanSurvivesItsWrite() throws {
+        var read = overnight()
+        read.recoveryScore = 6.1
+        try archive.archive(read)
+        try archive.updateTags(read.id, tags: [ReadingTag.alcohol], notes: "late dinner")
+        try archive.update(read.id, requestingReupload: false) { $0.morningFeeling = 2 }
+        var rescored = read
+        rescored.recoveryScore = 7.4
+
+        let written = try ReanalysisService.writeKeepingUserEntries(rescored, to: archive)
+
+        let stored = try XCTUnwrap(try archive.retrieve(read.id))
+        XCTAssertEqual(stored.recoveryScore, 7.4)
+        XCTAssertEqual(stored.tags, [ReadingTag.alcohol])
+        XCTAssertEqual(stored.notes, "late dinner")
+        XCTAssertEqual(stored.morningFeeling, 2)
+        XCTAssertEqual(written.tags, [ReadingTag.alcohol], "callers get the session as written")
+    }
+
+    /// A rescored session the archive does not hold is archived as it is.
+    func testARescoreOfASessionNotYetArchivedIsArchivedAsItIs() throws {
+        var session = overnight()
+        session.recoveryScore = 7.4
+        session.notes = "from the card"
+
+        let written = try ReanalysisService.writeKeepingUserEntries(session, to: archive)
+
+        XCTAssertEqual(written.notes, "from the card")
+        XCTAssertEqual(try archive.retrieve(session.id)?.recoveryScore, 7.4)
+    }
+
     // MARK: - Unlinking a segment
 
     /// A linked segment that can be read is unlinked: the parent drops the

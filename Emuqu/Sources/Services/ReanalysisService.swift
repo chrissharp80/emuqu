@@ -289,8 +289,7 @@ final class ReanalysisService {
         }
         applyAnalysis(analysisResult, to: &updatedSession)
         await rescore(&updatedSession, analysisResult: analysisResult, original: session, sessionEndDate: sessionEndDate)
-        guard await persist(updatedSession) else { return nil }
-        return updatedSession
+        return await persist(updatedSession)
     }
 
     /// Use STORED sleep boundaries for window selection so reanalysis is
@@ -423,27 +422,61 @@ final class ReanalysisService {
 
     /// Archive write also runs off main — overnight sessions serialize
     /// to 1.5 MB+ JSON and blocked the UI noticeably on the main actor.
-    /// SessionArchive is NSLock-protected internally.
-    private func persist(_ updatedSession: HRVSession) async -> Bool {
+    /// SessionArchive is NSLock-protected internally. The user's entries are
+    /// kept as the archive holds them at the write (`writeKeepingUserEntries`).
+    /// Returns the session as written; nil when the write failed.
+    private func persist(_ updatedSession: HRVSession) async -> HRVSession? {
         let archive = archive
-        let sessionToArchive = updatedSession
+        let rescored = updatedSession
+        let sessionToArchive: HRVSession
         do {
-            try await Task.detached(priority: .userInitiated) {
-                _ = try archive.archive(sessionToArchive)
+            sessionToArchive = try await Task.detached(priority: .userInitiated) {
+                try Self.writeKeepingUserEntries(rescored, to: archive)
             }.value
         } catch {
             debugLog("[ReanalysisService] Failed to save re-analyzed session: \(error)")
-            return false
+            return nil
         }
         // Cached on-demand zones computed by the chart view are now stale
         // (the window has changed). Drop them so the next chart render
         // recomputes against the new window.
         AppDependencies.current.app.organizedZonesCache.invalidate(updatedSession.id)
-        baselineTracker.update(with: updatedSession, sleepSchedule: settingsProvider().sleepSchedule)
+        baselineTracker.update(with: sessionToArchive, sleepSchedule: settingsProvider().sleepSchedule)
         onArchiveChanged()
         Task { onSessionUploaded(sessionToArchive) }
         debugLog("[ReanalysisService] Re-analysis complete")
-        return true
+        return sessionToArchive
+    }
+
+    /// Write a rescored session over the archived one under the archive's own
+    /// lock (`SessionArchive.update`), taking the user's entries from the
+    /// archived copy as it is at the write. A rescore reads the session,
+    /// works for seconds and writes back; an edit saved in between (tags or
+    /// notes in History, the morning feeling on the review card) would
+    /// otherwise be put back to what the rescore read. A session the archive
+    /// does not hold is archived as it is. Returns what was written.
+    nonisolated static func writeKeepingUserEntries(_ rescored: HRVSession, to archive: SessionArchive) throws -> HRVSession {
+        guard archive.exists(rescored.id) else {
+            _ = try archive.archive(rescored)
+            return rescored
+        }
+        var written = rescored
+        try archive.update(rescored.id, requestingReupload: false) { stored in
+            written = rescored
+            carryUserEntries(from: stored, to: &written)
+            stored = written
+        }
+        return written
+    }
+
+    /// The fields only the user sets: tags, notes, the morning feeling and
+    /// its context tags, and the perceived readiness.
+    nonisolated static func carryUserEntries(from stored: HRVSession, to session: inout HRVSession) {
+        session.tags = stored.tags
+        session.notes = stored.notes
+        session.morningFeeling = stored.morningFeeling
+        session.morningFeelingTags = stored.morningFeelingTags
+        session.perceivedReadiness = stored.perceivedReadiness
     }
 
     private func applyRecoveryScore(
@@ -636,20 +669,21 @@ final class ReanalysisService {
 
     /// Recovery score / training factor / ATL / CTL are PHI and debugLog is
     /// user-exportable. Log that a score recompute occurred and whether the
-    /// score changed, without the numeric health values.
+    /// score changed, without the numeric health values. The user's entries
+    /// are kept as the archive holds them at the write
+    /// (`writeKeepingUserEntries`); returns the session as written.
     private func persistRescore(
         _ updated: HRVSession, previous: (score: Double, trainingLoad: [Double])
     ) -> HRVSession? {
         do {
-            try archive.archive(updated)
+            let written = try Self.writeKeepingUserEntries(updated, to: archive)
             onArchiveChanged()
-            let sessionToUpload = updated
-            Task { [onSessionUploaded] in onSessionUploaded(sessionToUpload) }
-            let current = Self.scoreFingerprint(of: updated)
+            Task { [onSessionUploaded] in onSessionUploaded(written) }
+            let current = Self.scoreFingerprint(of: written)
             let scoreChanged = current.score != previous.score
             let loadChanged = current.trainingLoad != previous.trainingLoad
             debugLog("[ReanalysisService] recomputeScoreOnly: recomputed (score \(scoreChanged ? "changed" : "unchanged"), training load \(loadChanged ? "changed" : "unchanged"))")
-            return updated
+            return written
         } catch {
             debugLog("[ReanalysisService] recomputeScoreOnly: archive write failed: \(error)")
             return nil
