@@ -176,7 +176,7 @@ final class ReanalysisServiceTests: XCTestCase {
         var rescored = read
         rescored.recoveryScore = 7.4
 
-        let written = try ReanalysisService.writeKeepingUserEntries(rescored, to: archive)
+        let written = try ReanalysisService.writeRescore(rescored, to: archive)
 
         let stored = try XCTUnwrap(try archive.retrieve(read.id))
         XCTAssertEqual(stored.recoveryScore, 7.4)
@@ -192,10 +192,44 @@ final class ReanalysisServiceTests: XCTestCase {
         session.recoveryScore = 7.4
         session.notes = "from the card"
 
-        let written = try ReanalysisService.writeKeepingUserEntries(session, to: archive)
+        let written = try ReanalysisService.writeRescore(session, to: archive)
 
         XCTAssertEqual(written.notes, "from the card")
         XCTAssertEqual(try archive.retrieve(session.id)?.recoveryScore, 7.4)
+    }
+
+    /// The HealthKit export stamp and the AI context are written while a
+    /// rescore can run. Putting the stamp back to nil would export the same
+    /// samples again, so both stay as the archive holds them.
+    func testARescoreKeepsTheExportStampAndAIContextSavedWhileItRan() throws {
+        var read = overnight()
+        read.recoveryScore = 6.1
+        try archive.archive(read)
+        let exportedAt = nightStart.addingTimeInterval(9 * 3600)
+        try archive.update(read.id, requestingReupload: false) {
+            $0.healthKitExportedAt = exportedAt
+            $0.aiContext = ["coaching": "easy day"]
+        }
+        var rescored = read
+        rescored.recoveryScore = 7.4
+
+        _ = try ReanalysisService.writeRescore(rescored, to: archive)
+
+        let stored = try XCTUnwrap(try archive.retrieve(read.id))
+        XCTAssertEqual(stored.recoveryScore, 7.4)
+        XCTAssertEqual(stored.healthKitExportedAt, exportedAt)
+        XCTAssertEqual(stored.aiContext, ["coaching": "easy day"])
+    }
+
+    /// Every stored field of the session is either computed by a rescore or
+    /// kept from the archived copy. A field added to `HRVSession` fails here
+    /// until it is classified, so a rescore cannot silently write it back.
+    func testEveryStoredSessionFieldIsClassifiedForARescoreWrite() {
+        let fields = Set(Mirror(reflecting: overnight()).children.compactMap(\.label))
+        let computed = ReanalysisService.rescoreComputedFields
+        let stored = ReanalysisService.rescoreStoredFields
+        XCTAssertTrue(computed.isDisjoint(with: stored), "a field is either computed or kept, not both")
+        XCTAssertEqual(computed.union(stored), fields)
     }
 
     // MARK: - Unlinking a segment
