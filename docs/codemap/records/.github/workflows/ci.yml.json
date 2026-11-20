@@ -1132,15 +1132,105 @@
    "deps": {}
   },
   {
+   "key": "job release-build",
+   "hash": "3acb6a6aa1e23594",
+   "does": "macOS-26 job \"Release build\" (timeout 45), in parallel with the tests job: checkout, Xcode 26.6, `make release-build`, and a run-summary line. Skipped when scope is gates.",
+   "entry": "GitHub Actions job in ci.yml, conditional on inputs.scope",
+   "calls": [
+    ".github/workflows/ci.yml::step release-build/Checkout",
+    ".github/workflows/ci.yml::step release-build/Select Xcode",
+    ".github/workflows/ci.yml::step release-build/Release configuration compiles",
+    ".github/workflows/ci.yml::step release-build/Write the result to the run summary"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "inputs.scope != 'gates'",
+     "effect": "job runs for unit/full (and for workflow_call default full); skipped for gates"
+    }
+   ],
+   "deps": {
+    ".github/workflows/ci.yml::step release-build/Checkout": "edb970bf5cc01f27",
+    ".github/workflows/ci.yml::step release-build/Release configuration compiles": "5b8151e7ab011b41",
+    ".github/workflows/ci.yml::step release-build/Select Xcode": "1fbed0945da0d47c",
+    ".github/workflows/ci.yml::step release-build/Write the result to the run summary": "6ca7619f61288caa",
+    "Makefile::target release-build": "5357cf205e264442"
+   }
+  },
+  {
+   "key": "step release-build/Checkout",
+   "hash": "9327ffe2a86f8ef0",
+   "does": "actions/checkout (depth 1).",
+   "entry": "Step of ci.yml release-build job",
+   "calls": [
+    "ext:actions/checkout"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "step release-build/Select Xcode",
+   "hash": "9e2bb56bd64b7ece",
+   "does": "Selects Xcode 26.6.",
+   "entry": "Step of ci.yml release-build job",
+   "calls": [
+    "ext:xcode-select"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "step release-build/Release configuration compiles",
+   "hash": "ca3effcce9e06256",
+   "does": "Runs `make release-build` (Release configuration, generic iOS, unsigned) so optimizer-only diagnostics fail before the TestFlight archive.",
+   "entry": "Step of ci.yml release-build job (not run for gates scope)",
+   "calls": [
+    "Makefile::target release-build"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Makefile::target release-build": "5357cf205e264442"
+   }
+  },
+  {
+   "key": "step release-build/Write the result to the run summary",
+   "hash": "e5d96cb3dd831a1e",
+   "does": "Appends the line \"- Release build: <job.status>\" to $GITHUB_STEP_SUMMARY.",
+   "entry": "Step of ci.yml release-build job",
+   "calls": [],
+   "reads": [
+    "job.status",
+    "env GITHUB_STEP_SUMMARY"
+   ],
+   "writes": [
+    "$GITHUB_STEP_SUMMARY (appends one line)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "always()",
+     "effect": "runs after an earlier step failed or the job was cancelled, writing failure or cancelled"
+    }
+   ],
+   "deps": {}
+  },
+  {
    "key": "job tests",
    "hash": "67952978c1de2fe0",
-   "does": "macOS-26 job 'Tests + coverage' (timeout 110). Sets TEST_SCOPE=full when scope is full, otherwise unit, plus SCHEME/PROJECT/RESULT_BUNDLE. Steps: checkout, Xcode 26.6, resolve simulator, make release-build, run_tests_with_coverage.sh, upload xcresult. Skipped for gates scope. In unit scope the overall and logic floors are reported but not gated (SKIP_OVERALL_COVERAGE/SKIP_LOGIC_COVERAGE); the Views floor (.ci/min_coverage_views.txt) is gated in both scopes, which the job's comment now states.",
+   "does": "macOS-26 job 'Tests + coverage' (timeout 110). Sets TEST_SCOPE=full when scope is full, otherwise unit, plus SCHEME/PROJECT/RESULT_BUNDLE. Steps: checkout, Xcode 26.6, resolve simulator, run_tests_with_coverage.sh, upload xcresult (the Release build is its own job, release-build). Skipped for gates scope. In unit scope the overall and logic floors are reported but not gated (SKIP_OVERALL_COVERAGE/SKIP_LOGIC_COVERAGE); the Views floor (.ci/min_coverage_views.txt) is gated in both scopes, which the job's comment now states.",
    "entry": "GitHub Actions job in ci.yml, conditional on inputs.scope",
    "calls": [
     ".github/workflows/ci.yml::step tests/Checkout",
     ".github/workflows/ci.yml::step tests/Select Xcode",
     ".github/workflows/ci.yml::step tests/Resolve simulator destination",
-    ".github/workflows/ci.yml::step tests/Release configuration compiles",
     ".github/workflows/ci.yml::step tests/Run tests with coverage",
     ".github/workflows/ci.yml::step tests/Upload test results"
    ],
@@ -1160,13 +1250,11 @@
    ],
    "deps": {
     ".github/workflows/ci.yml::step tests/Checkout": "1104d850570094d5",
-    ".github/workflows/ci.yml::step tests/Release configuration compiles": "e6d6e1382f096c80",
     ".github/workflows/ci.yml::step tests/Resolve simulator destination": "76314b58ffd91039",
     ".github/workflows/ci.yml::step tests/Run tests with coverage": "cb5ae02e2af749f1",
     ".github/workflows/ci.yml::step tests/Select Xcode": "4350c52f2517b31f",
     ".github/workflows/ci.yml::step tests/Upload test results": "5be7717a14575bbf",
-    ".github/workflows/ci.yml::step tests/Write the result to the run summary": "17b49090fc1e0a77",
-    "Makefile::target release-build": "5357cf205e264442",
+    ".github/workflows/ci.yml::step tests/Write the result to the run summary": "6e28e0a89505b30b",
     "scripts/run_tests_with_coverage.sh::": "0d9ff4451646c02a",
     "scripts/select_simulator_destination.sh::": "d5426ac85b6a46bc"
    }
@@ -1213,21 +1301,6 @@
    }
   },
   {
-   "key": "step tests/Release configuration compiles",
-   "hash": "ca3effcce9e06256",
-   "does": "Runs `make release-build` (Release configuration, generic iOS, unsigned) so optimizer-only diagnostics fail before the TestFlight archive.",
-   "entry": "Step of ci.yml tests job (not run for gates scope)",
-   "calls": [
-    "Makefile::target release-build"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Makefile::target release-build": "5357cf205e264442"
-   }
-  },
-  {
    "key": "step tests/Run tests with coverage",
    "hash": "f8e2f73456781567",
    "does": "Runs scripts/run_tests_with_coverage.sh with DESTINATION from the resolve step and the job env (TEST_SCOPE, RESULT_BUNDLE=build/TestResults.xcresult); that script runs xcodebuild test (with its own retry) then check_coverage.sh against .ci/min_coverage*.txt.",
@@ -1268,8 +1341,8 @@
   },
   {
    "key": "step tests/Write the result to the run summary",
-   "hash": "57940db1766007e1",
-   "does": "Appends the line \"- Release build, tests and coverage (scope <TEST_SCOPE>): <job.status>\" to $GITHUB_STEP_SUMMARY, so the run summary shows this job's scope (unit or full) and result.",
+   "hash": "bda285c7ad4add4f",
+   "does": "Appends the line \"- Tests and coverage (scope <TEST_SCOPE>): <job.status>\" to $GITHUB_STEP_SUMMARY, so the run summary shows this job's scope (unit or full) and result.",
    "entry": "Step of ci.yml tests job",
    "calls": [],
    "reads": [

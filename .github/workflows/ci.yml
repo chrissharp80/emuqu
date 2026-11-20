@@ -474,6 +474,36 @@ jobs:
         run: |
           echo "- Thread Sanitizer (unit suite): ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
 
+  # Release compiles with the optimizer, and some diagnostics exist only
+  # there. An optimizer-only "weak reference will always be nil" warning,
+  # made an error by warnings-as-errors, once failed every Release build
+  # while every Debug build and test run here passed. The first place it
+  # would have shown was the TestFlight archive.
+  #
+  # Its own job, in parallel with `tests`: inside that job it cost ~21 of the
+  # 110 minutes on a slow runner, and a full-scope run (UI target included)
+  # was cut off at the limit with every test so far passing (run 44714304108).
+  release-build:
+    name: Release build
+    if: inputs.scope != 'gates'
+    runs-on: macos-26
+    # A from-scratch Release build; measured ~21 min on a slow runner.
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app
+
+      - name: Release configuration compiles
+        run: make release-build
+
+      - name: Write the result to the run summary
+        if: always()
+        run: |
+          echo "- Release build: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+
   tests:
     name: Tests + coverage
     # Skipped for a `gates` run. On `unit` it runs the unit target only, which
@@ -527,14 +557,6 @@ jobs:
       #
       # Verifying that the expensive jobs were skipped is not the same as
       # verifying that the cheap scope is cheap, and only the first was checked.
-      # Release compiles with the optimizer, and some diagnostics exist only
-      # there. An optimizer-only "weak reference will always be nil" warning,
-      # made an error by warnings-as-errors, once failed every Release build
-      # while every Debug build and test run here passed. The first place it
-      # would have shown was the TestFlight archive.
-      - name: Release configuration compiles
-        run: make release-build
-
       - name: Run tests with coverage
         env:
           DESTINATION: ${{ steps.destination.outputs.value }}
@@ -551,4 +573,4 @@ jobs:
       - name: Write the result to the run summary
         if: always()
         run: |
-          echo "- Release build, tests and coverage (scope ${TEST_SCOPE}): ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Tests and coverage (scope ${TEST_SCOPE}): ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
