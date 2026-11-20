@@ -310,8 +310,14 @@ extension OvernightStreamingCoordinator {
     /// bounded window and not at all when it is still connected (see
     /// `fetchDeviceAndSleepConcurrently`). Insufficient-streaming nights take
     /// the blocking `fallbackToDeviceFetch`.
+    ///
+    /// The stop claims the night's ending before its first suspension and
+    /// holds it until the night is archived or has failed, so a Stop tapped
+    /// again, or one that lands while a pause or a discard is ending the
+    /// night, returns nil and leaves the night to that one.
     func stopOvernightStreaming() async -> HRVSession? {
-        guard collector.isOvernightStreaming else { return nil }
+        guard collector.streamingLifecycle.claimOvernightEnding() else { return nil }
+        defer { collector.streamingLifecycle.releaseOvernightEnding() }
         // From the tap on, not only once analysis starts: the strap stop,
         // reconnect and download come first, and without an assertion a
         // trip to the home screen suspends the app mid-download. On expiry

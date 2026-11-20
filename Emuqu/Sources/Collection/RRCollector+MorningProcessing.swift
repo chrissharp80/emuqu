@@ -121,6 +121,9 @@ extension MorningSessionPipeline {
         }
     }
 
+    /// A reviewed night that did not analyse (`.failed`) leaves the analysing
+    /// phase for idle, as a failed session does, and is shown as it is; a
+    /// pause sets its own phase once the paused night is saved.
     private func applyProcessingResult(
         _ result: MorningProcessingService.ProcessingResult, finalSession: HRVSession, awaitsReview: Bool
     ) {
@@ -131,6 +134,8 @@ extension MorningSessionPipeline {
         collector.needsAcceptance = awaitsAcceptance
         if awaitsAcceptance {
             collector.recordingPhase = .awaitingAcceptance
+        } else if awaitsReview {
+            collector.recordingPhase = .idle
         }
         collector.baselineDeviation = result.baselineDeviation
         collector.sessionStartTime = nil

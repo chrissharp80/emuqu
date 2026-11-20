@@ -26,8 +26,14 @@ extension CollectorSessionControl {
     /// anything older, so the only recording on it is this night's. A strap
     /// this night never armed may hold an older recording the app has not
     /// downloaded, and it is left alone.
+    ///
+    /// The discard claims the night's ending before its first suspension, so
+    /// a discard while a Stop or a pause is ending the night, or a second
+    /// discard, returns nil and leaves the night to that one. The claim is
+    /// released just before the recorder is reset, once nothing of the night
+    /// is left to remove.
     func discardOvernightRecording() async -> DiscardOutcome? {
-        guard collector.isOvernightStreaming else { return nil }
+        guard collector.streamingLifecycle.claimOvernightEnding() else { return nil }
         let session = collector.currentSession
         debugLog("[RRCollector] 🗑 Discarding recording \(session?.id.uuidString.prefix(8) ?? "-")")
         await collector.overnightStreaming.endDeviceRecordingArming()
@@ -36,6 +42,7 @@ extension CollectorSessionControl {
         let strapCopyKept = strapArmed ? await clearStrapCopy() : false
         if let session { await removeKeptCopies(of: session.id) }
         collector.clearPersistedRecordingState()
+        collector.streamingLifecycle.releaseOvernightEnding()
         returnToParentPauseOrIdle(parentId: session?.linkedSessionIds?.first)
         if strapCopyKept { collector.lastError = PolarManager.PolarError.fetchFailed(Self.strapCopyKeptReason) }
         collector.notifyArchiveChanged()
@@ -83,8 +90,14 @@ extension CollectorSessionControl {
     /// Discards a strap-only recording: stops the strap and clears its copy,
     /// then forgets the session. When the strap cannot be stopped or cleared
     /// the recording is left exactly as it was (still recording, still
-    /// recoverable) and the error is shown; returns false.
+    /// recoverable) and the error is shown; returns false. While a night's
+    /// ending is in progress the strap's recording is that night's, still to
+    /// be downloaded or saved, and nothing is touched; also false.
     func discardDeviceRecording() async -> Bool {
+        guard !collector.streamingLifecycle.isEndingOvernight else {
+            debugLog("[RRCollector] 🗑 Not discarding the strap recording: a night's ending is in progress")
+            return false
+        }
         let session = collector.currentSession
         debugLog("[RRCollector] 🗑 Discarding strap recording \(session?.id.uuidString.prefix(8) ?? "-")")
         do {

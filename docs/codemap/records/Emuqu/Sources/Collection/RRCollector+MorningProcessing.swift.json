@@ -75,7 +75,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.applyProcessingResult(_:finalSession:awaitsReview:)": "e022b10d83da6002",
+    "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.applyProcessingResult(_:finalSession:awaitsReview:)": "a332b286bb652bf6",
     "Emuqu/Sources/Collection/RRCollector+MorningProcessing.swift::func MorningSessionPipeline.archiveForReview(_:)": "add4c9091bbdfd56"
    }
   },
@@ -169,8 +169,8 @@
   },
   {
    "key": "func MorningSessionPipeline.applyProcessingResult(_:finalSession:awaitsReview:)",
-   "hash": "8db07fc772ce46b6",
-   "does": "Publishes the processing result: sets currentSession, verificationResult, recoveryWindow, baselineDeviation, clears sessionStartTime; needsAcceptance is true, and the phase moves to .awaitingAcceptance, only for a complete session that awaits review (never for a pause).",
+   "hash": "87fca6da91e36e89",
+   "does": "Publishes the processing result: sets currentSession, verificationResult, recoveryWindow, baselineDeviation, clears sessionStartTime; needsAcceptance is true, and the phase moves to .awaitingAcceptance, only for a complete session that awaits review; a reviewed session that is not complete (a failed analysis) moves the phase to .idle; a pause (awaitsReview false) leaves the phase for the pause to set.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -185,9 +185,9 @@
    ],
    "branches": [
     {
-     "at": "+3",
+     "at": "+8",
      "cond": "awaitsReview AND state == .complete",
-     "effect": "needsAcceptance true and phase → .awaitingAcceptance; otherwise needsAcceptance false and phase left"
+     "effect": "phase → .awaitingAcceptance; else when awaitsReview phase → .idle; else (a pause) phase left"
     }
    ],
    "deps": {

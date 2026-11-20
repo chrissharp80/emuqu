@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Collection/StreamingLifecycle.swift",
- "hash": "68448cbc6e48f357",
- "role": "@Observable holder of streaming-mode and pause/resume state split out of RRCollector so views observing it do not re-render on unrelated collector changes; injected into the SwiftUI environment and read by Record views.",
+ "hash": "6c932e25221d0125",
+ "role": "@Observable holder of streaming-mode and pause/resume state split out of RRCollector so views observing it do not re-render on unrelated collector changes, and of the one-caller claim on ending an overnight session; injected into the SwiftUI environment and read by Record views.",
  "types": [
   "StreamingLifecycle: class (@MainActor @Observable final) — streaming/paused state"
  ],
@@ -12,9 +12,46 @@
   "mem:StreamingLifecycle.isOvernightStreaming (false)",
   "mem:StreamingLifecycle.isPaused (false)",
   "mem:StreamingLifecycle.pausedSession (nil)",
-  "mem:StreamingLifecycle.pausedBeatCount (0)"
+  "mem:StreamingLifecycle.pausedBeatCount (0)",
+  "mem:StreamingLifecycle.isEndingOvernight (false, private(set))"
  ],
- "toplevel": "Seven observable stored properties with default initialisers; no methods. Owned by RRCollector (RRCollector.swift:187, created at 703) and read through @Environment(StreamingLifecycle.self) in RecordView and passed to StreamingLiveView/RecordingStatusViews/RecordPanels.",
- "units": [],
+ "toplevel": "Seven observable stored properties with default initialisers, plus isEndingOvernight (private(set)), set and cleared only through claimOvernightEnding/releaseOvernightEnding by the overnight Stop, Pause and Discard. Owned by RRCollector (RRCollector.swift:187, created at 703) and read through @Environment(StreamingLifecycle.self) in RecordView and passed to StreamingLiveView/RecordingStatusViews/RecordPanels.",
+ "units": [
+  {
+   "key": "func StreamingLifecycle.claimOvernightEnding()",
+   "hash": "b30669c23ebf7f19",
+   "does": "Claims the ending of the overnight session for the caller: false when no night is streaming or another caller already holds the ending; otherwise sets isEndingOvernight and returns true.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:StreamingLifecycle.isOvernightStreaming",
+    "mem:StreamingLifecycle.isEndingOvernight"
+   ],
+   "writes": [
+    "mem:StreamingLifecycle.isEndingOvernight"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not overnight streaming, or an ending already claimed",
+     "effect": "returns false, nothing changed"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func StreamingLifecycle.releaseOvernightEnding()",
+   "hash": "25a88417f9f43d57",
+   "does": "Ends a claimed ending: clears isEndingOvernight.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:StreamingLifecycle.isEndingOvernight"
+   ],
+   "branches": [],
+   "deps": {}
+  }
+ ],
  "deps": {}
 }

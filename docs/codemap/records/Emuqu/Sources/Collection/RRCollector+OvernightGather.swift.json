@@ -114,14 +114,14 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.rescueDownloadedBeats(_:baseSession:)": "47bff7d86fff3fe2",
+    "Emuqu/Sources/Collection/RRCollector+OvernightGather.swift::func MorningSessionPipeline.rescueDownloadedBeats(_:baseSession:)": "07b86008e2260ce4",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.failSession(from:)": "52c934ea30eaf897"
    }
   },
   {
    "key": "func MorningSessionPipeline.rescueDownloadedBeats(_:baseSession:)",
-   "hash": "bf6bf9232e99cca6",
-   "does": "Writes downloaded strap beats to RawRRBackup under a fresh id, dated by the night's start, so Lost Sessions can recover them (the download stopped the strap's recording and the stream's backup does not hold them); nothing for nil or empty points.",
+   "hash": "a022211aa4b67575",
+   "does": "Writes downloaded strap beats to RawRRBackup under a fresh id, dated by the night's start, so Lost Sessions can recover them (the download stopped the strap's recording and the stream's backup does not hold them); nothing for nil or empty points. Used by the gather's failure paths and by a pause the archive would not take.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)"
@@ -145,7 +145,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "4e78d5bd620c47fb",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "f60e943a58f4e418",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },

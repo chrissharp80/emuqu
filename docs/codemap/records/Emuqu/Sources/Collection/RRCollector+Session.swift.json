@@ -10,13 +10,17 @@
  "units": [
   {
    "key": "func RRCollector.resetSession()",
-   "hash": "a277401c1f9f5a9f",
-   "does": "Clears the active-session state between recordings: currentSession, collectedPoints, verificationResult, recoveryWindow, needsAcceptance, lastError (the Record screen alerts on a change of error, so a dismissed one left in place hid the next identical one), isCollecting, isStreamingMode, sessionStartTime, reviewArchivedSessionId, baselineDeviation, recordingPhase .idle, isPaused false, pausedSession nil, then clears the persisted paused-session state.",
+   "hash": "bc3b80ea72575c20",
+   "does": "Clears the active-session state between recordings, except while a night's ending is in progress (StreamingLifecycle.isEndingOvernight), when it logs a warning and changes nothing: currentSession, collectedPoints, verificationResult, recoveryWindow, needsAcceptance, lastError (the Record screen alerts on a change of error, so a dismissed one left in place hid the next identical one), isCollecting, isStreamingMode, sessionStartTime, reviewArchivedSessionId, baselineDeviation, recordingPhase .idle, isPaused false, pausedSession nil, then clears the persisted paused-session state only when a paused session was being reset.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.clearPausedSessionState()"
    ],
-   "reads": [],
+   "reads": [
+    "mem:StreamingLifecycle.isEndingOvernight",
+    "mem:StreamingLifecycle.pausedSession"
+   ],
    "writes": [
     "mem:SessionState.currentSession",
     "mem:SessionState.collectedPoints",
@@ -31,9 +35,21 @@
     "mem:SessionState.isCollecting",
     "mem:StreamingLifecycle.isStreamingMode",
     "mem:RRCollector.sessionStartTime",
-    "mem:SessionState.reviewArchivedSessionId"
+    "mem:SessionState.reviewArchivedSessionId",
+    "ud:RRCollector.pausedSessionId"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a night's ending is in progress",
+     "effect": "log, return, nothing changed"
+    },
+    {
+     "at": "+20",
+     "cond": "a paused session was set before the reset",
+     "effect": "clearPausedSessionState; otherwise the persisted paused marker is kept"
+    }
+   ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.baselineDeviation": "8bd73538d940e4f0",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.collectedPoints": "afead9ad3142686a",
@@ -47,7 +63,8 @@
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recoveryWindow": "32b809f4bdd43de6",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.verificationResult": "c178ef092653f880",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.clearPausedSessionState()": "3a2764380968ec87"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.clearPausedSessionState()": "3a2764380968ec87",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {

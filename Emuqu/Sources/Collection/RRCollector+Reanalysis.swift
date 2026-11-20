@@ -309,12 +309,29 @@ extension SessionReanalysisCoordinator {
         finishRescore(sessionId: sessionId, prior: priorScore, updated: updated, reason: reason)
     }
 
+    /// The night on the review card is the one Accept archives, so a rescore
+    /// of it is carried onto the card's copy (`adoptArchivedCopy`); Accept
+    /// would otherwise write the score from before the rescore back.
     @MainActor
     private func finishRescore(sessionId: UUID, prior: Double?, updated: HRVSession, reason: String) {
         recordPendingScoreChangeIfMeaningful(
             sessionId: sessionId, prior: prior, updated: updated.recoveryScore, reason: reason
         )
+        if collector.needsAcceptance { adoptArchivedCopy(updated) }
         collector.archiveSignal.notifyChanged()
+    }
+
+    /// Replace `currentSession` with the archived copy of the same session,
+    /// keeping what the user has entered on the card that only the in-memory
+    /// copy may hold yet: the tags, the notes and the morning feeling.
+    @MainActor
+    func adoptArchivedCopy(_ archived: HRVSession) {
+        guard let current = collector.currentSession, current.id == archived.id else { return }
+        var adopted = archived
+        adopted.tags = current.tags
+        adopted.notes = current.notes
+        adopted.morningFeeling = current.morningFeeling ?? archived.morningFeeling
+        collector.currentSession = adopted
     }
 
     // MARK: - CloudKit Snapshot Backfill Listener
@@ -525,11 +542,10 @@ extension SessionReanalysisCoordinator {
     /// rescore threshold (delta < 20 min). If the snapshot is
     /// written to the archive but neither `collector.currentSession` nor the archive
     /// signal is updated, the displayed sleep stays stale until a
-    /// manual "Refresh Sleep Data".
+    /// manual "Refresh Sleep Data". The tags, notes and feeling entered on
+    /// the review card are kept (`adoptArchivedCopy`).
     private func republishRefreshedSession(_ session: HRVSession) {
-        if collector.currentSession?.id == session.id {
-            collector.currentSession = session
-        }
+        adoptArchivedCopy(session)
         collector.archiveSignal.notifyChanged()
     }
 

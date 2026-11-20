@@ -422,6 +422,46 @@
    }
   },
   {
+   "key": "func RRCollectorSaveResultTests.testARescoredNightReachesTheReviewCardWithTheCardsEntries()",
+   "hash": "4ef958c21b1ee055",
+   "does": "Puts a night with score 6.1, tags, notes and a feeling on the review card, adopts an archived copy with score 7.4 and none of those entries, and asserts the card shows 7.4 with its own tags, notes and feeling.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RRCollectorTests.swift::func RRCollectorSaveResultTests.night()",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.adoptArchivedCopy(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.adoptArchivedCopy(_:)": "30c9a8ca43e368fa",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis": "726142f09d599723",
+    "EmuquTests/RRCollectorTests.swift::func RRCollectorSaveResultTests.night()": "7cd693f1c6b696c9"
+   }
+  },
+  {
+   "key": "func RRCollectorSaveResultTests.testAnotherSessionsArchivedCopyLeavesTheReviewCardAlone()",
+   "hash": "0d379adea3d21ebf",
+   "does": "Puts a night on the review card, adopts the archived copy of a different session, and asserts the card keeps its own id and score.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RRCollectorTests.swift::func RRCollectorSaveResultTests.night()",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.adoptArchivedCopy(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.adoptArchivedCopy(_:)": "30c9a8ca43e368fa",
+    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::var RRCollector.reanalysis": "726142f09d599723",
+    "EmuquTests/RRCollectorTests.swift::func RRCollectorSaveResultTests.night()": "7cd693f1c6b696c9"
+   }
+  },
+  {
    "key": "func RRCollectorSaveResultTests.testUnlinkReportsFailureWhenTheParentIsNotArchived()",
    "hash": "e1d53e0af0fa1707",
    "does": "Asserts RRCollector.unlinkSegment reports false for a parent that is not in the archive.",

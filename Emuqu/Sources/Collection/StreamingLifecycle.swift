@@ -38,4 +38,28 @@ final class StreamingLifecycle {
 
     /// Number of beats captured up to the pause point.
     var pausedBeatCount: Int = 0
+
+    /// True while one caller (the morning stop, a pause or a discard) is
+    /// ending the overnight session: from its claim, taken before its first
+    /// suspension, until the night is archived, paused, discarded or
+    /// failed. Only one caller can hold it, so a night is never ended
+    /// twice, and while it is held the night still counts as live although
+    /// `isOvernightStreaming` is already false. `RRCollector.isOvernightEnding`
+    /// is different: it stays set until the next night starts, so a late
+    /// arming attempt is still refused after the ending is over.
+    private(set) var isEndingOvernight: Bool = false
+
+    /// Claims the ending of the overnight session for the caller. False when
+    /// no night is streaming or another caller is already ending it; the
+    /// caller then leaves the night alone.
+    func claimOvernightEnding() -> Bool {
+        guard isOvernightStreaming, !isEndingOvernight else { return false }
+        isEndingOvernight = true
+        return true
+    }
+
+    /// The claimed ending is over.
+    func releaseOvernightEnding() {
+        isEndingOvernight = false
+    }
 }
