@@ -285,13 +285,12 @@
   },
   {
    "key": "func OneShotBackupName.fullerUnindexedBackup(than:in:)",
-   "hash": "40646830454cca07",
-   "does": "Returns nil when the row's write time (indexedMs) or beat count (backedUpCount, or beatCount for a one-shot row) is unknown, as for a row rebuilt from a header. Otherwise, among the session's one-shot files other than the indexed one, plain or encrypted, stamped after the indexed backup: decodes each (decodeLegacyBackup decrypts sealed ones; failures logged by attempt) and returns the one holding the most beats among those for this session with at least the row's count, or nil. That is a backup backup() would accept over the row. Throws when the listing fails.",
+   "hash": "671235310b48a41c",
+   "does": "Returns nil when the row's write time (indexedMs) or beat count (backedUpCount, or beatCount for a one-shot row) is unknown, as for a row rebuilt from a header. Otherwise walks the session's one-shot files other than the indexed one, plain or encrypted, whatever their stamp; decodes each (decodeLegacyBackup decrypts sealed ones; failures logged by attempt) and keeps only the fullest so far for this session that holds strictly more beats than the row, so at most two decoded entries are alive at once. Returns it, or nil. Strictly more: an adopted source then holds as many as the new row and is not adopted again. Throws when the listing fails.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.indexedMs(_:)",
     "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.files(of:in:)",
-    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.writtenMs(_:)",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.decodeLegacyBackup(at:)"
    ],
@@ -305,12 +304,21 @@
      "at": "+2",
      "cond": "row's time or count unknown",
      "effect": "nil"
+    },
+    {
+     "at": "+4",
+     "cond": "for each unindexed one-shot file",
+     "effect": "decode and compare"
+    },
+    {
+     "at": "+6",
+     "cond": "undecodable, another id, or not fuller than the best so far (or the row)",
+     "effect": "skip; else it becomes the fullest"
     }
    ],
    "deps": {
     "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.files(of:in:)": "c41df8bafc601514",
     "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.indexedMs(_:)": "f10479cb7365a415",
-    "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func OneShotBackupName.writtenMs(_:)": "1d0e34b875b01e4d",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.decodeLegacyBackup(at:)": "3c9f14b13a29d54b",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }

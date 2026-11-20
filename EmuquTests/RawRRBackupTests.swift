@@ -517,9 +517,13 @@ final class RawRRBackupTests: XCTestCase {
         XCTAssertEqual(try backup.retrieve(sessionId)?.points.count, 80)
     }
 
-    /// An encrypted file the index missed is adopted too: a write killed
-    /// before its index save may have been encrypted.
-    func testReencryptionAdoptsAnEncryptedUnindexedFile() throws {
+    /// An encrypted file the index missed is adopted too, but only when the
+    /// session is queued for another reason: the encrypted write itself took
+    /// the session off the queue, so the repair never visits it alone. The
+    /// test queues it by hand for that reason. Needs the key to write the
+    /// sealed file.
+    func testReencryptionAdoptsAnEncryptedUnindexedFileOfAQueuedSession() throws {
+        guard EncryptionManager.shared.isAvailable else { return }
         let sessionId = UUID()
         defer { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
         let stale = try writeUnindexedFile(sessionId: sessionId, indexedBeats: 50, beats: 20, offsetMs: -1_000)
@@ -538,20 +542,57 @@ final class RawRRBackupTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: stale.path))
     }
 
-    /// A row rebuilt from a header has no write time or count to compare:
-    /// nothing is adopted over it, or its uncounted points file would go.
-    func testNothingIsAdoptedOverARowWithoutATimeOrCount() throws {
+    /// A fuller file older than the row (its index save failed, then a
+    /// shorter backup succeeded) is adopted too, and once adopted it is
+    /// retired, so the next pass adopts nothing more.
+    func testReencryptionAdoptsAnOlderFullerUnindexedFileOnce() throws {
         let sessionId = UUID()
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("RawRRBackupTests-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
+        let older = try writeUnindexedFile(sessionId: sessionId, indexedBeats: 50, beats: 80, offsetMs: -1_000)
+
+        backup.reencryptBackup(sessionId)
+        let adopted = backup.index.first { $0.id == sessionId }?.fileName
+        backup.reencryptBackup(sessionId)
+
+        XCTAssertEqual(try backup.retrieve(sessionId)?.points.count, 80)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: older.path))
+        XCTAssertEqual(backup.index.first { $0.id == sessionId }?.fileName, adopted)
+    }
+
+    /// A row with no write time (rebuilt from a header, its count known) gets
+    /// nothing adopted over it.
+    func testNothingIsAdoptedOverARowWithoutAWriteTime() throws {
+        let sessionId = UUID()
+        let directory = try directoryHoldingAFullerFile(of: sessionId)
         defer { XCTAssertNoThrow(try FileManager.default.removeItem(at: directory)) }
-        try plainBackupFile(sessionId: sessionId, beats: 80).write(to: directory.appendingPathComponent("\(sessionId.uuidString)_1790000000000.json"))
         let rebuilt = RawRRBackup.BackupIndex(
-            id: sessionId, captureDate: Date(), fileName: nil, beatCount: 0, hash: "", archived: false, lastBackupTime: nil, backedUpCount: nil
+            id: sessionId, captureDate: Date(), fileName: nil, beatCount: 10, hash: "", archived: false, lastBackupTime: nil, backedUpCount: 10
         )
 
         XCTAssertNil(try OneShotBackupName.fullerUnindexedBackup(than: rebuilt, in: directory))
+    }
+
+    /// A row with no beat count (its points file could not be counted) gets
+    /// nothing adopted over it, or that uncounted file would be replaced.
+    func testNothingIsAdoptedOverARowWithoutACount() throws {
+        let sessionId = UUID()
+        let directory = try directoryHoldingAFullerFile(of: sessionId)
+        defer { XCTAssertNoThrow(try FileManager.default.removeItem(at: directory)) }
+        let uncounted = RawRRBackup.BackupIndex(
+            id: sessionId, captureDate: Date(), fileName: nil, beatCount: 0, hash: "", archived: false, lastBackupTime: Date(), backedUpCount: nil
+        )
+
+        XCTAssertNil(try OneShotBackupName.fullerUnindexedBackup(than: uncounted, in: directory))
+    }
+
+    /// A temporary directory holding one plain 80-beat one-shot file of the
+    /// session; the caller removes it.
+    private func directoryHoldingAFullerFile(of sessionId: UUID) throws -> URL {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("RawRRBackupTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try plainBackupFile(sessionId: sessionId, beats: 80).write(to: directory.appendingPathComponent("\(sessionId.uuidString)_1790000000000.json"))
+        return directory
     }
 
     /// Backs up `indexedBeats` points (when given), then writes a plain,
