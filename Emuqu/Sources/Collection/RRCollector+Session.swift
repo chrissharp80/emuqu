@@ -7,7 +7,14 @@ extension RRCollector {
     /// Reset current session state for new recording. The last error goes
     /// too: the Record screen raises its alert when the error changes, so a
     /// dismissed error left in place hid the same error the next time.
+    /// Refused while a night's ending is in progress, which owns this state
+    /// until it is done. The paused marker goes only with a paused session.
     func resetSession() {
+        guard !streamingLifecycle.isEndingOvernight else {
+            debugLog("[RRCollector] Not resetting the session: a night's ending is in progress", level: .warning)
+            return
+        }
+        let resetsPause = pausedSession != nil
         currentSession = nil
         collectedPoints = []
         verificationResult = nil
@@ -22,7 +29,7 @@ extension RRCollector {
         baselineDeviation = nil
         isPaused = false
         pausedSession = nil
-        clearPausedSessionState()
+        if resetsPause { clearPausedSessionState() }
     }
 
     /// Notify that the archive has changed.

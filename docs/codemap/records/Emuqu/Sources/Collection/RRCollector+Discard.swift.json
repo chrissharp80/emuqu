@@ -12,25 +12,29 @@
  "units": [
   {
    "key": "func CollectorSessionControl.discardOvernightRecording()",
-   "hash": "a0c512999fe1634e",
-   "does": "Ends the in-progress overnight stream keeping nothing: logs, ends device-recording arming, notes whether this night armed the strap (overnightDeviceBackupActive), stops streaming without gathering (stopStreamingWithoutKeeping), clears the strap's internal recording only when this night armed it, removes the session's raw RR backup and iCloud live backup, clears the persisted recording record, returns the recorder to the paused parent (first linked session) when that is an archived paused session or to idle otherwise, sets lastError to PolarError.fetchFailed(strapCopyKeptReason) when the strap copy could not be cleared, notifies archive observers and returns DiscardOutcome(strapCopyKept:). No session is scored or archived.",
+   "hash": "77af443280285c88",
+   "does": "Ends the in-progress overnight stream keeping nothing: claims the night's ending (StreamingLifecycle.claimOvernightEnding) before its first suspension, so a discard while a Stop or pause is ending the night, or a second discard, returns nil untouched; logs, ends device-recording arming, notes whether this night armed the strap (overnightDeviceBackupActive), stops streaming without gathering (stopStreamingWithoutKeeping), clears the strap's internal recording only when this night armed it, removes the session's raw RR backup and iCloud live backup, clears the persisted recording record, releases the ending, returns the recorder to the paused parent (first linked session) when that is an archived paused session or to idle otherwise, sets lastError to PolarError.fetchFailed(strapCopyKeptReason) when the strap copy could not be cleared, notifies archive observers and returns DiscardOutcome(strapCopyKept:). No session is scored or archived.",
    "entry": "Through RRCollector.discardOvernightRecording() from the Record screen's Discard confirmation (RecordView.discardRecording(startOver:)).",
    "calls": [
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.claimOvernightEnding()",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.endDeviceRecordingArming()",
     "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.stopStreamingWithoutKeeping()",
     "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.clearStrapCopy()",
     "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.removeKeptCopies(of:)",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()",
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.releaseOvernightEnding()",
     "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.returnToParentPauseOrIdle(parentId:)",
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()"
    ],
    "reads": [
-    "mem:RRCollector.isOvernightStreaming",
+    "mem:StreamingLifecycle.isOvernightStreaming",
+    "mem:StreamingLifecycle.isEndingOvernight",
     "mem:RRCollector.currentSession",
     "mem:RRCollector.overnightDeviceBackupActive"
    ],
    "writes": [
+    "mem:StreamingLifecycle.isEndingOvernight",
     "mem:RRCollector.lastError",
     "ud:UserDefaultsKeys.persistedRecordingState",
     "file:RRBackup/<uuid>*",
@@ -41,7 +45,7 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "not overnight streaming",
+     "cond": "claim refused (not overnight streaming, or another caller is ending the night)",
      "effect": "returns nil, nothing changed"
     },
     {
@@ -55,12 +59,12 @@
      "effect": "no backups removed"
     },
     {
-     "at": "+10",
+     "at": "+11",
      "cond": "parent id from linkedSessionIds.first",
      "effect": "resumed segment of a paused night: back to that pause; else idle"
     },
     {
-     "at": "+11",
+     "at": "+12",
      "cond": "strapCopyKept",
      "effect": "lastError = fetchFailed(strapCopyKeptReason)"
     }
@@ -70,12 +74,13 @@
     "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.removeKeptCopies(of:)": "84e65f7b2e4b6810",
     "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.returnToParentPauseOrIdle(parentId:)": "481fe4b8a8f30dcd",
     "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.stopStreamingWithoutKeeping()": "3e9ca5056bd0fd0f",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "5eae42c737d4ab45",
     "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.endDeviceRecordingArming()": "0dce982272449f6a",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "0f40f13f892158e2",
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.claimOvernightEnding()": "005f6e11160630ac",
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.releaseOvernightEnding()": "426e2f8167fd384d",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -127,7 +132,7 @@
     "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.removeKeptCopies(of:)": "84e65f7b2e4b6810",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "dcc084a0adcf0b2b",
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "aaa4636d68fbc6ce",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "10513f633fc5c63f",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -163,8 +168,8 @@
   },
   {
    "key": "func CollectorSessionControl.discardDeviceRecording()",
-   "hash": "4b0884a0b8f9d61d",
-   "does": "Discards a strap-only recording: logs, asks PolarManager.discardStoredExercises (stops a running strap recording and removes every stored one). On failure logs a warning, sets lastError and returns false leaving the session and its backups as they were. On success removes the session's raw RR backup and iCloud live backup, clears the persisted recording record, resetSession and returns true.",
+   "hash": "20967b8b0333ca35",
+   "does": "Discards a strap-only recording: while a night's ending is in progress (StreamingLifecycle.isEndingOvernight) logs and returns false touching nothing; otherwise logs, asks PolarManager.discardStoredExercises (stops a running strap recording and removes every stored one). On failure logs a warning, sets lastError and returns false leaving the session and its backups as they were. On success removes the session's raw RR backup and iCloud live backup, clears the persisted recording record, resetSession and returns true.",
    "entry": "Through RRCollector.discardDeviceRecording() from the Record screen's Discard confirmation for a strap-only recording (RecordView.discardRecording(startOver:)).",
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -174,6 +179,7 @@
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()"
    ],
    "reads": [
+    "mem:StreamingLifecycle.isEndingOvernight",
     "mem:RRCollector.currentSession"
    ],
    "writes": [
@@ -185,12 +191,17 @@
    ],
    "branches": [
     {
-     "at": "+5",
+     "at": "+1",
+     "cond": "a night's ending is in progress",
+     "effect": "log, return false, nothing changed"
+    },
+    {
+     "at": "+9",
      "cond": "discardStoredExercises throws",
      "effect": "log, lastError = error, return false"
     },
     {
-     "at": "+10",
+     "at": "+14",
      "cond": "currentSession nil",
      "effect": "no backups removed"
     }
@@ -200,7 +211,7 @@
     "Emuqu/Sources/Collection/RRCollector+Discard.swift::func CollectorSessionControl.removeKeptCopies(of:)": "84e65f7b2e4b6810",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "5eae42c737d4ab45",
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "aaa4636d68fbc6ce",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "10513f633fc5c63f",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -336,7 +347,7 @@
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "dcc084a0adcf0b2b",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.persistPausedSessionState(sessionId:)": "1c3555b9bdc254a6",
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "aaa4636d68fbc6ce",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.resetSession()": "10513f633fc5c63f",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96"
    }
   },

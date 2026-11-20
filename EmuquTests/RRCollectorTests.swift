@@ -268,6 +268,44 @@ final class RRCollectorSaveResultTests: XCTestCase {
         XCTAssertEqual(try archive.retrieve(session.id)?.tags, [])
     }
 
+    // MARK: - Rescore during review
+
+    /// A rescore of the night on the review card reaches the card's copy,
+    /// which Accept archives, and keeps what the user entered on the card.
+    func testARescoredNightReachesTheReviewCardWithTheCardsEntries() {
+        var card = night()
+        card.recoveryScore = 6.1
+        card.tags = [ReadingTag.alcohol]
+        card.notes = "late dinner"
+        card.morningFeeling = 4
+        collector.currentSession = card
+        var rescored = card
+        rescored.recoveryScore = 7.4
+        rescored.tags = []
+        rescored.notes = nil
+        rescored.morningFeeling = nil
+
+        collector.reanalysis.adoptArchivedCopy(rescored)
+
+        XCTAssertEqual(collector.currentSession?.recoveryScore, 7.4)
+        XCTAssertEqual(collector.currentSession?.tags, [ReadingTag.alcohol])
+        XCTAssertEqual(collector.currentSession?.notes, "late dinner")
+        XCTAssertEqual(collector.currentSession?.morningFeeling, 4)
+    }
+
+    func testAnotherSessionsArchivedCopyLeavesTheReviewCardAlone() {
+        var card = night()
+        card.recoveryScore = 6.1
+        collector.currentSession = card
+        var other = night()
+        other.recoveryScore = 7.4
+
+        collector.reanalysis.adoptArchivedCopy(other)
+
+        XCTAssertEqual(collector.currentSession?.id, card.id)
+        XCTAssertEqual(collector.currentSession?.recoveryScore, 6.1)
+    }
+
     // MARK: - Segment unlink
 
     /// No archived parent: nothing is unlinked and the collector says so,

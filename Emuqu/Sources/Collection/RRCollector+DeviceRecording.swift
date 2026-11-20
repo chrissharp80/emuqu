@@ -83,7 +83,15 @@ extension DeviceRecordingSession {
     /// Only a recording that started since the session began is taken
     /// (`fetchRecording`'s date filter): the strap keeps the previous night
     /// until the next recording clears it, and that file is not this one.
+    ///
+    /// While a night's ending is in progress the strap's recording is that
+    /// night's, which the ending downloads itself; nothing is done and nil is
+    /// returned.
     func stopSession() async throws -> HRVSession? {
+        guard !collector.streamingLifecycle.isEndingOvernight else {
+            debugLog("[RRCollector] Not stopping the strap recording: a night's ending is in progress")
+            return nil
+        }
         guard collector.polarManager.connectionState == .connected else {
             throw RRCollector.CollectorError.notConnected
         }

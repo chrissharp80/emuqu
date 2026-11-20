@@ -36,21 +36,22 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.liveRecordingIds()": "ebaf97b2974b4411",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.liveRecordingIds()": "d4467e313fc499df",
     "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.recoveryService": "75439d381f39246d",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.checkForLostSessions(excluding:)": "c2c4d9998e113bcf"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.checkForLostSessions(excluding:)": "f25ebc99c6fcacb7"
    }
   },
   {
    "key": "func SessionRecoveryCoordinator.liveRecordingIds()",
-   "hash": "63f1cbdd453c2295",
-   "does": "Builds the set of session ids that are live right now: the collector's current session when isCollecting, its paused session, and the WorkoutRecorder's current session when it is recording or finalizing.",
+   "hash": "0d83c93b0f77c7e0",
+   "does": "Builds the set of session ids that are live right now: the collector's current session when isCollecting or while a night's ending is in progress (StreamingLifecycle.isEndingOvernight), its paused session, and the WorkoutRecorder's current session when it is recording or finalizing.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current"
    ],
    "reads": [
     "mem:SessionState.isCollecting",
+    "mem:StreamingLifecycle.isEndingOvernight",
     "mem:SessionState.currentSession",
     "mem:StreamingLifecycle.pausedSession",
     "mem:RecorderBox.recorder.phase/currentSession"
@@ -59,16 +60,16 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "collector.isCollecting and currentSession has an id",
+     "cond": "(collector.isCollecting or a night's ending in progress) and currentSession has an id",
      "effect": "current session id inserted; otherwise skipped"
     },
     {
-     "at": "+3",
+     "at": "+4",
      "cond": "collector.pausedSession is non-nil",
      "effect": "paused session id inserted; otherwise skipped"
     },
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "a WorkoutRecorder exists, its phase is .recording or .finalizing and it has a currentSession",
      "effect": "recorder session id inserted; otherwise skipped"
     }
@@ -427,7 +428,7 @@
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()": "8f47b0bb11661dc9",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)": "d7326c510079b1b2",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.reconnectForTransfer()": "95932245f074f12c",
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession": "392cb6c9eebc8652",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession": "fa7ce1ddaae91ca0",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "614d193cfe0e5d19",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "11c942aedf66b463",
@@ -940,7 +941,7 @@
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)": "d7326c510079b1b2",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.rescueToBackup(_:)": "5f4c9b1f9510f962",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func InterruptedWorkoutAutoRecovery.end(_:)": "c100d9b82589a259",
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession": "392cb6c9eebc8652",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession": "fa7ce1ddaae91ca0",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "11c942aedf66b463",
     "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recording(startedAt:belongsToSessionStartedAt:)": "b46f35d8396e05f2",
@@ -1099,7 +1100,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.flaggedInterruptedWorkoutId(live:)": "0174be9084ee83ad",
-    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.liveRecordingIds()": "ebaf97b2974b4411",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.liveRecordingIds()": "d4467e313fc499df",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func newestWorkoutBackup(among:in:capturedSince:)": "7c68ee94ff60c0aa",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func unrecoveredBackupIds(since:archive:rawBackup:)": "4861e04e35072310"
    }
@@ -1252,7 +1253,7 @@
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.clearPersistedRecordingState(ifItIs:)": "660e47e0d76020da",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.findInterruptedWorkoutSessionId()": "8774b7d7763bd787",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.flaggedInterruptedWorkoutId(live:)": "0174be9084ee83ad",
-    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.liveRecordingIds()": "ebaf97b2974b4411",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.liveRecordingIds()": "d4467e313fc499df",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverWorkoutFromBackup(_:)": "54cdeaf93ee5c965",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.strapReachedForAutoRecovery(of:)": "5fdfa3032bd39cbc",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"

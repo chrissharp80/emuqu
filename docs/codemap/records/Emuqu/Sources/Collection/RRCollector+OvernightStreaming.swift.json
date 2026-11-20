@@ -437,10 +437,12 @@
   },
   {
    "key": "func OvernightStreamingCoordinator.stopOvernightStreaming()",
-   "hash": "ce97f165ba42ed3b",
-   "does": "Morning stop: from the tap, holds a background-task assertion from BackgroundTaskAssertion.forRecordingStop (\"OvernightStop\") until it returns and marks the persisted recording record stop-requested; ends arming, tears down streaming and publishes the saving state, backs up the beats, scores the night (scoreStoppedNight: the device-fetch fallback when streaming is short, else download/merge/score) and then disconnects a Verity Sense whichever way the night ended.",
+   "hash": "114c09255d053507",
+   "does": "Morning stop: claims the night's ending (StreamingLifecycle.claimOvernightEnding) before its first suspension and releases it on return, so a second Stop, or one landing while a pause or discard is ending the night, returns nil untouched; from the tap, holds a background-task assertion from BackgroundTaskAssertion.forRecordingStop (\"OvernightStop\") until it returns and marks the persisted recording record stop-requested; ends arming, tears down streaming and publishes the saving state, backs up the beats, scores the night (scoreStoppedNight: the device-fetch fallback when streaming is short, else download/merge/score) and then disconnects a Verity Sense whichever way the night ended.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.claimOvernightEnding()",
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.releaseOvernightEnding()",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.forRecordingStop(named:)",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()",
     "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.endDeviceRecordingArming()",
@@ -451,27 +453,30 @@
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.disconnectVeritySenseAfterNight(isVeritySense:)"
    ],
    "reads": [
-    "mem:RRCollector.isOvernightStreaming",
+    "mem:StreamingLifecycle.isOvernightStreaming",
+    "mem:StreamingLifecycle.isEndingOvernight",
     "ud:UserDefaultsKeys.persistedRecordingState"
    ],
    "writes": [
+    "mem:StreamingLifecycle.isEndingOvernight",
     "ud:UserDefaultsKeys.persistedRecordingState"
    ],
    "branches": [
     {
      "at": "+1",
-     "cond": "not overnight streaming",
-     "effect": "return nil"
+     "cond": "claim refused (not overnight streaming, or another caller is ending the night)",
+     "effect": "return nil, nothing changed"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
     "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.endDeviceRecordingArming()": "0dce982272449f6a",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.backupStreamingData(_:sessionId:)": "9ec6ffb5020f31eb",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.disconnectVeritySenseAfterNight(isVeritySense:)": "3e7ad95dbc1029c9",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.isVeritySenseDevice(_:)": "7649133f1a60846e",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.scoreStoppedNight(baseSession:streamingPoints:reconnectCount:isVeritySense:)": "3ad19740fb8b1dd5",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopStreamingInfrastructure()": "7118bb68655824f9",
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.claimOvernightEnding()": "005f6e11160630ac",
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.releaseOvernightEnding()": "426e2f8167fd384d",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()": "12e7c44b52c0986c",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.forRecordingStop(named:)": "c3840e6ca84c5e4e"
    }
