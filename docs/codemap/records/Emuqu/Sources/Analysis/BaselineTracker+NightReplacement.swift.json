@@ -1,0 +1,302 @@
+{
+ "file": "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift",
+ "hash": "7529a654ee0512fe",
+ "role": "Extension of BaselineTracker holding the one-reading-per-night rule: mergeIntoNight places a data point in its night's slot (SleepSchedule.nightKey), replacing the stored reading only when the morning-reading rule or the window-quality rules (consolidation, organized recovery, artifact and HR-stability gates, a >5% score improvement) say the newcomer is better.",
+ "types": [
+  "BaselineTracker: extension — static mergeIntoNight (internal) and the private static replacement rules shouldReplace, newWindowIsObjectivelyBetter, consolidationVerdict, organizedRecoveryVerdict, passesQualityGates, hrStabilityAcceptable, isMeaningfullyBetterScore"
+ ],
+ "state": [],
+ "toplevel": "Imports Foundation. No code outside the units.",
+ "units": [
+  {
+   "key": "func BaselineTracker.mergeIntoNight(_:into:sleepSchedule:)",
+   "hash": "3e39a86cb70370a1",
+   "does": "Static over the `nights` array it is given (historicalData for the stored baseline, a local array for baselineRMSSDs): finds an existing point with the same SleepSchedule.nightKey; appends when none, otherwise replaces it only if shouldReplace says so.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)",
+    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.shouldReplace(_:with:sleepSchedule:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:BaselineTracker.historicalData (when passed it)",
+    "the caller's nights array (inout)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "no existing point for this night",
+     "effect": "appends the new point"
+    },
+    {
+     "at": "+10",
+     "cond": "shouldReplace true",
+     "effect": "overwrites the existing slot; false → new point discarded"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.shouldReplace(_:with:sleepSchedule:)": "bab797f16da542a3",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)": "82a594cdf1ca5074",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)": "b6c50fe75996849a"
+   }
+  },
+  {
+   "key": "func BaselineTracker.shouldReplace(_:with:sleepSchedule:)",
+   "hash": "ffebac3541bbe0ee",
+   "does": "Morning reading (by endDate ?? date) beats a non-morning one either way; like-for-like defers to newWindowIsObjectivelyBetter.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.isMorningReading(endDate:)",
+    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.newWindowIsObjectivelyBetter(new:existing:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "new endDate nil",
+     "effect": "uses start date for the morning test"
+    },
+    {
+     "at": "+6",
+     "cond": "existing endDate nil (legacy point)",
+     "effect": "uses start date"
+    },
+    {
+     "at": "+10",
+     "cond": "morning status differs",
+     "effect": "returns whether the new one is the morning reading; else objective comparison"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.newWindowIsObjectivelyBetter(new:existing:)": "c27eba48306762d4",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)": "82a594cdf1ca5074",
+    "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.isMorningReading(endDate:)": "d49b78447c38b0d1"
+   }
+  },
+  {
+   "key": "func BaselineTracker.newWindowIsObjectivelyBetter(new:existing:)",
+   "hash": "a04cc2da9fcc2061",
+   "does": "Replacement decision ladder: consolidation verdict, then organized-recovery verdict, then artifact/HR-stability gates, then a >5% readiness improvement.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.consolidationVerdict(new:existing:)",
+    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.organizedRecoveryVerdict(new:existing:)",
+    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.passesQualityGates(new:existing:)",
+    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.isMeaningfullyBetterScore(new:existing:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "consolidation decided",
+     "effect": "returns that verdict"
+    },
+    {
+     "at": "+2",
+     "cond": "organized recovery decided",
+     "effect": "returns that verdict"
+    },
+    {
+     "at": "+3",
+     "cond": "quality gates fail",
+     "effect": "returns false; else isMeaningfullyBetterScore"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.consolidationVerdict(new:existing:)": "7e0dc791102f0e4a",
+    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.isMeaningfullyBetterScore(new:existing:)": "24a769caad1d428a",
+    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.organizedRecoveryVerdict(new:existing:)": "e0313af2e0d2a7ff",
+    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.passesQualityGates(new:existing:)": "19a98e3d26b6b3fc"
+   }
+  },
+  {
+   "key": "func BaselineTracker.consolidationVerdict(new:existing:)",
+   "hash": "517c902525d6269a",
+   "does": "If existing consolidated and new not: new must beat existing readiness by > 15% of existing. If new consolidated and existing not: replace when new readiness >= 90% of existing. Else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "new readinessScore nil",
+     "effect": "treated as 0"
+    },
+    {
+     "at": "+2",
+     "cond": "existing readinessScore nil",
+     "effect": "treated as 0"
+    },
+    {
+     "at": "+3",
+     "cond": "new isConsolidated nil",
+     "effect": "false"
+    },
+    {
+     "at": "+4",
+     "cond": "existing isConsolidated nil",
+     "effect": "false"
+    },
+    {
+     "at": "+5",
+     "cond": "existing consolidated, new not",
+     "effect": "returns newScore - existing > 0.15×existing"
+    },
+    {
+     "at": "+12",
+     "cond": "new consolidated, existing not, newScore >= 0.9×existing",
+     "effect": "returns true; otherwise nil (undecided)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "9fdc7dd4a10137ff"
+   }
+  },
+  {
+   "key": "func BaselineTracker.organizedRecoveryVerdict(new:existing:)",
+   "hash": "2aff40702a6b98b7",
+   "does": "Only when consolidation status is equal: rejects a non-organized new vs organized existing; accepts organized new vs non-organized existing when readiness >= 95% of existing; else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "consolidation status differs (nil treated false on both sides)",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+2",
+     "cond": "new isOrganizedRecovery nil",
+     "effect": "false"
+    },
+    {
+     "at": "+3",
+     "cond": "existing isOrganizedRecovery nil",
+     "effect": "false"
+    },
+    {
+     "at": "+4",
+     "cond": "existing organized and new not",
+     "effect": "returns false"
+    },
+    {
+     "at": "+9",
+     "cond": "new organized, existing not",
+     "effect": "checked with readiness >= 0.95×existing → true"
+    },
+    {
+     "at": "+10",
+     "cond": "readiness nil on either side",
+     "effect": "treated as 0; else falls through to nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "a94b71838be09fe7",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "9fdc7dd4a10137ff"
+   }
+  },
+  {
+   "key": "func BaselineTracker.passesQualityGates(new:existing:)",
+   "hash": "7fee231bed0d9941",
+   "does": "Rejects the new window when its artifact % exceeds max(1.5×existing, 2.0); then applies the HR-stability check.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.hrStabilityAcceptable(new:existing:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "new artifactPercentage nil",
+     "effect": "treated as 100%"
+    },
+    {
+     "at": "+2",
+     "cond": "existing artifactPercentage nil",
+     "effect": "treated as 100% (ceiling 150%)"
+    },
+    {
+     "at": "+7",
+     "cond": "new artifacts > ceiling",
+     "effect": "logs, returns false; else hrStabilityAcceptable"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::func ArtifactDetector.artifactPercentage(_:start:end:)": "d883c6e73179cc5c",
+    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.hrStabilityAcceptable(new:existing:)": "25dfc7f529b965aa",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func BaselineTracker.hrStabilityAcceptable(new:existing:)",
+   "hash": "1b7f3a9ee3247067",
+   "does": "Rejects when new window HR CV > 1.3× existing; passes when either value missing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "either windowHRStability nil",
+     "effect": "returns true"
+    },
+    {
+     "at": "+3",
+     "cond": "new CV <= 1.3×existing",
+     "effect": "returns true; else logs and returns false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func BaselineTracker.isMeaningfullyBetterScore(new:existing:)",
+   "hash": "f468f9c53c8ff231",
+   "does": "Returns true when new readiness exceeds existing by more than 5% of existing (nil scores treated as 0).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "new readiness nil",
+     "effect": "0"
+    },
+    {
+     "at": "+2",
+     "cond": "existing readiness nil",
+     "effect": "0"
+    },
+    {
+     "at": "+6",
+     "cond": "delta > 5% of existing",
+     "effect": "logs and returns true; else logs and returns false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  }
+ ],
+ "deps": {}
+}
