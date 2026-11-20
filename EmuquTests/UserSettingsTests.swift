@@ -1,7 +1,27 @@
 @testable import Emuqu
+import os
+import UIKit
 import XCTest
 
 final class UserSettingsTests: XCTestCase {
+    /// The performance-flag mirrors every `SettingsManager.save()` writes to
+    /// the host's `UserDefaults.standard`, put back after each test so the
+    /// manager instances built here leave the host's values as they were.
+    private var savedPerformanceFlags: [(key: String, value: Any?)] = []
+    private static let performanceFlagKeys: [UserSettings.PerformanceFlagKey] = [.enableAIAssistant, .enableVoiceMode, .enableWatchConnectivity]
+
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        savedPerformanceFlags = Self.performanceFlagKeys.map { ($0.rawValue, UserDefaults.standard.object(forKey: $0.rawValue)) }
+    }
+
+    override func tearDownWithError() throws {
+        for (key, value) in savedPerformanceFlags {
+            if let value { UserDefaults.standard.set(value, forKey: key) } else { UserDefaults.standard.removeObject(forKey: key) }
+        }
+        try super.tearDownWithError()
+    }
+
     // MARK: - Defaults
 
     func testDefaultSettings() {
@@ -245,7 +265,7 @@ final class UserSettingsTests: XCTestCase {
     }
 
     /// A Cocoa read error wrapping a POSIX code, as `Data(contentsOf:)` reports one.
-    private func readError(posix code: Int32) -> NSError {
+    nonisolated private static func readError(posix code: Int32) -> NSError {
         NSError(domain: NSCocoaErrorDomain, code: NSFileReadUnknownError,
                 userInfo: [NSUnderlyingErrorKey: NSError(domain: NSPOSIXErrorDomain, code: Int(code))])
     }
@@ -256,8 +276,7 @@ final class UserSettingsTests: XCTestCase {
     func testAReadFailureThatCanPassHoldsSaves() throws {
         let file = try unreadableSettingsFile()
         for code in [EIO, EMFILE, ENFILE] {
-            let error = readError(posix: code)
-            let (loaded, outcome) = SettingsManager.load(from: file, read: { _ in throw error })
+            let (loaded, outcome) = SettingsManager.load(from: file, read: { _ in throw Self.readError(posix: code) })
             XCTAssertNil(loaded)
             XCTAssertEqual(outcome, .unreadableNotPreserved, "POSIX \(code) must hold saves")
         }
@@ -269,9 +288,7 @@ final class UserSettingsTests: XCTestCase {
     /// copy is written.
     func testAnEISDIRReadErrorLeavesNothingToKeep() throws {
         let file = try unreadableSettingsFile()
-        let error = readError(posix: EISDIR)
-
-        let (loaded, outcome) = SettingsManager.load(from: file, read: { _ in throw error })
+        let (loaded, outcome) = SettingsManager.load(from: file, read: { _ in throw Self.readError(posix: EISDIR) })
 
         XCTAssertNil(loaded)
         XCTAssertEqual(outcome, .unreadableOther)
@@ -285,22 +302,34 @@ final class UserSettingsTests: XCTestCase {
         let locked = NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoPermissionError)
         XCTAssertEqual(SettingsManager.outcome(forReadError: locked), .blockedByProtection)
         XCTAssertEqual(SettingsManager.outcome(forReadError: NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoSuchFileError)), .fileNotPresent)
-        XCTAssertEqual(SettingsManager.outcome(forReadError: readError(posix: ENOENT)), .fileNotPresent)
+        XCTAssertEqual(SettingsManager.outcome(forReadError: Self.readError(posix: ENOENT)), .fileNotPresent)
         XCTAssertEqual(SettingsManager.outcome(forReadError: NSError(domain: NSCocoaErrorDomain, code: NSFileReadTooLargeError)), .unreadableOther)
     }
 
     // MARK: - Held saves on a manager instance
 
-    /// A reader the test controls: it fails with `error` while one is set and
-    /// reads the file otherwise, counting every read. Used only on the main
-    /// actor, by the test and by the manager it reads for.
-    private final class SettingsReader {
-        var error: NSError?
-        private(set) var reads = 0
+    /// A reader the test controls: it fails with a POSIX read error while one
+    /// is set and reads the file otherwise, counting every read. Sendable
+    /// (its state sits behind a lock), as the manager's reader must be.
+    private final class SettingsReader: Sendable {
+        private struct State {
+            var failure: Int32?
+            var reads = 0
+        }
+        private let state = OSAllocatedUnfairLock(initialState: State())
+
+        var reads: Int { state.withLock { $0.reads } }
+
+        func setFailure(posix code: Int32?) {
+            state.withLock { $0.failure = code }
+        }
 
         func read(_ url: URL) throws -> Data {
-            reads += 1
-            if let error { throw error }
+            let failure = state.withLock { current -> Int32? in
+                current.reads += 1
+                return current.failure
+            }
+            if let failure { throw UserSettingsTests.readError(posix: failure) }
             return try Data(contentsOf: url)
         }
     }
@@ -316,7 +345,7 @@ final class UserSettingsTests: XCTestCase {
         encoder.dateEncodingStrategy = .iso8601
         try encoder.encode(onDisk).write(to: file)
         let reader = SettingsReader()
-        reader.error = readError(posix: EIO)
+        reader.setFailure(posix: EIO)
         let manager = SettingsManager(settingsURL: file, read: { try reader.read($0) })
         XCTAssertEqual(manager.loadOutcome, .unreadableNotPreserved, "Sanity: an EIO read holds saves")
         return (manager, reader, file)
@@ -344,7 +373,7 @@ final class UserSettingsTests: XCTestCase {
     @MainActor
     func testAHeldChangeIsMergedOntoTheFileOnceItReads() async throws {
         let (manager, reader, file) = try heldManager()
-        reader.error = nil
+        reader.setFailure(posix: nil)
 
         manager.settings.bodyWeightKg = 80
 
@@ -362,12 +391,12 @@ final class UserSettingsTests: XCTestCase {
     @MainActor
     func testARetryAfterTheHoldLiftedReadsNothingAndKeepsTheChange() async throws {
         let (manager, reader, file) = try heldManager()
-        reader.error = nil
+        reader.setFailure(posix: nil)
         manager.settings.bodyWeightKg = 80   // lifts the hold in the same turn as init
         await drainMainActor()
         XCTAssertTrue(manager.heldRetryObservers.isEmpty, "An observer was installed after the hold lifted")
 
-        reader.error = readError(posix: EIO)
+        reader.setFailure(posix: EIO)
         let readsBefore = reader.reads
         manager.retryLoadAfterUnlock()
         XCTAssertEqual(reader.reads, readsBefore, "A retry with nothing held read the file")
@@ -377,23 +406,29 @@ final class UserSettingsTests: XCTestCase {
         XCTAssertEqual(try settingsOnDisk(manager, file: file).maxHR, 180, "The change after the hold lifted was not saved")
     }
 
-    /// While held, the observers are installed; the first change reads the
-    /// file once and later changes do not; becoming active (the observers'
-    /// handler) adopts the file as soon as it reads, keeping every held change
-    /// and dropping the observers.
+    /// While held, an observer is installed for each retry notification, and
+    /// becoming active is one of them; changes within the throttle interval
+    /// read the file once between them; the observers' handler adopts the file
+    /// as soon as it reads, keeping every held change and dropping the
+    /// observers.
     @MainActor
     func testAHeldLoadIsRetriedOnActivationWithoutAReadPerChange() async throws {
+        XCTAssertTrue(SettingsManager.heldRetryNotifications.contains(UIApplication.didBecomeActiveNotification),
+                      "A held load must be retried when the app becomes active")
+        XCTAssertTrue(SettingsManager.heldRetryNotifications.contains(UIApplication.protectedDataDidBecomeAvailableNotification))
         let (manager, reader, file) = try heldManager()
         await drainMainActor()
-        XCTAssertFalse(manager.heldRetryObservers.isEmpty, "No retry observers while saves are held")
+        XCTAssertEqual(manager.heldRetryObservers.count, SettingsManager.heldRetryNotifications.count,
+                       "One retry observer per notification while saves are held")
 
         let readsAtLaunch = reader.reads
         manager.settings.bodyWeightKg = 80
         manager.settings.userRestingHR = 48
-        XCTAssertEqual(reader.reads, readsAtLaunch + 1, "Only the first held change reads the file again")
+        XCTAssertEqual(reader.reads, readsAtLaunch + 1,
+                       "Changes within \(SettingsManager.heldChangeRetryInterval) s read the held file once between them")
         XCTAssertEqual(manager.loadOutcome, .unreadableNotPreserved)
 
-        reader.error = nil
+        reader.setFailure(posix: nil)
         manager.retryLoadAfterUnlock()
 
         XCTAssertEqual(manager.loadOutcome, .loaded)
