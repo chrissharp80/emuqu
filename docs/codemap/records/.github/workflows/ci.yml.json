@@ -1044,8 +1044,8 @@
   },
   {
    "key": "job thread-sanitizer",
-   "hash": "171acc0657120720",
-   "does": "macOS-26 job \"Thread Sanitizer\" (timeout 45): checkout, Xcode 26.6, scripts/check_thread_sanitizer.sh. Skipped when scope is gates.",
+   "hash": "1c0d9b193563ef6a",
+   "does": "macOS-26 job \"Thread Sanitizer\" (timeout 60): checkout, Xcode 26.6, scripts/check_thread_sanitizer.sh. Skipped when scope is gates.",
    "entry": "GitHub Actions job in ci.yml, conditional on inputs.scope",
    "calls": [
     ".github/workflows/ci.yml::step thread-sanitizer/Checkout",
@@ -1065,7 +1065,8 @@
     ".github/workflows/ci.yml::step thread-sanitizer/Checkout": "4565c7b42a72dff3",
     ".github/workflows/ci.yml::step thread-sanitizer/Select Xcode": "b5a3d6ba33057b27",
     ".github/workflows/ci.yml::step thread-sanitizer/Unit suite under Thread Sanitizer": "7eee23ecc349ef14",
-    "scripts/check_thread_sanitizer.sh::": "a89c9dfd4f676205"
+    ".github/workflows/ci.yml::step thread-sanitizer/Write the result to the run summary": "4c12a1bdce7dc65e",
+    "scripts/check_thread_sanitizer.sh::": "edc55ae9443e42a3"
    }
   },
   {
@@ -1106,7 +1107,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_thread_sanitizer.sh::": "a89c9dfd4f676205"
+    "scripts/check_thread_sanitizer.sh::": "edc55ae9443e42a3"
    }
   },
   {

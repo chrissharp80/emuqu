@@ -5,12 +5,14 @@ Every pull request and every push to `main` runs two workflows:
 - `gates.yml`: the script gates that need only bash and python (copy perimeter,
   science register, scoring governance, localization, documentation, SBOM,
   source-hygiene guards, the code map, the tech-debt budgets and refactor-spec
-  conformance) on an **ubuntu** runner in about a minute. It is the status
-  check `main` requires before anything merges.
+  conformance) on an **ubuntu** runner in about a minute.
 - `ci.yml` at scope `unit`: SwiftLint and the budgets, strict concurrency, the
   macOS build, the unit suite with the Views coverage floor, and the unit suite
   under Thread Sanitizer, on GitHub's standard macOS runner. The jobs run in
-  parallel; a run takes about 15–20 minutes.
+  parallel; a run takes 30 to 40 minutes, set by Thread Sanitizer and the tests
+  job, which each take 20 to 40 minutes on a runner.
+
+`main` requires both before anything merges.
 
 The repository is public, and standard GitHub-hosted runners cost public
 repositories no Actions minutes. The UI target and the full coverage floors
