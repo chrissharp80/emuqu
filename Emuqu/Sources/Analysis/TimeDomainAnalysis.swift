@@ -136,17 +136,15 @@ enum TimeDomainAnalyzer {
     /// metrics. The recovery window is *selected* on an
     /// ectopic-filtered RMSSD: `WindowSelector.evaluateWindow` runs
     /// `filterEctopicBeats` (a local-median 20% gate, Kubios/PMC3268104)
-    /// over the artifact-clean RR before scoring the candidate. But the
-    /// value that is then SCORED, BASELINED, and EXPORTED came from
-    /// `computeTimeDomain`, which only dropped *flagged* artifact beats —
-    /// it never ran the ectopic gate. A single ectopic beat that survived
-    /// artifact flagging (e.g. a compensatory long pause just inside the
-    /// missed-beat threshold) produces a large successive difference and
-    /// can add tens of ms of RMSSD, so the selector and the report
-    /// disagreed about the same window. This applies the SAME local-median
-    /// 20% gate the selector uses so the two paths agree.
+    /// over the artifact-clean RR before scoring the candidate. The value
+    /// that is then SCORED, BASELINED, and EXPORTED must pass the same gate:
+    /// dropping only *flagged* artifact beats leaves a single ectopic beat
+    /// that survived artifact flagging (e.g. a compensatory long pause just
+    /// inside the missed-beat threshold), which produces a large successive
+    /// difference and can add tens of ms of RMSSD, so the selector and the
+    /// report would disagree about the same window.
     ///
-    /// This is now the one ectopic gate: the window selector calls
+    /// This is the one ectopic gate: the window selector calls
     /// `ectopicKeepMask` itself (`WindowSelector`'s window evaluation), so
     /// the selector and the report cannot drift apart. The threshold is
     /// `HRVThresholds.ectopicThresholdPercent` (0.20) from a

@@ -13,20 +13,17 @@ import Foundation
 /// Both straps guard that by downloading what the app does not already hold
 /// and handing it to the backup *first*. Getting those two the wrong way round
 /// destroys exactly the data the rescue exists to save, and buried in the
-/// collector nothing could catch it (it ran at 0% coverage).
+/// collector no test could catch it.
 ///
 /// So the order is data here, and the invariant "a rescue precedes the clear it
 /// protects" is a test rather than a comment.
 ///
-/// ## The H10 rescues too, now that it can tell what needs rescuing
+/// ## The H10 rescues too
 ///
-/// The H10 used to clear without rescuing: its file can take minutes to
-/// download, the start ran inline on the workout-start path, and nothing could
-/// say whether the stored file had already been downloaded, so a rescue would
-/// have meant a full download on every start. All three have changed. Arming is
-/// off the critical path (workouts and nights arm in the background), and
-/// `StrapDownloadLedger` records every download, so the rescue downloads only
-/// what the app does not hold — normally nothing. A file that cannot be
+/// An H10 file can take minutes to download. Arming is off the critical path
+/// (workouts and nights arm in the background), and `StrapDownloadLedger`
+/// records every download, so the rescue downloads only what the app does not
+/// hold — normally nothing. A file that cannot be
 /// downloaded stops the start instead of being deleted with it.
 ///
 /// The two straps still differ in what a failed rescue means. A Verity Sense

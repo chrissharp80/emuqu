@@ -6,8 +6,8 @@ import Foundation
 ///
 /// ## Why this exists
 ///
-/// Both encode reported bugs, and both lived inside the audio pipeline where
-/// nothing could reach them — `VoiceConversationController+Pipeline.swift` and
+/// Both guard against user-visible failures, and inside the audio pipeline
+/// nothing could test them: `VoiceConversationController+Pipeline.swift` and
 /// `+Control.swift` sit at near-zero coverage, because reaching
 /// them means driving `AVAudioEngine` and the speech recogniser.
 ///
@@ -15,11 +15,10 @@ import Foundation
 ///    restart re-arms the mic loop, which competes with the synthesiser for the
 ///    audio session and can cut playback off mid-sentence.
 ///  * **A trigger firing mid-dictation wipes the user's sentence.** Speaking a
-///    proactive alert clears `partialTranscript`; the user reported it as
-///    "alerts wipe out my message."
+///    proactive alert clears `partialTranscript`.
 ///
-/// Every input is app-owned, so the decisions were always separable — only the
-/// audio plumbing around them was not.
+/// Every input is app-owned, so the decisions are separable from the audio
+/// plumbing around them.
 enum VoiceTurnPolicy {
     /// What the voice loop can see of the assistant's stream: whether one is
     /// running, and which one. `AssistantViewModel.dispatch()` bumps the
@@ -97,7 +96,7 @@ enum VoiceTurnPolicy {
         if state == .triggerSpeaking { return hasInFlightLLMTask || synthesizerIsSpeaking }
         if hasInFlightLLMTask || isStreamingResponse { return true }
         if synthesizerIsSpeaking, state == .speaking { return true }
-        // The reported bug: interrupting here wipes the sentence in progress.
+        // Interrupting here would wipe the sentence in progress.
         if state == .listening, hasPartialTranscript { return true }
         if state == .thinking { return true }
         return false

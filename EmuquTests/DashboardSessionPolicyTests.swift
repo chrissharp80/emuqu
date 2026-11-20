@@ -143,15 +143,15 @@ final class DashboardSessionPolicyTests: XCTestCase {
 
     // MARK: - latestOvernightComplete
 
-    /// Regression — a 22-minute partial-backup recovery was
-    /// re-archived AFTER the real 8-hour overnight of the same night, so
-    /// it sorted first and the naive `.first { … }` picked it. The policy
-    /// must pick the longest-duration session within the most recent night.
+    /// A 22-minute partial-backup recovery re-archived AFTER the real 8-hour
+    /// overnight of the same night sorts first, so a naive `.first { … }`
+    /// would pick it. The policy must pick the longest-duration session
+    /// within the most recent night.
     func testLatestOvernightCompletePicksLongestWithinSameNight() {
         // Same night: with no sleep snapshot a night is keyed on the end
         // day, and both end the morning of Tuesday May 19. The partial sorts
-        // first and starts later, exactly the ordering that triggered the
-        // original bug, so `.first` or a latest-start pick would return it.
+        // first and starts later, so `.first` or a latest-start pick would
+        // return it.
         let partial = makeSession(start: date(5, 19, 3), durationMinutes: 22)
         let realOvernight = makeSession(start: date(5, 18, 22), durationMinutes: 480)
         let sessions = [partial, realOvernight]
@@ -161,7 +161,7 @@ final class DashboardSessionPolicyTests: XCTestCase {
         XCTAssertEqual(picked?.id, realOvernight.id)
     }
 
-    /// Regression — a daytime quick reading newer than the
+    /// A daytime quick reading newer than the
     /// overnight (3 ms RMSSD mid-workout) must not displace the morning
     /// overnight as "today's recovery HRV".
     func testLatestOvernightCompleteIgnoresNewerDaytimeQuickReading() {
@@ -201,9 +201,9 @@ final class DashboardSessionPolicyTests: XCTestCase {
 
     // MARK: - `.insufficient` exclusion
 
-    /// Regression — pausing a pre-sleep recording while still awake
-    /// archived a 12-min partial as an `.insufficient` overnight with a
-    /// baseline-derived score. It must NOT headline the HRV chip: the newer
+    /// Pausing a pre-sleep recording while still awake archives a 12-min
+    /// partial as an `.insufficient` overnight with a baseline-derived
+    /// score. It must NOT headline the HRV chip: the newer
     /// insufficient partial should be skipped in favor of the real overnight.
     ///
     /// The partial ends after midnight, so it is the more recent night
@@ -367,7 +367,7 @@ final class DashboardSessionPolicyTests: XCTestCase {
         XCTAssertEqual(picked?.id, quick.id)
     }
 
-    /// Regression, day-attribution side — when a 22-minute
+    /// Day-attribution side: when a 22-minute
     /// partial-backup recovery shares a day with the real overnight, the
     /// longest-duration overnight wins regardless of array order.
     func testSessionForDayDurationTieBreakPrefersLongestOvernight() {

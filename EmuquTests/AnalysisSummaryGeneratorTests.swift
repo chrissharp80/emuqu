@@ -141,9 +141,8 @@ final class AnalysisSummaryGeneratorTests: XCTestCase {
 
     // MARK: - Headline Title
 
-    // The headline used to come from the diagnostic score's own five titles,
-    // which could contradict the Recovery Score ring; it now speaks the
-    // Recovery Score's verdict.
+    // The headline speaks the Recovery Score's verdict, not the diagnostic
+    // score's own titles, so it cannot contradict the Recovery Score ring.
     func testHeadlineSpeaksRecoveryScoreVerdict() {
         let result = makeResult(rmssd: 70.0, stressIndex: 60, lfHfRatio: 0.8, dfaAlpha1: 0.85)
         var session = makeSession(analysisResult: result)

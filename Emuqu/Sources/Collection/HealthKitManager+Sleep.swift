@@ -102,10 +102,9 @@ extension SleepHealthQueries {
     /// When rrPoints are provided, HR analysis validates HealthKit boundaries and computes RMSSD quality metrics
     ///
     /// Always resolved through the recording's own pipeline (settings-based
-    /// merging config, recording-anchored search window). A cache-first read
-    /// used to return the observer's schedule-window night instead, so the
-    /// same recording resolved to different sleep depending on whether the
-    /// observer had run first. A sample read that times out throws
+    /// merging config, recording-anchored search window), never from the
+    /// observer's schedule-window cache, so the same recording resolves to the
+    /// same sleep whether or not the observer has run first. A sample read that times out throws
     /// `queryTimedOut` rather than resolving the night without the Watch.
     func fetchSleepData(
         for recordingStart: Date,
@@ -149,11 +148,10 @@ extension SleepHealthQueries {
     /// Deliberately NO "all-sources fallback." Such a fallback fires
     /// whenever the real Watch samples haven't finished syncing
     /// at wake (the COMMON case — the Watch syncs a few minutes late), and
-    /// returns the app's OWN prior HR-estimate as the night's sleep. That is
-    /// the "morning sleep is wrong" regression: the user then opens Apple
-    /// Health (forcing the Watch to sync) and manually refreshes — and that
-    /// refresh re-picks the HRV window and drops the score. Returning only real
-    /// sources is the long-stable behavior. A strap-recorded night
+    /// returns the app's OWN prior HR-estimate as the night's sleep. The
+    /// morning sleep is then wrong until the user opens Apple Health (forcing
+    /// the Watch to sync) and refreshes, and that refresh re-picks the HRV
+    /// window and moves the score. A strap-recorded night
     /// with no Watch sleep is still covered by the resolver's RR-inference
     /// path, so this never leaves a recorded night sleepless.
     private func querySleepSamples(recordingStart: Date, recordingEnd: Date) async throws -> [HKCategorySample] {

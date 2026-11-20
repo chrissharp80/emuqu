@@ -133,7 +133,7 @@ struct WebSearchNamespace: FactNamespaceResolver {
 
     private static let webAvailableDescription = """
     Whether the AI can currently search the web. True iff the user enabled web search in Settings AND ((a) a Tavily API key is set for the `web.search` action, OR (b) the active provider has built-in server-side search — Anthropic \
-    Claude does as of 2026-05-07). When true on a provider with native server-side search, the model can search directly via the conversation (no `web.search` action call needed); when true with a Tavily key, the AI calls `web.search` \
+    Claude does). When true on a provider with native server-side search, the model can search directly via the conversation (no `web.search` action call needed); when true with a Tavily key, the AI calls `web.search` \
     explicitly. When false, refuse 'look it up' / 'search for' requests with the suggestion 'turn on Web Search in Settings → Flo'.
     """
 

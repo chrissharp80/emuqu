@@ -243,10 +243,9 @@ enum SessionMerger {
     /// Don't overwrite a good existing `analysisResult`
     /// with a worse incoming one. A merge that unconditionally
     /// copies imported's `analysisResult` + `recoveryScore` over the
-    /// existing values produced this symptom (beta tester):
-    /// a 22-min partial-backup recovery merged into Monday's real
-    /// overnight session and clobbered Monday's recoveryScore = 70+
-    /// with the 22-min reading's 25.
+    /// existing values lets a 22-min partial-backup recovery merged
+    /// into the real overnight session replace its recoveryScore
+    /// (say 70+) with the partial reading's (say 25).
     ///
     /// Not gated on `cleanBeatCount`: that's the
     /// analysis-WINDOW size, ~400 beats for any session that finds

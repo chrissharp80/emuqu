@@ -187,11 +187,10 @@ final class DeterministicIntentTests: XCTestCase {
         return try XCTUnwrap(cal.date(from: c), "could not build \(y)-\(m)-\(d) \(h):\(min)")
     }
 
-    /// The regression this guards: US spring-forward 2026 is 08 Mar, making
-    /// that local day 23 h long. At 00:30 on 09 Mar, the old
-    /// `now.addingTimeInterval(-86400)` landed at 23:30 on **07** Mar, so
-    /// "did I train yesterday?" reported on the wrong day. Calendar-aware
-    /// day arithmetic must still resolve to 08 Mar.
+    /// US spring-forward 2026 is 08 Mar, making that local day 23 h long. At
+    /// 00:30 on 09 Mar, `now.addingTimeInterval(-86400)` lands at 23:30 on
+    /// **07** Mar, so "did I train yesterday?" would report on the wrong day.
+    /// Calendar-aware day arithmetic must still resolve to 08 Mar.
     func testYesterdayCrossingSpringForwardResolvesToPreviousDay() throws {
         let cal = newYorkCalendar()
         let now = try date(2026, 3, 9, 0, 30, cal)
@@ -204,7 +203,7 @@ final class DeterministicIntentTests: XCTestCase {
         XCTAssertEqual(parts.day, 8, "yesterday from 09 Mar must be 08 Mar, not 07 Mar")
 
         // And prove a fixed-86400 implementation fails this case, so the
-        // test is guarding a real regression rather than restating Foundation.
+        // test is guarding a real failure rather than restating Foundation.
         let legacy = cal.startOfDay(for: now.addingTimeInterval(-86400))
         XCTAssertEqual(
             cal.dateComponents([.day], from: legacy).day, 7,

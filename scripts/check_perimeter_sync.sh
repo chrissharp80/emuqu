@@ -34,20 +34,10 @@ cd "$(dirname "$0")/.."
 
 CONFIG="Tools/copy_linter/prohibited_terms.json"
 
-# The whole lexicon FAMILY, not one file.
-#
-# 2026-09-02 — this was the single path
-# `Emuqu/Sources/Assistant/MedicalTermLexicon.swift`. Splitting that file to
-# stay under the 1000-line limit moved a concept into a `+MetricVerdict`
-# sibling, and this gate immediately reported six build-time terms as
-# unmatched — not because the runtime lost them (`MedicalTermLexicon.all`
-# still lists the concept; an extension does not hide a `static let`) but
-# because the gate stopped reading the file they now live in.
-#
-# A gate that fails when a file is split is annoying. A gate that PASSES when
-# the vocabulary moves out from under it would be worse, and is the same
-# shape: both come from naming one file in a repo that splits files to meet
-# budgets. Globbing the family fixes both directions.
+# The whole lexicon FAMILY, not one file: `MedicalTermLexicon.swift` and its
+# `+Extension` siblings. Naming one file would make the gate fail when a
+# concept is split into a sibling, or pass when the vocabulary moves out from
+# under it. Globbing the family fixes both directions.
 LEXICONS=(Emuqu/Sources/Assistant/MedicalTermLexicon*.swift)
 
 if [[ ! -f "$CONFIG" ]]; then

@@ -1,10 +1,11 @@
 @testable import Emuqu
 import XCTest
 
-// Injury reports. "I fell and hurt my ankle, get me to a hospital" used to
-// pass the guard, and the model answered with a walking route and no word
-// about the emergency number. These cases pin the reply that now comes first,
-// in every shipped language, and the idioms that must still reach the model.
+// Injury reports. "I fell and hurt my ankle, get me to a hospital" must not
+// pass the guard to the model, which could answer with a walking route and no
+// word about the emergency number. These cases pin the reply that comes
+// first, in every shipped language, and the idioms that must still reach the
+// model.
 
 extension MedicalQueryGuardTests {
     func testInjuryReportsGetTheEmergencyNumberReply() {

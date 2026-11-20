@@ -279,26 +279,23 @@ struct HRVDetailV2View: View {
 
     /// Serial, not parallel, on purpose.
     /// An `async let rrSeriesLoad` + concurrent Task.detached
-    /// priors had both contending for the SessionArchive lock
+    /// priors would both contend for the SessionArchive lock
     /// simultaneously: 18 full retrieves (1 for current session
     /// + 17 priors) × SHA256 + decrypt + JSON decode each. When
-    /// the user backed out and re-entered mid-load, a SECOND
-    /// `.task` fired and added ANOTHER 18 retrieves to the
-    /// contention pile. Log evidence (hrv_debug_log_1779845765
-    /// / _1779845842): "candidate count=17" fired twice 30 s
-    /// apart, the `accepted=...` summary never fired = the
-    /// Task.detached was stuck. Result: BOTH spinners hang
-    /// forever ("Loading overnight beats..." / "Loading raw
-    /// RR samples...").
+    /// the user backs out and re-enters mid-load, a SECOND
+    /// `.task` fires and adds ANOTHER 18 retrieves to the
+    /// contention pile, and the detached task can stick so BOTH
+    /// spinners hang forever ("Loading overnight beats..." /
+    /// "Loading raw RR samples...").
     ///
-    /// Back to serial. The rrSeries chart loads first (one
+    /// The rrSeries chart loads first (one
     /// archive read), THEN priors walk in a regular Task (not
     /// detached) so SwiftUI's `.task` cancellation actually
     /// tears it down when the user backs out. `Task.isCancelled`
     /// checks inside the priors loop bail early instead of
     /// running all 17 retrieves for a view that's gone.
     ///
-    /// Trade-off: total latency goes back to sum (rrSeries + priors) instead of
+    /// Trade-off: total latency is the sum (rrSeries + priors) instead of
     /// max. A few hundred ms slower in the best case, but it actually FINISHES.
     ///
     /// A load superseded by a newer session (`.task(id:)` cancels it) writes
@@ -322,9 +319,9 @@ struct HRVDetailV2View: View {
     /// deadlock concurrent archive reads, (b) persisted incrementally — each
     /// night is written to disk the moment it is computed, and (c)
     /// lifecycle-independent — it finishes even if THIS view is torn down
-    /// mid-CloudKit-sync. The prior in-view `withTaskCancellationHandler` design
-    /// killed the walk on every teardown before it could store (user log:
-    /// cancelled=true, accepted=1, cache hits=0 on repeat — it never finished).
+    /// mid-CloudKit-sync. An in-view `withTaskCancellationHandler` would kill
+    /// the walk on every teardown before it could store, so it would never
+    /// finish.
     private func loadBeatConsistencyBaseline() async {
         let archive = collector.archive
         let priorIds = overnightPriorIds(archive: archive)

@@ -441,7 +441,7 @@ extension SessionReanalysisCoordinator {
     /// overlapping invocations each read the session BEFORE any sibling wrote,
     /// all compute `sourceUpgradedToWatch = true`, and all post
     /// `.flowRecoveryRescoreNeeded` → the session reanalyzes twice against
-    /// identical Apple data (seen in a field log). Serialize:
+    /// identical Apple data. Serialize:
     /// one runs; bumps that arrive mid-run set `collector.autoRefreshSleepPending` and
     /// cause exactly ONE trailing pass, which sees the freshly-written
     /// `.healthKit` source and no-ops. A trailing pass (not a plain skip) so a
@@ -579,9 +579,8 @@ extension SessionReanalysisCoordinator {
     /// invocation, on a low-priority detached fetch, so a fresh second
     /// device pulling hundreds of sessions doesn't hammer HealthKit at
     /// launch. The IDs that don't fit wait in a queue kept across launches,
-    /// drained on the next pull and at each launch. They used to be dropped:
-    /// a later pull skips sessions it already has, so it never posted them
-    /// again, and a new phone restoring 300 nights filled in 10.
+    /// drained on the next pull and at each launch. They must be kept: a later
+    /// pull skips sessions it already has, so it never posts them again.
     ///
     /// Respects `sleepUserAdjusted`: a user-edited boundary is the source of
     /// truth and is never overwritten. Only sessions still missing a

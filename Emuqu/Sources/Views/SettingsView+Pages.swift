@@ -655,11 +655,11 @@ struct SleepSettingsPage: View {
     /// ping-pongs the value forever — an infinite loop
     /// that ALSO triggers a full synchronous
     /// settings-file write on every iteration, freezing
-    /// the main thread until the app is killed. The old
+    /// the main thread until the app is killed. A
     /// `oldValue == snapshot && newValue == snapshot`
     /// guard could never be true (onChange only fires
     /// when the value actually changes, so old ≠ new),
-    /// so it never broke the loop.
+    /// so it would never break the loop.
     private func confirmHRVAugmentationChange(from oldValue: Bool, to newValue: Bool) {
         if isRevertingHRVToggle {
             isRevertingHRVToggle = false

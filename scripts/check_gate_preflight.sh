@@ -4,24 +4,20 @@
 #
 # ## Why
 #
-# Two verification gates were found reporting **clean,
-# exit 0** when they had measured nothing: an invalid `TMPDIR` made `mktemp`
-# fail, and because the scripts use `set -uo pipefail` without `-e`, execution
-# continued with an empty path. `grep` over a file that was never written finds
-# nothing, and these gates report "nothing found" as success.
+# A gate can report **clean, exit 0** having measured nothing: an invalid
+# `TMPDIR` makes `mktemp` fail, and because the scripts use `set -uo pipefail`
+# without `-e`, execution continues with an empty path. `grep` over a file that
+# was never written finds nothing, and the gate reports "nothing found" as
+# success.
 #
 # A verification tool failing open is worse than no tool. A green check is read
 # as evidence, and every ratcheted budget in `.ci/` assumes these numbers are
 # real.
 #
-# The fix routes temp-file creation through `gate_mktemp` in `lib/preflight.sh`.
-# That helper is called inside command substitution — a subshell — so its `exit`
+# Temp-file creation goes through `gate_mktemp` in `lib/preflight.sh`. That
+# helper is called inside command substitution (a subshell), so its `exit`
 # cannot terminate the caller on its own. Every call site therefore needs
-# `|| exit $?`, and the first version of the fix shipped without it, reproducing
-# the exact bug it was written to remove.
-#
-# That is the third time in one session that a check reported clean while
-# missing the thing it was named for. Hence this: a gate for the gates.
+# `|| exit $?`. This is a gate for the gates.
 #
 # Enforces:
 #   1. Any script calling `mktemp` directly, instead of `gate_mktemp`, is

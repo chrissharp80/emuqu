@@ -509,10 +509,9 @@ extension ContextBuilder {
 
     /// The training context that belongs to `session`: its own frozen
     /// snapshot (the load as of that reading), else the live one only when
-    /// the session is from today. A session from five days ago without a
-    /// snapshot was described with TODAY's ATL/CTL; it now gets none rather
-    /// than another day's numbers. The live context no longer outranks a
-    /// session's frozen one either.
+    /// the session is from today. An older session without a snapshot gets
+    /// none rather than another day's ATL/CTL, and the live context never
+    /// outranks a session's frozen one.
     static func trainingContext(
         for session: HRVSession, live: TrainingContext?, now: Date = Date()
     ) -> TrainingContext? {
@@ -730,8 +729,8 @@ extension ContextBuilder {
     /// `SleepData.sleepEfficiency` is stored as 0–100 (percent). The
     /// assistant-context field is documented 0–1 (fraction) and the renderers
     /// multiply by 100 before appending "%". Passing the raw percent through
-    /// produced "9592%" in the prompt — which is how the AI came to surface
-    /// that figure. The conversion belongs here, at the seam. Efficiency is
+    /// would put "9592%" in the prompt. The conversion belongs here, at the
+    /// seam. Efficiency is
     /// nil when the night's wake was not measured.
     private static func sleepSnapshot(for session: HRVSession) -> AssistantContext.SleepSnapshot? {
         session.sleepSnapshot.map { sleep in

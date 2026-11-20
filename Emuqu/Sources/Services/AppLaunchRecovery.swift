@@ -157,8 +157,7 @@ extension EmuquApp {
         // Not just `interruptedSessionAlert = nil`: that closes the
         // alert in-memory but leaves the persisted state on disk so
         // EVERY subsequent launch re-detects it and re-fires the same
-        // alert (user-reported as "I have been discarding/dismissing
-        // that fucking thing for hours.")
+        // alert.
         // Record the dismissal so the alert never fires again
         // for this sessionId. The backup data stays on disk so
         // Settings → iCloud & Data → Recover Lost Sessions can still recover it if the user

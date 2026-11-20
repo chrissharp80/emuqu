@@ -74,11 +74,11 @@ struct SleepSchedule {
     /// `overnightWindowStart` opens.
     ///
     /// Anchored on the window's own start, not on `date`'s calendar day. Taking
-    /// the wake from `date`'s day and pushing it a day forward was right for an
-    /// evening anchor and wrong for any anchor after midnight: a morning reading,
-    /// a night started at 00:15, or `fetchLastNightSleep`'s start-of-day anchor
-    /// got the NEXT night's wake, so the window held two nights and their sleep
-    /// was added together whenever the second one had already happened.
+    /// the wake from `date`'s day and pushing it a day forward would be right for
+    /// an evening anchor and wrong for any anchor after midnight: a morning
+    /// reading, a night started at 00:15, or `fetchLastNightSleep`'s start-of-day
+    /// anchor would get the NEXT night's wake, so the window would hold two
+    /// nights and add their sleep together whenever the second had happened.
     func overnightWindowEnd(relativeTo date: Date) -> Date {
         firstWake(after: overnightWindowStart(relativeTo: date)).addingTimeInterval(4.5 * 60 * 60)
     }

@@ -39,8 +39,7 @@ extension RecoveryScoreDetailView {
 
     /// The "Trend Analysis" comparison card (current
     /// vs recent-average vs personal baseline for RMSSD / RHR / Stress /
-    /// Readiness). Dropping it is the "compare screen no longer shows up"
-    /// report. Fed from this view's `result` + `recentSessions`.
+    /// Readiness). Fed from this view's `result` + `recentSessions`.
     @ViewBuilder
     var trendComparisonSection: some View {
         if recentSessions.count >= 2 {

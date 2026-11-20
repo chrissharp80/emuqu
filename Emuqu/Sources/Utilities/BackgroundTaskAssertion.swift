@@ -4,9 +4,9 @@ import UIKit
 /// asked for it or by iOS's expiration handler, whichever comes first.
 ///
 /// iOS terminates an app whose expiration handler returns without ending the
-/// task. Two callers used to log in the handler (or pass none) and end the task
-/// only when their work finished, so a stop or a morning pass that outran the
-/// background budget was killed mid-write instead of being suspended.
+/// task, so a caller that ends the task only when its work finishes has a stop
+/// or a morning pass that outruns the background budget killed mid-write
+/// instead of suspended.
 @MainActor
 final class BackgroundTaskAssertion {
     /// Held strongly by the expiration handler as well as by this object, so

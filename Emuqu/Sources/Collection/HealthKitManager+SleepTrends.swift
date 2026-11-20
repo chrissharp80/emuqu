@@ -3,9 +3,7 @@ import HealthKit
 
 // Sleep export, the per-session metric exports and the sleep observer:
 // writing nights back to HealthKit and watching for new ones. Querying and
-// estimating a single night lives in `HealthKitManager+Sleep.swift`. (The
-// multi-night trend reader that gave the file its name had no caller and
-// was removed.)
+// estimating a single night lives in `HealthKitManager+Sleep.swift`.
 
 extension HealthWriteAndObserve {
     // MARK: - Shared helpers
@@ -189,12 +187,11 @@ extension HealthWriteAndObserve {
     /// enough clean beats to write — so a session never reaches Health with
     /// no HRV at all.
     ///
-    /// Threshold: 30 RR points (≈ 30 seconds at 60 bpm). The previous 100
-    /// threshold meant a sub-2-minute reading collapsed to a single point — and
-    /// even some quick-streaming sessions where the strap dropped signal early.
-    /// With 30, ANY recording long enough for one analysable window gets the
-    /// full series in Apple Health, which is what the beta tester (and
-    /// Athlytic / Training Today integrators) need.
+    /// Threshold: 30 RR points (≈ 30 seconds at 60 bpm), so ANY recording long
+    /// enough for one analysable window, including a sub-2-minute reading or a
+    /// quick-streaming session where the strap dropped signal early, gets the
+    /// full series in Apple Health rather than a single point, which is what
+    /// Athlytic / Training Today integrators need.
     ///
     /// An estimated SDNN (`HRVAnalysisResult.estimatedMetrics`, from an
     /// Elite HRV summary) is never written as the summary: Health would show
@@ -245,9 +242,9 @@ extension HealthWriteAndObserve {
     /// night's heart rate (Help: "from the strap's analysis window"), so the
     /// two can differ by a few beats per minute.
     ///
-    /// Only the nocturnal median is written. The session minimum used to
-    /// stand in when it was missing, and a single lowest beat is not a resting
-    /// heart rate by any definition; a night without the median writes none.
+    /// Only the nocturnal median is written. The session minimum never stands
+    /// in: a single lowest beat is not a resting heart rate by any definition,
+    /// so a night without the median writes none.
     private func exportRHRMetric(session: HRVSession, result: HRVAnalysisResult) async -> Error? {
         let date = session.endDate ?? session.startDate
         do {

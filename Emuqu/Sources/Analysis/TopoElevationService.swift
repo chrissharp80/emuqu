@@ -119,8 +119,8 @@ enum TopoElevationService {
     /// start a new one. DEM elevations are quantised — OpenTopoData returns
     /// discrete metres — so equal consecutive samples are routine mid-climb,
     /// and each flat step would chop a sustained climb into fragments the
-    /// threshold then discarded one by one. A quantised 20 m climb
-    /// (0,0,5,5,10,10,15,15,20,20) reported ZERO gain at a 10 m threshold.
+    /// threshold then discards one by one. A quantised 20 m climb
+    /// (0,0,5,5,10,10,15,15,20,20) would report ZERO gain at a 10 m threshold.
     static func sustainedClimb(
         in elevations: [Double],
         threshold: Double

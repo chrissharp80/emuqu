@@ -7,7 +7,7 @@ struct HistoryView: View {
     @Environment(RRCollector.self) private var collector
     @Environment(ArchiveSignal.self) private var archiveSignal
 
-    /// No longer called: History deletes and saves tags itself
+    /// Not called: History deletes and saves tags itself
     /// (`SessionTrash.move`, `saveTags`) so it can tell the user when either
     /// fails, which a `Void` closure cannot report. Kept until its call
     /// sites stop passing them.

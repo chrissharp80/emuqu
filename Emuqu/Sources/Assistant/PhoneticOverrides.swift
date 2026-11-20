@@ -176,8 +176,7 @@ enum PhoneticOverrides {
     /// The pre-pass expands US ZIP codes from numeric
     /// ("62704") to spaced-digit form ("6 2 7 0 4") so AVSpeech
     /// reads them digit-by-digit instead of as a number
-    /// ("sixty two thousand seven hundred four"). User report: "it always
-    /// says 'sixty two thousand' for my zip code."
+    /// ("sixty two thousand seven hundred four").
     ///
     /// `english: false` skips the ZIP read-out (it says "dash") and the
     /// domain rules (English "live" phrases); only the AI's own markup is

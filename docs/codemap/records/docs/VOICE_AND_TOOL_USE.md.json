@@ -66,7 +66,7 @@
   },
   {
    "key": "§ Voice Conversation & Tool Use > Adaptive routing (Quick / Auto / Deep / Manual) > Capability-axis classifier",
-   "hash": "c48893872a9fe4c2",
+   "hash": "7f778f8556c9e12f",
    "does": "Claims four binary axes (needsTools, needsWeb, needsHistoricalDepth, needsSpeculation), each firing only when a keyword marker AND embedding cosine >= 0.55 agree; 0 flags → .quick, 1 → .auto, >=2 → .deep; CapabilityClassifierTests has 19 cases. Verified axisThreshold 0.55 (CapabilityClassifier.swift:60) and the AND gate (CapabilityClassifier.swift:138-145).",
    "entry": null,
    "calls": [
@@ -80,10 +80,10 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "fe140477d3574bdf",
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.cosineSimilarity(_:_:)": "e477d911911a057f",
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "598ed05d4c3d5227",
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "bcb34519a50b7349",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.embeddingClassify(_:)": "b08f3e6cd45365eb",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.keywordHeuristic(_:)": "d79c6198aa2d904e",
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::var CapabilityClassifier.Requirement.requiredTier": "d726263dcd064cf5"
    }
   },
@@ -243,7 +243,7 @@
   },
   {
    "key": "§ Voice Conversation & Tool Use > Adaptive routing (Quick / Auto / Deep / Manual) > Voice preamble names the model",
-   "hash": "2c12faba15147e4a",
+   "hash": "b94c63befa522cc6",
    "does": "Claims the voice-session earcon names the model ('Flo here. Sonnet.'), via VoiceConversationController.currentModelDisplayName. Verified announced() (Speech.swift:88-97) and currentModelDisplayName (114-124) using the responding turn's provider.",
    "entry": null,
    "calls": [
@@ -281,7 +281,7 @@
   },
   {
    "key": "§ Voice Conversation & Tool Use > How the assistant fetches data",
-   "hash": "53f918484eb718c9",
+   "hash": "5765389ac166044d",
    "does": "Claims every provider including Apple uses tool use; Apple gets a compacted instruction prefix for its 4K window.",
    "entry": null,
    "calls": [
@@ -405,13 +405,13 @@
   },
   {
    "key": "§ Voice Conversation & Tool Use > Voice conversation flow > Audio session",
-   "hash": "da14afbbeca69971",
-   "does": "Claims voice uses .playAndRecord with mode .measurement through AudioSessionCoordinator (single owner of setCategory; voice's category wins over BackgroundAudioManager's .workoutCue claim); recogniser errors 1110 / kLSRErrorDomain 301 auto-restart with a 1.5 s cooldown; a system interruption tears the session down with no auto-resume. Verified: AudioSessionCoordinator.apply uses .measurement when a record claim exists (AudioSessionCoordinator.swift:141); recognitionRestartCooldownSec = 1.5 (VoiceConversationController.swift:191); handleAudioInterruption (Audio.swift:73-99).",
+   "hash": "de75ddbf85497646",
+   "does": "Claims voice uses .playAndRecord with mode .measurement through AudioSessionCoordinator (single owner of setCategory; voice's category wins over BackgroundAudioManager's .workoutCue claim); no other component calls setCategory directly, since a direct .playback call would clobber the recording config; recogniser errors 1110 / kLSRErrorDomain 301 auto-restart with a 1.5 s cooldown; a system interruption tears the session down with no auto-resume. Verified: AudioSessionCoordinator.applyCurrentClaims uses .measurement when a record claim exists (AudioSessionCoordinator.swift:137); no setCategory call outside AudioSessionCoordinator.swift; recognitionRestartCooldownSec = 1.5 (VoiceConversationController.swift:188); handleAudioInterruption (Audio.swift:73-99).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)",
     "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)",
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.apply(category:mode:options:)",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.apply(category:mode:options:isRetry:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.configureAudioSessionForConversation()",
     "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.handleRecognitionError(_:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.shouldRestartRecognition(after:)",
@@ -422,12 +422,12 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleAudioInterruption(typeRaw:)": "bfe992ea5b255b2c",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Audio.swift::func VoiceAudioPipeline.handleAudioInterruption(typeRaw:)": "c8d5e012b8176a69",
     "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.configureAudioSessionForConversation()": "be31a18c022fcb04",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.handleRecognitionError(_:)": "3d3c8acb5214ba65",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.handleRecognitionError(_:)": "8dca181f3965bdfd",
     "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.shouldRestartRecognition(after:)": "e557b0ea2a3ca293",
     "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.shouldRestartRecognition(errorDomain:errorCode:state:)": "73db7be6006397bd",
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.apply(category:mode:options:)": "bc8c367823460d1e",
+    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.apply(category:mode:options:isRetry:)": "9013cb2dbca6b264",
     "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)": "3ff6db18fe48072d",
     "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.release(_:)": "37f8c4633bbb78c6"
    }
@@ -552,9 +552,9 @@
    }
   },
   {
-   "key": "§ Voice Conversation & Tool Use > What the assistant will not do > Always-on brevity (2026-04-29)",
-   "hash": "05a5ac17b60412bd",
-   "does": "Claims a BREVITY block applies to all sends (lead with number, 1-3 sentences, never emit <data> blocks) and that the tool overlay's '<data>' quoting instruction was replaced by 'Extract silently, then answer'. Verified BREVITY (SystemPromptText.swift:21-28) and rule 2 (:458-464).",
+   "key": "§ Voice Conversation & Tool Use > What the assistant will not do > Always-on brevity",
+   "hash": "75a72f6c2ab07c1d",
+   "does": "Claims a BREVITY block applies to all sends (lead with number, 1-3 sentences, never emit <data> blocks) and that the tool overlay's extraction rule reads 'Extract silently, then answer' and does not ask the model to quote raw values in <data> tags. Verified BREVITY (SystemPromptText.swift:21-28) and rule 2 (:464-467).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)",
@@ -566,7 +566,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleInstructions(fromComposed:)": "a9293788382bb14c",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)": "529dfa81bc2427f6",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)": "465411f5e2ccd482",
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.toolModeSections(toolMode:)": "2e705b336e3ba79a"
    }
   },
@@ -631,7 +631,7 @@
   },
   {
    "key": "§ Voice Conversation & Tool Use > Known failure modes > Apple on-device limitations",
-   "hash": "f5b604d0352a1eb8",
+   "hash": "00a1630f0bc27cad",
    "does": "Claims Apple has tool use, AppleContextCompactor drops oldest turns verbatim at 70% of budget, multi-week trends push the classifier to .auto/.deep.",
    "entry": null,
    "calls": [
@@ -642,14 +642,14 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)": "c3f0201319859f72",
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)": "dd6ae7872b57f262",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "fe140477d3574bdf"
    }
   },
   {
    "key": "§ Voice Conversation & Tool Use > Known failure modes > Hallucinations we've actually observed",
-   "hash": "62d7bcb07767686c",
-   "does": "no behavioural claim: anecdotes of observed hallucinations (sleep efficiency 9592% unit bug fixed).",
+   "hash": "d2e1c166c05dca03",
+   "does": "no behavioural claim: anecdotes of observed hallucinations (a data-layer unit-scaling error such as a 9592% sleep efficiency reads as an AI error; score values flipping between turns; offering to analyse the map).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -704,8 +704,8 @@
   },
   {
    "key": "§ Voice Conversation & Tool Use > Status",
-   "hash": "550901911ef01625",
-   "does": "Status list: classifier 4 axes >=0.55; routing only with Apple; voice bypass; Apple tool wiring; 70%-of-4K compaction; 14 deterministic patterns; earcon; cache telemetry; <live_state> in last user tail; Anthropic cache breakpoints; sorted-keys JSON; 4-gate barge-in; 8-call budget; 30 s / 3 s timeouts; 1110/301 restart; 5 s first-partial watchdog; 45 s long-idle restart; per-turn engine restart; FactResolverRegistry rate limiter on 3rd consecutive missing, 80 KB output cap, resolver timing warnings at 0.5 s and 2 s with the value kept; 8 catalog-validation tests; 5 composites; 2026-08 additions incl. sleep.latest/vitals.latest live HealthKit fallback with a 5 s timeout whose late answer the registry keeps; deferred items. Verified firstPartialTimeoutSec 5.0, longIdleRestartSec 45.0, outputSizeCapBytes 80_000, defaultResolveBudgetSec 2.0, resolveWarnBudgetSec 0.5, FactResolverRegistry.resolveTool/logResolveDuration keep the value (FactResolverRegistry.swift:342-412), <live_state> appended in Anthropic/Gemini/OpenAI-compatible providers, FactCatalogValidationTests has 8 test functions.",
+   "hash": "7cb9dd3a5524408b",
+   "does": "Status list: classifier 4 axes >=0.55; routing only with Apple; voice bypass; Apple tool wiring; 70%-of-4K compaction; 14 deterministic patterns; earcon; cache telemetry; <live_state> in last user tail; Anthropic cache breakpoints; sorted-keys JSON; 4-gate barge-in; 8-call budget; 30 s / 3 s timeouts; 1110/301 restart; 5 s first-partial watchdog; 45 s long-idle restart; per-turn engine restart; FactResolverRegistry rate limiter on 3rd consecutive missing, 80 KB output cap, resolver timing warnings at 0.5 s and 2 s with the value kept; 8 catalog-validation tests; 5 composites; screen-visible facts in the catalog incl. sleep.latest/vitals.latest live HealthKit fallback with a 5 s timeout whose late answer the registry keeps; deferred items. Verified firstPartialTimeoutSec 5.0, longIdleRestartSec 45.0, outputSizeCapBytes 80_000, defaultResolveBudgetSec 2.0, resolveWarnBudgetSec 0.5, FactResolverRegistry.resolveTool/logResolveDuration keep the value (FactResolverRegistry.swift:342-412), <live_state> appended in Anthropic/Gemini/OpenAI-compatible providers, FactCatalogValidationTests has 8 test functions.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.rateLimited(signature:)",

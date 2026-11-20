@@ -2,10 +2,8 @@ import Foundation
 
 /// Pure session-selection policy for the v2 dashboard.
 ///
-/// Extracted from `DashboardV2View`'s private computed properties so the
-/// quality-aware selection rules — and the regression history embedded in
-/// their comments — live in clock-free, testable functions instead of view
-/// internals.
+/// The quality-aware selection rules live here as clock-free, testable
+/// functions rather than in `DashboardV2View`'s internals.
 ///
 /// Inputs:
 ///   - `sessions` is the newest-first array MainTabView passes the dashboard
@@ -136,31 +134,22 @@ enum DashboardSessionPolicy {
     /// HRV chip uses this so a quick mid-day exercise capture (a 2-5
     /// min session with very different physiology — depressed RMSSD
     /// because the user is mid-effort) doesn't dominate the dashboard
-    /// for the rest of the day. A user reported
-    /// a 3 ms HRV chip showing through the afternoon after they took
-    /// a quick reading mid-workout. The morning overnight value is
+    /// for the rest of the day. The morning overnight value is
     /// the canonical "today's recovery HRV"; everything else is noise
     /// at this surface.
     ///
     /// Quality-aware selection. A naive `.first { … }`
-    /// returns whichever overnight session happened to land first
-    /// in the sorted array. Beta tester report: "only that dashboard
-    /// card is fucked. the underlying history seems fine if i go
-    /// into the view all and history tab." Root cause: a 22-minute
-    /// partial-backup recovery had the same `sessionType == .overnight
-    /// && analysisResult != nil` shape as her real 8-hour Monday
-    /// session. Both passed the filter; the recovered partial won
-    /// the tie because it had been re-archived more recently. The
-    /// history view groups by date and surfaces the longer one,
-    /// which is why she only saw the corruption on the dashboard.
+    /// returns whichever overnight session happens to come first
+    /// in the sorted array, so a short partial-backup recovery with the
+    /// same `sessionType == .overnight && analysisResult != nil` shape as
+    /// the real night could win just by being re-archived more recently.
     ///
-    /// New rule: among overnight sessions that share a recovery
-    /// night (keyed on the wake day, as the Recent strip's `dayOf` does —
-    /// keying on the start day put a night that began after midnight in the
-    /// same group as the following night), pick
-    /// the longest-duration one. Across DIFFERENT nights, keep the
-    /// most-recent-night-wins ordering the dashboard already
-    /// depended on. Duration — not `cleanBeatCount`, which is the
+    /// Rule: among overnight sessions that share a recovery
+    /// night (keyed on the wake day, as the Recent strip's `dayOf` does;
+    /// keying on the start day would put a night that began after midnight
+    /// in the same group as the following night), pick
+    /// the longest-duration one. Across DIFFERENT nights, the most recent
+    /// night wins. Duration — not `cleanBeatCount`, which is the
     /// analysis window size (~400 beats whether the session is
     /// 22 min or 8 hours) — is the actual "is this a real
     /// overnight" signal.
@@ -187,7 +176,7 @@ enum DashboardSessionPolicy {
     /// Deliberately NOT gated on `isReliableForHRVAggregates`: sleep minutes are
     /// an independent HealthKit stream, valid even when the HRV *window* was too
     /// short to trust (`.insufficient`) or pre-sleep. A truly bogus sleep
-    /// snapshot can no longer attach at all — `fetchSleepData`'s plausibility
+    /// snapshot cannot attach at all — `fetchSleepData`'s plausibility
     /// choke point blocks a foreign-night block from a short clip — so this
     /// fallback surfaces real sleep rather than hiding it. (The HRV chip's
     /// primary source, `latestOvernightComplete`, IS gated.)
@@ -214,8 +203,8 @@ enum DashboardSessionPolicy {
     /// spot check, which is the sanctioned alternative to
     /// overnight) as collateral damage, leaving days with a legitimate
     /// morning reading rendered as empty cells. The narrower exclude-
-    /// `.workout` rule preserves the original intent (no exercise noise on
-    /// the streak) without dropping legitimate spot-checks.
+    /// `.workout` rule keeps exercise noise off the streak without
+    /// dropping legitimate spot-checks.
     static func sessionForDay(_ date: Date, in sessions: [HRVSession], calendar: Calendar) -> HRVSession? {
         let candidates = sessions.filter { isDayCandidate($0, on: date, calendar: calendar) }
         let overnights = candidates.filter { $0.sessionType == .overnight }
@@ -230,12 +219,10 @@ enum DashboardSessionPolicy {
     /// Light the dot for any real reading — one that has a live
     /// `analysisResult` OR a stored `recoveryScore`. Requiring
     /// `analysisResult` alone breaks restored devices: after an
-    /// iCloud restore the index score comes back (History renders it — that's
-    /// why History was full) but the full session can rehydrate WITHOUT its
-    /// analysisResult attached, so the strip's dots stayed blank while History
-    /// showed the same readings. The device that recorded the sessions
-    /// natively kept its analysisResult, so its strip was fine — same iCloud
-    /// data, two devices, only the restored one blank. `recentDays` reads
+    /// iCloud restore the index score comes back (History renders it) but
+    /// the full session can rehydrate WITHOUT its analysisResult attached,
+    /// so the strip's dots would stay blank while History shows the same
+    /// readings. `recentDays` reads
     /// `recoveryScore ?? readinessScore`, and `recoveryScore` survives the
     /// restore, so admitting it here makes the strip agree with History.
     ///
@@ -270,18 +257,15 @@ enum DashboardSessionPolicy {
     }
 
     /// Quality-aware pick when multiple sessions land on
-    /// the same day. Beta tester: a 22-minute partial-backup recovery
-    /// shared a Monday with the real overnight. `.first(where:)`
-    /// returns whichever happened to be sorted first — usually the
-    /// re-archived-more-recently partial. Dashboard tile, weekly
-    /// strip cell, and the day-detail view (`onViewReport`) all
-    /// route through THIS function, so all three surfaces showed
-    /// the wrong session. The history list grouped per-date and
-    /// surfaced both, which is why only "the card" looked wrong.
+    /// the same day, such as a short partial-backup recovery and the real
+    /// overnight. `.first(where:)` returns whichever is sorted first,
+    /// usually the more recently re-archived partial. Dashboard tile,
+    /// weekly strip cell, and the day-detail view (`onViewReport`) all
+    /// route through THIS function.
     ///
     /// Rule: among overnight candidates, prefer the one with the
-    /// longest recording duration. `cleanBeatCount` looked like a
-    /// good signal at first but it's the ANALYSIS WINDOW size
+    /// longest recording duration. `cleanBeatCount` is not used: it is the
+    /// ANALYSIS WINDOW size
     /// (~400 beats for any session that finds a usable window) —
     /// not the session total. Duration distinguishes a 22-min
     /// recovery from a 7-hour overnight unambiguously.

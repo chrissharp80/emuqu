@@ -26,7 +26,7 @@ final class RecoveryScoreDisplayTests: XCTestCase {
         XCTAssertEqual(RecoveryScoreCalculator.displayScore(84.5), 85, "half rounds away from zero")
     }
 
-    /// The regression itself: Morning Results and its VoiceOver label render
+    /// Morning Results and its VoiceOver label render
     /// through `RecoveryScoreCalculator.displayScore`, while the Dashboard ring,
     /// History, the citation sheet and the morning notification render through
     /// `ScoreVerdict.safeDisplayScore`. Both must give the same integer for every
@@ -81,8 +81,8 @@ final class RecoveryScoreDisplayTests: XCTestCase {
 
 /// The ring is reused for the recovery score, the live readiness
 /// (`ReadinessExplainView`, and `QuickResultsCard` when a reading has only an
-/// ANS readiness) and the sleep score (`SleepDetailV2View`); every one of them
-/// used to be announced as "Recovery score".
+/// ANS readiness) and the sleep score (`SleepDetailV2View`); each one is
+/// announced by its own name, not as "Recovery score".
 extension RecoveryScoreDisplayTests {
     @MainActor
     func testTheRingNamesTheScoreItShows() {

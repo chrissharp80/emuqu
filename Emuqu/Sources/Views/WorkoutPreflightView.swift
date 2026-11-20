@@ -927,8 +927,8 @@ private struct ThresholdsRow: View {
         .accessibilityLabel(String(localized: "Remove cue", bundle: LanguageManager.appBundle))
     }
 
-    /// Only text the cue engine can evaluate is saved. Unparsed text used to
-    /// be kept as a natural-language cue, which nothing ever fires.
+    /// Only text the cue engine can evaluate is saved. Unparsed text is not
+    /// kept as a natural-language cue, since nothing would ever fire it.
     private func addThreshold() {
         let raw = plainText.trimmingCharacters(in: .whitespaces)
         guard !raw.isEmpty else { return }

@@ -7,10 +7,9 @@ import XCTest
 ///
 /// Every app flow that downloads — Stop, Retry, Recover, the morning, a pause,
 /// a workout's end, crash recovery, the strap merge — goes through it, so
-/// each scenario here is the scenario for all of them. The bugs these pin were
-/// in the copies it replaced: only one refused an earlier night's file, only
-/// one had a deadline, Cancel reached none, and a stopped strap was still
-/// "recording" as far as the app knew.
+/// each scenario here is the scenario for all of them: an earlier night's
+/// file is refused, the download has a deadline, Cancel reaches it, and a
+/// stopped strap is no longer "recording" as far as the app knows.
 @MainActor
 final class StrapTransferTests: XCTestCase {
     private let deviceId = "H10-TRANSFER"
@@ -123,7 +122,7 @@ final class StrapTransferTests: XCTestCase {
         XCTAssertFalse(manager.isRecordingOnDevice)
     }
 
-    // MARK: - strap-copies Bug 1: an earlier night's file
+    // MARK: - An earlier night's file
 
     /// Stop and Retry only take a recording that started since the session
     /// began; the strap keeps the previous night until the next recording.
@@ -156,7 +155,7 @@ final class StrapTransferTests: XCTestCase {
         XCTAssertEqual(recording.endedAt, start.addingTimeInterval(600))
     }
 
-    // MARK: - strap-copies Bug 2: Recover on a strap still recording
+    // MARK: - Recover on a strap still recording
 
     /// The H10 lists only finished recordings, so a download that never
     /// stops a running one finds nothing.
@@ -178,7 +177,7 @@ final class StrapTransferTests: XCTestCase {
         XCTAssertEqual(order, ["stop", "fetch"])
     }
 
-    // MARK: - strap-copies Bug 4: no deadline, and Cancel that cancelled nothing
+    // MARK: - The deadline, and a Cancel that cancels
 
     /// A strap that never answers the download is ended by Cancel at once.
     func testCancelEndsADownloadTheStrapNeverAnswers() async throws {
@@ -214,10 +213,10 @@ final class StrapTransferTests: XCTestCase {
         }
     }
 
-    // MARK: - strap-copies Bug 6: a Skip tapped before the download began
+    // MARK: - A Skip tapped before the download began
 
-    /// The fetch used to clear the cancel flag on entry, erasing a Skip
-    /// tapped during the reconnect that precedes it.
+    /// The fetch keeps a cancel flag set before it starts, so a Skip tapped
+    /// during the reconnect that precedes it is not erased.
     func testACancelBeforeTheDownloadIsNotErasedByIt() async {
         let radio = FakeStrapRadio()
         let start = Date().addingTimeInterval(-3600)
@@ -232,7 +231,7 @@ final class StrapTransferTests: XCTestCase {
         XCTAssertFalse(radio.calls.contains(.fetchExercise(entryId: exerciseId(start))))
     }
 
-    // MARK: - strap-copies Bug 9: the same night offered on every connect
+    // MARK: - The same night is not offered on every connect
 
     /// A download is on record, so the copy the strap keeps is not offered
     /// as missing data.

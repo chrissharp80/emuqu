@@ -520,9 +520,8 @@ enum ProviderHTTP {
     /// Dedicated URLSession for AI streaming requests
     /// that survives the brief network blips you get on cellular
     /// while walking. `URLSession.shared` uses iOS defaults which
-    /// fail a request the moment the radio drops; user report
-    /// ("Flo cannot connect to Grok when I'm walking") matches that
-    /// exactly — tower handoffs during a walk are a common cause.
+    /// fail a request the moment the radio drops, and tower handoffs
+    /// during a walk are a common cause.
     ///
     /// Config choices:
     ///   • `waitsForConnectivity = true` — iOS holds the request and

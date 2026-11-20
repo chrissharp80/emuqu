@@ -6,9 +6,9 @@ extension WorkoutRecoveryService {
     ///
     /// Trim, "Recover from strap" and "Recover route from Watch" are offered
     /// on any finished workout, and each rebuilds the session from its backups
-    /// under the same id. The rebuild used to start empty, so it dropped the
+    /// under the same id. A rebuild that started empty would drop the
     /// user's tags, notes and feeling, the heart-rate recovery, weather and
-    /// power figures, and the Apple Health export stamp, which sent the
+    /// power figures, and the Apple Health export stamp, which would send the
     /// workout to Apple Health a second time on the next back-fill.
     static func carryForward(from archived: HRVSession, into session: inout HRVSession) {
         carrySessionFields(from: archived, into: &session)

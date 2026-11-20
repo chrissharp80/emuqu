@@ -1,8 +1,8 @@
 import Charts
 import SwiftUI
 
-/// Recovery Score detail. The depth that used to
-/// clutter Dashboard, on its own surface. Pushes from the v2 Dashboard's
+/// Recovery Score detail: the depth kept off the Dashboard, on its own
+/// surface. Pushes from the v2 Dashboard's
 /// hero ring tap or "View full report" footer link.
 ///
 /// Layout (top to bottom):
@@ -213,9 +213,8 @@ struct RecoveryScoreDetailView: View {
     /// **Sleep-HR override:** ALWAYS prefer the
     /// strap's analysis-window meanHR over both stored and fresh
     /// HealthKit RHR samples — same physiology that
-    /// `BaselineTracker.meanHRBaseline` is built from. Sessions
-    /// accepted before the strap-override path landed have stored
-    /// `restingHeartRate` set to Apple's daytime RHR (often ~10–15
+    /// `BaselineTracker.meanHRBaseline` is built from. Some stored
+    /// sessions have `restingHeartRate` set to Apple's daytime RHR (often ~10–15
     /// bpm higher than nocturnal mean), so we override at display time
     /// regardless of whether the refresh has loaded.
     var effectiveVitals: RecoveryVitals? {

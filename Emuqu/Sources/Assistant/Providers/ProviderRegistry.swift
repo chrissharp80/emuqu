@@ -66,9 +66,8 @@ final class ProviderRegistry {
     /// `AppDependencies.current.providers.apiKeyStore.hasKey(for:)` → `SecItemCopyMatching`,
     /// which is synchronous and ~1-3 ms. Hot paths (chat input bar's
     /// `canSend`, send button's color, prefab chip's enabled state)
-    /// were calling this 3-4 times per render. Per keystroke that's
-    /// a noticeable main-thread block — the user-reported "keyboard
-    /// threading sucks" was this. Now: cache the result here as a
+    /// would call this 3-4 times per render, a noticeable main-thread
+    /// block per keystroke. So the result is cached here as an
     /// observable property, refresh only when keys change or active
     /// provider changes. View renders read the cached bool — zero
     /// Keychain access per keystroke.

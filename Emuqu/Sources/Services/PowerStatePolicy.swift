@@ -4,16 +4,12 @@ import UIKit
 
 /// Single source of truth for power-state-aware behaviour decisions.
 ///
-/// **The problem this fixes:** A beta tester had Low
-/// Power Mode enabled on their iPhone 11 and reported that Emuqu
-/// was draining their battery + slowing the device anytime the app was
-/// foreground — not just during sessions. Other apps weren't doing
-/// this. The launch path runs ~5 background tasks (archive
-/// migrations, session-data repairs, training-metrics cache refresh,
-/// CloudKit sync) every cold launch regardless of device state, and
-/// CloudKit retries push live-backup uploads every minute when the
-/// zone doesn't exist (her exact situation: 20 pending sessions
-/// stuck in retry).
+/// **Why this exists:** The launch path runs ~5 background tasks
+/// (archive migrations, session-data repairs, training-metrics cache
+/// refresh, CloudKit sync) every cold launch, and CloudKit retries push
+/// live-backup uploads every minute when the zone doesn't exist. Run
+/// regardless of device state, that drains the battery and slows the
+/// device whenever the app is in the foreground, Low Power Mode included.
 ///
 /// **What this provides:** a process-wide observer of
 /// `ProcessInfo.processInfo.isLowPowerModeEnabled` that updates reactively

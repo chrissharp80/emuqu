@@ -5,12 +5,12 @@ import XCTest
 /// notifications, each stamped with the interval-sum clock (`t_ms`) and its
 /// arrival time (`wallClockMs`), ingested by the 1 Hz ticker.
 ///
-/// The window used to be trimmed on the wall clock but measured on the
-/// interval-sum clock, so every beat lost to a dropout left it permanently
-/// short of the two-minute gate: α1 froze at its last value with the status
-/// "warming up 98 %", and a strap that then died never cleared it. These
-/// tests stream beats over time, which the single-batch tests in
-/// `LiveDFAAnalyzerTests` never did.
+/// A window trimmed on the wall clock but measured on the interval-sum clock
+/// would be left permanently short of the two-minute gate by every beat lost
+/// to a dropout: α1 would freeze at its last value with the status "warming
+/// up 98 %", and a strap that then died would never clear it. These tests
+/// stream beats over time, which the single-batch tests in
+/// `LiveDFAAnalyzerTests` do not.
 @MainActor
 final class LiveDFAAnalyzerStreamTests: XCTestCase {
     private let start = Date(timeIntervalSince1970: 1_000_000)

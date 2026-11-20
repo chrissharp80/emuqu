@@ -1,19 +1,18 @@
 # Emuqu — API Reference
 
-> **Sleep domain types moved (2026-08-25).** `SleepData`, `SleepStage`,
+> **Sleep domain types.** `SleepData`, `SleepStage`,
 > `SleepStageInterval`, `SleepStageProvenance`, `SleepSegment`, `HRSleepQuality`,
-> `SleepBoundarySource` and `SleepBoundaryValidation` now live at top level in
-> `Emuqu/Sources/Models/SleepDomain.swift`. They were nested inside
-> `HealthKitManager`, which meant every pure function in `Analysis/` named a
-> 4,698-line I/O class in its signature — the dependency direction the refactor
-> spec forbids. `HealthKitManager` keeps a `typealias` for each, so the
-> `HealthKitManager.SleepData` spellings below remain correct and no call site
-> changed. Prefer the bare name in new code.
+> `SleepBoundarySource` and `SleepBoundaryValidation` live at top level in
+> `Emuqu/Sources/Models/SleepDomain.swift`, so pure functions in `Analysis/`
+> don't name the HealthKit I/O class in their signatures.
+> `HealthKitManager` keeps a `typealias` for each, so the
+> `HealthKitManager.SleepData` spellings below remain correct. Prefer the bare
+> name in new code.
 
 
-> **Observation framework (corrected 2026-09-29).** Every observable type in
+> **Observation framework.** Every observable type in
 > the app is `@Observable`; none is an `ObservableObject` and nothing is
-> `@Published`, which the listings below showed until this date. `RRCollector`
+> `@Published`. `RRCollector`
 > itself stores little: most of the state listed under it lives on its five
 > sub-objects, and the parent's properties forward to them.
 
@@ -26,11 +25,6 @@ Complete Swift API surface for the Emuqu codebase. Organized by module layer.
 > main actor. Work that is genuinely moved off is done explicitly, with
 > `Task.detached` or a `nonisolated` function, and is called out at that API.
 > Error-throwing methods use typed errors from `Errors.swift`.
->
-> *Corrected 2026-08-31: this previously said `async` methods "run on
-> background threads unless noted", which is not Swift's contract and could lead
-> a maintainer to put expensive synchronous work on the main actor believing it
-> had been offloaded.*
 
 ---
 
@@ -939,11 +933,10 @@ enum RespirationAnalyzer {
 ```swift
 enum RecoveryScoreCalculator {
 
-    /// The recovery score architecture changed from
-    /// HRV+Sleep+Training (50/20/30 + ACWR modifiers) to HRV+Sleep+Vitals
-    /// (60/25/15). Training load is no longer in the composite. The
-    /// `trainingMetrics` / `trainingContext` parameters are still on the
-    /// API surface for caller stability but are no longer consumed by the
+    /// The recovery score composite is HRV+Sleep+Vitals
+    /// (60/25/15). Training load is not in the composite. The
+    /// `trainingMetrics` / `trainingContext` parameters stay on the
+    /// API surface for caller stability but are not consumed by the
     /// score itself — they're routed through the parallel Load &
     /// Trajectory surface. See `ScoringWeights` doc-comment in
     /// `Constants.swift` for the rationale (Impellizzeri 2020/2021,
@@ -968,9 +961,9 @@ enum RecoveryScoreCalculator {
     struct ScoreBreakdown {
         let compositeScore: Double    // 0-100
         let tier: Int                 // 1 (HRV only), 2 (HRV+Sleep), 3 (HRV+Sleep+Vitals)
-        let factors: [ScoreFactor]    // Labels: "HRV", "Sleep", "Vitals" (no longer "Training Load")
-        let penalties: [String]       // Currently only SpO2 (-10 if <95%); the prior RR/temp
-                                      // penalties moved into the Vitals sub-score.
+        let factors: [ScoreFactor]    // Labels: "HRV", "Sleep", "Vitals"
+        let penalties: [String]       // Only SpO2 (-10 if <95%); RR and temperature
+                                      // feed the Vitals sub-score instead.
         var scoringVersion: String    // ScoringVersion.current ("v3.2.oct2026") when built;
                                       // "unversioned" when decoded from an older record
         var message: String { get }   // Computed: factor-aware coaching advice
@@ -1010,7 +1003,7 @@ enum RecoveryScoreCalculator {
 
     /// Score signature for both overloads. `trainingMetrics` /
     /// `trainingContext` are accepted for API stability and so callers
-    /// keep passing the same value, but no longer feed the recovery
+    /// keep passing the same value, but do not feed the recovery
     /// composite. See ScoringWeights doc-comment for rationale.
     static func calculateWithBreakdown(
         _ inputs: ScoreInputs,
@@ -1035,7 +1028,7 @@ enum RecoveryScoreCalculator {
         referenceDate: Date = Date()
     ) -> ScoreBreakdown
 
-    /// **New 2026-05-02:** the 0–100 Vitals sub-score that feeds the
+    /// The 0–100 Vitals sub-score that feeds the
     /// composite at 15% weight. Returns nil when no vitals input is
     /// available — the caller falls back to Tier 2.
     static func calculateVitalsScore(
@@ -1113,9 +1106,8 @@ Penalty-only vitals overrides (respiratory rate, wrist temperature, SpO2) and di
 ```swift
 extension RecoveryScoreCalculator {
 
-    /// Apply the SpO2 post-composite penalty only (-10 if SpO2 < 95%). Since the
-    /// 2026-05-02 architecture, RHR / respiratory-rate / wrist-temperature no
-    /// longer deduct here — they feed the 15% Vitals sub-score via
+    /// Apply the SpO2 post-composite penalty only (-10 if SpO2 < 95%). RHR,
+    /// respiratory rate and wrist temperature do not deduct here; they feed the 15% Vitals sub-score via
     /// `calculateVitalsScore`. SpO2 stays a flag-not-factor override. Returns
     /// adjusted score, min 0.
     static func applyVitalsOverrides(score: Double, vitals: HealthKitManager.RecoveryVitals?) -> Double
@@ -1687,7 +1679,7 @@ final class StoreKitManager {
 
 Manages StoreKit 2 in-app purchase for a non-consumable lifetime product. Verifies transactions, listens for updates (refunds, family sharing), and exposes reactive purchase state. Debug builds support a persisted bypass flag via `debugGrantAccess()`.
 
-### BreadcrumbStore (2026-04-29)
+### BreadcrumbStore
 **File**: `Emuqu/Sources/Services/BreadcrumbStore.swift`
 
 ```swift
@@ -1738,7 +1730,7 @@ tracks. Active trail at `Breadcrumbs/active.json`, history at
 `.completeUntilFirstUserAuthentication` protection. Atomic writes on
 every fix.
 
-### BreadcrumbRecorder (2026-04-29)
+### BreadcrumbRecorder
 **File**: `Emuqu/Sources/Services/BreadcrumbRecorder.swift`
 
 ```swift
@@ -1766,7 +1758,7 @@ CLLocationManager wrapper for Get Me Back mode. `kCLLocationAccuracyNearestTenMe
 `horizontalAccuracy > 100`. Heading via `startUpdatingHeading()` for
 the compass arrow. Forwards every fix to `AmbientLocationService.record(_:)`.
 
-### AmbientLocationService (2026-04-29)
+### AmbientLocationService
 **File**: `Emuqu/Sources/Services/AmbientLocationService.swift`
 
 ```swift
@@ -1787,7 +1779,7 @@ fed by `WorkoutLocationManager` and `BreadcrumbRecorder` push so the
 cache stays warm during a backgrounded workout-with-screen-locked.
 NSLock-guarded for off-main reads from AI fact actions.
 
-### DirectionsService (2026-04-29)
+### DirectionsService
 **File**: `Emuqu/Sources/Services/DirectionsService.swift`
 
 ```swift
@@ -1824,7 +1816,7 @@ via `MKLocalSearch` (POI), `RoadGeocodingService.geocodeAddress`
 first 3 step instructions, and ENGAGES `ActiveRouteSession` for
 follow-up `directions.next_step` queries.
 
-### ActiveRouteSession (2026-04-29)
+### ActiveRouteSession
 **File**: `Emuqu/Sources/Services/ActiveRouteSession.swift`
 
 ```swift
@@ -1864,7 +1856,7 @@ index (never back, so GPS jitter can't bounce backwards), returns
 the upcoming instruction + distance + remaining + arrival state.
 Offline-once-engaged.
 
-### AudioSessionCoordinator (2026-04-29)
+### AudioSessionCoordinator
 **File**: `Emuqu/Sources/Services/AudioSessionCoordinator.swift`
 
 ```swift

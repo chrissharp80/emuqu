@@ -106,7 +106,7 @@ extension AssistantChatView {
     /// the sign makes `isPinnedToBottom` always true once content
     /// exceeds the viewport — every streamed token then yanks the
     /// user back to the bottom even when they are reading earlier
-    /// turns. (User report: "won't scroll".)
+    /// turns.
     private func updatePinnedState(contentFrame frame: CGRect) {
         let distanceFromBottom = frame.maxY - chatViewportHeight
         if distanceFromBottom.isNaN {
@@ -118,7 +118,7 @@ extension AssistantChatView {
 
     /// Streaming-token updates: scroll WITHOUT animation, and only
     /// if the user is currently pinned to the bottom. Animations
-    /// per-token were the root cause of the sluggish feel.
+    /// per-token make streaming feel sluggish.
     private func scrollForStreamedToken(_ proxy: ScrollViewProxy) {
         guard isPinnedToBottom else { return }
         // Throttle to 250ms. Per-token scrollTo
@@ -152,9 +152,7 @@ extension AssistantChatView {
     /// When the voice status pill appears or
     /// disappears, the messages area shrinks/grows. Without a
     /// re-scroll, the latest content gets clipped behind the
-    /// pill (user report: "this scrolling is fucked up" with a
-    /// screenshot of the AI response cut off mid-sentence above
-    /// the Speaking pill). Re-scroll to bottom whenever voice
+    /// pill, cut off mid-sentence. Re-scroll to bottom whenever voice
     /// state changes so the latest content stays visible.
     private func scrollForVoiceState(_ proxy: ScrollViewProxy) {
         guard isPinnedToBottom else { return }
@@ -348,14 +346,13 @@ extension AssistantChatView {
         FloInputMode.resolve(activeProviderAvailable: registry.activeProviderAvailable, appleSelected: isAppleActive)
     }
 
-    /// Workout-aware empty state. User report:
-    /// "Coach didn't acknowledge active workout at session open."
+    /// Workout-aware empty state.
     /// Pulls the live broker snapshot at render time. If a workout
     /// is in flight the heading and body acknowledge it directly
     /// instead of the generic "Ask about your recovery" copy. Cheap
     /// — broker.currentSnapshot() is a lock-protected read, no
-    /// disk / network. When no workout is active the original
-    /// copy is preserved.
+    /// disk / network. When no workout is active the generic
+    /// copy shows.
     ///
     /// The broker isn't observable, so a periodic timeline re-reads it every
     /// few seconds: starting or ending a workout while the empty chat is on
@@ -418,7 +415,7 @@ extension AssistantChatView {
     /// the input bar. Shows the last error in red, with a Dismiss
     /// button so the user can clear it once seen. It shows with or without
     /// history, so it is the one place an error appears (the empty state
-    /// no longer repeats it).
+    /// does not repeat it).
     @ViewBuilder
     var errorBanner: some View {
         if let error = viewModel.errorMessage, !error.isEmpty {

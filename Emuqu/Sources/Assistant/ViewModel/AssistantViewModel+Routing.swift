@@ -481,8 +481,8 @@ extension AssistantTurnRouter {
     ///
     /// Make sure training metrics are fresh BEFORE
     /// the model gets a turn. Without this the AI reads whatever
-    /// was cached on the last dashboard open — user reported
-    /// "AI shows CTL 17 ATL 18, dashboard shows 24/28" because
+    /// was cached on the last dashboard open and can quote different
+    /// CTL/ATL than the dashboard, because
     /// the cache sync-snapshot returns stale data and only
     /// schedules a refresh for *next* time. Awaiting a refresh
     /// here costs at most one HealthKit fetch (~100–500 ms on a

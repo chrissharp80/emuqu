@@ -245,12 +245,10 @@ extension UserSettings {
         enableAIAssistant = Self.decoded(Bool.self, .enableAIAssistant, from: container, default: true)
         enableVoiceMode = Self.decoded(Bool.self, .enableVoiceMode, from: container, default: true)
         enableWatchConnectivity = Self.decoded(Bool.self, .enableWatchConnectivity, from: container, default: true)
-        // `?? true`, matching the in-memory default. The declaration says the
-        // toggle is "Kept ON by default to avoid surprising existing users with
-        // a behavioural regression on launch" — and defaulting the DECODE to
-        // false did exactly that: every user whose stored settings predate the
-        // key got auto-lock during recording, which is the regression the
-        // default exists to prevent. Unlike the migration flags, this is a
+        // `?? true`, matching the in-memory default, so settings stored
+        // without the key keep the screen on during recording, as a fresh
+        // install does. A false decode default would turn on auto-lock during
+        // recording for every such user. Unlike the migration flags, this is a
         // preference, not a one-shot marker, so it has no reason to differ.
         keepScreenOnDuringRecording = Self.decoded(Bool.self, .keepScreenOnDuringRecording, from: container, default: true)
     }

@@ -316,10 +316,8 @@ extension RoadGeocodingService {
     /// a keyword search, not a road-graph query — `"street"` only
     /// matches places literally containing the token (most cross-
     /// street names — "Drive", "Lane", "Pointe", "Boulevard" —
-    /// don't). User report: standing on Cedar Ln
-    /// surrounded by visible cross-streets (Willow Grove,
-    /// Woodbridge Blvd, Redhead Ln), every cycle logged "no usable
-    /// cross-street candidates." MapKit literally couldn't see them.
+    /// don't), so a road surrounded by visible cross-streets can log
+    /// "no usable cross-street candidates" on every cycle.
     ///
     /// OSM has the road graph (already cached for turn-by-turn
     /// awareness): for each intersection node on the user's road,
@@ -346,8 +344,8 @@ extension RoadGeocodingService {
     /// MKLocalSearch scan, so dead-zone OSM regions still get something,
     /// even if the query shape is weak. Its hits are any address on another
     /// street, not a crossing, so the scan stops at 200 m — the radius the
-    /// "nearest intersection" is defined by. Wider, it reported a street up
-    /// to 3 km away as the cross street.
+    /// "nearest intersection" is defined by. Wider, it would report a street
+    /// up to 3 km away as the cross street.
     private func scanForCrossStreet(for location: CLLocation, currentRoad: String?) async {
         let radii: [CLLocationDistance] = [100, 200]
         for radius in radii {
@@ -470,7 +468,7 @@ extension RoadGeocodingService {
     /// Every intersection node on the user's road contributes the OTHER ways
     /// meeting there as cross-street candidates; the closest one within
     /// `crossStreetRadiusMeters` wins. The tile spans 800 m, so without the
-    /// cap a crossing hundreds of metres away was reported as the nearest
+    /// cap a crossing hundreds of metres away would be reported as the nearest
     /// cross street; beyond it the caller falls back to the 200 m scan.
     private static let crossStreetRadiusMeters: CLLocationDistance = 200
 

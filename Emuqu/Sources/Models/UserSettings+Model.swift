@@ -421,7 +421,7 @@ struct UserSettings: Codable, Equatable {
 
     var dailyReportFormat: DailyReportFormat = .auto
 
-    /// No longer surfaced: nothing ever posted these alerts. Kept so stored
+    /// Not surfaced: nothing posts these alerts. Kept so stored
     /// settings keep decoding.
     var hrvAnomalyAlertsEnabled: Bool = false
 
@@ -431,7 +431,7 @@ struct UserSettings: Codable, Equatable {
     /// system default (initials or person glyph).
     var avatarImageData: Data?
 
-    /// No longer surfaced: nothing ever posted these alerts. Kept so stored
+    /// Not surfaced: nothing posts these alerts. Kept so stored
     /// settings keep decoding.
     var batteryLowAlertsEnabled: Bool = true
 
@@ -508,7 +508,7 @@ struct UserSettings: Codable, Equatable {
     /// math needs HR + pace from the workout context).
     var enableTurnMarkerUpdates: Bool = false
 
-    /// No longer surfaced: nothing ever posted these alerts. Kept so stored
+    /// Not surfaced: nothing posts these alerts. Kept so stored
     /// settings keep decoding.
     var syncFailureAlertsEnabled: Bool = true
 
@@ -682,12 +682,10 @@ struct UserSettings: Codable, Equatable {
     var enableWatchConnectivity: Bool = true
 
     /// Keep screen on during active recording (overnight HRV, workouts,
-    /// Polar device download). DEFAULT ON: matches the historical
-    /// hardcoded-ON behaviour at every recording surface. The toggle
+    /// Polar device download). DEFAULT ON at every recording surface, so
+    /// a recording is not interrupted by auto-lock. The toggle
     /// in Settings → Performance & Battery lets battery-conscious
     /// users (or older devices) flip it off so iOS auto-lock kicks in.
-    /// Kept ON by default to avoid surprising existing users with a
-    /// behavioural regression on launch.
     var keepScreenOnDuringRecording: Bool = true
 
     /// UserDefaults mirror keys. The heavy singletons (which can init

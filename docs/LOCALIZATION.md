@@ -35,34 +35,6 @@ from `Emuqu/Help.xcstrings`, keyed by the exact English. Edit an article and
 language and no longer holds the old. To list the keys the Help Center looks
 up, run that test with `TEST_RUNNER_HELP_KEYS_OUT=/path/keys.json`.
 
-## The 2026-05-06 string rewrite (and what needs re-translation)
-
-A pass on 2026-05-06 rewrote eleven user-facing strings to
-remove diagnostic language and to localize four
-final-onboarding strings that previously rendered as English in
-every locale. **Each rewritten string is a NEW catalog key** —
-Xcode's catalog extractor sees the new English text on the next build
-and adds it to `Localizable.xcstrings` with `state: "new"` for every
-non-English language. The old keys become orphans (no source
-reference) and Xcode leaves them in place; clean them up via
-`Localizable.xcstrings → Edit → Delete Stale` when convenient.
-
-| File | Old key (now orphaned) | New key (needs translation) |
-|------|------------------------|------------------------------|
-| `Verification.swift` | "High number of ectopic beats detected. This may indicate arrhythmia or sensor issues." | "Many irregular beats detected — most often from poor strap contact or sensor noise. Re-wet the electrodes, snug the strap, and try again." |
-| `MorningResultsPopovers.swift` | "Typical range: 1.0-2.0. Higher values indicate more complexity (healthy). Very low (<0.5) may indicate pathology." | "Typical range: 1.0–2.0. Higher values reflect more complex (resilient) heart-rate dynamics. Values below 0.5 are unusually low and uncommon in healthy resting recordings — most often a sensor-quality artifact." |
-| `DeepDiveReportRenderer+Pages.swift` (pNN50) | "...below 5% may indicate sympathetic dominance or autonomic rigidity." | "...below 5% suggest reduced beat-to-beat variability, often seen with heavy training load, poor sleep, or stress." |
-| `DeepDiveReportRenderer+Pages.swift` (sample-entropy) | "(may indicate autonomic rigidity, heavy accumulated training load, or illness)" | "commonly seen with heavy accumulated training load, stress, or illness" |
-| `DeepDiveReportRenderer+Pages.swift` (respiration) | "may indicate anxiety, pain, fever, or respiratory compromise." | "are unusual and typically reflect arousal, illness, or physical exertion within the last few minutes — context-sensitive." |
-| `DeepDiveReportRenderer+Pages.swift` (vitals intro) | "...altitude effects, and respiratory compromise." | "...altitude effects, and elevated breathing rate." |
-| `DeepDiveReportRenderer+Pages.swift` (ATL) | "...not an injury prediction." | "...Emuqu does not interpret this ratio as a clinical risk score." |
-| `HRVDetailV2View.swift` (peak capacity) | "falls early when you're heading toward overtraining or illness." | "falls early when accumulated load or illness is dragging on the autonomic system." |
-| `OnboardingView.swift` (You're in.) | (was `verbatim`) | "You're in." |
-| `OnboardingView.swift` (calibration explainer) | (was `verbatim`) | "Take your first reading when you're ready. We'll spend two weeks calibrating your baseline before scoring kicks in." |
-| `OnboardingView.swift` (CTA) | (was `verbatim`) | "Take a reading" / "Skip — show me around" |
-
-Those keys have since been translated in all sixteen languages.
-
 ## Source of truth
 
 - **English** is the source language. Every user-facing string is authored in
@@ -138,10 +110,7 @@ CI **does** gate on translation completeness. `ci.yml` runs
 `NSLocalizedString` lookup that is not bundle-qualified (implicit SwiftUI
 lookups such as `Text("…")` have no bundle parameter and are outside its
 scope), and
-`check_localization_orphans.sh`. An earlier version of this page said the
-opposite — that partial coverage with English fallback was preferred to a
-failing build. That stopped being true when the coverage gate landed; the
-statement is corrected here 2026-08-26. To check current coverage locally:
+`check_localization_orphans.sh`. To check current coverage locally:
 
 ```bash
 python3 - <<'PY'
@@ -178,18 +147,3 @@ Toggle(String(localized: "iCloud Sync", bundle: LanguageManager.appBundle),
   the column header is typically left in the abbreviation.
 - Debug-mode UI (behind the `debugModeEnabled` toggle in Troubleshooting).
   This is a developer surface; English-only is fine.
-
-## History
-
-- **2026-04 sweep** — routed every consumer-facing Settings string
-  (Profile, Biometrics, Sleep, Training, Wearables, Appearance, Language,
-  Custom Tags, iCloud & Data, Troubleshooting, main Settings list) through
-  `String(localized:bundle:)` so every label is now extractable.
-- **2026-05-06 recount + rewrites** — recounted the catalog at
-  **1,874 source strings** (up from 1,358 in the prior count) and **872
-  / 1,874 (≈ 46 %)** translated per non-English language. Eleven
-  user-facing strings rewritten for diagnostic-language compliance plus four onboarding `verbatim` strings routed
-  through the bundle. All eleven have been re-translated — see the
-  table above.
-- **Hardcoded literals:** the `Text("…")` literals that once bypassed the
-  in-app language picker have been routed through `bundle:`.

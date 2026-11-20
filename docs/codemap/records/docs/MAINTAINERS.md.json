@@ -338,8 +338,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.2 `Collection/` — sensor capture + recording lifecycle (~150 files)",
-   "hash": "1d2694aa11a30ac9",
-   "does": "Claims Collection/ (~150; actual 157) holds RRCollector + extensions, SessionRecoveryCoordinator and OvernightStreamingCoordinator built on demand as values holding the collector strongly (collector.recovery at RRCollector+RecoveryForwarding.swift:14, collector.overnightStreaming at RRCollector+OvernightStreamingForwarding.swift:14), PolarManager(+Streaming/+Recording/+Observers), HealthKitManager(+HRV/+HeartRate/+SleepTrends/+Store/+Heat) with Vitals/Training/SleepHealthQueries, WorkoutRecorder(+Lifecycle/+Ticker/+Start/+Stop/+Metrics), extra-device managers, recording support types incl. RecoveryVitals, and pure types METLookup/WorkoutTickState/WorkoutStartCue/SleepRefreshPolicy/HRSleepEstimator with HealthKitManager.estimateSleepFromHR left as a forwarder (chain HealthKitManager → SleepHealthQueries → HRSleepEstimator).",
+   "hash": "bfe09a0e900d5588",
+   "does": "Claims Collection/ (~150; actual 157) holds RRCollector + extensions, SessionRecoveryCoordinator and OvernightStreamingCoordinator built on demand as values holding the collector strongly (collector.recovery at RRCollector+RecoveryForwarding.swift:14, collector.overnightStreaming at RRCollector+OvernightStreamingForwarding.swift:14), PolarManager(+Streaming/+Recording/+Observers), HealthKitManager(+HRV/+HeartRate/+SleepTrends/+Store/+Heat) with Vitals/Training/SleepHealthQueries, WorkoutRecorder(+Lifecycle/+Ticker/+Start/+Stop/+Metrics), extra-device managers, recording support types incl. RecoveryVitals, and pure types METLookup/WorkoutTickState/WorkoutStartCue/SleepRefreshPolicy/HRSleepEstimator with HealthKitManager.estimateSleepFromHR kept as a forwarder (chain HealthKitManager → SleepHealthQueries → HRSleepEstimator).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)",
@@ -350,7 +350,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)": "587065d915433525",
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.estimateSleepFromHR(rrPoints:recordingStart:)": "2e8dcb644819aff3",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.estimateSleepFromHR(rrPoints:recordingStart:)": "9a2ca7bd234f3585",
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "573ac4aba216c312"
    }
@@ -456,8 +456,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.6b `Emuqu/Sources/Models/SleepSchedule.swift`",
-   "hash": "b2135b5e0080a0f4",
-   "does": "Claims SleepSchedule.swift (extracted from UserSettings.swift) owns derived sleep times as pure functions, and that AcquisitionPureLogicTests pins the daytime-HR window running forward from wake to bedtime (else the HKQuery predicate matches nothing). Current code: daytimeHRStart = last wake before overnightWindowStart + 4 h; daytimeHREnd = overnightWindowStart + 1 h (SleepSchedule.swift:112-120), so start precedes end for ordinary schedules; AcquisitionPureLogicTests.swift exists.",
+   "hash": "d0d6c3a761a72ab2",
+   "does": "Claims SleepSchedule.swift (kept separate from UserSettings.swift to hold that file under the 1,500-line budget) owns derived sleep times as pure functions, and that AcquisitionPureLogicTests pins the daytime-HR window running forward from wake to bedtime (else the HKQuery predicate matches nothing). Current code: daytimeHRStart = last wake before overnightWindowStart + 4 h; daytimeHREnd = overnightWindowStart + 1 h (SleepSchedule.swift:112-120), so start precedes end for ordinary schedules; AcquisitionPureLogicTests.swift exists.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.daytimeHRStart(relativeTo:)",
@@ -473,19 +473,21 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.7 `Protocols/` — DI seams (1 file)",
-   "hash": "9baa153da7890d2e",
-   "does": "Claims Protocols/ has one file, HealthKitServiceProtocol, injected into six production types (SleepBoundaryResolver, HRVAnalysisPipeline, ReanalysisService, SessionRecoveryService, MorningProcessingService, SessionAcceptanceService), mocked by MockHealthKitService; AnalysisServiceProtocol/PolarManagerProtocol/SessionRepositoryProtocol removed. Protocols/ has 1 file and the three removed protocols are absent repo-wide.",
+   "hash": "7e8f84cfab470198",
+   "does": "Claims Protocols/ has one file, HealthKitServiceProtocol, injected into six production types (SleepBoundaryResolver, HRVAnalysisPipeline, ReanalysisService, SessionRecoveryService, MorningProcessingService, SessionAcceptanceService), mocked by MockHealthKitService; there are no other protocols, since a single-conformer protocol unused as a type is what the refactor spec forbids; scripts/remove_swift_file.py deletes a Swift file with explicit pbxproj build membership. Protocols/ has 1 file.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)"
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)",
+    "scripts/remove_swift_file.py::def main"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)": "0537b6229c6d467c",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)": "472051ae5134cf89"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)": "f7a81f796918ddbb",
+    "scripts/remove_swift_file.py::def main": "c170f11433247931"
    }
   },
   {
@@ -902,8 +904,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 9. Cross-cutting concerns > 9.1 Concurrency & the `RRCollector` sub-object model",
-   "hash": "45e865fc26141f33",
-   "does": "Claims RRCollector is decomposed into five @MainActor sub-objects (ArchiveSignal, DeviceStatus, SessionState, StreamingLifecycle, MorningCoordination) injected into the environment (EmuquApp.swift:311-315); every observable type is @Observable with legacy_observable_object_budget at 0 (.ci file value 0); Combine sinks replaced by ObservationLoop.observe.",
+   "hash": "b2139cb6e15bcdb0",
+   "does": "Claims RRCollector is decomposed into five @MainActor sub-objects (ArchiveSignal, DeviceStatus, SessionState, StreamingLifecycle, MorningCoordination) injected into the environment (EmuquApp.swift:311-315); every observable type is @Observable with legacy_observable_object_budget at 0 (.ci file value 0); code that reacts to a property change (device-status proxies, HealthKit version counters, voice streaming observers, workout strap/HR subscriptions, history filter debounce) uses ObservationLoop.observe.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)",
@@ -969,7 +971,7 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 9. Cross-cutting concerns > 9.4 Dependency injection & testing seams",
-   "hash": "ca3c7e8aba640bec",
+   "hash": "a2e64e22a51b9d33",
    "does": "Claims no DI framework; AppDependencies is the composition root with RRCollector.makeDefault wiring the collector; HealthKitServiceProtocol is the one live protocol; AppDependencies groups app/analysis/assistant/collection/location/providers/services/storage (verified AppDependencies.swift:28-35), resolves lazily, exposes current, overrides and reset() (:42,:48); .shared read only in the root (check_no_shared_outside_root.sh).",
    "entry": null,
    "calls": [
@@ -1003,7 +1005,7 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 9. Cross-cutting concerns > 9.5a Paywall, trial, and beta grandfathering",
-   "hash": "48a18d14f014db33",
+   "hash": "bad567f30d22046b",
    "does": "Claims paywallEnabled = true; lifetime non-consumable + $0 30-day trial non-consumable com.chrissharp.flowrecovery.trial30day; four bypasses (purchase, grandfathered beta tester on a verified production install, developer install, active trial) in hasAccess; anchor written only by the history check and migrateLegacyTestFlightFlag; no grant from a cached build-type flag (it can survive a TestFlight → App Store upgrade); isDeveloperInstall never writes the anchor; testPaywall* UI tests use -UITests-ForcePaywall (UITestLaunchArguments.forcesPaywall, :18), which the gate honours even with paywallEnabled off (AppLaunchTasks.swift:678). Verified StoreKitManager.swift:22,138; prepareEntitlementGate calls resolvedForGate, migrateLegacyTestFlightFlag, grandfatherExistingUserIfNeeded (AppLaunchTasks.swift:633-639).",
    "entry": null,
    "calls": [
@@ -1021,12 +1023,12 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.paywallModal()": "63a78b8bf3186b01",
-    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.prepareEntitlementGate()": "a34826ed6b4e3ab9",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.prepareEntitlementGate()": "c9f8421fce9815b2",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::var EmuquApp.hasAccess": "0562037118d85c46",
     "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.launchModal(hasAccess:hasPermanentAccess:isInTrial:trialDaysRemaining:reminderShownToday:)": "af8cc76eea12b046",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func grandfatherExistingUserIfNeeded(hasHistory:now:)": "5b950cdb1d5a71cc",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func grandfatherExistingUserIfNeeded(hasHistory:now:)": "d1a8bba6258c08c1",
     "Emuqu/Sources/Services/StoreKitManager.swift::func migrateLegacyTestFlightFlag(now:)": "56ae12379090a5d7",
-    "Emuqu/Sources/Services/StoreKitManager.swift::var isGrandfatheredBetaTester": "f288ad342883a221"
+    "Emuqu/Sources/Services/StoreKitManager.swift::var isGrandfatheredBetaTester": "c77e518303e9898e"
    }
   },
   {
@@ -1173,7 +1175,7 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 10. Build, test, CI & tooling > Decomposing a long view (the remaining `spec_long_properties` budget)",
-   "hash": "d4ae32ae4e7d33a7",
+   "hash": "6acb91fb1bbed529",
    "does": "Claims spec_long_properties and spec_deep_nesting_properties budgets ratchet (both files now 0); Codable init(from:) in SessionMetadata/WorkoutMetadata carry // spec:long-function waivers counted in spec_justified_long_budget (value 7); lists worked-example files (RecordView+Sections.swift exists) and decomposition traps; stacked_result_builder SwiftLint rule exists (.swiftlint.yml:143); count with scripts/check_refactor_spec_conformance.sh.",
    "entry": null,
    "calls": [
@@ -1258,8 +1260,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 10. Build, test, CI & tooling > Dependency upgrade constraints",
-   "hash": "bfda4f4ed5f0994c",
-   "does": "Claims polar-ble-sdk is on 8.3.0 without RxSwift (Package.resolved version 8.3.0 verified) and records the migration from Rx (Disposable → Task, continuation wrappers removed, renamed SDK calls) plus 8.3.0 readiness handling; StreamForwardingTests.swift exists and drives StrapHeartRateFeed.drain.",
+   "hash": "bb508d08d1e2ac6b",
+   "does": "Claims polar-ble-sdk is on 8.3.0 without RxSwift (Package.resolved version 8.3.0 verified); explains the constraint (6.13.0 pins RxSwift 6.5.0 exactly, which lacks a privacy manifest; 7.x has a packaging bug) and why 8.x (drops RxSwift; the acquisition layer uses Tasks stopped with cancel(), no continuation wrappers, listExercises and direct recording-status values) plus 8.3.0 disconnect-reason and readiness handling (an unreported feature is tried and the SDK's per-call guard refuses it); StreamForwardingTests.swift exists and drives StrapHeartRateFeed.drain.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager+Observers.swift::func PolarManager.deviceDisconnected(_:info:)",

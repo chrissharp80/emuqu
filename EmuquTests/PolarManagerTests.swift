@@ -9,7 +9,6 @@ final class PolarManagerTests: XCTestCase {
 
     /// Test that RR intervals are correctly extracted when rrAvailable is true
     func testRRDataExtractionWhenAvailable() {
-        // This tests the bug we just fixed!
         let manager = PolarManager()
 
         // Simulate starting streaming to initialize state

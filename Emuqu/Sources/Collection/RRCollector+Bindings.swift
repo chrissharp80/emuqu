@@ -86,12 +86,11 @@ extension CollectorSessionControl {
 
     /// Connection state: not throttled for fast UI response.
     ///
-    /// A disconnect no longer finalizes a paused night. A pause is for
-    /// taking the strap off (the bathroom break), and the night was paused
-    /// for resume when reconnecting ran out; in both, the strap dropping or a
-    /// failed reconnect attempt then closed the night for good and took
-    /// Resume away. The night stays paused until the user resumes or
-    /// finishes it.
+    /// A disconnect does not finalize a paused night. A pause is for taking
+    /// the strap off (the bathroom break), or the night was paused for resume
+    /// when reconnecting ran out; in both, the strap dropping or a failed
+    /// reconnect attempt must not close the night and take Resume away. The
+    /// night stays paused until the user resumes or finishes it.
     private func bindConnectionState() {
         ObservationLoop.observe(collector, initial: true, read: { $0.polarManager.connectionState }, onChange: { collector, state in
             collector.deviceStatus.isDeviceConnected = state == .connected
@@ -179,10 +178,7 @@ extension CollectorSessionControl {
     /// Auto-rescore wiring. Merely bumping
     /// `collector.sleepDataVersion` leaves nobody on the V2 dashboard
     /// reacting, the score stale, and the user tapping
-    /// "Reanalyze" every morning. The old dashboard view-model posted
-    /// `.flowRecoveryRescoreNeeded` from its own sleep refresh; `DashboardV2View`
-    /// never used it and it no longer exists, so that chain is gone. Instead,
-    /// every sleep-data-version bump checks today's
+    /// "Reanalyze" every morning. So every sleep-data-version bump checks today's
     /// morning session against the freshly-arrived
     /// HealthKit sleep, and posts the rescore notification
     /// when the new data materially improves on the
@@ -220,11 +216,11 @@ extension CollectorSessionControl {
         })
     }
 
-    /// CRITICAL (a whole night was once lost here): when the H10 internal
+    /// CRITICAL: when the H10 internal
     /// recording is running, the strap is capturing the FULL night to
     /// its own memory independently of BLE. A mid-night reconnect
-    /// exhaustion — a transient iOS BLE radio reset (recovered in ~5s
-    /// in the field log) or an out-of-range trip — must NOT pause here,
+    /// exhaustion — a transient iOS BLE radio reset (typically recovered
+    /// in ~5s) or an out-of-range trip — must NOT pause here,
     /// because pausing runs `collector.gatherOvernightData` → `fetchNightFromStrap`,
     /// which STOPS the strap recording and finalizes the night 10 min
     /// in. Leave the session streaming; the strap holds everything and

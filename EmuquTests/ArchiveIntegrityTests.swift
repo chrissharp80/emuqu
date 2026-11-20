@@ -7,14 +7,12 @@ import XCTest
 final class ArchiveIntegrityTests: XCTestCase {
     /// Capture-and-restore, not fire-and-forget.
     ///
-    /// `NSTimeZone.default` is **process-global**. Ten test classes set it to
-    /// UTC in `class setUp()` and none of them put it back, so every test class
-    /// that happened to run afterwards in the same process silently inherited
-    /// UTC. `LiveReadinessTests` computes "today" from `Date()` against the
-    /// current calendar, so between 19:00 and midnight US-Central (when the UTC
-    /// date is already tomorrow) four of its tests failed — a genuine
-    /// time-of-day flake that was invisible only because the suite used to
-    /// deadlock before reaching them.
+    /// `NSTimeZone.default` is **process-global**. A class that sets it to UTC
+    /// in `class setUp()` and does not put it back leaks UTC into every test
+    /// class that runs after it in the same process. `LiveReadinessTests`
+    /// computes "today" from `Date()` against the current calendar, so between
+    /// 19:00 and midnight US-Central (when the UTC date is already tomorrow)
+    /// its tests would fail.
     private static let savedDefaultTimeZone = OSAllocatedUnfairLock<TimeZone?>(initialState: nil)
     override class func setUp() {
         super.setUp()
@@ -409,21 +407,14 @@ final class ArchiveIntegrityTests: XCTestCase {
     // MARK: - Concurrency Safety
 
     /// Test concurrent archive operations
-    /// A previous implementation drove the
-    /// concurrency with `DispatchQueue.concurrentPerform` and then called
-    /// `wait(for:timeout: 5.0)`.
     ///
-    /// That timeout was **inert**: `concurrentPerform` blocks the calling
-    /// thread until every iteration returns, so control never reached
-    /// `wait(for:)`. When the iterations wedged, the test did not fail after
-    /// 5 seconds — it hung forever, taking the whole suite (and therefore the
-    /// coverage gate and CI's `tests` job) with it. Observed at 5+ minutes
-    /// before being killed, reproduced 2/2.
-    ///
-    /// The replacement dispatches onto a concurrent queue and bounds the wait
-    /// with `DispatchGroup.wait(timeout:)`, which returns `.timedOut` instead
-    /// of parking the caller forever. A regression of the original deadlock
-    /// now surfaces as a red test in seconds rather than a frozen suite.
+    /// The work dispatches onto a concurrent queue and bounds the wait with
+    /// `DispatchGroup.wait(timeout:)`, which returns `.timedOut` instead of
+    /// parking the caller forever. `DispatchQueue.concurrentPerform` would not
+    /// do: it blocks the calling thread until every iteration returns, so a
+    /// `wait(for:timeout:)` after it never runs and a wedged iteration hangs
+    /// the whole suite (and the coverage gate and CI's `tests` job) instead of
+    /// failing. A deadlock here surfaces as a red test in seconds.
     ///
     /// Errors are collected under a lock and asserted on the test thread —
     /// `XCTFail` from a worker thread is not guaranteed to be attributed to
@@ -563,13 +554,10 @@ final class ArchiveIntegrityTests: XCTestCase {
     }
 
     /// Repair must hash the bytes-as-stored, not the
-    /// decrypted plaintext. Before the fix, `Archive+Repair.swift`
-    /// reassigned `jsonData = decrypted` and then hashed plaintext while
-    /// the file on disk stayed as ciphertext. The next `_retrieve` read
-    /// the encrypted bytes from disk, hashed them, and failed with
-    /// `ArchiveError.hashMismatch`. Symptom in a beta debug log:
-    /// "Hash mismatch for session <id>" persisted in the error catalog
-    /// after the user ran the manual repair button.
+    /// decrypted plaintext. Hashing plaintext while the file on disk stays
+    /// ciphertext makes the next `_retrieve` read the encrypted bytes, hash
+    /// them, and fail with `ArchiveError.hashMismatch`, leaving "Hash mismatch
+    /// for session <id>" in the error catalog after the manual repair button.
     ///
     /// This test reproduces the scenario:
     ///   1. Archive a session with encryption ON (the production path).
@@ -579,7 +567,7 @@ final class ArchiveIntegrityTests: XCTestCase {
     ///      match the (still-encrypted) bytes on disk.
     func testRepairPreservesEncryptedFileIntegrity() throws {
         // Encryption must be available for this test to be meaningful;
-        // without it, the file would be plaintext and the bug doesn't apply.
+        // without it, the file would be plaintext and the case doesn't apply.
         try XCTSkipUnless(EncryptionManager.shared.isAvailable, "Encryption unavailable on this test runner")
 
         let session = createTestSession()

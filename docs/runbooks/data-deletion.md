@@ -25,8 +25,7 @@ Emuqu's data-handling posture (per [SECURITY.md](../../.github/SECURITY.md)):
   **Signing out of iCloud does NOT delete them.** Apple is explicit that
   information stored in iCloud stays in iCloud after sign-out — sign-out
   removes the copy from *that device*, not from the account. Neither does
-  erasing the device. This runbook and its reply
-  template used to tell users the opposite, which is the worst possible direction
+  erasing the device. Telling a user otherwise is the worst possible direction
   for a deletion instruction to be wrong in: the user believes their health
   data is gone and stops looking.
 

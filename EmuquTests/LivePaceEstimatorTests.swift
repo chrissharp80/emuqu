@@ -5,10 +5,10 @@ import XCTest
 ///
 /// `WorkoutLocationManager` credits a GPS step only once it clears 3.5 m and
 /// 1.5 × the fix accuracy, so at 5 m accuracy a walker's distance lands in
-/// 8.4 m chunks every 6 s. Pace used to be one tick's distance over one
-/// second, which read an 11:54/km walker as 1:59/km on one tick in six and
-/// "—" on the other five, and a 5:33/km runner as 1:51/km on a third of the
-/// ticks. The harness below re-creates that credit rule, fix by fix.
+/// 8.4 m chunks every 6 s. Pace taken as one tick's distance over one second
+/// would read an 11:54/km walker as 1:59/km on one tick in six and "—" on the
+/// other five, and a 5:33/km runner as 1:51/km on a third of the ticks. The
+/// harness below re-creates that credit rule, fix by fix.
 final class LivePaceEstimatorTests: XCTestCase {
     private static let walkerPace = 1000 / 1.4
     private static let runnerPace = 1000 / 3.0

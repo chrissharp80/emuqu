@@ -61,8 +61,8 @@ struct ExportDataView: View {
     }
 
     /// The finished file, offered through `ShareLink`, which opens at once.
-    /// `UIActivityViewController` raised from a sheet has been measured
-    /// cold-starting its share-extension scan for seconds to a minute
+    /// `UIActivityViewController` raised from a sheet can spend seconds to a
+    /// minute cold-starting its share-extension scan
     /// (`FitnessPostSummaryView+Share.shareRow`).
     @ViewBuilder
     private var exportedFileSection: some View {

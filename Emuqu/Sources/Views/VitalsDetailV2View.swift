@@ -33,9 +33,9 @@ struct VitalsDetailV2View: View {
     /// analysis-window meanHR from the most recent session. That value
     /// is the strap's nocturnal mean during the SELECTED window — same
     /// physiology `BaselineTracker.meanHRBaseline` is built from, so
-    /// the user's deviation read is apples-to-apples. Older sessions
+    /// the user's deviation read is apples-to-apples. Sessions
     /// whose `vitalsSnapshot.restingHeartRate` was frozen with Apple's
-    /// daytime RHR (before the strap-override path landed) MUST be
+    /// daytime RHR MUST be
     /// overridden here at view time, otherwise the row keeps reading
     /// 66 bpm even when the real nocturnal mean is ~50.
     ///

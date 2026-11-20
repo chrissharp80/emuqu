@@ -122,9 +122,8 @@ def expand(text):
 for job_name, job in (wf.get("jobs") or {}).items():
     if not job_runs(job_name, job):
         continue
-    # Job-level `env:` is carried, not only step-level. That is exactly the
-    # axis `ci.yml`'s own note about run 33230172290 warns on: `TEST_SCOPE` is
-    # set on the JOB, so dropping job env makes a local `--scope unit` fall
+    # Job-level `env:` is carried, not only step-level. `TEST_SCOPE` is
+    # set on the JOB in `ci.yml`, so dropping job env makes a local `--scope unit` fall
     # back to the script's `full` default and run the UI target — over an hour
     # locally to simulate a job that would not run it at all. A simulator that
     # diverges from the workflow on the expensive axis is worse than no

@@ -35,8 +35,8 @@ struct OnboardingProfilePage: View {
     }
 
     /// Pinned above the page indicator. Scrolled with the content, Skip and
-    /// Next fell off the bottom of a small screen once the birthday wheel took
-    /// its space, and a tap where they used to be pages backwards instead.
+    /// Next would fall off the bottom of a small screen once the birthday wheel
+    /// takes its space, and a tap where they were pages backwards instead.
     private var pinnedNavigationButtons: some View {
         VStack(spacing: 6) {
             incompleteProfileHint
