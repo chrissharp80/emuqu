@@ -992,8 +992,8 @@ mutate "backfill_retries_zero_length_workout" "EmuquTests/WorkoutBackfillEligibi
 # everything archived silences the one signal the user has that a recording is
 # stranded outside the archive.
 mutate "backup_reconcile_clears_stranded" "EmuquTests/BackupReconcileTests" \
-    "Emuqu/Sources/Storage/RawRRBackup.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/RawRRBackup.swift');s=p.read_text();o='        index.indices.filter { !index[\$0].archived && archivedSessionIds.contains(index[\$0].id) }';assert s.count(o)==1;p.write_text(s.replace(o,'        index.indices.filter { !index[\$0].archived }'))"
+    "Emuqu/Sources/Storage/RawRRBackup+Reconciliation.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/RawRRBackup+Reconciliation.swift');s=p.read_text();o='        index.indices.filter { !index[\$0].archived && archivedSessionIds.contains(index[\$0].id) }';assert s.count(o)==1;p.write_text(s.replace(o,'        index.indices.filter { !index[\$0].archived }'))"
 
 # The screen stays awake during a recording by default. Decoding that key to
 # false gives every user whose stored settings predate it auto-lock mid-session
