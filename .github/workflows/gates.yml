@@ -2,11 +2,11 @@ name: Gates
 
 # The script gates, on every push, on a Linux runner.
 #
-# `ci.yml` also runs on every pull request and push to `main`, but its jobs
-# need macOS and it is advisory. This workflow is the complement — every gate
-# in `make ci` that is plain bash + python and needs no Xcode, SwiftLint,
-# `plutil` or a simulator, on ubuntu in about a minute — and its job,
-# "Script gates (no Xcode)", is the one status check `main` requires.
+# `ci.yml` also runs on every pull request and push to `main`; its jobs need
+# macOS. This workflow is the complement — every gate in `make ci` that is
+# plain bash + python and needs no Xcode, SwiftLint, `plutil` or a simulator,
+# on ubuntu in about a minute. Its job, "Script gates (no Xcode)", is one of
+# the six status checks `main` requires, with the five `ci.yml` jobs.
 # docs/CI_POSTURE.md has the reasoning.
 #
 # What is deliberately NOT here, and why:
@@ -55,7 +55,7 @@ jobs:
         run: make localization-guard localization-bundle-guard localization-resolution-guard localization-orphan-guard localization-format-guard locale-format-guard
 
       - name: Source hygiene guards
-        run: make sendable-guard no-unowned-guard logger-self-reference-guard coremotion-isolation-guard hr-feed-link-guard license-header-guard dated-comment-budget shared-root-guard snapshot-refs-guard empty-range-guard leaked-mutations-guard eager-prompt-guard date-ms-guard log-redaction-guard uitest-reset-guard skip-budget fixed-font-budget orphan-swift-guard aggregate-type-size comment-citations strict-concurrency-enabled
+        run: make sendable-guard no-unowned-guard logger-self-reference-guard coremotion-isolation-guard hr-feed-link-guard license-header-guard dated-comment-budget shared-root-guard explicit-deps-guard snapshot-refs-guard empty-range-guard leaked-mutations-guard eager-prompt-guard date-ms-guard log-redaction-guard uitest-reset-guard skip-budget fixed-font-budget orphan-swift-guard aggregate-type-size comment-citations strict-concurrency-enabled
 
       - name: Info.plist, privacy manifest and CloudKit guards
         run: ./scripts/check_no_health_data_in_cloudkit.sh && ./scripts/check_privacy_manifest_vocabulary.sh && ./scripts/check_infoplist_key_drift.sh

@@ -503,7 +503,7 @@ struct DashboardV2View: View {
     /// the edit die in a debugLog while the
     /// editor confirms success.
     private func saveSleepBoundaries(_ adjusted: SleepData, for session: HRVSession) {
-        if !collector.updateSessionSleepBoundaries(
+        if !dependencies.collection.reanalysisService.updateSessionSleepBoundaries(
             sessionId: session.id,
             sleepData: adjusted,
             isUserAdjustment: true

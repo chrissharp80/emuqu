@@ -12,10 +12,15 @@ import os
 ///   deviceRecording (DeviceRecordingSession) – +DeviceRecording
 ///   morning (MorningSessionPipeline) – +MorningProcessing
 ///   recovery (SessionRecoveryCoordinator) – +Recovery, +BackupRecovery
-///   reanalysis (SessionReanalysisCoordinator) – +Reanalysis
 ///   import (SessionImport) – +Import
 /// Extensions on the collector itself: +Lifecycle (persisted recording
 /// state, data rescue, emergency backup), +Acceptance, +Analysis.
+///
+/// Rescoring saved sessions is not the collector's: the composition root
+/// owns `SessionReanalysisCoordinator`, built from the same scoring context,
+/// baseline tracker and archive signal the collector is given. The collector
+/// only takes the archived copy of a rescored night onto its review card
+/// (`installArchivedCopyListener`).
 @Observable
 @MainActor
 final class RRCollector {
@@ -114,31 +119,20 @@ final class RRCollector {
     }
     var sessionStartTime: Date?
 
-    /// Tokens for the block-based NotificationCenter observers
-    /// registered in `+Reanalysis` (rescore listener + CloudKit snapshot
-    /// backfill). Stored so `deinit` can remove them; discarding the
-    /// `addObserver` return value leaks the observer (and the captured
-    /// `self`) in tests/previews that build many collectors. Block
+    /// Tokens for the block-based NotificationCenter observers the
+    /// collector registers (app lifecycle in `+Lifecycle`, the archived-copy
+    /// listener in `+Acceptance`). Stored so `deinit` can remove them;
+    /// discarding the `addObserver` return value leaks the observer (and the
+    /// captured `self`) in tests/previews that build many collectors. Block
     /// observers are not released with the collector — they must be
     /// removed explicitly.
     @ObservationIgnored let notificationObservers = NotificationTokens()
     var lastSeenReconnectCount: Int = 0
-    /// The current (as-of-today) training load. Never holds a past day's:
-    /// it is stamped with the day it was cached, and reads as nil once that
-    /// day is over (an overnight recording outlives midnight).
+    /// The current (as-of-today) training load, held by `scoring`.
     var cachedTrainingLoad: HealthKitManager.TrainingLoad? {
-        get {
-            guard let cached = cachedTrainingLoadOfDay, Calendar.current.isDateInToday(cached.day) else { return nil }
-            return cached.load
-        }
-        set { cachedTrainingLoadOfDay = newValue.map { (day: Date(), load: $0) } }
+        get { scoring.cachedTrainingLoad }
+        set { scoring.cachedTrainingLoad = newValue }
     }
-    private var cachedTrainingLoadOfDay: (day: Date, load: HealthKitManager.TrainingLoad)?
-    /// Loads fetched as of a past day, keyed by that day's start, for the
-    /// duration of a reanalysis of a session from that day.
-    var pastDayTrainingLoads: [Date: HealthKitManager.TrainingLoad] = [:]
-    /// How many running reanalyses hold each past day's load.
-    var pastDayTrainingLoadHolders: [Date: Int] = [:]
     var lastEmergencyFlush: Date?
 
     /// Backing storage for the lazy `recoveryService` computed property in +Recovery.
@@ -195,6 +189,9 @@ final class RRCollector {
     let streamingLifecycle: StreamingLifecycle
     let morningCoordination: MorningCoordination
     let sessionState: SessionState
+    /// Settings, baseline and training load the collector analyses and scores
+    /// with; the composition root shares it with saved-session reanalysis.
+    let scoring: SessionScoringContext
 
     /// Thread-safe mirror of the live HRV snapshot. Written
     /// only from MainActor (via `refreshLiveHRVSnapshotMirror` on every
@@ -216,32 +213,6 @@ final class RRCollector {
         let lastErrorDescription: String?
     }
 
-    /// Cached reanalysis service — created lazily on first access in the extension.
-    var _reanalysisService: ReanalysisService?
-
-    /// Re-entrancy guard. Multiple paths can trigger
-    /// `reanalyzeSession` for the same session in quick succession:
-    /// pull-to-refresh, the sleep-delta rescore notification, the
-    /// training-cache-heal notification. Without this guard each one
-    /// fires its own reanalysis pass — the user sees back-to-back
-    /// re-runs in the log and the 8-second pull-to-refresh timer
-    /// often loses its race because reanalysis #1 finishes but #2
-    /// starts and competes. Sessions in this set are currently being
-    /// reanalyzed; subsequent calls for the same id get the archived copy
-    /// and queue one trailing pass (`pendingReanalyses`).
-    var inFlightReanalyses: Set<UUID> = []
-    /// Sessions asked for again while in flight: each gets one trailing pass.
-    var pendingReanalyses: Set<UUID> = []
-
-    /// Reentrancy guard for `autoRefreshTodaysSleepIfImproved`. Apple writes
-    /// sleep in STAGES (each bumps `sleepDataVersion`), so without this the
-    /// overlapping invocations each read the session before any sibling wrote,
-    /// all detect the source upgrade, and all post a rescore → a redundant
-    /// double reanalysis. `…Pending` records that a bump arrived mid-run so we
-    /// do exactly one trailing pass against the freshly-written state.
-    var isAutoRefreshingSleep = false
-    var autoRefreshSleepPending = false
-
     /// Data quality verification (overnight sessions - strict)
     let verification = Verification()
 
@@ -254,48 +225,6 @@ final class RRCollector {
     ))
 
     // MARK: - Computed Properties
-
-    /// Every archived session, full (beats included), newest first, decoded
-    /// off the main actor: a full-archive decrypt and decode on it held the
-    /// screen. For the bulk reanalysis paths; UI code uses
-    /// `recentSessionsAsync(limit:)`, which skips the beats.
-    func archivedSessionsOffMain() async -> [HRVSession] {
-        let archive = self.archive
-        return await Task.detached(priority: .userInitiated) {
-            Self.loadAllSessions(from: archive)
-        }.value
-    }
-
-    nonisolated private static func loadAllSessions(from archive: SessionArchive) -> [HRVSession] {
-        let entries = archive.entries  // already sorted newest-first
-        debugLog("[RRCollector] archivedSessions: Loading \(entries.count) entries from archive")
-        var sessions: [HRVSession] = []
-        var errorCount = 0
-        for entry in entries {
-            if let session = retrieveLoggingFailure(entry.sessionId, from: archive) {
-                sessions.append(session)
-            } else {
-                errorCount += 1
-            }
-        }
-        debugLog("[RRCollector] archivedSessions: Loaded \(sessions.count) sessions (\(errorCount) errors)")
-        return sessions
-    }
-
-    /// Nil covers both "not in the archive" and "failed to decode"; both are
-    /// logged and counted as errors by the caller.
-    nonisolated private static func retrieveLoggingFailure(_ sessionId: UUID, from archive: SessionArchive) -> HRVSession? {
-        do {
-            guard let session = try archive.retrieve(sessionId) else {
-                debugLog("[RRCollector] WARNING: Session \(sessionId) not found in archive (nil)")
-                return nil
-            }
-            return session
-        } catch {
-            debugLog("[RRCollector] ERROR: Failed to retrieve session \(sessionId): \(error)")
-            return nil
-        }
-    }
 
     /// Async version that performs archive disk I/O on a background thread.
     /// Uses lightweight loading (skips rrSeries deserialization) for ~45x less
@@ -386,131 +315,38 @@ final class RRCollector {
         hasUnrecoveredData || recovery.strapHoldsOrphanedRecording
     }
 
-    /// Create a TrainingContext snapshot from the training load as of
-    /// `referenceDate`. Nil for a past day whose load has not been fetched:
-    /// today's load must never stand in for an earlier day's.
+    /// A TrainingContext from the training load as of `referenceDate`
+    /// (`SessionScoringContext.createTrainingContext(relativeTo:)`).
     func createTrainingContext(relativeTo referenceDate: Date = Date()) -> TrainingContext? {
-        guard let load = trainingLoad(asOf: referenceDate) else { return nil }
-        return trainingContext(from: load, relativeTo: referenceDate)
+        scoring.createTrainingContext(relativeTo: referenceDate)
     }
 
-    /// Today reads the shared current-load cache; a past day reads only a
-    /// load fetched for that day.
-    func trainingLoad(asOf date: Date) -> HealthKitManager.TrainingLoad? {
-        let calendar = Calendar.current
-        if calendar.isDateInToday(date) { return cachedTrainingLoad }
-        return pastDayTrainingLoads[calendar.startOfDay(for: date)]
-    }
-
-    private func trainingContext(from load: HealthKitManager.TrainingLoad, relativeTo referenceDate: Date) -> TrainingContext? {
-        guard var context = TrainingContext(from: load, relativeTo: referenceDate) else { return nil }
-        // TrainingContext.init copies the HealthKit value; the user's override
-        // and opt-in decide, exactly as for the ANS configuration.
-        context.vo2Max = configuredVO2Max(load)
-        return context
-    }
-
-    /// Async sibling of `createTrainingContext` that guarantees a fresh
-    /// fetch when the cache is empty. Use this before freezing a session's
-    /// recovery score so we can't accidentally freeze a Tier 2 number
-    /// just because `cachedTrainingLoad` hadn't populated yet (cold-launch
-    /// race after wake-up, seen in a real-user report).
-    ///
-    /// Behaviour:
-    ///   • If a load as of `referenceDate` is held (the shared cache for
-    ///     today, a fetched past-day load otherwise) → use it.
-    ///   • Else, with training-load integration enabled → fetch via HealthKit
-    ///     as of that date and build the context. The fetch fills the shared
-    ///     cache only when it is as of today: the cache is the current load,
-    ///     and a past day's load left there would be read as today's.
-    ///   • If integration is disabled → return nil (Tier 2 scoring is
-    ///     intentional in that mode).
+    /// The training context as of `referenceDate`, fetched from HealthKit when
+    /// none is held (`SessionScoringContext.createTrainingContextEnsuringFresh`).
     func createTrainingContextEnsuringFresh(relativeTo referenceDate: Date = Date()) async -> TrainingContext? {
-        guard settingsManager.settings.enableTrainingLoadIntegration else {
-            return nil
-        }
-        if let context = createTrainingContext(relativeTo: referenceDate) {
-            return context
-        }
-        debugLog("[RRCollector] createTrainingContext returned nil with training-load integration ON — fetching live HealthKit training load to ensure Tier 3 freeze (relativeTo \(referenceDate))", level: .info)
-        let load = await healthKit.calculateTrainingLoad(relativeTo: referenceDate)
-        if Calendar.current.isDateInToday(referenceDate) { cachedTrainingLoad = load }
-        return trainingContext(from: load, relativeTo: referenceDate)
+        await scoring.createTrainingContextEnsuringFresh(relativeTo: referenceDate)
     }
 
-    /// Baseline to score `session` against: the stored nights before the
-    /// session's own, so a reading is never compared with itself or with
-    /// nights recorded after it.
+    /// The stored nights before `session`'s own, its scoring baseline
+    /// (`SessionScoringContext.scoringBaselineStats(for:)`).
     func scoringBaselineStats(for session: HRVSession) -> BaselineTracker.RecoveryBaselineStats? {
-        baselineTracker.recoveryBaselineStats(
-            excludingNightOf: session, sleepSchedule: settingsManager.settings.sleepSchedule
-        )
+        scoring.scoringBaselineStats(for: session)
     }
 
-    /// Current scoring configuration for RecoveryScoreCalculator.
-    /// Built at the boundary (imperative shell) from SettingsManager.
+    /// Current scoring configuration for RecoveryScoreCalculator, from the settings.
     var currentScoringConfig: RecoveryScoreCalculator.ScoringConfiguration {
-        RecoveryScoreCalculator.ScoringConfiguration(from: settingsManager.settings)
+        scoring.currentScoringConfig
     }
 
-    /// Current ANS configuration for analysis pipeline.
-    /// Built at the boundary (imperative shell) from SettingsManager + cached training load.
+    /// Current ANS configuration: today's training load, every stored night as baseline.
     var currentANSConfig: HRVAnalysisPipeline.ANSConfiguration {
-        ansConfig(asOf: Date())
+        scoring.currentANSConfig
     }
 
-    /// ANS configuration with the training load as of `date` — a past
-    /// session's analysis reads that day's load, not today's. The baseline is
-    /// every stored night; scoring a specific session uses
-    /// `ansConfig(for:)` instead.
-    func ansConfig(asOf date: Date) -> HRVAnalysisPipeline.ANSConfiguration {
-        ansConfig(asOf: date, baseline: baselineTracker.recoveryBaselineStats)
-    }
-
-    /// ANS configuration for analysing `session`: the training load as of its
-    /// end (now, for a session still being recorded) and the same prior-nights
-    /// baseline its recovery score uses (`scoringBaselineStats(for:)`), so
-    /// re-analysing an old night never normalises readiness against nights
-    /// recorded after it.
+    /// ANS configuration for analysing `session`
+    /// (`SessionScoringContext.ansConfig(for:)`).
     func ansConfig(for session: HRVSession) -> HRVAnalysisPipeline.ANSConfiguration {
-        ansConfig(asOf: session.endDate ?? Date(), baseline: scoringBaselineStats(for: session))
-    }
-
-    private func ansConfig(
-        asOf date: Date,
-        baseline: BaselineTracker.RecoveryBaselineStats?
-    ) -> HRVAnalysisPipeline.ANSConfiguration {
-        let settings = settingsManager.settings
-        let load = trainingLoad(asOf: date)
-        // Readiness starts from the same geometric baseline the recovery score
-        // uses (exp(lnRmssdMean), last 60 stored nights), so both read ONE "your typical
-        // RMSSD" value; each still transforms it differently (age-norm/DFA for
-        // readiness, personal-delta for recovery). Falls back to the legacy
-        // settings baseline, then population, until BaselineTracker has
-        // accumulated enough data.
-        let baselineRMSSD = baseline.map { exp($0.lnRmssdMean) }
-            ?? settings.baselineRMSSD ?? settings.populationBaselineRMSSD
-
-        return HRVAnalysisPipeline.ANSConfiguration(
-            baselineRMSSD: baselineRMSSD,
-            vo2Max: configuredVO2Max(load),
-            trainingLoadAdjustment: configuredTrainingLoadAdjustment(load)
-        )
-    }
-
-    /// Explicit override wins, then the HealthKit-derived value when the user
-    /// opted into it, else nothing.
-    private func configuredVO2Max(_ load: HealthKitManager.TrainingLoad?) -> Double? {
-        let settings = settingsManager.settings
-        if let override = settings.vo2MaxOverride {
-            return override
-        }
-        return settings.useHealthKitVO2Max ? load?.vo2Max : nil
-    }
-
-    private func configuredTrainingLoadAdjustment(_ load: HealthKitManager.TrainingLoad?) -> Double {
-        guard settingsManager.settings.enableTrainingLoadIntegration, let load else { return 0 }
-        return load.readinessAdjustment
+        scoring.ansConfig(for: session)
     }
 
     // MARK: - Initialization
@@ -566,8 +402,7 @@ final class RRCollector {
     /// on-device verification of the connect flow.
     @MainActor
     func boot() {
-        guard !didBootBaseline.withLock({ $0 }) else { return }
-        didBootBaseline.withLock { $0 = true }
+        guard didBootBaseline.setIfClear() else { return }
         guard baselineTracker.daysCollected == 0, !archive.entries.isEmpty else { return }
         rebuildBaselineOffMain()
     }
@@ -655,25 +490,29 @@ final class RRCollector {
     /// splash delay. Initial state with an
     /// empty tracker is correct (no baseline shown until rebuild completes);
     /// the dashboard already tolerates that path.
+    ///
+    /// The baseline tracker, archive signal and scoring context are the
+    /// composition root's, the instances saved-session reanalysis
+    /// (`SessionReanalysisCoordinator`) is built with, so a rescore updates
+    /// the baseline this collector scores against and bumps the signal its
+    /// views observe.
     private convenience init(defaultsFromShared _: Void) {
-        let settingsManager = AppDependencies.current.app.settingsManager
-        let archive = AppDependencies.current.storage.sessionArchive
-        let tracker = BaselineTracker(onBaselineUpdated: { rmssd, hr in
-            settingsManager.updateBaseline(rmssd: rmssd, hr: hr)
-        })
+        let collection = AppDependencies.current.collection
         self.init(
             polarManager: PolarManager(),
-            healthKit: AppDependencies.current.collection.healthKitManager,
-            archive: archive,
+            healthKit: collection.healthKitManager,
+            archive: AppDependencies.current.storage.sessionArchive,
             rawBackup: RawRRBackup(),
             artifactDetector: ArtifactDetector(),
             windowSelector: WindowSelector(),
-            baselineTracker: tracker,
-            settingsManager: settingsManager
+            baselineTracker: collection.baselineTracker,
+            settingsManager: AppDependencies.current.app.settingsManager,
+            archiveSignal: collection.archiveSignal,
+            scoring: collection.sessionScoring
         )
     }
 
-    // spec:long-function Nineteen injected dependencies, one assignment each,
+    // spec:long-function Twenty injected dependencies, one assignment each,
     // with `?? Self.makeX(...)` resolving the ones the caller left nil. The
     // three services with non-trivial construction live in static factories;
     // what is left is pure assignment with no branching and nothing
@@ -684,7 +523,8 @@ final class RRCollector {
     /// Create an RRCollector with injected dependencies (for testing). Any
     /// left out resolve to the app's own: the settings and CloudKit sync
     /// managers are the shared instances, so a test that must not touch them
-    /// injects its own.
+    /// injects its own. An injected `scoring` must hold the same baseline
+    /// tracker and settings manager; left out, one is built from them.
     init(
         polarManager: PolarManager,
         healthKit: HealthKitManager,
@@ -704,7 +544,8 @@ final class RRCollector {
         deviceStatus: DeviceStatus? = nil,
         streamingLifecycle: StreamingLifecycle? = nil,
         morningCoordination: MorningCoordination? = nil,
-        sessionState: SessionState? = nil
+        sessionState: SessionState? = nil,
+        scoring: SessionScoringContext? = nil
     ) {
         self.polarManager = polarManager
         self.healthKit = healthKit
@@ -719,6 +560,9 @@ final class RRCollector {
         self.streamingLifecycle = streamingLifecycle ?? StreamingLifecycle()
         self.morningCoordination = morningCoordination ?? MorningCoordination()
         self.sessionState = sessionState ?? SessionState()
+        self.scoring = scoring ?? SessionScoringContext(
+            settingsManager: settingsManager, healthKit: healthKit, baselineTracker: baselineTracker
+        )
         let resolvedCloudSyncManager = cloudSyncManager ?? AppDependencies.current.storage.cloudKitSyncManager
         self.cloudSyncManager = resolvedCloudSyncManager
         self.reconciliation = reconciliation ?? ReconciliationManager(archive: archive)
@@ -807,8 +651,8 @@ final class RRCollector {
     }
 
     /// Everything the initializer does after its stored properties are in
-    /// place: observation, listeners, cache binding, state restoration and the
-    /// one-time migration.
+    /// place: observation, the archived-copy listener, cache binding, state
+    /// restoration and the one-time migration.
     ///
     /// This runs synchronously on the launch path — `EmuquApp` keeps
     /// `collector` eager because the first frame needs it — so anything added
@@ -823,8 +667,7 @@ final class RRCollector {
         // so stale features can't survive past a session-list change.
         // Reads during HRV view open are zero-archive after first warm.
         AppDependencies.current.analysis.beatConsistencyPriorsCache.bindToArchiveSignal(self.archiveSignal, archive: self.archive)
-        installRescoreListener()
-        installCloudKitSnapshotBackfillListener()
+        installArchivedCopyListener()
         restorePausedStateIfNeeded()
         refreshRecentPausedSession()
         publishLiveHRVSnapshotsToAssistant()
@@ -862,7 +705,7 @@ final class RRCollector {
     typealias CollectorError = RRCollectorError
 
     // Leak guard. RRCollector installs a `streamingTimer` and
-    // block-based NotificationCenter observers (in `+Reanalysis`); without
+    // block-based NotificationCenter observers (`notificationObservers`); without
     // teardown every collector built in a test/preview leaks its
     // timer and observers (and the `self` they captured); both must be
     // released by hand.

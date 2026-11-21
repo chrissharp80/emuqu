@@ -31,8 +31,10 @@ import os
 ///   • `.workoutTrack`: workout GPS, sample or HR streams holding plain lines,
 ///     also kept appendable; `WorkoutTrackBackup.reencryptPendingTracks()`
 ///     repairs them.
-/// Each repair runs on the next launch where the key is available, and an id
-/// leaves the list only once its files hold no plaintext. Confidentiality is
+/// Each repair runs at launch, the two backup stores' also when protected
+/// data becomes available and when the app becomes active; each is a no-op
+/// while the key is out of reach, and an id leaves the list only once its
+/// files hold no plaintext. Confidentiality is
 /// restored without ever putting the recording at risk.
 ///
 /// Each list is kept twice: under a `UserDefaults` key and in a small JSON

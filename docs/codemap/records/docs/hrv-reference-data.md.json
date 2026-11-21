@@ -82,12 +82,12 @@
   },
   {
    "key": "§ HRV reference data > Three differences that are not defects",
-   "hash": "cb35d8dbe0c0423f",
-   "does": "Documents three places a plain reference implementation disagrees with the app without an app defect: SDNN uses N-1; computeTimeDomain filters ectopics, so the test compares the unfiltered reference against rmssd(fromCleanRRs:) and asserts filtered RMSSD <= raw; mean HR comes from rolling 10-second windows, so the test asserts agreement in scale. Verified: tests at :127, :148 and :196 (tolerance max(2.0, 5%)); computeHRStatistics uses stored sensor HR when every clean beat carries it, then rolling-window HR, then the meanRR fallback (TimeDomainAnalysis.swift:363-376).",
+   "hash": "df38e0ec045ed4a9",
+   "does": "Documents three places a plain reference implementation disagrees with the app without an app defect: SDNN uses N-1; computeTimeDomain gates ectopics (nsr005: 15.96 against 28.98), so the test compares the unfiltered reference against rmssd(fromCleanRRs:) and recomputes the pipeline RMSSD from the kept adjacent pairs, asserting no direction and only that the gate changes at least one record; mean HR comes from rolling 10-second windows, so the test asserts agreement in scale (tolerance max(2.0, 5%)); computeHRStatistics uses stored sensor HR when every clean beat carries it, then rolling-window HR, then the meanRR fallback.",
    "entry": null,
    "calls": [
     "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testUnfilteredRMSSDMatchesTheReferenceOnEveryRecord()",
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testPipelineRMSSDIsNeverLargerThanTheUnfilteredValue()",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testPipelineRMSSDIsTheRMSOfTheKeptAdjacentPairs()",
     "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testMeanHeartRateAgreesInScaleWithMeanRR()",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)",
@@ -101,7 +101,7 @@
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "ae5a1983d1c7500d",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)": "1596841c414b391c",
     "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testMeanHeartRateAgreesInScaleWithMeanRR()": "e3ad3e25f1f4641a",
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testPipelineRMSSDIsNeverLargerThanTheUnfilteredValue()": "04286bd788bd9e09",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testPipelineRMSSDIsTheRMSOfTheKeptAdjacentPairs()": "252593599ea5cf12",
     "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.testUnfilteredRMSSDMatchesTheReferenceOnEveryRecord()": "384bee052ea593f9"
    }
   }

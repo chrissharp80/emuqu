@@ -528,6 +528,23 @@ check "no_shared_outside_root/planted_read" \
     "Emuqu/Sources/Collection/CollectorSessionControl.swift" \
     "import pathlib;p=pathlib.Path('Emuqu/Sources/Collection/CollectorSessionControl.swift');p.write_text(p.read_text()+chr(10)+'private let plantedRead = SettingsManager.shared'+chr(10))"
 
+# An `AppDependencies.current` read in a file handed its dependencies, and a
+# container installed in app code, must each go red.
+check "explicit_dependencies/planted_lookup" \
+    "./scripts/check_explicit_dependencies.sh" \
+    "Emuqu/Sources/Services/AppLaunchTasks.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/AppLaunchTasks.swift');p.write_text(p.read_text()+chr(10)+'private let plantedLookup = AppDependencies.current.app'+chr(10))"
+
+check "explicit_dependencies/planted_reanalysis_lookup" \
+    "./scripts/check_explicit_dependencies.sh" \
+    "Emuqu/Sources/Services/ReanalysisService.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/ReanalysisService.swift');p.write_text(p.read_text()+chr(10)+'private let plantedLookup = AppDependencies.current.app'+chr(10))"
+
+check "explicit_dependencies/planted_install" \
+    "./scripts/check_explicit_dependencies.sh" \
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Views/DeleteAllDataPage.swift');p.write_text(p.read_text()+chr(10)+'private let plantedInstall = AppDependencies.install(AppDependencies())'+chr(10))"
+
 # A UI-test suite whose launch drops -UITests-FreshInstall must go red; the
 # flag left in the file's doc comment must not satisfy the gate.
 check "uitest_fresh_install/dropped_flag" \

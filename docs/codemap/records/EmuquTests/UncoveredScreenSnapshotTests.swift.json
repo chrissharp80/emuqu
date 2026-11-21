@@ -602,8 +602,8 @@
   },
   {
    "key": "func UncoveredScreenSnapshotTests.testReanalysisControlsRender()",
-   "hash": "49aaa9cf569ff248",
-   "does": "Asserts MorningReanalysisControls.windowSelectionMethodSection, built over a MorningResultsViewModel for the fixture session/result with nil reanalyze callbacks and constant bindings, matches 'uncovered-reanalysis-controls'.",
+   "hash": "26eeadae6d07df81",
+   "does": "Asserts MorningReanalysisControls.windowSelectionMethodSection, built over a MorningResultsViewModel for the fixture session/result with the app's saved-session reanalysis, nil reanalyze callbacks and constant bindings, matches 'uncovered-reanalysis-controls'.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)",
@@ -612,7 +612,10 @@
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::init MorningResultsViewModel(session:result:recentSessions:settingsManager:healthKit:)",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowSelectionMethodSection"
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowSelectionMethodSection",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.sessionReanalysis"
    ],
    "reads": [
     "file:EmuquTests/__Snapshots__/<name>.raw"
@@ -622,11 +625,14 @@
    ],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.sessionReanalysis": "7e7eff2d9ea401f1",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::init MorningResultsViewModel(session:result:recentSessions:settingsManager:healthKit:)": "3328bd556097b83d",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowSelectionMethodSection": "a9f2b613e2953a07",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "aef292316c7c5c6f",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()": "fffeaf00f1e291cc",
-    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "3121b86335aa9ee5",
+    "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.overnightSession(dayOffset:)": "1d3d209e2e2846a3",
     "EmuquTests/SnapshotTesting.swift::func XCTestCase.assertSnapshot(of:named:size:file:line:)": "4148ab3361b67434",
     "EmuquTests/UncoveredScreenSnapshotTests.swift::func UncoveredScreenSnapshotTests.hosted(_:)": "b2abde71c9e7815e"
    }

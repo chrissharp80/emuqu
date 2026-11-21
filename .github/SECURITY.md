@@ -384,7 +384,9 @@ after a reboot, or a Keychain failure), what happens depends on the file
   was and the write is tried again later. Nothing in them is written in plain
   text.
 
-The next launch where the key is available repairs what was written plain:
+The next launch where the key is available repairs what was written plain,
+and the two backup stores also repair theirs whenever protected data becomes
+available or the app becomes active:
 `reencryptPendingSessions` rewrites the session files,
 `RawRRBackup.reencryptPendingBackups` and
 `WorkoutTrackBackup.reencryptPendingTracks` re-seal the backups line by line,

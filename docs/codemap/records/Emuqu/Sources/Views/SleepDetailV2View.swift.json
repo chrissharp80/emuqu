@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/SleepDetailV2View.swift",
- "hash": "872ae9f3998bee56",
+ "hash": "5afb9235a478a0ff",
  "role": "SwiftUI Sleep detail screen (pushed from Dashboard sleep card and MorningResultsView sleep card): sleep-score ring hero, quick stats, vitals row, sleep window + Adjust, interactive hypnogram, plus the sections declared in SleepDetailV2View+Breakdown.swift; hosts the SleepTimelineEditorView sheet and a detached 15-night trend computation.",
  "types": [
   "SleepDetailV2View: struct (View) — sleep detail screen; inputs session, sleepData, recoveryVitals, recentSessions, temperatureUnit, typicalSleepHours, userAge, onRefresh, onAdjust",
@@ -14,11 +14,11 @@
   "mem:SleepDetailV2View.refreshedVitals (@State RecoveryVitals?, HealthKit re-fetch on appear)",
   "mem:SleepDetailV2View.trendNights (@State [TrendNight], cached 15-night trend)",
   "@ScaledMetric dt9..dt22 font sizes (SleepDetailV2View.swift:20-29)",
-  "@Environment RRCollector collector (SleepDetailV2View.swift:41)",
+  "@Environment RRCollector collector and \\.dependencies (the reanalysis service a refreshed night is stored through)",
   "mem:SleepDetailV2View.sleepAnalysis (let SleepScienceAnalyzer.SleepAnalysis?, computed once in init)",
   "mem:SleepDetailV2View.sleepScore (private let Double, computed once in init)"
  ],
- "toplevel": "Declares ten @ScaledMetric font sizes bound to text styles (20-29), the stored inputs (session, sleepData, recoveryVitals, recentSessions, temperatureUnit, typicalSleepHours, userAge, optional onAdjust closure), the sleepAnalysis/sleepScore lets set by the explicit init, @Environment(RRCollector) and the @State properties. SleepDataIdentified.id is a fresh UUID() per wrapper. No #if blocks.",
+ "toplevel": "Declares ten @ScaledMetric font sizes bound to text styles (20-29), the stored inputs (session, sleepData, recoveryVitals, recentSessions, temperatureUnit, typicalSleepHours, userAge, optional onAdjust closure), the sleepAnalysis/sleepScore lets set by the explicit init, @Environment(RRCollector), @Environment(\\.dependencies) and the @State properties. SleepDataIdentified.id is a fresh UUID() per wrapper. No #if blocks.",
  "units": [
   {
    "key": "var SleepDetailV2View.SleepStageKind.displayLabel",
@@ -299,14 +299,16 @@
   },
   {
    "key": "func SleepDetailV2View.sleepEditor(_:)",
-   "hash": "7936a22024655dfb",
-   "does": "Builds SleepTimelineEditorView for the wrapped SleepData; onSave calls the onAdjust closure and clears editorSleepData; onRefreshFromHealthKit re-fetches this session's recording window through refetchSleep (nil when the collector is gone or the fetch fails); onRefreshAccepted (Done after a refresh with no further edit) stores the refreshed night through collector.updateSessionSleepBoundaries with isUserAdjustment false, so it doesn't lock the boundaries, and closes the editor.",
+   "hash": "562882c9afd0fef7",
+   "does": "Builds SleepTimelineEditorView for the wrapped SleepData; onSave calls the onAdjust closure and clears editorSleepData; onRefreshFromHealthKit re-fetches this session's recording window through refetchSleep (nil when the collector is gone or the fetch fails); onRefreshAccepted (Done after a refresh with no further edit) stores the refreshed night through the reanalysis service's updateSessionSleepBoundaries with isUserAdjustment false, so it doesn't lock the boundaries, and closes the editor.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::init SleepTimelineEditorView(sleepData:onSave:onRefreshFromHealthKit:onRefreshAccepted:)",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.refetchSleep(for:from:)",
-    "closure:onAdjust — set by DashboardV2View.sleepDetail (saveSleepBoundaries → collector.updateSessionSleepBoundaries) or MorningResultsView.sleepDetailDestination (vm.healthKitSleep + onAdjustSleep)",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)"
+    "closure:onAdjust — set by DashboardV2View.sleepDetail (saveSleepBoundaries → ReanalysisService.updateSessionSleepBoundaries) or MorningResultsView.sleepDetailDestination (vm.healthKitSleep + onAdjustSleep)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)"
    ],
    "reads": [],
    "writes": [
@@ -317,16 +319,13 @@
     {
      "at": "+8",
      "cond": "collector deallocated (weak capture nil)",
-     "effect": "returns nil to the editor; else refetchSleep"
-    },
-    {
-     "at": "+12",
-     "cond": "collector deallocated",
-     "effect": "nothing stored; editor still closes"
+     "effect": "refresh returns nil"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "dd89e7bdb872b231",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "c11d10dab10551e5",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService": "66fe82646a7ded58",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::init SleepTimelineEditorView(sleepData:onSave:onRefreshFromHealthKit:onRefreshAccepted:)": "7c7037dfebb8c9a8",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.refetchSleep(for:from:)": "30bded7e3360ed96"
    }

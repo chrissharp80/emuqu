@@ -8,8 +8,8 @@
  "units": [
   {
    "key": "§ CI posture",
-   "hash": "be7818b4b0f345bc",
-   "does": "Claims every pull request and push to main runs gates.yml (bash/python gates including the code map, ubuntu, about a minute) and ci.yml at scope unit (SwiftLint and budgets, strict concurrency, macOS build, unit suite with the Views coverage floor, unit suite under Thread Sanitizer, jobs in parallel, a run taking 30 to 40 minutes because Thread Sanitizer and the tests job each take 20 to 40 minutes on a runner), and that main requires both before anything merges; public repositories pay no minutes for standard runners; the UI target and full coverage floors (scope full, about two hours on current runners) run on demand and before every release. Code: gates.yml and ci.yml trigger on pull_request and push to branches [main]; testflight.yml calls ci.yml. The required checks are a repository ruleset setting, not visible in the repo.",
+   "hash": "2180101b87560819",
+   "does": "Claims every pull request and push to main runs gates.yml (bash/python gates including the code map, ubuntu, about a minute) and ci.yml at scope unit (SwiftLint and budgets, strict concurrency, macOS build, unit suite with the Views coverage floor, unit suite under Thread Sanitizer, jobs in parallel, a run taking 30 to 40 minutes because Thread Sanitizer and the tests job each take 20 to 40 minutes on a runner), and that main requires the gates.yml job and the five ci.yml jobs (named) to pass on a branch up to date with main before anything merges; public repositories pay no minutes for standard runners; the UI target and full coverage floors (scope full, about two hours on current runners) run on demand and before every release. Code: gates.yml and ci.yml trigger on pull_request and push to branches [main]; testflight.yml calls ci.yml. The required checks are a repository ruleset setting (ruleset \"main requires gates\": Script gates (no Xcode), Lint + tech-debt budgets, Strict concurrency enabled, Release build, Thread Sanitizer, Tests + coverage, branch up to date), not visible in the repo.",
    "entry": null,
    "calls": [
     ".github/workflows/gates.yml::job script-gates",
@@ -23,7 +23,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "b37673427f6cec36",
+    ".github/workflows/ci.yml::job lint-and-budgets": "850dff7c2c40af40",
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
     ".github/workflows/ci.yml::job tests": "717dc9698a3dc7ba",
     ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859",
@@ -50,7 +50,7 @@
    "branches": [],
    "deps": {
     "Makefile::target budget-monotonicity": "f2990c87cb8c36d4",
-    "Makefile::target ci": "60ad2e16c12b11bb",
+    "Makefile::target ci": "cf2e840175bcfc4b",
     "Makefile::target release-build": "8569be24c7eb1de6",
     "Makefile::target test-coverage": "2f52b6f381055f27",
     "Makefile::target thread-sanitizer": "adfca9b867c6ab56",
@@ -217,7 +217,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "b37673427f6cec36",
+    ".github/workflows/ci.yml::job lint-and-budgets": "850dff7c2c40af40",
     ".github/workflows/testflight.yml::job quality-gate": "bce49f9b26dee90e"
    }
   },
@@ -269,8 +269,8 @@
   },
   {
    "key": "§ CI posture > What this posture does *not* claim",
-   "hash": "1c1d0b6e93e500c9",
-   "does": "Claims a pull request gets the macOS build, unit suite with the Views floor and Thread Sanitizer, while the UI flows and overall/logic coverage floors run only at scope full (on demand and before a release), so a UI-only break can reach main; and that only the Linux gates are a required check: main requires the gates.yml job, while the four macOS ci.yml jobs at scope unit (lint and budgets, strict concurrency, Thread Sanitizer, tests with coverage) run on every pull request but are advisory. Code: ci.yml tests job TEST_SCOPE unit unless scope full. The required check is a repository ruleset setting (ruleset \"main requires gates\": Script gates (no Xcode)), not visible in the repo.",
+   "hash": "784cdaaa3edfc1f4",
+   "does": "Claims a pull request gets the macOS build, unit suite with the Views floor and Thread Sanitizer, while the UI flows and overall/logic coverage floors run only at scope full (on demand and before a release), so a UI-only break can reach main; and that the UI flows are not a required check: main requires the gates.yml job and the five ci.yml jobs at scope unit (lint and budgets, strict concurrency, the Release build, Thread Sanitizer, tests with coverage). Code: ci.yml tests job TEST_SCOPE unit unless scope full. The required check is a repository ruleset setting (ruleset \"main requires gates\": Script gates (no Xcode), Lint + tech-debt budgets, Strict concurrency enabled, Release build, Thread Sanitizer, Tests + coverage, branch up to date), not visible in the repo.",
    "entry": null,
    "calls": [
     ".github/workflows/ci.yml::job tests",
@@ -283,7 +283,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "b37673427f6cec36",
+    ".github/workflows/ci.yml::job lint-and-budgets": "850dff7c2c40af40",
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
     ".github/workflows/ci.yml::job tests": "717dc9698a3dc7ba",
     ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859",
@@ -292,8 +292,8 @@
   },
   {
    "key": "§ CI posture > For reviewers",
-   "hash": "87d7dde065d1c0cc",
-   "does": "Tells reviewers the macOS build, unit suite and Thread Sanitizer run on every pull request and push to main and the UI target on demand and before a release; main requires the Linux gates.yml job and the macOS ci.yml jobs are advisory; for evidence, look at the CI run on the pull request or commit, whose run summary has one line per macOS job with scope and result, and ask for a scope full run for the UI target; Claims evidence_report.sh prints enforced ceilings (--json for machine output) without builds; sbom.spdx.json covers the app plus 11 resolved packages and make sbom-check fails when stale; the SBOM is unsigned with no build provenance. Code: ci.yml summary steps in thread-sanitizer and tests; sbom.spdx.json has 12 packages (app + 11); Makefile sbom-check. The required checks are a repository ruleset setting, not visible in the repo.",
+   "hash": "269ddb4d135f5440",
+   "does": "Tells reviewers the macOS build, unit suite and Thread Sanitizer run on every pull request and push to main and the UI target on demand and before a release; main requires six checks on a branch up to date with it, the Linux gates.yml job and the five ci.yml jobs; for evidence, look at the CI run on the pull request or commit, whose run summary has one line per macOS job with scope and result, and ask for a scope full run for the UI target; Claims evidence_report.sh prints enforced ceilings (--json for machine output) without builds; sbom.spdx.json covers the app plus 11 resolved packages and make sbom-check fails when stale; the SBOM is unsigned with no build provenance. Code: ci.yml summary steps in thread-sanitizer and tests; sbom.spdx.json has 12 packages (app + 11); Makefile sbom-check. The required checks are a repository ruleset setting (ruleset \"main requires gates\": Script gates (no Xcode), Lint + tech-debt budgets, Strict concurrency enabled, Release build, Thread Sanitizer, Tests + coverage, branch up to date), not visible in the repo.",
    "entry": null,
    "calls": [
     "scripts/evidence_report.sh::fn budget",

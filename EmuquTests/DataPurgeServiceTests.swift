@@ -4,8 +4,10 @@ import XCTest
 
 /// Tests for DataPurgeService — the "Delete All My Data" fan-out.
 ///
-/// Most stores it touches are singletons backed by the App Group container,
-/// which isn't present in the test bundle. The test verifies:
+/// The purge is handed its stores (`DataPurgeService.Stores`). The assistant's
+/// conversation and facts, the trail history and the workout recorder are
+/// this test's own; the rest are the app's live services, reached through a
+/// fresh container rather than `AppDependencies.current`. The test verifies:
 ///   1. The function runs end-to-end without throwing.
 ///   2. The report exposes a Bool for every step (no fields swallowed).
 ///   3. The summary string mentions every step the function attempted.
@@ -82,6 +84,24 @@ final class DataPurgeServiceTests: XCTestCase {
         mergeGapProvider: { 4.5 * 3600 }
     )
 
+    /// The conversation, facts and trails the purge clears, on files in this
+    /// test's folder outside the swept containers.
+    private lazy var conversationStore = ConversationStore(
+        fileURL: root.appendingPathComponent("Assistant/conversation.json"), saveDebounceMs: 0
+    )
+    private lazy var userFactsStore = UserFactsStore(fileURL: root.appendingPathComponent("Assistant/user_facts.json"))
+    private lazy var breadcrumbStore = BreadcrumbStore(fileURL: root.appendingPathComponent("Breadcrumbs/active.json"))
+    /// Every store the purge takes beyond the named ones: the substitutes
+    /// above, and otherwise the live services.
+    private lazy var stores: DataPurgeService.Stores = {
+        let dependencies = AppDependencies()
+        dependencies.overrides.conversationStore = conversationStore
+        dependencies.overrides.userFactsStore = userFactsStore
+        dependencies.overrides.breadcrumbStore = breadcrumbStore
+        dependencies.overrides.recorderBox = RecorderBox()
+        return dependencies.purgeStores
+    }()
+
     private static func suite(named name: String) -> UserDefaults {
         guard let suite = UserDefaults(suiteName: name) else { preconditionFailure("could not open the test suite \(name)") }
         return suite
@@ -110,11 +130,11 @@ final class DataPurgeServiceTests: XCTestCase {
         try await super.tearDown()
     }
 
-    /// The purge over this test's temporary containers, suites and baseline.
-    /// The keychain, the assistant's stores, settings, CloudKit's local state
-    /// and the singleton caches the purge forgets (routes, contacts, the
-    /// display and training-load caches) are still the app's shared
-    /// instances; settings are restored above.
+    /// The purge over this test's temporary containers, suites, baseline and
+    /// stores. The keychain, settings, CloudKit's local state and the caches
+    /// the purge forgets (routes, contacts, the display and training-load
+    /// caches) are still the app's shared instances; settings are restored
+    /// above.
     ///
     /// Nothing is recording: the answer is passed, so the host app's own
     /// collector and workout recorder are never consulted.
@@ -123,7 +143,7 @@ final class DataPurgeServiceTests: XCTestCase {
     ) async throws -> DataPurgeService.Report {
         try await DataPurgeService.purgeAllUserData(
             archive: archive, rawBackup: rawBackup,
-            cloudSync: CloudKitSyncManager.shared, settingsManager: SettingsManager.shared,
+            cloudSync: CloudKitSyncManager.shared, settingsManager: SettingsManager.shared, stores: stores,
             baselineTracker: baselineTracker, recordingInProgress: { false },
             deleteRemote: { remoteDeleted }, scope: customScope ?? scope
         )
@@ -201,9 +221,9 @@ final class DataPurgeServiceTests: XCTestCase {
     /// and `load` reads the file directly, so a purge that ran first would
     /// find no persisted history, `clear()` would cancel the pending write,
     /// and the empty load at the end would pass whatever the purge did.
-    func testPurgeClearsConversationStoreSingleton() async throws {
+    func testPurgeClearsTheConversationStore() async throws {
         let marker = "purge-marker-\(UUID().uuidString)"
-        let store = ConversationStore.shared
+        let store = conversationStore
         store.save(store.load() + [ChatTurn(role: .user, text: marker)])
         try await waitUntil { store.load().contains { $0.text == marker } }
         XCTAssertTrue(store.load().contains { $0.text == marker },
@@ -228,15 +248,15 @@ final class DataPurgeServiceTests: XCTestCase {
 
     /// Read from the file, not only from memory: `clear()` empties the list
     /// at once, and only the queued write shows whether the facts left disk.
-    func testPurgeClearsUserFactsSingleton() async throws {
-        UserFactsStore.shared.add("purge-marker-\(UUID().uuidString)")
-        XCTAssertFalse(UserFactsStore.shared.facts.isEmpty, "Sanity: facts seeded")
+    func testPurgeClearsTheUserFacts() async throws {
+        userFactsStore.add("purge-marker-\(UUID().uuidString)")
+        XCTAssertFalse(userFactsStore.facts.isEmpty, "Sanity: facts seeded")
 
         let report = try await purge()
 
-        XCTAssertTrue(UserFactsStore.shared.facts.isEmpty,
+        XCTAssertTrue(userFactsStore.facts.isEmpty,
                       "DataPurgeService should leave UserFactsStore empty")
-        XCTAssertEqual(UserFactsStore.shared.persistedFacts()?.count, 0,
+        XCTAssertEqual(userFactsStore.persistedFacts()?.count, 0,
                        "The facts file must hold no facts after the purge")
         XCTAssertTrue(report.userFactsCleared)
     }
@@ -521,7 +541,7 @@ final class DataPurgeServiceTests: XCTestCase {
         do {
             _ = try await DataPurgeService.purgeAllUserData(
                 archive: archive, rawBackup: rawBackup,
-                cloudSync: CloudKitSyncManager.shared, settingsManager: SettingsManager.shared,
+                cloudSync: CloudKitSyncManager.shared, settingsManager: SettingsManager.shared, stores: stores,
                 baselineTracker: baselineTracker, recordingInProgress: { true },
                 deleteRemote: {
                     XCTFail("The iCloud deletion ran although the purge was refused")
@@ -548,7 +568,7 @@ final class DataPurgeServiceTests: XCTestCase {
 
         let report = try await DataPurgeService.purgeAllUserData(
             archive: archive, rawBackup: rawBackup,
-            cloudSync: CloudKitSyncManager.shared, settingsManager: SettingsManager.shared,
+            cloudSync: CloudKitSyncManager.shared, settingsManager: SettingsManager.shared, stores: stores,
             baselineTracker: baselineTracker,
             recordingInProgress: { DataPurgeService.isRecordingInProgress(collector: collector, workout: nil) },
             deleteRemote: { true }, scope: scope

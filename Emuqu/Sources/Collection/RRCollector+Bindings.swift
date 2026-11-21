@@ -173,21 +173,14 @@ extension CollectorSessionControl {
         armStreamingModeObservation()
     }
 
-    /// Forward HealthKit sleep data arrival notifications.
-    ///
-    /// Auto-rescore wiring. Merely bumping
-    /// `collector.sleepDataVersion` leaves nobody on the V2 dashboard
-    /// reacting, the score stale, and the user tapping
-    /// "Reanalyze" every morning. So every sleep-data-version bump checks today's
-    /// morning session against the freshly-arrived
-    /// HealthKit sleep, and posts the rescore notification
-    /// when the new data materially improves on the
-    /// frozen snapshot. The existing rescore listener
-    /// (`installRescoreListener`) picks it up and reanalyzes.
+    /// Mirror HealthKit's sleep-data version onto `collector.sleepDataVersion`,
+    /// which the morning results screen observes. The rescore of today's
+    /// night when that sleep improves on its frozen snapshot is the
+    /// saved-session reanalysis's own observation
+    /// (`SessionReanalysisCoordinator.observeHealthKitSleep`).
     private func bindHealthKitSleep() {
         ObservationLoop.observe(collector, read: { $0.healthKit.sleepDataVersion }, onChange: { collector, version in
             collector.sleepDataVersion = version
-            Task { @MainActor in await collector.autoRefreshTodaysSleepIfImproved() }
         })
         bindHealthKitVitals()
     }

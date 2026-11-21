@@ -775,11 +775,13 @@
   },
   {
    "key": "func DashboardV2View.saveSleepBoundaries(_:for:)",
-   "hash": "b339ecb52a9c357c",
-   "does": "Persists a user sleep-boundary edit via RRCollector; on false sets sleepEditSaveFailed to show the alert.",
+   "hash": "1e2903ffa131103d",
+   "does": "Persists a user sleep-boundary edit through the reanalysis service (dependencies.collection.reanalysisService.updateSessionSleepBoundaries); on false sets sleepEditSaveFailed to show the alert.",
    "entry": "SleepDetailV2View onAdjust closure",
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)"
    ],
    "reads": [],
    "writes": [
@@ -789,11 +791,13 @@
     {
      "at": "+1",
      "cond": "update returned false",
-     "effect": "show failure alert; else nothing"
+     "effect": "sleepEditSaveFailed = true"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "dd89e7bdb872b231"
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "c11d10dab10551e5",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService": "66fe82646a7ded58"
    }
   },
   {

@@ -823,10 +823,10 @@ extension ArchiveIntegrityTests {
         let trails = BreadcrumbStore(fileURL: archiveDirectory.appendingPathComponent("Breadcrumbs/active.json"))
         let dependencies = AppDependencies()
         dependencies.overrides.breadcrumbStore = trails
-        AppDependencies.current = dependencies
+        let installed = AppDependencies.install(dependencies)
         let forgotten = UserDefaults.standard.stringArray(forKey: ForgottenSessions.defaultsKey)
         addTeardownBlock {
-            AppDependencies.reset()
+            installed.end()
             UserDefaults.standard.set(forgotten, forKey: ForgottenSessions.defaultsKey)
         }
         let service = SessionRecoveryService(

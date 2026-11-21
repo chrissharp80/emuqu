@@ -648,7 +648,7 @@ Each migration uses 3-phase locking to avoid blocking the main thread:
       └→ removeDuplicates()        — delete same-night duplicate overnight sessions
       └→ relinkSameNightSessions() — fix unlinked same-night split-sleep segments
 
-And `collector.runDeferredSessionMigrationsIfNeeded()`
+And `reanalysis.runDeferredSessionMigrationsIfNeeded()` (the app's `SessionReanalysisCoordinator`)
 (`SessionDataMigrations.runAllIfNeeded`), which steps through, in order:
   └→ runInsufficientDataMigrationIfNeeded()
       Guarded by UserDefaults `didRunInsufficientDataMigration_v1` —
@@ -854,8 +854,8 @@ SleepTimelineEditorView
         │  nights) count their envelope duration as unspecified sleep
         └─ Provenance preserved per interval
       ↓
-      collector.updateSessionSleepBoundaries(sessionId, sleepData,
-                                             isUserAdjustment: true)
+      reanalysisService.updateSessionSleepBoundaries(sessionId, sleepData,
+                                                     isUserAdjustment: true)
         ├─ Sets sleepUserAdjusted = true (blocks retroApplySleepSettings)
         ├─ Rescores via RecoveryScoreCalculator
         ├─ archive.archive(updatedSession)
@@ -923,7 +923,7 @@ Dashboard
   ├─ ScoreChangedBanner (tint = primary if delta ≥ 0, orange if < 0)
   │   Shown when PendingScoreChange.read() returns a non-nil entry.
   │   Written by recordPendingScoreChangeIfMeaningful() in the rescore
-  │   listener (RRCollector+Reanalysis.swift) when an auto-rescore moves
+  │   listener (SessionReanalysisCoordinator+Listeners.swift) when an auto-rescore moves
   │   the score by ≥ 3 points (e.g. Apple Watch synced sleep at 11 AM,
   │   score climbed 67 → 74). Title text reflects the reason:
   │     "Sleep data finished syncing — score updated · 67 → 74"
@@ -1006,8 +1006,8 @@ as orphaned code in the next audit.
 ```
 HealthKitManager.exportSessionMetrics(session)  — per-metric do/catch,
 each gated by its own export setting
-  ├─ exportWindowedHRV(session)
-  │   HKQuantitySample (SDNN), one per ~5-min window
+  ├─ exportHRV(session)
+  │   HKQuantitySample (SDNN), one per ~5-min window, or one summary
   ├─ exportHeartRateSeries(session)
   │   One discrete HKQuantitySample per minute (not a series builder)
   ├─ exportRestingHeartRate — one per day, nocturnal median only
@@ -1015,8 +1015,13 @@ each gated by its own export setting
   │   Only when the boundaries were HR-estimated (the app is the only
   │   source). The timeline editor never exports.
   │   Apple HK constraint: Asleep samples must not overlap; InBed may.
-  └─ Per-metric failures are isolated — a single failed write does
-     not abort the remaining metrics.
+  ├─ Per-metric failures are isolated — a single failed write does
+  │  not abort the remaining metrics.
+  └─ Every write replaces through HealthSampleReplacer: read the
+     session's earlier samples, save the new ones, delete those read.
+     A failed save leaves the earlier export; replacements for the
+     same session (exports and delete-forever) run one at a time, and
+     each read, save and delete is bounded by the replacement's timeout.
 ```
 
 ---

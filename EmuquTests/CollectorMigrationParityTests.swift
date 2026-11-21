@@ -69,7 +69,12 @@ final class CollectorMigrationParityTests: XCTestCase {
         healthKit: collector.healthKit,
         settingsManager: collector.settingsManager,
         baselineTracker: collector.baselineTracker,
-        reanalysisService: collector.reanalysisService
+        reanalysisService: AppDependencies.makeSessionReanalysis(SessionReanalysisParts(
+            archive: collector.archive, healthKit: collector.healthKit, scoring: collector.scoring,
+            archiveSignal: collector.archiveSignal, cloudSync: collector.cloudSyncManager,
+            trainingMetricsCache: { AppDependencies.current.analysis.trainingMetricsCache },
+            invalidateZones: { _ in }
+        )).service
     )
     private var seededIds: [UUID] = []
     /// The host app's own values of the flags, put back after each test. The

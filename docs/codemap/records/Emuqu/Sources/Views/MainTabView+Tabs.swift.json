@@ -298,11 +298,13 @@
   },
   {
    "key": "func MainTabView.reanalyzeSession(_:method:)",
-   "hash": "6311c0cb6f9db85c",
-   "does": "Forwards to RRCollector.reanalyzeSession (ReanalysisService), returning the updated session.",
+   "hash": "7c89ee0cbf5b140b",
+   "does": "Forwards to the saved-session reanalysis (SessionReanalysisCoordinator.reanalyzeSession: in-flight guard, past-day load, ReanalysisService), returning the updated session.",
    "entry": "DashboardV2View onReanalyzeSession callback; also rescoreReport.",
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeSession(_:method:)"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.sessionReanalysis",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)"
    ],
    "reads": [],
    "writes": [
@@ -310,7 +312,9 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeSession(_:method:)": "e351483fb9f399fe"
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)": "22355b317aa90b2b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.sessionReanalysis": "7e7eff2d9ea401f1"
    }
   },
   {
