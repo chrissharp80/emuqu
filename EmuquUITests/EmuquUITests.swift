@@ -483,7 +483,10 @@ enum UITestNav {
             row = UITestFind.row(in: app, identifier: identifier, label: label, timeout: 1)
             tries += 1
         }
-        guard !(row.exists && UITestFind.isSafelyHittable(row, in: app)) else { return row }
+        guard !(row.exists && UITestFind.isSafelyHittable(row, in: app)) else {
+            if tries > 0 { waitUntilSettled(row) }
+            return row
+        }
 
         // Not found going down. The row may have been above the starting
         // position — a restored scroll offset, or a swipe that overshot — so
@@ -495,7 +498,30 @@ enum UITestNav {
             row = UITestFind.row(in: app, identifier: identifier, label: label, timeout: 1)
             tries += 1
         }
+        if tries > 0 { waitUntilSettled(row) }
         return row
+    }
+
+    /// Waits, up to `UITestTiming.s(2)`, until `element`'s frame reads the
+    /// same twice in a row.
+    ///
+    /// A swipe leaves the list decelerating, and a tap that lands on a moving
+    /// list stops the scroll instead of selecting the row. That fits TestFlight
+    /// run 44905122470: `testPrivacyPolicySubpageRenders` tapped the row 2.9 s
+    /// after its last swipe on a slow runner, the screen stayed on the Settings
+    /// root, and the test read it as a dead row (the same test passed on the
+    /// previous full run). Frames come from
+    /// `snapshot()`, which throws rather than failing the test when the
+    /// element is gone, so a vanished row ends the wait instead of breaking it.
+    private static func waitUntilSettled(_ element: XCUIElement) {
+        var last = (try? element.snapshot())?.frame
+        let deadline = Date().addingTimeInterval(UITestTiming.s(2))
+        while Date() < deadline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.15))
+            let now = (try? element.snapshot())?.frame
+            if now == nil || now == last { return }
+            last = now
+        }
     }
 
     /// More → the named row.
