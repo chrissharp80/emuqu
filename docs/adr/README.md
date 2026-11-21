@@ -45,11 +45,13 @@ write allows, record it, and repair it later.
   `.workoutTrack`).
 - The archive index is written as plain JSON when the key cannot be reached.
 
-At the next launch where the key is reachable the repairs run:
+The repairs run at the next launch where the key is reachable, and the two
+backup stores also run theirs whenever protected data becomes available or the
+app becomes active:
 `reencryptPendingSessions(in:)` rewrites the session files,
-`RawRRBackup.reencryptPendingBackups()` and
+`RawRRBackup.reencryptPendingBackups()` (on unlock, `repairAfterUnlock()`) and
 `WorkoutTrackBackup.reencryptPendingTracks()` re-seal the streamed files line by
-line and rewrite the one-shot files, and
+line and rewrite the one-shot files, on the same queue as their appends, and
 `SessionArchive.resealPlainIndexIfNeeded()` reseals the index. An id leaves the
 ledger only once its files hold no plaintext.
 
@@ -121,6 +123,10 @@ directories; the Watch app, unit tests and UI tests are separate targets.
 Long-lived services are reached through `AppDependencies` (and, on the Watch,
 `WatchDependencies`), whose `overrides` let a test substitute any of them, and
 `.shared` is read only in those two files, which
-`scripts/check_no_shared_outside_root.sh` enforces.
+`scripts/check_no_shared_outside_root.sh` enforces. `AppDependencies.current`
+has no setter; only a test puts another container in force, for a scope that
+restores the previous one. The launch work and the data purge are handed
+exactly the services they use, and `scripts/check_explicit_dependencies.sh`
+keeps container reads out of them and `install` out of app code.
 
 See [`007-single-target-composition-root.md`](007-single-target-composition-root.md).

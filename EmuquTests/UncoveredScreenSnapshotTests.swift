@@ -211,6 +211,7 @@ final class UncoveredScreenSnapshotTests: XCTestCase {
             result: result,
             recentSessions: (0 ..< 4).map { SnapshotFixtures.overnightSession(dayOffset: -$0) },
             collector: SnapshotFixtures.collector(),
+            sessionReanalysis: AppDependencies.current.collection.sessionReanalysis,
             onReanalyze: nil,
             onReanalyzeAt: nil,
             onApplyManualResult: nil,

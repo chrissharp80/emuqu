@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/RecordView.swift",
- "hash": "509de06eafce0100",
+ "hash": "637a397fd996f525",
  "role": "The Record tab's root SwiftUI view: owns all Record-tab @State, lays out the section stack, presents tag picker / pre-score prompt / morning and quick results covers, routes errors and overnight auto-acceptance, and hosts the interrupted-workout strap-recovery card.",
  "types": [
   "RecordView: struct (View) — Record tab root; observes DeviceStatus/StreamingLifecycle/SessionState/MorningCoordination/SettingsManager from the environment",
@@ -17,7 +17,7 @@
   "@State extendedCaptureMode: ExtendedCaptureMode = .both",
   "@Binding selectedTab: MainTabView.Tab; var scrollToTopToken: UUID"
  ],
- "toplevel": "Stored-property initializers: selectedSessionType defaults to .overnight, extendedCaptureMode defaults to .both (overwritten onAppear by restoreCaptureMode), breathingAudio is a fresh BreathingAudioManager per view identity. Comment RecordView.swift:6-10 says recording-state reads go through the observed sub-objects (a read through an RRCollector forwarder is tracked too but hides the dependency).",
+ "toplevel": "Stored-property initializers: selectedSessionType defaults to .overnight, extendedCaptureMode defaults to .both (overwritten onAppear by restoreCaptureMode), breathingAudio is a fresh BreathingAudioManager per view identity. Comment RecordView.swift:6-10 says recording-state reads go through the observed sub-objects (a read through an RRCollector forwarder is tracked too but hides the dependency). Environment reads: \\.dependencies (the reanalysis service and saved-session reanalysis the morning and quick result sheets call), RRCollector and the observed sub-objects.",
  "units": [
   {
    "key": "init RecordView.ResultsPresentation(session:result:)",

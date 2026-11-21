@@ -80,7 +80,7 @@
     "Emuqu/Sources/Collection/StreamingLifecycle.swift::var StreamingLifecycle.isEndingOvernight": "5b2ad0671cdd7076",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "1594d0dd9fa6bbb7",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
    }
   },
@@ -268,7 +268,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.removeExportedHRV(sessionId:from:to:)": "831ff394cded5750",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.removeExportedHRV(sessionId:from:to:)": "42edd3adb4abba69",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes": "936b8a496469997e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5"
@@ -327,7 +327,7 @@
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverHRVFromBackup(_:)": "77e86f9a75e3f993",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverWorkoutFromBackup(_:)": "54cdeaf93ee5c965",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c"
    }
   },
@@ -468,7 +468,7 @@
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "11c942aedf66b463",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -774,9 +774,9 @@
    }
   },
   {
-   "key": "func SessionRecoveryCoordinator.augmentOvernightFromStrap(sessionId:)",
-   "hash": "5cd411324b584719",
-   "does": "'Pull from strap & re-merge' for an overnight scored from the stream: unless already device/composite-sourced, reconnects, downloads the strap's recording of this night, merges via DataSourceSelector (device preferred), persists the merged series + provenance, then re-scores through reanalyzeSession.",
+   "key": "func SessionRecoveryCoordinator.augmentOvernightFromStrap(sessionId:rescoringWith:)",
+   "hash": "a097d1c79bc20632",
+   "does": "'Pull from strap & re-merge' for an overnight scored from the stream: unless already device/composite-sourced, reconnects, downloads the strap's recording of this night, merges via DataSourceSelector (device preferred), persists the merged series + provenance, then re-scores through the saved-session reanalysis the caller hands in.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
@@ -785,7 +785,7 @@
     "Emuqu/Sources/Collection/DataSourceSelector.swift::func DataSourceSelector.selectBestSource(streamingPoints:internalPoints:sessionId:sessionStart:)",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.overnightMergePoints(selection:existing:strapRR:)",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.persistMergedOvernight(session:sessionId:mergedPoints:selection:existingCount:strapCount:)",
-    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.rescoreAugmentedOvernight(_:strapCount:streamedCount:)"
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.rescoreAugmentedOvernight(_:strapCount:streamedCount:with:)"
    ],
    "reads": [
     "archive:session",
@@ -796,32 +796,32 @@
    ],
    "branches": [
     {
-     "at": "+1",
+     "at": "+3",
      "cond": "archived session not found",
      "effect": "returns .failed"
     },
     {
-     "at": "+3",
+     "at": "+5",
      "cond": "dataSourceSummary.selectedSource is 'internal' or 'composite'",
      "effect": "returns .alreadyMerged; otherwise proceeds"
     },
     {
-     "at": "+6",
+     "at": "+8",
      "cond": "reconnectStrapForAugment returned false",
      "effect": "returns .notReachable"
     },
     {
-     "at": "+8",
+     "at": "+10",
      "cond": "strap download empty",
      "effect": "returns .noStrapData (also when refused because the strap's recording is considered live, see pullStrapRecording)"
     },
     {
-     "at": "+9",
+     "at": "+11",
      "cond": "session has no rrSeries",
      "effect": "existing = [] and strap points alone go to the selector"
     },
     {
-     "at": "+14",
+     "at": "+3",
      "cond": "merge points nil (selector chose nothing useful) or archiving the merged session failed",
      "effect": "returns .failed; otherwise rescoreAugmentedOvernight"
     }
@@ -832,7 +832,7 @@
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.persistMergedOvernight(session:sessionId:mergedPoints:selection:existingCount:strapCount:)": "be7060b5a8208572",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.pullStrapRecording(for:)": "8d4d626566bdba55",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.reconnectStrapForAugment()": "dd1a4d7baeb9d923",
-    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.rescoreAugmentedOvernight(_:strapCount:streamedCount:)": "5b00785d2643b255",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.rescoreAugmentedOvernight(_:strapCount:streamedCount:with:)": "229cc80e06cb88fe",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "693154c272cdc222",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96"
    }
@@ -860,12 +860,12 @@
    "deps": {}
   },
   {
-   "key": "func SessionRecoveryCoordinator.rescoreAugmentedOvernight(_:strapCount:streamedCount:)",
-   "hash": "b04a4ed7644af76a",
-   "does": "Re-scores the merged overnight via collector.reanalyzeSession (which reloads from disk and re-archives), bumps the archive signal and returns .merged with source and beat count; the score is the rescored session's, or nil when the reanalysis failed (the archived score predates the merge).",
+   "key": "func SessionRecoveryCoordinator.rescoreAugmentedOvernight(_:strapCount:streamedCount:with:)",
+   "hash": "d2c3765250478d78",
+   "does": "Re-scores the merged overnight via the handed-in SessionReanalysisCoordinator.reanalyzeSession (which reloads from disk and re-archives), bumps the archive signal and returns .merged with source and beat count; the score is the rescored session's, or nil when the reanalysis failed (the archived score predates the merge).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeSession(_:method:)",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)",
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()"
    ],
    "reads": [
@@ -877,22 +877,22 @@
    ],
    "branches": [
     {
-     "at": "+3",
+     "at": "+5",
      "cond": "reanalyzeSession returned nil",
      "effect": "uses the persisted-but-unrescored session for source and beats; score reported nil"
     },
     {
-     "at": "+4",
+     "at": "+6",
      "cond": "final session rrSeries nil",
      "effect": "beat count 0"
     },
     {
-     "at": "+5",
+     "at": "+7",
      "cond": "dataSourceSummary/selectedSource nil (log only)",
      "effect": "logs '?'"
     },
     {
-     "at": "+8",
+     "at": "+10",
      "cond": "selectedSource nil",
      "effect": "reports 'internal'"
     }
@@ -900,7 +900,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "dd1d381f6262b4a9",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeSession(_:method:)": "e351483fb9f399fe",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)": "22355b317aa90b2b",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.dataSourceSummary(_:baseSession:totalBeats:)": "693154c272cdc222",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -1810,7 +1810,7 @@
    "deps": {
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.readableBackup(_:)": "40f44c0c9b6438d2",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c"
    }
   },

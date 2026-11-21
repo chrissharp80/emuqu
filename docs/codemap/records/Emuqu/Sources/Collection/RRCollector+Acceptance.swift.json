@@ -1,9 +1,10 @@
 {
  "file": "Emuqu/Sources/Collection/RRCollector+Acceptance.swift",
- "hash": "4b3b630ecec6d2ee",
- "role": "MorningSessionPipeline extension for the morning review outcome: accepting a complete session (delegating archive/baseline/HealthKit/CloudKit work to SessionAcceptanceService), re-scoring an archived session, clearing review UI state, and rejecting a session.",
+ "hash": "77413be309c738ae",
+ "role": "MorningSessionPipeline extension for the morning review outcome: accepting a complete session (delegating archive/baseline/HealthKit/CloudKit work to SessionAcceptanceService), re-scoring an archived session, clearing review UI state, and rejecting a session; plus the RRCollector listener that carries a saved night rewritten by reanalysis onto the review card.",
  "types": [
-  "MorningSessionPipeline: extension — accept / re-score / clear / reject"
+  "MorningSessionPipeline: extension — accept / re-score / clear / reject",
+  "RRCollector: extension — archived-copy listener and adoption onto the review card"
  ],
  "state": [],
  "toplevel": "",
@@ -197,6 +198,97 @@
     "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func MorningSessionPipeline.clearAcceptanceState()": "d45408932af4e294",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "5eae42c737d4ab45",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.processRejection(sessionId:clearPersistedRecordingState:)": "dd5e5308773988b0"
+   }
+  },
+  {
+   "key": "func RRCollector.installArchivedCopyListener()",
+   "hash": "5e1e5097d397642a",
+   "does": "Registers a block observer (posting-thread, queue nil) for .reanalysisRewroteArchivedSession; for an ArchivedSessionRewrite object it calls takeArchivedCopy on the main actor. The token goes into notificationObservers so deinit removes it.",
+   "entry": "RRCollector.wireCollaborators (collector init).",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func RRCollector.takeArchivedCopy(_:)",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)",
+    "ext:NotificationCenter.addObserver"
+   ],
+   "reads": [
+    "notif:reanalysisRewroteArchivedSession"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "object is not an ArchivedSessionRewrite",
+     "effect": "ignored"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func RRCollector.takeArchivedCopy(_:)": "89bffed2fc740002",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "443c12d5227f3e97"
+   }
+  },
+  {
+   "key": "func RRCollector.takeArchivedCopy(_:)",
+   "hash": "26f6f95148aa22da",
+   "does": "Adopts the rewritten session onto the review card (adoptArchivedCopy), except a rescore (onlyWhileAwaitingAcceptance) while no night awaits acceptance.",
+   "entry": "installArchivedCopyListener observer block.",
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func RRCollector.adoptArchivedCopy(_:)",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance"
+   ],
+   "reads": [
+    "mem:SessionState.needsAcceptance"
+   ],
+   "writes": [
+    "mem:RRCollector.currentSession",
+    "mem:SessionState.reviewArchivedEntries"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a rescore while nothing awaits acceptance",
+     "effect": "returns, card untouched"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func RRCollector.adoptArchivedCopy(_:)": "43796119c333b684",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "b611e0c61d35d899"
+   }
+  },
+  {
+   "key": "func RRCollector.adoptArchivedCopy(_:)",
+   "hash": "8dd9087bc98e3543",
+   "does": "When currentSession is the same session as the archived copy and the card holds the archive's copy (the id is reviewArchivedSessionId or the paused session), replaces it with the archived copy. With reviewArchivedEntries recorded for this id, each of tags, notes and morning feeling that differs on the card from those entries is kept from the card, the others come from the archived copy, and the entries are then reset to the archived copy's; without them the archived copy is taken whole. Otherwise does nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionState.swift::init SessionState.ReviewEntries(of:)"
+   ],
+   "reads": [
+    "mem:RRCollector.currentSession",
+    "mem:SessionState.reviewArchivedSessionId",
+    "mem:StreamingLifecycle.pausedSession",
+    "mem:SessionState.reviewArchivedEntries"
+   ],
+   "writes": [
+    "mem:RRCollector.currentSession",
+    "mem:SessionState.reviewArchivedEntries"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no currentSession, a different id, or the card is not the archive's copy (neither reviewArchivedSessionId nor the paused session)",
+     "effect": "returns, nothing changed"
+    },
+    {
+     "at": "+7",
+     "cond": "reviewArchivedEntries recorded for this id",
+     "effect": "per entry: card value kept when it differs from the recorded one; entries reset to the archived copy's"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.currentSession": "0190ca0fc6deab5f",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedSession": "dcc084a0adcf0b2b",
+    "Emuqu/Sources/Collection/SessionState.swift::init SessionState.ReviewEntries(of:)": "6aaab0fdba9aba60",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
    }
   }
  ],

@@ -1,5 +1,6 @@
 import CoreLocation
 @testable import Emuqu
+import UIKit
 import XCTest
 
 /// Workout rows whose heart rate is Apple Watch wrist HR (Apple Health) stay
@@ -316,5 +317,103 @@ final class WristHRMarkerTests: XCTestCase {
 
         XCTAssertEqual(trimmed.workoutMetadata?.samples?.count, 6)
         XCTAssertEqual(trimmed.workoutMetadata?.healthKitHROffsets, [1, 3])
+    }
+}
+
+/// The workout crash backup's torn-row handling and its repair on unlock.
+/// Not on the main actor: the in-flight test appends from several threads.
+final class WorkoutTrackBackupTests: XCTestCase {
+    private let directory = FileManager.default.temporaryDirectory
+        .appendingPathComponent("WorkoutTrackBackupTests-\(UUID().uuidString)", isDirectory: true)
+    private let id = UUID()
+    private let start = Date(timeIntervalSince1970: 1_000)
+    /// The unlock notifications these stores listen on, so the host app's
+    /// own activation never runs a repair during a test, and a post here
+    /// reaches no other store.
+    private let notifications = NotificationCenter()
+
+    override func tearDownWithError() throws {
+        PendingEncryptionLedger.clear(id, in: .workoutTrack)
+        if FileManager.default.fileExists(atPath: directory.path) {
+            try FileManager.default.removeItem(at: directory)
+        }
+        try super.tearDownWithError()
+    }
+
+    private var streamFileURL: URL {
+        directory.appendingPathComponent("\(id.uuidString)_workout_samples.jsonl")
+    }
+
+    private func sampleRows(_ range: ClosedRange<Int>) -> [WorkoutSample] {
+        range.map { WorkoutSample(offsetSec: $0, heartRate: 120) }
+    }
+
+    @discardableResult
+    private func append(_ rows: [WorkoutSample], to backup: WorkoutTrackBackup) -> Bool {
+        backup.appendIncremental(
+            sessionId: id, sport: .run, startDate: start, track: [],
+            samples: rows, healthKitHROffsets: [], barometricSamples: []
+        )
+    }
+
+    /// A kill part way through a row leaves the stream ending in a
+    /// fragment. After a relaunch the next append cuts it off and writes
+    /// that row again, so every row reads back once.
+    func testAnAppendAfterATornRowKeepsEveryRow() throws {
+        append(sampleRows(1 ... 3), to: WorkoutTrackBackup(directory: directory, notificationCenter: notifications))
+        try (Data(contentsOf: streamFileURL) + Data("{\"offsetSec\":4,\"hea".utf8)).write(to: streamFileURL)
+
+        let relaunched = WorkoutTrackBackup(directory: directory, notificationCenter: notifications)
+        XCTAssertTrue(append(sampleRows(1 ... 6), to: relaunched))
+
+        XCTAssertEqual(try XCTUnwrap(relaunched.retrieve(id)).samples.map(\.offsetSec), [1, 2, 3, 4, 5, 6])
+    }
+
+    /// Protected data becoming available reseals a workout queued with
+    /// plain rows, as a launch does.
+    func testUnlockResealsAQueuedWorkout() throws {
+        let backup = try plainQueuedWorkout(rows: 3)
+
+        notifications.post(name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
+
+        let recovered = try XCTUnwrap(backup.retrieve(id))
+        let plainLeft = SealedJSONLines.hasPlainLine(try Data(contentsOf: streamFileURL))
+        XCTAssertEqual(plainLeft, SealedJSONLines.availableManager() == nil)
+        XCTAssertEqual(PendingEncryptionLedger.pending(in: .workoutTrack).contains(id), plainLeft)
+        XCTAssertEqual(recovered.samples.map(\.offsetSec), [1, 2, 3])
+    }
+
+    /// The reseal rewrites the live stream while appends to it keep arriving
+    /// from other threads. It runs between appends, never under one, so no
+    /// row is lost or written twice.
+    func testUnlockResealLeavesAppendsInFlightIntact() throws {
+        let backup = try plainQueuedWorkout(rows: 3)
+        let rows = sampleRows(1 ... 203)
+        let (id, start) = (id, start)
+
+        DispatchQueue.concurrentPerform(iterations: 200) { step in
+            if step % 50 == 25 { backup.reencryptPendingTracks() }
+            backup.appendIncremental(
+                sessionId: id, sport: .run, startDate: start, track: [],
+                samples: Array(rows[..<(4 + step)]), healthKitHROffsets: [], barometricSamples: []
+            )
+        }
+
+        XCTAssertEqual(try XCTUnwrap(backup.retrieve(id)).samples.map(\.offsetSec), Array(1 ... 203))
+        let data = try Data(contentsOf: streamFileURL)
+        XCTAssertEqual(data.filter { $0 == UInt8(ascii: "\n") }.count, 203)
+        XCTAssertEqual(SealedJSONLines.hasPlainLine(data), SealedJSONLines.availableManager() == nil)
+    }
+
+    /// A store whose workout has a header and `rows` samples written as
+    /// plain lines, queued for re-encryption.
+    private func plainQueuedWorkout(rows: Int) throws -> WorkoutTrackBackup {
+        let backup = WorkoutTrackBackup(directory: directory, notificationCenter: notifications)
+        append([], to: backup)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        try SealedJSONLines.encode(sampleRows(1 ... rows), with: encoder, manager: nil).data.write(to: streamFileURL)
+        PendingEncryptionLedger.record(id, in: .workoutTrack)
+        return backup
     }
 }

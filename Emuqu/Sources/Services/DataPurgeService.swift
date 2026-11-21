@@ -253,9 +253,9 @@ enum DataPurgeService {
     }
 
     /// The running app's answer: `RRCollector.current` and the app's workout
-    /// recorder.
-    private static var appIsRecording: Bool {
-        isRecordingInProgress(collector: RRCollector.current, workout: AppDependencies.current.app.recorderBox.recorder)
+    /// recorder, held by `recorderBox`.
+    private static func appIsRecording(recorderBox: @MainActor () -> RecorderBox) -> Bool {
+        isRecordingInProgress(collector: RRCollector.current, workout: recorderBox().recorder)
     }
 
     /// Executes the full purge. Best-effort: each step runs independently and
@@ -268,6 +268,10 @@ enum DataPurgeService {
     /// asks `isRecordingInProgress` about the running collector
     /// (`RRCollector.current`) and the app's workout recorder
     /// (`appIsRecording`); tests pass their own answer.
+    ///
+    /// `stores` are the services every step beyond the named ones clears or
+    /// reads back; production passes the composition root's
+    /// (`AppDependencies.purgeStores`), tests their own.
     ///
     /// `deleteRemote` is a test seam: unit tests inject a stub so the suite
     /// never fires a REAL zone deletion against whatever iCloud account the
@@ -287,21 +291,22 @@ enum DataPurgeService {
         rawBackup: RawRRBackup,
         cloudSync: CloudKitSyncManager,
         settingsManager: SettingsManager,
+        stores: Stores,
         baselineTracker: BaselineTracker? = nil,
         recordingInProgress: (@MainActor () -> Bool)? = nil,
         deleteRemote: (() async -> Bool)? = nil,
         scope: PurgeScope = .device
     ) async throws(Refusal) -> Report {
-        guard !(recordingInProgress?() ?? appIsRecording) else { throw Refusal.recordingInProgress }
+        guard !(recordingInProgress?() ?? appIsRecording(recorderBox: stores.recorderBox)) else { throw Refusal.recordingInProgress }
         var errors: [String] = []
         let remoteDeleted = await purgeRemote(cloudSync: cloudSync, deleteRemote: deleteRemote, errors: &errors)
         let sweptFiles = sweepAndForget(archive: archive, rawBackup: rawBackup, scope: scope, liveSettingsFile: settingsManager.settingsURL, errors: &errors)
         let sweptDefaults = sweepAllDefaults(scope: scope, errors: &errors)
-        let directories = purgeDirectories(settingsManager: settingsManager, cloudSync: cloudSync, scope: scope, errors: &errors)
+        let directories = purgeDirectories(settingsManager: settingsManager, cloudSync: cloudSync, stores: stores, scope: scope, errors: &errors)
         resetBaseline(baselineTracker ?? RRCollector.current?.baselineTracker)
-        let fallible = purgeFallibleStores(errors: &errors)
+        let fallible = purgeFallibleStores(stores.device, errors: &errors)
         let profileReset = readBackProfile(settingsManager: settingsManager, errors: &errors)
-        let left = readBackClearedStores(settingsManager: settingsManager, cloudSync: cloudSync)
+        let left = readBackClearedStores(settingsManager: settingsManager, cloudSync: cloudSync, stores: stores)
         return Report(
             remoteDeleted: remoteDeleted, archiveDeleted: directories.archive,
             backupsDeleted: directories.backups, cloudSyncStateReset: left.cloudSyncStateReset,
@@ -335,16 +340,19 @@ enum DataPurgeService {
     /// and the units preference are read from `UserDefaults`, where they are
     /// stored; the assistant's flag must also be off in the view model, which
     /// gates on its own copy.
-    private static func readBackClearedStores(settingsManager: SettingsManager, cloudSync: CloudKitSyncManager) -> ReadBack {
-        let assistant = AppDependencies.current.assistant
-        let breadcrumbs = AppDependencies.current.location.breadcrumbStore
+    private static func readBackClearedStores(
+        settingsManager: SettingsManager, cloudSync: CloudKitSyncManager, stores: Stores
+    ) -> ReadBack {
+        let assistant = stores.assistant
+        let facts = assistant.userFactsStore()
+        let breadcrumbs = stores.location.breadcrumbStore()
         return ReadBack(
             cloudSyncStateReset: cloudSync.lastSyncDate == nil && !cloudSync.zoneCreated,
-            conversationsCleared: assistant.conversationStore.isEmptyOnDisk(),
-            userFactsCleared: assistant.userFactsStore.facts.isEmpty && assistant.userFactsStore.persistedFacts()?.isEmpty == true,
+            conversationsCleared: assistant.conversationStore().isEmptyOnDisk(),
+            userFactsCleared: facts.facts.isEmpty && facts.persistedFacts()?.isEmpty == true,
             disclaimerReset: !settingsManager.hasAcceptedDisclaimer,
             assistantDisclaimerReset: !UserDefaults.standard.bool(forKey: AssistantViewModel.disclaimerKey)
-                && !assistant.assistantViewModel.hasAcceptedDisclaimer,
+                && !assistant.assistantViewModel().hasAcceptedDisclaimer,
             unitsPreferenceReset: UnitsPreferenceStore.current == .auto,
             breadcrumbsCleared: !breadcrumbs.hasActiveTrail() && !breadcrumbs.hasArchiveFile()
         )
@@ -659,6 +667,7 @@ enum DataPurgeService {
     private static func purgeDirectories(
         settingsManager: SettingsManager,
         cloudSync: CloudKitSyncManager,
+        stores: Stores,
         scope: PurgeScope,
         errors: inout [String]
     ) -> (archive: Bool, backups: Bool, keychainCleared: Bool) {
@@ -672,9 +681,9 @@ enum DataPurgeService {
             label: String(localized: "Raw backups", bundle: LanguageManager.appBundle),
             reportMissingContainer: false, errors: &errors
         )
-        let keychainCleared = purgeLocalStores(cloudSync: cloudSync, settingsManager: settingsManager)
-        cancelMorningNotifications()
-        purgeHealthCaches(errors: &errors)
+        let keychainCleared = purgeLocalStores(cloudSync: cloudSync, settingsManager: settingsManager, stores: stores)
+        cancelMorningNotifications(stores.device.morningNotificationScheduler)
+        purgeHealthCaches(stores, errors: &errors)
         return (archive, backups, keychainCleared)
     }
 
@@ -684,9 +693,9 @@ enum DataPurgeService {
         let crashLogsCleared: Bool
     }
 
-    private static func purgeFallibleStores(errors: inout [String]) -> FallibleSteps {
-        let debugLogCleared = purgeDebugLog(errors: &errors)
-        let crashLogsCleared = purgeCrashLogs(errors: &errors)
+    private static func purgeFallibleStores(_ device: Stores.Device, errors: inout [String]) -> FallibleSteps {
+        let debugLogCleared = purgeDebugLog(device.debugLogger, errors: &errors)
+        let crashLogsCleared = purgeCrashLogs(device.crashLogManager, errors: &errors)
         // The archive and raw backups are gone, so any pending re-encryption
         // entries point at files that no longer exist.
         PendingEncryptionLedger.clearAll()
@@ -750,15 +759,15 @@ enum DataPurgeService {
     /// back on would start rebuilding it as soon as they finished onboarding
     /// again, unless they noticed the pre-set toggle. Onboarding's backup page
     /// shows the switch off, and turning it on there is their choice.
-    private static func purgeLocalStores(cloudSync: CloudKitSyncManager, settingsManager: SettingsManager) -> Bool {
-        AppDependencies.current.storage.workoutTrackBackup.purgeAll()
+    private static func purgeLocalStores(cloudSync: CloudKitSyncManager, settingsManager: SettingsManager, stores: Stores) -> Bool {
+        stores.device.workoutTrackBackup().purgeAll()
         cloudSync.resetLocalSyncState()
-        let keychainCleared = AppDependencies.current.providers.apiKeyStore.removeAllKeys()
+        let keychainCleared = stores.assistant.apiKeyStore().removeAllKeys()
         // The view model too, not only its store: the turns on screen stayed in
         // memory, and the next message saved the whole old chat back to disk.
-        AppDependencies.current.assistant.assistantViewModel.clearConversation()
-        AppDependencies.current.assistant.conversationStore.clear()
-        AppDependencies.current.assistant.userFactsStore.clear()
+        stores.assistant.assistantViewModel().clearConversation()
+        stores.assistant.conversationStore().clear()
+        stores.assistant.userFactsStore().clear()
         // Not `hasAcceptedDisclaimer = false` alone: that resets one flag
         // and leaves the whole biometric profile (age, body weight, resting
         // HR, max HR, LTHR, FTP, sleep schedule) in place through an erasure
@@ -767,17 +776,17 @@ enum DataPurgeService {
         settingsManager.settings.iCloudSyncEnabled = false
         UserDefaults.standard.removeObject(forKey: AssistantViewModel.disclaimerKey)
         UnitsPreferenceStore.current = .auto
-        AppDependencies.current.location.breadcrumbStore.clear()
-        AppDependencies.current.location.breadcrumbStore.eraseArchive()
-        forgetInMemoryStores()
+        stores.location.breadcrumbStore().clear()
+        stores.location.breadcrumbStore().eraseArchive()
+        forgetInMemoryStores(stores)
         return keychainCleared
     }
 
     /// Resetting the settings turns the daily report off, but the repeating request
     /// iOS holds stays scheduled until it is removed, and a delivered
     /// morning push can still show a score on the lock screen.
-    private static func cancelMorningNotifications() {
-        AppDependencies.current.services.morningNotificationScheduler.cancelAll()
+    private static func cancelMorningNotifications(_ scheduler: @MainActor () -> MorningNotificationScheduler) {
+        scheduler().cancelAll()
         UNUserNotificationCenter.current().removeAllDeliveredNotifications()
     }
 
@@ -790,31 +799,31 @@ enum DataPurgeService {
     /// The display cache (dashboard and fitness snapshots) and the training
     /// load cache (current metrics and the 400-day series) go the same way:
     /// each rewrote its pre-purge snapshot on its next persist.
-    private static func forgetInMemoryStores() {
-        let location = AppDependencies.current.location
-        location.activeRouteSession.disengage()
-        location.savedRouteStore.forgetAfterPurge()
-        location.breadcrumbRecorder.forgetAfterPurge()
-        location.ambientLocationService.forgetAfterPurge()
-        AppDependencies.current.app.emailContactStore.forgetAfterPurge()
-        AppDependencies.current.assistant.assistantArtifactStore.forgetAfterPurge()
-        AppDependencies.current.storage.uiStateCache.forgetAfterPurge()
-        AppDependencies.current.analysis.trainingMetricsCache.forgetAfterPurge()
-        forgetAssistantAgreements()
+    private static func forgetInMemoryStores(_ stores: Stores) {
+        let location = stores.location
+        location.activeRouteSession().disengage()
+        location.savedRouteStore().forgetAfterPurge()
+        location.breadcrumbRecorder().forgetAfterPurge()
+        location.ambientLocationService().forgetAfterPurge()
+        stores.device.emailContactStore().forgetAfterPurge()
+        stores.assistant.assistantArtifactStore().forgetAfterPurge()
+        stores.device.uiStateCache().forgetAfterPurge()
+        stores.device.trainingMetricsCache().forgetAfterPurge()
+        forgetAssistantAgreements(stores.assistant)
     }
 
     /// The defaults behind these are swept, but both are also held in memory
     /// for the life of the process, so until the app restarted a re-added key
     /// sent data with no consent sheet and voice chat started with no
     /// disclaimer.
-    private static func forgetAssistantAgreements() {
+    private static func forgetAssistantAgreements(_ assistant: Stores.Assistant) {
         for provider in ProviderConsentTracker.providersRequiringConsent {
-            AppDependencies.current.providers.providerConsentTracker.revoke(provider)
+            assistant.providerConsentTracker().revoke(provider)
         }
-        AppDependencies.current.assistant.assistantViewModel.hasAcceptedDisclaimer = false
+        assistant.assistantViewModel().hasAcceptedDisclaimer = false
     }
 
-    /// `AppDependencies.current.app.debugLogger.clear()` empties the logger's
+    /// `DebugLogger.clear()` empties the logger's
     /// memory and queues removal of its file. The container sweep already
     /// removed the file that existed before the purge, but the logger keeps
     /// writing while the purge runs, and neither the sweep's count nor the
@@ -822,8 +831,8 @@ enum DataPurgeService {
     /// synchronous removal of whatever is left at the logger's path
     /// (`AppConfig.sharedContainerURL()`) is what the "Debug log" line
     /// reports.
-    private static func purgeDebugLog(errors: inout [String]) -> Bool {
-        AppDependencies.current.app.debugLogger.clear()
+    private static func purgeDebugLog(_ logger: @MainActor () -> DebugLogger, errors: inout [String]) -> Bool {
+        logger().clear()
         let fm = FileManager.default
         let path = AppConfig.sharedContainerURL().appendingPathComponent("debug_log.txt")
         guard fm.fileExists(atPath: path.path) else { return true }
@@ -837,9 +846,9 @@ enum DataPurgeService {
     }
 
     /// Crash logs (current + previous boot).
-    private static func purgeCrashLogs(errors: inout [String]) -> Bool {
+    private static func purgeCrashLogs(_ crashLogs: @MainActor () -> CrashLogManager, errors: inout [String]) -> Bool {
         do {
-            try AppDependencies.current.app.crashLogManager.clearAll()
+            try crashLogs().clearAll()
             return true
         } catch {
             errors.append(String(localized: "Crash logs: \(error.localizedDescription)", bundle: LanguageManager.appBundle))
@@ -870,17 +879,68 @@ enum DataPurgeService {
     /// `Feedback/` JSON file. Same erasure-gap class as the breadcrumb and
     /// widget steps: without these a "Delete All My Data" left health data on
     /// device. A feedback log that is there and cannot be removed is reported.
-    private static func purgeHealthCaches(errors: inout [String]) {
-        AppDependencies.current.analysis.heatAcclimationCache.clear()
-        AppDependencies.current.providers.llmCacheTelemetry.reset()
-        AppDependencies.current.providers.llmRequestAudit.clear()
+    private static func purgeHealthCaches(_ stores: Stores, errors: inout [String]) {
+        stores.device.heatAcclimationCache().clear()
+        stores.assistant.llmCacheTelemetry().reset()
+        stores.assistant.llmRequestAudit().clear()
         SleepDataCache.clear()
         RespiratoryBaselineCache.clear()
         WristTemperatureBaselineCache.clear()
         do {
-            try AppDependencies.current.services.recoveryScoreFeedbackStore.clearAll()
+            try stores.device.recoveryScoreFeedbackStore().clearAll()
         } catch {
             errors.append(String(localized: "Recovery score feedback: \(error.localizedDescription)", bundle: LanguageManager.appBundle))
+        }
+    }
+}
+
+extension DataPurgeService {
+    /// The services the purge clears, forgets or reads back beyond the ones
+    /// passed by name, handed over by the composition root
+    /// (`AppDependencies.purgeStores`). Each is a resolver, not an instance,
+    /// so a service is built only when the purge reaches its step, as the
+    /// root's own accessors are, and a refused purge builds none. Grouped by
+    /// the steps that use them.
+    struct Stores {
+        /// Holds the app's workout recorder, which `appIsRecording` asks about.
+        let recorderBox: @MainActor () -> RecorderBox
+        let assistant: Assistant
+        let location: Location
+        let device: Device
+
+        /// The AI assistant's chat, memory, consent, keys and telemetry.
+        struct Assistant {
+            let assistantViewModel: @MainActor () -> AssistantViewModel
+            let conversationStore: @MainActor () -> ConversationStore
+            let userFactsStore: @MainActor () -> UserFactsStore
+            let assistantArtifactStore: @MainActor () -> AssistantArtifactStore
+            let providerConsentTracker: @MainActor () -> ProviderConsentTracker
+            let apiKeyStore: @MainActor () -> APIKeyStore
+            let llmCacheTelemetry: @MainActor () -> LLMCacheTelemetry
+            let llmRequestAudit: @MainActor () -> LLMRequestAudit
+        }
+
+        /// Trails, routes and the location the app holds.
+        struct Location {
+            let breadcrumbStore: @MainActor () -> BreadcrumbStore
+            let breadcrumbRecorder: @MainActor () -> BreadcrumbRecorder
+            let activeRouteSession: @MainActor () -> ActiveRouteSession
+            let savedRouteStore: @MainActor () -> SavedRouteStore
+            let ambientLocationService: @MainActor () -> AmbientLocationService
+        }
+
+        /// Everything else on the device: backups, caches, logs and the
+        /// morning push.
+        struct Device {
+            let workoutTrackBackup: @MainActor () -> WorkoutTrackBackup
+            let morningNotificationScheduler: @MainActor () -> MorningNotificationScheduler
+            let emailContactStore: @MainActor () -> EmailContactStore
+            let uiStateCache: @MainActor () -> UIStateCache
+            let trainingMetricsCache: @MainActor () -> TrainingMetricsCache
+            let heatAcclimationCache: @MainActor () -> HeatAcclimationCache
+            let recoveryScoreFeedbackStore: @MainActor () -> RecoveryScoreFeedbackStore
+            let debugLogger: @MainActor () -> DebugLogger
+            let crashLogManager: @MainActor () -> CrashLogManager
         }
     }
 }

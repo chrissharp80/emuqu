@@ -1,13 +1,13 @@
 {
  "file": "EmuquTests/ReanalysisServiceTests.swift",
- "hash": "8c15e5882b8dd225",
- "role": "XCTest suite for ReanalysisService: computeFrozenReadiness (0-10 frozen readiness), late HealthKit sleep attaching to a session without a snapshot but never over a user-adjusted night, and scoringVitals' strap nocturnal-HR swap.",
+ "hash": "0d4fc08eb4e87d82",
+ "role": "XCTest suite for ReanalysisService: computeFrozenReadiness (0-10 frozen readiness), late HealthKit sleep attaching to a session without a snapshot but never over a user-adjusted night, the optimistic rescore write, scoringVitals' strap nocturnal-HR swap, and manual windows that keep the stored beats when the copy handed in has none or the archived copy cannot be read.",
  "types": [
   "ReanalysisServiceTests: class — @MainActor XCTestCase for ReanalysisService"
  ],
  "state": [
   "archiveDirectory: nonisolated let temp dir ReanalysisSleepTests-<UUID>",
-  "archive: lazy SessionArchive over archiveDirectory with fixed 22:00/8 h sleep schedule and merge mode .off",
+  "archive: lazy makeArchive() over archiveDirectory with fixed 22:00/8 h sleep schedule and merge mode .off",
   "nightStart: Date(4_102_444_800) = 2100-01-01T00:00Z",
   "file:<tmp>/ReanalysisSleepTests-<UUID>/ (hermetic SessionArchive)",
   "baselineFile: nonisolated let temp file ReanalysisBaseline-<UUID>.json (the service's BaselineTracker file)",
@@ -121,6 +121,23 @@
    }
   },
   {
+   "key": "func ReanalysisServiceTests.makeArchive()",
+   "hash": "655eeb5dac781ec2",
+   "does": "A SessionArchive over the test directory with a fixed 22:00/8 h sleep schedule and merge mode .off; a second one reads the index as it is on disk.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)"
+   ],
+   "reads": [
+    "file:<tmp>/ReanalysisSleepTests-<UUID>/"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3"
+   }
+  },
+  {
    "key": "func ReanalysisServiceTests.tearDown()",
    "hash": "1f45094090e081bb",
    "does": "tearDown: removes the temp archive directory and the temp baseline-tracker file; a missing directory or file error is swallowed.",
@@ -146,23 +163,29 @@
    "deps": {}
   },
   {
-   "key": "func ReanalysisServiceTests.makeService(analysis:)",
-   "hash": "c21d7d49d4fd0faa",
-   "does": "Builds a ReanalysisService on the test archive and baseline file with a mock HealthKit, default settings, fixed ANS config, no training provider, and both analysis closures answered by `analysis` (default nil, failing every pass).",
+   "key": "func ReanalysisServiceTests.makeService(on:analysis:)",
+   "hash": "5f5c95ca4bdf393c",
+   "does": "Builds a ReanalysisService on the given archive (the test archive by default) and the test baseline file, with a mock HealthKit, default settings, fixed ANS config, no training provider, and both analysis closures answered by `analysis` (default nil, failing every pass), and callbacks that do nothing.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/ReanalysisService.swift::init ReanalysisService(archive:healthKit:analysisPipeline:windowSelector:artifactDetector:baselineTracker:settingsProvider:scoringConfigProvider:ansConfigProvider:trainingContextProvider:analyzeWithWindow:analyzeFullSession:onArchiveChanged:onSessionUploaded:)"
+    "Emuqu/Sources/Services/ReanalysisService.swift::init ReanalysisService(archive:healthKit:analysisPipeline:windowSelector:artifactDetector:baselineTracker:settingsProvider:scoringConfigProvider:ansConfigProvider:trainingContextProvider:analyzeWithWindow:analyzeFullSession:onArchiveChanged:onSessionUploaded:onZonesStale:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no archive given",
+     "effect": "the test archive"
+    }
+   ],
    "deps": {
     "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "30cd3e6093580ceb",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)": "a41f1bac098eee8d",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::init HRVAnalysisPipeline(artifactDetector:windowSelector:healthKit:)": "54452f1dbb11842d",
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
     "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "1c099582675121a6",
-    "Emuqu/Sources/Services/ReanalysisService.swift::init ReanalysisService(archive:healthKit:analysisPipeline:windowSelector:artifactDetector:baselineTracker:settingsProvider:scoringConfigProvider:ansConfigProvider:trainingContextProvider:analyzeWithWindow:analyzeFullSession:onArchiveChanged:onSessionUploaded:)": "54b229e09e5956c3",
+    "Emuqu/Sources/Services/ReanalysisService.swift::init ReanalysisService(archive:healthKit:analysisPipeline:windowSelector:artifactDetector:baselineTracker:settingsProvider:scoringConfigProvider:ansConfigProvider:trainingContextProvider:analyzeWithWindow:analyzeFullSession:onArchiveChanged:onSessionUploaded:onZonesStale:)": "87a185c72b0374ca",
     "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb"
    }
   },
@@ -204,7 +227,7 @@
    "calls": [
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.watchNight(minutes:)",
-    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(analysis:)",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)",
@@ -243,7 +266,7 @@
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43",
-    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(analysis:)": "3f2f775e598a275d",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)": "3f2f775e598a275d",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.watchNight(minutes:)": "615d50c08c15ebf4"
    }
@@ -256,7 +279,7 @@
    "calls": [
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.watchNight(minutes:)",
-    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(analysis:)",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)",
@@ -283,7 +306,7 @@
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
     "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43",
-    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(analysis:)": "3f2f775e598a275d",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)": "3f2f775e598a275d",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.watchNight(minutes:)": "615d50c08c15ebf4"
    }
@@ -406,7 +429,7 @@
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.watchNight(minutes:)",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.beats(count:)",
-    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(analysis:)",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.editSleep(of:in:nightStart:)",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.analysis(at:)",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeSession(_:method:preserveManualWindows:)",
@@ -432,7 +455,7 @@
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.analysis(at:)": "fc936bea74adfbb7",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.beats(count:)": "682db60a9bb4652b",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.editSleep(of:in:nightStart:)": "fee9d610f1a7229a",
-    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(analysis:)": "3f2f775e598a275d",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)": "3f2f775e598a275d",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.watchNight(minutes:)": "615d50c08c15ebf4"
    }
@@ -445,7 +468,7 @@
    "calls": [
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.beats(count:)",
-    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(analysis:)",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.pickWindow(of:in:)",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.analysis(at:)",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeSession(_:method:preserveManualWindows:)",
@@ -466,9 +489,103 @@
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.analysis(at:)": "fc936bea74adfbb7",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.beats(count:)": "682db60a9bb4652b",
-    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(analysis:)": "3f2f775e598a275d",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)": "3f2f775e598a275d",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.pickWindow(of:in:)": "2535493255b75032"
+   }
+  },
+  {
+   "key": "func ReanalysisServiceTests.testAManualWindowOnALightweightCopyKeepsTheStoredBeats()",
+   "hash": "16230987c3fca79b",
+   "does": "Archives a night with 900 beats, applies a manual analysis to a copy without beats, and asserts the result is marked windowUserAdjusted and the stored copy still has 900 beats.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.beats(count:)",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.analysis(at:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyManualAnalysis(_:result:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive"
+   ],
+   "writes": [
+    "archive:SessionArchive"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyManualAnalysis(_:result:)": "a33c0cff3e7e52a8",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.analysis(at:)": "fc936bea74adfbb7",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.beats(count:)": "682db60a9bb4652b",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)": "b0f4b9863a086bbe",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e"
+   }
+  },
+  {
+   "key": "func ReanalysisServiceTests.testAManualWindowWhoseArchivedCopyCannotBeReadKeepsTheStoredBeats()",
+   "hash": "075a3a1da82b9336",
+   "does": "Archives a night with 900 beats, forges its index hash so a fresh archive's retrieve throws (asserted), applies a manual analysis through that archive to a copy without beats, and asserts a fresh archive's stored-beats classification still finds 900 beats (spliced back by the archive or the write refused).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.beats(count:)",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.forgeIndexHash(of:in:)",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeArchive()",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.analysis(at:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyManualAnalysis(_:result:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive",
+    "file:<tmp>/ReanalysisSleepTests-<UUID>/index.json"
+   ],
+   "writes": [
+    "archive:SessionArchive",
+    "file:<tmp>/ReanalysisSleepTests-<UUID>/index.json"
+   ],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "stored beats not found",
+     "effect": "XCTFail"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyManualAnalysis(_:result:)": "a33c0cff3e7e52a8",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)": "c2573033590d042e",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.analysis(at:)": "fc936bea74adfbb7",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.beats(count:)": "682db60a9bb4652b",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.forgeIndexHash(of:in:)": "ba4a94e3ed1ac2e3",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeArchive()": "af9090dc84fc6283",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)": "b0f4b9863a086bbe",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e"
+   }
+  },
+  {
+   "key": "func ReanalysisServiceTests.forgeIndexHash(of:in:)",
+   "hash": "69c0c7ee0bf22f62",
+   "does": "Rewrites the archive directory's index.json (decoded with SessionArchive.indexJSON) with the entry's fileHash replaced by 64 zeros, atomically.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.indexJSON(_:)"
+   ],
+   "reads": [
+    "file:<tmp>/ReanalysisSleepTests-<UUID>/index.json"
+   ],
+   "writes": [
+    "file:<tmp>/ReanalysisSleepTests-<UUID>/index.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.indexJSON(_:)": "6b9b20505f4ffd9a"
    }
   },
   {
@@ -575,7 +692,7 @@
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()",
-    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(analysis:)",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
@@ -593,7 +710,7 @@
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.unlinkSegment(segmentId:fromSession:)": "aed4c03d408fe088",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
-    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(analysis:)": "3f2f775e598a275d",
+    "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.makeService(on:analysis:)": "3f2f775e598a275d",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e"
    }
   },

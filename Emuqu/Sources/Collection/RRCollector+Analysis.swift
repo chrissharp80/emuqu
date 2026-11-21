@@ -78,28 +78,19 @@ extension MorningSessionPipeline {
 
     // MARK: - Analysis (delegates to HRVAnalysisPipeline)
 
-    /// Analyze session using provided window
+    /// Analyze session using provided window, with the training context and
+    /// ANS configuration saved-session reanalysis also uses
+    /// (`SessionScoringContext.analyze(_:window:flags:peakCapacity:pipeline:)`).
     func analyze(_ session: HRVSession, window: WindowSelector.RecoveryWindow, flags: [ArtifactFlags], peakCapacity: PeakCapacity? = nil) async -> HRVAnalysisResult? {
-        let sessionDate = session.endDate ?? session.startDate
-        return await collector.analysisPipeline.analyzeWithWindow(
-            session: session,
-            window: window,
-            flags: flags,
-            peakCapacity: peakCapacity,
-            trainingContext: await collector.createTrainingContextEnsuringFresh(relativeTo: sessionDate),
-            ansConfig: collector.ansConfig(for: session)
+        await collector.scoring.analyze(
+            session, window: window, flags: flags, peakCapacity: peakCapacity, pipeline: collector.analysisPipeline
         )
     }
 
     /// Analyze full session when no organized recovery window detected
+    /// (`SessionScoringContext.analyze(_:peakCapacity:pipeline:)`).
     func analyze(_ session: HRVSession, peakCapacity: PeakCapacity?) async -> HRVAnalysisResult? {
-        let sessionDate = session.endDate ?? session.startDate
-        return await collector.analysisPipeline.analyzeFullSession(
-            session: session,
-            peakCapacity: peakCapacity,
-            trainingContext: await collector.createTrainingContextEnsuringFresh(relativeTo: sessionDate),
-            ansConfig: collector.ansConfig(for: session)
-        )
+        await collector.scoring.analyze(session, peakCapacity: peakCapacity, pipeline: collector.analysisPipeline)
     }
 
     /// Fallback: analyze session with automatic window selection

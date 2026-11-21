@@ -207,14 +207,10 @@ extension ReanalysisService {
     /// The archived copy of `session` when there is one, so a manual pick
     /// starts from what the archive holds now (a sleep edit, merge or rescore
     /// made after the sheet captured its copy), not the sheet's copy. Falls
-    /// back to `session` when it is not archived or the read fails.
+    /// back to `session` when it is not archived or the read fails; a failed
+    /// read is logged at `.error` (`ArchivedSessionRead`).
     private func latestArchivedCopy(of session: HRVSession) -> HRVSession {
-        do {
-            return try archive.retrieve(session.id) ?? session
-        } catch {
-            debugLog("[ReanalysisService] Archive read failed for \(session.id.uuidString.prefix(8)); using the given copy: \(error)", level: .warning)
-            return session
-        }
+        ArchivedSessionRead.read(session.id, from: archive, caller: "manualWindow").session ?? session
     }
 
     /// Keep frozen snapshots so manual reanalysis remains deterministic and local.
@@ -596,7 +592,7 @@ extension ReanalysisService {
             Task { self.onSessionUploaded(sessionToUpload) }
             return true
         } catch {
-            debugLog("[ReanalysisService] Failed to unlink segment: \(error)")
+            debugLog("[ReanalysisService] Failed to unlink segment: \(error)", level: .error)
             return false
         }
     }
@@ -647,6 +643,34 @@ extension ReanalysisService {
                 debugLog("[ReanalysisService] Reanalysis after unlink returned nil — session archived with stripped data only")
             }
             await MainActor.run { self.onArchiveChanged() }
+        }
+    }
+}
+
+/// What reading one session from the archive found. A read that throws (a
+/// corrupt or undecryptable file, a hash mismatch, a storage error) is not
+/// "not archived": callers that fall back to the copy they were given must
+/// still see the failure, so `read` logs it at `.error`, which files it in
+/// the Recent Problems catalog.
+enum ArchivedSessionRead: Sendable {
+    case stored(HRVSession)
+    case notArchived
+    case unreadable
+
+    /// The archived copy, when the read found one.
+    var session: HRVSession? {
+        if case .stored(let session) = self { return session }
+        return nil
+    }
+
+    /// Read `sessionId` from `archive`. `caller` names the path in the log line.
+    static func read(_ sessionId: UUID, from archive: SessionArchive, caller: String) -> ArchivedSessionRead {
+        do {
+            guard let stored = try archive.retrieve(sessionId) else { return .notArchived }
+            return .stored(stored)
+        } catch {
+            debugLog("[ReanalysisService] \(caller): archive read of \(sessionId.uuidString.prefix(8)) failed: \(error)", level: .error)
+            return .unreadable
         }
     }
 }

@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/SettingsView+Pages.swift",
- "hash": "5a8b16ced15c1fb0",
+ "hash": "55b3d21f3c809377",
  "role": "Settings sub-pages for Profile (birthday, fitness level, sex, units, default email recipients, inline email address book) and Sleep (schedule, Apple Health sleep toggles with HRV-stage retro-apply confirmation, split/merge sleep options).",
  "types": [
   "ProfileSettingsPage: struct (View) — profile form bound to SettingsManager.settings and UnitsPreferenceStore",
@@ -12,7 +12,7 @@
   "mem:EmailContactsSection.newName/newEmail/newNotes/showInvalidEmail/showSaveFailed (@State form fields and alerts)",
   "mem:SleepSettingsPage.isRetroApplying/retroApplyProgress/retroApplyTotal/showingRetroApplyAlert/retroApplyMessage/showingRetroApplyConfirm/pendingHRVAugmentation/isRevertingHRVToggle (@State)"
  ],
- "toplevel": "ProfileSettingsPage.unitsPreference initial value reads UnitsPreferenceStore.current (App Group UserDefaults key fitness.unitsPreference, migrating a legacy .standard value) at line 13. Environment reads: SettingsManager, LanguageManager, RRCollector, \\.dependencies. No #if blocks.",
+ "toplevel": "ProfileSettingsPage.unitsPreference initial value reads UnitsPreferenceStore.current (App Group UserDefaults key fitness.unitsPreference, migrating a legacy .standard value) at line 13. Environment reads: SettingsManager, LanguageManager, \\.dependencies (EmailContactsSection; SleepSettingsPage, for the saved-session reanalysis's retro-apply). No #if blocks.",
  "units": [
   {
    "key": "var ProfileSettingsPage.settingsBinding",
@@ -1313,11 +1313,13 @@
   },
   {
    "key": "func SleepSettingsPage.startRetroApply()",
-   "hash": "6bb1f45bd0e3f48f",
-   "does": "Starts the HRV sleep retro-apply pass once: resets counters, then in a Task awaits collector.retroApplySleepSettings (re-runs sleep pipeline and rescoring for every archived overnight session, persisting changed sessions) with a progress callback, then finishes on the main actor.",
+   "hash": "7cf0a48cf421be9e",
+   "does": "Starts the HRV sleep retro-apply pass once: resets counters, then in a Task awaits the saved-session reanalysis's retroApplySleepSettings (re-runs sleep pipeline and rescoring for every archived overnight session, persisting changed sessions) with a progress callback, then finishes on the main actor.",
    "entry": "Called from 'Apply to All Sessions' dialog button (line 578)",
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.retroApplySleepSettings(progress:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.sessionReanalysis",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.retroApplySleepSettings(progress:)",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::func SleepSettingsPage.publishRetroProgress(_:total:)",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::func SleepSettingsPage.finishRetroApply(count:)"
    ],
@@ -1337,7 +1339,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.retroApplySleepSettings(progress:)": "5aa2b63898af1011",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.retroApplySleepSettings(progress:)": "d0a87cf67cb95395",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.sessionReanalysis": "7e7eff2d9ea401f1",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::func SleepSettingsPage.finishRetroApply(count:)": "6cd1499bedb3000f",
     "Emuqu/Sources/Views/SettingsView+Pages.swift::func SleepSettingsPage.publishRetroProgress(_:total:)": "08217b72dc6fca65"
    }

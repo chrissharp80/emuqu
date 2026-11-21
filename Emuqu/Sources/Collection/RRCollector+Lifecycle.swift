@@ -131,7 +131,8 @@ extension RRCollector {
     /// Tokens are stored in `notificationObservers` so `deinit` removes
     /// them — block-based observers are NOT auto-removed on dealloc and would
     /// otherwise linger in `NotificationCenter` for every collector built
-    /// (tests/previews build many). Mirrors the `+Reanalysis` observer pattern.
+    /// (tests/previews build many), as `SessionReanalysisCoordinator` does
+    /// for its listeners.
     /// The flush runs inline, not in a `Task`: UIKit exits as soon as the
     /// termination notification returns, so a deferred flush never ran and up
     /// to a minute of beats went with it. Observers on `.main` make
@@ -156,23 +157,5 @@ extension RRCollector {
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.emergencyBackupFlush(force: true) }
         })
-    }
-
-    // MARK: - Deferred one-shot migrations
-
-    /// Run the one-shot session-data repairs.
-    ///
-    /// The repairs themselves live in `SessionDataMigrations`.
-    /// They use nothing of the collector's beyond these five
-    /// dependencies, and keeping them here would make `RRCollector` 504 lines larger
-    /// for no reason other than that the reference is already in scope.
-    func runDeferredSessionMigrationsIfNeeded() async {
-        await SessionDataMigrations(
-            archive: archive,
-            healthKit: healthKit,
-            settingsManager: settingsManager,
-            baselineTracker: baselineTracker,
-            reanalysisService: reanalysisService
-        ).runAllIfNeeded()
     }
 }

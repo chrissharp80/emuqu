@@ -2,6 +2,7 @@ import SwiftUI
 
 /// Recording view for HRV data collection - supports both overnight H10 recording and quick streaming
 struct RecordView: View {
+    @Environment(\.dependencies) var dependencies
     @Environment(RRCollector.self) var collector
     // Direct sub-object observation. Recording state lives on these
     // @Observable sub-objects; `RRCollector` is @Observable too, and a read

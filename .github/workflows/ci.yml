@@ -3,18 +3,18 @@ name: CI
 # Runs the macOS build, the unit suite and Thread Sanitizer on every pull
 # request and every push to main (scope `unit`). The repository is public and
 # these jobs use GitHub's standard macOS runner, on which public repositories
-# pay no Actions minutes; the billing figures below date from when it was
-# private. The UI target (scope `full`, ~90 min) stays manual and is what
-# testflight.yml calls before a release.
+# pay no Actions minutes; the billing figures below are what the same runs
+# cost on a private repository. The UI target (scope `full`, ~90 min) stays
+# manual and is what testflight.yml calls before a release.
 #
 # Reasoning and accepted trade-offs: docs/CI_POSTURE.md
 #
 # Everything here also runs locally with `make ci` (which runs the test suite
 # at scope `full`), and `make ci-local` replays these steps as written.
 #
-# Advisory, not required: the only status check `main` requires is the Linux
-# "Script gates (no Xcode)" job in gates.yml. A red run here shows on the
-# pull request or commit but does not block a merge by itself.
+# Required: `main` merges only when every job this workflow runs on a pull
+# request passes, together with the Linux "Script gates (no Xcode)" job in
+# gates.yml, on a branch that is up to date with main (docs/CI_POSTURE.md).
 on:
   # The `scope` input exists because a full run is expensive and most of the
   # cost buys very little most of the time. Typical cost of a full run:
@@ -298,6 +298,9 @@ jobs:
 
       - name: Singletons read only in the composition root
         run: ./scripts/check_no_shared_outside_root.sh
+
+      - name: Explicit dependencies stay explicit; only tests install a container
+        run: ./scripts/check_explicit_dependencies.sh
 
       # `1 ..< xs.count` traps when xs is empty — `1 ..< 0` is an invalid
       # range, not an empty one.

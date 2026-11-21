@@ -1,16 +1,16 @@
 {
  "file": "EmuquTests/RawRRBackupTests.swift",
- "hash": "d746ac66f3be59ef",
+ "hash": "9ff7d1508fac9c40",
  "role": "XCTest suite for RawRRBackup and its RawBackupSealer, each test in a folder of its own: backup/retrieve, archive marking, incremental-backup throttling, unarchived counts, purge, CSV export, hash determinism, index-window queries, allBackups ordering, entry duration/size, the never-replace-a-larger-backup and capture-date rules, re-encryption of one-shot files and streamed plain lines, verified discard, the index reconcile and the non-truncating first append.",
  "types": [
   "RawRRBackupTests: class — XCTestCase for RawRRBackup"
  ],
  "state": [
   "directory: per-test folder <tmp>/RawRRBackupTests-<uuid>, removed in tearDownWithError",
-  "backup: lazy RawRRBackup(directory:) over that folder",
+  "notifications: a private NotificationCenter the store observes unlock on; backup: lazy RawRRBackup(directory:notificationCenter:) over that folder and that center",
   "file:<tmp>/RawRRBackupTests-<uuid>/ (the test's backup store + backup_index.json)"
  ],
- "toplevel": "Each test gets a RawRRBackup in a fresh temporary folder of its own (lazy; setUp builds it and waits for the reconcile and repair its init queues), so backups other tests leave in the shared folder are never listed; tearDownWithError removes the folder. An extension of the class holds the streamed-plaintext, reconcile and first-append tests.",
+ "toplevel": "Each test gets a RawRRBackup in a fresh temporary folder of its own (lazy; setUp builds it and waits for the reconcile and repair its init queues), so backups other tests leave in the shared folder are never listed; tearDownWithError removes the folder. An extension of the class holds the streamed-plaintext, reconcile and first-append tests; a second holds the torn-line, failed-index-save and repair-on-unlock tests.",
  "units": [
   {
    "key": "func RawRRBackupTests.setUp()",
@@ -28,7 +28,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.waitForQueuedWork()": "f7b072a559ef78a5",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)": "ee0a6c3ab9df8456"
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)": "21d7d6755a44a229"
    }
   },
   {
@@ -118,7 +118,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "8366e74f21747d3b",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "e5cac17a6ce56d1c",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "e6ebfa51ed45acda",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)": "19ab8837081da4c0",
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)": "72fb3dbfe4b72a3e"
@@ -270,9 +270,9 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "8366e74f21747d3b",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "e5cac17a6ce56d1c",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackup(points:sessionId:deviceId:force:interval:)": "f4c95388828a8c5a",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackupLocked(points:sessionId:deviceId:force:interval:)": "fdfe2068d1c19525",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackupLocked(points:sessionId:deviceId:force:interval:)": "ea14ca95113fa265",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.isDue(lastBackup:interval:)": "1b5ce68001689e81",
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)": "72fb3dbfe4b72a3e"
    }
@@ -295,9 +295,9 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "8366e74f21747d3b",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "e5cac17a6ce56d1c",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackup(points:sessionId:deviceId:force:interval:)": "f4c95388828a8c5a",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackupLocked(points:sessionId:deviceId:force:interval:)": "fdfe2068d1c19525",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackupLocked(points:sessionId:deviceId:force:interval:)": "ea14ca95113fa265",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.isDue(lastBackup:interval:)": "1b5ce68001689e81",
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)": "72fb3dbfe4b72a3e"
    }
@@ -320,9 +320,9 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "8366e74f21747d3b",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "e5cac17a6ce56d1c",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackup(points:sessionId:deviceId:force:interval:)": "f4c95388828a8c5a",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackupLocked(points:sessionId:deviceId:force:interval:)": "fdfe2068d1c19525",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackupLocked(points:sessionId:deviceId:force:interval:)": "ea14ca95113fa265",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.isDue(lastBackup:interval:)": "1b5ce68001689e81",
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)": "72fb3dbfe4b72a3e"
    }
@@ -782,13 +782,13 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "8366e74f21747d3b",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "e5cac17a6ce56d1c",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.retrieveAppendFormat(sessionId:indexEntry:)": "db5d127b24c3d83c",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "e6ebfa51ed45acda",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.beatCount(of:)": "b8e3f1f3dec96ab1",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.existingIndexEntry(_:)": "af2889c779c2a45c",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackup(points:sessionId:deviceId:force:interval:)": "f4c95388828a8c5a",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackupLocked(points:sessionId:deviceId:force:interval:)": "fdfe2068d1c19525",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackupLocked(points:sessionId:deviceId:force:interval:)": "ea14ca95113fa265",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.isDue(lastBackup:interval:)": "1b5ce68001689e81",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)": "19ab8837081da4c0",
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)": "72fb3dbfe4b72a3e"
@@ -973,7 +973,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "8366e74f21747d3b",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "e5cac17a6ce56d1c",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "f5744989c4d6ef9c",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)": "19ab8837081da4c0",
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)": "72fb3dbfe4b72a3e"
@@ -999,7 +999,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "8366e74f21747d3b",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "e5cac17a6ce56d1c",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.corruptedSiblingNames(of:)": "f556e46be3726553",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "f5744989c4d6ef9c",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)": "19ab8837081da4c0",
@@ -1265,7 +1265,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "e6ebfa51ed45acda",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.discardBackup(_:)": "49a2f1ee845848b0",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.discardBackup(_:)": "a6f77e79c39a97b9",
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)": "72fb3dbfe4b72a3e"
    }
   },
@@ -1600,7 +1600,7 @@
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "c7d52a25233a7067",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "471ac438c2a3e780",
     "Emuqu/Sources/Storage/RawBackupSealer.swift::func RawBackupSealer.reencrypt(_:in:)": "566c7ccf61335915",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "8366e74f21747d3b",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "e5cac17a6ce56d1c",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.availableManager()": "3fe4c23abb6fccf2",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.encode(_:with:manager:)": "ba864e9622862fb5",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.hasPlainLine(_:)": "7fa9a505f692a5b6",
@@ -1641,7 +1641,7 @@
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "c7d52a25233a7067",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "471ac438c2a3e780",
     "Emuqu/Sources/Storage/RawBackupSealer.swift::func RawBackupSealer.reencrypt(_:in:)": "566c7ccf61335915",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "8366e74f21747d3b",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "e5cac17a6ce56d1c",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.encode(_:with:manager:)": "ba864e9622862fb5",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "f5744989c4d6ef9c",
     "Emuqu/Sources/Storage/RawRRBackup.swift::let RawRRBackup.lineEncoder": "1b3fa8e8da775522",
@@ -1669,9 +1669,9 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.reconcileIndexWithFiles()": "a4f8fbf4f79c6775",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "8366e74f21747d3b",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "e5cac17a6ce56d1c",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)": "19ab8837081da4c0",
-    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.dropRowKeepingFiles(_:)": "08dd98a4c0299833",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.dropRowKeepingFiles(_:)": "14f3b24bb9784ac4",
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)": "72fb3dbfe4b72a3e"
    }
   },
@@ -1723,9 +1723,9 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/RawRRBackup+IndexRecovery.swift::func RawRRBackup.reconcileIndexWithFiles()": "a4f8fbf4f79c6775",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "8366e74f21747d3b",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "e5cac17a6ce56d1c",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.cleanupAppendFiles(for:)": "e29f9fba7c37bb15",
-    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.dropRowKeepingFiles(_:)": "08dd98a4c0299833",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.dropRowKeepingFiles(_:)": "14f3b24bb9784ac4",
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)": "72fb3dbfe4b72a3e"
    }
   },
@@ -1748,9 +1748,9 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "8366e74f21747d3b",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "e5cac17a6ce56d1c",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)": "19ab8837081da4c0",
-    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.dropRowKeepingFiles(_:)": "08dd98a4c0299833",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.dropRowKeepingFiles(_:)": "14f3b24bb9784ac4",
     "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)": "72fb3dbfe4b72a3e"
    }
   },
@@ -1769,8 +1769,302 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.saveIndex()": "1f83d7060ae74c1c"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.saveIndex()": "de70c5b57b608142"
    }
+  },
+  {
+   "key": "func RawRRBackupTests.testAnAppendAfterATornLineKeepsEveryBeat()",
+   "hash": "37feb8cec334b9dc",
+   "does": "Appends 40 of 60 points, then adds the first 12 bytes of the next point's encoded line to the points file (a line torn by a kill) and appends all 60; asserts every beat reads back in order and the file holds exactly 60 lines. Clears the session from the raw-backup ledger afterwards.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.encodedLines(_:sessionId:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)"
+   ],
+   "reads": [
+    "file:<tmp>/RawRRBackupTests-<uuid>/<uuid>_points.jsonl"
+   ],
+   "writes": [
+    "file:<tmp>/RawRRBackupTests-<uuid>/<uuid>_points.jsonl",
+    "file:<tmp>/RawRRBackupTests-<uuid>/backup_index.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "a68d8c6c5a265e3c",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "e5cac17a6ce56d1c",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.encodedLines(_:sessionId:)": "9f78182bcc5f75e6",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "f5744989c4d6ef9c",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)": "19ab8837081da4c0",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)": "72fb3dbfe4b72a3e"
+   }
+  },
+  {
+   "key": "func RawRRBackupTests.testCompleteLinesDropOnlyATornTail()",
+   "hash": "47e3a6aaf58bbdff",
+   "does": "Asserts JSONLinesFile.completeLines keeps bytes ending in a newline, cuts bytes after the last newline, and returns nothing for bytes with no newline or no bytes.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func JSONLinesFile.completeLines(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func JSONLinesFile.completeLines(of:)": "6ed2cb8999fb9be8"
+   }
+  },
+  {
+   "key": "func RawRRBackupTests.testAFailedIndexSaveIsRetriedAndReportedUntilItLands()",
+   "hash": "9698f042a678e3f9",
+   "does": "Backs up 30 points incrementally, blocks the index file (blockIndexFile), then: a forced backup of 60 points reports false; an unforced call inside the interval reports false (not retried before the interval); with the blocker removed an unforced call with interval 0 (standing in for the interval having passed) reports true. Asserts the index on disk then holds backedUpCount 60, the points file exactly 60 lines, and that a further unforced call is throttled (false).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackup(points:sessionId:deviceId:force:interval:)",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.blockIndexFile()",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.storedIndex()",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [
+    "file:<tmp>/RawRRBackupTests-<uuid>/backup_index.json",
+    "file:<tmp>/RawRRBackupTests-<uuid>/<uuid>_points.jsonl"
+   ],
+   "writes": [
+    "file:<tmp>/RawRRBackupTests-<uuid>/backup_index.json",
+    "file:<tmp>/RawRRBackupTests-<uuid>/<uuid>_points.jsonl",
+    "file:<tmp>/RawRRBackupTests-<uuid>/<uuid>_header.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "a68d8c6c5a265e3c",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackup(points:sessionId:deviceId:force:interval:)": "f4c95388828a8c5a",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "f5744989c4d6ef9c",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.blockIndexFile()": "8dfa4d0a8728a6b7",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)": "72fb3dbfe4b72a3e",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.storedIndex()": "b67dc5fa9e51a822"
+   }
+  },
+  {
+   "key": "func RawRRBackupTests.testAOneShotBackupWhoseIndexSaveThrewOwesNothing()",
+   "hash": "1fbf9b5f5ae5ebc3",
+   "does": "Blocks the index file, then asserts a one-shot backup of 100 points throws, leaves no index row in memory for the session, and leaves indexSaveOwed false.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.blockIndexFile()",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.existingIndexEntry(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)"
+   ],
+   "reads": [
+    "mem:RawRRBackup.index",
+    "mem:RawRRBackup.indexSaveOwed"
+   ],
+   "writes": [
+    "file:<tmp>/RawRRBackupTests-<uuid>/backup_index.json (blocked by a folder)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "a68d8c6c5a265e3c",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "e6ebfa51ed45acda",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.existingIndexEntry(_:)": "af2889c779c2a45c",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.blockIndexFile()": "8dfa4d0a8728a6b7",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)": "72fb3dbfe4b72a3e"
+   }
+  },
+  {
+   "key": "func RawRRBackupTests.testAnArchivedFlagWhoseSaveThrewIsSavedOnUnlock()",
+   "hash": "f8ac78f772e4285a",
+   "does": "Writes a 100-beat one-shot backup, blocks the index file and marks the session archived (its save throws), removes the blocker, runs repairAfterUnlock and waits for the queue; asserts the index on disk marks the session archived.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.blockIndexFile()",
+    "Emuqu/Sources/Storage/RawRRBackup+Reconciliation.swift::func RawRRBackup.markAsArchived(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.repairAfterUnlock()",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.waitForQueuedWork()",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.storedIndex()",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [
+    "file:<tmp>/RawRRBackupTests-<uuid>/backup_index.json"
+   ],
+   "writes": [
+    "file:<tmp>/RawRRBackupTests-<uuid>/backup_index.json",
+    "file:<tmp>/RawRRBackupTests-<uuid>/<uuid>_<stamp>.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "a68d8c6c5a265e3c",
+    "Emuqu/Sources/Storage/RawRRBackup+Reconciliation.swift::func RawRRBackup.markAsArchived(_:)": "bd07a0cd0d67f397",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "e6ebfa51ed45acda",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.repairAfterUnlock()": "2ad93f4b3cb95dc2",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.waitForQueuedWork()": "f7b072a559ef78a5",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.blockIndexFile()": "8dfa4d0a8728a6b7",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)": "72fb3dbfe4b72a3e",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.storedIndex()": "b67dc5fa9e51a822"
+   }
+  },
+  {
+   "key": "func RawRRBackupTests.testUnlockResealsAQueuedSession()",
+   "hash": "3a1f2c8d811a90a1",
+   "does": "Makes a 50-point streamed backup whose points file holds plain lines and is queued (plainStreamedBackup), posts UIApplication.protectedDataDidBecomeAvailableNotification on the test's own center (notifications) and waits for the store's queue; asserts the file holds plain lines only when no key is reachable, the session is queued exactly while plain lines remain, and every beat reads back.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.plainStreamedBackup(_:sessionId:)",
+    "ext:NotificationCenter.post",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.waitForQueuedWork()",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.hasPlainLine(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.availableManager()",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)"
+   ],
+   "reads": [
+    "file:<tmp>/RawRRBackupTests-<uuid>/<uuid>_points.jsonl",
+    "ud:storage.pendingReencryption.rawBackupIDs"
+   ],
+   "writes": [
+    "notif:UIApplication.protectedDataDidBecomeAvailableNotification",
+    "file:<tmp>/RawRRBackupTests-<uuid>/<uuid>_points.jsonl"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "a68d8c6c5a265e3c",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "c7d52a25233a7067",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.availableManager()": "3fe4c23abb6fccf2",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.hasPlainLine(_:)": "7fa9a505f692a5b6",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "f5744989c4d6ef9c",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)": "19ab8837081da4c0",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.waitForQueuedWork()": "f7b072a559ef78a5",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)": "72fb3dbfe4b72a3e",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.plainStreamedBackup(_:sessionId:)": "fd3a47c9ce6a5738"
+   }
+  },
+  {
+   "key": "func RawRRBackupTests.testUnlockResealLeavesAppendsInFlightIntact()",
+   "hash": "40079e8ae48d2ca0",
+   "does": "Makes a 40-point streamed backup with plain, queued lines, then on concurrentPerform's threads runs 200 forced incremental backups of growing prefixes of 240 points, calling repairAfterUnlock on four of the steps; after the queue drains asserts all 240 beats read back in order, the points file holds exactly 240 lines, and it holds plain lines only when no key is reachable.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.plainStreamedBackup(_:sessionId:)",
+    "ext:DispatchQueue.concurrentPerform",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.repairAfterUnlock()",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackup(points:sessionId:deviceId:force:interval:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.waitForQueuedWork()",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.hasPlainLine(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.availableManager()",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)"
+   ],
+   "reads": [
+    "file:<tmp>/RawRRBackupTests-<uuid>/<uuid>_points.jsonl"
+   ],
+   "writes": [
+    "file:<tmp>/RawRRBackupTests-<uuid>/<uuid>_points.jsonl",
+    "file:<tmp>/RawRRBackupTests-<uuid>/backup_index.json"
+   ],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "step % 50 == 25",
+     "effect": "also queue repairAfterUnlock before that step's append"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "a68d8c6c5a265e3c",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.availableManager()": "3fe4c23abb6fccf2",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.hasPlainLine(_:)": "7fa9a505f692a5b6",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.incrementalBackup(points:sessionId:deviceId:force:interval:)": "f4c95388828a8c5a",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "f5744989c4d6ef9c",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.repairAfterUnlock()": "2ad93f4b3cb95dc2",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.retrieve(_:)": "19ab8837081da4c0",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.waitForQueuedWork()": "f7b072a559ef78a5",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.makePoints(count:startMs:)": "72fb3dbfe4b72a3e",
+    "EmuquTests/RawRRBackupTests.swift::func RawRRBackupTests.plainStreamedBackup(_:sessionId:)": "fd3a47c9ce6a5738"
+   }
+  },
+  {
+   "key": "func RawRRBackupTests.plainStreamedBackup(_:sessionId:)",
+   "hash": "01c6bbd3c717de3e",
+   "does": "Appends the points as a streamed backup, overwrites its points file with the same points as plain JSON lines (SealedJSONLines.encode without a manager) and records the session in the raw-backup ledger.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.encode(_:with:manager:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)",
+    "ext:Data.write"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/RawRRBackupTests-<uuid>/<uuid>_points.jsonl",
+    "file:<tmp>/RawRRBackupTests-<uuid>/<uuid>_header.json",
+    "file:<tmp>/RawRRBackupTests-<uuid>/backup_index.json",
+    "ud:storage.pendingReencryption.rawBackupIDs"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "471ac438c2a3e780",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "e5cac17a6ce56d1c",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.encode(_:with:manager:)": "ba864e9622862fb5",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.pointsURL(for:)": "f5744989c4d6ef9c",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::let RawRRBackup.lineEncoder": "1b3fa8e8da775522"
+   }
+  },
+  {
+   "key": "func RawRRBackupTests.blockIndexFile()",
+   "hash": "9090f5c11f6df06e",
+   "does": "Removes the index file when present and puts a non-empty folder at its path, so every index save throws until the test removes it.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.fileExists",
+    "ext:FileManager.removeItem",
+    "ext:FileManager.createDirectory",
+    "ext:Data.write"
+   ],
+   "reads": [
+    "file:<tmp>/RawRRBackupTests-<uuid>/backup_index.json"
+   ],
+   "writes": [
+    "file:<tmp>/RawRRBackupTests-<uuid>/backup_index.json (replaced by a folder holding blocker)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "index file exists",
+     "effect": "remove it first"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func RawRRBackupTests.storedIndex()",
+   "hash": "913de9bb9347f9a8",
+   "does": "Decodes (iso8601) and returns the index rows in the store's index file on disk; throws when it cannot be read or decoded.",
+   "entry": null,
+   "calls": [
+    "ext:JSONDecoder.decode",
+    "ext:Data(contentsOf:)"
+   ],
+   "reads": [
+    "file:<tmp>/RawRRBackupTests-<uuid>/backup_index.json"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {}
   }
  ],
  "deps": {}

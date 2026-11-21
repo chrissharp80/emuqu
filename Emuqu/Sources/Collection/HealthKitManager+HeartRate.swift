@@ -60,7 +60,7 @@ extension HeartRateHealthQueries {
         makeQuery: (@escaping @Sendable (T?) -> Void) -> HKQuery
     ) async -> T? {
         await withCheckedContinuation { (continuation: CheckedContinuation<T?, Never>) in
-            let finish = Self.resumeOnce(continuation)
+            let finish = resumingOnce(continuation)
             let query = makeQuery { finish($0) }
             manager.healthStore.execute(query)
             // Stopping an already-finished query is a harmless no-op; `finish`
@@ -69,22 +69,6 @@ extension HeartRateHealthQueries {
                 healthStore?.stop(query)
                 finish(nil)
             }
-        }
-    }
-
-    /// A resume-once wrapper around a continuation.
-    ///
-    /// `OSAllocatedUnfairLock` rather than `NSLock` + a mutable capture: it
-    /// owns the flag, so it is `Sendable` over `Bool` and needs no
-    /// `nonisolated(unsafe)` escape — same single-resume guarantee, one fewer
-    /// thing for `check_unchecked_sendable.sh` to have to trust.
-    nonisolated private static func resumeOnce<T: Sendable>(
-        _ continuation: CheckedContinuation<T?, Never>
-    ) -> @Sendable (T?) -> Void {
-        let resumed = OSAllocatedUnfairLock(initialState: false)
-        return { value in
-            guard !claimResume(resumed) else { return }
-            continuation.resume(returning: value)
         }
     }
 
@@ -100,34 +84,13 @@ extension HeartRateHealthQueries {
         onTimeout: @escaping @Sendable () -> Result<T, Error>
     ) async throws -> T {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<T, Error>) in
-            let finish = Self.resumeResultOnce(continuation)
+            let finish = resumingOnce(continuation)
             let query = makeQuery(finish)
             manager.healthStore.execute(query)
             DispatchQueue.global().asyncAfter(deadline: .now() + timeout) { [weak healthStore = manager.healthStore] in
                 healthStore?.stop(query)
                 finish(onTimeout())
             }
-        }
-    }
-
-    /// A resume-once wrapper around a throwing continuation. Both the query
-    /// callback and the timeout can fire; only the first one resumes.
-    nonisolated private static func resumeResultOnce<T: Sendable>(
-        _ continuation: CheckedContinuation<T, Error>
-    ) -> @Sendable (Result<T, Error>) -> Void {
-        let resumed = OSAllocatedUnfairLock(initialState: false)
-        return { result in
-            guard !claimResume(resumed) else { return }
-            continuation.resume(with: result)
-        }
-    }
-
-    /// True when someone already claimed the resume — the caller must stand down.
-    nonisolated private static func claimResume(_ resumed: OSAllocatedUnfairLock<Bool>) -> Bool {
-        resumed.withLock { state -> Bool in
-            let already = state
-            state = true
-            return already
         }
     }
 }
@@ -315,57 +278,29 @@ extension HeartRateHealthQueries {
 
     // MARK: - HR Writes
 
-    /// Idempotent write: delete any of OUR previously-written samples for this
-    /// session (matched by ExternalUUID) before saving the new set, so
-    /// re-analysing the same session never duplicates rows in Apple Health.
-    ///
-    /// The export path must not blindly `save()`: any
-    /// re-analysis / re-export would write a second copy, and users would see
-    /// doubled HR rows. HealthKit only lets an app delete samples it authored, so the
-    /// query reads only Emuqu's own samples, and the delete can only ever
-    /// remove Emuqu's own prior write.
-    private func deleteThenSave(
+    /// Replace this app's earlier HR or resting-HR export with `samples`
+    /// (`HealthSampleReplacer`): the earlier samples in `span` whose
+    /// ExternalUUID `matches` are read, the new set is saved, then exactly
+    /// those are deleted, so re-analysing a session never doubles its rows in
+    /// Apple Health. Only Emuqu's own samples are read, so nothing another
+    /// source wrote is touched. Replacements under the same `key` run one at
+    /// a time.
+    private func replace(
         _ samples: [HKQuantitySample],
         of type: HKQuantityType,
-        start: Date,
-        end: Date,
-        matches externalUUIDMatch: @escaping (String) -> Bool
+        over span: DateInterval,
+        key: String,
+        matches: @escaping (String) -> Bool
     ) async throws {
-        let existing = try await priorSamples(of: type, start: start, end: end)
-        let stale = existing.filter { sample in
-            guard let uuid = sample.metadata?[HKMetadataKeyExternalUUID] as? String else { return false }
-            return externalUUIDMatch(uuid)
-        }
-        if !stale.isEmpty {
-            try await manager.healthStore.delete(stale)
-        }
-        if !samples.isEmpty {
-            try await manager.healthStore.save(samples)
-        }
+        try await manager.sampleReplacer.replace(samples, HealthSampleReplacement(
+            type: type, span: span, timeout: Self.vitalsQueryTimeoutSec,
+            label: "heart rate export", serialKey: key, matches: matches
+        ))
     }
 
-    /// Bounded, but FAIL CLOSED on timeout: this reads OUR prior samples so we
-    /// can delete them before re-saving. An empty result would skip the delete
-    /// and re-create the duplicate Apple Health rows the idempotent
-    /// write exists to prevent, so a timed-out dedup read must abort the export (logged,
-    /// non-fatal) rather than proceed on no data.
-    private func priorSamples(of type: HKQuantityType, start: Date, end: Date) async throws -> [HKSample] {
-        // Widen a zero-length window by 1s so instant samples are queryable.
-        let queryEnd = end > start ? end : start.addingTimeInterval(1)
-        let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            HKQuery.predicateForSamples(withStart: start, end: queryEnd, options: []),
-            HKQuery.predicateForObjects(from: HKSource.default())
-        ])
-        return try await runBoundedThrowingQuery(
-            timeout: Self.vitalsQueryTimeoutSec,
-            makeQuery: { resolve in
-                HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, results, error in
-                    resolve(Self.sampleResult(results, error))
-                }
-            },
-            onTimeout: { .failure(HealthKitManager.HealthKitError.queryTimedOut("deleteThenSave dedup")) }
-        )
-    }
+    /// Resting-heart-rate replacements share one key: each reaches any
+    /// session's resting heart rate within `restingHeartRateNightSpan`.
+    nonisolated static let restingHeartRateReplaceKey = "restingHeartRate"
 
     /// HKSampleQuery hands back (results, error); exactly one is meaningful.
     nonisolated static func sampleResult(_ results: [HKSample]?, _ error: Error?) -> Result<[HKSample], Error> {
@@ -395,7 +330,9 @@ extension HeartRateHealthQueries {
             metadata: [HKMetadataKeyExternalUUID: externalUUID, "Source": "Emuqu"]
         )
         // Exact match: "-hr" must NOT swallow the "-hr-<n>" minute series.
-        try await deleteThenSave(sample.map { [$0] } ?? [], of: hrType, start: date, end: date) { $0 == externalUUID }
+        try await replace(
+            sample.map { [$0] } ?? [], of: hrType, over: DateInterval(start: date, duration: 0), key: sessionId.uuidString
+        ) { $0 == externalUUID }
     }
 
     /// Export a night's resting heart rate to Apple Health.
@@ -414,10 +351,9 @@ extension HeartRateHealthQueries {
             debugLog("[HealthKit] exportRestingHeartRate: refusing non-finite value (\(value))", level: .warning)
             return
         }
-        let span = Self.restingHeartRateNightSpan
-        try await deleteThenSave(
-            [sample], of: rhrType, start: date.addingTimeInterval(-span), end: date.addingTimeInterval(span),
-            matches: Self.isRestingHeartRateSummary
+        try await replace(
+            [sample], of: rhrType, over: Self.restingHeartRateSearchSpan(around: date),
+            key: Self.restingHeartRateReplaceKey, matches: Self.isRestingHeartRateSummary
         )
     }
 
@@ -428,10 +364,15 @@ extension HeartRateHealthQueries {
     func removeExportedRestingHeartRate(at date: Date, sessionId: UUID) async throws {
         guard manager.isHealthKitAvailable, let rhrType = HKTypes.quantity(.restingHeartRate) else { return }
         let externalUUID = HealthExportIdentity.summary(sessionId: sessionId, metric: .restingHeartRate)
-        let span = Self.restingHeartRateNightSpan
-        try await deleteThenSave(
-            [], of: rhrType, start: date.addingTimeInterval(-span), end: date.addingTimeInterval(span)
+        try await replace(
+            [], of: rhrType, over: Self.restingHeartRateSearchSpan(around: date), key: Self.restingHeartRateReplaceKey
         ) { $0 == externalUUID }
+    }
+
+    /// `date` ± `restingHeartRateNightSpan`, where a night's resting heart
+    /// rate is searched for.
+    nonisolated static func restingHeartRateSearchSpan(around date: Date) -> DateInterval {
+        DateInterval(start: date.addingTimeInterval(-restingHeartRateNightSpan), end: date.addingTimeInterval(restingHeartRateNightSpan))
     }
 
     /// Two overnight readings whose resting heart rates are dated within this
@@ -459,7 +400,7 @@ extension HeartRateHealthQueries {
     /// readings inside.
     ///
     /// Writing individual `HKQuantitySample` objects (one per minute), the way
-    /// `exportWindowedHRV` does, makes every minute visible as its own sample
+    /// the HRV series (`exportHRV`) does, makes every minute visible as its own sample
     /// in the list. Storage cost is negligible for ~480 samples/night.
     /// `internal` so HealthKitManager+SleepTrends.swift's `exportSessionMetrics`
     /// can call this across files.
@@ -475,12 +416,13 @@ extension HeartRateHealthQueries {
         // not just the span of the new samples: a re-analysis that trimmed
         // the night (or left no minutes at all) must not leave the old rows
         // beside the new ones. Matching is by this session's identity, so
-        // the wide window touches nothing else. Same window as the SDNN
-        // cleanup (an hour before the start through a day after).
+        // the wide window touches nothing else. The HRV search covers the
+        // same window (an hour before the start through a day after).
         let cleanupEnd = max(samples.last?.endDate ?? sessionStart, sessionStart.addingTimeInterval(24 * 3600))
-        try await deleteThenSave(
-            samples, of: hrType, start: sessionStart.addingTimeInterval(-3600), end: cleanupEnd
-        ) { HealthExportIdentity.isSeriesMember($0, sessionId: sessionId, metric: .heartRate) }
+        let span = DateInterval(start: sessionStart.addingTimeInterval(-3600), end: cleanupEnd)
+        try await replace(samples, of: hrType, over: span, key: sessionId.uuidString) {
+            HealthExportIdentity.isSeriesMember($0, sessionId: sessionId, metric: .heartRate)
+        }
         debugLog("[HealthKit Export] Wrote \(samples.count) minute-level HR samples")
     }
 

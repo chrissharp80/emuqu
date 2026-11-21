@@ -12,7 +12,7 @@ Every pull request and every push to `main` runs two workflows:
   parallel; a run takes 30 to 40 minutes, set by Thread Sanitizer and the tests
   job, which each take 20 to 40 minutes on a runner.
 
-`main` requires the `gates.yml` job ("Script gates (no Xcode)") before anything merges. The `ci.yml` jobs run on the same pull request and are advisory.
+`main` requires every job that runs on a pull request to pass, on a branch that is up to date with `main`, before anything merges: the `gates.yml` job ("Script gates (no Xcode)") and the five `ci.yml` jobs ("Lint + tech-debt budgets", "Strict concurrency enabled", "Release build", "Thread Sanitizer", "Tests + coverage").
 
 The repository is public, and standard GitHub-hosted runners cost public
 repositories no Actions minutes. The UI target and the full coverage floors
@@ -245,18 +245,18 @@ fails a raise that has no written justification.
   a UI flow can reach `main` and is caught at the latest by the release gate.
   `make ci` runs the full suite locally, which is a discipline, not an
   enforcement.
-- **Only the Linux gates are a required check.** `main` requires the
-  `gates.yml` job. The four macOS jobs at scope `unit` (lint and budgets,
-  strict concurrency, Thread Sanitizer, tests with coverage) run on every pull
-  request but are advisory. The UI flows and the full coverage floors run only
-  at scope `full`.
+- **The UI flows are not a required check.** `main` requires the
+  `gates.yml` job and the five `ci.yml` jobs at scope `unit` (lint and
+  budgets, strict concurrency, the Release build, Thread Sanitizer, tests with
+  coverage). The UI flows and the full coverage floors run only at scope
+  `full`.
 
 ## For reviewers
 
 The macOS build, the unit suite and Thread Sanitizer run on every pull request
 and every push to `main`; the UI target runs on demand and before a release.
-`main` requires five checks to pass on a branch that is up to date with it:
-the Linux `gates.yml` job and the four macOS `ci.yml` jobs.
+`main` requires six checks to pass on a branch that is up to date with it:
+the Linux `gates.yml` job and the five `ci.yml` jobs.
 
 For a fast, factual snapshot of what is enforced — every ceiling, every
 zero-tolerance counter, and where each is written down:

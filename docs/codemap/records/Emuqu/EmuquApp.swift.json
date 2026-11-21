@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/EmuquApp.swift",
- "hash": "efe0ee3200daba45",
+ "hash": "2214175ed7ab0964",
  "role": "The SwiftUI App declaration: takes the root services (sync, settings, StoreKit, language, voice chat, Watch bridge, email bridge) from AppDependencies.current and builds the collector as @State, assembles the root view (MainTabView + environment + launch modals + scene-phase handlers + interrupted-session alerts + launch tasks), wires Watch->phone control closures, and holds the @main entry EmuquMain.",
  "types": [
   "LaunchModal: enum — which full-screen launch cover is up (disclaimer/onboarding/paywall/trialReminder/scoreArchitectureChange)",
@@ -11,6 +11,7 @@
  "state": [
   "mem:coldStartLog (file-private OSLog subsystem com.chrissharp.flowrecovery category ColdStart)",
   "mem:EmuquApp.collector (@State RRCollector.makeDefault())",
+  "mem:EmuquApp.reanalysis (@State AppDependencies.current.collection.sessionReanalysis, through launchStep)",
   "mem:EmuquApp.syncManager (@State AppDependencies.current.storage.cloudKitSyncManager)",
   "mem:EmuquApp.settingsManager (@State AppDependencies.current.app.settingsManager)",
   "mem:EmuquApp.storeKitManager (@State AppDependencies.current.services.storeKitManager)",
@@ -18,6 +19,7 @@
   "mem:EmuquApp.voiceChat (@State AppDependencies.current.assistant.voiceConversationController)",
   "mem:EmuquApp.watchBridge (@State AppDependencies.current.services.watchConnectivityBridge)",
   "mem:EmuquApp.emailBridge (@State private AppDependencies.current.assistant.assistantEmailBridge)",
+  "mem:EmuquApp.launchServices (let, AppDependencies.current.launchServices: the resolvers AppLaunchTasks.swift uses)",
   "mem:EmuquApp.isLoading (@State, true at start)",
   "mem:EmuquApp.activeModal (@State LaunchModal?)",
   "mem:EmuquApp.requestedTab (@State MainTabView.Tab?)",
@@ -25,7 +27,7 @@
   "mem:EmuquApp.interruptedSessionAlert (@State InterruptedSessionInfo?)",
   "mem:EmuquApp.recoveryResultMessage (@State String?)"
  ],
- "toplevel": "Stored-property initializers of EmuquApp pass each root object through launchStep (a ColdStart signpost plus NSLog/debugLog start and done lines): the collector from RRCollector.makeDefault(), the other six from AppDependencies.current accessors (storage.cloudKitSyncManager, app.settingsManager, services.storeKitManager, services.languageManager, assistant.voiceConversationController, services.watchConnectivityBridge). emailBridge reads AppDependencies.current.assistant.assistantEmailBridge directly. All of them run when EmuquApp.main() instantiates the App struct, after EmuquMain.main() has run the UI-test wipe and diagnostics install; AppDependencies.current is a lock-held container that exists from first access and that the app never reassigns, so a test that installs its own container before building EmuquApp has its substitutes used. The file reads no `.shared` singleton (scripts/check_no_shared_outside_root.sh does not list it as a root). LaunchModal conforms to Identifiable for fullScreenCover(item:) and, having no associated values, is Equatable and drives .onChange(of: activeModal).",
+ "toplevel": "Stored-property initializers of EmuquApp pass each root object through launchStep (a ColdStart signpost plus NSLog/debugLog start and done lines): the collector from RRCollector.makeDefault(), the other seven from AppDependencies.current accessors (collection.sessionReanalysis, storage.cloudKitSyncManager, app.settingsManager, services.storeKitManager, services.languageManager, assistant.voiceConversationController, services.watchConnectivityBridge). emailBridge reads AppDependencies.current.assistant.assistantEmailBridge directly, and launchServices takes AppDependencies.current.launchServices, which builds resolvers only (no service is built until the launch work calls one). All of them run when EmuquApp.main() instantiates the App struct, after EmuquMain.main() has run the UI-test wipe and diagnostics install; AppDependencies.current is a lock-held container that exists from first access and that has no setter and that the app never replaces (only a test's AppDependencies.install puts another in force), so a test that installs its own container before building EmuquApp has its substitutes used. The file reads no `.shared` singleton (scripts/check_no_shared_outside_root.sh does not list it as a root). LaunchModal conforms to Identifiable for fullScreenCover(item:) and, having no associated values, is Equatable and drives .onChange(of: activeModal).",
  "units": [
   {
    "key": "func signpostStart(_: StaticString)",
@@ -196,7 +198,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager": "d874529ff05bd756",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.systemDiagnosticsManager": "aa3e8d73f2d5e3c9",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.install()": "2127e0caf3e8f652",
@@ -662,7 +664,7 @@
     "Emuqu/EmuquApp.swift::func EmuquApp.resumeSyncOnForeground()": "a02d7435c5d97b84",
     "Emuqu/EmuquApp.swift::func EmuquApp.startAmbientLocationOnForeground()": "d38cfbe77dd34f0f",
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.stop()": "f05d1ea73499775a",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "0434ddbabd3bc89c"
    }
   },
@@ -745,7 +747,7 @@
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "1594d0dd9fa6bbb7",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox": "59f6a0baabb8c1c8",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
    }
@@ -775,7 +777,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.startIfAuthorized()": "fe48bb6684a1010a",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "0434ddbabd3bc89c"
    }
   },
@@ -842,7 +844,7 @@
    "deps": {
     "Emuqu/Sources/Services/PowerStatePolicy.swift::var PowerStatePolicy.shouldSkipPeriodicRefresh": "3ace9f231bb6f233",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSyncIfNeeded(minInterval:)": "be47df571ac7a0cf",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.powerStatePolicy": "30251ece00d6643c"
    }
@@ -863,7 +865,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "62bd5275ef3f248f",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.morningNotificationScheduler": "507098363688faff"
    }
@@ -1139,7 +1141,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.globalKeyboardDismissal": "1613e97e03459705",
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4",
     "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.install()": "1fc7b317584f17cb",
@@ -1262,7 +1264,7 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "7b0cb0f1c0ee5aac",
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.toggle()": "e3d50db69eedc7d3",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel": "a9161ec7b1d3b09c"
    }
   },
@@ -1444,7 +1446,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox": "59f6a0baabb8c1c8",
     "Emuqu/Sources/Views/FitnessTabView.swift::func RecorderBox.bind(core:conversation:)": "4c7780153d87644f"
    }
@@ -1466,7 +1468,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushImmediately()": "70566b91d9567417",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSettingsSync": "ea626da789f00ac9",
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4"
