@@ -84,7 +84,7 @@ enum SessionType: String, Codable, CaseIterable {
 /// Quality classification of HRV recording relative to actual sleep.
 /// Used to decide whether recorded HRV should drive the score or be
 /// replaced with baseline + subjective input.
-enum HRVDataQuality: String, Codable {
+enum HRVDataQuality: String, Codable, CaseIterable {
     /// Recording overlaps with HealthKit sleep — normal scoring path
     case good
     /// Recording ended before sleep started (strap disconnected pre-sleep)
@@ -704,27 +704,6 @@ struct HRVSession: Codable, Identifiable, Sendable {
 
     /// Sport for workout sessions; nil for all other session types.
     var sport: Sport? { workoutMetadata?.sport }
-}
-
-/// Offline session for sync
-struct OfflineSession: Codable, Identifiable {
-    let id: UUID
-    let session: HRVSession
-    let createdAt: Date
-    var syncedAt: Date?
-    var syncAttempts: Int
-    var lastError: String?
-
-    init(session: HRVSession) {
-        id = session.id
-        self.session = session
-        createdAt = Date()
-        syncAttempts = 0
-    }
-
-    var needsSync: Bool {
-        syncedAt == nil && syncAttempts < 3
-    }
 }
 
 /// Session archive entry with quick-access metadata

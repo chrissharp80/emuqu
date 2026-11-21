@@ -76,7 +76,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "6125884ca4c11aa9",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "c643e06dd2691591",
     "Emuqu/Sources/Models/SavedRoute.swift::init LatestWinsFileWriter(url:options:label:)": "ff6d7d9df5fa4798",
     "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "cf6b353e36f53586",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
@@ -110,28 +110,36 @@
   },
   {
    "key": "func EmailContactStore.remove(id:)",
-   "hash": "28c3b7fa049661d0",
-   "does": "Re-reads the file if the last load failed; while it still cannot be read returns false and removes nothing; otherwise removes every contact with the id, saves and returns true.",
+   "hash": "43b5837118b73d6c",
+   "does": "Re-reads the file if the last load failed; while it still cannot be read returns false and removes nothing. Otherwise writes the book without the contact at once through writer.replaceNow, which first removes the email_contacts.undecodable.json set-aside copy; on success sets contacts and returns true, on failure leaves contacts unchanged and returns false (the contact is still stored). Discardable result.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.replaceNow(with:removing:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:EmailContactStore.contacts"
+   ],
    "writes": [
     "mem:EmailContactStore.contacts",
-    "file:email_contacts.json"
+    "file:email_contacts.json",
+    "file:email_contacts.undecodable.json (removed)"
    ],
    "branches": [
     {
      "at": "+3",
      "cond": "loadFailed after the retry",
      "effect": "return false, nothing removed"
+    },
+    {
+     "at": "+6",
+     "cond": "replaceNow failed",
+     "effect": "return false, contacts unchanged"
     }
    ],
    "deps": {
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.retryLoadIfBlocked()": "f08cdd3da9297fef",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.save()": "92952b96008002e5"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.replaceNow(with:removing:)": "46130e4c9e265b47"
    }
   },
   {
@@ -245,17 +253,17 @@
   },
   {
    "key": "func EmailContactStore.load()",
-   "hash": "412de926ba4e5071",
-   "does": "If email_contacts.json exists: a read error sets loadFailed (blocking saves) and logs at .error; a decode error sets the file aside as email_contacts.undecodable.json and leaves saves allowed (blocked only when the copy fails); a successful decode replaces contacts and clears loadFailed. Missing file leaves contacts as-is.",
+   "hash": "a660cb050f523782",
+   "does": "If email_contacts.json exists: a read error sets loadFailed (blocking saves) and logs at .error; bytes read go to adoptStoredBook (opened with the app's key and decoded; key locked → saves blocked; bytes that do not open or decode set aside as email_contacts.undecodable.json, blocked only when the copy fails; success replaces contacts and clears loadFailed). Missing file leaves contacts as-is.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.setAsideUndecodable(_:reason:)",
-    "ext:Data(contentsOf:)",
-    "ext:JSONDecoder.decode"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.adoptStoredBook(_:)",
+    "ext:Data(contentsOf:)"
    ],
    "reads": [
-    "file:email_contacts.json"
+    "file:email_contacts.json",
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
    ],
    "writes": [
     "mem:EmailContactStore.contacts",
@@ -272,15 +280,48 @@
      "at": "+5",
      "cond": "catch: read threw",
      "effect": "loadFailed=true, error logged, return; contacts keep their value"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.adoptStoredBook(_:)": "76b1c66dc7cf8586",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func EmailContactStore.adoptStoredBook(_:)",
+   "hash": "f016251dee85d608",
+   "does": "Opens the bytes with the app's key (JSONFileSeal.app: sealed bytes decrypted, plain JSON from builds that did not seal the file passed through) and decodes [EmailContact] into contacts, clearing loadFailed. When the keychain refuses the key: loadFailed=true (saves blocked; the read is retried before the next edit), logged at .error. Any other open or decode error: the file is set aside as email_contacts.undecodable.json; loadFailed = whether that copy failed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.isKeyLocked(_:)",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.setAsideUndecodable(_:reason:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
+   "writes": [
+    "mem:EmailContactStore.contacts",
+    "mem:EmailContactStore.loadFailed",
+    "file:email_contacts.undecodable.json"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "open throws with the key locked",
+     "effect": "loadFailed=true, error logged; nothing set aside"
     },
     {
-     "at": "+15",
-     "cond": "catch: decode threw",
-     "effect": "loadFailed = the copy aside failed; otherwise contacts = decoded, loadFailed=false"
+     "at": "+7",
+     "cond": "open or decode throws otherwise",
+     "effect": "loadFailed = the copy aside failed"
     }
    ],
    "deps": {
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.setAsideUndecodable(_:reason:)": "e92e9e0f79a8a45c",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.isKeyLocked(_:)": "7c29c0d5a06f281b",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)": "31bc2aea46cfe8ad",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -345,7 +386,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "6125884ca4c11aa9"
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.load()": "c643e06dd2691591"
    }
   },
   {

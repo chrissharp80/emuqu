@@ -1,3 +1,4 @@
+import CoreLocation
 @testable import Emuqu
 import XCTest
 
@@ -127,5 +128,33 @@ final class TopoElevationServiceTests: XCTestCase {
         XCTAssertTrue(TopoElevationService.userAgent.hasPrefix("Emuqu/\(Bundle.main.appVersion) "))
         XCTAssertTrue(TopoElevationService.userAgent.contains("@"), "Operators need a contact to reach the author.")
         XCTAssertEqual(request.timeoutInterval, 20)
+    }
+
+    // MARK: - Lookup
+
+    /// Outside the US only SRTM 30 m is asked, through the injected transport,
+    /// with four-decimal coordinates, and the reply's elevations become gain
+    /// and loss.
+    func testLookupAsksSRTMThroughTheTransportAndParsesTheReply() async throws {
+        let body = Data(#"{"results": [{"elevation": 10.0}, {"elevation": 30.0}, {"elevation": 12.0}], "status": "OK"}"#.utf8)
+        let stub = StubHTTPTransport(body: body)
+        let track = [
+            CLLocation(latitude: 51.5, longitude: -0.12),
+            CLLocation(latitude: 51.51, longitude: -0.121),
+            CLLocation(latitude: 51.52, longitude: -0.122)
+        ]
+        let result = try await TopoElevationService.elevations(for: track, transport: stub.transport)
+        let sent = await stub.requests
+        let url = try XCTUnwrap(sent.first?.url)
+        let locations = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?.first { $0.name == "locations" }?.value
+        XCTAssertEqual(sent.count, 1)
+        XCTAssertEqual(url.host, "api.opentopodata.org")
+        XCTAssertEqual(url.path, "/v1/srtm30m")
+        XCTAssertEqual(locations, "51.5000,-0.1200|51.5100,-0.1210|51.5200,-0.1220")
+        XCTAssertEqual(result.elevations, [10, 30, 12])
+        XCTAssertEqual(result.sampledIndices, [0, 1, 2])
+        XCTAssertEqual(result.gainMeters, 20)
+        XCTAssertEqual(result.lossMeters, 18)
     }
 }

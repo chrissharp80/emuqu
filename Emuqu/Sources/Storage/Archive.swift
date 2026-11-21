@@ -327,6 +327,9 @@ final class SessionArchive: @unchecked Sendable {
     /// index; otherwise we leave it alone (never auto-delete — the user may
     /// want to recover it manually).
     ///
+    /// A file of a tombstoned session, or of one deleted forever
+    /// (`ForgottenSessions`), is never adopted.
+    ///
     /// Runs off-main from `boot()`, so all `index`/
     /// `deletedSessionIds` access must hold `archiveLock`. Snapshot the
     /// current state under the lock, do the slow file decode WITHOUT the
@@ -346,7 +349,7 @@ final class SessionArchive: @unchecked Sendable {
         }
         archiveLock.lock()
         let indexedFiles = Set(index.map(\.filePath))
-        let deleted = deletedSessionIds
+        let deleted = deletedSessionIds.union(ForgottenSessions.ids)
         archiveLock.unlock()
         let newEntries = files.compactMap {
             orphanEntry(for: $0, indexedFiles: indexedFiles, deleted: deleted)
@@ -393,10 +396,10 @@ final class SessionArchive: @unchecked Sendable {
               !reservedFileNames.contains(name),
               !indexedFiles.contains(name)
         else { return nil }
-        // Skip files that belong to sessions the user intentionally deleted.
+        // Skip files of sessions the user deleted, or deleted forever.
         let bareId = (name as NSString).deletingPathExtension
         if let uuid = UUID(uuidString: bareId), deleted.contains(uuid) { return nil }
-        guard let data = try? Data(contentsOf: file),
+        guard let data = attempt("Archive.readOrphan", { try Data(contentsOf: file) }),
               let session = attempt("Archive.decodeOrphan", {
                   try Self.loadAndDecodeSessionFile(at: file, decoder: Self.sessionDecoder)
               })

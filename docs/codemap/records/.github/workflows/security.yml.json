@@ -26,10 +26,11 @@
    "branches": [],
    "deps": {
     ".github/workflows/security.yml::step codeql/Analyze": "3717f8b36c86a083",
-    ".github/workflows/security.yml::step codeql/Build for analysis": "955e2a81be2561b7",
+    ".github/workflows/security.yml::step codeql/Build for analysis": "320d3f41d026e189",
     ".github/workflows/security.yml::step codeql/Checkout": "588fe9c59457aa7b",
     ".github/workflows/security.yml::step codeql/Initialize CodeQL": "320047fbb3adc6ee",
-    ".github/workflows/security.yml::step codeql/Select Xcode": "a430a5b72a7bea1f"
+    ".github/workflows/security.yml::step codeql/Select Xcode": "a430a5b72a7bea1f",
+    "scripts/lib/xcodebuild.sh::": "12f293eb9e2fc697"
    }
   },
   {
@@ -73,8 +74,8 @@
   },
   {
    "key": "step codeql/Build for analysis",
-   "hash": "1df6e2b2d45f75a5",
-   "does": "`xcodebuild build` Emuqu scheme, generic iOS Simulator, Debug, CODE_SIGNING_ALLOWED=NO, SWIFT_TREAT_WARNINGS_AS_ERRORS=NO so CodeQL's extractor observes the compile.",
+   "hash": "4202af997c5fd2c8",
+   "does": "`xcodebuild build -onlyUsePackageVersionsFromResolvedFile` (packages held to the committed Package.resolved) Emuqu scheme, generic iOS Simulator, Debug, CODE_SIGNING_ALLOWED=NO, SWIFT_TREAT_WARNINGS_AS_ERRORS=NO so CodeQL's extractor observes the compile.",
    "entry": "Step of security.yml codeql job",
    "calls": [
     "ext:xcodebuild build"
@@ -82,7 +83,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {
+    "scripts/lib/xcodebuild.sh::": "12f293eb9e2fc697"
+   }
   },
   {
    "key": "step codeql/Analyze",

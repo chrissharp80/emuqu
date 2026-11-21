@@ -74,24 +74,26 @@
   },
   {
    "key": "func SessionImmutabilityTests.testBaselineHRVDerivationMatchesAcceptanceRuleForAllQualities()",
-   "hash": "57b2245136a38edc",
-   "does": "Asserts !isReliableForHRVAggregates is true for .insufficient and .preSleep and false for .good and nil.",
+   "hash": "e10fdcebe5c7f9b2",
+   "does": "For every HRVDataQuality case, asserts the re-score derivation !isReliableForHRVAggregates equals SessionAcceptanceService.HRVQualityDecision(dataQuality:).useBaselineHRV, then asserts a legacy nil quality is reliable.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.session(quality:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::var SessionAcceptanceService.HRVQualityDecision.useBaselineHRV"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+11",
-     "cond": "for each (quality, expected) case",
-     "effect": "asserts derived flag equals acceptance rule"
+     "at": "+5",
+     "cond": "for each HRVDataQuality case",
+     "effect": "asserts the derived flag equals acceptance's useBaselineHRV"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "030630d0c2004d4f",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.isReliableForHRVAggregates": "1f169ca3f7045de3",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::var SessionAcceptanceService.HRVQualityDecision.useBaselineHRV": "5d217a370828f355",
     "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.session(quality:)": "06dda41495621e72"
    }
   },
@@ -133,8 +135,8 @@
   },
   {
    "key": "func SessionImmutabilityTests.testArchivedScoreUpdateScoresAnUntrustworthyNightFromTheBaseline()",
-   "hash": "9ed12a58a32c2961",
-   "does": "Archives an .insufficient night with RMSSD 15 in a temp SessionArchive, builds SessionAcceptanceService with a BaselineTracker on HRVBaseline.json in the same temp directory (no callback), runs updateCompositeRecoveryScore and asserts it saved and the stored HRV factor score equals the baseline-fallback composite.",
+   "hash": "283d970473d29e23",
+   "does": "Archives an .insufficient night with RMSSD 15 in a temp SessionArchive, builds SessionAcceptanceService with a BaselineTracker on HRVBaseline.json (no callback) and a RawRRBackup in the RRBackup subfolder of the same temp directory, runs updateCompositeRecoveryScore and asserts it saved and the stored HRV factor score equals the baseline-fallback composite. A defer waits for the backup store's queued work, then removes the temp directory, asserting the removal does not throw.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.session(quality:)",
@@ -150,27 +152,22 @@
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.reArchive(_:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()",
-    "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.compositeScore(rmssd:useBaselineHRV:)"
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)",
+    "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.compositeScore(rmssd:useBaselineHRV:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.waitForQueuedWork()"
    ],
    "reads": [
     "file:<tmp>/AcceptanceRescore-<uuid>/HRVBaseline.json (BaselineTracker init)",
     "file:<RawRRBackup directory>/backup_index.json"
    ],
    "writes": [
-    "file:<tmp>/AcceptanceRescore-<uuid>/",
-    "file:<RawRRBackup directory> (created if missing; pending-encryption backups re-encrypted asynchronously by RawRRBackup.init → reencryptPendingBackups, RawRRBackup.swift:237,399-405)",
-    "ud:PendingEncryptionLedger rawBackup entries (cleared for missing backups, RawRRBackup.swift:412)"
+    "file:<tmp>/AcceptanceRescore-<uuid>/ (removed in defer)",
+    "file:<tmp>/AcceptanceRescore-<uuid>/RRBackup/ (created by RawRRBackup.init; its queued reconcile and repair run before the removal)",
+    "ud:storage.pendingReencryption.rawBackupIDs (the repair clears entries with no file in this folder)"
    ],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "removeItem throws in defer",
-     "effect": "error swallowed; otherwise temp directory removed"
-    }
-   ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)": "2c3a0db2a9868855",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)": "a41f1bac098eee8d",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyFrozenScore(_:to:training:)": "542e749e4faa8030",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.reArchive(_:)": "66f998ba558e92c1",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.refreshHealthSnapshots(on:result:sleepSchedule:)": "97bf9f616f31f0c5",
@@ -181,7 +178,8 @@
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
     "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "28134c325b02f133",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.waitForQueuedWork()": "f7b072a559ef78a5",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)": "ee0a6c3ab9df8456",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439",
     "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.compositeScore(rmssd:useBaselineHRV:)": "f010f3e10c768607",
     "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.depressedResult()": "5a2f5a8f302dd9b8",

@@ -3,24 +3,24 @@ import SwiftUI
 // Watch target entry point.
 @main
 struct WatchApp: App {
-    // Use the process-wide `shared` singleton so background helpers
-    // (e.g. `WatchStrapConnector` pushing direct-BLE HR samples) write
-    // into the SAME instance the view tree is observing. Wrapping it
-    // in `@StateObject` here gives SwiftUI ownership of the lifetime —
-    // it's still the singleton object, just under SwiftUI's reference.
-    @StateObject private var sessionManager = WatchSessionManager.shared
+    // Both objects come from the Watch target's composition root,
+    // `WatchDependencies`. Background helpers (`WatchStrapConnector` pushing
+    // direct-BLE HR samples) write into the SAME session manager the view
+    // tree observes; `@StateObject` gives SwiftUI ownership of the lifetime
+    // of that one object.
+    @StateObject private var sessionManager = WatchDependencies.current.sessionManager
     @StateObject private var workoutManager = WatchWorkoutManager()
-    /// The direct-BLE strap connector, owned here and handed to the view
-    /// tree through the environment. This file is the Watch target's
-    /// composition root: the only place a `.shared` instance is read.
-    @StateObject private var strapConnector = WatchStrapConnector.shared
+    /// The direct-BLE strap connector, handed to the view tree through the
+    /// environment.
+    @StateObject private var strapConnector = WatchDependencies.current.strapConnector
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
         // The connector publishes direct-strap heart rate into the session
         // manager; wire that here, before any view exists, so a sample can
         // never arrive with nowhere to go.
-        WatchStrapConnector.shared.attach(sessionManager: WatchSessionManager.shared)
+        let dependencies = WatchDependencies.current
+        dependencies.strapConnector.attach(sessionManager: dependencies.sessionManager)
     }
 
     var body: some Scene {

@@ -1,0 +1,81 @@
+{
+ "file": "EmuquTests/WebSearchServiceTests.swift",
+ "hash": "cd3fa4a9362dc66c",
+ "role": "XCTest suite for WebSearchService's Tavily request building, status mapping and reply parsing, driven through a StubHTTPTransport so no test reaches the network.",
+ "types": [
+  "WebSearchServiceTests: class — XCTestCase over WebSearchService.send"
+ ],
+ "state": [
+  "mem:WebSearchServiceTests.reply (private let JSON Data: one complete result, one without a URL)"
+ ],
+ "toplevel": "Stored-property initializer builds the inline Tavily reply fixture.",
+ "units": [
+  {
+   "key": "func WebSearchServiceTests.testSearchPostsToTavilyWithTheKeyAndParsesCompleteResults()",
+   "hash": "a70bcdab532099b1",
+   "does": "Sends a research search with key 'test-key' and maxResults 3 through a stub answering 200 with the fixture; asserts one POST to https://api.tavily.com/search with 'Bearer test-key', a JSON body carrying the query, max_results 3 and the research authority domains, and exactly the one complete result (the URL-less one dropped).",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/Helpers/StubHTTPTransport.swift::init StubHTTPTransport(status:body:headers:)",
+    "EmuquTests/Helpers/StubHTTPTransport.swift::var StubHTTPTransport.transport",
+    "EmuquTests/Helpers/StubHTTPTransport.swift::func StubHTTPTransport.respond(to:)",
+    "Emuqu/Sources/Services/WebSearchService.swift::init WebSearchService(transport:)",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.send(query:intent:maxResults:apiKey:)",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.tavilyRequest(query:intent:maxResults:apiKey:)",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.authorityDomains(for:)",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.checkStatus(_:)",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.parse(data:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.authorityDomains(for:)": "2d1c9c7f522800b8",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.checkStatus(_:)": "b8fe439f59472502",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.parse(data:)": "d05728c0e49553fb",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.send(query:intent:maxResults:apiKey:)": "cc181ca4b828205d",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.tavilyRequest(query:intent:maxResults:apiKey:)": "4b7c4574e2389914",
+    "Emuqu/Sources/Services/WebSearchService.swift::init WebSearchService(transport:)": "aba1053021c65854",
+    "EmuquTests/Helpers/StubHTTPTransport.swift::func StubHTTPTransport.respond(to:)": "9999d0e99b603476",
+    "EmuquTests/Helpers/StubHTTPTransport.swift::init StubHTTPTransport(status:body:headers:)": "aa8c1761529faa2f",
+    "EmuquTests/Helpers/StubHTTPTransport.swift::var StubHTTPTransport.transport": "11e37ca257fc9a8e"
+   }
+  },
+  {
+   "key": "func WebSearchServiceTests.testHTTP429IsReportedAsRateLimited()",
+   "hash": "7dfbba0e6e062211",
+   "does": "Sends a general search through a stub answering 429 and asserts send throws SearchError.rateLimited.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/Helpers/StubHTTPTransport.swift::init StubHTTPTransport(status:body:headers:)",
+    "EmuquTests/Helpers/StubHTTPTransport.swift::var StubHTTPTransport.transport",
+    "EmuquTests/Helpers/StubHTTPTransport.swift::func StubHTTPTransport.respond(to:)",
+    "Emuqu/Sources/Services/WebSearchService.swift::init WebSearchService(transport:)",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.send(query:intent:maxResults:apiKey:)",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.tavilyRequest(query:intent:maxResults:apiKey:)",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.authorityDomains(for:)",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.checkStatus(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "thrown error is not .rateLimited",
+     "effect": "XCTFail with the error"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.authorityDomains(for:)": "2d1c9c7f522800b8",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.checkStatus(_:)": "b8fe439f59472502",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.send(query:intent:maxResults:apiKey:)": "cc181ca4b828205d",
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.tavilyRequest(query:intent:maxResults:apiKey:)": "4b7c4574e2389914",
+    "Emuqu/Sources/Services/WebSearchService.swift::init WebSearchService(transport:)": "aba1053021c65854",
+    "EmuquTests/Helpers/StubHTTPTransport.swift::func StubHTTPTransport.respond(to:)": "9999d0e99b603476",
+    "EmuquTests/Helpers/StubHTTPTransport.swift::init StubHTTPTransport(status:body:headers:)": "aa8c1761529faa2f",
+    "EmuquTests/Helpers/StubHTTPTransport.swift::var StubHTTPTransport.transport": "11e37ca257fc9a8e"
+   }
+  }
+ ],
+ "deps": {}
+}

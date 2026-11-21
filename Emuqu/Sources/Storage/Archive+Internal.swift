@@ -139,16 +139,27 @@ extension ArchiveStore {
     }
 
     func storedRRSeries(for id: UUID) -> StoredRRSeries {
-        if let existing = try? _retrieve(id) {
+        if let existing = hashCheckedRead(id) {
             return existing.rrSeries.map { .preserved($0, viaRawDecode: false) } ?? .noBeatsStored
         }
         guard let entry = archive.index.first(where: { $0.sessionId == id }),
-              let salvaged = try? Self.loadAndDecodeSessionFile(
-                  at: archive.resolveFileURL(for: entry),
-                  decoder: SessionArchive.sessionDecoder
-              )
+              let salvaged = attempt("Archive.storedRRSeries.rawRead", {
+                  try Self.loadAndDecodeSessionFile(at: archive.resolveFileURL(for: entry), decoder: SessionArchive.sessionDecoder)
+              })
         else { return .unreadable }
         return salvaged.rrSeries.map { .preserved($0, viaRawDecode: true) } ?? .noBeatsStored
+    }
+
+    /// The session through the hash-checked reader (`_retrieve`); nil when it
+    /// has no entry, or when that read failed (logged) and the raw reader is
+    /// to try. Caller holds `archiveLock`.
+    private func hashCheckedRead(_ id: UUID) -> HRVSession? {
+        do {
+            return try _retrieve(id)
+        } catch {
+            debugLog("[Archive] hash-checked read of \(id.uuidString.prefix(8)) failed, trying the raw reader: \(error)", level: .warning)
+            return nil
+        }
     }
 
     /// Prevent same-night overnight duplicates with different UUIDs.
@@ -268,8 +279,10 @@ extension ArchiveStore {
     ///
     /// Encrypt before disk-write so HRV samples
     /// aren't readable from a filesystem image / device backup. Falls
-    /// back to plaintext if the encryption infrastructure isn't
-    /// available on this device (rare — would require Keychain failure).
+    /// back to plaintext when the key cannot be reached — before the first
+    /// unlock after a reboot, when a background task archives the night, or
+    /// a Keychain failure — and the file is queued for re-encryption
+    /// (docs/adr/README.md, decision 001).
     /// Hash is over the bytes-as-written so the existing integrity
     /// contract still works on read for both formats, and is computed
     /// from the encoded bytes (avoids re-reading from disk).
@@ -292,8 +305,8 @@ extension ArchiveStore {
     /// divergence in this file a later read cannot detect, so it must be loud.
     ///
     /// The previous bytes go back with the protection class and ledger entry
-    /// they had: plaintext awaiting re-encryption keeps `.completeFileProtection`
-    /// and stays queued. When there was no file before, the new one is removed
+    /// they had: plaintext awaiting re-encryption keeps
+    /// `.completeFileProtectionUnlessOpen` and stays queued. When there was no file before, the new one is removed
     /// and its ledger entry cleared.
     func rollBackWrite(
         to preIndex: [SessionArchiveEntry], filePath: URL, prior: PriorFile, id: UUID
@@ -367,8 +380,21 @@ extension ArchiveStore {
                 throw error
             }
         }
+        return jsonOrLegacyPlaintext(rawBytes, name: id.uuidString)
+    }
+
+    /// JSON as it is. Anything else is tried as a legacy ciphertext without
+    /// the `"FR"` magic (Formats 2 and 3, see `loadAndDecodeSessionFile`);
+    /// when that fails too the bytes are handed on unchanged, logged, so the
+    /// decoder reports the corruption.
+    private static func jsonOrLegacyPlaintext(_ rawBytes: Data, name: String) -> Data {
         if looksLikeJSON(rawBytes) { return rawBytes }
-        return (try? AppDependencies.current.storage.encryptionManager.decrypt(rawBytes)) ?? rawBytes
+        do {
+            return try AppDependencies.current.storage.encryptionManager.decrypt(rawBytes)
+        } catch {
+            debugLog("[Archive] \(name) is neither JSON nor a ciphertext the key opens: \(error)", level: .warning)
+            return rawBytes
+        }
     }
 
     /// Detect EncryptionManager-versioned encrypted files via the "FR"
@@ -396,52 +422,23 @@ extension ArchiveStore {
         return false
     }
 
-    /// Shared by `_retrieve`/`retrieveLightweight` and the
-    /// migration paths in `Archive+Migrations.swift`, so migrations read the SAME
-    /// dual-format files those paths handle. A migration that
-    /// does `try decoder.decode(HRVSession.self, from: Data(contentsOf:))`
-    /// directly fails on encrypted files with
-    /// "Unexpected character 'F' around line 1, column 1." (the magic
-    /// prefix's first byte), silently skipping
-    /// encrypted sessions and spamming the launch log with dozens of
-    /// these errors. Centralizing the read avoids the bug AND keeps
-    /// future migrations honest about the on-disk format.
+    /// Shared by `_retrieve`/`retrieveLightweight` and the migration paths in
+    /// `Archive+Migrations.swift`, so migrations read the same dual-format
+    /// files those paths handle rather than JSON-decoding ciphertext.
     ///
-    /// Wider than `looksEncrypted`, which only matches
-    /// Format 1 (the `"FR"` magic prefix), but `EncryptionManager.decrypt`
-    /// supports three formats (see `extractVersion`):
+    /// Wider than `looksEncrypted`, which only matches Format 1 (the `"FR"`
+    /// magic prefix); `EncryptionManager.decrypt` supports three formats
+    /// (see `extractVersion`):
     ///   1. Magic-prefixed   `[0x46, 0x52, version, ...AES-GCM]` — current
     ///   2. Version-prefixed `[version(1-127), ...AES-GCM]` — legacy v1
     ///   3. Bare             `[...AES-GCM]` — legacy v0
-    /// Formats 2 and 3 don't carry the magic bytes, so `looksEncrypted`
-    /// returns false and the loader tried to JSON-decode raw ciphertext,
-    /// failing with "Unexpected character 'F' around line 1, column 1."
-    /// for any session whose first ciphertext byte happened to be 0x46.
-    /// Four of Sachie's sessions (E27E41B7, 4C7EB19E, 9234A6B5, C1DC9488)
-    /// were stuck permanently unreadable for exactly this reason — they
-    /// loaded 84 times across her 7-day log window and failed every time.
-    /// Fix: if the file doesn't look like JSON, attempt decrypt before
-    /// declaring it corrupt.
+    /// Formats 2 and 3 carry no magic, so a file that is not JSON is tried as
+    /// one of them before it is declared corrupt (`jsonOrLegacyPlaintext`).
     static func loadAndDecodeSessionFile(at fileURL: URL, decoder: JSONDecoder) throws -> HRVSession {
         let rawBytes = try Data(contentsOf: fileURL)
-        let plaintext: Data
-        if looksEncrypted(rawBytes) {
-            plaintext = try AppDependencies.current.storage.encryptionManager.decrypt(rawBytes)
-        } else if looksLikeJSON(rawBytes) {
-            plaintext = rawBytes
-        } else {
-            // Not JSON, not the new magic-prefixed format — try the
-            // legacy AES-GCM decryptors before giving up. Catches
-            // Format 2 / Format 3 files that pre-date the `"FR"` magic.
-            do {
-                plaintext = try AppDependencies.current.storage.encryptionManager.decrypt(rawBytes)
-            } catch {
-                // Fall through: hand the raw bytes to JSONDecoder so the
-                // existing dataCorrupted error path produces the same
-                // diagnostic it always did (caller's log expects it).
-                plaintext = rawBytes
-            }
-        }
+        let plaintext = looksEncrypted(rawBytes)
+            ? try AppDependencies.current.storage.encryptionManager.decrypt(rawBytes)
+            : jsonOrLegacyPlaintext(rawBytes, name: fileURL.lastPathComponent)
         return try decoder.decode(HRVSession.self, from: plaintext)
     }
 
@@ -789,8 +786,9 @@ extension ArchiveStore {
         return archive.deletedSessionIds
     }
 
-    /// Remove a session from the deleted list: a trash restore, or a lost
-    /// session the user forgets (`SessionArchive.forgetDeletedSession`)
+    /// Remove a session from the deleted list: a trash restore, or a session
+    /// deleted forever once its deletion no longer needs re-sending to iCloud
+    /// (`SessionArchive.forgetDeletedSession`).
     func unmarkAsDeleted(_ id: UUID) throws {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }

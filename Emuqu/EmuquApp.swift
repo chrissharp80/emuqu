@@ -5,7 +5,7 @@ import SwiftUI
 
 /// Cold-start signpost log: makes the launch-path
 /// init cost measurable in Instruments → App Launch / Logging templates.
-/// The hardware and network work those inits once did is deferred to each
+/// Hardware and network work is kept out of those inits and deferred to each
 /// singleton's `boot()`; see the cold-launch note above `EmuquApp`.
 private let coldStartLog = OSLog(subsystem: "com.chrissharp.flowrecovery", category: "ColdStart")
 
@@ -78,32 +78,48 @@ struct InterruptedSessionInfo {
 // `settingsManager`, and `languageManager` stay eager because the first frame
 // needs them.
 //
-// Synchronous BLE / CKContainer / WCSession work inside the singleton inits
-// once hung the launch before first paint; the `os_signpost` instrumentation
-// on every init (category `ColdStart`) is the measurement surface for
+// Synchronous BLE / CKContainer / WCSession work inside a singleton init would
+// hold the launch before first paint; the `os_signpost` instrumentation on
+// every init (category `ColdStart`) is the measurement surface for
 // time-to-first-frame.
+//
+// Every service below comes from the composition root,
+// `AppDependencies.current`, so a substitute a test installs there is the one
+// the app holds.
 struct EmuquApp: App {
-    @State var collector = makeLoggedDefault()
-    @State var syncManager = makeSyncManager()
-    @State var settingsManager = makeSettingsManager()
-    @State var storeKitManager = makeStoreKitManager()
-    @State var languageManager = makeLanguageManager()
+    @State var collector = launchStep("collector", "init.collector") { RRCollector.makeDefault() }
+    @State var syncManager = launchStep("syncManager", "init.cloudKitSyncManager") {
+        AppDependencies.current.storage.cloudKitSyncManager
+    }
+    @State var settingsManager = launchStep("settingsManager", "init.settingsManager") {
+        AppDependencies.current.app.settingsManager
+    }
+    @State var storeKitManager = launchStep("storeKitManager", "init.storeKitManager") {
+        AppDependencies.current.services.storeKitManager
+    }
+    @State var languageManager = launchStep("languageManager", "init.languageManager") {
+        AppDependencies.current.services.languageManager
+    }
     /// App-wide voice chat controller. Lives at the root so any surface
     /// (Fitness, Assistant tab, Dashboard) can invoke the same conversation.
-    /// Uses the `.shared` singleton — the class owns hardware resources (mic,
+    /// One instance for the process — the class owns hardware resources (mic,
     /// synth) that can't be duplicated, and the Watch-trigger path targets
-    /// the singleton by design.
-    @State var voiceChat = makeVoiceChat()
-    /// Watch bridge singleton — held here so the Watch-triggered voice-chat
+    /// it by design.
+    @State var voiceChat = launchStep("voiceChat", "init.voiceChat") {
+        AppDependencies.current.assistant.voiceConversationController
+    }
+    /// Watch bridge — held here so the Watch-triggered voice-chat
     /// closure is wired before any Watch message can arrive.
-    @State var watchBridge = makeWatchBridge()
+    @State var watchBridge = launchStep("watchBridge", "init.watchBridge") {
+        AppDependencies.current.services.watchConnectivityBridge
+    }
     /// Observed at app root so the auto Coach Report
     /// (and any other staged email draft) pops the composer no matter
     /// which tab is active. AssistantChatView still observes for the
     /// chat-tab-local case; the sheet item binding is single-fire and
     /// the bridge is shared, so two `.sheet(item:)` modifiers across
     /// the tree behave correctly — only one presents at a time.
-    @State private var emailBridge = AssistantEmailBridge.shared
+    @State private var emailBridge = AppDependencies.current.assistant.assistantEmailBridge
     @State var isLoading = true
     @State var activeModal: LaunchModal?
     /// Set by onboarding's "Take a reading", taken by `MainTabView`.
@@ -114,86 +130,25 @@ struct EmuquApp: App {
     @Environment(\.scenePhase) private var scenePhase
 
     // MARK: Launch diagnostics
-    //
-    // A launch hang on a tester's phone left no console hint why. The
-    // launch path has many @State inits; their heavy CloudKit, BLE and
-    // WCSession work is deferred to `boot()` (see the note above the type),
-    // but any one of them stalling would still leave the user staring at
-    // "Loading your data". These wrapped factories log entry + exit so
-    // we can see exactly which step ran last when a launch hangs.
-    //
-    // os_log so the messages survive TestFlight (Release builds drop
-    // the print() in `debugLog` but DebugLogger.shared still buffers
-    // in memory; if persistent logging is on it goes to disk too).
-    private static func makeLoggedDefault() -> RRCollector {
-        let id = signpostStart("init.collector")
-        NSLog("[App][launch] @State collector — start")
-        debugLog("[App][launch] @State collector init starting", level: .info)
-        let c = RRCollector.makeDefault()
-        NSLog("[App][launch] @State collector — done")
-        debugLog("[App][launch] @State collector init complete", level: .info)
-        signpostEnd("init.collector", id)
-        return c
-    }
-    private static func makeSyncManager() -> CloudKitSyncManager {
-        let id = signpostStart("init.cloudKitSyncManager")
-        NSLog("[App][launch] @State syncManager — start")
-        debugLog("[App][launch] @State syncManager init starting", level: .info)
-        let s = CloudKitSyncManager.shared
-        NSLog("[App][launch] @State syncManager — done")
-        debugLog("[App][launch] @State syncManager init complete", level: .info)
-        signpostEnd("init.cloudKitSyncManager", id)
-        return s
-    }
-    private static func makeSettingsManager() -> SettingsManager {
-        let id = signpostStart("init.settingsManager")
-        NSLog("[App][launch] @State settingsManager — start")
-        debugLog("[App][launch] @State settingsManager init starting", level: .info)
-        let s = SettingsManager.shared
-        NSLog("[App][launch] @State settingsManager — done")
-        debugLog("[App][launch] @State settingsManager init complete", level: .info)
-        signpostEnd("init.settingsManager", id)
-        return s
-    }
-    private static func makeStoreKitManager() -> StoreKitManager {
-        let id = signpostStart("init.storeKitManager")
-        NSLog("[App][launch] @State storeKitManager — start")
-        debugLog("[App][launch] @State storeKitManager init starting", level: .info)
-        let s = StoreKitManager.shared
-        NSLog("[App][launch] @State storeKitManager — done")
-        debugLog("[App][launch] @State storeKitManager init complete", level: .info)
-        signpostEnd("init.storeKitManager", id)
-        return s
-    }
-    private static func makeLanguageManager() -> LanguageManager {
-        let id = signpostStart("init.languageManager")
-        NSLog("[App][launch] @State languageManager — start")
-        debugLog("[App][launch] @State languageManager init starting", level: .info)
-        let l = LanguageManager.shared
-        NSLog("[App][launch] @State languageManager — done")
-        debugLog("[App][launch] @State languageManager init complete", level: .info)
-        signpostEnd("init.languageManager", id)
-        return l
-    }
-    private static func makeVoiceChat() -> VoiceConversationController {
-        let id = signpostStart("init.voiceChat")
-        NSLog("[App][launch] @State voiceChat — start")
-        debugLog("[App][launch] @State voiceChat init starting", level: .info)
-        let v = VoiceConversationController.shared
-        NSLog("[App][launch] @State voiceChat — done")
-        debugLog("[App][launch] @State voiceChat init complete", level: .info)
-        signpostEnd("init.voiceChat", id)
-        return v
-    }
-    private static func makeWatchBridge() -> WatchConnectivityBridge {
-        let id = signpostStart("init.watchBridge")
-        NSLog("[App][launch] @State watchBridge — start")
-        debugLog("[App][launch] @State watchBridge init starting", level: .info)
-        let w = WatchConnectivityBridge.shared
-        NSLog("[App][launch] @State watchBridge — done")
-        debugLog("[App][launch] @State watchBridge init complete", level: .info)
-        signpostEnd("init.watchBridge", id)
-        return w
+
+    /// Builds one root-level `@State` object, logging entry and exit and
+    /// bracketing it with a `ColdStart` signpost, so a launch that stalls in
+    /// one of these initialisers shows in the log which step ran last.
+    ///
+    /// NSLog so the lines survive TestFlight builds, which drop the print() in
+    /// `debugLog`; `debugLog` still buffers them in memory, and on disk when
+    /// persistent logging is on.
+    private static func launchStep<Service>(
+        _ name: String, _ signpost: StaticString, build: () -> Service
+    ) -> Service {
+        let id = signpostStart(signpost)
+        NSLog("[App][launch] @State %@ — start", name)
+        debugLog("[App][launch] @State \(name) init starting", level: .info)
+        let service = build()
+        NSLog("[App][launch] @State %@ — done", name)
+        debugLog("[App][launch] @State \(name) init complete", level: .info)
+        signpostEnd(signpost, id)
+        return service
     }
 
     init() {
@@ -220,8 +175,9 @@ struct EmuquApp: App {
     /// guessing. Payloads from previous terminations land here on the next
     /// launch via MXMetricManager's daily delivery.
     static func installDiagnostics() {
-        CrashLogManager.shared.install()
-        SystemDiagnosticsManager.shared.install()
+        let utilities = AppDependencies.current.app
+        utilities.crashLogManager.install()
+        utilities.systemDiagnosticsManager.install()
     }
 
     /// Drop the DFT cache under memory pressure.
@@ -245,25 +201,18 @@ struct EmuquApp: App {
     ///
     /// ## Why this is split up
     ///
-    /// This was one 455-line expression: `MainTabView(…)` followed by an
-    /// unbroken chain of ten environment injections, two presentation
-    /// modifiers, four `onChange` handlers, three alerts and four `task`s.
-    ///
-    /// Swift type-checks a member chain as a single constraint system, and the
-    /// cost grows super-linearly in its length. Measured with
-    /// `-warn-long-function-bodies`, this one property cost **9,766 ms** — paid
-    /// by every incremental build of the app.
-    ///
-    /// That ceiling is not hypothetical here. Two test files had already tipped
-    /// past the frontend's hard limit and failed CI with "unable to type-check
-    /// this expression in reasonable time" while still compiling locally, which
-    /// is the failure this shape produces once it grows a little further.
+    /// The root is `MainTabView(…)` followed by ten environment injections,
+    /// two presentation modifiers, five `onChange` handlers, three alerts and
+    /// five `task`s. Swift type-checks a member chain as a single constraint
+    /// system, and the cost grows super-linearly in its length: as one chain
+    /// it costs seconds of every incremental build, and a little longer it
+    /// fails with "unable to type-check this expression in reasonable time".
     ///
     /// Each stage below is its own statement, so the type-checker solves five
-    /// small systems instead of one large one. The resulting concrete view
-    /// type — and therefore SwiftUI's view identity and modifier order — is
-    /// exactly what the single chain produced: `stage(x)` applies precisely the
-    /// modifiers `x.…` applied, in the same order.
+    /// small systems instead of one large one. `stage(x)` applies precisely
+    /// the modifiers `x.…` would, in the same order, so the concrete view type
+    /// — and therefore SwiftUI's view identity and modifier order — is the
+    /// same as the single chain's.
     private var appRootView: some View {
         let environment = environmentInjected(rootTabView)
         let presented = modalPresentations(environment)
@@ -694,9 +643,9 @@ struct EmuquApp: App {
 
     /// Install the window-level tap recognizer that dismisses the keyboard.
     ///
-    /// Global tap-outside-to-dismiss. Reported: the keyboard would
-    /// not dismiss on Profile, the Reports email field, or the contact list.
-    /// SwiftUI's default dismissal is unreliable; this installs a window-level
+    /// Global tap-outside-to-dismiss. SwiftUI's default dismissal does not
+    /// reach every screen (Profile, the Reports email field, the contact
+    /// list), so this installs a window-level
     /// tap recognizer that resigns the first responder on any tap that is NOT
     /// inside a text field. Works on every screen with no per-view modifier.
     ///
@@ -705,7 +654,7 @@ struct EmuquApp: App {
     /// so it never holds the responder slot and no keyboard appears.
     private func installGlobalKeyboardDismissal() {
         Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 600_000_000)
+            await sleepQuietly(600_000_000, context: "keyboard dismissal install")
             let keyboardDismissal = AppDependencies.current.app.globalKeyboardDismissal
             keyboardDismissal.install()
             keyboardDismissal.prewarmKeyboard()
@@ -838,7 +787,7 @@ struct EmuquApp: App {
         // Listen for trial reminder "Unlock Now" → show paywall
         for await _ in NotificationCenter.default.notifications(named: .showPaywallFromTrial).map({ _ in () }) {
             // Brief delay so fullScreenCover dismissal finishes first
-            try? await Task.sleep(nanoseconds: 400_000_000)
+            await sleepQuietly(400_000_000, context: "paywall after trial reminder")
             activeModal = .paywall
         }
     }
@@ -875,7 +824,7 @@ struct EmuquApp: App {
     /// per-change push share one gate.
     private func pushSettingsToCloudAfterLaunch() {
         Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            await sleepQuietly(5_000_000_000, context: "settings push after launch")
             await AppDependencies.current.storage.cloudKitSettingsSync.pushImmediately()
         }
     }

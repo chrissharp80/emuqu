@@ -355,9 +355,7 @@ final class UserSettingsTests: XCTestCase {
     @MainActor
     private func settingsOnDisk(_ manager: SettingsManager, file: URL) throws -> UserSettings {
         XCTAssertNil(manager.flushPendingWritesSynchronously())
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(UserSettings.self, from: Data(contentsOf: file))
+        return try JSONFileSeal.app.openJSON(UserSettings.self, from: Data(contentsOf: file), with: SettingsManager.settingsDecoder())
     }
 
     /// Lets the main-actor tasks the manager scheduled (the observer
@@ -439,6 +437,114 @@ final class UserSettingsTests: XCTestCase {
         XCTAssertEqual(saved.userRestingHR, 48)
     }
 
+    // MARK: - Sealed settings file
+
+    /// A path for a settings file, not yet written, in its own temporary
+    /// directory removed after the test.
+    private func freshSettingsFile() throws -> URL {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("SettingsSeal-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        addTeardownBlock {
+            do {
+                try FileManager.default.removeItem(at: directory)
+            } catch {
+                // swallow-ok: the directory is temporary.
+            }
+        }
+        return directory.appendingPathComponent("user_settings.json")
+    }
+
+    /// The profile is sealed with the app's key, never written as plain
+    /// JSON, and a manager started on the file reads it back.
+    @MainActor
+    func testTheSettingsFileIsSealedAndReadsBack() throws {
+        let file = try freshSettingsFile()
+        let manager = SettingsManager(settingsURL: file)
+        manager.settings.bodyWeightKg = 72
+        XCTAssertNil(manager.flushPendingWritesSynchronously())
+
+        XCTAssertNotEqual(try Data(contentsOf: file).first, UInt8(ascii: "{"), "The profile was written as plain JSON")
+        let reopened = SettingsManager(settingsURL: file)
+        XCTAssertEqual(reopened.loadOutcome, .loaded)
+        XCTAssertEqual(reopened.settings.bodyWeightKg, 72)
+    }
+
+    /// A plain settings file an older build wrote still loads, and the next
+    /// save replaces it sealed with nothing lost.
+    @MainActor
+    func testAPlainSettingsFileFromAnOlderBuildLoadsAndIsResealed() throws {
+        let file = try freshSettingsFile()
+        var older = UserSettings()
+        older.maxHR = 181
+        try SettingsManager.settingsEncoder().encode(older).write(to: file)
+
+        let manager = SettingsManager(settingsURL: file)
+        XCTAssertEqual(manager.loadOutcome, .loaded)
+        XCTAssertEqual(manager.settings.maxHR, 181)
+        manager.settings.bodyWeightKg = 70
+        XCTAssertNil(manager.flushPendingWritesSynchronously())
+
+        XCTAssertNotEqual(try Data(contentsOf: file).first, UInt8(ascii: "{"), "The older plain file was not replaced sealed")
+        let saved = try settingsOnDisk(manager, file: file)
+        XCTAssertEqual(saved.maxHR, 181)
+        XCTAssertEqual(saved.bodyWeightKg, 70)
+    }
+
+    /// A sealed settings file read at a launch before the first unlock (the
+    /// keychain refuses the key) holds saves: the defaults in memory never
+    /// reach the file and no copy is made of it. Once the key opens, the
+    /// file's settings come back with the change made meanwhile merged in.
+    @MainActor
+    func testALockedKeyAtLaunchNeverResetsOrOverwritesTheSettings() throws {
+        let file = try freshSettingsFile()
+        var real = UserSettings()
+        real.maxHR = 175
+        try JSONFileSeal.app.sealJSON(real, with: SettingsManager.settingsEncoder()).write(to: file)
+        let sealedBytes = try Data(contentsOf: file)
+        let key = LockedKeySeal()
+
+        let manager = SettingsManager(settingsURL: file, seal: key.fileSeal)
+        XCTAssertEqual(manager.loadOutcome, .blockedByProtection)
+        manager.settings.bodyWeightKg = 66
+        XCTAssertNil(manager.flushPendingWritesSynchronously())
+        XCTAssertEqual(try Data(contentsOf: file), sealedBytes, "The sealed settings were written over while the key was locked")
+        let copy = file.deletingLastPathComponent().appendingPathComponent(SettingsManager.unreadableBackupName)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: copy.path), "A locked file is not an unreadable one")
+
+        key.setLocked(false)
+        manager.retryLoadAfterUnlock()
+        XCTAssertEqual(manager.loadOutcome, .loaded)
+        XCTAssertEqual(manager.settings.maxHR, 175, "The real settings were reset to defaults")
+        let saved = try settingsOnDisk(manager, file: file)
+        XCTAssertEqual(saved.maxHR, 175)
+        XCTAssertEqual(saved.bodyWeightKg, 66, "The change made while the key was locked was lost")
+    }
+
+    /// A save while the key cannot be read writes nothing, never the profile
+    /// in plain JSON, and leaves the last sealed file; the change is written
+    /// by the next flush once the key opens.
+    @MainActor
+    func testASaveWithTheKeyLockedKeepsTheFileAndIsRetried() throws {
+        let file = try freshSettingsFile()
+        let key = LockedKeySeal()
+        key.setLocked(false)
+        let manager = SettingsManager(settingsURL: file, seal: key.fileSeal)
+        manager.settings.maxHR = 160
+        XCTAssertNil(manager.flushPendingWritesSynchronously())
+        let sealedBytes = try Data(contentsOf: file)
+
+        key.setLocked(true)
+        manager.settings.bodyWeightKg = 90
+        XCTAssertNotNil(manager.flushPendingWritesSynchronously(), "A save with the key locked reported success")
+        XCTAssertEqual(try Data(contentsOf: file), sealedBytes, "The file changed while the key was locked")
+
+        key.setLocked(false)
+        let saved = try settingsOnDisk(manager, file: file)
+        XCTAssertEqual(saved.maxHR, 160)
+        XCTAssertEqual(saved.bodyWeightKg, 90, "The change was not written once the key opened")
+    }
+
     // MARK: - Helpers
 
     private func makeMinimalSession() -> HRVSession {
@@ -446,5 +552,34 @@ final class UserSettingsTests: XCTestCase {
             startDate: Date(),
             sessionType: .overnight
         )
+    }
+}
+
+/// A seal the test locks and unlocks. Locked, sealing fails and a sealed file
+/// does not open, each with the keychain's error before the first unlock
+/// (errSecInteractionNotAllowed); plain JSON still passes through, as with
+/// the app's key. Unlocked, it is the app's key. Starts locked.
+final class LockedKeySeal: Sendable {
+    /// What the keychain throws for the key before the first unlock.
+    static let lockedError = EncryptionManager.EncryptionError.keychainError(-25_308)
+
+    private let locked = OSAllocatedUnfairLock(initialState: true)
+
+    func setLocked(_ value: Bool) {
+        locked.withLock { $0 = value }
+    }
+
+    var fileSeal: JSONFileSeal {
+        JSONFileSeal(seal: { try self.seal($0) }, open: { try self.open($0) })
+    }
+
+    private func seal(_ data: Data) throws -> Data {
+        if locked.withLock({ $0 }) { throw Self.lockedError }
+        return try JSONFileSeal.app.seal(data)
+    }
+
+    private func open(_ stored: Data) throws -> Data {
+        if locked.withLock({ $0 }), stored.first != UInt8(ascii: "{") { throw Self.lockedError }
+        return try JSONFileSeal.app.open(stored)
     }
 }

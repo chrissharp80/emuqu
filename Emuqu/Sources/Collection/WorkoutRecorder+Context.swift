@@ -469,11 +469,14 @@ extension WorkoutAIContextBuilder {
     /// granularity so a long workout doesn't bloat the archive: that's
     /// the same threshold the live recorder uses for committing a
     /// breadcrumb fix during Get Me Back mode, so the storage shape
-    /// matches.
+    /// matches. Filed as a workout track (`isWorkoutTrack`, which the archive
+    /// cap evicts first) with its session id, so deleting the workout forever
+    /// removes it (`BreadcrumbStore.removeTrails(ofSession:)`).
     func archiveWorkoutTrackAsBreadcrumbTrail(
         track: [CLLocation],
         sport: Sport,
-        start: Date
+        start: Date,
+        sessionId: UUID
     ) {
         guard let first = track.first else { return }
         let origin = BreadcrumbFix(from: first)
@@ -482,11 +485,9 @@ extension WorkoutAIContextBuilder {
         // workout was stationary or GPS never produced a second fix.
         guard fixes.count >= 2 else { return }
         let trail = BreadcrumbTrail(
-            startedAt: start,
-            origin: origin,
-            fixes: fixes,
-            label: Self.breadcrumbLabel(sport: sport, start: start),
-            resolvedOriginLabel: nil
+            startedAt: start, origin: origin, fixes: fixes,
+            label: Self.breadcrumbLabel(sport: sport, start: start), resolvedOriginLabel: nil,
+            isWorkoutTrack: true, sessionId: sessionId
         )
         AppDependencies.current.location.breadcrumbStore.archive(trail)
         debugLog("[Recorder] auto-archived workout track as breadcrumb trail (\(fixes.count) fixes, label=\"\(trail.label ?? "")\")")

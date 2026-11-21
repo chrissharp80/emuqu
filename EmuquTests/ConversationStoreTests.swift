@@ -163,14 +163,84 @@ final class ConversationStoreTests: XCTestCase {
         store.save(makeTurns(count: 3))
         waitForPersistedCount(store, 3)
 
-        store.clear()
-        // clear() runs async on the store's queue — poll for the file's removal.
-        waitUntil("conversation file removed") {
-            !FileManager.default.fileExists(atPath: self.fileURL.path)
-        }
+        XCTAssertTrue(store.clear())
 
         XCTAssertEqual(store.load().count, 0)
         XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.path))
+        XCTAssertTrue(store.isEmptyOnDisk())
+    }
+
+    /// A set-aside copy of an older history is part of the thread: clear
+    /// removes it too, and only then reports the chat as gone.
+    func testClearRemovesSetAsideCopies() throws {
+        try Data("[{ truncated".utf8).write(to: fileURL)
+        let store = makeStore()
+        _ = store.load()
+        store.save(makeTurns(count: 2))
+        waitForPersistedCount(store, 2)
+        XCTAssertEqual(try setAsideCopies().count, 1, "Sanity: the undecodable history was set aside")
+        XCTAssertFalse(store.isEmptyOnDisk(), "A set-aside copy still holds turns")
+
+        XCTAssertTrue(store.clear())
+
+        XCTAssertEqual(try setAsideCopies().count, 0)
+        XCTAssertTrue(store.isEmptyOnDisk())
+    }
+
+    /// A clear that cannot remove the file says so and leaves the history in
+    /// place, so nothing claims a wipe that did not happen.
+    func testClearReportsFailureWhenTheFileCannotBeRemoved() throws {
+        let store = makeStore()
+        store.save(makeTurns(count: 2))
+        waitForPersistedCount(store, 2)
+        try makeDirectoryReadOnly()
+
+        XCTAssertFalse(store.clear())
+
+        XCTAssertEqual(store.load().count, 2)
+    }
+
+    // MARK: - Sealed at rest
+
+    func testHistoryIsSealedAtRestAndRoundTrips() throws {
+        let store = makeStore()
+        store.save(makeTurns(count: 2))
+        waitForPersistedCount(store, 2)
+
+        let raw = try Data(contentsOf: fileURL)
+        XCTAssertNotEqual(raw.first, UInt8(ascii: "["), "The history must not be written as plain JSON")
+        XCTAssertNil(raw.range(of: Data("turn-0".utf8)), "Chat text must not be readable on disk")
+        XCTAssertEqual(makeStore().load().map(\.text), ["turn-0", "turn-1"])
+    }
+
+    /// A plain history written by a build that did not seal it still loads,
+    /// and the next save replaces it sealed.
+    func testPlainHistoryLoadsAndIsResealedOnTheNextSave() throws {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        try encoder.encode(makeTurns(count: 2)).write(to: fileURL)
+        let store = makeStore()
+        XCTAssertEqual(store.load().map(\.text), ["turn-0", "turn-1"])
+
+        store.save(makeTurns(count: 3))
+        waitForPersistedCount(store, 3)
+
+        XCTAssertNotEqual(try Data(contentsOf: fileURL).first, UInt8(ascii: "["))
+    }
+
+    private func setAsideCopies() throws -> [URL] {
+        try FileManager.default.contentsOfDirectory(at: tempDir, includingPropertiesForKeys: nil)
+            .filter { $0.lastPathComponent.contains("undecodable") }
+    }
+
+    /// Nothing in the folder can be removed or created until teardown puts
+    /// the permissions back.
+    private func makeDirectoryReadOnly() throws {
+        let dir = tempDir
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: dir.path)
+        addTeardownBlock {
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: dir.path)
+        }
     }
 
     // MARK: - Persistence across instances
@@ -227,7 +297,7 @@ final class ConversationStoreTests: XCTestCase {
         let store = makeStore()
         _ = store.load()
 
-        store.clear()
+        XCTAssertTrue(store.clear())
         store.save(makeTurns(count: 3))
 
         waitForPersistedCount(store, 3)

@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift",
- "hash": "021bb3d03a132d45",
+ "hash": "21dd1e89a59db47d",
  "role": "Main-actor @Observable singleton holding the six provider instances, the persisted active provider/model selection, feature-flag gating per provider and cached availability bools for hot UI paths.",
  "types": [
   "ProviderRegistry: class (@Observable, @MainActor) — provider holder and selection state"
@@ -10,19 +10,43 @@
   "mem:ProviderRegistry.retiredDisplayNames",
   "ud:assistant.activeProvider (standard)",
   "ud:assistant.activeModelID (standard)",
-  "mem:ProviderRegistry.activeProvider / activeModel / activeProviderAvailable"
+  "mem:ProviderRegistry.activeProvider / activeModel / activeProviderAvailable",
+  "mem:ProviderRegistry.providerOrder (static let: apple, anthropic, openai, gemini, grok, deepseek)"
  ],
  "toplevel": "Stored lets apple/anthropic/openai/gemini/grok/deepseek are created once in init; retiredDisplayNames maps nine retired API ids to names.",
  "units": [
   {
    "key": "var ProviderRegistry.allProviders",
-   "hash": "f2760ea9367dfcf6",
+   "hash": "c089ece9270a63ca",
    "does": "Returns [apple, anthropic, openai, gemini, grok, deepseek] in that fixed order (the fallback/routing order other code depends on).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.registeredProvider(_:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.registeredProvider(_:)": "59a731193227cfd9"
+   }
+  },
+  {
+   "key": "func ProviderRegistry.registeredProvider(_:)",
+   "hash": "44a3bd27588c88f3",
+   "does": "Returns the registry's one instance of the provider with the given id (apple, anthropic, openai, gemini, grok or deepseek).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:ProviderRegistry.apple/anthropic/openai/gemini/grok/deepseek"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "switch on id",
+     "effect": "returns the matching stored provider"
+    }
+   ],
    "deps": {}
   },
   {

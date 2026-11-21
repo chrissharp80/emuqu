@@ -26,10 +26,11 @@
    "deps": {
     ".github/workflows/performance.yml::step performance-tests/Checkout": "387c70c86bec7ca8",
     ".github/workflows/performance.yml::step performance-tests/Resolve simulator destination": "87faf49ccf9d5be4",
-    ".github/workflows/performance.yml::step performance-tests/Run Analysis performance tests": "b6c290cb6bff71cf",
+    ".github/workflows/performance.yml::step performance-tests/Run Analysis performance tests": "0f65b8e5d26a5836",
     ".github/workflows/performance.yml::step performance-tests/Select Xcode": "6fc36261bc07857c",
     ".github/workflows/performance.yml::step performance-tests/Upload performance test results": "400fcd0bc3ead46f",
-    "scripts/select_simulator_destination.sh::": "d5426ac85b6a46bc"
+    "scripts/lib/xcodebuild.sh::": "12f293eb9e2fc697",
+    "scripts/select_simulator_destination.sh::": "95f5ed7251fc98ca"
    }
   },
   {
@@ -70,13 +71,13 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/select_simulator_destination.sh::": "d5426ac85b6a46bc"
+    "scripts/select_simulator_destination.sh::": "95f5ed7251fc98ca"
    }
   },
   {
    "key": "step performance-tests/Run Analysis performance tests",
-   "hash": "81cdfe5d66053ebf",
-   "does": "`xcodebuild test -only-testing:EmuquTests/AnalysisPerformanceTests` with result bundle build/PerformanceTests.xcresult; fails only if the test fails (DFAAnalyzer.compute returns nil) or the build fails.",
+   "hash": "717c143b326fa999",
+   "does": "`xcodebuild test -onlyUsePackageVersionsFromResolvedFile -only-testing:EmuquTests/AnalysisPerformanceTests` (packages held to the committed Package.resolved) with result bundle build/PerformanceTests.xcresult; fails only if the test fails (DFAAnalyzer.compute returns nil) or the build fails.",
    "entry": "Step of performance.yml job performance-tests (manual workflow_dispatch only)",
    "calls": [
     "ext:xcodebuild test",
@@ -86,7 +87,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "EmuquTests/AnalysisPerformanceTests.swift::func AnalysisPerformanceTests.testDFAAnalyzerPerformanceOnOvernightSizedInput()": "b48a43ca8287c414"
+    "EmuquTests/AnalysisPerformanceTests.swift::func AnalysisPerformanceTests.testDFAAnalyzerPerformanceOnOvernightSizedInput()": "b48a43ca8287c414",
+    "scripts/lib/xcodebuild.sh::": "12f293eb9e2fc697"
    }
   },
   {

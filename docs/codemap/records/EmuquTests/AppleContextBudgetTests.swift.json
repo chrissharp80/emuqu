@@ -148,27 +148,25 @@
   },
   {
    "key": "func AppleContextBudgetTests.testSmallResultPassesThroughWhole()",
-   "hash": "5787cba9e603f795",
-   "does": "Asserts a small result passes through admit unchanged and remaining drops by exactly its estimated tokens plus Compactor.entryOverhead (the role marker admit charges).",
+   "hash": "ce9f854c727a51ef",
+   "does": "Asserts a 32-character result passes through admit(_:) unchanged and leaves exactly 483 of 500 tokens (9 estimated tokens plus the 8-token role marker, hand-computed).",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.admit(_:)",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)"
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.admit(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.ToolOutputAllowance.admit(_:)": "69d4ca3bd2c472d3",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "ae30d335bc9f248c",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)": "61a120b7b67ce74c"
    }
   },
   {
    "key": "func AppleContextBudgetTests.testAllowanceCountsWhatTheTurnSpent()",
-   "hash": "d2a8c18d1ef7d900",
-   "does": "Charges a tool call, admits a large result then a spent note, and asserts allowance.spent equals call+overhead + result+overhead + note+overhead (admit and charge each add Compactor.entryOverhead).",
+   "hash": "e14f1f0004560aa7",
+   "does": "Charges a 37-character tool call, admits a 4000-character result then a further result, and asserts the cut result is 249 estimated tokens, the second admit returns the spent note, and allowance.spent equals the hand-computed 18 (call + marker) + 257 (result + marker) + the note's measured tokens + 8.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.ToolOutputAllowance(remaining:perCallCap:)",
@@ -188,8 +186,8 @@
   },
   {
    "key": "func AppleContextBudgetTests.testFreshLedgerLeavesTheFollowUpWhatTheWindowHasLeft()",
-   "hash": "409c488392072cf4",
-   "does": "Asserts a fresh SessionLedger(1500) follow-up budget == window-1500-40-2*entryOverhead-reserve-margin.",
+   "hash": "5dfa60690908e586",
+   "does": "Asserts a fresh SessionLedger(1500) gives a 40-token prompt a follow-up budget of 1728 (4096 − 1500 − 40 − 2×8 − 512 − 300, hand-computed).",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::init AppleContextCompactor.SessionLedger(prefixTokens:)",

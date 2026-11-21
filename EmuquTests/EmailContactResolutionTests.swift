@@ -127,3 +127,87 @@ final class EmailContactResolutionTests: XCTestCase {
         XCTAssertEqual(Set(out.resolved), ["first@example.com", "second@example.com"])
     }
 }
+
+/// A delete in the contact book or the route library reports whether it is on
+/// disk, and takes the set-aside copy of an older undecodable file with it.
+/// Kept beside the contact tests because both stores share
+/// `LatestWinsFileWriter.replaceNow`.
+@MainActor
+final class StoredItemDeleteTests: XCTestCase {
+    /// A folder of its own, removed (permissions restored first) at teardown.
+    private func makeDirectory() throws -> URL {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("StoredItemDeleteTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        addTeardownBlock {
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: dir.path)
+            try FileManager.default.removeItem(at: dir)
+        }
+        return dir
+    }
+
+    private func makeReadOnly(_ dir: URL) throws {
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: dir.path)
+    }
+
+    private func route(named name: String) -> SavedRoute {
+        SavedRoute(
+            id: UUID(), name: name, createdAt: Date(), sport: .run, encodedPolyline: Data(),
+            totalDistanceMeters: 0, totalAscentMeters: 0, totalDescentMeters: 0, climbCount: 0
+        )
+    }
+
+    func testRouteDeleteFailureIsReportedAndTheRouteStays() throws {
+        let dir = try makeDirectory()
+        let store = SavedRouteStore(storeURL: dir.appendingPathComponent("saved_routes.json"))
+        let loop = route(named: "Loop")
+        store.add(loop)
+        try makeReadOnly(dir)
+
+        XCTAssertFalse(store.remove(id: loop.id))
+
+        XCTAssertEqual(store.routes.map(\.id), [loop.id])
+    }
+
+    func testRouteDeleteIsOnDiskAndDropsTheSetAsideCopy() throws {
+        let dir = try makeDirectory()
+        let url = dir.appendingPathComponent("saved_routes.json")
+        let copy = dir.appendingPathComponent("saved_routes.undecodable.json")
+        try Data("not routes".utf8).write(to: copy)
+        let store = SavedRouteStore(storeURL: url)
+        let loop = route(named: "Loop")
+        store.add(loop)
+
+        XCTAssertTrue(store.remove(id: loop.id))
+
+        XCTAssertTrue(SavedRouteStore(storeURL: url).routes.isEmpty)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: copy.path))
+    }
+
+    func testContactDeleteFailureIsReportedAndTheContactStays() throws {
+        let dir = try makeDirectory()
+        let store = EmailContactStore(storeURL: dir.appendingPathComponent("email_contacts.json"))
+        let contact = EmailContact(name: "Pat", email: "pat@example.com")
+        XCTAssertTrue(store.add(contact))
+        try makeReadOnly(dir)
+
+        XCTAssertFalse(store.remove(id: contact.id))
+
+        XCTAssertEqual(store.contacts.map(\.id), [contact.id])
+    }
+
+    func testContactDeleteIsOnDiskAndDropsTheSetAsideCopy() throws {
+        let dir = try makeDirectory()
+        let url = dir.appendingPathComponent("email_contacts.json")
+        let copy = dir.appendingPathComponent("email_contacts.undecodable.json")
+        try Data("not contacts".utf8).write(to: copy)
+        let store = EmailContactStore(storeURL: url)
+        let contact = EmailContact(name: "Pat", email: "pat@example.com")
+        store.add(contact)
+
+        XCTAssertTrue(store.remove(id: contact.id))
+
+        XCTAssertTrue(EmailContactStore(storeURL: url).contacts.isEmpty)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: copy.path))
+    }
+}

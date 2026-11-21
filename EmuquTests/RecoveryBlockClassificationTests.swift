@@ -1,9 +1,10 @@
 @testable import Emuqu
 import XCTest
 
-/// Window classification: `ScoredRecoveryBlock.classification` and
-/// `.isOrganizedRecovery`, the rules that decide which five minutes of the
-/// night the recovery score is computed from.
+/// Window classification: `ScoredRecoveryBlock.classification`,
+/// `.isOrganizedRecovery` and `.isConsolidatedRecovery`, the rules that
+/// decide which five minutes of the night the recovery score is computed
+/// from.
 ///
 /// These tests target `ScoredRecoveryBlock`, the type the selector actually
 /// runs, on purpose: a second copy of the same three-tier α1 logic, the same
@@ -43,13 +44,6 @@ final class RecoveryBlockClassificationTests: XCTestCase {
             dfaAlpha1: dfaAlpha1,
             lfHfRatio: lfHfRatio
         )
-    }
-
-    /// Consolidation is not a property of the block — the selector composes it
-    /// as "organized AND stable HR" at the call site. Reproduced here so the
-    /// composition is pinned somewhere.
-    private func isConsolidated(_ b: ScoredRecoveryBlock) -> Bool {
-        b.isOrganizedRecovery && b.hrCV < WindowSelector.RecoveryWindow.unstableCVThreshold
     }
 
     // MARK: - Classification
@@ -103,8 +97,16 @@ final class RecoveryBlockClassificationTests: XCTestCase {
     // MARK: - Consolidation
 
     func testConsolidationRequiresOrganizedAndStableHR() {
-        XCTAssertTrue(isConsolidated(block(hrCV: 0.05)))
-        XCTAssertFalse(isConsolidated(block(hrCV: 0.12)))
+        XCTAssertTrue(block(hrCV: 0.05).isConsolidatedRecovery)
+        XCTAssertFalse(block(hrCV: 0.12).isConsolidatedRecovery)
+        // Organized through favorable LF/HF, but HR unstable: not consolidated.
+        let organizedUnstable = block(lfHfRatio: 0.5, hrCV: 0.12)
+        XCTAssertTrue(organizedUnstable.isOrganizedRecovery)
+        XCTAssertFalse(organizedUnstable.isConsolidatedRecovery)
+        // Stable HR without organization: not consolidated.
+        let stableUnorganized = block(dfaAlpha1: 1.3, hrCV: 0.05)
+        XCTAssertFalse(stableUnorganized.isOrganizedRecovery)
+        XCTAssertFalse(stableUnorganized.isConsolidatedRecovery)
     }
 
     // MARK: - Boundaries
@@ -116,7 +118,7 @@ final class RecoveryBlockClassificationTests: XCTestCase {
 
     func testCVAtExactThresholdIsNotConsolidated() {
         // The rule is `< 0.08`, so exactly 0.08 falls outside it.
-        XCTAssertFalse(isConsolidated(block(hrCV: 0.08)))
+        XCTAssertFalse(block(hrCV: 0.08).isConsolidatedRecovery)
     }
 
     func testBeatsAtMinimumThreshold() {

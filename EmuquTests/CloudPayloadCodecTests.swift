@@ -110,13 +110,8 @@ final class CloudPayloadCodecTests: XCTestCase {
     // MARK: - Portability, which is the point of the whole change
 
     /// A key must exist, and must be stable across calls.
-    ///
-    /// `hasUsableKey` deliberately does not claim portability — a local
-    /// Keychain read cannot establish that iCloud Keychain is enabled and has
-    /// synced to another device. The previous
-    /// name and doc comment overstated restore readiness.
     func testTheCloudKeyIsAvailableAndStable() throws {
-        XCTAssertTrue(CloudPayloadCodec.hasUsableKey, "No cloud key is available")
+        XCTAssertEqual(try CloudPayloadCodec.decode(CloudPayloadCodec.sealForUpload(payload)), payload)
         // Two encodes must be decodable by the same key — proves the key is
         // persisted rather than regenerated per call, which would make every
         // previous backup unreadable.
@@ -299,7 +294,7 @@ final class CloudSettingsRecordTests: XCTestCase {
         let json = try sensitiveSettingsJSON()
         let record = emptyRecord()
 
-        CloudSettingsRecord.write(try CloudSettingsRecord.encryptedSettingsPayload(json), to: record, modifiedAt: Date())
+        CloudSettingsRecord.write(try CloudPayloadCodec.sealForUpload(json), to: record, modifiedAt: Date())
         let restored = try CloudSettingsRecord.settingsJSON(from: record)
 
         XCTAssertEqual(restored, json)
@@ -335,7 +330,7 @@ final class CloudSettingsRecordTests: XCTestCase {
     }
 
     func testTheUploadedPayloadIsNotReadable() throws {
-        let sealed = try CloudSettingsRecord.encryptedSettingsPayload(try sensitiveSettingsJSON())
+        let sealed = try CloudPayloadCodec.sealForUpload(try sensitiveSettingsJSON())
 
         XCTAssertEqual(sealed.prefix(CloudPayloadCodec.magic.count), CloudPayloadCodec.magic)
         // Searched as bytes: ciphertext is rarely valid UTF-8, so a check made
@@ -351,7 +346,7 @@ final class CloudSettingsRecordTests: XCTestCase {
         record[CloudSettingsRecord.legacyJSONField] = "{\"bodyWeightKg\":80}" as CKRecordValue
         record[CloudSettingsRecord.legacyDeviceNameField] = "Jane's iPhone" as CKRecordValue
 
-        CloudSettingsRecord.write(try CloudSettingsRecord.encryptedSettingsPayload(Data("{}".utf8)), to: record, modifiedAt: Date())
+        CloudSettingsRecord.write(try CloudPayloadCodec.sealForUpload(Data("{}".utf8)), to: record, modifiedAt: Date())
 
         XCTAssertNil(record[CloudSettingsRecord.legacyJSONField])
         XCTAssertNil(record[CloudSettingsRecord.legacyDeviceNameField])
@@ -374,7 +369,7 @@ final class CloudSettingsRecordTests: XCTestCase {
     func testThePlaintextFieldWinsWhenAnOlderBuildWroteLast() throws {
         let record = emptyRecord()
         CloudSettingsRecord.write(
-            try CloudSettingsRecord.encryptedSettingsPayload(Data("{\"older\":true}".utf8)),
+            try CloudPayloadCodec.sealForUpload(Data("{\"older\":true}".utf8)),
             to: record, modifiedAt: Date()
         )
         record[CloudSettingsRecord.legacyJSONField] = "{\"newer\":true}" as CKRecordValue

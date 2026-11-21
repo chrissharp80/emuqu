@@ -1,3 +1,4 @@
+import CoreLocation
 @testable import Emuqu
 import XCTest
 
@@ -135,5 +136,24 @@ final class MetNorwayForecastTests: XCTestCase {
 
     func testRequestsAreAtLeastTenMinutesApart() {
         XCTAssertGreaterThanOrEqual(WeatherService.minimumRequestInterval, 10 * 60)
+    }
+
+    /// The request goes through the injected transport to MET Norway's compact
+    /// endpoint with two-decimal coordinates, and a 200 reply becomes a forecast.
+    func testFetchSendsTheCompactRequestAndParsesTheReply() async throws {
+        let lastModified = "Sat, 03 Oct 2026 11:42:10 GMT"
+        let stub = StubHTTPTransport(body: fixture, headers: ["Last-Modified": lastModified])
+        let coord = CLLocationCoordinate2D(latitude: 59.91, longitude: 10.75)
+        let outcome = await WeatherService.fetch(at: coord, ifModifiedSince: nil, transport: stub.transport)
+        let sent = await stub.requests
+        let url = try XCTUnwrap(sent.first?.url)
+        XCTAssertEqual(sent.count, 1)
+        XCTAssertEqual(url.host, "api.met.no")
+        XCTAssertEqual(url.path, "/weatherapi/locationforecast/2.0/compact")
+        XCTAssertEqual(url.query, "lat=59.91&lon=10.75")
+        XCTAssertEqual(sent.first?.value(forHTTPHeaderField: "User-Agent"), WeatherService.userAgent)
+        guard case let .fresh(forecast) = outcome else { return XCTFail("Expected a fresh forecast, got \(outcome)") }
+        XCTAssertEqual(forecast.hours, try MetNorwayForecast.parse(fixture))
+        XCTAssertEqual(forecast.lastModified, lastModified)
     }
 }

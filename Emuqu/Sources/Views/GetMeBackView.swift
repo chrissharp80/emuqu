@@ -50,6 +50,9 @@ struct GetMeBackView: View {
     /// non-cellular device): dialling silently no-ops otherwise, leaving
     /// the user in a stress moment thinking the call went through.
     @State private var showDialFailedAlert = false
+    /// Shown when "End and save" or "Discard" left the trail on disk: the
+    /// screen stays up with the trail still showing.
+    @State private var showTrailChangeFailed = false
     /// Whether the user has opened the "settings" pull-down within
     /// this view (brightness slider lives here so it's not in the way
     /// of the primary navigation surface).
@@ -291,6 +294,9 @@ struct GetMeBackView: View {
             } message: {
                 Text(String(localized: "\"End and save\" stops the arrow but keeps the trail in your history, where Flo can look up where it started. \"Discard\" deletes it forever.", bundle: LanguageManager.appBundle))
             }
+            .alert(String(localized: "Your change couldn't be saved. Try again.", bundle: LanguageManager.appBundle), isPresented: $showTrailChangeFailed) {
+                Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
+            }
     }
 
     @ViewBuilder
@@ -302,16 +308,20 @@ struct GetMeBackView: View {
         // ("where did I park this morning?"). The archive holds up
         // to 50 trails, newest first.
         Button(String(localized: "End and save", bundle: LanguageManager.appBundle)) {
-            recorder.endAndArchive()
-            dismiss()
+            finishTrailChange(recorder.endAndArchive())
         }
         // Hard delete — only when the user really wants the
         // data gone (e.g. they wandered for 5 minutes by
         // accident and don't want clutter in their archive).
         Button(String(localized: "Discard", bundle: LanguageManager.appBundle), role: .destructive) {
-            recorder.clearTrail()
-            dismiss()
+            finishTrailChange(recorder.clearTrail())
         }
+    }
+
+    /// Closes the screen once the trail was filed or deleted; otherwise keeps
+    /// it up and says the change did not take.
+    private func finishTrailChange(_ succeeded: Bool) {
+        if succeeded { dismiss() } else { showTrailChangeFailed = true }
     }
 
     private func withLifecycle(_ content: some View) -> some View {

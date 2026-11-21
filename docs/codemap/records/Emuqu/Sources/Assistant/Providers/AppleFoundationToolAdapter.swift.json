@@ -1,14 +1,15 @@
 {
  "file": "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift",
- "hash": "46a86b39c7f3c675",
- "role": "Adapts the cross-provider ToolSpec catalog to Foundation Models' Tool protocol: one generic adapter taking a single JSON-string argument, plus a catalog helper that wraps specs, estimates their token cost and folds the input schema into the description.",
+ "hash": "78208a34e4fb61ce",
+ "role": "Adapts the cross-provider ToolSpec catalog to Foundation Models' Tool protocol: one generic adapter taking a single JSON-string argument (FoundationModels only), plus a catalog that estimates a tool's token cost and folds its input schema into the description on every build, and wraps specs as Tools where FoundationModels exists.",
  "types": [
   "AppleToolAdapter: struct (Tool, iOS 26) — name/description/handler wrapper",
   "AppleToolAdapter.Arguments: @Generable struct — single argumentsJSON String",
-  "AppleToolCatalog: enum (iOS 26) — wrap/estimatedTokens/enrichedDescription"
+  "AppleToolCatalog: enum — estimatedTokens/enrichedDescription (always compiled)",
+  "AppleToolCatalog: extension (FoundationModels, iOS 26) — wrap"
  ],
  "state": [],
- "toplevel": "Whole file is inside #if canImport(FoundationModels) with @available(iOS 26, *); @Generable/@Guide macros synthesize the Arguments generation schema with the guide text \"JSON object with the tool's arguments...\".",
+ "toplevel": "AppleToolAdapter and the AppleToolCatalog.wrap extension are inside #if canImport(FoundationModels) with @available(iOS 26, *); the rest of AppleToolCatalog compiles everywhere. @Generable/@Guide macros synthesize the Arguments generation schema with the guide text \"JSON object with the tool's arguments...\".",
  "units": [
   {
    "key": "func AppleToolAdapter.call(arguments:)",
@@ -22,21 +23,6 @@
    "writes": [],
    "branches": [],
    "deps": {}
-  },
-  {
-   "key": "func AppleToolCatalog.wrap(_:handler:)",
-   "hash": "7cd6f5e78f9f486b",
-   "does": "Creates an AppleToolAdapter with the spec's name, enriched description and the given handler.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.enrichedDescription(for:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.enrichedDescription(for:)": "86a01e72a8d5e47f"
-   }
   },
   {
    "key": "func AppleToolCatalog.estimatedTokens(for:)",
@@ -81,6 +67,21 @@
     }
    ],
    "deps": {}
+  },
+  {
+   "key": "func AppleToolCatalog.wrap(_:handler:)",
+   "hash": "e044df8b6ce82ce1",
+   "does": "Creates an AppleToolAdapter with the spec's name, enriched description and the given handler.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.enrichedDescription(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.enrichedDescription(for:)": "86a01e72a8d5e47f"
+   }
   }
  ],
  "deps": {}

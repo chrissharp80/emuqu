@@ -24,7 +24,11 @@ final class MorningProcessingServiceTests: XCTestCase {
     private var artifactDetector = ArtifactDetector()
     private var verification = Verification()
     private var baselineTracker = BaselineTracker()
-    private var rawBackup = RawRRBackup()
+    /// Step 1 of the pass writes the beats to the raw-RR backup store: one
+    /// in the test's folder, removed with it.
+    private lazy var rawBackup = RawRRBackup(
+        directory: archiveDirectory.appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true)
+    )
 
     private lazy var analysisPipeline = HRVAnalysisPipeline(
         artifactDetector: artifactDetector,
@@ -45,11 +49,6 @@ final class MorningProcessingServiceTests: XCTestCase {
 
     private let fixedSessionStart = Date(timeIntervalSince1970: 4_102_444_800) // 2100-01-01T00:00:00Z
 
-    /// Ids of every session a test handed to the service. Step 1 of the pass
-    /// writes the beats to the raw-RR backup store, which has no private
-    /// directory, so teardown discards exactly those backups.
-    private var processedSessionIds: [UUID] = []
-
     /// Night assignment reads `Calendar.current`; UTC makes "same night"
     /// mean the same thing on every host. Captured and restored, not leaked.
     nonisolated private static let savedDefaultTimeZone = OSAllocatedUnfairLock<TimeZone?>(initialState: nil)
@@ -67,9 +66,7 @@ final class MorningProcessingServiceTests: XCTestCase {
     }
 
     override func tearDown() async throws {
-        for id in processedSessionIds {
-            try rawBackup.discardBackup(id)
-        }
+        rawBackup.waitForQueuedWork()
         if FileManager.default.fileExists(atPath: archiveDirectory.path) {
             try FileManager.default.removeItem(at: archiveDirectory)
         }
@@ -86,7 +83,6 @@ final class MorningProcessingServiceTests: XCTestCase {
         linkedSessionIds: [UUID]? = nil
     ) -> HRVSession {
         let resolvedStart = startDate ?? fixedSessionStart
-        processedSessionIds.append(id)
         return HRVSession(
             id: id,
             startDate: resolvedStart,

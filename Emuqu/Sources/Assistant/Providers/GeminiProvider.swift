@@ -7,7 +7,7 @@ import Foundation
 /// Tool use: Gemini models `tools` as an array of `functionDeclarations`. The
 /// model replies with parts containing either `text` OR `functionCall`. We
 /// return results via parts with `functionResponse` blocks.
-final class GeminiProvider: AIProvider, Sendable {
+final class GeminiProvider: KeyedCloudProvider, Sendable {
     /// Checked against ai.google.dev/gemini-api/docs/models, /pricing and
     /// /deprecations. `ProviderModelCatalogTests` pins this list.
     ///
@@ -53,17 +53,6 @@ final class GeminiProvider: AIProvider, Sendable {
     ]
 
     let id: ProviderID = .gemini
-    var availableModels: [ModelOption] {
-        Self.models
-    }
-
-    var requiresKey: Bool {
-        true
-    }
-
-    var isAvailable: Bool {
-        AppDependencies.current.providers.apiKeyStore.hasKey(for: .gemini)
-    }
 
     func send(
         messages: [ChatTurn],
@@ -234,13 +223,13 @@ final class GeminiProvider: AIProvider, Sendable {
     }
 
     /// SSE endpoint for a streaming `generateContent` call.
-    private static func streamEndpoint(for model: ModelOption) throws -> URL {
+    static func streamEndpoint(for model: ModelOption) throws -> URL {
         var urlComponents = URLComponents(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model.apiID):streamGenerateContent")
         urlComponents?.queryItems = [
             URLQueryItem(name: "alt", value: "sse")
         ]
         guard let url = urlComponents?.url else {
-            throw AIProviderError.invalidResponse("bad endpoint")
+            throw ProviderHTTP.badEndpoint
         }
         return url
     }
@@ -272,12 +261,8 @@ final class GeminiProvider: AIProvider, Sendable {
             tools: Self.toolDeclarations(for: tools)
         )
         let request = try Self.makeRequest(url: Self.streamEndpoint(for: model), apiKey: apiKey, body: body)
-        let (bytes, response) = try await ProviderHTTP.streamSession.bytes(for: request)
-        try Task.checkCancellation()
-        if let http = response as? HTTPURLResponse, !(200 ... 299).contains(http.statusCode) {
-            try await Self.throwForStatus(http.statusCode, bytes: bytes)
-        }
-        try await Self.consumeSSE(bytes.lines, continuation: continuation)
+        let lines = try await ProviderHTTP.openStream(request, provider: .gemini, failure: Self.statusFailure(_:body:))
+        try await Self.consumeSSE(lines, continuation: continuation)
     }
 
     private static func toolDeclarations(for tools: [ToolSpec]) -> [RequestBody.Tool]? {
@@ -291,17 +276,12 @@ final class GeminiProvider: AIProvider, Sendable {
         })]
     }
 
-    /// `.sortedKeys` for cache-stable prefix serialisation.
-    private static func makeRequest(url: URL, apiKey: String, body: RequestBody) throws -> URLRequest {
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
-        request.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys]
-        request.httpBody = try encoder.encode(body)
-        return request
+    /// The streaming POST for one `streamGenerateContent` call, built by
+    /// `ProviderHTTP.streamRequest` (sorted keys, so the prefix is
+    /// byte-stable for caching) with the key in `x-goog-api-key`. Throws
+    /// what encoding the body throws.
+    static func makeRequest(url: URL, apiKey: String, body: RequestBody) throws -> URLRequest {
+        try ProviderHTTP.streamRequest(url: url, body: body, headers: ["x-goog-api-key": apiKey])
     }
 
     /// Per-request SSE state. `toolUseCounter` numbers the synthesised call
@@ -348,20 +328,16 @@ final class GeminiProvider: AIProvider, Sendable {
         continuation.yield(.done)
     }
 
-    /// Each non-empty `data:` line, parsed and handed to `handleChunk`;
-    /// every other line is skipped. Throws what reading, parsing or a chunk
-    /// throws.
+    /// Each non-empty `data:` payload `SSEEvents` reads, parsed and handed
+    /// to `handleChunk`. Throws what reading, cancellation, parsing or a
+    /// chunk throws.
     private static func readChunks<Lines: AsyncSequence>(
         _ lines: Lines,
         state: inout StreamState,
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) async throws where Lines.Element == String {
-        for try await line in lines {
-            try Task.checkCancellation()
-            guard line.hasPrefix("data:") else { continue }
-            let payload = line.dropFirst("data:".count).trimmingCharacters(in: .whitespaces)
-            guard !payload.isEmpty else { continue }
-            let json = try ProviderHTTP.eventObject(Data(payload.utf8), provider: .gemini)
+        for try await event in SSEEvents(lines) {
+            let json = try ProviderHTTP.eventObject(Data(event.data.utf8), provider: .gemini)
             try handleChunk(json, state: &state, continuation: continuation)
         }
     }
@@ -469,29 +445,16 @@ final class GeminiProvider: AIProvider, Sendable {
         let cachedCount = usage["cachedContentTokenCount"] as? Int ?? 0
         let input = max(0, (usage["promptTokenCount"] as? Int ?? 0) - cachedCount)
         let output = (usage["candidatesTokenCount"] as? Int ?? 0) + (usage["thoughtsTokenCount"] as? Int ?? 0)
-        let cached = cachedCount
-        guard input > 0 || output > 0 || cached > 0 else { return }
-        continuation.yield(.usage(
-            inputTokens: input, outputTokens: output,
-            cachedInputTokens: cached, cacheCreationInputTokens: 0
-        ))
+        ProviderHTTP.yieldUsage(input: input, output: output, cached: cachedCount, to: continuation)
     }
 
-    /// Gemini answers a bad API key with HTTP 400 (`INVALID_ARGUMENT`, reason
-    /// `API_KEY_INVALID`), not 401, so that case is read from the body before
-    /// the status mapping.
-    private static func throwForStatus(_ status: Int, bytes: URLSession.AsyncBytes) async throws -> Never {
-        let collected = try await ProviderHTTP.errorBody(bytes)
-        let bodyText = redactAPIKeys(String(data: collected, encoding: .utf8) ?? "")
-        if ProviderAccountReply.isCreditExhausted(status: status, body: bodyText) {
-            throw AIProviderError.outOfCredit(.gemini)
+    /// The error a non-2xx reply becomes. Gemini answers a bad API key with
+    /// HTTP 400 (`INVALID_ARGUMENT`, reason `API_KEY_INVALID`), not 401, so
+    /// that case is read from the body before the shared status mapping.
+    static func statusFailure(_ status: Int, body: Data) -> AIProviderError {
+        ProviderHTTP.statusFailure(status, body: body, provider: .gemini) { status, _, text in
+            status == 400 && text.contains("API_KEY_INVALID") ? .authFailed : nil
         }
-        if status == 400, bodyText.contains("API_KEY_INVALID") { throw AIProviderError.authFailed }
-        throw ProviderHTTP.statusError(
-            status,
-            message: ProviderHTTP.errorMessage(from: collected) ?? String(bodyText.prefix(300)),
-            overloaded: ProviderHTTP.overloadedMessage(for: .gemini)
-        )
     }
 }
 

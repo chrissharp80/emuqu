@@ -1,14 +1,15 @@
 {
  "file": "Makefile",
- "hash": "6cfdab5a71f174c2",
+ "hash": "dccd46cef04f6b15",
  "role": "Developer entry point for every gate, test and build task; `make ci` is the local equivalent of ci.yml, and gates.yml invokes many targets on Linux.",
  "types": [],
  "state": [
   "SHELL=/bin/bash",
   "SCHEME ?= Emuqu",
-  "PROJECT ?= Emuqu.xcodeproj"
+  "PROJECT ?= Emuqu.xcodeproj",
+  "XCODEBUILD_PINNED (from include scripts/lib/xcodebuild.sh)"
  ],
- "toplevel": "Sets SHELL=/bin/bash, overridable SCHEME/PROJECT defaults, and a .PHONY list naming every target (including codemap-setup, codemap-guard, codemap-report and codemap-impact) (localization-orphan-guard appears twice, harmless). All targets are thin wrappers around scripts/*.sh, Tools/copy_linter/lint.py, scripts/generate_sbom.py, swiftlint/swiftformat or xcodebuild; their behaviour is in the unit records.",
+ "toplevel": "Sets SHELL=/bin/bash, overridable SCHEME/PROJECT defaults, includes scripts/lib/xcodebuild.sh (defining XCODEBUILD_PINNED, the flag that holds xcodebuild to the committed Package.resolved), and a .PHONY list naming every target (including codemap-setup, codemap-guard, codemap-report and codemap-impact) (localization-orphan-guard appears twice, harmless). All targets are thin wrappers around scripts/*.sh, Tools/copy_linter/lint.py, scripts/generate_sbom.py, swiftlint/swiftformat or xcodebuild; their behaviour is in the unit records.",
  "units": [
   {
    "key": "target lint",
@@ -55,8 +56,8 @@
   },
   {
    "key": "target test",
-   "hash": "fc532a1e9bca29eb",
-   "does": "Resolves a simulator destination with scripts/select_simulator_destination.sh $(SCHEME) $(PROJECT) (defaults Emuqu / Emuqu.xcodeproj, overridable), echoes it, then runs `xcodebuild test` on the scheme with that destination. No coverage gate, no result bundle.",
+   "hash": "25e01f64de84bc80",
+   "does": "Resolves a simulator destination with scripts/select_simulator_destination.sh $(SCHEME) $(PROJECT) (defaults Emuqu / Emuqu.xcodeproj, overridable), echoes it, then runs `xcodebuild test $(XCODEBUILD_PINNED)` (packages held to the committed Package.resolved) on the scheme with that destination. No coverage gate, no result bundle.",
    "entry": "`make test` from a developer shell",
    "calls": [
     "ext:script scripts/select_simulator_destination.sh",
@@ -66,7 +67,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/select_simulator_destination.sh::": "d5426ac85b6a46bc"
+    "scripts/select_simulator_destination.sh::": "95f5ed7251fc98ca"
    }
   },
   {
@@ -86,7 +87,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/run_tests_with_coverage.sh::": "0d9ff4451646c02a"
+    "scripts/run_tests_with_coverage.sh::": "768cb177fd4ba5ba"
    }
   },
   {
@@ -188,7 +189,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target ci": "314d826a23831255",
+    "Makefile::target ci": "60ad2e16c12b11bb",
     "scripts/check_logger_self_reference.sh::": "a38e378f33900911"
    }
   },
@@ -601,7 +602,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/check_thread_sanitizer.sh::": "ee6782f704348be2"
+    "scripts/check_thread_sanitizer.sh::": "9bb95d7bf87cc3ae"
    }
   },
   {
@@ -664,6 +665,21 @@
    "branches": [],
    "deps": {
     "scripts/check_no_developer_endpoint.sh::": "df590bbb70bc5631"
+   }
+  },
+  {
+   "key": "target xcodebuild-pinned-guard",
+   "hash": "e77a014ab665cba8",
+   "does": "Runs scripts/check_xcodebuild_pinned.sh: every xcodebuild invocation in the Makefile, workflows, scripts and git hooks that opens the project passes -onlyUsePackageVersionsFromResolvedFile.",
+   "entry": "`make xcodebuild-pinned-guard` from a developer shell; prerequisite of `make ci`; invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_xcodebuild_pinned.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/check_xcodebuild_pinned.sh::": "57296ffc726d702b"
    }
   },
   {
@@ -773,7 +789,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/verify_gates_fail.sh::": "6f091b6c9dfb0702"
+    "scripts/verify_gates_fail.sh::": "2fd11bf97a403f78"
    }
   },
   {
@@ -927,8 +943,8 @@
   },
   {
    "key": "target release-build",
-   "hash": "80cd1b1047542091",
-   "does": "mkdir build; `xcodebuild build` of the scheme in Release configuration for generic/platform=iOS with derived data build/release and CODE_SIGNING_ALLOWED=NO, all output to build/release-build.log. On failure prints the unique `error:` lines and \"release-build: FAILED\" and exits 1; on success prints \"release-build: OK\". A prerequisite of `make ci`, after verify-gates.",
+   "hash": "ad67971c28c4320b",
+   "does": "mkdir build; `xcodebuild build $(XCODEBUILD_PINNED)` (packages held to the committed Package.resolved) of the scheme in Release configuration for generic/platform=iOS with derived data build/release and CODE_SIGNING_ALLOWED=NO, all output to build/release-build.log. On failure prints the unique `error:` lines and \"release-build: FAILED\" and exits 1; on success prints \"release-build: OK\". A prerequisite of `make ci`, after verify-gates.",
    "entry": "`make release-build` from a developer shell; prerequisite of `make ci`; invoked by ci.yml tests job step \"Release configuration compiles\"",
    "calls": [
     "ext:xcodebuild build"
@@ -983,8 +999,8 @@
   },
   {
    "key": "target ci",
-   "hash": "16b3e77c51cef2d4",
-   "does": "Aggregate target with no recipe: runs the 49 prerequisite targets left to right (static gates first, then verify-gates, release-build, thread-sanitizer, and test-coverage last), stopping at the first failure. Excludes format, test, sbom, ci-local*, clean-build, setup-hooks and the codemap report/impact targets.",
+   "hash": "e6be8ddca3a43416",
+   "does": "Aggregate target with no recipe: runs the 50 prerequisite targets left to right (static gates first, then verify-gates, release-build, thread-sanitizer, and test-coverage last), stopping at the first failure. Excludes format, test, sbom, ci-local*, clean-build, setup-hooks and the codemap report/impact targets.",
    "entry": "`make ci` from a developer shell",
    "calls": [
     "Makefile::target lint",
@@ -1029,6 +1045,7 @@
     "Makefile::target doc-links",
     "Makefile::target strict-concurrency-enabled",
     "Makefile::target no-phone-home",
+    "Makefile::target xcodebuild-pinned-guard",
     "Makefile::target sbom-check",
     "Makefile::target codemap-guard",
     "Makefile::target gate-preflight",
@@ -1075,7 +1092,7 @@
     "Makefile::target no-unowned-guard": "25ed7c1d3b02dd7c",
     "Makefile::target orphan-swift-guard": "274019c065545658",
     "Makefile::target perimeter-sync": "7b1a002692b1fe41",
-    "Makefile::target release-build": "5357cf205e264442",
+    "Makefile::target release-build": "8569be24c7eb1de6",
     "Makefile::target sbom-check": "46aecc781adb961a",
     "Makefile::target sbom-guard": "b6d05ef975bc25ca",
     "Makefile::target science-register": "9e24175bb2b0670b",
@@ -1089,7 +1106,8 @@
     "Makefile::target test-coverage": "2f52b6f381055f27",
     "Makefile::target thread-sanitizer": "adfca9b867c6ab56",
     "Makefile::target uitest-reset-guard": "368e1ce40cd6fbc2",
-    "Makefile::target verify-gates": "62403efc5c06c498"
+    "Makefile::target verify-gates": "62403efc5c06c498",
+    "Makefile::target xcodebuild-pinned-guard": "81ad11c30f1d053a"
    }
   },
   {
@@ -1127,5 +1145,7 @@
    }
   }
  ],
- "deps": {}
+ "deps": {
+  "scripts/lib/xcodebuild.sh::": "12f293eb9e2fc697"
+ }
 }

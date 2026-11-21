@@ -25,9 +25,17 @@ import Foundation
 final class WeatherService {
     static let shared = WeatherService()
 
-    /// The last snapshot, or nil once it is older than `maxSnapshotAge`.
-    /// Without the age limit, yesterday's weather in another city was
-    /// archived onto an offline workout today and fed heat acclimation.
+    /// Sends the MET Norway request: `HTTPTransport.live` in the app, a stub
+    /// in tests.
+    private let transport: HTTPTransport
+
+    init(transport: HTTPTransport = .live) {
+        self.transport = transport
+    }
+
+    /// The last snapshot, or nil once it is older than `maxSnapshotAge`, so
+    /// weather from hours ago in another place is never archived onto a
+    /// workout or fed to heat acclimation.
     ///
     /// A point-in-time read: it depends on the clock, which Observation does
     /// not track, so a view bound to it would not refresh when the snapshot
@@ -65,19 +73,19 @@ final class WeatherService {
         let coord = Self.rounded(loc.coordinate)
         let ifModifiedSince = isSamePlace(coord) ? forecast?.lastModified : nil
         lastRequestAt = Date()
+        let transport = self.transport
         // The task inherits the main actor, so the slot is released in the
         // same turn as `apply`, with no window between them.
         inflightTask = Task { [weak self] in
             defer { self?.inflightTask = nil }
-            let outcome = await Self.fetch(at: coord, ifModifiedSince: ifModifiedSince)
+            let outcome = await Self.fetch(at: coord, ifModifiedSince: ifModifiedSince, transport: transport)
             self?.apply(outcome, at: coord)
         }
     }
 
     /// The forecast, snapshot and place change together, and only when the
-    /// response gives a snapshot: a forecast stored for a new place while
-    /// `fetchedAtCoord` still named the old one sent the new place's
-    /// Last-Modified as If-Modified-Since for the old place.
+    /// response gives a snapshot, so the Last-Modified sent as
+    /// If-Modified-Since always belongs to the place in `fetchedAtCoord`.
     private func apply(_ outcome: FetchOutcome, at coord: CLLocationCoordinate2D) {
         let updated: MetNorwayForecast
         switch outcome {
@@ -138,10 +146,12 @@ final class WeatherService {
 
     /// Nonisolated, with `request` and `outcome`: the request and the JSON
     /// decode run off the main actor, as the header says.
-    nonisolated private static func fetch(at coord: CLLocationCoordinate2D, ifModifiedSince: String?) async -> FetchOutcome {
+    nonisolated static func fetch(
+        at coord: CLLocationCoordinate2D, ifModifiedSince: String?, transport: HTTPTransport
+    ) async -> FetchOutcome {
         guard let request = request(at: coord, ifModifiedSince: ifModifiedSince) else { return .failed }
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await transport.send(request)
             return try outcome(data: data, response: response)
         } catch {
             debugLog("[WeatherService] weather fetch failed: \(error.localizedDescription)", level: .warning)

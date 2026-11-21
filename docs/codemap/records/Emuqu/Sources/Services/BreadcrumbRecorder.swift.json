@@ -48,7 +48,7 @@
    "deps": {
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.lastActivity(of:)": "0edfe216fbf1e26d",
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.resume()": "8e604da1f85b4113",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "f80525a8222cb7ff",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "e1282e17fd6e3ecb",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "e69d88a8aa9e1d11"
@@ -106,7 +106,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.startStreaming()": "98e3082c384e6bfc",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.save(_:)": "59904fb1c4effdec",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.save(_:)": "833a96828255038e",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "e69d88a8aa9e1d11"
@@ -199,9 +199,9 @@
   },
   {
    "key": "func BreadcrumbRecorder.endAndArchive()",
-   "hash": "6aec529df9252aaf",
-   "does": "Archives the active trail via the store, stops recording, and clears the in-memory trail.",
-   "entry": "GetMeBackView.swift:284 'End and save' alert button.",
+   "hash": "155b07da95916f94",
+   "does": "Asks the store to move the active trail into the archive (when the archive cannot be read or written the store keeps active.json), then stops recording (disengage, whose hasActiveTrail check runs behind the store's archive write, so it drops the in-memory trail and last committed fix only once active.json is gone). Returns true when the in-memory trail was dropped, false when the trail is still on disk and stays loaded.",
+   "entry": "GetMeBackView.endTrailAlertActions 'End and save' alert button.",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archiveActive()",
@@ -209,16 +209,25 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location"
    ],
-   "reads": [],
+   "reads": [
+    "mem:BreadcrumbRecorder.activeTrail"
+   ],
    "writes": [
     "file:Breadcrumbs/archive.json",
     "file:Breadcrumbs/active.json",
-    "mem:BreadcrumbRecorder.activeTrail"
+    "mem:BreadcrumbRecorder.activeTrail (via disengage)",
+    "mem:BreadcrumbRecorder.lastCommittedFix (via disengage)"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "activeTrail == nil after disengage",
+     "effect": "true: trail filed (or none was on disk); false: active.json kept, trail stays loaded"
+    }
+   ],
    "deps": {
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()": "e1cb44bb7ee7483c",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archiveActive()": "b6e5350c19bcfee1",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archiveActive()": "9e7fedc9e9b85273",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "e69d88a8aa9e1d11"
@@ -245,9 +254,9 @@
   },
   {
    "key": "func BreadcrumbRecorder.clearTrail()",
-   "hash": "9c424f50fed7bfbb",
-   "does": "User-confirmed discard: stops recording, deletes the active trail file, and clears the in-memory trail.",
-   "entry": "GetMeBackView.swift:291 'Discard' alert button.",
+   "hash": "246a9ce2f481e4cd",
+   "does": "User-confirmed discard: stops recording, asks the store to remove the active trail file. When the store reports it gone, clears the in-memory trail and last committed fix and returns true; when active.json is still on disk (logged by the store), returns false and keeps the trail loaded, matching disk.",
+   "entry": "GetMeBackView.endTrailAlertActions 'Discard' alert button.",
    "calls": [
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore",
@@ -258,12 +267,19 @@
    "reads": [],
    "writes": [
     "file:Breadcrumbs/active.json",
-    "mem:BreadcrumbRecorder.activeTrail"
+    "mem:BreadcrumbRecorder.activeTrail",
+    "mem:BreadcrumbRecorder.lastCommittedFix"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "breadcrumbStore.clear() is false",
+     "effect": "return false; in-memory trail kept"
+    }
+   ],
    "deps": {
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.disengage()": "e1cb44bb7ee7483c",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.clear()": "20349278ec335013",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.clear()": "136e4673c9e1eea5",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "e69d88a8aa9e1d11"
@@ -340,7 +356,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.save(_:)": "59904fb1c4effdec",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.save(_:)": "833a96828255038e",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbFix(from:)": "e502a6d117cc0430",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",

@@ -126,7 +126,7 @@
     "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "26cb9251401b7661",
     "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollForSleepData(series:effectiveStartDate:totalBeats:isBackgroundRefinement:sleepSchedule:prefetchedSleepData:statusCallback:)": "d9d0f9db1bfbbd45",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.processAcceptance(session:inputs:enableHealthKitExport:clearPersistedRecordingState:)": "8a2eb0105d7ee1d8",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "1ed5ce210ad55f70"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "8366e74f21747d3b"
    }
   },
   {
@@ -169,8 +169,8 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.overnightStreamingTick()": "f7ca78b1a42934e7",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.runOvernightIncrementalBackup(session:force:)": "9d568f4667106e93",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "1ed5ce210ad55f70",
-    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.startAppendFormat(sessionId:deviceId:existingEntry:)": "bd056c97c086208b",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.appendBackup(points:sessionId:deviceId:)": "8366e74f21747d3b",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.startAppendFormat(sessionId:deviceId:existingEntry:)": "68edb2e2aa8c4896",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.writeAppendData(_:to:sessionId:allLines:)": "307af9c6fb25ddac"
    }
   },
@@ -569,13 +569,12 @@
   {
    "key": "§ Emuqu — Overnight Recovery Measurement from Raw Beat Intervals > 3. Methods > 3.5 Window selection > 3.5.6 Fallbacks and peak capacity",
    "hash": "5b6f7de9c25a9ca0",
-   "does": "Specifies fallbacks: no organized window -> peak-RMSSD fallback over the same band with the same two-pass scan and spike filter, flagged not organized; nothing -> whole session analyzed; peak capacity over the whole recording with compact geometry (400; N/3 if N>=360; else max(60,0.4N)), 15% cap, spike filter, max RMSSD, shown but not scored. Code: recoveryOrPeakFallback/peakRMSSDFallback/findPeakMetricWindow/scanPeakBand/findPeakCapacity (WindowSelection+Scoring.swift:466-535,589-654); HRVAnalysisPipeline.analyzeSelectedWindow analyzes the full session when recoveryWindow is nil.",
+   "does": "Specifies fallbacks: no organized window -> peak-RMSSD fallback over the same band with the same two-pass scan and spike filter, flagged not organized; nothing -> whole session analyzed; peak capacity over the whole recording with compact geometry (400; N/3 if N>=360; else max(60,0.4N)), 15% cap, spike filter, max RMSSD, shown but not scored. Code: recoveryOrPeakFallback/peakRMSSDFallback/findPeakMetricWindow/findPeakCapacity (WindowSelection+Scoring.swift:466-535,589-654); HRVAnalysisPipeline.analyzeSelectedWindow analyzes the full session when recoveryWindow is nil.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryOrPeakFallback(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakRMSSDFallback(in:flags:sleepStartMs:wakeTimeMs:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakMetricWindow(in:flags:sleepStartMs:wakeTimeMs:metric:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.scanPeakBand(series:flags:band:boundaries:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakCapacity(in:flags:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.buildPeakRecoveryWindow(finalBlock:metric:)",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeSelectedWindow(session:flags:windowResult:trainingContext:ansConfig:)",
@@ -1532,7 +1531,7 @@
     "Emuqu/Sources/Storage/RawRRBackup+Reconciliation.swift::func RawRRBackup.reconcileBeatCount(sessionId:to:claimed:)": "11d6a2ee72014f0a",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.updateAppendIndex(sessionId:existingEntry:beatCount:)": "191c282287e948e7",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func RawRRBackup.writeAppendData(_:to:sessionId:allLines:)": "307af9c6fb25ddac",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "f60e943a58f4e418",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "e6ebfa51ed45acda",
     "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.applyComposite(mergedPoints:summary:adoptImportedAnalysis:from:to:)": "421396f7d6c2b7b8",
     "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.compositeChange(imported:existing:importedPoints:existingPoints:)": "4709f6fbc224312f",
     "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)": "5026cc5eddd06cce",

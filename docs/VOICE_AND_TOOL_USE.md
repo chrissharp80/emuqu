@@ -153,8 +153,9 @@ spend.
 
 ### Deterministic intent shortcut
 
-Before any LLM call, the dispatch path checks
-[`DeterministicIntent.tryMatch`](../Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift).
+Before a voice turn goes to a model, `AssistantViewModel.send` checks
+[`DeterministicIntent.tryMatch`](../Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift)
+(when no reply is streaming; typed turns skip it).
 ~30–50% of voice turns are repeats of a small set of factual lookups
 ("what's my recovery", "how did I sleep last night", "what's my RHR")
 that don't need an LLM at all. The 14-pattern catalog maps each

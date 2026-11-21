@@ -19,23 +19,57 @@ extension RawRRBackup {
         let aside = indexFile.deletingLastPathComponent()
             .appendingPathComponent("\(indexFile.lastPathComponent).unreadable_\(Int(Date().timeIntervalSince1970))")
         let movedAside = attempt("RawRRBackup.preserveIndex") { try fileManager.moveItem(at: indexFile, to: aside) } != nil
-        let names = attempt("RawRRBackup.listForRecovery") {
+        let entries = entriesOnDisk(skipping: [])
+        debugLog("[RawRRBackup] index unreadable — rebuilt \(entries.count) entries from headers and one-shot files", level: .warning)
+        return (entries, movedAside)
+    }
+
+    /// Adds a row for each backup on disk the index does not name, and
+    /// saves: a session whose first append wrote its header and points but
+    /// was killed before the index save, a one-shot write killed before its
+    /// row, or every backup when the index file is missing. Ids the user
+    /// deleted forever (`forgottenBackupIds`) are skipped; a session in the
+    /// Trash is listed again, where the Trash shows it. Nothing happens while
+    /// the index could not be read. Runs on `appendQueue`
+    /// (`reconcileIndexInBackground`).
+    func reconcileIndexWithFiles() {
+        let known: Set<UUID>? = indexLock.withLock { indexReadFailed ? nil : Set(index.map(\.id)) }
+        guard let known else { return }
+        let found = entriesOnDisk(skipping: known.union(Self.forgottenBackupIds()))
+        guard !found.isEmpty else { return }
+        indexLock.withLock {
+            let listed = Set(index.map(\.id))
+            index += found.filter { !listed.contains($0.id) }
+        }
+        debugLog("[RawRRBackup] listed \(found.count) backup(s) on disk the index did not name", level: .warning)
+        attempt("RawRRBackup.saveReconciledIndex") { try saveIndex() }
+    }
+
+    /// Sessions the user deleted forever (`ForgottenSessions`).
+    static func forgottenBackupIds() -> Set<UUID> {
+        ForgottenSessions.ids
+    }
+
+    /// A row for every backup in the folder whose id is not in `skipped`:
+    /// from its header for the append format, else from its newest one-shot
+    /// file. Only files of ids not skipped are read.
+    private func entriesOnDisk(skipping skipped: Set<UUID>) -> [BackupIndex] {
+        let names = (attempt("RawRRBackup.listForRecovery") {
             try fileManager.contentsOfDirectory(atPath: backupDirectory.path)
-        } ?? []
+        } ?? []).filter { UUID(uuidString: String($0.prefix(36))).map { !skipped.contains($0) } ?? false }
         let fromHeaders = names.filter { $0.hasSuffix("_header.json") }.compactMap(recoveredEntry(fromHeaderNamed:))
         let headerIds = Set(fromHeaders.map(\.id))
         let oneShots = latestOneShotPerSession(names.compactMap(recoveredEntry(fromOneShotNamed:)))
             .filter { !headerIds.contains($0.id) }
-        let entries = fromHeaders + oneShots
-        debugLog("[RawRRBackup] index unreadable — rebuilt \(fromHeaders.count) entries from headers, \(oneShots.count) from one-shot files", level: .warning)
-        return (entries, movedAside)
+        return fromHeaders + oneShots
     }
 
     /// Not marked archived: a backup listed in Lost Sessions that turns out to
     /// be archived is retired by the next reconcile, while one wrongly marked
     /// archived would be purged. The count is left unknown when the points
-    /// cannot be read, so the next append rewrites the file in full rather
-    /// than appending at a guessed offset.
+    /// cannot be read, so the next append writes every point again rather
+    /// than appending at a guessed offset (`startAppendFormat` keeps or sets
+    /// aside what the file held).
     private func recoveredEntry(fromHeaderNamed name: String) -> BackupIndex? {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601

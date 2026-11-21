@@ -53,8 +53,9 @@ from coming back.
   `ObservableObject` conformances toward zero (new types must be
   `@Observable`). A hotfix that adds a `.shared` or a legacy
   `ObservableObject` will fail CI unless it also lowers/holds the budget.
-- Build for Release config: `xcodebuild -project Emuqu.xcodeproj
-  -scheme Emuqu -configuration Release -destination
+- Build for Release config against the committed package versions:
+  `xcodebuild -onlyUsePackageVersionsFromResolvedFile -project
+  Emuqu.xcodeproj -scheme Emuqu -configuration Release -destination
   'generic/platform=iOS Simulator' build`
 - Cold-start measurement on a physical device (use the
   `os_signpost("init.*")` events from `EmuquApp.swift` in

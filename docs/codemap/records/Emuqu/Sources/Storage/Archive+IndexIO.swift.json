@@ -89,7 +89,7 @@
   {
    "key": "func SessionArchive.upgradeExistingFileProtection()",
    "hash": "2a87f562ef4b06ec",
-   "does": "Enumerates every path under archiveDirectory, applying the until-first-unlock protection class to each (applyProtectionAttributes skips session files still pending re-encryption, which keep .completeFileProtection) and counting failures; logs a capped-count warning when >5 failed.",
+   "does": "Enumerates every path under archiveDirectory, applying the until-first-unlock protection class to each (applyProtectionAttributes skips session files still pending re-encryption, which keep .completeFileProtectionUnlessOpen) and counting failures; logs a capped-count warning when >5 failed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.applyProtectionAttributes(at:filename:failureCount:)",
@@ -165,7 +165,7 @@
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func rewriteWithProtection(at:)": "e8a97c0c9d12d0f3",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.protectionAttributes": "90bfb89d8d932951",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func isPendingPlaintextSessionFile(_:pending:)": "57fd87f67445a47e",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func isPendingPlaintextSessionFile(_:pending:)": "4011267e08da02e8",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "3a3880893754edfe",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -186,10 +186,12 @@
   },
   {
    "key": "func SessionArchive.loadIndex()",
-   "hash": "a117768b0ecff7f4",
-   "does": "Loads index.json into memory: missing file → nothing; read error → keeps file, sets indexReadFailed for retry; entries decoded one by one (decodeIndex): the decoded ones become index and the ones a newer build wrote (undecodable here, or from a newer schema) are kept raw in newerBuildIndexEntries so saveIndex writes them back; bytes that are not an index at all → index=[], indexDecodeFailed=true and the file moved aside so boot's orphan scan re-adopts sessions. When that move fails the file is still in place, and indexReadFailed is set as for a read error, so the next save re-reads it and is blocked until it moves.",
+   "hash": "f84de7260b981ff3",
+   "does": "Loads index.json into memory: missing file → nothing; read error, or a sealed index while the key cannot be reached (readStoredIndex) → keeps file, sets indexReadFailed for retry; the bytes are opened (indexJSON: sealed bytes decrypted, a plain index from a build that did not seal it used as it is) and entries decoded one by one (decodeIndex): the decoded ones become index and the ones a newer build wrote (undecodable here, or from a newer schema) are kept raw in newerBuildIndexEntries so saveIndex writes them back; bytes that do not open, or are not an index at all → index=[], indexDecodeFailed=true and the file moved aside so boot's orphan scan re-adopts sessions. When that move fails the file is still in place, and indexReadFailed is set as for a read error, so the next save re-reads it and is blocked until it moves.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.readStoredIndex()",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.indexJSON(_:)",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.decodeIndex(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.preserveUnreadableIndex()"
@@ -213,27 +215,31 @@
     },
     {
      "at": "+5",
-     "cond": "catch read error (e.g. data-protection EPERM)",
+     "cond": "catch read error (data-protection EPERM, or sealed while the key is unreachable)",
      "effect": "logs error, indexReadFailed=true, returns"
     },
     {
-     "at": "+14",
-     "cond": "catch decode error (not an index array)",
+     "at": "+15",
+     "cond": "catch open or decode error",
      "effect": "logs, index=[] (caches NOT reset), indexDecodeFailed=true, preserveUnreadableIndex; indexReadFailed = the move failed"
     }
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.decodeIndex(_:)": "490abd62725fecf3",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.indexJSON(_:)": "6b9b20505f4ffd9a",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.preserveUnreadableIndex()": "c3d9984c59efe191",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.readStoredIndex()": "c0040e76b97b87fa",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func SessionArchive.mergeIndexThatFailedToLoad()",
-   "hash": "f5deeaab45b513aa",
-   "does": "If the launch read failed, re-reads index.json (throwing while still unreadable) and merges on-disk entries (decodeIndex) not already in memory and not deleted, and the newer build's raw entries into newerBuildIndexEntries (merge keeps ones already held); bytes that are not an index set indexDecodeFailed and are moved aside, and when that move fails indexReadFailed is set again and the decode error thrown, so no save writes over them.",
+   "hash": "6596dd14937bbbd0",
+   "does": "If the launch read failed, re-reads index.json through readStoredIndex (throwing while still unreadable, or sealed while the key cannot be reached), opens it (indexJSON) and merges on-disk entries (decodeIndex) not already in memory and not deleted, and the newer build's raw entries into newerBuildIndexEntries (merge keeps ones already held); bytes that do not open or are not an index set indexDecodeFailed and are moved aside, and when that move fails indexReadFailed is set again and the error thrown, so no save writes over them.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.readStoredIndex()",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.indexJSON(_:)",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.decodeIndex(_:)",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.merge(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -260,21 +266,86 @@
     },
     {
      "at": "+12",
-     "cond": "catch decode error on retry",
+     "cond": "catch open or decode error on retry",
      "effect": "logs, sets indexDecodeFailed, moves the file aside; the in-memory index is then kept and saved over it by the caller"
     },
     {
      "at": "+15",
      "cond": "the move aside failed",
-     "effect": "indexReadFailed=true and the decode error thrown: the caller does not save"
+     "effect": "indexReadFailed=true and the error thrown: the caller does not save"
     }
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.merge(_:)": "4f8a8a99d7259b7b",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.decodeIndex(_:)": "490abd62725fecf3",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.indexJSON(_:)": "6b9b20505f4ffd9a",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.preserveUnreadableIndex()": "c3d9984c59efe191",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.readStoredIndex()": "c0040e76b97b87fa",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func SessionArchive.readStoredIndex()",
+   "hash": "9e1c6ac0f6dadcef",
+   "does": "Reads index.json's bytes as stored (throws when the read fails). When they carry the 'FR' seal and the archive's key cannot be reached (EncryptionManager.isAvailable false), throws EncryptionError.keyNotFound, so the caller treats the index as unreadable for now rather than corrupt. Plain or sealed bytes with the key reachable are returned unchanged.",
+   "entry": null,
+   "calls": [
+    "ext:Data(contentsOf:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.indexEncryption",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable"
+   ],
+   "reads": [
+    "file:<indexFile>",
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "not sealed, or the key is reachable",
+     "effect": "return the bytes; else throw keyNotFound"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.indexEncryption": "c8ce9f7f8e86bf28",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)": "d617abae8ea527b1",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "293d00b425d37802"
+   }
+  },
+  {
+   "key": "var SessionArchive.indexEncryption",
+   "hash": "147318e1db48d83c",
+   "does": "The archive's EncryptionManager (AppDependencies.current.storage.encryptionManager), which seals the index, as it seals session files.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.encryptionManager"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.encryptionManager": "73ebcb3083a7f73a"
+   }
+  },
+  {
+   "key": "func SessionArchive.indexJSON(_:)",
+   "hash": "548d372bcd09f289",
+   "does": "The index JSON in stored bytes, through EncryptionManager.openStoredJSON: bytes starting '{' or '[' (a plain index a build that did not seal it wrote) are returned as they are; anything else is decrypted, throwing when it does not open.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.indexEncryption",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openStoredJSON(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.indexEncryption": "c8ce9f7f8e86bf28",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openStoredJSON(_:)": "70fb7963385a6749"
    }
   },
   {
@@ -478,17 +549,20 @@
   },
   {
    "key": "func SessionArchive.saveIndex()",
-   "hash": "bca4380e7593c197",
-   "does": "Merges a previously unreadable on-disk index (throws if still unreadable), clears derived caches, builds the bytes with newerBuildIndexEntries.indexData (the plain encoding, or with a newer build's entries written back as read) and atomically writes index.json.",
+   "hash": "459b93f38317d7b8",
+   "does": "Merges a previously unreadable on-disk index (throws if still unreadable), clears derived caches, builds the bytes with newerBuildIndexEntries.indexData (the plain encoding, or with a newer build's entries written back as read), passes them through sealedOrPlain (sealed with the archive's key, or plain JSON when the key cannot be reached) and atomically writes index.json (completeFileProtectionUntilFirstUserAuthentication). Throws merge, encode and write errors.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeIndexThatFailedToLoad()",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.indexData(for:deleted:)"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.indexData(for:deleted:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.sealedOrPlain(_:)",
+    "ext:Data.write"
    ],
    "reads": [
     "mem:SessionArchive.index",
     "mem:SessionArchive.newerBuildIndexEntries",
-    "mem:SessionArchive.deletedSessionIds"
+    "mem:SessionArchive.deletedSessionIds",
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
    ],
    "writes": [
     "file:<indexFile>",
@@ -498,7 +572,84 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.indexData(for:deleted:)": "c12e9eb29fed867b",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeIndexThatFailedToLoad()": "5997370a765d1f0e"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeIndexThatFailedToLoad()": "b289f8d08b398093",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.sealedOrPlain(_:)": "a00359c9ff3d4dd6"
+   }
+  },
+  {
+   "key": "func SessionArchive.sealedOrPlain(_:)",
+   "hash": "c17223c8608b5fbf",
+   "does": "Returns the index bytes sealed with the archive's key (indexEncryption.encrypt); when the seal throws (key unavailable), logs an error and returns the bytes unsealed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.indexEncryption",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
+   "writes": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN] (created when absent)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "encrypt throws",
+     "effect": "log an error and return the plain bytes; otherwise the sealed bytes"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.indexEncryption": "c8ce9f7f8e86bf28",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func SessionArchive.resealPlainIndexIfNeeded()",
+   "hash": "15d5e430838721d5",
+   "does": "Rewrites index.json sealed when it is on disk as plain JSON (written while the key was unavailable, or by a build that did not seal it) and the archive key can now be reached: returns at once unless the index file exists, indexEncryption.isAvailable and hasCompleteIndex; then under archiveLock reads the file and, when it does not look encrypted, calls saveIndex. Read and save failures are logged through attempt and leave the file as it is.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.indexEncryption",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.hasCompleteIndex",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()",
+    "ext:Data(contentsOf:)",
+    "ext:OSAllocatedUnfairLock.withLock",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+   ],
+   "reads": [
+    "file:<indexFile>",
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]",
+    "mem:SessionArchive.indexReadFailed",
+    "mem:SessionArchive.indexDecodeFailed"
+   ],
+   "writes": [
+    "file:<indexFile>",
+    "mem:SessionArchive.sortedEntriesCache",
+    "mem:SessionArchive.sessionIdLookup"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no index file, key unavailable, or index incomplete",
+     "effect": "return without touching it"
+    },
+    {
+     "at": "+4",
+     "cond": "read failed or bytes already sealed",
+     "effect": "return; otherwise saveIndex (failure logged)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "bc9f8909df43d2dd",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.hasCompleteIndex": "4d992f398d9be95b",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.indexEncryption": "c8ce9f7f8e86bf28",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)": "d617abae8ea527b1",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "293d00b425d37802",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {

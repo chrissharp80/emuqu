@@ -864,13 +864,6 @@ def series(rrs, gaps=None):
     return pts
 
 
-@case(S, "testRMSSDAccuracy")
-def _():
-    p = series([800, 820, 790, 830, 780] * 2)
-    m = td.compute_time_domain(p, [False] * 10, 0, 10)
-    return approx(m["rmssd"], math.sqrt(11200 / 9), 0.01), f"{m['rmssd']:.4f}"
-
-
 @case(S, "testRMSSDParityExact")
 def _():
     p = series([800, 820, 790, 830, 780] * 2)
@@ -928,12 +921,6 @@ def _():
     rr = [800, 860, 840, 895, 865, 935, 900, 820, 880, 830, 890]
     m = td.compute_time_domain(series(rr), [False] * 11, 0, 11)
     return approx(m["pnn50"], 60.0, 0.1), f"{m['pnn50']:.2f}"
-
-
-@case(S, "testSDNN")
-def _():
-    m = td.compute_time_domain(series([800, 900, 700, 850, 750] * 2), [False] * 10, 0, 10)
-    return 70 < m["sdnn"] < 90, f"{m['sdnn']:.3f}"
 
 
 # ---------------- HRVReferenceValidationTests (nsr2db fixtures) ----------------

@@ -63,23 +63,20 @@ final class SessionImmutabilityTests: XCTestCase {
     // MARK: - Derivation equals the acceptance rule (the invariant the fix relies on)
 
     func testBaselineHRVDerivationMatchesAcceptanceRuleForAllQualities() {
-        // `SessionAcceptanceService` sets `useBaselineHRV = true` exactly for
-        // the two untrustworthy classes and marks the quality accordingly. The
-        // re-score paths now derive `!isReliableForHRVAggregates`. They must
-        // agree for every quality, or a re-score drifts the frozen score.
-        let cases: [(HRVDataQuality?, Bool)] = [
-            (.insufficient, true),
-            (.preSleep, true),
-            (.good, false),
-            (nil, false) // legacy entries: treated as reliable, never hidden
-        ]
-        for (quality, acceptanceUsesBaseline) in cases {
-            let derived = !session(quality: quality).isReliableForHRVAggregates
+        // Acceptance freezes the score with `HRVQualityDecision.useBaselineHRV`;
+        // the re-score paths derive `!isReliableForHRVAggregates` from the
+        // stored quality. They must agree for every quality, or a re-score
+        // drifts the frozen score.
+        for quality in HRVDataQuality.allCases {
+            let acceptance = SessionAcceptanceService.HRVQualityDecision(dataQuality: quality)
             XCTAssertEqual(
-                derived, acceptanceUsesBaseline,
-                "useBaselineHRV derivation must match acceptance for quality \(String(describing: quality))"
+                !session(quality: quality).isReliableForHRVAggregates, acceptance.useBaselineHRV,
+                "useBaselineHRV derivation must match acceptance for quality \(quality)"
             )
         }
+        // Legacy entries carry no quality: treated as reliable, never re-scored
+        // against the baseline.
+        XCTAssertTrue(session(quality: nil).isReliableForHRVAggregates)
     }
 
     // MARK: - The derived flag reproduces the accepted value (§13.3 stability)
@@ -135,18 +132,19 @@ final class SessionImmutabilityTests: XCTestCase {
     func testArchivedScoreUpdateScoresAnUntrustworthyNightFromTheBaseline() async throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("AcceptanceRescore-\(UUID().uuidString)", isDirectory: true)
-        defer {
-            do { try FileManager.default.removeItem(at: directory) } catch {
-                // swallow-ok: nothing was archived, so there is no directory to remove.
-            }
-        }
         let schedule = SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0)
         let archive = SessionArchive(directory: directory, sleepScheduleProvider: { schedule }, sessionMergeModeProvider: { .off })
-        // The tracker lives in the test's directory, never on the app's own
-        // HRVBaseline.json, and has no baseline-changed callback.
+        // The tracker and the raw backups live in the test's directory, never
+        // on the app's own files, and the tracker has no baseline-changed
+        // callback.
         let tracker = BaselineTracker(baselineFile: directory.appendingPathComponent("HRVBaseline.json"))
+        let rawBackup = RawRRBackup(directory: directory.appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true))
+        defer {
+            rawBackup.waitForQueuedWork()
+            XCTAssertNoThrow(try FileManager.default.removeItem(at: directory))
+        }
         let service = SessionAcceptanceService(
-            archive: archive, healthKit: MockHealthKitService(), baselineTracker: tracker, rawBackup: RawRRBackup(),
+            archive: archive, healthKit: MockHealthKitService(), baselineTracker: tracker, rawBackup: rawBackup,
             onCloudSync: { _ in }, onCloudDelete: { _ in }
         )
         var night = session(quality: .insufficient)

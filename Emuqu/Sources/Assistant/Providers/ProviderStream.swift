@@ -57,3 +57,156 @@ enum ProviderStream {
         }
     }
 }
+
+// MARK: - Opening a stream
+
+extension ProviderHTTP {
+    /// The streaming POST every cloud provider sends: JSON in, server-sent
+    /// events out, with `headers` adding the vendor's key and version
+    /// fields. The body is encoded with `.sortedKeys`: the vendors' prompt
+    /// caches match on byte-identical prefixes, and a dictionary's order is
+    /// not stable in Swift. Throws what encoding the body throws.
+    static func streamRequest(
+        url: URL,
+        body: some Encodable,
+        headers: [String: String]
+    ) throws -> URLRequest {
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+        for (field, value) in headers {
+            request.setValue(value, forHTTPHeaderField: field)
+        }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        request.httpBody = try encoder.encode(body)
+        return request
+    }
+
+    /// Sends `request` on `streamSession` and returns the reply's lines once
+    /// the status is 2xx. A non-2xx reply throws `failure` of its status and
+    /// the first 4 KB of its body (`errorBody`). A cancelled task throws
+    /// `CancellationError` before the status is read.
+    static func openStream(
+        _ request: URLRequest,
+        provider: ProviderID,
+        failure: (_ status: Int, _ body: Data) -> AIProviderError
+    ) async throws -> AsyncLineSequence<URLSession.AsyncBytes> {
+        let (bytes, response) = try await connect(request, provider: provider)
+        try Task.checkCancellation()
+        if let http = response as? HTTPURLResponse, !(200 ... 299).contains(http.statusCode) {
+            let body = try await errorBody(bytes)
+            throw failure(http.statusCode, body)
+        }
+        return bytes.lines
+    }
+
+    /// Opens the connection on the dedicated session, so a cellular blip
+    /// during a walk waits for connectivity instead of failing at once. A
+    /// connect failure is logged with its `URLError` code before it is
+    /// rethrown: timed out, cancelled, not connected and connection lost
+    /// each have a different fix, and the code tells them apart.
+    private static func connect(
+        _ request: URLRequest,
+        provider: ProviderID
+    ) async throws -> (URLSession.AsyncBytes, URLResponse) {
+        do {
+            return try await streamSession.bytes(for: request)
+        } catch let urlError as URLError {
+            let detail = "code=\(urlError.code.rawValue) (\(urlError.localizedDescription))"
+            debugLog("[AIStreamer] \(provider.rawValue) connect failed: \(detail)", level: .warning)
+            throw urlError
+        }
+    }
+}
+
+// MARK: - Reply pieces every provider shares
+
+extension ProviderHTTP {
+    /// The error a provider endpoint that does not parse reports.
+    static let badEndpoint = AIProviderError.invalidResponse("bad endpoint")
+
+    /// The error a tool call whose arguments are not a whole JSON object
+    /// ends the round with: they were cut or garbled, and running the tool on
+    /// them would run it with default scope.
+    static func incompleteArguments(toolName: String) -> AIProviderError {
+        .invalidResponse("tool call \(toolName) arrived with incomplete arguments")
+    }
+
+    /// Yields one `.usage` event when at least one counter is non-zero, and
+    /// nothing for an all-zero report.
+    static func yieldUsage(
+        input: Int,
+        output: Int,
+        cached: Int,
+        cacheCreation: Int = 0,
+        to continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
+    ) {
+        guard input > 0 || output > 0 || cached > 0 || cacheCreation > 0 else { return }
+        continuation.yield(.usage(
+            inputTokens: input, outputTokens: output,
+            cachedInputTokens: cached, cacheCreationInputTokens: cacheCreation
+        ))
+    }
+}
+
+// MARK: - Server-sent events
+
+/// One server-sent event: its `data:` payload, trimmed, and the name the
+/// `event:` line before it gave the event (nil when it had none).
+struct SSEEvent: Equatable, Sendable {
+    let name: String?
+    let data: String
+}
+
+/// The events in a reply's lines, for every cloud provider. A `data:` line
+/// with a non-empty payload is an event; an `event:` line names the events
+/// after it until a blank line ends the event; comments (`:` keep-alives)
+/// and other lines are skipped. The task's cancellation is checked after
+/// every line read, so Stop ends the read at the next line.
+struct SSEEvents<Lines: AsyncSequence>: AsyncSequence where Lines.Element == String {
+    typealias Element = SSEEvent
+
+    let lines: Lines
+
+    init(_ lines: Lines) {
+        self.lines = lines
+    }
+
+    func makeAsyncIterator() -> Iterator {
+        Iterator(lines: lines.makeAsyncIterator())
+    }
+
+    struct Iterator: AsyncIteratorProtocol {
+        var lines: Lines.AsyncIterator
+        var eventName: String?
+
+        /// The next event, nil when the lines end. Throws what reading a
+        /// line throws, or `CancellationError` once the task is cancelled.
+        mutating func next() async throws -> SSEEvent? {
+            while let line = try await lines.next() {
+                try Task.checkCancellation()
+                if let completed = event(from: line) { return completed }
+            }
+            return nil
+        }
+
+        /// The event `line` completes, if any, keeping the current event
+        /// name up to date: a blank line clears it, an `event:` line sets it.
+        private mutating func event(from line: String) -> SSEEvent? {
+            if line.isEmpty || line.hasPrefix("event:") {
+                eventName = line.isEmpty ? nil : Self.value(of: line, after: "event:")
+                return nil
+            }
+            guard line.hasPrefix("data:") else { return nil }
+            let payload = Self.value(of: line, after: "data:")
+            return payload.isEmpty ? nil : SSEEvent(name: eventName, data: payload)
+        }
+
+        /// The text after a field's `prefix`, trimmed of spaces and tabs.
+        private static func value(of line: String, after prefix: String) -> String {
+            line.dropFirst(prefix.count).trimmingCharacters(in: .whitespaces)
+        }
+    }
+}

@@ -1,3 +1,4 @@
+import CoreLocation
 @testable import Emuqu
 import XCTest
 
@@ -202,6 +203,87 @@ final class WristHRMarkerTests: XCTestCase {
 
         XCTAssertTrue(wrote)
         XCTAssertEqual(try XCTUnwrap(backup.retrieve(id)).samples.count, 3)
+    }
+
+    // MARK: - Sealed streams
+
+    /// The GPS track and the wrist-HR markers are written sealed, line by
+    /// line, and read back; without a key they are plain and the workout is
+    /// queued for re-encryption.
+    func testCrashBackupSealsItsStreams() throws {
+        let directory = try temporaryBackupFolder()
+        let backup = WorkoutTrackBackup(directory: directory)
+        let id = UUID()
+        defer { PendingEncryptionLedger.clear(id, in: .workoutTrack) }
+        let track = [CLLocation(latitude: 51.5, longitude: -0.1), CLLocation(latitude: 51.6, longitude: -0.2)]
+        backup.appendIncremental(
+            sessionId: id, sport: .run, startDate: Date(timeIntervalSince1970: 1_000),
+            track: track.map(WorkoutTrackBackup.PersistedFix.init), samples: [], healthKitHROffsets: [4], barometricSamples: []
+        )
+
+        let sealed = SealedJSONLines.availableManager() != nil
+        for name in ["track", "hkhr"] {
+            let stream = try Data(contentsOf: directory.appendingPathComponent("\(id.uuidString)_workout_\(name).jsonl"))
+            XCTAssertEqual(SealedJSONLines.hasPlainLine(stream), !sealed, name)
+        }
+        XCTAssertEqual(PendingEncryptionLedger.pending(in: .workoutTrack).contains(id), !sealed)
+        let recovered = try XCTUnwrap(backup.retrieve(id))
+        XCTAssertEqual(recovered.track.map(\.coordinate.latitude), [51.5, 51.6])
+        XCTAssertEqual(recovered.healthKitHROffsets, [4])
+    }
+
+    /// Streams written as plain JSON lines (by a build that did not seal
+    /// them, or without a key) still read, and the repair seals them and only
+    /// then takes the workout off the queue.
+    func testPlainStreamsReadAndAreSealedByTheRepair() throws {
+        let directory = try temporaryBackupFolder()
+        let backup = WorkoutTrackBackup(directory: directory)
+        let id = UUID()
+        defer { PendingEncryptionLedger.clear(id, in: .workoutTrack) }
+        backup.appendIncremental(
+            sessionId: id, sport: .run, startDate: Date(timeIntervalSince1970: 1_000),
+            track: [], samples: [], healthKitHROffsets: [], barometricSamples: []
+        )
+        let samples = (1 ... 3).map { WorkoutSample(offsetSec: $0, heartRate: 120) }
+        let samplesURL = directory.appendingPathComponent("\(id.uuidString)_workout_samples.jsonl")
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        try SealedJSONLines.encode(samples, with: encoder, manager: nil).data.write(to: samplesURL)
+        XCTAssertEqual(try XCTUnwrap(backup.retrieve(id)).samples.map(\.offsetSec), [1, 2, 3])
+        PendingEncryptionLedger.record(id, in: .workoutTrack)
+
+        backup.reencryptPendingTracks()
+
+        let recovered = try XCTUnwrap(backup.retrieve(id))
+        let plainLeft = SealedJSONLines.hasPlainLine(try Data(contentsOf: samplesURL))
+        XCTAssertEqual(plainLeft, SealedJSONLines.availableManager() == nil)
+        XCTAssertEqual(PendingEncryptionLedger.pending(in: .workoutTrack).contains(id), plainLeft)
+        XCTAssertEqual(recovered.samples.map(\.offsetSec), [1, 2, 3])
+    }
+
+    /// A discard removes every file of the workout and reports it.
+    func testDiscardRemovesEveryFileOfTheWorkout() throws {
+        let directory = try temporaryBackupFolder()
+        let backup = WorkoutTrackBackup(directory: directory)
+        let id = UUID()
+        backup.appendIncremental(
+            sessionId: id, sport: .run, startDate: Date(timeIntervalSince1970: 1_000),
+            track: [], samples: [WorkoutSample(offsetSec: 1, heartRate: 120)], healthKitHROffsets: [1], barometricSamples: []
+        )
+
+        XCTAssertTrue(backup.discard(id))
+
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: directory.path), [])
+        XCTAssertNil(backup.retrieve(id))
+    }
+
+    /// A folder of its own for one test, removed afterwards.
+    private func temporaryBackupFolder() throws -> URL {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("WristHRMarkerTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        addTeardownBlock { XCTAssertNoThrow(try FileManager.default.removeItem(at: directory)) }
+        return directory
     }
 
     // MARK: - Recovery

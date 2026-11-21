@@ -174,7 +174,7 @@ final class TrainingMetricsCache {
     /// calendar day, changed load settings or an age past
     /// `unchangedMaxAgeSec` forces a fresh compute, so a stale value can never
     /// become authoritative.
-    private struct PersistedCache: Codable {
+    struct PersistedCache: Codable {
         let current: TrainingMetrics?
         let dailySeries: [Date: DaySample]
         let fingerprint: String
@@ -191,11 +191,13 @@ final class TrainingMetricsCache {
         return dir.appendingPathComponent("TrainingMetricsCache.json")
     }()
 
-    /// Persist the current cache state to disk, off the main actor. Best-effort:
-    /// a failed write just means the next cold launch rebuilds (as it always did).
-    /// Each write waits for the one before it, so an older snapshot (the
-    /// publish's, with the previous series) can never land after a newer one
-    /// (the series adoption's). Nothing is written before the first compute.
+    /// Persist the current cache state to disk, off the main actor
+    /// (`writeSnapshot`). Best-effort: a failed write, a seal with no key
+    /// reachable among them, leaves the previous file and just means the next
+    /// cold launch rebuilds. Each write waits for the one before it, so an
+    /// older snapshot (the publish's, with the previous series) can never
+    /// land after a newer one (the series adoption's). Nothing is written
+    /// before the first compute.
     private func persistToDisk() {
         guard let url = Self.persistenceURL, let computedAt else { return }
         let snapshot = PersistedCache(
@@ -210,22 +212,40 @@ final class TrainingMetricsCache {
         persistTask = Task.detached(priority: .utility) {
             await previous?.value
             do {
-                let data = try JSONEncoder().encode(snapshot)
-                try data.write(to: url, options: .atomic)
+                try Self.writeSnapshot(snapshot, to: url)
             } catch {
-                debugLog("[TrainingMetricsCache] persist failed: \(error)", level: .warning)
+                debugLog("[TrainingMetricsCache] persist failed (previous file kept): \(error)", level: .warning)
             }
         }
     }
 
+    /// Seals `snapshot` with `seal` and writes it atomically to `url` under
+    /// `.completeFileProtectionUntilFirstUserAuthentication`, so a refresh
+    /// while the phone is locked (after the first unlock of the boot) still
+    /// lands. Throws, writing nothing, when it cannot be encoded, sealed or
+    /// written; the training load is never written in the clear.
+    nonisolated static func writeSnapshot(_ snapshot: PersistedCache, to url: URL, seal: JSONFileSeal = .app) throws {
+        let sealed = try seal.sealJSON(snapshot, with: JSONEncoder())
+        try sealed.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+    }
+
+    /// The snapshot stored at `url`, opened with `seal`: sealed, or plain
+    /// JSON from a build that did not seal the file (replaced sealed by the
+    /// next write). Nil when there is no file; throws when it cannot be read,
+    /// opened (the key locked among them) or decoded.
+    nonisolated static func readSnapshot(at url: URL, seal: JSONFileSeal = .app) throws -> PersistedCache? {
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        return try seal.openJSON(PersistedCache.self, from: Data(contentsOf: url), with: JSONDecoder())
+    }
+
     /// Load the persisted snapshot on launch so the dashboard/AI see last-known
-    /// numbers instantly. Any decode failure → nil → the normal cold rebuild.
-    /// Deliberately keeps the SAVED `lastUpdated` (not "now") so
-    /// `needsRebuild` still ages it.
+    /// numbers instantly. No file, or one that cannot be read, opened or
+    /// decoded (logged) → nothing restored → the normal cold rebuild, whose
+    /// first write replaces the file. Deliberately keeps the SAVED
+    /// `lastUpdated` (not "now") so `needsRebuild` still ages it.
     private func loadFromDisk() {
         guard let url = Self.persistenceURL,
-              let data = try? Data(contentsOf: url),
-              let snapshot = try? JSONDecoder().decode(PersistedCache.self, from: data)
+              let snapshot = attempt("trainingMetricsCache.load", { try Self.readSnapshot(at: url) }) ?? nil
         else { return }
         current = snapshot.current
         dailySeries = snapshot.dailySeries

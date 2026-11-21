@@ -1,11 +1,11 @@
 {
  "file": "Emuqu/Sources/Analysis/TrainingMetricsCache.swift",
- "hash": "4f5f305cd27e9e8b",
- "role": "@Observable @MainActor singleton holding the current training metrics (CTL/ATL/TSB/ACWR) and a 400-day day-by-day ATL/CTL/TRIMP series, refreshed from HealthKit + the session archive and persisted to Application Support for cold-launch display.",
+ "hash": "f97d822d165856d5",
+ "role": "@Observable @MainActor singleton holding the current training metrics (CTL/ATL/TSB/ACWR) and a 400-day day-by-day ATL/CTL/TRIMP series, refreshed from HealthKit + the session archive and persisted to Application Support, sealed with the app's key, for cold-launch display.",
  "types": [
   "TrainingMetricsCache: class (@Observable @MainActor final) — shared training-load cache read by dashboard, Fitness tab, trajectory loader and AI fact resolvers",
   "TrainingMetricsCache.DaySample: struct Codable — one day's atl/ctl/trimp (+computed tsb)",
-  "TrainingMetricsCache.PersistedCache: struct Codable (private) — on-disk snapshot shape"
+  "TrainingMetricsCache.PersistedCache: struct Codable (internal, for tests through writeSnapshot/readSnapshot) — on-disk snapshot shape"
  ],
  "state": [
   "static let shared = TrainingMetricsCache() (mem:TrainingMetricsCache.shared, returned by AnalysisServices.trainingMetricsCache AppDependencies.swift:477)",
@@ -21,7 +21,7 @@
   "mem:TrainingMetricsCache.observers (NotificationTokens holding the .flowRecoveryArchiveChanged observer)",
   "mem:TrainingMetricsCache.healthKit (weak HealthKitManager, set by configure)",
   "mem:TrainingMetricsCache.historicalTask (detached 400-day build task)",
-  "file:Application Support/TrainingMetricsCache.json (static persistenceURL)",
+  "file:Application Support/TrainingMetricsCache.json (static persistenceURL; JSON sealed with the app's key — plain JSON from builds that did not seal it still opens; .atomic + completeFileProtectionUntilFirstUserAuthentication)",
   "notif:flowRecoveryArchiveChanged (observed, queue nil)"
  ],
  "toplevel": "Stored-property initializers only: dailySeries = [:], historicalBuildPending = false, lookbackDays 400, replayWarmUpDays 180, observers = NotificationTokens(), static persistenceURL closure. Imports CryptoKit for SHA-256 fingerprinting.",
@@ -61,7 +61,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.invalidateIfWorkoutsChanged()": "6a51d313f9108da1",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.loadFromDisk()": "450d395df951d6e6",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.loadFromDisk()": "2ee31e68d34c76e6",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.makeArchiveObserver(_:)": "17f1f78d059b7f87",
     "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "443c12d5227f3e97"
    }
@@ -179,13 +179,12 @@
   },
   {
    "key": "func TrainingMetricsCache.persistToDisk()",
-   "hash": "9343009c193b79e1",
-   "does": "Snapshots current, dailySeries, fingerprint ('' if nil), computedDay, savedAt (= computedAt) and loadSettings, then in a detached utility task that first awaits the previous write (persistTask), JSON-encodes and atomically writes it to TrainingMetricsCache.json, so snapshots land in the order they were taken; errors are logged as warnings. Nothing is written before the first compute (computedAt nil).",
+   "hash": "a3070701b55edebe",
+   "does": "Snapshots current, dailySeries, fingerprint ('' if nil), computedDay, savedAt (= computedAt) and loadSettings, then in a detached utility task that first awaits the previous write (persistTask) writes it sealed (writeSnapshot) to TrainingMetricsCache.json, so snapshots land in the order they were taken; a failure (no key reachable to seal among them) writes nothing, keeps the previous file and is logged as a warning. Nothing is written before the first compute (computedAt nil).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:JSONEncoder.encode",
-    "ext:Data.write(to:options:.atomic)"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.writeSnapshot(_:to:seal:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "mem:TrainingMetricsCache.current",
@@ -214,26 +213,73 @@
      "effect": "awaited before this one starts"
     },
     {
-     "at": "+16",
-     "cond": "encode or write throws",
-     "effect": "error logged at .warning; nothing else (next cold launch rebuilds)"
+     "at": "+15",
+     "cond": "writeSnapshot throws",
+     "effect": "error logged at .warning; previous file kept (next cold launch rebuilds from it or from scratch)"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)": "f28da9f623e93922",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.writeSnapshot(_:to:seal:)": "23663fe8c1854780",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::let TrainingMetricsCache.persistenceURL": "30b5c031fa480eb5",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
+   "key": "func TrainingMetricsCache.writeSnapshot(_:to:seal:)",
+   "hash": "487c4e77e439e424",
+   "does": "Encodes the snapshot (JSONEncoder), seals it with the seal (the app's key by default) and writes it atomically to the URL with completeFileProtectionUntilFirstUserAuthentication. Throws the encode, seal (no key reachable) or write error, having written nothing.",
+   "entry": "Called by persistToDisk's detached task; tests call it on a temporary file.",
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)",
+    "ext:Data.write(.atomic, .completeFileProtectionUntilFirstUserAuthentication)"
+   ],
+   "reads": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
+   "writes": [
+    "file:TrainingMetricsCache.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)": "f28da9f623e93922",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)": "506794a8a13263fb"
+   }
+  },
+  {
+   "key": "func TrainingMetricsCache.readSnapshot(at:seal:)",
+   "hash": "465ec56459a80ace",
+   "does": "Nil when no file is at the URL; otherwise reads it, opens it with the seal (sealed bytes decrypted; plain JSON from builds that did not seal it passed through) and decodes a PersistedCache. Throws the read, open (the key locked among them) or decode error.",
+   "entry": "Called by loadFromDisk; tests call it on a temporary file.",
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)",
+    "ext:Data(contentsOf:)"
+   ],
+   "reads": [
+    "file:TrainingMetricsCache.json",
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no file",
+     "effect": "nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)": "31bc2aea46cfe8ad"
+   }
+  },
+  {
    "key": "func TrainingMetricsCache.loadFromDisk()",
-   "hash": "38617379468b875a",
-   "does": "Reads and JSON-decodes TrainingMetricsCache.json and restores current, dailySeries, fingerprint, computedDay, loadSettings, lastUpdated and computedAt (both = saved timestamp); logs the restore.",
+   "hash": "8649b942962c920a",
+   "does": "Reads the persisted snapshot (readSnapshot) and restores current, dailySeries, fingerprint, computedDay, loadSettings, lastUpdated and computedAt (both = saved timestamp); logs the restore. No file restores nothing silently; a file that cannot be read, opened or decoded is logged (attempt) and restores nothing, so the cache starts cold and its first write replaces the file.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:Data(contentsOf:)",
-    "ext:JSONDecoder.decode"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.readSnapshot(at:seal:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "file:TrainingMetricsCache.json"
@@ -247,14 +293,16 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "URL nil, file unreadable, or decode fails",
-     "effect": "true: return silently, cache stays cold (try? swallows the error); false: state restored"
+     "cond": "URL nil, no file, or read/open/decode throws (logged)",
+     "effect": "true: return, cache stays cold; false: state restored"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.readSnapshot(at:seal:)": "eff5011ae07c39d8",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)": "f28da9f623e93922",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::let TrainingMetricsCache.persistenceURL": "30b5c031fa480eb5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -543,7 +591,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.persistToDisk()": "eef4fe7e65035d7a",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.persistToDisk()": "062527947ba17dc9",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.workoutFingerprint()": "51275b5641887c8d"
    }
   },
@@ -619,7 +667,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.persistToDisk()": "eef4fe7e65035d7a"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.persistToDisk()": "062527947ba17dc9"
    }
   },
   {

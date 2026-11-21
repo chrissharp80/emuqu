@@ -428,24 +428,4 @@ final class RRModelsTests: XCTestCase {
         XCTAssertEqual(decoded.deviceId, "ABC")
         XCTAssertEqual(decoded.recordingMode, .deviceInternal)
     }
-
-    // MARK: - OfflineSession
-
-    func testOfflineSessionNeedsSync() {
-        let session = HRVSession(startDate: Date())
-        var offline = OfflineSession(session: session)
-
-        XCTAssertTrue(offline.needsSync)
-
-        offline.syncedAt = Date()
-        XCTAssertFalse(offline.needsSync)
-    }
-
-    func testOfflineSessionMaxRetries() {
-        let session = HRVSession(startDate: Date())
-        var offline = OfflineSession(session: session)
-        offline.syncAttempts = 3
-
-        XCTAssertFalse(offline.needsSync, "Should stop syncing after 3 attempts")
-    }
 }

@@ -1,9 +1,9 @@
 {
  "file": "Emuqu/Sources/Services/WeatherService.swift",
- "hash": "fc0299cd8bf7a72a",
- "role": "MainActor @Observable singleton that fetches current conditions from MET Norway Locationforecast 2.0 compact (rate-limited, cached against Expires, If-Modified-Since for same place) and exposes a WeatherSnapshot to the workout coach and archived workouts; plus MetNorwayForecast, the response parser and symbol→condition mapping, and the condition-name localisation table.",
+ "hash": "c5eeb741c3474acb",
+ "role": "MainActor @Observable singleton that fetches current conditions from MET Norway Locationforecast 2.0 compact through an injected HTTPTransport (rate-limited, cached against Expires, If-Modified-Since for same place) and exposes a WeatherSnapshot to the workout coach and archived workouts; plus MetNorwayForecast, the response parser and symbol→condition mapping, and the condition-name localisation table.",
  "types": [
-  "WeatherService: class (@Observable @MainActor) — fetch/caching of current weather, singleton .shared",
+  "WeatherService: class (@Observable @MainActor) — fetch/caching of current weather, singleton .shared built with the live transport",
   "WeatherService.FetchOutcome: enum — fresh(forecast) / notModified(expires) / failed",
   "MetNorwayForecast: struct (Equatable) — parsed hourly steps + Last-Modified + Expires; snapshot(at:)",
   "MetNorwayForecast.Hour: struct — one step's temperature, humidity, wind, symbol",
@@ -11,6 +11,7 @@
  ],
  "state": [
   "mem:WeatherService.shared (static singleton)",
+  "mem:WeatherService.transport (private let HTTPTransport, set by init)",
   "mem:WeatherService.snapshot (private, observed)",
   "mem:WeatherService.fetchedAt",
   "mem:WeatherService.fetchedAtCoord",
@@ -27,6 +28,23 @@
  ],
  "toplevel": "Header (6-22) states MET Norway terms compliance: User-Agent, 2-decimal coordinates, no repeat before Expires nor within 10 minutes, If-Modified-Since, fetches off the main thread. userAgent and the header-name statics are nonisolated (read by the nonisolated request/outcome); userAgent's initializer reads Bundle.main.appVersion. Response Decodable conformance synthesized; decoder uses .iso8601 dates.",
  "units": [
+  {
+   "key": "init WeatherService(transport:)",
+   "hash": "fc600763ff7f658d",
+   "does": "Stores the HTTPTransport every MET Norway request is sent through: HTTPTransport.live by default (WeatherService.shared), a stub in tests.",
+   "entry": "Called once by the WeatherService.shared static initializer; tests construct one with a stub transport.",
+   "calls": [
+    "Emuqu/Sources/Services/HTTPTransport.swift::var HTTPTransport.live"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:WeatherService.transport"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/HTTPTransport.swift::var HTTPTransport.live": "7990219adda8679a"
+   }
+  },
   {
    "key": "var WeatherService.current",
    "hash": "5c913d6c0ff3fa2d",
@@ -51,19 +69,20 @@
   },
   {
    "key": "func WeatherService.refreshIfNeeded(for:)",
-   "hash": "4602835f9c8f3b17",
-   "does": "If a location is given, no request is in flight and cacheCovers is false: rounds the coordinate to 2 decimals, sends If-Modified-Since only for the identical rounded place, records lastRequestAt, and starts a main-actor Task that awaits the off-main fetch, applies the outcome and, in the same turn (defer), clears the in-flight slot.",
+   "hash": "0de5843d7fdafba2",
+   "does": "If a location is given, no request is in flight and cacheCovers is false: rounds the coordinate to 2 decimals, sends If-Modified-Since only for the identical rounded place, records lastRequestAt, and starts a main-actor Task that awaits the off-main fetch through the stored transport, applies the outcome and, in the same turn (defer), clears the in-flight slot.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.cacheCovers(_:)",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.isSamePlace(_:)",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.fetch(at:ifModifiedSince:)",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.fetch(at:ifModifiedSince:transport:)",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.apply(_:at:)"
    ],
    "reads": [
     "mem:WeatherService.inflightTask",
     "mem:WeatherService.forecast",
+    "mem:WeatherService.transport",
     "net:api.met.no"
    ],
    "writes": [
@@ -85,7 +104,7 @@
    "deps": {
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.apply(_:at:)": "beee0aaaf2eed6b2",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.cacheCovers(_:)": "df7b2221f49bed77",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.fetch(at:ifModifiedSince:)": "d8664fd5e6e9b5c4",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.fetch(at:ifModifiedSince:transport:)": "74b488f889ff27d6",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.isSamePlace(_:)": "17e0a2c94a3cba84",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.outcome(data:response:)": "28b89fb7eb34d9aa",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)": "8c5da6b396d13175"
@@ -198,13 +217,13 @@
    "deps": {}
   },
   {
-   "key": "func WeatherService.fetch(at:ifModifiedSince:)",
-   "hash": "3a68665141a57a6c",
-   "does": "Nonisolated (runs off the main actor): builds the request and performs it with URLSession; maps the response through outcome(), which decodes the JSON off-main too; any thrown error (network, JSON) is logged and becomes .failed.",
-   "entry": null,
+   "key": "func WeatherService.fetch(at:ifModifiedSince:transport:)",
+   "hash": "76c0f612891cb4e4",
+   "does": "Nonisolated (runs off the main actor): builds the request and sends it through the given HTTPTransport; maps the response through outcome(), which decodes the JSON off-main too; any thrown error (transport, JSON) is logged and becomes .failed.",
+   "entry": "Called by refreshIfNeeded's task; MetNorwayForecastTests calls it directly with a stub transport.",
    "calls": [
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.request(at:ifModifiedSince:)",
-    "ext:URLSession.data(for:)",
+    "closure:transport.send (HTTPTransport.live in the app, a stub in tests)",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.outcome(data:response:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -214,13 +233,13 @@
    "writes": [],
    "branches": [
     {
-     "at": "+1",
+     "at": "+3",
      "cond": "request() returns nil",
      "effect": "returns .failed"
     },
     {
-     "at": "+5",
-     "cond": "URLSession or parse throws",
+     "at": "+7",
+     "cond": "transport or parse throws",
      "effect": "logs warning, returns .failed"
     }
    ],

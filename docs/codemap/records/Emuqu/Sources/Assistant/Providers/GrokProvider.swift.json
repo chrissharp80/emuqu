@@ -1,60 +1,18 @@
 {
  "file": "Emuqu/Sources/Assistant/Providers/GrokProvider.swift",
- "hash": "00e8f0edbbcf2aff",
- "role": "xAI Grok AIProvider: model catalog, reasoning default, tool-schema cap; delegates streaming to OpenAICompatibleStreamer.",
+ "hash": "cf223ddf3ed4f782",
+ "role": "xAI Grok provider: model catalog (grok-4.3 default, grok-4.7), endpoint and reasoning setting, and a tool-schema cap of 110; key handling, availability and send come from OpenAICompatibleProvider, which streams through OpenAICompatibleStreamer.",
  "types": [
-  "GrokProvider: class — AIProvider for xAI Grok"
+  "GrokProvider: class (OpenAICompatibleProvider) — xAI Grok backend"
  ],
  "state": [
-  "mem:GrokProvider.models (grok-4.3 default, grok-4.7) GrokProvider.swift:12",
-  "mem:GrokProvider.reasoning = .modelDefault GrokProvider.swift:41",
-  "kc:com.chrissharp.flowrecovery.assistant.apikey account grok (via APIKeyStore)"
+  "mem:GrokProvider.models (grok-4.3 default, grok-4.7)",
+  "mem:GrokProvider.endpoint = OpenAICompatibleStreamer.Endpoint.grok",
+  "mem:GrokProvider.reasoning = .modelDefault",
+  "kc:com.chrissharp.flowrecovery.assistant.apikey account grok (via APIKeyStore, read by KeyedCloudProvider)"
  ],
- "toplevel": "Static catalog pinned by ProviderModelCatalogTests; id .grok.",
+ "toplevel": "Static catalog pinned by ProviderModelCatalogTests; id is a stored let .grok; endpoint and reasoning are static lets.",
  "units": [
-  {
-   "key": "var GrokProvider.availableModels",
-   "hash": "761626cd7f4ea4b6",
-   "does": "Returns GrokProvider.models.",
-   "entry": "Reached through the AIProvider protocol (dyn:AIProvider.*) from ProviderRegistry, TierProviderMapper, AssistantViewModel routing/tools and settings views.",
-   "calls": [],
-   "reads": [
-    "mem:GrokProvider.models"
-   ],
-   "writes": [],
-   "branches": [],
-   "deps": {}
-  },
-  {
-   "key": "var GrokProvider.requiresKey",
-   "hash": "e9238caebf755141",
-   "does": "Always true.",
-   "entry": "Reached through the AIProvider protocol (dyn:AIProvider.*) from ProviderRegistry, TierProviderMapper, AssistantViewModel routing/tools and settings views.",
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {}
-  },
-  {
-   "key": "var GrokProvider.isAvailable",
-   "hash": "36cd9315a46ced94",
-   "does": "True when the Keychain holds a Grok key.",
-   "entry": "Reached through the AIProvider protocol (dyn:AIProvider.*) from ProviderRegistry, TierProviderMapper, AssistantViewModel routing/tools and settings views.",
-   "calls": [
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)"
-   ],
-   "reads": [
-    "kc:com.chrissharp.flowrecovery.assistant.apikey:grok"
-   ],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)": "5d589653df6e990b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015"
-   }
-  },
   {
    "key": "var GrokProvider.maxToolSchemaCount",
    "hash": "4d4e53a813f485f4",
@@ -65,21 +23,6 @@
    "writes": [],
    "branches": [],
    "deps": {}
-  },
-  {
-   "key": "func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
-   "hash": "ea589d623747e553",
-   "does": "Sends the turn through OpenAICompatibleStreamer.send with providerID .grok, the api.x.ai endpoint and model-default reasoning.",
-   "entry": "AIProvider.send protocol witness called by the assistant tool loop.",
-   "calls": [
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.send(providerID:endpoint:reasoning:messages:model:contextRendered:systemPrompt:tools:toolRounds:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.send(providerID:endpoint:reasoning:messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "03a3190c38fce779"
-   }
   }
  ],
  "deps": {}

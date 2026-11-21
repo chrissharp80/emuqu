@@ -55,6 +55,8 @@ final class RawRRBackup: @unchecked Sendable {
     var indexReadFailed = false
     let fileManager = FileManager.default
     let indexLock = NSLock()
+    /// Writes one-shot files sealed or queued, and repairs queued backups.
+    let sealer: RawBackupSealer
 
     /// Serializes the whole read-modify-write of an incremental append.
     ///
@@ -70,8 +72,10 @@ final class RawRRBackup: @unchecked Sendable {
     /// ENTIRE backup file.
     ///
     /// That is the file that exists so a mid-night crash doesn't lose the
-    /// recording (see the "29,067 RR points lost" note below), so a corrupting
-    /// race here defeats the whole mechanism.
+    /// recording, so a corrupting race here defeats the whole mechanism. The
+    /// re-seal of plain files (`RawBackupSealer.reencrypt`), the index reconcile, and
+    /// `discardBackup` / `purgeOldBackups` run here too, so none of them
+    /// races an append.
     ///
     /// Same shape as `SettingsManager.settingsWriteQueue`. `sync` rather than
     /// `async` because callers rely on the returned Bool, and the queue is
@@ -214,13 +218,23 @@ final class RawRRBackup: @unchecked Sendable {
 
     // MARK: - Initialization
 
-    init() {
-        backupDirectory = Self.resolveBackupDirectory()
+    /// The app's store, in the shared container (`resolveBackupDirectory`).
+    convenience init() {
+        self.init(directory: Self.resolveBackupDirectory())
+    }
+
+    /// A store in `directory`. The app uses the shared container; tests pass
+    /// a folder of their own, so backups other tests left behind are never
+    /// listed in theirs.
+    init(directory: URL) {
+        backupDirectory = directory
         indexFile = backupDirectory.appendingPathComponent("backup_index.json")
+        sealer = RawBackupSealer(directory: directory)
 
         createBackupDirectoryIfNeeded()
         loadIndex()
         logUnarchivedCount()
+        reconcileIndexInBackground()
         reencryptPendingBackups()
     }
 
@@ -242,6 +256,13 @@ final class RawRRBackup: @unchecked Sendable {
         if unarchivedCount > 0 {
             debugLog("[RawRRBackup] Found \(unarchivedCount) unarchived backups")
         }
+    }
+
+    /// Blocks until everything queued on `appendQueue` before the call has
+    /// run: the reconcile and repair `init` queues, and any append. For tests
+    /// that remove or inspect the folder.
+    func waitForQueuedWork() {
+        appendQueue.sync {}
     }
 
     /// Forget every backup held in memory, after "Delete All My Data" has
@@ -301,11 +322,11 @@ final class RawRRBackup: @unchecked Sendable {
             id: sessionId, captureDate: captureDate ?? existing?.captureDate ?? Date(), deviceId: deviceId,
             points: points, hash: try Self.integrityHash(of: points)
         )
-        let wasPending = PendingEncryptionLedger.pending(in: .rawBackup).contains(sessionId)
+        let wasPending = RawBackupSealer.isPending(sessionId)
         // The old files go only once the new row is on disk.
         let fileName = try writeOneShot(entry, replacing: existing)
         cleanupAppendFiles(for: sessionId)
-        removeReplacedFile(existing?.fileName, keeping: fileName, of: sessionId, wasPending: wasPending)
+        sealer.removeReplacedFile(existing?.fileName, keeping: fileName, of: sessionId, wasPending: wasPending)
         if points.count < 100 {
             debugLog("[RawRRBackup] Backed up \(points.count) beats for session \(sessionId.uuidString.prefix(8))")
         }
@@ -333,133 +354,18 @@ final class RawRRBackup: @unchecked Sendable {
         }
     }
 
-    /// Encrypt one-shot backup blobs at write
-    /// time. Read path detects format via magic prefix (same scheme as
-    /// Archive.swift) and falls back to legacy plaintext for forward
-    /// migration. The append-only points file is sealed line by line instead
-    /// (`encodedLines`), under `.completeUntilFirstUserAuthentication` so the
-    /// overnight appends can run while the device is locked.
-    ///
-    /// Atomic: `reencryptBackup` rewrites the only copy of a backup in place,
-    /// and a process killed mid-write must not leave it truncated.
-    ///
-    /// Encode+encrypt drained in an autoreleasepool (the entry
-    /// re-embeds the full night's points — the second big tree of this call).
-    /// Write one entry, choosing the protection class from whether it encrypted.
-    ///
-    /// Unencrypted bytes get `.completeFileProtection`
-    /// — unreadable whenever the device is locked, not merely before the first
-    /// unlock — and the backup is queued for `reencryptPendingBackups`; an
-    /// encrypted write takes it off that queue.
-    ///
-    /// The queue changes only as far as the write succeeded. Plaintext is
-    /// queued before its write, so a process killed between the two leaves
-    /// it queued, and taken off again if the write throws, since nothing new
-    /// reached disk. An encrypted write clears the entry only once it has
-    /// landed: cleared first, a failed rewrite would leave the old plaintext
-    /// on disk with nothing queued to repair it.
-    static func writeEntry(_ entry: BackupEntry, to url: URL, sessionId: UUID) throws {
-        let encoded = try encodedEntry(entry)
-        let wasPending = PendingEncryptionLedger.pending(in: .rawBackup).contains(sessionId)
-        if !encoded.encrypted { PendingEncryptionLedger.record(sessionId, in: .rawBackup) }
-        let options: Data.WritingOptions = encoded.encrypted
-            ? [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
-            : [.atomic, .completeFileProtection]
-        do {
-            try encoded.bytes.write(to: url, options: options)
-        } catch {
-            if !wasPending { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
-            throw error
-        }
-        if encoded.encrypted { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
-    }
-
-    /// The one-shot file a new backup replaced. One that will not go while it
-    /// may be plaintext (the session was queued before the write that cleared
-    /// it) queues the session again, and `reencryptBackup` removes it.
-    private func removeReplacedFile(_ old: String?, keeping current: String, of sessionId: UUID, wasPending: Bool) {
-        guard let old, old != current else { return }
-        do {
-            try fileManager.removeItem(at: backupDirectory.appendingPathComponent(old))
-        } catch {
-            debugLog("[RawRRBackup] ⚠️ Failed to remove replaced backup \(old): \(error)")
-            if wasPending { PendingEncryptionLedger.record(sessionId, in: .rawBackup) }
-        }
-    }
-
-    /// Rewrite, encrypted, the one-shot backups written in plain JSON while
-    /// the key was unreachable. Queued off the caller's thread behind the
-    /// appends; a no-op when nothing is pending or the key is still out of
-    /// reach (the next launch tries again).
+    /// Asks the sealer (`RawBackupSealer.reencryptPending`) to rewrite,
+    /// encrypted, the backups written in plain JSON while the key was
+    /// unreachable. Queued off the caller's thread behind the appends, so no
+    /// append runs during a rewrite.
     func reencryptPendingBackups() {
-        appendQueue.async { [self] in
-            let pending = PendingEncryptionLedger.pending(in: .rawBackup)
-            guard !pending.isEmpty, AppDependencies.current.storage.encryptionManager.isAvailable else { return }
-            debugLog("[RawRRBackup] re-encrypting \(pending.count) backup(s) written under a locked Keychain")
-            pending.forEach(reencryptBackup)
-        }
+        appendQueue.async { [self] in sealer.reencryptPending(in: self) }
     }
 
-    /// A backup leaves the queue once no one-shot file of it is plaintext: a
-    /// fuller one is adopted, the indexed one re-encrypted, an unindexed plain
-    /// one removed once provably replaced (`isSuperseded`); else it stays queued.
-    func reencryptBackup(_ sessionId: UUID) {
-        do {
-            try mergeIndexIfLaunchReadFailed()
-            adoptFullerBackup(sessionId)
-            let entry = existingIndexEntry(sessionId)
-            let stale = try OneShotBackupName.plaintextFiles(of: sessionId, in: backupDirectory, except: entry?.fileName)
-            let superseded = stale.filter { OneShotBackupName.isSuperseded($0, by: entry) }
-            for url in superseded { try fileManager.removeItem(at: url) }
-            if let fileName = entry?.fileName {
-                let url = backupDirectory.appendingPathComponent(fileName)
-                try Self.writeEntry(try Self.decodeLegacyBackup(at: url), to: url, sessionId: sessionId)
-            }
-            if superseded.count < stale.count {
-                PendingEncryptionLedger.record(sessionId, in: .rawBackup)
-            } else if entry?.fileName == nil {
-                PendingEncryptionLedger.clear(sessionId, in: .rawBackup)
-            }
-        } catch {
-            debugLog("[RawRRBackup] re-encryption deferred for \(sessionId.uuidString.prefix(8)): \(error)", level: .warning)
-        }
-    }
-
-    /// For a queued session only: the fullest unindexed one-shot file becomes
-    /// the backup via `backup()`, archived flag kept; a failure is logged.
-    private func adoptFullerBackup(_ sessionId: UUID) {
-        do {
-            guard let indexed = existingIndexEntry(sessionId),
-                  let fuller = try OneShotBackupName.fullerUnindexedBackup(than: indexed, in: backupDirectory) else { return }
-            try backup(points: fuller.points, sessionId: sessionId, deviceId: fuller.deviceId, captureDate: fuller.captureDate)
-            if indexed.archived { markAsArchived(sessionId) }
-        } catch {
-            debugLog("[RawRRBackup] adopting a fuller backup of \(sessionId.uuidString.prefix(8)) failed: \(error)", level: .warning)
-        }
-    }
-
-    /// Encode one backup entry, reporting whether encryption actually happened.
-    ///
-    /// Not a `try? encrypt(...)` falling through to
-    /// `return plaintext` with no log and no signal of any kind. Raw RR points
-    /// are the rawest physiological data the app holds, and this is the crash-
-    /// recovery path, so the fallback fires exactly when something has already
-    /// gone wrong. It reports the format so the caller can pick the
-    /// strictest protection class and queue re-encryption.
-    private static func encodedEntry(_ entry: BackupEntry) throws -> (bytes: Data, encrypted: Bool) {
-        try autoreleasepool {
-            let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601
-            let plaintext = try encoder.encode(entry)
-            let manager = AppDependencies.current.storage.encryptionManager
-            guard manager.isAvailable else { return (plaintext, false) }
-            do {
-                return (try manager.encrypt(plaintext), true)
-            } catch {
-                debugLog("[RawRRBackup] encrypt failed for \(entry.id.uuidString.prefix(8)): \(error)", level: .error)
-                return (plaintext, false)
-            }
-        }
+    /// Lists, off the caller's thread and behind the appends, the backups on
+    /// disk the index does not name (`reconcileIndexWithFiles`).
+    func reconcileIndexInBackground() {
+        appendQueue.async { [self] in reconcileIndexWithFiles() }
     }
 
     /// Replace any existing backup index row for this session. When the save
@@ -506,7 +412,7 @@ final class RawRRBackup: @unchecked Sendable {
         return existing
     }
 
-    private func existingIndexEntry(_ sessionId: UUID) -> BackupIndex? {
+    func existingIndexEntry(_ sessionId: UUID) -> BackupIndex? {
         indexLock.lock()
         defer { indexLock.unlock() }
         return index.first(where: { $0.id == sessionId })
@@ -677,54 +583,60 @@ final class RawRRBackup: @unchecked Sendable {
         return size
     }
 
-    /// Discard a single backup permanently — removes the file(s) and the
-    /// index entry. Use for backups that can provably never be recovered
-    /// (e.g. beat count below the 120 analysis floor) so they stop showing
-    /// up in the "Lost Sessions" list forever.
+    /// Discard a single backup permanently: the user's delete forever, a
+    /// recording they discarded, or one too short to ever recover. Every
+    /// file of the session goes (`removeEveryFile`), then its index row.
+    /// Throws, keeping the row, when any file is still on disk, so no beats
+    /// are left that nothing lists. On `appendQueue`, so neither an append
+    /// nor a re-seal writes a file back in between.
     /// - Parameter sessionId: Session ID to discard.
     func discardBackup(_ sessionId: UUID) throws {
-        indexLock.lock()
-        let entry = index.first { $0.id == sessionId }
-        indexLock.unlock()
-        guard let entry else { return }
-        removeBackupFiles(for: entry)
-
-        indexLock.lock()
-        index.removeAll { $0.id == sessionId }
-        indexLock.unlock()
-        try saveIndex()
-        debugLog("[RawRRBackup] Discarded backup \(sessionId.uuidString.prefix(8)) (\(Self.beatCount(of: entry)) beats)")
+        try appendQueue.sync {
+            let entry = existingIndexEntry(sessionId)
+            try removeEveryFile(of: sessionId)
+            guard let entry else { return }
+            replaceIndexRow(sessionId, with: nil)
+            try saveIndex()
+            debugLog("[RawRRBackup] Discarded backup \(sessionId.uuidString.prefix(8)) (\(Self.beatCount(of: entry)) beats)")
+        }
     }
 
-    /// Purge old archived backups (keep last N days)
+    /// Purge old archived backups (keep last N days). A backup whose files
+    /// will not all go keeps its row (`removeEveryFile`), so a purge never
+    /// leaves beats that nothing lists. On `appendQueue`, like `discardBackup`.
     /// - Parameter keepDays: Number of days to keep archived backups
     func purgeOldBackups(keepDays: Int = 90) throws {
         guard let cutoffDate = Calendar.current.date(byAdding: .day, value: -keepDays, to: Date()) else { return }
-        indexLock.lock()
-        let toRemove = index.filter { $0.archived && $0.captureDate < cutoffDate }
-        indexLock.unlock()
-        guard !toRemove.isEmpty else { return }
-        for entry in toRemove {
-            removeBackupFiles(for: entry)
-        }
-        indexLock.lock()
-        let removedIds = Set(toRemove.map(\.id))
-        index.removeAll { removedIds.contains($0.id) }
-        indexLock.unlock()
-        try saveIndex()
-        debugLog("[RawRRBackup] Purged \(toRemove.count) old archived backups")
+        try appendQueue.sync { try purgeArchivedBackups(before: cutoffDate) }
     }
 
-    /// Remove the indexed file, the unindexed one-shot files it provably
-    /// replaced (a fuller or uncountable one is kept), and the append pair.
-    private func removeBackupFiles(for entry: BackupIndex) {
-        let oneShots = attempt("RawRRBackup.listOneShots") { try OneShotBackupName.files(of: entry.id, in: backupDirectory) } ?? []
-        let indexed = entry.fileName.map { [backupDirectory.appendingPathComponent($0)] } ?? []
-        let replaced = oneShots.filter { $0.lastPathComponent != entry.fileName && OneShotBackupName.isSuperseded($0, by: entry) }
-        for url in indexed + replaced where fileManager.fileExists(atPath: url.path) {
-            attempt("RawRRBackup.removeBackupFile") { try fileManager.removeItem(at: url) }
-        }
-        cleanupAppendFiles(for: entry.id)
+    /// Body of `purgeOldBackups`, run on `appendQueue`: drops the rows of
+    /// archived backups captured before `cutoff` whose files all went.
+    private func purgeArchivedBackups(before cutoff: Date) throws {
+        let old = indexLock.withLock { index.filter { $0.archived && $0.captureDate < cutoff } }
+        let removed = Set(old.map(\.id).filter(removedEveryFile(of:)))
+        guard !removed.isEmpty else { return }
+        indexLock.withLock { index.removeAll { removed.contains($0.id) } }
+        try saveIndex()
+        debugLog("[RawRRBackup] Purged \(removed.count) of \(old.count) old archived backups")
+    }
+
+    /// Whether every file of the session went (`removeEveryFile`); a failure
+    /// is logged.
+    private func removedEveryFile(of sessionId: UUID) -> Bool {
+        attempt("RawRRBackup.purgeBackup") { try removeEveryFile(of: sessionId) } != nil
+    }
+
+    /// Removes every file of the session: each one-shot file, indexed or
+    /// not, and its append files (`appendFiles`), then takes it off the
+    /// re-encryption queue, since no plaintext of it is left. Throws when the
+    /// folder cannot be listed or any of them is still on disk, leaving it
+    /// queued.
+    private func removeEveryFile(of sessionId: UUID) throws {
+        let files = try OneShotBackupName.files(of: sessionId, in: backupDirectory) + appendFiles(of: sessionId)
+        let leftovers = BackupFiles.remove(files, using: fileManager)
+        guard leftovers.isEmpty else { throw BackupError.couldNotRemove(leftovers.map(\.lastPathComponent)) }
+        PendingEncryptionLedger.clear(sessionId, in: .rawBackup)
     }
 
     /// Export a backup to CSV format
@@ -744,7 +656,7 @@ final class RawRRBackup: @unchecked Sendable {
     }
 }
 
-extension RawRRBackup {
+extension RawRRBackup: SealableBackupStore {
     /// Whether any backup's capture date lies within `window` of `date`.
     /// The strap's start sequence asks this before it clears a recording: a
     /// rescue backup is dated by the recording's own start.
@@ -767,7 +679,7 @@ extension RawRRBackup {
             name == existing?.fileName || fileManager.fileExists(atPath: backupDirectory.appendingPathComponent(name).path)
         }
         let url = backupDirectory.appendingPathComponent(fileName)
-        try Self.writeEntry(entry, to: url, sessionId: entry.id)
+        try RawBackupSealer.writeEntry(entry, to: url, sessionId: entry.id)
         do {
             try reindex(sessionId: entry.id, entry: entry, fileName: fileName, beatCount: entry.points.count, replacing: existing)
         } catch {

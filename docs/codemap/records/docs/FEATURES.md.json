@@ -97,8 +97,8 @@
   },
   {
    "key": "§ Emuqu — feature reference > Key Features > Fitness Tab (Workouts)",
-   "hash": "bb055faedbf7a997",
-   "does": "Claims workout recording across 10 sports, auto-reconnect of strap and foot pod at start (connectToLastDevice / reconnectLast), Get Me Back with 30 s / 25 m commits, 100 m accuracy cut-off and SOS that dials 112 by default or 911 for 911 regions, 50-trail archive with auto-archived GPS workouts, Stryd/FTMS/PM5 power, Power-TSS, threshold coach, route library, OSM trail discovery, road context via CLGeocoder plus MKLocalSearch cross street, MET Norway weather every 30 min, Zwift broadcaster, barometric elevation (15-sample MA, 2 m hysteresis), topo lookup, alpha1 filter and re-analysis, cadence caps 125/220/140, PDF report <=250 points, HRR in a 120 s window, interval plans, unit-aware exports. Code: WorkoutPreflightView.swift:343 connectToLastDevice; BreadcrumbRecorder 25 m/30 s; GetMeBackView.emergencyNumber returns 112 by default, 911 for US/CA/MX/AS/GU/PR/VI/PH and also 999/000/111/119/120/193 for other regions; BreadcrumbStore.archiveRetentionLimit 50; FootPodManager 1814/1818/1826; WeatherService.cacheTTL 30 min; Zwift UUIDs; BarometricAltitudeProcessor.process; WorkoutStatsCards.cadenceCap; HRRCaptureService captureWindowSec 120; maxPDFPoints 250. RoadGeocodingService resolves via MKLocalSearch tiles before CLGeocoder (see ARCHITECTURE.md:983).",
+   "hash": "8f2f9c9145be544e",
+   "does": "Claims workout recording across 10 sports, auto-reconnect of strap and foot pod at start (connectToLastDevice / reconnectLast), Get Me Back with 30 s / 25 m commits, 100 m accuracy cut-off and SOS that dials 112 by default or 911 for 911 regions, 50-trail archive with auto-archived GPS workouts, Stryd/FTMS/PM5 power, Power-TSS, threshold coach, route library (500 m, both directions, 30 m fit), OSM trail discovery, road context via a MapKit road search with CLGeocoder fallback plus MKLocalSearch cross street, MET Norway weather every 30 min, Zwift broadcaster, barometric elevation (moving average over a 15 s window, 2 m hysteresis), topo lookup (OpenTopoData NED 10 m / SRTM 30 m, 15 m threshold), alpha1 filter and re-analysis, cadence caps 125/220/140, PDF report <=250 points, HRR in a 120 s window, interval plans, unit-aware exports.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(region:)",
@@ -106,7 +106,7 @@
     "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.performLookup(at:enrichCrossStreet:)",
     "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.update(heartRate:powerWatts:)",
     "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)",
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:transport:)",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)",
     "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.cadenceCap(for:)",
@@ -117,17 +117,17 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "ad1f23d4e060bae9",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)": "5656cbdeb6baee1a",
-    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "26547ccaed8e1da6",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)": "2662dacd6f0a9521",
-    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)": "db5846f46dc6a468",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.update(heartRate:powerWatts:)": "297cbefb6dac851f",
+    "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "ef22a598a8881280",
+    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)": "3446776e2575bc4f",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.update(heartRate:powerWatts:)": "88d1cd9b077c9eb7",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.evaluate(hrBPM:hrZone:powerWatts:ftpWatts:paceSecPerKm:alpha1:cadenceSPM:distanceMeters:elapsedSec:elevationGainMeters:gradePercent:)": "e26f6460819ce7f2",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)": "852043f9a6e193e7",
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.performLookup(at:enrichCrossStreet:)": "f715486ad279534a",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)": "ce818f1d27dc80fe",
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.performLookup(at:enrichCrossStreet:)": "f1ca30241f252cbe",
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:transport:)": "863a874d96dcc48f",
     "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.emergencyNumber(region:)": "e3c549fb83c32402",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.cadenceCap(for:)": "cc72a6f5b5455e6e"
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::func WorkoutStatsCards.cadenceCap(for:)": "402e54a2a7b9d70d"
    }
   },
   {

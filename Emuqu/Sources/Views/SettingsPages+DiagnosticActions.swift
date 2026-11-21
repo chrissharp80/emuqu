@@ -283,12 +283,25 @@ extension TroubleshootingPage {
         }
     }
 
+    /// "All Logs": the debug log and every crash log (the live ones and the
+    /// previous run's report, whose section hides once it is gone). When
+    /// anything is left the page says so.
     private var debugResetButton: some View {
         Button(role: .destructive) {
-            dependencies.app.debugLogger.clear()
+            clearAllLogs()
         } label: {
             Label(String(localized: "Clear All Logs", bundle: LanguageManager.appBundle), systemImage: "trash")
         }
+        .alert(String(localized: "Some logs couldn't be deleted. Try again.", bundle: LanguageManager.appBundle), isPresented: $logsClearFailed) {
+            Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
+        }
+    }
+
+    private func clearAllLogs() {
+        let debugLogCleared = dependencies.app.debugLogger.clear()
+        let crashLogsCleared = attempt("troubleshooting.clearCrashLogs") { try dependencies.app.crashLogManager.clearAll() } != nil
+        if crashLogsCleared { crashReportCleared = true }
+        logsClearFailed = !(debugLogCleared && crashLogsCleared)
     }
 
     private var advancedRepairSection: some View {

@@ -1,7 +1,7 @@
 {
  "file": "EmuquTests/WristHRMarkerTests.swift",
- "hash": "fde3ba697b76189f",
- "role": "Hosted unit tests that Apple Watch wrist-HR row markers (healthKitHROffsets) survive live HR arbitration, sample-buffer capping, finalize, the crash backup (WorkoutTrackBackup), recovery rebuild and trim carry-forward.",
+ "hash": "f843e3770d4e8353",
+ "role": "Hosted unit tests that Apple Watch wrist-HR row markers (healthKitHROffsets) survive live HR arbitration, sample-buffer capping, finalize, the crash backup (WorkoutTrackBackup), recovery rebuild and trim carry-forward; and that the crash backup's streams are sealed, older plain streams read and are re-sealed, and a discard removes every file.",
  "types": [
   "WristHRMarkerTests: class — XCTestCase (@MainActor)"
  ],
@@ -113,7 +113,7 @@
    "deps": {
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3d8dab3c4fd26bfd",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)": "05632b6fe481d3a5",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)": "45421191b24c53ad",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup()": "fe791d5b7b6d88a0"
    }
@@ -140,7 +140,7 @@
    "deps": {
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3d8dab3c4fd26bfd",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)": "05632b6fe481d3a5",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)": "45421191b24c53ad",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup()": "fe791d5b7b6d88a0"
    }
@@ -167,7 +167,7 @@
    "deps": {
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3d8dab3c4fd26bfd",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)": "05632b6fe481d3a5",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)": "45421191b24c53ad",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup()": "fe791d5b7b6d88a0"
    }
@@ -211,7 +211,7 @@
     "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionEncoder": "349bd41e509b1925",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3d8dab3c4fd26bfd",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "a967581b0d365134",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "f61e2f4521563426",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439",
     "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "699ce5740e639a1f"
    }
@@ -256,9 +256,137 @@
    "deps": {
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3d8dab3c4fd26bfd",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.purgeAll()": "f6885593012bdf55",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.purgeAll()": "6c7f3904c6f61f72",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "a967581b0d365134",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "f61e2f4521563426",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
+   }
+  },
+  {
+   "key": "func WristHRMarkerTests.testCrashBackupSealsItsStreams()",
+   "hash": "039b7643b01411b9",
+   "does": "In a folder of its own, backs up two GPS fixes and one wrist-HR marker; asserts the track and hkhr files hold plain lines, and the workout is queued in the .workoutTrack ledger, exactly when no key is available, and that retrieve returns both fixes and the marker. Clears its id afterwards.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WristHRMarkerTests.swift::func WristHRMarkerTests.temporaryBackupFolder()",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.availableManager()",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.hasPlainLine(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)"
+   ],
+   "reads": [
+    "file:<tmp>/WristHRMarkerTests-<uuid>/ (a WorkoutTrackBackup folder of its own)",
+    "mem:PendingEncryptionLedger.cache (workoutTrack store)",
+    "ud:storage.pendingReencryption.workoutTrackIDs"
+   ],
+   "writes": [
+    "file:<tmp>/WristHRMarkerTests-<uuid>/ (a WorkoutTrackBackup folder of its own)",
+    "mem:PendingEncryptionLedger.cache (workoutTrack store)",
+    "ud:storage.pendingReencryption.workoutTrackIDs"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "a68d8c6c5a265e3c",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "c7d52a25233a7067",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.availableManager()": "3fe4c23abb6fccf2",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.hasPlainLine(_:)": "7fa9a505f692a5b6",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3d8dab3c4fd26bfd",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "f61e2f4521563426",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup.PersistedFix(_:)": "3904632de3af9eb7",
+    "EmuquTests/WristHRMarkerTests.swift::func WristHRMarkerTests.temporaryBackupFolder()": "78dde410684224e9"
+   }
+  },
+  {
+   "key": "func WristHRMarkerTests.testPlainStreamsReadAndAreSealedByTheRepair()",
+   "hash": "728be7db16560d09",
+   "does": "In a folder of its own, writes a header, then a samples stream of three rows as plain JSON lines; asserts retrieve reads all three; queues the workout, runs reencryptPendingTracks and (after retrieve waits on the queue) asserts plain lines remain only without a key, the workout stays queued exactly then, and the rows still read.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WristHRMarkerTests.swift::func WristHRMarkerTests.temporaryBackupFolder()",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.encode(_:with:manager:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.hasPlainLine(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.availableManager()",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)"
+   ],
+   "reads": [
+    "file:<tmp>/WristHRMarkerTests-<uuid>/ (a WorkoutTrackBackup folder of its own)",
+    "mem:PendingEncryptionLedger.cache (workoutTrack store)",
+    "ud:storage.pendingReencryption.workoutTrackIDs"
+   ],
+   "writes": [
+    "file:<tmp>/WristHRMarkerTests-<uuid>/ (a WorkoutTrackBackup folder of its own)",
+    "mem:PendingEncryptionLedger.cache (workoutTrack store)",
+    "ud:storage.pendingReencryption.workoutTrackIDs"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "a68d8c6c5a265e3c",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "c7d52a25233a7067",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "471ac438c2a3e780",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.availableManager()": "3fe4c23abb6fccf2",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.encode(_:with:manager:)": "ba864e9622862fb5",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.hasPlainLine(_:)": "7fa9a505f692a5b6",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3d8dab3c4fd26bfd",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()": "5cabfb39cb9c5dcd",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "f61e2f4521563426",
+    "EmuquTests/WristHRMarkerTests.swift::func WristHRMarkerTests.temporaryBackupFolder()": "78dde410684224e9"
+   }
+  },
+  {
+   "key": "func WristHRMarkerTests.testDiscardRemovesEveryFileOfTheWorkout()",
+   "hash": "d47fb516a7d1a983",
+   "does": "In a folder of its own, backs up one sample and one marker, asserts discard returns true, the folder is empty and retrieve returns nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WristHRMarkerTests.swift::func WristHRMarkerTests.temporaryBackupFolder()",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)"
+   ],
+   "reads": [
+    "file:<tmp>/WristHRMarkerTests-<uuid>/ (a WorkoutTrackBackup folder of its own)"
+   ],
+   "writes": [
+    "file:<tmp>/WristHRMarkerTests-<uuid>/ (a WorkoutTrackBackup folder of its own)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3d8dab3c4fd26bfd",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)": "45421191b24c53ad",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "f61e2f4521563426",
+    "EmuquTests/WristHRMarkerTests.swift::func WristHRMarkerTests.temporaryBackupFolder()": "78dde410684224e9"
+   }
+  },
+  {
+   "key": "func WristHRMarkerTests.temporaryBackupFolder()",
+   "hash": "0b152697d2c3ea71",
+   "does": "Creates a uniquely named folder in the temporary directory and registers a teardown block that removes it (asserting the removal does not throw); returns it.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.createDirectory",
+    "ext:XCTestCase.addTeardownBlock"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/WristHRMarkerTests-<uuid>/ (a WorkoutTrackBackup folder of its own)"
+   ],
+   "branches": [],
+   "deps": {
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },

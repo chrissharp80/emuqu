@@ -387,6 +387,85 @@ final class BaselineTrackerTests: XCTestCase {
                        "Both nights are saved once the file is set aside")
     }
 
+    /// A baseline file path in the temporary directory, removed (with any
+    /// copy set aside beside it) in tearDown.
+    private func sealedBaselineFile() -> URL {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("HRVBaseline-\(UUID().uuidString).json")
+        trackerFiles += [file, file.appendingPathExtension("corrupt")]
+        return file
+    }
+
+    /// The stored nights are sealed with the app's key, never written as
+    /// plain JSON, and a tracker started on the file reads them back.
+    func testTheBaselineFileIsSealedAndReadsBack() throws {
+        let file = sealedBaselineFile()
+        BaselineTracker(baselineFile: file, onBaselineUpdated: nil)
+            .update(with: timedSession(start: at(1, 23), hours: 8, rmssd: 40), sleepSchedule: producerSchedule)
+
+        XCTAssertNotEqual(try Data(contentsOf: file).first, UInt8(ascii: "{"), "The nights were written as plain JSON")
+        XCTAssertEqual(BaselineTracker(baselineFile: file, onBaselineUpdated: nil).daysCollected, 1)
+    }
+
+    /// A plain baseline file an older build wrote still loads, and the next
+    /// save replaces it sealed with every night kept.
+    func testAPlainBaselineFileFromAnOlderBuildLoadsAndIsResealed() throws {
+        let file = sealedBaselineFile()
+        let nights = (1 ... 3).map { day in
+            #"{"date":"2026-01-0\#(day)T23:00:00Z","rmssd":40,"sdnn":55,"meanHR":58}"#
+        }
+        try Data(#"{"historicalData":[\#(nights.joined(separator: ","))]}"#.utf8).write(to: file)
+
+        let tracker = BaselineTracker(baselineFile: file, onBaselineUpdated: nil)
+        XCTAssertEqual(tracker.daysCollected, 3)
+        tracker.update(with: timedSession(start: at(1, 23), hours: 8, rmssd: 40), sleepSchedule: producerSchedule)
+
+        XCTAssertNotEqual(try Data(contentsOf: file).first, UInt8(ascii: "{"), "The older plain file was not replaced sealed")
+        XCTAssertEqual(BaselineTracker(baselineFile: file, onBaselineUpdated: nil).daysCollected, 4)
+    }
+
+    /// A sealed baseline whose key is locked at load (before the first
+    /// unlock) is never written over or set aside: a night taken meanwhile
+    /// waits in memory and is merged onto the file's nights once it opens.
+    func testALockedKeyNeverWritesOverTheSealedBaseline() throws {
+        let file = sealedBaselineFile()
+        BaselineTracker(baselineFile: file, onBaselineUpdated: nil)
+            .update(with: timedSession(start: at(1, 23), hours: 8, rmssd: 40), sleepSchedule: producerSchedule)
+        let sealedBytes = try Data(contentsOf: file)
+        let key = LockedKeySeal()
+
+        let tracker = BaselineTracker(baselineFile: file, seal: key.fileSeal, onBaselineUpdated: nil)
+        tracker.update(with: timedSession(start: at(2, 23), hours: 8, rmssd: 42), sleepSchedule: producerSchedule)
+        XCTAssertEqual(try Data(contentsOf: file), sealedBytes, "The sealed baseline was written over while the key was locked")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: file.appendingPathExtension("corrupt").path),
+                       "A locked file is not an undecodable one")
+
+        key.setLocked(false)
+        tracker.update(with: timedSession(start: at(3, 23), hours: 8, rmssd: 44), sleepSchedule: producerSchedule)
+        XCTAssertEqual(tracker.daysCollected, 3)
+        XCTAssertEqual(BaselineTracker(baselineFile: file, onBaselineUpdated: nil).daysCollected, 3,
+                       "The night taken while the key was locked was not saved")
+    }
+
+    /// A save while the key cannot be read writes nothing, never the nights
+    /// in plain JSON, and the file keeps the previous save; the next save
+    /// writes every night held in memory.
+    func testASaveWithTheKeyLockedKeepsThePreviousFile() throws {
+        let file = sealedBaselineFile()
+        let key = LockedKeySeal()
+        key.setLocked(false)
+        let tracker = BaselineTracker(baselineFile: file, seal: key.fileSeal, onBaselineUpdated: nil)
+        tracker.update(with: timedSession(start: at(1, 23), hours: 8, rmssd: 40), sleepSchedule: producerSchedule)
+        let sealedBytes = try Data(contentsOf: file)
+
+        key.setLocked(true)
+        tracker.update(with: timedSession(start: at(2, 23), hours: 8, rmssd: 42), sleepSchedule: producerSchedule)
+        XCTAssertEqual(try Data(contentsOf: file), sealedBytes, "The file changed while the key was locked")
+
+        key.setLocked(false)
+        tracker.update(with: timedSession(start: at(3, 23), hours: 8, rmssd: 44), sleepSchedule: producerSchedule)
+        XCTAssertEqual(BaselineTracker(baselineFile: file, onBaselineUpdated: nil).daysCollected, 3)
+    }
+
     /// The decision a failed read of the baseline file makes: a file that may
     /// be intact (protection-locked, an I/O error, out of file descriptors)
     /// holds saves, so the stored nights are not written over; only a file
