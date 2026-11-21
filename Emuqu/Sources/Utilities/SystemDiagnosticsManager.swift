@@ -599,20 +599,18 @@ final class SystemDiagnosticsManager: NSObject, MXMetricManagerSubscriber, @unch
     }
 
     /// Append encoded bytes, creating the file (and its folder) when it is
-    /// missing. Runs on `samplingQueue`.
+    /// missing. Runs on `samplingQueue`, every 5 s of a recording.
+    /// `JSONLinesFile.append` cuts off a line a kill left half-written, so
+    /// the new line does not fuse with it, and throws rather than raising on
+    /// a full disk; a failure is logged and the line dropped.
     private func appendLine(_ lineData: Data, to url: URL) {
         guard FileManager.default.fileExists(atPath: url.path) else {
             createDiagnosticsFile(at: url, first: lineData)
             return
         }
-        guard let handle = attempt("diagnostics.openAppend", { try FileHandle(forWritingTo: url) }) else { return }
-        // Throwing calls: the legacy `write(_:)` raises an uncatchable
-        // exception on a full disk, and this runs every 5 s of a recording.
-        attempt("diagnostics.append") {
-            try handle.seekToEnd()
-            try handle.write(contentsOf: lineData)
+        if case let .writeFailed(error) = JSONLinesFile.append(lineData, toExisting: url) {
+            debugLog("[diagnostics.append] failed: \(error.localizedDescription)", level: .warning)
         }
-        attempt("diagnostics.close") { try handle.close() }
     }
 
     /// Match the rest of the app's data protection class — use

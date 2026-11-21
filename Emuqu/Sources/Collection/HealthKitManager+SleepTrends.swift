@@ -26,8 +26,10 @@ extension HealthWriteAndObserve {
     /// Export sleep data to Apple Health as category samples.
     /// Creates one HKCategorySample per stage interval — asleep or awake only
     /// (see `hkSleepValue(for:)`) — plus an overall inBed sample spanning the
-    /// night. Uses ExternalUUID metadata to allow idempotent re-writes
-    /// (delete + re-create).
+    /// night. The samples replace the session's earlier sleep export
+    /// (`HealthSampleReplacer`, matched by the session's sleep identity, all
+    /// dates searched): the new copy is saved before the earlier one is
+    /// removed, and nothing valid to write leaves the earlier export in place.
     func exportSleepToHealthKit(sleepData: SleepData, sessionId: UUID) async throws {
         guard manager.isHealthKitAvailable else { throw HealthKitManager.HealthKitError.notAvailable }
         guard let sleepStart = sleepData.sleepStart, let sleepEnd = sleepData.sleepEnd else {
@@ -46,17 +48,18 @@ extension HealthWriteAndObserve {
             inBedStart: sleepData.inBedStart ?? sleepStart, sleepEnd: sleepEnd
         )
         guard !samples.isEmpty else { return }
-        try await replacePreviousSleepExport(with: samples, sessionId: sessionId, sleepType: sleepType)
+        try await manager.sampleReplacer.replace(samples, Self.sleepReplacement(sleepType: sleepType, sessionId: sessionId))
     }
 
-    /// The new copy is saved before the session's previous export is
-    /// removed, and nothing valid to write (the caller's empty check) leaves
-    /// the previous export in place: deleted first, a save that failed left
-    /// the night out of Apple Health altogether.
-    private func replacePreviousSleepExport(with samples: [HKCategorySample], sessionId: UUID, sleepType: HKCategoryType) async throws {
-        let previous = try await previousSleepExport(sessionId: sessionId, sleepType: sleepType)
-        try await manager.healthStore.save(samples)
-        if !previous.isEmpty { try await manager.healthStore.delete(previous) }
+    /// One replacement of the session's sleep export: this app's sleep
+    /// samples on any date carrying the session's sleep identity, under the
+    /// session's key.
+    private static func sleepReplacement(sleepType: HKCategoryType, sessionId: UUID) -> HealthSampleReplacement {
+        HealthSampleReplacement(
+            type: sleepType, span: nil, timeout: HealthKitManager.sleepQueryTimeoutSec,
+            label: "sleep export", serialKey: sessionId.uuidString,
+            matches: { HealthExportIdentity.belongsToSession($0, sessionId: sessionId, metric: .sleep) }
+        )
     }
 
     /// An overall inBed sample spanning the night, followed by one sample per
@@ -100,43 +103,10 @@ extension HealthWriteAndObserve {
         stage == .awake ? .awake : .asleepUnspecified
     }
 
-    /// Delete previously exported sleep samples for a session (enables idempotent re-writes).
-    private func previousSleepExport(sessionId: UUID, sleepType: HKCategoryType) async throws -> [HKSample] {
-        let existingSamples = try await appWrittenSleepSamples(
-            sleepType: sleepType,
-            predicate: HKQuery.predicateForObjects(from: HKSource.default()),
-            label: "previousSleepExport dedup"
-        )
-        return existingSamples.filter { sample in
-            guard let uuid = sample.metadata?[HKMetadataKeyExternalUUID] as? String else { return false }
-            return HealthExportIdentity.belongsToSession(uuid, sessionId: sessionId, metric: .sleep)
-        }
-    }
-
-    /// Bounded, FAIL CLOSED: reads our prior exports so we can delete them
-    /// before re-writing. Timing out to empty would skip the delete and
-    /// duplicate exported sleep rows (or report "0 deleted" while leaving the
-    /// rows in place), so a stall throws — as a query error already does here —
-    /// rather than proceeding on no data.
-    private func appWrittenSleepSamples(sleepType: HKCategoryType, predicate: NSPredicate, label: String) async throws -> [HKSample] {
-        try await manager.runBoundedThrowingQuery(
-            timeout: HealthKitManager.sleepQueryTimeoutSec,
-            makeQuery: { resolve in
-                HKSampleQuery(
-                    sampleType: sleepType,
-                    predicate: predicate,
-                    limit: HKObjectQueryNoLimit,
-                    sortDescriptors: nil
-                ) { _, results, error in
-                    resolve(HealthKitManager.sampleResult(results, error))
-                }
-            },
-            onTimeout: { .failure(HealthKitManager.HealthKitError.queryTimedOut(label)) }
-        )
-    }
-
-    /// Delete ALL sleep samples this app has ever written to Apple Health.
-    /// One-shot cleanup for polluted data. Returns the number of samples
+    /// Delete ALL sleep samples this app has ever written to Apple Health,
+    /// with or without an export identity. One-shot cleanup for polluted
+    /// data. The read is bounded and fails closed: a stall throws rather than
+    /// report "0 deleted" while the rows stay. Returns the number of samples
     /// deleted so the UI can report it to the user.
     @discardableResult
     func deleteAllAppWrittenSleepSamples() async throws -> Int {
@@ -144,13 +114,12 @@ extension HealthWriteAndObserve {
         guard let sleepType = HKTypes.category(.sleepAnalysis) else {
             throw HealthKitManager.HealthKitError.typeUnavailable("sleepAnalysis")
         }
-        let existingSamples = try await appWrittenSleepSamples(
-            sleepType: sleepType,
-            predicate: HKQuery.predicateForObjects(from: Set([HKSource.default()])),
-            label: "deleteAllAppWrittenSleepSamples"
+        let store = manager.sampleReplacer.store
+        let existingSamples = try await store.ownSamples(
+            of: sleepType, in: nil, timeout: HealthKitManager.sleepQueryTimeoutSec, label: "deleteAllAppWrittenSleepSamples"
         )
         guard !existingSamples.isEmpty else { return 0 }
-        try await manager.healthStore.delete(existingSamples)
+        try await store.delete(existingSamples)
         debugLog("[HealthKitManager] Deleted \(existingSamples.count) app-written sleep sample(s) from Apple Health")
         return existingSamples.count
     }
@@ -181,38 +150,17 @@ extension HealthWriteAndObserve {
         if let first = failures.first { throw first }
     }
 
-    /// HRV: windowed SDNN samples across the recording (HealthKit has no RMSSD
-    /// type, so RMSSD is not written), falling back to a single summary when
-    /// there aren't enough beats for the series or no 5-minute window had
-    /// enough clean beats to write — so a session never reaches Health with
-    /// no HRV at all.
-    ///
-    /// Threshold: 30 RR points (≈ 30 seconds at 60 bpm), so ANY recording long
-    /// enough for one analysable window, including a sub-2-minute reading or a
-    /// quick-streaming session where the strap dropped signal early, gets the
-    /// full series in Apple Health rather than a single point, which is what
-    /// Athlytic / Training Today integrators need.
-    ///
-    /// An estimated SDNN (`HRVAnalysisResult.estimatedMetrics`, from an
-    /// Elite HRV summary) is never written as the summary: Health would show
-    /// it as a reading.
+    /// HRV: windowed SDNN across the recording, or the single measured
+    /// summary (`exportHRV`); HealthKit has no RMSSD type, so RMSSD is not
+    /// written.
     private func exportHRVMetrics(session: HRVSession, result: HRVAnalysisResult) async -> Error? {
         do {
-            guard try await windowedHRVWritten(session) == 0, let sdnn = result.measuredSDNN else { return nil }
-            let date = session.endDate ?? session.startDate
-            try await exportSDNN(value: sdnn, at: date, sessionId: session.id)
+            try await exportHRV(session: session, result: result)
             return nil
         } catch {
             debugLog("[HealthKit Export] HRV export failed: \(error)")
             return error
         }
-    }
-
-    /// The windowed SDNN series for a session with at least 30 beats; how
-    /// many samples it wrote (0 when too short to try, or no window qualified).
-    private func windowedHRVWritten(_ session: HRVSession) async throws -> Int {
-        guard let points = session.rrSeries?.points, points.count >= 30 else { return 0 }
-        return try await exportWindowedHRV(from: points, sessionStart: session.startDate, sessionId: session.id)
     }
 
     /// HR: minute-level discrete samples (`exportHeartRateSeries`), with the

@@ -1,0 +1,437 @@
+{
+ "file": "Emuqu/Sources/Collection/SessionScoringContext.swift",
+ "hash": "319e001873f32ea6",
+ "role": "The settings, stored-nights baseline and training load (as of a session's day) that sessions are analysed and scored against; one instance, built by the composition root, is shared by the recording collector and saved-session reanalysis.",
+ "types": [
+  "SessionScoringContext: @MainActor final class — training-load cache, ANS/scoring configuration, analysis with those inputs"
+ ],
+ "state": [
+  "cachedTrainingLoadOfDay: today's load stamped with its day",
+  "pastDayTrainingLoads: loads fetched for past days during a reanalysis",
+  "pastDayTrainingLoadHolders: running reanalyses holding each past day's load"
+ ],
+ "toplevel": "",
+ "units": [
+  {
+   "key": "init SessionScoringContext(settingsManager:healthKit:baselineTracker:)",
+   "hash": "78eb9d418a2d41c9",
+   "does": "Stores the settings manager, HealthKit manager and baseline tracker; the training-load stores start empty.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "var SessionScoringContext.cachedTrainingLoad",
+   "hash": "d768f71fb1fbfefd",
+   "does": "Get: today's cached load, nil when it was cached on an earlier day. Set: stamps the load with now (nil clears it).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SessionScoringContext.cachedTrainingLoadOfDay"
+   ],
+   "writes": [
+    "mem:SessionScoringContext.cachedTrainingLoadOfDay"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no cached load or cached on another day",
+     "effect": "get returns nil"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func SessionScoringContext.createTrainingContext(relativeTo:)",
+   "hash": "6bf0001c945229e9",
+   "does": "Returns a TrainingContext built from the training load held for referenceDate (today's cache or a fetched past-day load), with VO2max override/opt-in applied; nil when no load is held or the context init fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.trainingLoad(asOf:)",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.trainingContext(from:relativeTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no load held for the date",
+     "effect": "returns nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.trainingContext(from:relativeTo:)": "8f28f215332e6253",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.trainingLoad(asOf:)": "e7a56de93e48cc9d"
+   }
+  },
+  {
+   "key": "func SessionScoringContext.trainingLoad(asOf:)",
+   "hash": "6692b1911c2578a0",
+   "does": "Returns cachedTrainingLoad for today (nil when the cache is from an earlier day), else pastDayTrainingLoads[startOfDay(date)].",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::var SessionScoringContext.cachedTrainingLoad"
+   ],
+   "reads": [
+    "mem:SessionScoringContext.cachedTrainingLoadOfDay",
+    "mem:SessionScoringContext.pastDayTrainingLoads"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "date is today",
+     "effect": "returns the shared cache; else the past-day map entry (nil if never fetched)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::var SessionScoringContext.cachedTrainingLoad": "c1ee92b0252916b5"
+   }
+  },
+  {
+   "key": "func SessionScoringContext.trainingContext(from:relativeTo:)",
+   "hash": "3960f82e9ba9ce54",
+   "does": "TrainingContext(from:relativeTo:) with vo2Max replaced by configuredVO2Max (override, else the HealthKit value when opted in, else nil); nil when the init fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.configuredVO2Max(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "TrainingContext init fails",
+     "effect": "returns nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.configuredVO2Max(_:)": "fa2e9bb262c04a80",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(from:relativeTo:)": "fd7deac52d920bd3"
+   }
+  },
+  {
+   "key": "func SessionScoringContext.createTrainingContextEnsuringFresh(relativeTo:)",
+   "hash": "80805741d4a57408",
+   "does": "With training-load integration off returns nil (even when a load is cached). Otherwise returns the held-load context when available, else fetches the load from HealthKit as of referenceDate (caching it only when today) and builds the context.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.createTrainingContext(relativeTo:)",
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitManager.calculateTrainingLoad(relativeTo:)",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.trainingContext(from:relativeTo:)",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::var SessionScoringContext.cachedTrainingLoad"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.enableTrainingLoadIntegration",
+    "hk:workouts/training load"
+   ],
+   "writes": [
+    "mem:SessionScoringContext.cachedTrainingLoadOfDay"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "integration disabled",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+4",
+     "cond": "held context exists",
+     "effect": "returns it"
+    },
+    {
+     "at": "+9",
+     "cond": "referenceDate is today",
+     "effect": "stores the fetched load in cachedTrainingLoad; past-day loads are not cached"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.createTrainingContext(relativeTo:)": "8904506f14cc22d3",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.trainingContext(from:relativeTo:)": "8f28f215332e6253",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::var SessionScoringContext.cachedTrainingLoad": "c1ee92b0252916b5",
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitManager.calculateTrainingLoad(relativeTo:)": "74c9f44e22a51927",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func SessionScoringContext.holdPastDayTrainingLoad(asOf:)",
+   "hash": "fe83e9c5015a661a",
+   "does": "When training-load integration is on and the session is not today, counts one more holder of that day's load, computes it from HealthKit into pastDayTrainingLoads and returns the day key; else nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitManager.calculateTrainingLoad(relativeTo:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.enableTrainingLoadIntegration",
+    "hk:workouts (training load)"
+   ],
+   "writes": [
+    "mem:SessionScoringContext.pastDayTrainingLoads",
+    "mem:SessionScoringContext.pastDayTrainingLoadHolders"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "integration off or session is today",
+     "effect": "return nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitManager.calculateTrainingLoad(relativeTo:)": "74c9f44e22a51927"
+   }
+  },
+  {
+   "key": "func SessionScoringContext.releasePastDayTrainingLoad(_:)",
+   "hash": "be26440fa05d36cb",
+   "does": "Drops one holder of a past day's training load; the last holder to finish removes the load and the count, so two reanalyses of the same day (a nap and the night) do not clear it for each other.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SessionScoringContext.pastDayTrainingLoadHolders"
+   ],
+   "writes": [
+    "mem:SessionScoringContext.pastDayTrainingLoadHolders",
+    "mem:SessionScoringContext.pastDayTrainingLoads"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "other holders remain",
+     "effect": "stores the reduced count, keeps the load"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func SessionScoringContext.scoringBaselineStats(for:)",
+   "hash": "03151905d07e7c08",
+   "does": "Returns the BaselineTracker recovery baseline excluding the session's own night and later nights, using the settings sleep schedule.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)"
+   ],
+   "reads": [
+    "mem:BaselineTracker history",
+    "mem:SettingsManager.settings.sleepSchedule"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)": "5502e8cc0b7a6e8b"
+   }
+  },
+  {
+   "key": "var SessionScoringContext.currentScoringConfig",
+   "hash": "56e2e7511a92a436",
+   "does": "Builds RecoveryScoreCalculator.ScoringConfiguration from current settings.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoringConfiguration(from:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoringConfiguration(from:)": "1326be06ec8f3825"
+   }
+  },
+  {
+   "key": "var SessionScoringContext.currentANSConfig",
+   "hash": "926235af2226ea63",
+   "does": "ansConfig(asOf: now) — ANS configuration with today's load and the all-nights baseline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.ansConfig(asOf:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.ansConfig(asOf:)": "c222e31873513507"
+   }
+  },
+  {
+   "key": "func SessionScoringContext.ansConfig(asOf:)",
+   "hash": "eb5190f695566acd",
+   "does": "ANS configuration as of `date` with the tracker's full recovery baseline.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.ansConfig(asOf:baseline:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats"
+   ],
+   "reads": [
+    "mem:BaselineTracker history"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "c1bc954c0a47797e",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.ansConfig(asOf:baseline:)": "991514b576d8d17c"
+   }
+  },
+  {
+   "key": "func SessionScoringContext.ansConfig(for:)",
+   "hash": "b34a65fcdbb3c2b8",
+   "does": "ANS configuration for a session: load as of its end (now if open) and the prior-nights baseline from scoringBaselineStats.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.ansConfig(asOf:baseline:)",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.scoringBaselineStats(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session has no end",
+     "effect": "uses now"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.ansConfig(asOf:baseline:)": "991514b576d8d17c",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.scoringBaselineStats(for:)": "69a10b530dba329d"
+   }
+  },
+  {
+   "key": "func SessionScoringContext.ansConfig(asOf:baseline:)",
+   "hash": "92cb420de2578b89",
+   "does": "Builds HRVAnalysisPipeline.ANSConfiguration: baselineRMSSD = exp(baseline lnRmssdMean), else settings.baselineRMSSD, else population baseline; vo2Max and training-load adjustment from the load held for `date`.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.trainingLoad(asOf:)",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.configuredVO2Max(_:)",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.configuredTrainingLoadAdjustment(_:)"
+   ],
+   "reads": [
+    "mem:SettingsManager.settings.baselineRMSSD",
+    "mem:SettingsManager.settings.populationBaselineRMSSD"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "baseline stats present",
+     "effect": "baselineRMSSD = exp(lnRmssdMean)"
+    },
+    {
+     "at": "+13",
+     "cond": "no tracker baseline",
+     "effect": "legacy settings baseline, population value when neither"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.configuredTrainingLoadAdjustment(_:)": "99802b8f83ef2611",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.configuredVO2Max(_:)": "fa2e9bb262c04a80",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.trainingLoad(asOf:)": "e7a56de93e48cc9d",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.populationBaselineRMSSD": "a9c794fec51dc18e"
+   }
+  },
+  {
+   "key": "func SessionScoringContext.configuredVO2Max(_:)",
+   "hash": "9fa50c2b4613d41a",
+   "does": "VO2max for ANS config and training contexts: override if set, else the load's VO2max when HealthKit VO2max is enabled, else nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SettingsManager.settings.vo2MaxOverride",
+    "mem:SettingsManager.settings.useHealthKitVO2Max"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "override set",
+     "effect": "returns it"
+    },
+    {
+     "at": "+5",
+     "cond": "useHealthKitVO2Max",
+     "effect": "returns load?.vo2Max; else nil"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func SessionScoringContext.configuredTrainingLoadAdjustment(_:)",
+   "hash": "2f5bd4fd21dde48b",
+   "does": "Readiness adjustment from the load when training-load integration is on and a load exists; else 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:SettingsManager.settings.enableTrainingLoadIntegration"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "integration off or no load",
+     "effect": "returns 0; else load.readinessAdjustment"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingLoad.swift::var TrainingLoad.readinessAdjustment": "a13efeb66ecd63dd"
+   }
+  },
+  {
+   "key": "func SessionScoringContext.analyze(_:window:flags:peakCapacity:pipeline:)",
+   "hash": "1a7867bfd67b1886",
+   "does": "Runs pipeline.analyzeWithWindow over the window with the training context as of the session's end (createTrainingContextEnsuringFresh) and ansConfig(for: session).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithWindow(session:window:flags:peakCapacity:trainingContext:ansConfig:)",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.createTrainingContextEnsuringFresh(relativeTo:)",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.ansConfig(for:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SessionScoringContext.cachedTrainingLoadOfDay (when fetched for today)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "no endDate",
+     "effect": "training context as of the start"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithWindow(session:window:flags:peakCapacity:trainingContext:ansConfig:)": "2c159d80c38446e8",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.ansConfig(for:)": "8a3d3a986ac47e45",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.createTrainingContextEnsuringFresh(relativeTo:)": "af0958851f76d06d"
+   }
+  },
+  {
+   "key": "func SessionScoringContext.analyze(_:peakCapacity:pipeline:)",
+   "hash": "ca6b5fef0837b5cd",
+   "does": "Runs pipeline.analyzeFullSession with the training context as of the session's end (createTrainingContextEnsuringFresh) and ansConfig(for: session).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSession(session:peakCapacity:trainingContext:ansConfig:)",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.createTrainingContextEnsuringFresh(relativeTo:)",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.ansConfig(for:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SessionScoringContext.cachedTrainingLoadOfDay (when fetched for today)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no endDate",
+     "effect": "training context as of the start"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSession(session:peakCapacity:trainingContext:ansConfig:)": "29594f6662ce07e7",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.ansConfig(for:)": "8a3d3a986ac47e45",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.createTrainingContextEnsuringFresh(relativeTo:)": "af0958851f76d06d"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -277,9 +277,9 @@ extension XCTestCase {
         PersistedRecordingState.clear()
         let dependencies = AppDependencies()
         dependencies.overrides.recorderBox = RecorderBox()
-        AppDependencies.current = dependencies
+        let installed = AppDependencies.install(dependencies)
         addTeardownBlock { @MainActor in
-            AppDependencies.reset()
+            installed.end()
             PersistedRecordingState.clear()
             if let savedState {
                 PersistedRecordingState.save(savedState)

@@ -64,13 +64,16 @@ disagrees with the app by exactly `sqrt(N/(N-1))` on every record: 19.8456
 against 19.8125 on nsr001. The app uses N-1, which is what HRV software reports.
 A ratio that small is easy to dismiss as floating-point noise. It is not.
 
-**Ectopic filtering.** `computeTimeDomain` filters ectopic beats before taking
+**Ectopic filtering.** `computeTimeDomain` gates ectopic beats before taking
 successive differences; a plain reference does not. On nsr005 the app reports RMSSD
-16.03 against 28.98. That is the filter removing beats that are not sinus
+15.96 against 28.98. That is the gate removing beats that are not sinus
 rhythm, a documented design choice. The suite compares the unfiltered reference
 against `rmssd(fromCleanRRs:)`, which is the pure formula, and separately
-asserts that the filtered pipeline never reports a *larger* RMSSD than the raw
-one.
+recomputes the pipeline's RMSSD from the kept beats: the root mean square over
+the pairs adjacent in the original series, both kept, with no recording break
+between them. Removing beats can raise RMSSD as well as lower it, so no
+direction is asserted; the suite asserts only that the gate changes at least
+one record.
 
 **Mean heart rate.** The app derives mean HR from rolling 10-second windows,
 not as `60000 / meanRR`. The two differ because the mean of reciprocals is not

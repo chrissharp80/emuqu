@@ -74,11 +74,17 @@ final class ReanalysisServiceTests: XCTestCase {
     nonisolated private let baselineFile = FileManager.default.temporaryDirectory
         .appendingPathComponent("ReanalysisBaseline-\(UUID().uuidString).json")
 
-    private lazy var archive = SessionArchive(
-        directory: archiveDirectory,
-        sleepScheduleProvider: { SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0) },
-        sessionMergeModeProvider: { .off }
-    )
+    private lazy var archive = makeArchive()
+
+    /// An archive over the test's directory; a second one reads the index as
+    /// it is on disk now.
+    private func makeArchive() -> SessionArchive {
+        SessionArchive(
+            directory: archiveDirectory,
+            sleepScheduleProvider: { SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0) },
+            sessionMergeModeProvider: { .off }
+        )
+    }
 
     override func tearDown() {
         do {
@@ -95,8 +101,12 @@ final class ReanalysisServiceTests: XCTestCase {
     }
 
     /// `analysis` answers both analysis closures (window and full session),
-    /// once per reanalysis pass; nil fails the pass.
-    private func makeService(analysis: @escaping () -> HRVAnalysisResult? = { nil }) -> ReanalysisService {
+    /// once per reanalysis pass; nil fails the pass. The service works on
+    /// `archive`, the test's own unless another is given.
+    private func makeService(
+        on archive: SessionArchive? = nil, analysis: @escaping () -> HRVAnalysisResult? = { nil }
+    ) -> ReanalysisService {
+        let archive = archive ?? self.archive
         let healthKit = MockHealthKitService()
         let windowSelector = WindowSelector()
         let artifactDetector = ArtifactDetector()
@@ -117,7 +127,8 @@ final class ReanalysisServiceTests: XCTestCase {
             analyzeWithWindow: { _, _, _, _ in analysis() },
             analyzeFullSession: { _, _ in analysis() },
             onArchiveChanged: {},
-            onSessionUploaded: { _ in }
+            onSessionUploaded: { _ in },
+            onZonesStale: { _ in }
         )
     }
 
@@ -296,6 +307,55 @@ final class ReanalysisServiceTests: XCTestCase {
         XCTAssertEqual(passes, 1)
         XCTAssertEqual(stored.windowUserAdjusted, true)
         XCTAssertEqual(stored.recoveryScore, 8.8, "the manual pick's own score")
+    }
+
+    // MARK: - Manual window and stored beats
+
+    /// A manual pick handed a copy without its beats (a lightweight copy the
+    /// dashboard decoded) is applied to the archived copy, beats included.
+    func testAManualWindowOnALightweightCopyKeepsTheStoredBeats() async throws {
+        var night = overnight()
+        night.rrSeries = RRSeries(points: Self.beats(count: 900), sessionId: night.id, startDate: nightStart)
+        try archive.archive(night)
+        var lightweight = night
+        lightweight.rrSeries = nil
+
+        let written = await makeService().applyManualAnalysis(lightweight, result: Self.analysis(at: nightStart))
+
+        XCTAssertEqual(written?.windowUserAdjusted, true)
+        XCTAssertEqual(try archive.retrieve(night.id)?.rrSeries?.points.count, 900)
+    }
+
+    /// When the archived copy cannot be read (its index hash no longer matches
+    /// the file), hydration fails and the pick goes to the copy it was handed,
+    /// which has no beats. Whatever the write then does, the stored beats are
+    /// still on disk: the archive splices them back, or refuses the write.
+    func testAManualWindowWhoseArchivedCopyCannotBeReadKeepsTheStoredBeats() async throws {
+        var night = overnight()
+        night.rrSeries = RRSeries(points: Self.beats(count: 900), sessionId: night.id, startDate: nightStart)
+        let entry = try archive.archive(night)
+        try Self.forgeIndexHash(of: entry, in: archiveDirectory)
+        let unreadable = makeArchive()
+        XCTAssertThrowsError(try unreadable.retrieve(night.id), "the forged hash makes the archived copy unreadable")
+        var lightweight = night
+        lightweight.rrSeries = nil
+
+        _ = await makeService(on: unreadable).applyManualAnalysis(lightweight, result: Self.analysis(at: nightStart))
+
+        guard case .preserved(let stored, _) = makeArchive().store.storedRRSeries(for: night.id) else {
+            return XCTFail("the stored beats were lost")
+        }
+        XCTAssertEqual(stored.points.count, 900)
+    }
+
+    /// Replace `entry`'s hash in the index file on disk with one that matches
+    /// no file, as an interrupted write leaves it.
+    private static func forgeIndexHash(of entry: SessionArchiveEntry, in directory: URL) throws {
+        let indexURL = directory.appendingPathComponent("index.json")
+        let index = try SessionArchive.indexJSON(Data(contentsOf: indexURL))
+        let text = try XCTUnwrap(String(data: index, encoding: .utf8))
+        let forged = text.replacingOccurrences(of: entry.fileHash, with: String(repeating: "0", count: 64))
+        try Data(forged.utf8).write(to: indexURL, options: .atomic)
     }
 
     /// Every stored field of the session is either computed by a rescore or

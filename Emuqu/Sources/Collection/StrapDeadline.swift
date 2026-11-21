@@ -111,11 +111,6 @@ private final class ResumeOnce<T: Sendable>: Sendable {
     }
 
     func callAsFunction(_ result: Result<T, Error>) {
-        let first = resumed.withLock { (done: inout Bool) -> Bool in
-            let wasFirst = !done
-            done = true
-            return wasFirst
-        }
-        if first { continuation.resume(with: result) }
+        if resumed.setIfClear() { continuation.resume(with: result) }
     }
 }

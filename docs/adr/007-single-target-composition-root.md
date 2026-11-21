@@ -44,12 +44,32 @@ layer as `app`, `analysis`, `assistant`, `collection`, `location`,
 `providers`, `services` and `storage`. Each accessor returns the substitute
 set on the container's `overrides`, if any, and otherwise the type's
 `shared` instance (or, for the two Overpass services, the one instance the
-root builds around a shared `OverpassClient`). Accessors resolve when they
+root builds around a shared `OverpassClient`; for saved-session reanalysis,
+the `SessionReanalysisCoordinator` and the baseline tracker, archive signal
+and scoring context it shares with the recording collector, which the root
+builds in `AppDependencies+Reanalysis.swift`). Accessors resolve when they
 are read, so nothing is built before it is asked for. `AppDependencies.current`
 is the container in force, held behind a lock because fact resolvers read it
-off the main actor. The app never assigns it; a test builds a fresh
-container, sets its substitutes on `overrides`, assigns it to `current`, and
-calls `AppDependencies.reset()` when it finishes.
+off the main actor.
+
+*Only tests change the container in force.* `current` has no setter. The app
+runs on the live container `current` starts with and never replaces it. A
+test builds a fresh container, sets its substitutes on `overrides`, and puts
+it in force with `AppDependencies.install(_:)`; the scope that call returns
+restores the container that was in force before when the test ends it
+(scopes end in the reverse order they began). A call to `install` in either
+app target fails `scripts/check_explicit_dependencies.sh`.
+
+*Explicit dependencies where the edges matter.* Code that reads `current`
+inside a function has dependencies its signature does not show. The launch
+work (`EmuquApp`'s extension in `AppLaunchTasks.swift`) and the data purge
+(`DataPurgeService`) read no container: the root hands them exactly the
+services they use, `AppDependencies.launchServices` and
+`AppDependencies.purgeStores`, and their tests build those sets from a fresh
+container with substitutes. Each member of a set is a resolver that reads the
+root's accessor when it is called, so nothing is built earlier than when the
+code reaches it, the same timing as the accessors themselves. The same
+script fails on an `AppDependencies.current` read in those files.
 
 Views read the container through the `\.dependencies` environment key. Its
 default value is computed, `AppDependencies.current` at the moment of the
@@ -66,12 +86,16 @@ hands the objects to the view tree.
 
 `scripts/check_no_shared_outside_root.sh` (`make shared-root-guard`, run by
 `make ci`, `gates.yml` and `ci.yml`) fails when any Swift file in either app reads `.shared` outside the two root
-files. Declaring `static let shared` is allowed anywhere, and system
+files. `scripts/check_explicit_dependencies.sh` (`make explicit-deps-guard`,
+run by the same three) enforces the two rules above. Declaring `static let shared` is allowed anywhere, and system
 singletons (`URLSession.shared`, `UIApplication.shared` and the others the
 script lists) are not the app's to inject.
 
 **Consequences.** A test can replace any long-lived service without touching
-the code that uses it, and a new reach for a singleton fails CI. Every service
-stays a process-wide object reachable from anywhere through `current`, so the
-root records the dependencies but does not narrow them: what a type uses is
-read from its accessors, not enforced by a module boundary.
+the code that uses it, and a new reach for a singleton fails CI. A test's substitute cannot outlive the
+test, and app code cannot swap the container under running code. Every
+service stays a process-wide object reachable through `current` from code
+that has not been given an explicit set, so for that code the root records
+the dependencies but does not narrow them: what a type uses is read from its
+accessors, not enforced by a module boundary. The launch work and the data
+purge show theirs in the sets they are handed.

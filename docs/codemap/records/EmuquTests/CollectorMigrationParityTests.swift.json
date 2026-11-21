@@ -1,9 +1,9 @@
 {
  "file": "EmuquTests/CollectorMigrationParityTests.swift",
- "hash": "8d800cbf1b84647e",
+ "hash": "1845226953ab662f",
  "role": "Parity tests for three SessionDataMigrations one-shot migrations (workout sleep cleanup, insufficient-data re-flag, TRIMP repair) run against a hermetic temp-directory archive, checking post-state and that the UserDefaults flag short-circuits a second run.",
  "types": [
-  "CollectorMigrationParityTests: class — @MainActor XCTestCase for collector-owned migrations"
+  "CollectorMigrationParityTests: class — @MainActor XCTestCase for the session-data migrations"
  ],
  "state": [
   "migrationFlagKeys: the three standard-UserDefaults migration flag keys",
@@ -13,7 +13,7 @@
   "migrations: lazy SessionDataMigrations",
   "seededIds: ids archived by the test, deleted in tearDown"
  ],
- "toplevel": "Lazy collector/migrations (first use in a test): RRCollector(polarManager: PolarManager(), healthKit: HealthKitManager(), archive: SessionArchive(directory: tmp/CollectorMigrationParityTests-<uuid>)) and SessionDataMigrations built from that collector's archive, HealthKit manager, settings, baseline tracker and reanalysis service.",
+ "toplevel": "Lazy collector/migrations (first use in a test): RRCollector(polarManager: PolarManager(), healthKit: HealthKitManager(), archive: SessionArchive(directory: tmp/CollectorMigrationParityTests-<uuid>)) and SessionDataMigrations built from that collector's archive, HealthKit manager, settings and baseline tracker, with the reanalysis service of a coordinator AppDependencies.makeSessionReanalysis builds over the collector's archive, HealthKit, scoring context, archive signal and CloudKit sync manager.",
  "units": [
   {
    "key": "func CollectorMigrationParityTests.setUp()",
@@ -79,9 +79,9 @@
     "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.stripWorkoutSleepSnapshot(_:archive:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:scoring:)",
     "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:sampleStore:)",
     "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)",
     "Emuqu/Sources/Collection/SessionDataMigrations.swift::init SessionDataMigrations(archive:healthKit:settingsManager:baselineTracker:reanalysisService:)"
    ],
@@ -96,9 +96,9 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)": "75377b33a56513c7",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:sampleStore:)": "d9768b730a189edf",
     "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ac5fb66c0359130b",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:scoring:)": "1eba2516dc6628c1",
     "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.runWorkoutSleepCleanupIfNeeded()": "7053fab5ec54dc3d",
     "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.stripWorkoutSleepSnapshot(_:archive:)": "5b4adea4e9ca0f3b",
     "Emuqu/Sources/Collection/SessionDataMigrations.swift::init SessionDataMigrations(archive:healthKit:settingsManager:baselineTracker:reanalysisService:)": "a2598d8081e32d26",

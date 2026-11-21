@@ -101,52 +101,34 @@
   },
   {
    "key": "func MorningSessionPipeline.analyze(_:window:flags:peakCapacity:)",
-   "hash": "9572d3744db537ae",
-   "does": "Analyzes the session with a given recovery window and artifact flags via HRVAnalysisPipeline.analyzeWithWindow, with training context as of the session date and the session's ANS config.",
+   "hash": "0cb13e92c9e5c582",
+   "does": "Analyzes the session over a given recovery window with artifact flags through SessionScoringContext.analyze with the collector's pipeline: training context as of the session's end, the session's ANS config.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithWindow(session:window:flags:peakCapacity:trainingContext:ansConfig:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)"
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.analyze(_:window:flags:peakCapacity:pipeline:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "session.endDate nil (??)",
-     "effect": "uses startDate"
-    }
-   ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithWindow(session:window:flags:peakCapacity:trainingContext:ansConfig:)": "2c159d80c38446e8",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)": "00ae9d7dcd8b0093",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)": "85f6f48c29a9652c"
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.analyze(_:window:flags:peakCapacity:pipeline:)": "4ad85dc856c78ec8",
+    "Emuqu/Sources/Utilities/AppDependencies+Reanalysis.swift::let SessionReanalysisRoot.scoring": "72a870dc0e6ba4a6"
    }
   },
   {
    "key": "func MorningSessionPipeline.analyze(_:peakCapacity:)",
-   "hash": "019e32e4332b8547",
-   "does": "Analyzes the whole session via HRVAnalysisPipeline.analyzeFullSession with training context and ANS config.",
+   "hash": "7e1583c46f003639",
+   "does": "Analyzes the whole session through SessionScoringContext.analyze(_:peakCapacity:pipeline:) with the collector's pipeline, training context and ANS config.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSession(session:peakCapacity:trainingContext:ansConfig:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)"
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.analyze(_:peakCapacity:pipeline:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "session.endDate nil (??)",
-     "effect": "uses startDate"
-    }
-   ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeFullSession(session:peakCapacity:trainingContext:ansConfig:)": "29594f6662ce07e7",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(for:)": "00ae9d7dcd8b0093",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContextEnsuringFresh(relativeTo:)": "85f6f48c29a9652c"
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.analyze(_:peakCapacity:pipeline:)": "3f7bf0aa7714f395",
+    "Emuqu/Sources/Utilities/AppDependencies+Reanalysis.swift::let SessionReanalysisRoot.scoring": "72a870dc0e6ba4a6"
    }
   },
   {

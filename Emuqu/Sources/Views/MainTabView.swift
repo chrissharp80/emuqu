@@ -297,8 +297,9 @@ struct MainTabView: View {
 
     /// Same fix as `rescoreReport`, for the manual-window path.
     private func rescoreReportAt(_ session: HRVSession, targetMs: Int64) async {
-        if let manual = await collector.reanalyzeAtPosition(session, targetMs: targetMs),
-           let updated = await collector.applyManualAnalysis(session, result: manual) {
+        let reanalysis = dependencies.collection.reanalysisService
+        if let manual = await reanalysis.reanalyzeAtPosition(session, targetMs: targetMs),
+           let updated = await reanalysis.applyManualAnalysis(session, result: manual) {
             selectedReportSession = updated
         }
     }
@@ -371,7 +372,7 @@ struct MainTabView: View {
     /// which drives the onChange reload. When it changes nothing, the first
     /// reload already ran.
     private func refreshTodaysSleep() async {
-        await collector.autoRefreshTodaysSleepIfImproved()
+        await dependencies.collection.sessionReanalysis.autoRefreshTodaysSleepIfImproved()
     }
 
     /// Belt-and-braces path reset for the newly-selected tab. Tab

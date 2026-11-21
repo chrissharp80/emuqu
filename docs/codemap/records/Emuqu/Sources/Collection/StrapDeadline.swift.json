@@ -142,22 +142,25 @@
   },
   {
    "key": "func ResumeOnce.callAsFunction(_:)",
-   "hash": "a485e04d80754ae8",
-   "does": "Under a lock flips `resumed` and resumes the continuation only the first time; later results are dropped.",
+   "hash": "90c9cd9c5b213341",
+   "does": "Resumes the continuation with the result only the first time (setIfClear on `resumed`); later results are dropped.",
    "entry": "Invoked as a function by StrapRace.begin/cancel/expire/run.",
    "calls": [
+    "Emuqu/Sources/Utilities/Extensions.swift::func OSAllocatedUnfairLock.setIfClear()",
     "ext:CheckedContinuation.resume"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+6",
+     "at": "+1",
      "cond": "this is the first call",
      "effect": "true: continuation resumed with the result; false: result dropped"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::func OSAllocatedUnfairLock.setIfClear()": "7eb7fa9354ab076a"
+   }
   }
  ],
  "deps": {}

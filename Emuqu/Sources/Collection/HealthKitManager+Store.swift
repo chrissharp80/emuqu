@@ -33,7 +33,7 @@ extension HealthKitManager {
     // MARK: - Apple Health Export
 
     // exportHeartRate and exportRestingHeartRate live in HealthKitManager+HeartRate.swift
-    // exportWindowedHRV implementation lives in HealthKitManager+HRV.swift
+    // exportHRV and removeExportedHRV live in HealthKitManager+HRV.swift
     // exportHeartRateSeries lives in HealthKitManager+HeartRate.swift
     // exportSleepToHealthKit, deleteAllAppWrittenSleepSamples, and exportSessionMetrics
     // live in HealthKitManager+SleepTrends.swift

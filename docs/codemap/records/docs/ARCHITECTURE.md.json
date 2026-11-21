@@ -371,8 +371,8 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Analysis Algorithms > Stress Analysis",
-   "hash": "8e62f40aeb8f0b7e",
-   "does": "Claims Baevsky SI = AMo/(2*Mo*MxDMn) with 50 ms bins; PNS = mean z of meanRR(926), RMSSD(42), SD1(29); SNS = mean z of meanHR(66), SI(100), inverted SD2(65); readiness 1-10 starting at 5 with RMSSD ratio bands (+2/+1/-2/0) against the 60-night geometric baseline; until it exists RRCollector.ansConfig falls back to settings.baselineRMSSD then UserSettings.populationBaselineRMSSD (35 ms with no age), so every app reading uses the ratio; the VO2max-adjusted absolute bands run only when no ANSConfiguration is passed (HRVAnalysisPipeline.readinessScore passes config?.baselineRMSSD) or the baseline is <= 0; alpha1 +2/+0.5/-1, PNS-SNS +1.5/+0.5/-0.5/-1.5, hard training adds back the negative load adjustment, clamp [1,10]. Constants match StressNormativeConstants.",
+   "hash": "05df133cd204b98f",
+   "does": "Claims Baevsky SI = AMo/(2*Mo*MxDMn) with 50 ms bins; PNS = mean z of meanRR(926), RMSSD(42), SD1(29); SNS = mean z of meanHR(66), SI(100), inverted SD2(65); readiness 1-10 starting at 5 with RMSSD ratio bands (+2/+1/-2/0) against the 60-night geometric baseline; until it exists SessionScoringContext.ansConfig falls back to settings.baselineRMSSD then UserSettings.populationBaselineRMSSD (35 ms with no age), so every app reading uses the ratio; the VO2max-adjusted absolute bands run only when no ANSConfiguration is passed (HRVAnalysisPipeline.readinessScore passes config?.baselineRMSSD) or the baseline is <= 0; alpha1 +2/+0.5/-1, PNS-SNS +1.5/+0.5/-0.5/-1.5, hard training adds back the negative load adjustment, clamp [1,10]. Constants match StressNormativeConstants.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeStressIndex(_:)",
@@ -383,7 +383,7 @@
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.dfaAdjustment(_:)",
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.ansBalanceAdjustment(snsIndex:pnsIndex:)",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.readinessScore(timeDomain:nonlinear:pnsIndex:snsIndex:config:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(asOf:baseline:)",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.ansConfig(asOf:baseline:)",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.populationBaselineRMSSD"
    ],
    "reads": [],
@@ -398,7 +398,7 @@
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeStressIndex(_:)": "f347839814e54106",
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.dfaAdjustment(_:)": "b302900bc9a13ff8",
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.rmssdAdjustment(rmssd:baseline:vo2Max:)": "8962fba49cff8db3",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.ansConfig(asOf:baseline:)": "6fa57f068c4851ea",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.ansConfig(asOf:baseline:)": "991514b576d8d17c",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.populationBaselineRMSSD": "a9c794fec51dc18e"
    }
   },
@@ -1150,23 +1150,25 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Storage & Sync > Apple Health Export",
-   "hash": "610f6a535e72a3c5",
-   "does": "Claims Health export writes a windowed SDNN series (exportWindowedHRV), a heart-rate series (exportHeartRateSeries), one resting HR per overnight night, sleep stage HKCategorySamples plus inBed stamped with HKMetadataKeyExternalUUID, and skips samples for Health-sourced sessions; code in Collection/HealthKitManager+{HRV,HeartRate,Sleep}.swift. Code: exportWindowedHRV in HealthKitManager+HRV.swift:81, exportHeartRateSeries in HealthKitManager+HeartRate.swift:462.",
+   "hash": "ec06e9a505e5ba0e",
+   "does": "Claims Health export writes a windowed SDNN series or a single summary (exportHRV), a heart-rate series (exportHeartRateSeries), one resting HR per overnight night, sleep stage HKCategorySamples plus inBed stamped with HKMetadataKeyExternalUUID, that every re-write saves before deleting the earlier samples and runs one at a time per session, each Health call bounded by a timeout (HealthSampleReplacer), and skips samples for Health-sourced sessions; code in Collection/HealthKitManager+{HRV,HeartRate,Sleep}.swift. Code matches.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportWindowedHRV(from:sessionStart:sessionId:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportHRV(session:result:)",
     "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.exportHeartRateSeries(from:sessionStart:sessionId:)",
     "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepIfSoleSource(session:)"
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepIfSoleSource(session:)",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportWindowedHRV(from:sessionStart:sessionId:)": "39293c17d9b699fa",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.exportHeartRateSeries(from:sessionStart:sessionId:)": "42fad6af6a9bb55a",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepIfSoleSource(session:)": "4dae1c525ba31b62",
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)": "375d75f53a50f643"
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportHRV(session:result:)": "85f021672855315f",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.exportHeartRateSeries(from:sessionStart:sessionId:)": "824be87d5915a1e0",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepIfSoleSource(session:)": "d25c8497c038c027",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)": "cc8e27ff941bb596",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)": "0415c974b73264d3"
    }
   },
   {
@@ -1660,26 +1662,34 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Dependency Injection",
-   "hash": "1dcc81f30081a27d",
-   "does": "Claims Sources/Protocols holds only HealthKitServiceProtocol (for MockHealthKitService); AppDependencies is the composition root with app/storage/collection/analysis/location/services/providers/assistant groups, each accessor returning the override if set or the production object built on first use; the app never assigns current, tests assign a container and call reset(); views read @Environment(\\.dependencies), classes an init parameter defaulting to .current, static helpers and EmuquApp AppDependencies.current; .shared is read only there and in WatchDependencies, enforced by check_no_shared_outside_root.sh; links ADR 007. RRCollector has a designated DI init, makeDefault() production wiring publishing weak RRCollector.current, and a convenience init(). Code: Protocols dir contains only HealthKitServiceProtocol.swift; AppDependencies.swift declares the eight groups and the override-or-shared accessors; RRCollector.makeDefault, static weak var current, convenience init.",
+   "hash": "d3873f4870b2d03a",
+   "does": "Claims Sources/Protocols holds only HealthKitServiceProtocol (for MockHealthKitService); AppDependencies is the composition root with app/storage/collection/analysis/location/services/providers/assistant groups, each accessor returning the override if set or the production object built on first use; current has no setter, and a test puts a container in force with AppDependencies.install(_:) and ends the returned scope, restoring the one before; the launch work (AppLaunchTasks.swift) and DataPurgeService read no container but are handed launchServices and purgeStores, and check_explicit_dependencies.sh keeps AppDependencies.current out of those files and install out of app code; views read @Environment(\\.dependencies), classes an init parameter defaulting to .current, static helpers and EmuquApp AppDependencies.current; .shared is read only there and in WatchDependencies, enforced by check_no_shared_outside_root.sh; links ADR 007. RRCollector has a designated DI init, makeDefault() production wiring publishing weak RRCollector.current, and a convenience init(). Code: Protocols dir contains only HealthKitServiceProtocol.swift; AppDependencies.swift declares the eight groups and the override-or-shared accessors; RRCollector.makeDefault, static weak var current, convenience init.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.install(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.InstalledScope.end()",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
     "EmuquWatch Watch App/WatchDependencies.swift::var WatchDependencies.sessionManager",
-    "Makefile::target shared-root-guard"
+    "Makefile::target shared-root-guard",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.launchServices",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeStores",
+    "Makefile::target explicit-deps-guard"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()": "be1e45efca604118",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()": "e39e2f3e3a5e3aca",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.InstalledScope.end()": "2883f22c40d81b31",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.install(_:)": "7deb301260afd282",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.launchServices": "dd94a37f42767d6e",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeStores": "4aef152a558c87c5",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "daa043f0af306c2c",
     "EmuquWatch Watch App/WatchDependencies.swift::var WatchDependencies.sessionManager": "808974657b47ac82",
+    "Makefile::target explicit-deps-guard": "f839113f5d8e6bda",
     "Makefile::target shared-root-guard": "a9263da85d483554"
    }
   },
@@ -1708,18 +1718,26 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Dependency Injection > RRCollector decomposition (sub-objects + SwiftUI observation)",
-   "hash": "1e4c0988a3f8e4b0",
-   "does": "Says RRCollector is decomposed into @MainActor @Observable sub-objects (ArchiveSignal, DeviceStatus, SessionState, StreamingLifecycle, MorningCoordination) holding the live state, with views observing the sub-object they need; every observable type is @Observable with no ObservableObject/@Published/objectWillChange (ratchet .ci/legacy_observable_object_budget.txt = 0); property-change reactions use self-re-arming withObservationTracking loops via ObservationLoop (Emuqu/Sources/Utilities/ObservationLoop.swift), delivered on the main actor after the mutation, with untracked plumbing @ObservationIgnored; Swift 6 language mode with complete strict concurrency and warnings as errors, and the patterns used (main-actor stores with nonisolated lock-backed snapshots, Sendable analysis types, StrapAPI wrapping the Polar SDK, Sendable payloads across framework callbacks, main-actor theme palette); remaining @unchecked Sendable / nonisolated(unsafe) listed in scripts/check_unchecked_sendable.sh. Code: the budget file reads 0; ObservationLoop.observe re-arms after each change; CollectorSessionControl.bindBatteryAndReconnect uses it.",
+   "hash": "d3607d157b62495b",
+   "does": "Says RRCollector is decomposed into @MainActor @Observable sub-objects (ArchiveSignal, DeviceStatus, SessionState, StreamingLifecycle, MorningCoordination) holding the live state, with views observing the sub-object they need; saved-session reanalysis is not the collector's: the composition root (AppDependencies+Reanalysis.swift) builds one SessionReanalysisCoordinator around one ReanalysisService from explicit parts, sharing a SessionScoringContext and ArchiveSignal with the collector built by makeDefault, no service closure reaching the collector; Reanalyze, the bulk passes, the session-data migrations and the rescore/CloudKit-backfill/HealthKit-sleep listeners are the coordinator's, manual windows, sleep-boundary edits and unlinks call the service, and the collector takes a rescored night onto its review card from .reanalysisRewroteArchivedSession; EmuquApp builds the coordinator at launch; every observable type is @Observable with no ObservableObject/@Published/objectWillChange (ratchet .ci/legacy_observable_object_budget.txt = 0); property-change reactions use self-re-arming withObservationTracking loops via ObservationLoop (Emuqu/Sources/Utilities/ObservationLoop.swift), delivered on the main actor after the mutation, with untracked plumbing @ObservationIgnored; Swift 6 language mode with complete strict concurrency and warnings as errors, and the patterns used (main-actor stores with nonisolated lock-backed snapshots, Sendable analysis types, StrapAPI wrapping the Polar SDK, Sendable payloads across framework callbacks, main-actor theme palette); remaining @unchecked Sendable / nonisolated(unsafe) listed in scripts/check_unchecked_sendable.sh. Code: the budget file reads 0; ObservationLoop.observe re-arms after each change; CollectorSessionControl.bindBatteryAndReconnect uses it.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)",
-    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindBatteryAndReconnect()"
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindBatteryAndReconnect()",
+    "Emuqu/Sources/Utilities/AppDependencies+Reanalysis.swift::func AppDependencies.makeSessionReanalysis(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies+Reanalysis.swift::let SessionReanalysisRoot.reanalysis",
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func RRCollector.installArchivedCopyListener()",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.startListening()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Acceptance.swift::func RRCollector.installArchivedCopyListener()": "66b66bfc020a9705",
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindBatteryAndReconnect()": "b3c47cdc5e17c7f6",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.startListening()": "b15937e85f1bfc63",
+    "Emuqu/Sources/Utilities/AppDependencies+Reanalysis.swift::func AppDependencies.makeSessionReanalysis(_:)": "09000dcb291dbe67",
+    "Emuqu/Sources/Utilities/AppDependencies+Reanalysis.swift::let SessionReanalysisRoot.reanalysis": "167a710f23ca950f",
     "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)": "45b1e058ecfcb78e"
    }
   },

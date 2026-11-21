@@ -1,4 +1,5 @@
 @testable import Emuqu
+import UIKit
 import XCTest
 
 final class RawRRBackupTests: XCTestCase {
@@ -7,7 +8,11 @@ final class RawRRBackupTests: XCTestCase {
     /// never listed here and nothing this test writes outlives it.
     private let directory = FileManager.default.temporaryDirectory
         .appendingPathComponent("RawRRBackupTests-\(UUID().uuidString)", isDirectory: true)
-    private lazy var backup = RawRRBackup(directory: directory)
+    /// The unlock notifications the store listens on, so the host app's own
+    /// activation never runs a repair during a test, and a post here reaches
+    /// no other store.
+    private let notifications = NotificationCenter()
+    private lazy var backup = RawRRBackup(directory: directory, notificationCenter: notifications)
 
     /// The reconcile and repair the store queues at init run before the
     /// test, so neither writes into the folder while the test does.
@@ -814,5 +819,157 @@ extension RawRRBackupTests {
     private func dropRowKeepingFiles(_ sessionId: UUID) throws {
         backup.index.removeAll { $0.id == sessionId }
         try backup.saveIndex()
+    }
+}
+
+/// A torn last line, an index save that throws, and the repair run on unlock.
+extension RawRRBackupTests {
+    // MARK: - Torn last line
+
+    /// A kill part way through a line leaves the points file ending in a
+    /// fragment. The next append cuts it off, so the batch does not fuse
+    /// with it into a line no read decodes, and every beat reads back.
+    func testAnAppendAfterATornLineKeepsEveryBeat() throws {
+        let sessionId = UUID()
+        defer { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
+        let points = makePoints(count: 60)
+        try backup.appendBackup(points: Array(points[..<40]), sessionId: sessionId)
+        let url = backup.pointsURL(for: sessionId)
+        let fragment = try backup.encodedLines(points[40 ..< 41], sessionId: sessionId).prefix(12)
+        try (Data(contentsOf: url) + fragment).write(to: url)
+
+        try backup.appendBackup(points: points, sessionId: sessionId)
+
+        XCTAssertEqual(try backup.retrieve(sessionId)?.points.map(\.t_ms), points.map(\.t_ms))
+        XCTAssertEqual(try Data(contentsOf: url).filter { $0 == UInt8(ascii: "\n") }.count, 60)
+    }
+
+    /// The complete lines of a file's bytes: all of them, up to the last
+    /// newline, or none.
+    func testCompleteLinesDropOnlyATornTail() {
+        XCTAssertEqual(JSONLinesFile.completeLines(of: Data("a\nb\n".utf8)), Data("a\nb\n".utf8))
+        XCTAssertEqual(JSONLinesFile.completeLines(of: Data("a\nb".utf8)), Data("a\n".utf8))
+        XCTAssertEqual(JSONLinesFile.completeLines(of: Data("ab".utf8)), Data())
+        XCTAssertEqual(JSONLinesFile.completeLines(of: Data()), Data())
+    }
+
+    // MARK: - Index save that throws
+
+    /// The points reach the file but the index save throws: the call reports
+    /// false, the next one retries the save without waiting out the interval
+    /// (with no new points too), and reports true only once the row is on
+    /// disk. No point is appended twice.
+    func testAFailedIndexSaveIsRetriedAndReportedUntilItLands() throws {
+        let sessionId = UUID()
+        defer { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
+        let points = makePoints(count: 60)
+        XCTAssertTrue(backup.incrementalBackup(points: Array(points[..<30]), sessionId: sessionId))
+        try blockIndexFile()
+
+        XCTAssertFalse(backup.incrementalBackup(points: points, sessionId: sessionId, force: true))
+        XCTAssertFalse(backup.incrementalBackup(points: points, sessionId: sessionId), "not retried before the interval")
+        try FileManager.default.removeItem(at: backup.indexFile)
+        // `interval: 0` stands in for the interval having passed.
+        XCTAssertTrue(backup.incrementalBackup(points: points, sessionId: sessionId, interval: 0))
+
+        XCTAssertEqual(try storedIndex().first { $0.id == sessionId }?.backedUpCount, 60)
+        let lines = try Data(contentsOf: backup.pointsURL(for: sessionId)).filter { $0 == UInt8(ascii: "\n") }.count
+        XCTAssertEqual(lines, 60)
+        XCTAssertFalse(backup.incrementalBackup(points: points, sessionId: sessionId), "nothing owed: throttled again")
+    }
+
+    /// A one-shot backup whose index save throws puts the previous row back,
+    /// so nothing is owed and no retry runs for it.
+    func testAOneShotBackupWhoseIndexSaveThrewOwesNothing() throws {
+        let sessionId = UUID()
+        defer { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
+        try blockIndexFile()
+
+        XCTAssertThrowsError(try backup.backup(points: makePoints(count: 100), sessionId: sessionId))
+
+        XCTAssertNil(backup.existingIndexEntry(sessionId))
+        XCTAssertFalse(backup.indexLock.withLock { backup.indexSaveOwed })
+    }
+
+    /// An archived flag whose save threw reaches the file on the next repair
+    /// run on unlock.
+    func testAnArchivedFlagWhoseSaveThrewIsSavedOnUnlock() throws {
+        let sessionId = UUID()
+        defer { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
+        try backup.backup(points: makePoints(count: 100), sessionId: sessionId)
+        try blockIndexFile()
+        backup.markAsArchived(sessionId)
+        try FileManager.default.removeItem(at: backup.indexFile)
+
+        backup.repairAfterUnlock()
+        backup.waitForQueuedWork()
+
+        XCTAssertEqual(try storedIndex().first { $0.id == sessionId }?.archived, true)
+    }
+
+    // MARK: - Repair on unlock
+
+    /// Protected data becoming available reseals a session queued with
+    /// plain lines, as a launch does.
+    func testUnlockResealsAQueuedSession() throws {
+        let sessionId = UUID()
+        defer { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
+        let points = makePoints(count: 50)
+        try plainStreamedBackup(points, sessionId: sessionId)
+
+        notifications.post(name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
+        backup.waitForQueuedWork()
+
+        let plainLeft = SealedJSONLines.hasPlainLine(try Data(contentsOf: backup.pointsURL(for: sessionId)))
+        XCTAssertEqual(plainLeft, SealedJSONLines.availableManager() == nil)
+        XCTAssertEqual(PendingEncryptionLedger.pending(in: .rawBackup).contains(sessionId), plainLeft)
+        XCTAssertEqual(try backup.retrieve(sessionId)?.points.map(\.t_ms), points.map(\.t_ms))
+    }
+
+    /// The reseal rewrites the live points file while appends to it keep
+    /// arriving from other threads. It runs between appends, never under
+    /// one, so no appended beat is lost or written twice.
+    func testUnlockResealLeavesAppendsInFlightIntact() throws {
+        let sessionId = UUID()
+        defer { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
+        let points = makePoints(count: 240)
+        try plainStreamedBackup(Array(points[..<40]), sessionId: sessionId)
+        let store = backup
+
+        DispatchQueue.concurrentPerform(iterations: 200) { step in
+            if step % 50 == 25 { store.repairAfterUnlock() }
+            store.incrementalBackup(points: Array(points[..<(41 + step)]), sessionId: sessionId, force: true)
+        }
+        backup.waitForQueuedWork()
+
+        XCTAssertEqual(try backup.retrieve(sessionId)?.points.map(\.t_ms), points.map(\.t_ms))
+        let data = try Data(contentsOf: backup.pointsURL(for: sessionId))
+        XCTAssertEqual(data.filter { $0 == UInt8(ascii: "\n") }.count, 240)
+        XCTAssertEqual(SealedJSONLines.hasPlainLine(data), SealedJSONLines.availableManager() == nil)
+    }
+
+    /// A streamed backup of `points` whose file holds them as plain lines,
+    /// queued for re-encryption.
+    private func plainStreamedBackup(_ points: [RRPoint], sessionId: UUID) throws {
+        try backup.appendBackup(points: points, sessionId: sessionId)
+        try SealedJSONLines.encode(points, with: backup.lineEncoder, manager: nil).data.write(to: backup.pointsURL(for: sessionId))
+        PendingEncryptionLedger.record(sessionId, in: .rawBackup)
+    }
+
+    /// A folder, not empty, where the index file goes, so every save throws
+    /// until the test removes it.
+    private func blockIndexFile() throws {
+        if FileManager.default.fileExists(atPath: backup.indexFile.path) {
+            try FileManager.default.removeItem(at: backup.indexFile)
+        }
+        try FileManager.default.createDirectory(at: backup.indexFile, withIntermediateDirectories: false)
+        try Data().write(to: backup.indexFile.appendingPathComponent("blocker"))
+    }
+
+    /// The index rows on disk.
+    private func storedIndex() throws -> [RawRRBackup.BackupIndex] {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode([RawRRBackup.BackupIndex].self, from: Data(contentsOf: backup.indexFile))
     }
 }

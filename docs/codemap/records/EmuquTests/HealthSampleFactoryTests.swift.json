@@ -1,13 +1,15 @@
 {
  "file": "EmuquTests/HealthSampleFactoryTests.swift",
- "hash": "2e008f4f86c372c8",
- "role": "XCTest suite for what Emuqu may write into Apple Health: HealthSampleFactory interval/value validation, sleep export dropping backwards intervals, resting HR exported only from overnight readings, and the resting-HR summary ExternalUUID check.",
+ "hash": "68443bc95d84b348",
+ "role": "XCTest suite for what Emuqu may write into Apple Health: HealthSampleFactory interval/value validation, sleep export dropping backwards intervals, resting HR exported only from overnight readings, the resting-HR summary ExternalUUID check, the HRV export shapes, and the shared replacement over an in-memory store (failed save, failed delete, overlapping exports, removal during an export).",
  "types": [
-  "HealthSampleFactoryTests: class — @MainActor XCTestCase over HealthSampleFactory, HealthWriteAndObserve and HeartRateHealthQueries static helpers"
+  "HealthSampleFactoryTests: class — @MainActor XCTestCase over HealthSampleFactory, HealthWriteAndObserve and HeartRateHealthQueries static helpers",
+  "InMemoryHealthSampleStore: class (private, @MainActor) — HealthSampleStore in memory whose calls yield first, with one-shot save/delete failures and a save that can be held open"
  ],
  "state": [
   "mem:HealthSampleFactoryTests.start (fixed Date 1_700_000_000)",
-  "mem:HealthSampleFactoryTests.bpm (HKUnit count/min)"
+  "mem:HealthSampleFactoryTests.bpm (HKUnit count/min)",
+  "mem:InMemoryHealthSampleStore.samples / failNextSave / failNextDelete / holdNextSave / heldSave"
  ],
  "toplevel": "Stored fixtures start and bpm.",
  "units": [
@@ -153,6 +155,170 @@
    }
   },
   {
+   "key": "func HealthSampleFactoryTests.testFailedSaveLeavesTheEarlierExport()",
+   "hash": "c9e5de45d9534267",
+   "does": "Exports a night through a HealthKitManager on an in-memory store, makes the next save fail, re-exports, and asserts the error is thrown and the store still holds exactly the first export's samples.",
+   "entry": "XCTest",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.sleepData(stages:)",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.stage(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.exportSleepToHealthKit(sleepData:sessionId:)": "cc8e27ff941bb596",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:sampleStore:)": "d9768b730a189edf",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes": "936b8a496469997e",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "1c099582675121a6",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.sleepData(stages:)": "59e1eac9c11027a2",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.stage(_:_:)": "dff1d787e118ab1a"
+   }
+  },
+  {
+   "key": "func HealthSampleFactoryTests.testFailedDeleteIsReportedAndTheNextExportLeavesOneSet()",
+   "hash": "2dd0d53cb362c2cb",
+   "does": "Exports a 12-minute session's HRV series on an in-memory store, makes the next delete fail and asserts the re-export throws and leaves two sets, then asserts a third export leaves one set.",
+   "entry": "XCTest",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportHRV(session:result:)",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.sessionWithBeats(minutes:)",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.analysisResult(nocturnalMedianHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportHRV(session:result:)": "7a602446ae842885",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:sampleStore:)": "d9768b730a189edf",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes": "936b8a496469997e",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "1c099582675121a6",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.analysisResult(nocturnalMedianHR:)": "608f77be9926006b",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.session(_:)": "5531237ba24e67ae",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.sessionWithBeats(minutes:)": "e8a42f7e86ce7ec5"
+   }
+  },
+  {
+   "key": "func HealthSampleFactoryTests.testOverlappingExportsOfOneSessionLeaveOneSet()",
+   "hash": "ca3120a76ba410b7",
+   "does": "Starts two concurrent exportHeartRateSeries calls for the same 10-minute session on an in-memory store whose calls yield, and asserts the store ends with one sample per minute, once.",
+   "entry": "XCTest",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.exportHeartRateSeries(from:sessionStart:sessionId:)",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.sessionWithBeats(minutes:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.exportHeartRateSeries(from:sessionStart:sessionId:)": "0a77bc75e7ffc820",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:sampleStore:)": "d9768b730a189edf",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "1c099582675121a6",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.session(_:)": "5531237ba24e67ae",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.sessionWithBeats(minutes:)": "e8a42f7e86ce7ec5"
+   }
+  },
+  {
+   "key": "func HealthSampleFactoryTests.testRemovalAfterAnOverlappingExportLeavesNothing()",
+   "hash": "a4ba0ae7237d0548",
+   "does": "Starts an HRV export and a delete-forever removal of the same session concurrently on an in-memory store and asserts nothing is left.",
+   "entry": "XCTest",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportHRV(session:result:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.removeExportedHRV(sessionId:from:to:)",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.sessionWithBeats(minutes:)",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.analysisResult(nocturnalMedianHR:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.exportHRV(session:result:)": "7a602446ae842885",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.removeExportedHRV(sessionId:from:to:)": "42edd3adb4abba69",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:sampleStore:)": "d9768b730a189edf",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes": "936b8a496469997e",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "1c099582675121a6",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.analysisResult(nocturnalMedianHR:)": "608f77be9926006b",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.session(_:)": "5531237ba24e67ae",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.sessionWithBeats(minutes:)": "e8a42f7e86ce7ec5"
+   }
+  },
+  {
+   "key": "func HealthSampleFactoryTests.testAHungSaveFailsAndFreesItsKey()",
+   "hash": "15fc56c4e26f5069",
+   "does": "On a HealthSampleReplacer over the in-memory store, with a 0.2 s replacement under one key: a save held open (holdNextSave) makes replace throw HealthKitError.queryTimedOut('hung save'); a second replace under the same key then runs and saves its one sample; the held save is released at the end.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::init HealthSampleReplacer(store:)",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)",
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)",
+    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.releaseHeldSave()",
+    "ext:HKQuantitySample"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "f7af4aa92aec9061",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)": "0415c974b73264d3",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::init HealthSampleReplacer(store:)": "d662b7b35124ad45",
+    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.releaseHeldSave()": "b4fef6d8cc3850d6"
+   }
+  },
+  {
+   "key": "func HealthSampleFactoryTests.testHRVExportShapes()",
+   "hash": "26928d8f7b15d9b4",
+   "does": "Asserts hrvExportSamples gives three windowed samples (two full windows and the tail) for 12 minutes of beats, one summary for a session without beats, and nil when that session's SDNN is an estimate.",
+   "entry": "XCTest",
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.hrvExportSamples(session:result:sdnnType:)",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.sessionWithBeats(minutes:)",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.session(_:)",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.analysisResult(nocturnalMedianHR:)",
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HKTypes.swift::func HKTypes.quantity(_:caller:file:line:)": "f7af4aa92aec9061",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.hrvExportSamples(session:result:sdnnType:)": "83d40821e2300293",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.analysisResult(nocturnalMedianHR:)": "608f77be9926006b",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.session(_:)": "5531237ba24e67ae",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.sessionWithBeats(minutes:)": "e8a42f7e86ce7ec5"
+   }
+  },
+  {
+   "key": "func HealthSampleFactoryTests.stage(_:_:)",
+   "hash": "cfd394e6724ffa78",
+   "does": "Fixture: a core-sleep stage interval from start+from to start+to.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "f6e5f489bd3b0b44"
+   }
+  },
+  {
+   "key": "func HealthSampleFactoryTests.sessionWithBeats(minutes:)",
+   "hash": "6dba8e906c5f34f6",
+   "does": "Fixture: an overnight session at `start` with minutes*60 RR points one second apart alternating 980/1,020 ms.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.session(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
+    "EmuquTests/HealthSampleFactoryTests.swift::func HealthSampleFactoryTests.session(_:)": "5531237ba24e67ae"
+   }
+  },
+  {
    "key": "func HealthSampleFactoryTests.session(_:)",
    "hash": "200f4e59f0641344",
    "does": "Fixture: complete 8 h HRVSession of the given SessionType with no RR or analysis.",
@@ -195,6 +361,80 @@
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::init TimeDomainMetrics(meanRR:sdnn:rmssd:pnn50:sdsd:meanHR:sdHR:triangularIndex:)": "501c2b4e36fffb8e"
    }
+  },
+  {
+   "key": "func InMemoryHealthSampleStore.ownSamples(of:in:timeout:label:)",
+   "hash": "7add772081450f97",
+   "does": "Test store: yields, then returns its samples of the type whose start lies in the span (all when nil).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "span nil",
+     "effect": "every sample of the type"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func InMemoryHealthSampleStore.save(_:)",
+   "hash": "1a6fbc8b9caac68e",
+   "does": "Test store: yields; when holdNextSave is set, clears it and waits until releaseHeldSave, then returns writing nothing (a Health call that does not answer); else throws once when failNextSave is set (clearing it), else appends the samples.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:InMemoryHealthSampleStore.samples",
+    "mem:InMemoryHealthSampleStore.heldSave"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "holdNextSave",
+     "effect": "clears it, parks on heldSave, returns without saving"
+    },
+    {
+     "at": "+7",
+     "cond": "failNextSave",
+     "effect": "clears it and throws"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func InMemoryHealthSampleStore.delete(_:)",
+   "hash": "394e06e486c8cc5a",
+   "does": "Test store: yields, then throws once when failNextDelete is set (clearing it), else removes the given samples by identity.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "failNextDelete",
+     "effect": "clears it and throws"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func InMemoryHealthSampleStore.releaseHeldSave()",
+   "hash": "70b1cf2e911d70fb",
+   "does": "Resumes the save parked by holdNextSave, if any, and forgets it.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:InMemoryHealthSampleStore.heldSave"
+   ],
+   "writes": [
+    "mem:InMemoryHealthSampleStore.heldSave"
+   ],
+   "branches": [],
+   "deps": {}
   }
  ],
  "deps": {}
