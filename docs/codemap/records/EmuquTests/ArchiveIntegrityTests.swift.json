@@ -938,7 +938,7 @@
     "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
     "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d",
-    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.trashService()": "7526b8bb8970b8e4"
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.trashService()": "ba8d871b246ead35"
    }
   },
   {
@@ -975,7 +975,7 @@
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.zoneCreated": "fe4da675f906b2cd",
     "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d",
-    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.trashService()": "7526b8bb8970b8e4"
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.trashService()": "ba8d871b246ead35"
    }
   },
   {
@@ -1003,7 +1003,7 @@
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
     "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d",
-    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.trashService()": "7526b8bb8970b8e4"
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.trashService()": "ba8d871b246ead35"
    }
   },
   {
@@ -1039,7 +1039,7 @@
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
     "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d",
     "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.trail(sessionId:)": "6b76df62b0d6a95e",
-    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.trashService()": "7526b8bb8970b8e4"
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.trashService()": "ba8d871b246ead35"
    }
   },
   {
@@ -1164,13 +1164,14 @@
   },
   {
    "key": "func ArchiveIntegrityTests.trashService()",
-   "hash": "8964a61b715fa19f",
-   "does": "Installs AppDependencies with this test's BreadcrumbStore (Breadcrumbs/active.json in the test folder) as the breadcrumb store and returns a SessionRecoveryService over the test archive (a RawRRBackup in the test folder's RRBackup subfolder, ArtifactDetector, WindowSelector, the shared CloudKitSyncManager, a BaselineTracker in the test folder) with that store. A teardown resets AppDependencies and puts the ForgottenSessions list back as it was.",
+   "hash": "118fdd5a076c95de",
+   "does": "Puts an AppDependencies with this test's BreadcrumbStore (Breadcrumbs/active.json in the test folder) as the breadcrumb store in force (AppDependencies.install) and returns a SessionRecoveryService over the test archive (a RawRRBackup in the test folder's RRBackup subfolder, ArtifactDetector, WindowSelector, the shared CloudKitSyncManager, a BaselineTracker in the test folder) with that store. A teardown ends that scope (restoring the container in force before) and puts the ForgottenSessions list back as it was.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbStore(fileURL:)",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.breadcrumbStore",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.install(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.InstalledScope.end()",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::init SessionRecoveryService(archive:rawBackup:artifactDetector:windowSelector:cloudSyncManager:baselineTracker:)",
     "ext:XCTestCase.addTeardownBlock"
@@ -1189,11 +1190,11 @@
     "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbStore(fileURL:)": "06f0b3dce328fe38",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::init SessionRecoveryService(archive:rawBackup:artifactDetector:windowSelector:cloudSyncManager:baselineTracker:)": "cf74d2dace4470e3",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)": "ee0a6c3ab9df8456",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()": "e39e2f3e3a5e3aca",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)": "21d7d6755a44a229",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.InstalledScope.end()": "2883f22c40d81b31",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.install(_:)": "7deb301260afd282",
     "Emuqu/Sources/Utilities/AppDependencies.swift::init AppDependencies()": "bea568cee298d114",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.breadcrumbStore": "dc8e989d3ec81ff1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.breadcrumbStore": "dc8e989d3ec81ff1"
    }
   },
   {

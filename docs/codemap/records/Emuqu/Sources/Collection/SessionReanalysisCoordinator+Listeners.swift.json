@@ -1,0 +1,769 @@
+{
+ "file": "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift",
+ "hash": "cee0ff665c723dbc",
+ "role": "SessionReanalysisCoordinator extension: the saved-session listeners — rescore requests, CloudKit-pull snapshot backfill, HealthKit sleep arrival and the auto-refresh of today's sleep — and the rewritten-session announcement.",
+ "types": [
+  "SessionReanalysisCoordinator: extension — listeners, rescore follow-up, sleep auto-refresh, CloudKit backfill",
+  "postSleepRescoreRequest: file-private func — posts .flowRecoveryRescoreNeeded"
+ ],
+ "state": [],
+ "toplevel": "",
+ "units": [
+  {
+   "key": "func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)",
+   "hash": "c72947cd91afdde9",
+   "does": "Writes a PendingScoreChange (banner) when both scores exist and the change is >= 3 display points (0.3 stored).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.write(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:PendingScoreChange.v1",
+    "notif:pendingScoreChangeWritten"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "prior or updated nil",
+     "effect": "no change recorded"
+    },
+    {
+     "at": "+5",
+     "cond": "display delta < 3",
+     "effect": "no change recorded"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::init SessionReanalysisCoordinator(service:archive:healthKit:scoring:archiveSignal:trainingMetricsCache:)": "323673d1ae5772fc",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.write(_:)": "4476c41e93b017fe"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.installRescoreListener()",
+   "hash": "b78db9903eb04ed9",
+   "does": "Registers a main-queue observer for .flowRecoveryRescoreNeeded whose block reads the session UUID and reason/detail and dispatches handleRescoreRequest on the main actor; stores the token for deinit.",
+   "entry": "SessionReanalysisCoordinator.startListening.",
+   "calls": [
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.handleRescoreRequest(sessionId:reason:)",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)",
+    "ext:NotificationCenter.addObserver"
+   ],
+   "reads": [
+    "notif:flowRecoveryRescoreNeeded"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "coordinator gone or object not a UUID",
+     "effect": "ignore notification"
+    },
+    {
+     "at": "+7",
+     "cond": "no reason in userInfo",
+     "effect": "'unknown'"
+    },
+    {
+     "at": "+8",
+     "cond": "no detail",
+     "effect": "''"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.handleRescoreRequest(sessionId:reason:)": "bbeb7ba3fd95df10",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "443c12d5227f3e97"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.handleRescoreRequest(sessionId:reason:)",
+   "hash": "fa15be966bfe137b",
+   "does": "Handles one rescore request: reads the archived copy once (a read that throws is logged at .error by ArchivedSessionRead and treated as missing) and captures its prior score; reason 'training' → score-only recompute; otherwise full reanalysis of that copy, falling back to score-only recompute when it returns nil; finishRescore on success.",
+   "entry": "NotificationCenter .flowRecoveryRescoreNeeded via installRescoreListener block.",
+   "calls": [
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ArchivedSessionRead.read(_:from:caller:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::var ArchivedSessionRead.session",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.recomputeTrainingOnly(sessionId:priorScore:reason:)",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.finishRescore(sessionId:prior:updated:reason:)",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.scoreOnlyFallback(sessionId:priorScore:reason:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "reason == 'training'",
+     "effect": "score-only recompute and return"
+    },
+    {
+     "at": "+7",
+     "cond": "session not archived or unreadable",
+     "effect": "log, return"
+    },
+    {
+     "at": "+11",
+     "cond": "recoveryScore nil (log)",
+     "effect": "-1"
+    },
+    {
+     "at": "+12",
+     "cond": "reanalyze returned a session",
+     "effect": "finishRescore and return; nil → scoreOnlyFallback"
+    },
+    {
+     "at": "+13",
+     "cond": "new score nil (log)",
+     "effect": "-1"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.finishRescore(sessionId:prior:updated:reason:)": "6cb3c17937073078",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.recomputeTrainingOnly(sessionId:priorScore:reason:)": "748acc6dc30858de",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.scoreOnlyFallback(sessionId:priorScore:reason:)": "0cf17359176a4184",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)": "22355b317aa90b2b",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ArchivedSessionRead.read(_:from:caller:)": "6c4eb2ad5c0756a6",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::var ArchivedSessionRead.session": "6263557be8ed02f6",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.scoreOnlyFallback(sessionId:priorScore:reason:)",
+   "hash": "108b791734203602",
+   "does": "Score-only recompute when full reanalysis refused; finishes the rescore when it returns a session.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.recomputeScoreOnly(sessionId:)",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.finishRescore(sessionId:prior:updated:reason:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "recomputeScoreOnly returns nil",
+     "effect": "log, frozen score kept"
+    },
+    {
+     "at": "+6",
+     "cond": "score nil (log)",
+     "effect": "-1"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.finishRescore(sessionId:prior:updated:reason:)": "6cb3c17937073078",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.recomputeScoreOnly(sessionId:)": "0550bb1c1ff6a54c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.recomputeTrainingOnly(sessionId:priorScore:reason:)",
+   "hash": "43b33ae770883414",
+   "does": "Training-only rescore via ReanalysisService.recomputeScoreOnly; finishes the rescore when it returns a session.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.recomputeScoreOnly(sessionId:)",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.finishRescore(sessionId:prior:updated:reason:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "returns nil",
+     "effect": "log, frozen score kept"
+    },
+    {
+     "at": "+5",
+     "cond": "score nil (log)",
+     "effect": "-1"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.finishRescore(sessionId:prior:updated:reason:)": "6cb3c17937073078",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.recomputeScoreOnly(sessionId:)": "0550bb1c1ff6a54c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.finishRescore(sessionId:prior:updated:reason:)",
+   "hash": "b2ad2b526d79d16f",
+   "does": "Records a pending score change if meaningful, announces the rescored session (.reanalysisRewroteArchivedSession with onlyWhileAwaitingAcceptance true: the collector carries it onto the review card only while a night awaits acceptance and the card holds the archive's copy, so Accept archives the new score), then bumps the archive signal.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.announceRewrite(_:onlyWhileAwaitingAcceptance:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()"
+   ],
+   "reads": [],
+   "writes": [
+    "notif:reanalysisRewroteArchivedSession",
+    "mem:ArchiveSignal.version"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "dd1d381f6262b4a9",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.announceRewrite(_:onlyWhileAwaitingAcceptance:)": "147ffd2b6c035e4f",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)": "0027892fb9448542"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.announceRewrite(_:onlyWhileAwaitingAcceptance:)",
+   "hash": "d052232ba94c5f76",
+   "does": "Posts .reanalysisRewroteArchivedSession on the default centre with an ArchivedSessionRewrite (the session, onlyWhileAwaitingAcceptance) as the object; the collector's observer runs synchronously on the posting (main) thread.",
+   "entry": null,
+   "calls": [
+    "ext:NotificationCenter.post"
+   ],
+   "reads": [],
+   "writes": [
+    "notif:reanalysisRewroteArchivedSession"
+   ],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.installCloudKitSnapshotBackfillListener()",
+   "hash": "f536876207d40940",
+   "does": "Registers a main-queue observer for .cloudKitSnapshotBackfillNeeded that drains the backfill queue with the posted session ids; stores the token; also starts one launch-time drain with no new ids.",
+   "entry": "SessionReanalysisCoordinator.startListening; the observer block runs on CloudKitSyncManager's post.",
+   "calls": [
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.backfillSnapshotsForPulledSessions(_:maxPerCycle:)",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)",
+    "ext:NotificationCenter.addObserver"
+   ],
+   "reads": [
+    "notif:cloudKitSnapshotBackfillNeeded"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "coordinator gone, no sessionIds, or empty",
+     "effect": "ignore notification"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.backfillSnapshotsForPulledSessions(_:maxPerCycle:)": "ec1dc8fdbbc14110",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "443c12d5227f3e97"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.observeHealthKitSleep()",
+   "hash": "813fe3beee3b255d",
+   "does": "Observes HealthKitManager.sleepDataVersion (self-re-arming ObservationLoop); every change starts autoRefreshTodaysSleepIfImproved on the main actor.",
+   "entry": "SessionReanalysisCoordinator.startListening; the change handler runs after each sleepDataVersion bump.",
+   "calls": [
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.autoRefreshTodaysSleepIfImproved()"
+   ],
+   "reads": [
+    "mem:HealthKitManager.sleepDataVersion"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.sleepDataVersion": "5af31be207fd7d67",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.autoRefreshTodaysSleepIfImproved()": "de4cbdf433e33511",
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)": "45b1e058ecfcb78e",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.autoRefreshTodaysSleepIfImproved()",
+   "hash": "90c9733530aeeeab",
+   "does": "Serialized auto-refresh of today's sleep: if one is running sets a pending flag and returns; otherwise runs performAutoRefresh repeatedly until no bump arrived during the pass.",
+   "entry": "HealthKit sleepDataVersion bumps (observeHealthKitSleep) and MainTabView.refreshTodaysSleep on foreground.",
+   "calls": [
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()"
+   ],
+   "reads": [
+    "mem:SessionReanalysisCoordinator.isAutoRefreshingSleep",
+    "mem:SessionReanalysisCoordinator.autoRefreshSleepPending"
+   ],
+   "writes": [
+    "mem:SessionReanalysisCoordinator.isAutoRefreshingSleep",
+    "mem:SessionReanalysisCoordinator.autoRefreshSleepPending"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "already refreshing",
+     "effect": "sets pending and returns"
+    },
+    {
+     "at": "+10",
+     "cond": "repeat while pending set during the pass",
+     "effect": "one trailing pass"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()": "256742f47fea5811"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.loadTodaysOvernightSession()",
+   "hash": "710542749883a255",
+   "does": "Finds the newest overnight archive entry whose end (or start) is within 18 h of now and decodes it off the main actor (ArchivedSessionRead: a read that throws is logged at .error and yields nil).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ArchivedSessionRead.read(_:from:caller:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::var ArchivedSessionRead.session"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "entry endDate nil",
+     "effect": "uses its date"
+    },
+    {
+     "at": "+5",
+     "cond": "no candidate",
+     "effect": "returns nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ArchivedSessionRead.read(_:from:caller:)": "6c4eb2ad5c0756a6",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::var ArchivedSessionRead.session": "6263557be8ed02f6",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()",
+   "hash": "6287b4fa1986e5ee",
+   "does": "Re-reads HealthKit sleep for today's scored overnight session; when the verdict says update, applies it to the archived copy as it is at the write (an edit saved during the fetch is kept), republishes the stored session, and when the change needs a rescore (and the stored boundaries are not user-adjusted) posts a sleep rescore request.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.loadTodaysOvernightSession()",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.autoSleepRefreshAllowed(for:)",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.freshPlausibleSleep(for:sessionEnd:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.republishRefreshedSession(_:)",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func postSleepRescoreRequest(sessionId:fresh:verdict:)",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.persistRefreshedSleep(_:sessionId:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.update"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no session, no analysis, no score, or policy disallows",
+     "effect": "returns"
+    },
+    {
+     "at": "+8",
+     "cond": "endDate nil",
+     "effect": "uses start"
+    },
+    {
+     "at": "+9",
+     "cond": "no fresh plausible sleep",
+     "effect": "returns"
+    },
+    {
+     "at": "+11",
+     "cond": "verdict.shouldUpdate false or the write failed",
+     "effect": "returns"
+    },
+    {
+     "at": "+15",
+     "cond": "no rescore needed or user-adjusted",
+     "effect": "logs, keeps the score"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.freshPlausibleSleep(for:sessionEnd:)": "86fee1a199afe296",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.loadTodaysOvernightSession()": "35991bfbdb262357",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.persistRefreshedSleep(_:sessionId:)": "98ebd7d39f8c396a",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.republishRefreshedSession(_:)": "717e5c22bbe9afcf",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func postSleepRescoreRequest(sessionId:fresh:verdict:)": "e78b61406e6798cc",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.autoSleepRefreshAllowed(for:)": "3ca1e1186e686210",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "26cb9251401b7661",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.freshPlausibleSleep(for:sessionEnd:)",
+   "hash": "d5661e2ac337e052",
+   "does": "Fetches HealthKit sleep for the session window (with RR points); returns it only when it has night sleep and plausibly overlaps the recording.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)"
+   ],
+   "reads": [
+    "hk:HKCategoryType sleepAnalysis"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "fetch throws",
+     "effect": "logs, nil"
+    },
+    {
+     "at": "+10",
+     "cond": "zero night sleep",
+     "effect": "nil"
+    },
+    {
+     "at": "+11",
+     "cond": "not plausible for the recording",
+     "effect": "logs, nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)": "da5ab94142f0949e",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "0937b2fc06093e13",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.persistRefreshedSleep(_:sessionId:)",
+   "hash": "b6d5593be06dc9f8",
+   "does": "On a detached task, applies the fresh sleep to the archived session in place (applyRefreshedSleep) and returns the session as stored; nil when the write failed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.applyRefreshedSleep(_:sessionId:in:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.update"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.applyRefreshedSleep(_:sessionId:in:)": "c0ff1b8a2d2278e7"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.applyRefreshedSleep(_:sessionId:in:)",
+   "hash": "eaea6d1a8959dd63",
+   "does": "Off-main: SessionArchive.update applies SleepRefreshPolicy.applyAutoRefresh to the current archived copy under the archive lock (no re-upload request: the sleep snapshot stays on the device), then re-reads it; logs and returns nil on a write error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyAutoRefresh(_:to:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:session"
+   ],
+   "writes": [
+    "archive:session file+index",
+    "notif:flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "update throws",
+     "effect": "logs, nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyAutoRefresh(_:to:)": "b170cf5d249adeeb",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.republishRefreshedSession(_:)",
+   "hash": "d362d535ef50983c",
+   "does": "Announces the refreshed session (.reanalysisRewroteArchivedSession with onlyWhileAwaitingAcceptance false: the collector takes it onto the review card whenever the card holds the archive's copy, keeping entries made on the card) and bumps the archive signal.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.announceRewrite(_:onlyWhileAwaitingAcceptance:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()"
+   ],
+   "reads": [],
+   "writes": [
+    "notif:reanalysisRewroteArchivedSession",
+    "mem:ArchiveSignal.version"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "dd1d381f6262b4a9",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.announceRewrite(_:onlyWhileAwaitingAcceptance:)": "147ffd2b6c035e4f"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.backfillSnapshotsForPulledSessions(_:maxPerCycle:)",
+   "hash": "1c63eb1cb0d02e9b",
+   "does": "Adds ids to the persisted backfill queue; unless empty or another drain runs, processes up to maxPerCycle (10) sessions, removes done ids, defers missed ones, and bumps the archive signal when any were processed.",
+   "entry": "CloudKit snapshot backfill observer and launch drain (installCloudKitSnapshotBackfillListener).",
+   "calls": [
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.adding(_:)",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.backfillPass(over:maxPerCycle:)",
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.removing(_:)",
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.deferring(_:)",
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()"
+   ],
+   "reads": [
+    "ud:cloudkit.pendingSnapshotBackfill",
+    "mem:PulledSnapshotBackfillQueue.isDraining"
+   ],
+   "writes": [
+    "ud:cloudkit.pendingSnapshotBackfill",
+    "ud:cloudkit.pendingSnapshotBackfillAttempts",
+    "mem:PulledSnapshotBackfillQueue.isDraining"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "queue empty or already draining",
+     "effect": "returns"
+    },
+    {
+     "at": "+8",
+     "cond": "processed > 0",
+     "effect": "bumps the archive signal"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "dd1d381f6262b4a9",
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.adding(_:)": "273d6ad07470ea79",
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.deferring(_:)": "84d78e8a11f1f248",
+    "Emuqu/Sources/Collection/PulledSnapshotBackfillQueue.swift::func PulledSnapshotBackfillQueue.removing(_:)": "73393c643c620ca3",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.backfillPass(over:maxPerCycle:)": "ad5b9be04577136b"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.backfillPass(over:maxPerCycle:)",
+   "hash": "d2177970b940e24f",
+   "does": "Walks the queue, processing at most maxPerCycle sessions that still need snapshots; returns done, missed and processed count.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.sessionNeedingSnapshots(_:)",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.backfillOneSession(_:sessionId:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each id while processed < maxPerCycle",
+     "effect": "iterate"
+    },
+    {
+     "at": "+7",
+     "cond": "session no longer needs snapshots (or not archived/unreadable)",
+     "effect": "marked done"
+    },
+    {
+     "at": "+9",
+     "cond": "backfill succeeded",
+     "effect": "done; else missed"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.backfillOneSession(_:sessionId:)": "c2aae83fd363fbfc",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.sessionNeedingSnapshots(_:)": "7b4f0f850d97ad8b"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.sessionNeedingSnapshots(_:)",
+   "hash": "e2884391e86fde93",
+   "does": "Returns the archived session when it has no sleepSnapshot and is not user-adjusted; nil otherwise, when it is not archived, or when its read throws (logged at .error by ArchivedSessionRead).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ArchivedSessionRead.read(_:from:caller:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::var ArchivedSessionRead.session"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not archived, unreadable, has sleepSnapshot, or user-adjusted",
+     "effect": "nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ArchivedSessionRead.read(_:from:caller:)": "6c4eb2ad5c0756a6",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::var ArchivedSessionRead.session": "6263557be8ed02f6"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.pulledSessionVitals(session:sessionEnd:)",
+   "hash": "7278d66f2a70ccb2",
+   "does": "Fetches HealthKit recovery vitals at session end and substitutes strap nocturnal mean HR for resting HR.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchRecoveryVitals(relativeTo:)",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)"
+   ],
+   "reads": [
+    "hk:vitals (RR, SpO2, wrist temp, RHR)"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+VitalsForwarding.swift::func HealthKitManager.fetchRecoveryVitals(relativeTo:)": "af7cbc8f5a445eda",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "5fa896ef88ba9fda"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.backfillOneSession(_:sessionId:)",
+   "hash": "406da87169fbf812",
+   "does": "Fetches pulled-session sleep and vitals; when either exists applies them to the stored copy via archive.update (no reupload); false when Health had nothing or the write failed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.pulledSessionSleep(session:sessionEnd:sessionId:)",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.pulledSessionVitals(session:sessionEnd:)",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.applyBackfill(sleep:vitals:to:)"
+   ],
+   "reads": [],
+   "writes": [
+    "archive:SessionArchive.update"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "endDate nil",
+     "effect": "uses start"
+    },
+    {
+     "at": "+4",
+     "cond": "no sleep and empty vitals",
+     "effect": "logs, false"
+    },
+    {
+     "at": "+15",
+     "cond": "update throws",
+     "effect": "logs, false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.applyBackfill(sleep:vitals:to:)": "136056342074005f",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.pulledSessionSleep(session:sessionEnd:sessionId:)": "897eef7285ba691b",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.pulledSessionVitals(session:sessionEnd:)": "a691adfe5082eebe",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "cf6f3e738d761a42",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.applyBackfill(sleep:vitals:to:)",
+   "hash": "32c9218ecdbe3782",
+   "does": "On the stored copy: applies pulled sleep if none exists and not user-adjusted; sets vitalsSnapshot if absent and vitals non-empty.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyPulledSleep(_:to:)",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "sleep present, no stored snapshot, not user-adjusted",
+     "effect": "applies pulled sleep"
+    },
+    {
+     "at": "+6",
+     "cond": "vitals non-empty and none stored",
+     "effect": "sets vitalsSnapshot"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
+    "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyPulledSleep(_:to:)": "57d5c9c3f927516a",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "cf6f3e738d761a42"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.pulledSessionSleep(session:sessionEnd:sessionId:)",
+   "hash": "815a5f822d0afd81",
+   "does": "HealthKit sleep for a pulled session, gated on night sleep > 0 and plausible overlap.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)"
+   ],
+   "reads": [
+    "hk:HKCategoryType sleepAnalysis"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "fetch throws",
+     "effect": "logs, nil"
+    },
+    {
+     "at": "+14",
+     "cond": "zero night sleep",
+     "effect": "nil"
+    },
+    {
+     "at": "+15",
+     "cond": "implausible",
+     "effect": "logs, nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)": "da5ab94142f0949e",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.plausiblyBelongsToRecording(start:end:minRatio:)": "0937b2fc06093e13",
+    "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func postSleepRescoreRequest(sessionId:fresh:verdict:)",
+   "hash": "e6e7cef61ed9708c",
+   "does": "Builds a reason string and posts .flowRecoveryRescoreNeeded with the session id and reason 'sleep' plus a detail string.",
+   "entry": null,
+   "calls": [
+    "ext:NotificationCenter.post"
+   ],
+   "reads": [],
+   "writes": [
+    "notif:flowRecoveryRescoreNeeded"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "verdict.sourceUpgradedToWatch",
+     "effect": "reason names the new source"
+    },
+    {
+     "at": "+8",
+     "cond": "onset moved materially",
+     "effect": "reason names the onset move; else the total delta"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  }
+ ],
+ "deps": {}
+}

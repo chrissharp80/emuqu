@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Collection/HealthKitManager.swift",
- "hash": "ed01fab62859b16f",
+ "hash": "eba98222b90be738",
  "role": "The @Observable @MainActor HealthKit facade: shared singleton owning HKHealthStore, settings provider, authorization (coalesced request, write-gap re-prompt, forced re-prompt, inferred-denial probe, granted-scope summary, write-permission summary), workout backfill to Apple Health with a watermark and retry ceiling, and the observer bookkeeping properties used by the sleep/vitals observers.",
  "types": [
   "HealthKitManager: class (@Observable @MainActor, final) — HealthKit facade",
@@ -11,6 +11,8 @@
   "mem:HealthKitManager.shared (nonisolated static singleton)",
   "mem:HealthKitManager.healthStore (HKHealthStore)",
   "mem:HealthKitManager.settingsProvider (closure; default AppDependencies.current.app.settingsManager.settingsSnapshot)",
+  "mem:HealthKitManager.givenSampleStore (@ObservationIgnored; Health store given at init, nil in the app)",
+  "mem:HealthKitManager.sampleReplacer (@ObservationIgnored lazy HealthSampleReplacer over givenSampleStore ?? HealthKitSampleStore(manager: self))",
   "mem:HealthKitManager.authorizationRequested",
   "mem:HealthKitManager.inferredAuthorizationDenied",
   "mem:HealthKitManager.pendingAuthTask (@ObservationIgnored)",
@@ -25,7 +27,7 @@
   "mem:HealthKitManager.vitalsObserverQueries",
   "mem:HealthKitManager.vitalsDataVersion"
  ],
- "toplevel": "shared = HealthKitManager() at static init; healthStore = HKHealthStore() per instance; typealiases map SleepBoundarySource..SleepData onto Emuqu domain types; workoutExportSampleTypes static array of (HKSampleType,label) for heartRate, activeEnergy, walking/running distance, cycling distance, workoutRoute.",
+ "toplevel": "shared = HealthKitManager() at static init; healthStore = HKHealthStore() per instance; sampleReplacer built lazily on first use; typealiases map SleepBoundarySource..SleepData onto Emuqu domain types; workoutExportSampleTypes static array of (HKSampleType,label) for heartRate, activeEnergy, walking/running distance, cycling distance, workoutRoute.",
  "units": [
   {
    "key": "var HealthKitManager.heartRate",
@@ -65,9 +67,9 @@
    "deps": {}
   },
   {
-   "key": "init HealthKitManager(settingsProvider:)",
-   "hash": "093730031b89860c",
-   "does": "Stores the settings-provider closure; default reads AppDependencies.current.app.settingsManager.settingsSnapshot.",
+   "key": "init HealthKitManager(settingsProvider:sampleStore:)",
+   "hash": "2c943d451b85f8c7",
+   "does": "Stores the settings-provider closure (default reads AppDependencies.current.app.settingsManager.settingsSnapshot) and the optional Health store that sampleReplacer is built on; nil means the app's HealthKitSampleStore.",
    "entry": null,
    "calls": [
     "closure:default settingsProvider reading AppDependencies.current.app.settingsManager.settingsSnapshot"
@@ -75,11 +77,14 @@
    "reads": [
     "mem:AppDependencies.current"
    ],
-   "writes": [],
+   "writes": [
+    "mem:HealthKitManager.settingsProvider",
+    "mem:HealthKitManager.givenSampleStore"
+   ],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"
    }
   },
   {

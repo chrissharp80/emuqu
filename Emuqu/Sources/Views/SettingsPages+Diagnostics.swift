@@ -501,7 +501,7 @@ struct TroubleshootingPage: View {
         let from = reanalyzeDateRange ? Calendar.current.startOfDay(for: reanalyzeFromDate) : nil
         let to = reanalyzeDateRange ? reanalyzeToDate : nil
         reanalyzeTask = Task {
-            let result = await collector.reanalyzeAllSessions(from: from, to: to) {
+            let result = await dependencies.collection.sessionReanalysis.reanalyzeAllSessions(from: from, to: to) {
                 publishReanalyzeProgress($0, total: $1)
             }
             let stopped = Task.isCancelled
@@ -542,7 +542,9 @@ struct TroubleshootingPage: View {
         trainingRepairProgress = 0
         trainingRepairTotal = 0
         Task {
-            let r = await collector.repairTrainingSnapshots { publishTrainingRepairProgress($0, total: $1) }
+            let r = await dependencies.collection.sessionReanalysis.repairTrainingSnapshots {
+                publishTrainingRepairProgress($0, total: $1)
+            }
             await MainActor.run { finishTrainingRepair(r) }
         }
     }

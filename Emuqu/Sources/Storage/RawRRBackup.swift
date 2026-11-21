@@ -1,5 +1,7 @@
 import CryptoKit
 import Foundation
+import os
+import UIKit
 
 /// Raw RR data backup - writes immediately to prevent any data loss
 /// This is a safety net: raw RR intervals with timestamps are stored
@@ -53,10 +55,20 @@ final class RawRRBackup: @unchecked Sendable {
     /// protection, EPERM); `index` then holds only what was written since.
     /// Guarded by `indexLock`, like `index`.
     var indexReadFailed = false
+    /// Set while the in-memory index holds a change whose save threw, so the
+    /// file is behind it (`saveIndex`). Guarded by `indexLock`.
+    var indexSaveOwed = false
     let fileManager = FileManager.default
     let indexLock = NSLock()
     /// Writes one-shot files sealed or queued, and repairs queued backups.
     let sealer: RawBackupSealer
+    /// The unlock and activation observers (`observeUnlock`).
+    private let unlockObservers = NotificationTokens()
+    /// Where `observeUnlock` listens: `.default` in the app.
+    private let notificationCenter: NotificationCenter
+    /// True while a `repairAfterUnlock` is queued and has not started, so
+    /// unlock and activation arriving together queue one repair.
+    private let repairQueued = OSAllocatedUnfairLock(initialState: false)
 
     /// Serializes the whole read-modify-write of an incremental append.
     ///
@@ -226,8 +238,15 @@ final class RawRRBackup: @unchecked Sendable {
     /// A store in `directory`. The app uses the shared container; tests pass
     /// a folder of their own, so backups other tests left behind are never
     /// listed in theirs.
-    init(directory: URL) {
+    convenience init(directory: URL) {
+        self.init(directory: directory, notificationCenter: .default)
+    }
+
+    /// A store in `directory` that observes unlock and activation on
+    /// `notificationCenter`.
+    init(directory: URL, notificationCenter: NotificationCenter) {
         backupDirectory = directory
+        self.notificationCenter = notificationCenter
         indexFile = backupDirectory.appendingPathComponent("backup_index.json")
         sealer = RawBackupSealer(directory: directory)
 
@@ -236,6 +255,37 @@ final class RawRRBackup: @unchecked Sendable {
         logUnarchivedCount()
         reconcileIndexInBackground()
         reencryptPendingBackups()
+        observeUnlock()
+    }
+
+    deinit {
+        unlockObservers.removeAll(from: notificationCenter)
+    }
+
+    /// Runs `repairAfterUnlock` when protected data becomes available and
+    /// when the app becomes active (a suspended app can miss the unlock), as
+    /// `ConversationStore` retries a held save.
+    private func observeUnlock() {
+        for name in [UIApplication.protectedDataDidBecomeAvailableNotification, UIApplication.didBecomeActiveNotification] {
+            unlockObservers.add(notificationCenter.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
+                self?.repairAfterUnlock()
+            })
+        }
+    }
+
+    /// Queued on `appendQueue`, behind any append in flight, so neither step
+    /// rewrites a points file while it is being appended to: the index save
+    /// a failed write left owed (`saveIndexIfOwed`, logged when it throws
+    /// again), then the re-seal of plain backups (`RawBackupSealer
+    /// .reencryptPending`). A call while one is still queued adds nothing;
+    /// one made while a repair runs queues the next.
+    func repairAfterUnlock() {
+        guard repairQueued.setIfClear() else { return }
+        appendQueue.async { [self] in
+            repairQueued.withLock { $0 = false }
+            attempt("RawRRBackup.retryOwedIndexSave") { try saveIndexIfOwed() }
+            sealer.reencryptPending(in: self)
+        }
     }
 
     /// `RRBackup` in the shared container: the App Group (iOS deletes it with
@@ -271,8 +321,10 @@ final class RawRRBackup: @unchecked Sendable {
         appendQueue.sync {
             indexLock.lock()
             index = []
-            // The purge removed the index file too; nothing is left to re-read.
+            // The purge removed the index file too; nothing is left to re-read
+            // or to write back.
             indexReadFailed = false
+            indexSaveOwed = false
             indexLock.unlock()
         }
     }
@@ -369,11 +421,13 @@ final class RawRRBackup: @unchecked Sendable {
     }
 
     /// Replace any existing backup index row for this session. When the save
-    /// throws, the previous row goes back into memory, so memory keeps
-    /// matching the index on disk, which still lists the old files.
+    /// throws, the previous row goes back into memory and `indexSaveOwed`
+    /// back to what it was, so memory keeps matching the index on disk,
+    /// which still lists the old files, and nothing is owed for the row.
     private func reindex(
         sessionId: UUID, entry: BackupEntry, fileName: String, beatCount: Int, replacing previous: BackupIndex?
     ) throws {
+        let owedBefore = indexLock.withLock { indexSaveOwed }
         let indexEntry = BackupIndex(
             id: sessionId,
             captureDate: entry.captureDate,
@@ -389,6 +443,7 @@ final class RawRRBackup: @unchecked Sendable {
             try saveIndex()
         } catch {
             replaceIndexRow(sessionId, with: previous)
+            indexLock.withLock { indexSaveOwed = owedBefore }
             throw error
         }
     }
@@ -433,7 +488,8 @@ final class RawRRBackup: @unchecked Sendable {
     ///   - deviceId: Optional device identifier
     ///   - force: Force backup even if time threshold not met (for reconnection events, lifecycle events)
     ///   - interval: Seconds between disk flushes (default 60)
-    /// - Returns: True if backup was updated, false if skipped (too soon, no data)
+    /// - Returns: True when every point and the session's index row are on
+    ///   disk, false if skipped (too soon, no data) or a write threw
     @discardableResult
     func incrementalBackup(points: [RRPoint], sessionId: UUID, deviceId: String? = nil, force: Bool = false, interval: TimeInterval = 60) -> Bool {
         guard !points.isEmpty else { return false }
@@ -442,11 +498,13 @@ final class RawRRBackup: @unchecked Sendable {
         }
     }
 
-    /// Body of `incrementalBackup`, always run on `appendQueue`.
+    /// Body of `incrementalBackup`, always run on `appendQueue`. True only
+    /// once the points and the index row are both on disk. An index save
+    /// that threw is retried by the next call that is due: the interval
+    /// counts from the attempt (the row's `lastBackupTime` in memory), so a
+    /// disk that keeps failing is tried once an interval, not on every tick.
     private func incrementalBackupLocked(points: [RRPoint], sessionId: UUID, deviceId: String?, force: Bool, interval: TimeInterval) -> Bool {
-        indexLock.lock()
-        let existingEntry = index.first { $0.id == sessionId }
-        indexLock.unlock()
+        let existingEntry = indexLock.withLock { index.first { $0.id == sessionId } }
         guard force || Self.isDue(lastBackup: existingEntry?.lastBackupTime, interval: interval) else {
             return false
         }

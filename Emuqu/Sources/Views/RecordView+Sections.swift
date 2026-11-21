@@ -361,13 +361,13 @@ extension RecordView {
             result: presentation.result,
             recentSessions: cachedRecentSessions,
             onDiscard: { dismissMorningReading() },
-            onReanalyze: { await collector.reanalyzeSession($0, method: $1) },
+            onReanalyze: { await dependencies.collection.sessionReanalysis.reanalyzeSession($0, method: $1) },
             onUpdateTags: { saveReportTags($0, notes: $1, sessionId: session.id) },
-            onReanalyzeAt: { await collector.reanalyzeAtPosition(session, targetMs: $0) },
+            onReanalyzeAt: { await dependencies.collection.reanalysisService.reanalyzeAtPosition(session, targetMs: $0) },
             onApplyManualResult: { await applyManualMorningResult($0, to: session) },
-            onUpdateSleep: { collector.updateSessionSleepBoundaries(sessionId: session.id, sleepData: $0) },
+            onUpdateSleep: { dependencies.collection.reanalysisService.updateSessionSleepBoundaries(sessionId: session.id, sleepData: $0) },
             onAdjustSleep: { adjustMorningSleep($0, for: session) },
-            onUnlinkSegment: { collector.unlinkSegment(segmentId: $0, fromSession: session.id) },
+            onUnlinkSegment: { dependencies.collection.reanalysisService.unlinkSegment(segmentId: $0, fromSession: session.id) },
             linkedSegments: collector.archive.linkedSegments(for: session)
         )
     }
@@ -382,12 +382,13 @@ extension RecordView {
     /// recomputes the score. Persisting through `ReanalysisService` makes
     /// `windowUserAdjusted` + `recoveryScore` stick.
     func applyManualMorningResult(_ manualResult: HRVAnalysisResult, to session: HRVSession) async -> HRVSession? {
-        await collector.applyManualAnalysis(session, result: manualResult)
+        await dependencies.collection.reanalysisService.applyManualAnalysis(session, result: manualResult)
     }
 
     /// Surfaces persist failure (see DashboardV2View's onAdjust note).
     func adjustMorningSleep(_ sleepData: SleepData, for session: HRVSession) {
-        if !collector.updateSessionSleepBoundaries(sessionId: session.id, sleepData: sleepData, isUserAdjustment: true) {
+        let reanalysis = dependencies.collection.reanalysisService
+        if !reanalysis.updateSessionSleepBoundaries(sessionId: session.id, sleepData: sleepData, isUserAdjustment: true) {
             sleepEditSaveFailed = true
         }
     }
@@ -425,7 +426,7 @@ extension RecordView {
             recentSessions: cachedRecentSessions,
             onDiscard: { discardQuickReading(session) },
             onUpdateTags: { saveReportTags($0, notes: $1, sessionId: session.id) },
-            onUpdateSleep: { collector.updateSessionSleepBoundaries(sessionId: session.id, sleepData: $0) }
+            onUpdateSleep: { dependencies.collection.reanalysisService.updateSessionSleepBoundaries(sessionId: session.id, sleepData: $0) }
         )
     }
 

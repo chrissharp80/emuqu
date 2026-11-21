@@ -7,12 +7,28 @@ import SwiftUI
 // `EmuquApp.swift` holds the `App` conformance and its `body`, the declaration
 // of the app rather than the work it kicks off at launch.
 
+/// The services the launch work below uses, handed to `EmuquApp` by the
+/// composition root (`AppDependencies.launchServices`). Each is a resolver,
+/// not an instance, so a service is built when the work first reaches it, as
+/// the root's own accessors are: resolving them with `EmuquApp`'s stored
+/// properties would put their initialisers on the path to the first frame.
+struct LaunchServices: Sendable {
+    let recorderBox: @MainActor @Sendable () -> RecorderBox
+    let launchCoordinator: @MainActor @Sendable () -> LaunchCoordinator
+    let powerStatePolicy: @MainActor @Sendable () -> PowerStatePolicy
+    let trainingMetricsCache: @MainActor @Sendable () -> TrainingMetricsCache
+    let morningNotificationScheduler: @MainActor @Sendable () -> MorningNotificationScheduler
+    let roadGeocodingService: @MainActor @Sendable () -> RoadGeocodingService
+    let savedRouteStore: @MainActor @Sendable () -> SavedRouteStore
+}
+
 extension EmuquApp {
 
     /// App-level listeners for Watch workout-control notifications: the only
-    /// handlers for a Watch start, stop, pause or resume. They operate on
-    /// `AppDependencies.current.app.recorderBox` so the gestures work even
-    /// when the user has never tapped the Fitness tab in this session.
+    /// handlers for a Watch start, stop, pause or resume. They operate on the
+    /// app's one `RecorderBox` (`launchServices.recorderBox`) so the gestures
+    /// work even when the user has never tapped the Fitness tab in this
+    /// session.
     @MainActor
     func runAppLevelWatchWorkoutListeners() async {
         await withTaskGroup(of: Void.self) { group in
@@ -45,10 +61,11 @@ extension EmuquApp {
             debugLog("[App][watch] start workout from Watch refused: no access past the paywall", level: .info)
             return
         }
-        if AppDependencies.current.app.recorderBox.recorder == nil {
-            AppDependencies.current.app.recorderBox.bind(core: collector, conversation: voiceChat)
+        let recorderBox = launchServices.recorderBox()
+        if recorderBox.recorder == nil {
+            recorderBox.bind(core: collector, conversation: voiceChat)
         }
-        guard let recorder = AppDependencies.current.app.recorderBox.recorder else { return }
+        guard let recorder = recorderBox.recorder else { return }
         switch recorder.phase {
         case .idle, .finished, .failed: break
         case .recording, .finalizing: return
@@ -65,7 +82,7 @@ extension EmuquApp {
     func appLevelWatchStopListener() async {
         let stream = NotificationCenter.default.notifications(named: .watchRequestedWorkoutStop)
         for await _ in stream {
-            guard let recorder = AppDependencies.current.app.recorderBox.recorder, Self.isRecording(recorder) else { continue }
+            guard let recorder = launchServices.recorderBox().recorder, Self.isRecording(recorder) else { continue }
             Task { await recorder.stop() }
         }
     }
@@ -81,7 +98,7 @@ extension EmuquApp {
     func appLevelWatchPauseListener() async {
         let stream = NotificationCenter.default.notifications(named: .watchRequestedWorkoutPause)
         for await _ in stream {
-            guard let recorder = AppDependencies.current.app.recorderBox.recorder else { continue }
+            guard let recorder = launchServices.recorderBox().recorder else { continue }
             if case .recording = recorder.phase {
                 recorder.pause(isAuto: false)
             }
@@ -92,7 +109,7 @@ extension EmuquApp {
     func appLevelWatchResumeListener() async {
         let stream = NotificationCenter.default.notifications(named: .watchRequestedWorkoutResume)
         for await _ in stream {
-            guard let recorder = AppDependencies.current.app.recorderBox.recorder else { continue }
+            guard let recorder = launchServices.recorderBox().recorder else { continue }
             if case .recording = recorder.phase {
                 recorder.resume()
             }
@@ -103,7 +120,7 @@ extension EmuquApp {
     func appLevelWatchAcknowledgeListener() async {
         let stream = NotificationCenter.default.notifications(named: .watchAcknowledgedFinished)
         for await _ in stream {
-            AppDependencies.current.app.recorderBox.recorder?.acknowledgeFinished()
+            launchServices.recorderBox().recorder?.acknowledgeFinished()
         }
     }
 
@@ -120,7 +137,7 @@ extension EmuquApp {
             let current = Self.morningPushInputs(settingsManager.settings)
             guard current != scheduled else { continue }
             scheduled = current
-            await AppDependencies.current.services.morningNotificationScheduler.rescheduleIfNeeded()
+            await launchServices.morningNotificationScheduler().rescheduleIfNeeded()
         }
     }
 
@@ -258,7 +275,7 @@ extension EmuquApp {
     /// daemon, then the tile-search + CLGeocoder + cross-street pipeline
     /// adds another 10–15 s of staged timeouts before `current` is
     /// populated. Doing that work in a delayed Task here means by the time the user is
-    /// ready to start a walk, `AppDependencies.current.location.roadGeocodingService.current`
+    /// ready to start a walk, the geocoding service's `current`
     /// already holds a fresh `RoadContext` and the workout ticker's
     /// first `refreshIfNeeded` no-ops on the time/movement gate.
     private func prewarmRoadContext(powerMultiplier: Double) {
@@ -266,7 +283,7 @@ extension EmuquApp {
             await sleepQuietly(UInt64(4_000_000_000 * powerMultiplier), context: "prewarmRoadContext")
             guard await shouldPrewarmRoadContext() else { return }
             NSLog("[App][bg] road context prewarm — start")
-            await Self.fetchRoadContext()
+            await Self.fetchRoadContext(geocoding: launchServices.roadGeocodingService)
         }
     }
 
@@ -283,7 +300,7 @@ extension EmuquApp {
     /// remains the user-facing auth ask).
     ///
     /// Skipped when we already have a recent fix.
-    /// `AppDependencies.current.location.roadGeocodingService.current` survives across foregrounds; if
+    /// The geocoding service's `current` survives across foregrounds; if
     /// it was populated less than 15 min ago we don't need a fresh
     /// CoreLocation cold-start (which takes 8–25 s on a stale GPS daemon —
     /// a field launch log showed 12.1 s). The on-demand `refreshIfNeeded`
@@ -294,12 +311,13 @@ extension EmuquApp {
             NSLog("[App][bg] road context prewarm — skipped (AI assistant disabled)")
             return false
         }
+        let geocoding = launchServices.roadGeocodingService
         let status = CLLocationManager().authorizationStatus
         guard status == .authorizedWhenInUse || status == .authorizedAlways else {
             NSLog("[App][bg] road context prewarm — skipped (location not authorized)")
             return false
         }
-        if let cached = await MainActor.run(body: { AppDependencies.current.location.roadGeocodingService.current }),
+        if let cached = await MainActor.run(body: { geocoding().current }),
            Date().timeIntervalSince(cached.observedAt) < 900 {
             NSLog("[App][bg] road context prewarm — skipped (cache fresh \(Int(Date().timeIntervalSince(cached.observedAt)))s ago)")
             return false
@@ -316,14 +334,14 @@ extension EmuquApp {
     /// beyond that we accept the miss and let the on-demand
     /// refresh path populate the cache later. Failures here
     /// are non-fatal — the AI just doesn't pre-know the
-    /// user's street.
-    private static func fetchRoadContext() async {
+    /// user's street. `geocoding` is the service the location is handed to.
+    private static func fetchRoadContext(geocoding: @MainActor @Sendable () -> RoadGeocodingService) async {
         do {
             let location = try await LocationFinder.detachedFirstUsableLocation(timeoutSec: 8)
             // `prewarm` is @MainActor-isolated but not `async`; the
             // implicit actor hop is enough — no explicit `await` needed.
             await MainActor.run {
-                AppDependencies.current.location.roadGeocodingService.prewarm(at: location)
+                geocoding().prewarm(at: location)
             }
             NSLog("[App][bg] road context prewarm — done")
         } catch {
@@ -369,19 +387,20 @@ extension EmuquApp {
     /// migrations and the iCloud sync still run. `shouldSkipPeriodicRefresh`
     /// is only logged here.
     private func scheduleLaunchHousekeeping() {
-        AppDependencies.current.analysis.trainingMetricsCache.configure(healthKit: collector.healthKit)
-        let powerMultiplier = AppDependencies.current.services.powerStatePolicy.launchDelayMultiplier
-        let skipPeriodic = AppDependencies.current.services.powerStatePolicy.shouldSkipPeriodicRefresh
+        launchServices.trainingMetricsCache().configure(healthKit: collector.healthKit)
+        let powerPolicy = launchServices.powerStatePolicy()
+        let powerMultiplier = powerPolicy.launchDelayMultiplier
+        let skipPeriodic = powerPolicy.shouldSkipPeriodicRefresh
         if powerMultiplier > 1.0 {
             NSLog("[App][bg] Low Power Mode — delays ×\(powerMultiplier), periodic refresh \(skipPeriodic ? "SKIPPED" : "kept")")
         }
         let lowPower = powerMultiplier > 1.0
-        AppDependencies.current.app.launchCoordinator.begin()
+        launchServices.launchCoordinator().begin()
         scheduleMigrationJobs(lowPower: lowPower)
         prewarmRoadContext(powerMultiplier: powerMultiplier)
         prewarmWorkoutStartHaptics(powerMultiplier: powerMultiplier)
         scheduleSyncThenTrainingJobs(lowPower: lowPower)
-        Task { await AppDependencies.current.services.morningNotificationScheduler.rescheduleIfNeeded() }
+        Task { await launchServices.morningNotificationScheduler().rescheduleIfNeeded() }
     }
 
     /// Archive migrations, in the launch coordinator's housekeeping phase —
@@ -401,7 +420,7 @@ extension EmuquApp {
         // non-Sendable App `self`).
         let archiveRef = collector.archive
         let collectorJob = collector
-        let coord = AppDependencies.current.app.launchCoordinator
+        let coord = launchServices.launchCoordinator()
         coord.run(phase: .housekeeping, priority: .background, skipInLowPower: false, lowPower: lowPower) {
             NSLog("[App][bg] archive migrations — start")
             archiveRef.upgradeExistingFileProtection()
@@ -409,9 +428,10 @@ extension EmuquApp {
             await collectorJob.permanentlyDelete(archiveRef.expiredDeletionIds())
             NSLog("[App][bg] archive migrations — done")
         }
+        let reanalysisJob = reanalysis
         coord.run(phase: .housekeeping, priority: .background, skipInLowPower: false, lowPower: lowPower) {
             NSLog("[App][bg] session migrations — start")
-            await collectorJob.runDeferredSessionMigrationsIfNeeded()
+            await reanalysisJob.runDeferredSessionMigrationsIfNeeded()
             NSLog("[App][bg] session migrations — done")
         }
         scheduleBackupReconcile(coord: coord, archive: archiveRef, backup: collector.rawBackup, lowPower: lowPower)
@@ -452,7 +472,7 @@ extension EmuquApp {
         let sync = launchSyncWork()
         let backfill = workoutLoadBackfillWork()
         let rescore = tempAsymmetryRescoreWork()
-        AppDependencies.current.app.launchCoordinator.run(
+        launchServices.launchCoordinator().run(
             phase: .housekeeping, priority: .background, skipInLowPower: false, lowPower: lowPower
         ) {
             await sync?()
@@ -475,19 +495,20 @@ extension EmuquApp {
     /// can pull-to-refresh for fresh ones.
     private func workoutLoadBackfillWork() -> @Sendable () async -> Void {
         let archiveForBackfill = collector.archive
+        let services = launchServices
         return {
             NSLog("[App][bg] workout load backfill — start")
             await WorkoutLoadBackfill.runIfNeeded(
                 archive: archiveForBackfill,
-                savedRouteStore: AppDependencies.current.location.savedRouteStore
+                savedRouteStore: services.savedRouteStore()
             )
             await MainActor.run {
                 FTPAutoEstimator.recomputeIfNeeded(archive: archiveForBackfill)
             }
-            await AppDependencies.current.analysis.trainingMetricsCache.refresh()
+            await services.trainingMetricsCache().refresh()
             // Wait for the 400-day historical Banister series
             // HERE, in background, so the first AI send doesn't have to.
-            await AppDependencies.current.analysis.trainingMetricsCache.awaitHistoricalSeries()
+            await services.trainingMetricsCache().awaitHistoricalSeries()
             NSLog("[App][bg] workout load backfill — done")
         }
     }
@@ -507,14 +528,15 @@ extension EmuquApp {
     ///      covered. Crash-safe across launches.
     private func tempAsymmetryRescoreWork() -> (@Sendable () async -> Void)? {
         guard !settingsManager.settings.hasFixedTempAsymmetry else { return nil }
-        let collectorJob = collector
+        let reanalysisJob = reanalysis
+        let settingsJob = settingsManager
         return {
             NSLog("[App][bg] temp-asymmetry rescore — start")
-            let result = await Self.runTempAsymmetryRescoreChunk(collector: collectorJob)
+            let result = await Self.runTempAsymmetryRescoreChunk(reanalysis: reanalysisJob)
             NSLog("[App][bg] temp-asymmetry rescore — processed=\(result.processed) totalDone=\(result.totalDone)/\(result.total) complete=\(result.complete)")
             guard result.complete else { return }
             await MainActor.run {
-                AppDependencies.current.app.settingsManager.settings.hasFixedTempAsymmetry = true
+                settingsJob.settings.hasFixedTempAsymmetry = true
             }
         }
     }
@@ -795,7 +817,7 @@ extension EmuquApp {
     /// persisted after EACH session, and a periodic progress line lets a
     /// debug-log export show motion.
     private static func runTempAsymmetryRescoreChunk(
-        collector: RRCollector
+        reanalysis: SessionReanalysisCoordinator
     ) async -> RescoreChunk {
         // Load the cursor (set of UUIDs already rescored).
         var processed = Self.loadTempAsymmetryCursor()
@@ -803,12 +825,12 @@ extension EmuquApp {
         // Iterating newest-first means the dashboard-visible session
         // gets rescored FIRST, so even if the run is cut short,
         // the user's currently-displayed score is the corrected one.
-        let allEntries = await MainActor.run { collector.archive.entries }
+        let allEntries = await MainActor.run { reanalysis.archive.entries }
         let unprocessed = allEntries.filter { !processed.contains($0.sessionId) }
         guard !unprocessed.isEmpty else {
             return RescoreChunk(processed: 0, totalDone: processed.count, total: allEntries.count, complete: true)
         }
-        let processedThisRun = await rescoreAll(unprocessed, into: &processed, of: allEntries.count, collector: collector)
+        let processedThisRun = await rescoreAll(unprocessed, into: &processed, of: allEntries.count, reanalysis: reanalysis)
         return RescoreChunk(
             processed: processedThisRun, totalDone: processed.count, total: allEntries.count,
             complete: allEntries.allSatisfy { processed.contains($0.sessionId) }
@@ -816,12 +838,13 @@ extension EmuquApp {
     }
 
     private static func rescoreAll(
-        _ unprocessed: [SessionArchiveEntry], into processed: inout Set<UUID>, of total: Int, collector: RRCollector
+        _ unprocessed: [SessionArchiveEntry], into processed: inout Set<UUID>, of total: Int,
+        reanalysis: SessionReanalysisCoordinator
     ) async -> Int {
         var processedThisRun = 0
         for entry in unprocessed {
             if Task.isCancelled { break }
-            let settled = await rescoreForTempAsymmetry(entry.sessionId, collector: collector)
+            let settled = await rescoreForTempAsymmetry(entry.sessionId, reanalysis: reanalysis)
             guard settled || recordFailedAttempt(entry.sessionId) >= tempAsymmetryMaxAttempts else { continue }
             processed.insert(entry.sessionId)
             processedThisRun += 1
@@ -845,8 +868,8 @@ extension EmuquApp {
     /// this runs once per session while the user is already using the app, so
     /// it runs detached rather than on the main thread. The archive serializes
     /// its own access.
-    private static func rescoreForTempAsymmetry(_ sessionId: UUID, collector: RRCollector) async -> Bool {
-        let archive = collector.archive
+    private static func rescoreForTempAsymmetry(_ sessionId: UUID, reanalysis: SessionReanalysisCoordinator) async -> Bool {
+        let archive = reanalysis.archive
         let read = Task.detached(priority: .background) { try archive.retrieve(sessionId) }
         let stored: HRVSession?
         do {
@@ -858,7 +881,7 @@ extension EmuquApp {
         guard let session = stored, session.windowUserAdjusted != true,
               let rr = session.rrSeries, !rr.points.isEmpty
         else { return true }
-        return await collector.reanalyzeSession(session) != nil
+        return await reanalysis.reanalyzeSession(session) != nil
     }
 
     /// Count one more failed launch for `sessionId` and return the total.

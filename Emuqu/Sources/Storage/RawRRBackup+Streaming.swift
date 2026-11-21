@@ -9,6 +9,8 @@ extension RawRRBackup {
     // MARK: - Append-Only Backup (Streaming)
 
     /// Append only new points since the last backup. Constant cost per call.
+    /// Returns once the points and the session's index row are both on disk;
+    /// throws otherwise.
     ///
     /// Switching a one-shot backup to this format replaces it, so the switch
     /// follows `backup()`'s rule: never over a backup that holds more beats.
@@ -18,8 +20,8 @@ extension RawRRBackup {
         let existingEntry = index.first { $0.id == sessionId }
         indexLock.unlock()
         let previousCount = existingEntry?.backedUpCount ?? 0
-        // Nothing new to write
-        guard points.count > previousCount else { return }
+        // Nothing new to write: only an index save a failed write left owed.
+        guard points.count > previousCount else { return try saveIndexIfOwed() }
         let pointsPath = pointsURL(for: sessionId)
         let switchesFormat = try startAppendFormatIfNew(existingEntry, sessionId: sessionId, deviceId: deviceId, newCount: points.count)
         try writeAppendData(try encodedLines(points[previousCount...], sessionId: sessionId), to: pointsPath, sessionId: sessionId) {
@@ -137,23 +139,23 @@ extension RawRRBackup {
         try decoder.decode(RRPoint.self, from: SealedJSONLines.open(line, with: AppDependencies.current.storage.encryptionManager))
     }
 
-    /// Append to the points file. A file that is missing, or that would not
-    /// open or read and was set aside, is replaced by a fresh one holding
-    /// every point so far (`allLines`), so the count the caller then indexes
-    /// is what the file holds; the new batch alone left the index claiming
-    /// beats that were not on disk.
+    /// Append to the points file through `JSONLinesFile.append`, which cuts
+    /// off a line torn by a kill mid-write before appending, so the batch
+    /// does not fuse with that fragment into a line no read decodes. A failed
+    /// write throws to the caller, which logs it and retries on the next
+    /// interval with the beats still buffered.
     ///
-    /// The throwing `FileHandle` calls, not `seekToEndOfFile()` / `write(_:)`:
-    /// those raise an Objective-C exception on a full disk or an I/O error,
-    /// which Swift cannot catch, so the backup meant to save the night was the
-    /// thing that crashed it. A failed append now throws to the caller, which
-    /// logs it and retries on the next interval with the beats still buffered.
+    /// A file that is missing, or that would not open or read and was set
+    /// aside, is replaced by a fresh one holding every point so far
+    /// (`allLines`), so the count the caller then indexes is what the file
+    /// holds.
     func writeAppendData(
         _ appendData: Data, to pointsPath: URL, sessionId: UUID, allLines: () throws -> Data
     ) throws {
-        if let handle = try? FileHandle(forWritingTo: pointsPath) {
-            try appendThroughHandle(handle, appendData, sessionId: sessionId)
-            return
+        switch JSONLinesFile.append(appendData, toExisting: pointsPath) {
+        case .appended: return
+        case let .writeFailed(error): throw error
+        case .couldNotOpen: break
         }
         if fileManager.fileExists(atPath: pointsPath.path),
            try rewriteKeepingExisting(appendData, at: pointsPath, sessionId: sessionId) {
@@ -167,52 +169,19 @@ extension RawRRBackup {
         }
     }
 
-    /// Seek to the end and append through an open handle, closing it after.
-    /// A write that throws is truncated back to the offset it started at and
-    /// rethrown, so the batch the caller retries is not in the file twice.
-    private func appendThroughHandle(_ handle: FileHandle, _ appendData: Data, sessionId: UUID) throws {
-        defer { closeQuietly(handle, sessionId: sessionId) }
-        let start = try handle.seekToEnd()
-        do {
-            try handle.write(contentsOf: appendData)
-        } catch {
-            truncateFailedAppend(handle, to: start, sessionId: sessionId)
-            throw error
-        }
-    }
-
-    /// The handle would not open but the bytes may still read: carry them into
-    /// the rewrite so the night so far is not left behind in a file only
-    /// recovery knows to look for. False when they don't read either; the file
-    /// is then set aside for recovery and the caller writes a fresh one.
-    /// Throws when it cannot be set aside, so nothing is written over it.
+    /// The handle would not open but the bytes may still read: carry their
+    /// complete lines (`JSONLinesFile.completeLines`) into the rewrite so the
+    /// night so far is not left behind in a file only recovery knows to look
+    /// for. False when they don't read either; the file is then set aside for
+    /// recovery and the caller writes a fresh one. Throws when it cannot be
+    /// set aside, so nothing is written over it.
     private func rewriteKeepingExisting(_ appendData: Data, at pointsPath: URL, sessionId: UUID) throws -> Bool {
         guard let existing = attempt("RawRRBackup.readForRewrite", { try Data(contentsOf: pointsPath) }) else {
             try preserveCorruptedPointsFile(at: pointsPath, sessionId: sessionId)
             return false
         }
-        try (existing + appendData).write(to: pointsPath, options: [.atomic, BackupProtection.appendable])
+        try (JSONLinesFile.completeLines(of: existing) + appendData).write(to: pointsPath, options: [.atomic, BackupProtection.appendable])
         return true
-    }
-
-    /// A write that throws may have written part of the batch. The index is
-    /// not advanced, so the next interval appends the whole batch again; cut
-    /// the file back to where this append started so those lines are not in
-    /// it twice.
-    private func truncateFailedAppend(_ handle: FileHandle, to offset: UInt64, sessionId: UUID) {
-        do {
-            try handle.truncate(atOffset: offset)
-        } catch {
-            debugLog("[RawRRBackup] Truncating a failed append for \(sessionId.uuidString.prefix(8)) failed: \(error)", level: .warning)
-        }
-    }
-
-    private func closeQuietly(_ handle: FileHandle, sessionId: UUID) {
-        do {
-            try handle.close()
-        } catch {
-            debugLog("[RawRRBackup] Closing the points file for \(sessionId.uuidString.prefix(8)) failed: \(error)", level: .warning)
-        }
     }
 
     /// File exists, won't open and won't read. Preserved for recovery:
@@ -491,9 +460,13 @@ extension RawRRBackup {
         try mergeIndexThatFailedToLoad()
     }
 
+    /// Writes the in-memory index. Until a write lands, `indexSaveOwed`
+    /// stays set: memory then holds rows the file does not, and
+    /// `saveIndexIfOwed` writes them on the next append or unlock.
     func saveIndex() throws {
         indexLock.lock()
         defer { indexLock.unlock() }
+        indexSaveOwed = true
         try mergeIndexThatFailedToLoad()
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -503,6 +476,14 @@ extension RawRRBackup {
         // while the device is locked (the active recording's
         // `incrementalBackup` updates the index every few seconds).
         try data.write(to: indexFile, options: [.atomic, BackupProtection.appendable])
+        indexSaveOwed = false
+    }
+
+    /// Saves the index when the last save threw (`indexSaveOwed`); nothing
+    /// otherwise. Throws when the save throws again.
+    func saveIndexIfOwed() throws {
+        guard indexLock.withLock({ indexSaveOwed }) else { return }
+        try saveIndex()
     }
 
     // MARK: - Errors
@@ -650,5 +631,74 @@ enum BackupFiles {
             attempt("BackupFiles.remove") { try fileManager.removeItem(at: url) }
         }
         return urls.filter { fileManager.fileExists(atPath: $0.path) }
+    }
+}
+
+/// Appending to a newline-terminated JSON Lines file that a process killed
+/// mid-write may have left ending in part of a line: the raw RR points file,
+/// the workout streams and the diagnostics logs. Appended after such a
+/// fragment, the next line fuses with it into one line that decodes as
+/// neither, so the fragment is cut off first; the writer's own count of
+/// complete lines on disk then says the cut line is written again.
+enum JSONLinesFile {
+    enum AppendOutcome {
+        case appended
+        /// No read/write handle opened; nothing was written.
+        case couldNotOpen
+        /// Cutting the torn tail, seeking or writing threw.
+        case writeFailed(any Error)
+    }
+
+    private static let newline = UInt8(ascii: "\n")
+
+    /// Appends `data` to the file at `url` through a read/write handle,
+    /// after cutting off a torn last line (`dropTornTail`). The throwing
+    /// `FileHandle` calls: `seekToEndOfFile()` / `write(_:)` raise an
+    /// Objective-C exception on a full disk, which Swift cannot catch. A
+    /// write that throws is cut back to where it started, so the batch the
+    /// caller retries is not in the file twice.
+    static func append(_ data: Data, toExisting url: URL) -> AppendOutcome {
+        guard let handle = attempt("JSONLinesFile.open", { try FileHandle(forUpdating: url) }) else { return .couldNotOpen }
+        defer { attempt("JSONLinesFile.close") { try handle.close() } }
+        let start: UInt64
+        do {
+            try dropTornTail(handle)
+            start = try handle.seekToEnd()
+        } catch {
+            return .writeFailed(error)
+        }
+        do {
+            try handle.write(contentsOf: data)
+            return .appended
+        } catch {
+            attempt("JSONLinesFile.truncateFailedAppend") { try handle.truncate(atOffset: start) }
+            return .writeFailed(error)
+        }
+    }
+
+    /// Truncates the file after its last newline when it does not end with
+    /// one. The usual case reads one byte; only a torn file reads its tail
+    /// (a line is far shorter than 64 KB).
+    static func dropTornTail(_ handle: FileHandle) throws {
+        let end = try handle.seekToEnd()
+        guard end > 0 else { return }
+        try handle.seek(toOffset: end - 1)
+        guard try handle.read(upToCount: 1)?.first != newline else { return }
+        let tailStart = end > 65_536 ? end - 65_536 : 0
+        try handle.seek(toOffset: tailStart)
+        let tail = try handle.readToEnd() ?? Data()
+        guard let lastNewline = tail.lastIndex(of: newline) else {
+            if tailStart == 0 { try handle.truncate(atOffset: 0) }
+            return
+        }
+        try handle.truncate(atOffset: tailStart + UInt64(lastNewline - tail.startIndex + 1))
+    }
+
+    /// `data` up to and including its last newline: all of it when it ends
+    /// with one, nothing when it holds none.
+    static func completeLines(of data: Data) -> Data {
+        guard let last = data.last, last != newline else { return data }
+        guard let lastNewline = data.lastIndex(of: newline) else { return Data() }
+        return data[data.startIndex ... lastNewline]
     }
 }

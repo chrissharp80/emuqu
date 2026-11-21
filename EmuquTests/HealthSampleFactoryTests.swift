@@ -3,8 +3,9 @@ import HealthKit
 import XCTest
 
 /// What Emuqu may write into Apple Health: samples HealthKit can hold without
-/// raising an uncatchable exception, and resting heart rate only from the
-/// overnight reading.
+/// raising an uncatchable exception, resting heart rate only from the
+/// overnight reading, and a re-export that replaces the session's earlier
+/// samples without losing or doubling them.
 @MainActor
 final class HealthSampleFactoryTests: XCTestCase {
     private let start = Date(timeIntervalSince1970: 1_700_000_000)
@@ -101,7 +102,128 @@ final class HealthSampleFactoryTests: XCTestCase {
         )
     }
 
+    // MARK: - Replacing an earlier export
+
+    /// A save that fails leaves the earlier export in Health, untouched.
+    func testFailedSaveLeavesTheEarlierExport() async throws {
+        let store = InMemoryHealthSampleStore()
+        let writes = HealthKitManager(settingsProvider: { UserSettings() }, sampleStore: store).writes
+        let id = UUID()
+        try await writes.exportSleepToHealthKit(sleepData: sleepData(stages: [stage(0, 7_200)]), sessionId: id)
+        let first = store.samples
+        XCTAssertEqual(first.count, 2, "the in-bed span and one stage")
+        store.failNextSave = true
+        do {
+            try await writes.exportSleepToHealthKit(sleepData: sleepData(stages: [stage(0, 3_600), stage(3_600, 7_200)]), sessionId: id)
+            XCTFail("the failed save must be reported")
+        } catch {}
+        XCTAssertTrue(store.samples.elementsEqual(first, by: ===), "the earlier export is still there, alone")
+    }
+
+    /// A delete that fails is reported, and the next export of the session
+    /// removes both earlier sets.
+    func testFailedDeleteIsReportedAndTheNextExportLeavesOneSet() async throws {
+        let store = InMemoryHealthSampleStore()
+        let writes = HealthKitManager(settingsProvider: { UserSettings() }, sampleStore: store).writes
+        let session = sessionWithBeats(minutes: 12)
+        let result = analysisResult(nocturnalMedianHR: nil)
+        try await writes.exportHRV(session: session, result: result)
+        let setSize = store.samples.count
+        XCTAssertGreaterThan(setSize, 1, "a windowed series")
+        store.failNextDelete = true
+        do {
+            try await writes.exportHRV(session: session, result: result)
+            XCTFail("the failed delete must be reported")
+        } catch {}
+        XCTAssertEqual(store.samples.count, 2 * setSize, "the new set is saved beside the one not deleted")
+        try await writes.exportHRV(session: session, result: result)
+        XCTAssertEqual(store.samples.count, setSize, "the next export removes both earlier sets")
+    }
+
+    /// Two exports of one session that overlap leave one set: the second
+    /// reads what the first saved, not what was there before either.
+    func testOverlappingExportsOfOneSessionLeaveOneSet() async throws {
+        let store = InMemoryHealthSampleStore()
+        let manager = HealthKitManager(settingsProvider: { UserSettings() }, sampleStore: store)
+        let session = sessionWithBeats(minutes: 10)
+        let points = try XCTUnwrap(session.rrSeries?.points)
+        let (sessionStart, id) = (start, session.id)
+        let first = Task { try await manager.exportHeartRateSeries(from: points, sessionStart: sessionStart, sessionId: id) }
+        let second = Task { try await manager.exportHeartRateSeries(from: points, sessionStart: sessionStart, sessionId: id) }
+        try await first.value
+        try await second.value
+        XCTAssertEqual(store.samples.count, 10, "one sample per minute, once")
+    }
+
+    /// Deleting a session forever waits for its running export and then
+    /// removes what that export wrote.
+    func testRemovalAfterAnOverlappingExportLeavesNothing() async throws {
+        let store = InMemoryHealthSampleStore()
+        let writes = HealthKitManager(settingsProvider: { UserSettings() }, sampleStore: store).writes
+        let session = sessionWithBeats(minutes: 12)
+        let result = analysisResult(nocturnalMedianHR: nil)
+        let span = (start, start.addingTimeInterval(720))
+        let export = Task { try await writes.exportHRV(session: session, result: result) }
+        let removal = Task { try await writes.removeExportedHRV(sessionId: session.id, from: span.0, to: span.1) }
+        try await export.value
+        try await removal.value
+        XCTAssertTrue(store.samples.isEmpty)
+    }
+
+    /// A save Health never answers fails that replacement once its timeout
+    /// passes, and the next replacement under the same key still runs.
+    func testAHungSaveFailsAndFreesItsKey() async throws {
+        let store = InMemoryHealthSampleStore()
+        let replacer = HealthSampleReplacer(store: store)
+        let type = try XCTUnwrap(HKTypes.quantity(.heartRate))
+        let replacement = HealthSampleReplacement(
+            type: type, span: nil, timeout: 0.2, label: "hung", serialKey: "one-key", matches: { _ in true }
+        )
+        let sample = HKQuantitySample(
+            type: type, quantity: HKQuantity(unit: .count().unitDivided(by: .minute()), doubleValue: 60), start: start, end: start
+        )
+        store.holdNextSave = true
+        do {
+            try await replacer.replace([sample], replacement)
+            XCTFail("a save that never answers must time out")
+        } catch HealthKitManager.HealthKitError.queryTimedOut(let label) {
+            XCTAssertEqual(label, "hung save")
+        }
+        try await replacer.replace([sample], replacement)
+        XCTAssertEqual(store.samples.count, 1, "the next replacement under the key ran")
+        store.releaseHeldSave()
+    }
+
+    /// The series when the beats fill a window; the summary when the
+    /// recording is too short; nothing (and nothing removed) for a short
+    /// recording whose SDNN is an estimate.
+    func testHRVExportShapes() throws {
+        let sdnnType = try XCTUnwrap(HKTypes.quantity(.heartRateVariabilitySDNN))
+        let measured = analysisResult(nocturnalMedianHR: nil)
+        let series = try XCTUnwrap(HealthWriteAndObserve.hrvExportSamples(session: sessionWithBeats(minutes: 12), result: measured, sdnnType: sdnnType))
+        XCTAssertEqual(series.count, 3, "two full 5-minute windows and the 2-minute tail")
+        let summary = try XCTUnwrap(HealthWriteAndObserve.hrvExportSamples(session: session(.overnight), result: measured, sdnnType: sdnnType))
+        XCTAssertEqual(summary.count, 1)
+        var estimated = measured
+        estimated.estimatedMetrics = [EstimatedMetric.sdnn.rawValue]
+        XCTAssertNil(HealthWriteAndObserve.hrvExportSamples(session: session(.overnight), result: estimated, sdnnType: sdnnType))
+    }
+
     // MARK: - Fixtures
+
+    private func stage(_ from: TimeInterval, _ to: TimeInterval) -> SleepStageInterval {
+        SleepStageInterval(
+            stage: .core, start: start.addingTimeInterval(from), end: start.addingTimeInterval(to)
+        )
+    }
+
+    /// An overnight session with `minutes` of beats alternating 980 / 1,020 ms.
+    private func sessionWithBeats(minutes: Int) -> HRVSession {
+        let points = (0..<(minutes * 60)).map { RRPoint(t_ms: Int64($0) * 1_000, rr_ms: $0.isMultiple(of: 2) ? 980 : 1_020) }
+        var session = session(.overnight)
+        session.rrSeries = RRSeries(points: points, sessionId: session.id, startDate: start)
+        return session
+    }
 
     private func session(_ type: SessionType) -> HRVSession {
         var session = HRVSession(
@@ -141,5 +263,57 @@ final class HealthSampleFactoryTests: XCTestCase {
             cleanBeatCount: 590,
             analysisDate: start
         )
+    }
+}
+
+/// The Health store a replacement reads, saves to and deletes from, in
+/// memory. Each call yields before it acts, so replacements that are not kept
+/// apart interleave.
+@MainActor
+private final class InMemoryHealthSampleStore: HealthSampleStore {
+    private(set) var samples: [HKSample] = []
+    var failNextSave = false
+    var failNextDelete = false
+    /// The next save waits until `releaseHeldSave()`, as a Health call that
+    /// does not answer.
+    var holdNextSave = false
+    private var heldSave: CheckedContinuation<Void, Never>?
+
+    struct Failure: Error {}
+
+    func ownSamples(of type: HKSampleType, in span: DateInterval?, timeout _: TimeInterval, label _: String) async throws -> [HKSample] {
+        await Task.yield()
+        return samples.filter { sample in
+            sample.sampleType == type && (span.map { $0.start <= sample.startDate && sample.startDate <= $0.end } ?? true)
+        }
+    }
+
+    func save(_ new: [HKSample]) async throws {
+        await Task.yield()
+        if holdNextSave {
+            holdNextSave = false
+            await withCheckedContinuation { heldSave = $0 }
+            return
+        }
+        if failNextSave {
+            failNextSave = false
+            throw Failure()
+        }
+        samples += new
+    }
+
+    func delete(_ old: [HKSample]) async throws {
+        await Task.yield()
+        if failNextDelete {
+            failNextDelete = false
+            throw Failure()
+        }
+        samples.removeAll { sample in old.contains { $0 === sample } }
+    }
+
+    /// Lets the held save return, writing nothing.
+    func releaseHeldSave() {
+        heldSave?.resume()
+        heldSave = nil
     }
 }

@@ -346,8 +346,7 @@ final class CloudKitSyncManager {
     /// Idempotent — subsequent calls short-circuit on `didBootSyncState`.
     @MainActor
     func boot() {
-        guard !didBootSyncState.withLock({ $0 }) else { return }
-        didBootSyncState.withLock { $0 = true }
+        guard didBootSyncState.setIfClear() else { return }
         state.loadAll()
         lastSyncDate = UserDefaults.standard.object(forKey: UserDefaultsKeys.cloudKitLastSyncDate) as? Date
     }

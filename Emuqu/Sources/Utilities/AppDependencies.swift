@@ -15,8 +15,11 @@ import SwiftUI
 /// - Views read `@Environment(\.dependencies)`, which defaults to
 ///   `AppDependencies.current` as it is at the time of the read.
 /// - Static helpers read `AppDependencies.current`.
-/// - A test makes a fresh container, sets the substitute on its `overrides`,
-///   assigns it to `current` in `setUp`, and calls `reset()` in `tearDown`.
+/// - The launch work and the data purge read no container at all: they are
+///   handed exactly the services they use (`launchServices`, `purgeStores`).
+/// - `current` is read-only. A test makes a fresh container, sets the
+///   substitute on its `overrides`, and puts it in force with `install(_:)`,
+///   whose scope puts the previous container back when the test ends.
 ///
 /// Accessors for main-actor classes are main-actor isolated, exactly as their
 /// `shared` statics are; nonisolated code could not reach those before and
@@ -37,16 +40,33 @@ struct AppDependencies: Sendable {
 
     init() {}
 
-    /// The container in force. The app never sets it; a test swaps it and
-    /// restores it. Reads happen from any thread — the fact resolvers run off
-    /// the main actor — which is why the storage is a lock.
-    static var current: AppDependencies {
-        get { storage.withLock { $0 } }
-        set { storage.withLock { $0 = newValue } }
+    /// The container in force: the live services, unless a test has put a
+    /// substitute in force with `install(_:)`. It has no setter, so nothing
+    /// replaces it without a scope that puts the previous one back. Reads
+    /// happen from any thread — the fact resolvers run off the main actor —
+    /// which is why the storage is a lock.
+    static var current: AppDependencies { storage.withLock { $0 } }
+
+    /// Puts `container` in force until the returned scope's `end()`, which
+    /// restores the container that was in force before it. For tests only:
+    /// the app runs on the live container `current` starts with, and
+    /// `scripts/check_explicit_dependencies.sh` fails on a call outside the
+    /// test targets. Scopes end in the reverse order they began.
+    static func install(_ container: AppDependencies) -> InstalledScope {
+        storage.withLock { inForce in
+            let scope = InstalledScope(previous: inForce)
+            inForce = container
+            return scope
+        }
     }
 
-    /// Back to the live services. Tests that swapped `current` call this from `tearDown`.
-    static func reset() { storage.withLock { $0 = AppDependencies() } }
+    /// The span during which an installed container is in force.
+    struct InstalledScope: Sendable {
+        fileprivate let previous: AppDependencies
+
+        /// Puts back the container that was in force when the scope began.
+        func end() { AppDependencies.storage.withLock { $0 = previous } }
+    }
 
     private static let storage = OSAllocatedUnfairLock<AppDependencies>(initialState: AppDependencies())
 
@@ -87,6 +107,10 @@ struct AppDependencies: Sendable {
             var healthKitManager: HealthKitManager?
             var workoutStartLatencyTracker: WorkoutStartLatencyTracker?
             var zwiftPeripheralBroadcaster: ZwiftPeripheralBroadcaster?
+            var baselineTracker: BaselineTracker?
+            var archiveSignal: ArchiveSignal?
+            var sessionScoring: SessionScoringContext?
+            var sessionReanalysis: SessionReanalysisCoordinator?
             var activeRouteSession: ActiveRouteSession?
             var ambientLocationService: AmbientLocationService?
             var breadcrumbRecorder: BreadcrumbRecorder?
@@ -253,6 +277,22 @@ struct AppDependencies: Sendable {
         var zwiftPeripheralBroadcaster: ZwiftPeripheralBroadcaster? {
             get { values.withLock { $0.zwiftPeripheralBroadcaster } }
             set { values.withLock { $0.zwiftPeripheralBroadcaster = newValue } }
+        }
+        var baselineTracker: BaselineTracker? {
+            get { values.withLock { $0.baselineTracker } }
+            set { values.withLock { $0.baselineTracker = newValue } }
+        }
+        var archiveSignal: ArchiveSignal? {
+            get { values.withLock { $0.archiveSignal } }
+            set { values.withLock { $0.archiveSignal = newValue } }
+        }
+        var sessionScoring: SessionScoringContext? {
+            get { values.withLock { $0.sessionScoring } }
+            set { values.withLock { $0.sessionScoring = newValue } }
+        }
+        var sessionReanalysis: SessionReanalysisCoordinator? {
+            get { values.withLock { $0.sessionReanalysis } }
+            set { values.withLock { $0.sessionReanalysis = newValue } }
         }
         var activeRouteSession: ActiveRouteSession? {
             get { values.withLock { $0.activeRouteSession } }
@@ -565,6 +605,36 @@ struct CollectionServices: Sendable {
         if let substitute = overrides.zwiftPeripheralBroadcaster { return substitute }
         return ZwiftPeripheralBroadcaster.shared
     }
+    /// The stored-nights baseline the recording collector and saved-session
+    /// reanalysis both score against.
+    @MainActor
+    var baselineTracker: BaselineTracker {
+        if let substitute = overrides.baselineTracker { return substitute }
+        return SessionReanalysisRoot.baselineTracker
+    }
+    /// The archive-change signal views observe; the collector and reanalysis bump it.
+    @MainActor
+    var archiveSignal: ArchiveSignal {
+        if let substitute = overrides.archiveSignal { return substitute }
+        return SessionReanalysisRoot.archiveSignal
+    }
+    /// Settings, baseline and training load the collector and reanalysis share.
+    @MainActor
+    var sessionScoring: SessionScoringContext {
+        if let substitute = overrides.sessionScoring { return substitute }
+        return SessionReanalysisRoot.scoring
+    }
+    /// Saved-session reanalysis: Reanalyze, the bulk passes, the session-data
+    /// migrations and the rescore, CloudKit-backfill and HealthKit-sleep listeners.
+    @MainActor
+    var sessionReanalysis: SessionReanalysisCoordinator {
+        if let substitute = overrides.sessionReanalysis { return substitute }
+        return SessionReanalysisRoot.reanalysis
+    }
+    /// The reanalysis engine `sessionReanalysis` is built around, for manual
+    /// windows, sleep-boundary edits and segment unlinks.
+    @MainActor
+    var reanalysisService: ReanalysisService { sessionReanalysis.service }
 }
 
 /// Location, routes, trails and weather.
@@ -761,6 +831,79 @@ struct StorageServices: Sendable {
     var workoutTrackBackup: WorkoutTrackBackup {
         if let substitute = overrides.workoutTrackBackup { return substitute }
         return WorkoutTrackBackup.shared
+    }
+}
+
+// MARK: - Explicit dependency sets
+
+/// The sets of services handed to the code that takes exactly what it uses
+/// instead of reading `current`. Each resolver reads this container's
+/// accessor when it is called, so a substitute on `overrides` reaches the
+/// consumer and nothing is built before the consumer asks for it.
+extension AppDependencies {
+    /// What `EmuquApp`'s launch work (`AppLaunchTasks.swift`) uses.
+    var launchServices: LaunchServices {
+        let (app, analysis, location, services) = (self.app, self.analysis, self.location, self.services)
+        return LaunchServices(
+            recorderBox: { app.recorderBox },
+            launchCoordinator: { app.launchCoordinator },
+            powerStatePolicy: { services.powerStatePolicy },
+            trainingMetricsCache: { analysis.trainingMetricsCache },
+            morningNotificationScheduler: { services.morningNotificationScheduler },
+            roadGeocodingService: { location.roadGeocodingService },
+            savedRouteStore: { location.savedRouteStore }
+        )
+    }
+
+    /// What `DataPurgeService.purgeAllUserData` clears and reads back.
+    var purgeStores: DataPurgeService.Stores {
+        let app = self.app
+        return DataPurgeService.Stores(
+            recorderBox: { app.recorderBox },
+            assistant: purgeAssistantStores,
+            location: purgeLocationStores,
+            device: purgeDeviceStores
+        )
+    }
+
+    private var purgeAssistantStores: DataPurgeService.Stores.Assistant {
+        let (assistant, providers) = (self.assistant, self.providers)
+        return DataPurgeService.Stores.Assistant(
+            assistantViewModel: { assistant.assistantViewModel },
+            conversationStore: { assistant.conversationStore },
+            userFactsStore: { assistant.userFactsStore },
+            assistantArtifactStore: { assistant.assistantArtifactStore },
+            providerConsentTracker: { providers.providerConsentTracker },
+            apiKeyStore: { providers.apiKeyStore },
+            llmCacheTelemetry: { providers.llmCacheTelemetry },
+            llmRequestAudit: { providers.llmRequestAudit }
+        )
+    }
+
+    private var purgeLocationStores: DataPurgeService.Stores.Location {
+        let location = self.location
+        return DataPurgeService.Stores.Location(
+            breadcrumbStore: { location.breadcrumbStore },
+            breadcrumbRecorder: { location.breadcrumbRecorder },
+            activeRouteSession: { location.activeRouteSession },
+            savedRouteStore: { location.savedRouteStore },
+            ambientLocationService: { location.ambientLocationService }
+        )
+    }
+
+    private var purgeDeviceStores: DataPurgeService.Stores.Device {
+        let (app, analysis, services, storage) = (self.app, self.analysis, self.services, self.storage)
+        return DataPurgeService.Stores.Device(
+            workoutTrackBackup: { storage.workoutTrackBackup },
+            morningNotificationScheduler: { services.morningNotificationScheduler },
+            emailContactStore: { app.emailContactStore },
+            uiStateCache: { storage.uiStateCache },
+            trainingMetricsCache: { analysis.trainingMetricsCache },
+            heatAcclimationCache: { analysis.heatAcclimationCache },
+            recoveryScoreFeedbackStore: { services.recoveryScoreFeedbackStore },
+            debugLogger: { app.debugLogger },
+            crashLogManager: { app.crashLogManager }
+        )
     }
 }
 

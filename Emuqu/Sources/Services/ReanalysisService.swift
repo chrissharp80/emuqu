@@ -3,9 +3,10 @@ import Foundation
 /// Owns all re-analysis, manual window selection, sleep retro-apply, and
 /// session mutation logic.
 ///
-/// Dependencies are injected explicitly so the service is testable without
-/// an `RRCollector` instance. One exception: `finishReanalysisWrite` drops
-/// the session's entry from `AppDependencies.current.app.organizedZonesCache`.
+/// Dependencies are injected explicitly; the composition root builds the
+/// app's one instance (`AppDependencies.collection.reanalysisService`), whose
+/// providers and callbacks reach the scoring context, archive signal, iCloud
+/// sync and the chart's zones cache, never the recording collector.
 /// A rescore is written through `RescoreWrite` (end of this file).
 @MainActor
 final class ReanalysisService {
@@ -92,19 +93,22 @@ final class ReanalysisService {
     /// Closure to build a `TrainingContext` relative to a given date.
     let trainingContextProvider: (Date) -> TrainingContext?
 
-    /// Closure to run HRV analysis with a specific window (delegates to `RRCollector.analyze`).
+    /// Runs HRV analysis on a given window (`SessionScoringContext.analyze` in the app).
     private let analyzeWithWindow: (HRVSession, WindowSelector.RecoveryWindow, [ArtifactFlags], PeakCapacity?) async -> HRVAnalysisResult?
 
-    /// Closure to run HRV analysis on the full session (delegates to `RRCollector.analyze`).
+    /// Runs HRV analysis on the full session (`SessionScoringContext.analyze` in the app).
     private let analyzeFullSession: (HRVSession, PeakCapacity?) async -> HRVAnalysisResult?
 
     // MARK: - Callbacks
 
-    /// Notifies the owner that the archive has changed (e.g. `archiveVersion += 1`).
+    /// Notifies that the archive has changed (the app bumps its `ArchiveSignal`).
     let onArchiveChanged: () -> Void
 
     /// Uploads a session via CloudKit sync.
     let onSessionUploaded: (HRVSession) -> Void
+
+    /// Drops a rewritten session's cached chart zones (`OrganizedZonesCache`).
+    let onZonesStale: (UUID) -> Void
 
     // MARK: - Initialization
 
@@ -122,7 +126,8 @@ final class ReanalysisService {
         analyzeWithWindow: @escaping (HRVSession, WindowSelector.RecoveryWindow, [ArtifactFlags], PeakCapacity?) async -> HRVAnalysisResult?,
         analyzeFullSession: @escaping (HRVSession, PeakCapacity?) async -> HRVAnalysisResult?,
         onArchiveChanged: @escaping () -> Void,
-        onSessionUploaded: @escaping (HRVSession) -> Void
+        onSessionUploaded: @escaping (HRVSession) -> Void,
+        onZonesStale: @escaping (UUID) -> Void
     ) {
         self.archive = archive
         self.healthKit = healthKit
@@ -138,6 +143,7 @@ final class ReanalysisService {
         self.analyzeFullSession = analyzeFullSession
         self.onArchiveChanged = onArchiveChanged
         self.onSessionUploaded = onSessionUploaded
+        self.onZonesStale = onZonesStale
     }
 
     // MARK: - Re-Analysis
@@ -156,11 +162,14 @@ final class ReanalysisService {
     /// Hydrating from the archive by ID is cheap (one JSON decode) and
     /// makes both bugs disappear regardless of how the lightweight
     /// session got handed in.
+    /// A session not archived, archived without beats, or whose archived
+    /// copy cannot be read (logged at `.error`) comes back as given; the
+    /// archive splices stored beats back onto such a copy when it is written.
     func hydrated(_ session: HRVSession) -> HRVSession {
         if let series = session.rrSeries, !series.points.isEmpty {
             return session
         }
-        guard let stored = try? archive.retrieve(session.id),
+        guard let stored = ArchivedSessionRead.read(session.id, from: archive, caller: "hydrate").session,
               let storedSeries = stored.rrSeries,
               !storedSeries.points.isEmpty
         else {
@@ -474,7 +483,7 @@ final class ReanalysisService {
     /// the next chart render recomputes against the new window; the baseline,
     /// the archive signal and iCloud see the session as written.
     private func finishReanalysisWrite(_ written: HRVSession) {
-        AppDependencies.current.app.organizedZonesCache.invalidate(written.id)
+        onZonesStale(written.id)
         baselineTracker.update(with: written, sleepSchedule: settingsProvider().sleepSchedule)
         onArchiveChanged()
         Task { onSessionUploaded(written) }
@@ -573,10 +582,15 @@ final class ReanalysisService {
     }
 
     /// One score-only pass from the archived copy. Nil when the session or
-    /// its analysis is missing, the composite is NaN/Inf, or the write fails.
+    /// its analysis is missing, the archived copy cannot be read (logged at
+    /// `.error` by `ArchivedSessionRead`), the composite is NaN/Inf, or the
+    /// write fails.
     private func scoreOnlyRun(sessionId: UUID) async -> RescoreWrite.Outcome? {
-        guard let session = try? archive.retrieve(sessionId) else {
-            debugLog("[ReanalysisService] recomputeScoreOnly: session \(sessionId.uuidString.prefix(8)) not in archive")
+        let read = ArchivedSessionRead.read(sessionId, from: archive, caller: "recomputeScoreOnly")
+        guard let session = read.session else {
+            if case .notArchived = read {
+                debugLog("[ReanalysisService] recomputeScoreOnly: session \(sessionId.uuidString.prefix(8)) not in archive")
+            }
             return nil
         }
         guard let result = session.analysisResult else {

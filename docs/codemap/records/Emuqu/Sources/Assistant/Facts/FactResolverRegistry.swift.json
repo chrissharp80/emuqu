@@ -974,14 +974,18 @@
   },
   {
    "key": "func FactResolveTimeout.singleShotClaim()",
-   "hash": "20fd5145c0dad1bf",
-   "does": "Returns a lock-guarded closure that answers true only on its first invocation.",
+   "hash": "e9cf9ace5e3ac6db",
+   "does": "Returns a closure over its own lock-guarded flag that answers true only on its first invocation (setIfClear).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Utilities/Extensions.swift::func OSAllocatedUnfairLock.setIfClear()"
+   ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::func OSAllocatedUnfairLock.setIfClear()": "7eb7fa9354ab076a"
+   }
   },
   {
    "key": "func CompositeResult.recordFromChildren(_:)",

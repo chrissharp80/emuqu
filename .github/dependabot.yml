@@ -2,14 +2,9 @@ version: 2
 
 # Version-update PRs are OFF. Security alerts stay ON.
 #
-# Dependabot was opening weekly bump PRs that nobody could validate: when this
-# was set, the CI that would test them was manual-only (macOS Actions minutes
-# billed at 10x while the repository was private). `ci.yml` now runs on every
-# pull request, but the only required check is the Linux gates job, so a bump
-# PR still needs someone to read its macOS run before merging. The result was a
-# permanent queue of PRs and a wall of red runs, which is noise to maintain and
-# reads as an unmaintained repo. The fix is to stop generating the signal rather
-# than keep explaining it.
+# A version bump is only worth merging after its macOS build and tests pass,
+# and weekly bump PRs become a standing queue of runs to read and rebase. So
+# version updates are generated on purpose, not on a schedule.
 #
 # `open-pull-requests-limit: 0` disables VERSION updates only. GitHub still
 # raises SECURITY updates for known advisories, which is the part actually worth

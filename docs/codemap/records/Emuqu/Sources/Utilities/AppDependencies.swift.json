@@ -1,22 +1,23 @@
 {
  "file": "Emuqu/Sources/Utilities/AppDependencies.swift",
- "hash": "dd3c79022ccf061f",
- "role": "Composition root: the only file (with EmuquApp/WatchApp) allowed to read `Type.shared`. AppDependencies exposes eight lazily-built service groups whose accessors return a test substitute from a lock-guarded Overrides box or the live singleton; also defines the SwiftUI `\\.dependencies` environment key and the shared Overpass client.",
+ "hash": "e7f1269a2ac6508b",
+ "role": "Composition root: the only file (with EmuquApp/WatchApp) allowed to read `Type.shared`. AppDependencies exposes eight lazily-built service groups whose accessors return a test substitute from a lock-guarded Overrides box or the live singleton; `current` is read-only and only `install(_:)` (tests) puts another container in force for a scope; builds the explicit dependency sets handed to the launch work (launchServices) and the data purge (purgeStores); also defines the SwiftUI `\\.dependencies` environment key and the shared Overpass client; CollectionServices serves the saved-session reanalysis and the state it shares with the collector, built in AppDependencies+Reanalysis.swift.",
  "types": [
-  "AppDependencies: struct — container: overrides box + 8 group accessors + static `current`",
-  "AppDependencies.Overrides: final class — OSAllocatedUnfairLock<Values> holding 68 optional substitutes",
-  "UtilityServices / AnalysisServices / AssistantServices / CollectionServices / LocationServices / ProviderServices / AppServices / StorageServices: struct — per-layer accessors (substitute ?? .shared)",
+  "AppDependencies: struct — container: overrides box + 8 group accessors + read-only static `current`, the test-only `install(_:)`, and the explicit dependency sets `launchServices` and `purgeStores` (extension)",
+  "AppDependencies.InstalledScope: struct (Sendable) — the span an installed container is in force; end() restores the previous container",
+  "AppDependencies.Overrides: final class — OSAllocatedUnfairLock<Values> holding 71 optional substitutes",
+  "UtilityServices / AnalysisServices / AssistantServices / CollectionServices / LocationServices / ProviderServices / AppServices / StorageServices: struct — per-layer accessors (substitute ?? .shared; CollectionServices also serves the root-built baseline tracker, archive signal, scoring context and saved-session reanalysis from SessionReanalysisRoot)",
   "OverpassServices: private enum — one OverpassClient shared by RoadGraphService and TrailDiscoveryService",
   "DependenciesKey: private struct EnvironmentKey — computed defaultValue returning AppDependencies.current at each read",
   "EnvironmentValues: extension — `dependencies` accessor"
  ],
  "state": [
-  "mem:AppDependencies.storage (private static OSAllocatedUnfairLock<AppDependencies>, line 51)",
-  "mem:AppDependencies.overrides (let, per container, line 27)",
-  "mem:AppDependencies.Overrides.values (OSAllocatedUnfairLock<Values>, line 127)",
-  "mem:OverpassServices.client / roadGraph / trailDiscovery (static lets, lines 625-627)"
+  "mem:AppDependencies.storage (private static OSAllocatedUnfairLock<AppDependencies>, line 71)",
+  "mem:AppDependencies.overrides (let, per container, line 30)",
+  "mem:AppDependencies.Overrides.values (OSAllocatedUnfairLock<Values>, line 151)",
+  "mem:OverpassServices.client / roadGraph / trailDiscovery (static lets, lines 695-697)"
  ],
- "toplevel": "Stored-property initializers: `let overrides = Overrides()` (27); static storage lock seeded with AppDependencies() (51); Overrides.values lock seeded with an all-nil Values (127); OverpassServices builds OverpassClient() and the two Overpass services lazily on first static access (625-627).",
+ "toplevel": "Stored-property initializers: `let overrides = Overrides()` (30); static storage lock seeded with AppDependencies() (71); Overrides.values lock seeded with an all-nil Values (151); OverpassServices builds OverpassClient() and the two Overpass services lazily on first static access (695-697).",
  "units": [
   {
    "key": "var AppDependencies.app",
@@ -119,10 +120,27 @@
   },
   {
    "key": "var AppDependencies.current",
-   "hash": "37a5acd531d5df4f",
-   "does": "Getter returns a copy of the process-wide container from the OSAllocatedUnfairLock (copy shares the same Overrides box); setter replaces the stored container. The getter is read by ~518 `AppDependencies.current` call sites in production; the setter has no caller in the repo.",
+   "hash": "91adb40b8b962352",
+   "does": "Read-only: returns a copy of the container in force from the OSAllocatedUnfairLock (the copy shares the same Overrides box). It starts as the live container AppDependencies() and changes only while a container installed by install(_:) is in force.",
    "entry": null,
    "calls": [],
+   "reads": [
+    "mem:AppDependencies.storage"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c"
+   }
+  },
+  {
+   "key": "func AppDependencies.install(_:)",
+   "hash": "b2405e481833677f",
+   "does": "Under the storage lock, records the container in force in a new InstalledScope, puts `container` in force, and returns the scope; InstalledScope.end() puts the recorded container back. Test-only: check_explicit_dependencies.sh fails on a call in either app target.",
+   "entry": "Tests (ArchiveIntegrityTests.trashService, XCTestCase.isolateFromHostRecordingState, AppDependenciesTests)",
+   "calls": [
+    "ext:OSAllocatedUnfairLock.withLock"
+   ],
    "reads": [
     "mem:AppDependencies.storage"
    ],
@@ -135,12 +153,12 @@
    }
   },
   {
-   "key": "func AppDependencies.reset()",
-   "hash": "b609e241773c3b81",
-   "does": "Replaces the process-wide container with a fresh AppDependencies() (new, empty Overrides box).",
-   "entry": null,
+   "key": "func AppDependencies.InstalledScope.end()",
+   "hash": "98d4dbba965af973",
+   "does": "Puts the container that was in force when the scope began back in AppDependencies.storage. Calling it again re-stores the same container; scopes are meant to end in reverse order of install.",
+   "entry": "Tests, at teardown",
    "calls": [
-    "Emuqu/Sources/Utilities/AppDependencies.swift::init AppDependencies()"
+    "ext:OSAllocatedUnfairLock.withLock"
    ],
    "reads": [],
    "writes": [
@@ -148,7 +166,6 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::init AppDependencies()": "bea568cee298d114",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c"
    }
   },
@@ -628,6 +645,66 @@
    ],
    "writes": [
     "mem:AppDependencies.Overrides.values.zwiftPeripheralBroadcaster"
+   ],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.baselineTracker",
+   "hash": "6f538ff3086b0a5f",
+   "does": "Lock-guarded get/set of the optional BaselineTracker test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.baselineTracker"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.baselineTracker"
+   ],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.archiveSignal",
+   "hash": "41b4e797e964b3af",
+   "does": "Lock-guarded get/set of the optional ArchiveSignal test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.archiveSignal"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.archiveSignal"
+   ],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.sessionScoring",
+   "hash": "c3159287f8c46ffb",
+   "does": "Lock-guarded get/set of the optional SessionScoringContext test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.sessionScoring"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.sessionScoring"
+   ],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "var AppDependencies.Overrides.sessionReanalysis",
+   "hash": "5d5a25236587588c",
+   "does": "Lock-guarded get/set of the optional SessionReanalysisCoordinator test substitute in Overrides.values (OSAllocatedUnfairLock). The getter is read by the matching group accessor; the setter has no caller anywhere in the repo, so the value is always nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.values.sessionReanalysis"
+   ],
+   "writes": [
+    "mem:AppDependencies.Overrides.values.sessionReanalysis"
    ],
    "branches": [],
    "deps": {}
@@ -1798,6 +1875,110 @@
    "deps": {}
   },
   {
+   "key": "var CollectionServices.baselineTracker",
+   "hash": "e8f8470fe47e64dc",
+   "does": "The override when set, else the root's one BaselineTracker (SessionReanalysisRoot.baselineTracker), shared by the recording collector and saved-session reanalysis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies+Reanalysis.swift::let SessionReanalysisRoot.baselineTracker"
+   ],
+   "reads": [
+    "mem:AppDependencies.Overrides.baselineTracker"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "override set",
+     "effect": "returns it"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies+Reanalysis.swift::let SessionReanalysisRoot.baselineTracker": "dd4b05a0205a5a26"
+   }
+  },
+  {
+   "key": "var CollectionServices.archiveSignal",
+   "hash": "9274abb9298d326b",
+   "does": "The override when set, else the root's one ArchiveSignal (SessionReanalysisRoot.archiveSignal), the signal the collector's views observe and reanalysis bumps.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:AppDependencies.Overrides.archiveSignal",
+    "mem:SessionReanalysisRoot.archiveSignal"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "override set",
+     "effect": "returns it"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "var CollectionServices.sessionScoring",
+   "hash": "3cff3301d99b187a",
+   "does": "The override when set, else the root's one SessionScoringContext (SessionReanalysisRoot.scoring), shared by the collector and reanalysis.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies+Reanalysis.swift::let SessionReanalysisRoot.scoring"
+   ],
+   "reads": [
+    "mem:AppDependencies.Overrides.sessionScoring"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "override set",
+     "effect": "returns it"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies+Reanalysis.swift::let SessionReanalysisRoot.scoring": "72a870dc0e6ba4a6"
+   }
+  },
+  {
+   "key": "var CollectionServices.sessionReanalysis",
+   "hash": "df2cc829559ba8a6",
+   "does": "The override when set, else the root's one SessionReanalysisCoordinator (SessionReanalysisRoot.reanalysis), built and listening on first read.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies+Reanalysis.swift::let SessionReanalysisRoot.reanalysis"
+   ],
+   "reads": [
+    "mem:AppDependencies.Overrides.sessionReanalysis"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "override set",
+     "effect": "returns it"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies+Reanalysis.swift::let SessionReanalysisRoot.reanalysis": "167a710f23ca950f"
+   }
+  },
+  {
+   "key": "var CollectionServices.reanalysisService",
+   "hash": "c930f0cdbab9173d",
+   "does": "The ReanalysisService of sessionReanalysis, for manual windows, sleep-boundary edits and segment unlinks.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.sessionReanalysis"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.sessionReanalysis": "7e7eff2d9ea401f1"
+   }
+  },
+  {
    "key": "var LocationServices.activeRouteSession",
    "hash": "114931f17541664c",
    "does": "Returns the ActiveRouteSession the app uses: the test substitute from overrides.activeRouteSession if one is set, otherwise the ActiveRouteSession.shared singleton (constructing it on first access).",
@@ -2510,6 +2691,165 @@
    "deps": {}
   },
   {
+   "key": "var AppDependencies.launchServices",
+   "hash": "75eec821c2cdb6a6",
+   "does": "Builds a LaunchServices whose seven @MainActor @Sendable resolvers each read this container's accessor when called: recorderBox and launchCoordinator (UtilityServices), powerStatePolicy and morningNotificationScheduler (AppServices), trainingMetricsCache (AnalysisServices), roadGeocodingService and savedRouteStore (LocationServices). Building it resolves nothing.",
+   "entry": "EmuquApp stored property `launchServices` (EmuquApp.swift), read at app init; AppDependenciesTests",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.launchCoordinator",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.powerStatePolicy",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.morningNotificationScheduler",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.savedRouteStore",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.analysis",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services"
+   ],
+   "reads": [
+    "mem:AppDependencies.overrides (through the accessors, when a resolver is called)"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache": "e5e40dd422fc07ac",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.analysis": "a5881eae472ecfb2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.morningNotificationScheduler": "507098363688faff",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.powerStatePolicy": "30251ece00d6643c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.roadGeocodingService": "a0b74e1dad19f7ab",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.savedRouteStore": "058b3dca3f8937e8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.launchCoordinator": "04778df48b6e9a44",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox": "59f6a0baabb8c1c8"
+   }
+  },
+  {
+   "key": "var AppDependencies.purgeStores",
+   "hash": "500cc24a7f9d01a1",
+   "does": "Builds the DataPurgeService.Stores for this container: a recorderBox resolver (UtilityServices.recorderBox) and the Assistant, Location and Device groups from purgeAssistantStores, purgeLocationStores and purgeDeviceStores. Building it resolves nothing.",
+   "entry": "DeleteAllDataPage.runPurge (through the view's `dependencies`); DataPurgeServiceTests.stores; AppDependenciesTests",
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeAssistantStores",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeLocationStores",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeDeviceStores",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app"
+   ],
+   "reads": [
+    "mem:AppDependencies.overrides (through the accessors, when a resolver is called)"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeAssistantStores": "68bcd4938de0bea1",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeDeviceStores": "242432151a06c505",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeLocationStores": "3d90e235dbe1868a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.recorderBox": "59f6a0baabb8c1c8"
+   }
+  },
+  {
+   "key": "var AppDependencies.purgeAssistantStores",
+   "hash": "a891f05c01f30b2c",
+   "does": "Builds DataPurgeService.Stores.Assistant: resolvers for assistantViewModel, conversationStore, userFactsStore and assistantArtifactStore (AssistantServices) and providerConsentTracker, apiKeyStore, llmCacheTelemetry and llmRequestAudit (ProviderServices), each reading the accessor when called.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.conversationStore",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.userFactsStore",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantArtifactStore",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerConsentTracker",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.llmCacheTelemetry",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.llmRequestAudit",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantArtifactStore": "ca6a95a9c987140f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.assistantViewModel": "a9161ec7b1d3b09c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.conversationStore": "cae704a30a9efb87",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AssistantServices.userFactsStore": "05bda0e1f9522c3e",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore": "9644ad4752275337",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.llmCacheTelemetry": "2ce4b1e123543ddc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.llmRequestAudit": "dd8becf2e8a4332a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.providerConsentTracker": "c3caff64d81005e4"
+   }
+  },
+  {
+   "key": "var AppDependencies.purgeLocationStores",
+   "hash": "420633edf28d7798",
+   "does": "Builds DataPurgeService.Stores.Location: resolvers for breadcrumbStore, breadcrumbRecorder, activeRouteSession, savedRouteStore and ambientLocationService (LocationServices), each reading the accessor when called.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbRecorder",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.activeRouteSession",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.savedRouteStore",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.location": "a59911be64a235c2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.activeRouteSession": "afc55a2a74fa184f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService": "0434ddbabd3bc89c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbRecorder": "e00d57ceebe4cddc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.breadcrumbStore": "e69d88a8aa9e1d11",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.savedRouteStore": "058b3dca3f8937e8"
+   }
+  },
+  {
+   "key": "var AppDependencies.purgeDeviceStores",
+   "hash": "81a58841a3045813",
+   "does": "Builds DataPurgeService.Stores.Device: resolvers for workoutTrackBackup and uiStateCache (StorageServices), morningNotificationScheduler and recoveryScoreFeedbackStore (AppServices), emailContactStore, debugLogger and crashLogManager (UtilityServices), trainingMetricsCache and heatAcclimationCache (AnalysisServices), each reading the accessor when called.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.workoutTrackBackup",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.morningNotificationScheduler",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.uiStateCache",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.heatAcclimationCache",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.recoveryScoreFeedbackStore",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.analysis",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.heatAcclimationCache": "584281893599d0ab",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AnalysisServices.trainingMetricsCache": "e5e40dd422fc07ac",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.analysis": "a5881eae472ecfb2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.morningNotificationScheduler": "507098363688faff",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.recoveryScoreFeedbackStore": "d5d87c28d34a07cc",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.uiStateCache": "1734474b85a93236",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.workoutTrackBackup": "0d1b11f8c8845325",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager": "d874529ff05bd756",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger": "7a67c7397d8585c2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.emailContactStore": "6ccff086e88d7a89"
+   }
+  },
+  {
    "key": "var DependenciesKey.defaultValue",
    "hash": "34e253b4524d953a",
    "does": "EnvironmentKey default for \\.dependencies: a computed static that returns AppDependencies.current at each read (not a one-time snapshot), so a container swapped into `current` reaches views that have no injected value.",
@@ -2523,7 +2863,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"
    }
   },
   {
@@ -2541,7 +2881,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var DependenciesKey.defaultValue": "2ac01458964f7b92"
    }
   }

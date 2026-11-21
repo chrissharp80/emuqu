@@ -848,9 +848,12 @@ by layer (`app`, `analysis`, `assistant`, `collection`, `location`,
 `providers`, `services`, `storage`). Every accessor resolves lazily, so no
 service is built until asked for and no initialiser can recurse into the
 container. Views read `@Environment(\.dependencies)`; static helpers read
-`AppDependencies.current`; a test makes a fresh container, sets the substitute
-on its `overrides`, assigns it to `current` in `setUp`, and calls `reset()` in
-`tearDown`.
+`AppDependencies.current`; the launch work and `DataPurgeService` are handed
+exactly the services they use (`launchServices`, `purgeStores`) and read no
+container. `current` has no setter: a test makes a fresh container, sets the
+substitute on its `overrides`, puts it in force with
+`AppDependencies.install(_:)`, and ends the returned scope in teardown
+(`scripts/check_explicit_dependencies.sh` keeps `install` out of app code).
 
 ### 9.5 Feature flags & kill switches
 
@@ -1313,8 +1316,8 @@ lists them all as possible callers, and only certain edges trigger re-checks.
   the script gates from `make ci` that need only bash and python (no SwiftLint,
   no Xcode), including the code-map check. On a pull request it also writes the
   code-map impact report to the job summary. About a minute. `main` requires
-  this job ("Script gates (no Xcode)") to pass before anything merges; the
-  `ci.yml` jobs above are advisory.
+  this job ("Script gates (no Xcode)") and the five `ci.yml` jobs above to
+  pass, on a branch that is up to date with `main`, before anything merges.
 - **`security.yml`** — `workflow_dispatch` only — CodeQL over the Swift
   (macOS) and dependency review (ubuntu).
 - **`performance.yml`** — `workflow_dispatch` only — `AnalysisPerformanceTests`.
