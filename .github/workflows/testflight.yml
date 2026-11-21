@@ -140,6 +140,10 @@ jobs:
       #
       # -allowProvisioningUpdates only works with an account, and a runner has
       # none signed in, so the App Store Connect key authenticates it.
+      #
+      # -onlyUsePackageVersionsFromResolvedFile (defined in
+      # scripts/lib/xcodebuild.sh) archives the package versions in the
+      # committed Package.resolved whose hash this run records.
       - name: Build archive
         env:
           ASC_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
@@ -149,6 +153,7 @@ jobs:
           BUILD_NUMBER="${{ github.run_number }}.${{ github.run_attempt }}"
           echo "CURRENT_PROJECT_VERSION → ${BUILD_NUMBER}"
           xcodebuild \
+            -onlyUsePackageVersionsFromResolvedFile \
             -project Emuqu.xcodeproj \
             -scheme Emuqu \
             -configuration Release \

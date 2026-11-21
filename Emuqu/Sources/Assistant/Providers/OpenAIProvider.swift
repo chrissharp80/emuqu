@@ -2,7 +2,7 @@ import Foundation
 
 /// Streams responses from OpenAI's Chat Completions API.
 /// https://platform.openai.com/docs/api-reference/chat/create
-final class OpenAIProvider: AIProvider {
+final class OpenAIProvider: OpenAICompatibleProvider {
     /// Checked against developers.openai.com/api/docs/models and
     /// /deprecations. `ProviderModelCatalogTests` pins this list.
     ///
@@ -47,40 +47,9 @@ final class OpenAIProvider: AIProvider {
     ]
 
     let id: ProviderID = .openai
-    var availableModels: [ModelOption] {
-        Self.models
-    }
+    static let endpoint = OpenAICompatibleStreamer.Endpoint.openAI
 
     /// Reasoning off: gpt-6-luna takes tools on Chat Completions only at
     /// `reasoning_effort` "none", and it is the default for the other two.
     static let reasoning: OpenAICompatibleStreamer.Reasoning = .effortNone
-
-    var requiresKey: Bool {
-        true
-    }
-
-    var isAvailable: Bool {
-        AppDependencies.current.providers.apiKeyStore.hasKey(for: .openai)
-    }
-
-    func send(
-        messages: [ChatTurn],
-        model: ModelOption,
-        contextRendered: String,
-        systemPrompt: String,
-        tools: [ToolSpec],
-        toolRounds: [[ToolExchange]]
-    ) -> AsyncThrowingStream<AIStreamEvent, Error> {
-        OpenAICompatibleStreamer.send(
-            providerID: .openai,
-            endpoint: OpenAICompatibleStreamer.Endpoint.openAI,
-            reasoning: Self.reasoning,
-            messages: messages,
-            model: model,
-            contextRendered: contextRendered,
-            systemPrompt: systemPrompt,
-            tools: tools,
-            toolRounds: toolRounds
-        )
-    }
 }

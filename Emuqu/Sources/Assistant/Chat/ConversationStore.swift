@@ -2,18 +2,17 @@ import Foundation
 import os
 import UIKit
 
-/// Persists the assistant's chat thread to a JSON file in the App Group container.
+/// Persists the assistant's chat thread to a file in the App Group container.
 ///
 /// MVP: a single rolling thread, cleared via the chat UI's "Clear" action.
 /// Multi-thread history can layer on later without changing this file's shape.
 ///
-/// Writes are protected at the strongest level
-/// the iOS data-protection API supports — `NSFileProtectionComplete`.
-/// The file is unreadable while the device is locked. Chat history (which
-/// can quote HRV / heart rate / sleep / location) is not needed during
-/// overnight recording (the assistant tab is not open while sleeping),
-/// so the stricter protection level is the right trade-off vs the App
-/// Group default (`UntilFirstUserAuthentication`).
+/// The thread can quote HRV, heart rate, sleep and location, so the JSON is
+/// sealed with `EncryptionManager` like the app's other health stores and
+/// written with `NSFileProtectionCompleteUnlessOpen` (`AssistantStoreFile`):
+/// the voice assistant can answer with the phone locked (a workout's voice
+/// coach, a Watch voice tap), and that class lets the turn be written then,
+/// while the file still cannot be read until the phone is unlocked.
 /// `@unchecked Sendable`: every mutable field is read and written only on
 /// `queue` (a serial DispatchQueue); see the comments on `latestTurns`. The one
 /// exception, `unreadableOnDisk`, sits behind its own lock because `load()`
@@ -58,29 +57,24 @@ final class ConversationStore: @unchecked Sendable {
     // MARK: - API
 
     /// Synchronous load — used by `AssistantViewModel.init` where async
-    /// isn't available. Deliberately NOT wrapped in `queue.sync`
-    /// (synchronous dispatch through a utility-priority serial queue):
-    /// that doubles the cost on the caller's thread for no correctness
-    /// benefit, because writes use atomic + complete-file-protection,
-    /// so the OS guarantees readers see a fully-written file or
-    /// nothing — no need for our own mutex on the read path. Direct
-    /// read, ~10-50 KB JSON file, sub-ms.
+    /// isn't available. Not wrapped in `queue.sync`: writes are atomic, so a
+    /// reader sees a whole file or none. ~10-50 KB, sub-ms.
+    ///
+    /// A missing file is normal (first launch). A file that can't be read
+    /// (locked) or opened and decoded (truncated, newer schema) starts the
+    /// chat empty and flags the file, so the next save does not write over
+    /// the history this launch couldn't see: a locked file holds the save
+    /// until unlock, an undecodable one is set aside first.
     func load() -> [ChatTurn] {
-        // Missing file is normal (first launch) — stay quiet. A file that
-        // can't be read (locked) or decoded (truncated, newer schema) starts
-        // the chat empty and flags the file, so the next save does not write
-        // over the history this launch couldn't see: a locked file holds the
-        // save until unlock, an undecodable one is set aside first.
-        guard let data = try? Data(contentsOf: fileURL) else {
-            noteUnreadableIfPresent()
-            return []
+        switch AssistantStoreFile.read(fileURL, caller: "ConversationStore") {
+        case .missing: return []
+        case .unreadable, .undecodable: break
+        case let .json(data):
+            if let turns = Self.decodedTurns(data) { return turns }
         }
-        guard let turns = Self.decodedTurns(data) else {
-            unreadableOnDisk.withLock { $0 = true }
-            debugLog("[ConversationStore] load: decode failed — starting empty and holding saves so the file is kept", level: .error)
-            return []
-        }
-        return turns
+        unreadableOnDisk.withLock { $0 = true }
+        debugLog("[ConversationStore] load: history unreadable or undecodable — starting empty and holding saves so the file is kept", level: .warning)
+        return []
     }
 
     private static func decodedTurns(_ data: Data) -> [ChatTurn]? {
@@ -123,8 +117,7 @@ final class ConversationStore: @unchecked Sendable {
     /// skipping is exactly right.
     ///
     /// A save held because the history can't be read, or a save that fails
-    /// to encode or write (the phone locked under complete file protection),
-    /// sets `writePending`; `retryHeldSave()` tries again once protected data
+    /// to encode, seal or write, sets `writePending`; `retryHeldSave()` tries again once protected data
     /// is available or the app becomes active.
     private func writeCoalescedSnapshot() {
         guard saveScheduled else { return }
@@ -136,21 +129,15 @@ final class ConversationStore: @unchecked Sendable {
         writePending = !write(snapshot)
     }
 
-    /// Encodes and writes the turns; false when either step failed. The
-    /// directory is created first: Delete All My Data removes it under a
-    /// running store, and only init created it.
+    /// Encodes, seals and writes the turns; false when any step failed (the
+    /// key unavailable leaves the previous file as it was). The directory is
+    /// created first: Delete All My Data removes it under a running store,
+    /// and only init created it.
     private func write(_ turns: [ChatTurn]) -> Bool {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         guard let data = attempt("conversationStore.encode", { try encoder.encode(turns) }) else { return false }
-        do {
-            try FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try data.write(to: fileURL, options: [.atomic, .completeFileProtection])
-            return true
-        } catch {
-            debugLog("[ConversationStore] save: write failed, retrying on unlock or when the app becomes active: \(error)", level: .error)
-            return false
-        }
+        return AssistantStoreFile.write(data, to: fileURL, caller: "ConversationStore")
     }
 
     /// Re-runs a held or failed save. Called when protected data becomes
@@ -177,25 +164,19 @@ final class ConversationStore: @unchecked Sendable {
 
     // MARK: - Protected data
 
-    /// The file is written with complete protection, so it cannot be read while
-    /// the phone is locked, and `load()` then returns an empty history. When the
-    /// assistant was first created in that state — a workout's voice coach, a
-    /// Watch voice tap, with the phone locked — the next save wrote that empty
-    /// history plus one new turn over the whole conversation. A file that reads
-    /// but does not decode is flagged the same way; the next save moves it
-    /// aside (kept, not deleted — see `UndecodableFile`) and then writes, so a
+    /// The file cannot be read while the phone is locked, and `load()` then
+    /// returns an empty history. When the assistant was first created in that
+    /// state — a workout's voice coach, a Watch voice tap, with the phone
+    /// locked — the next save wrote that empty history plus one new turn over
+    /// the whole conversation. A file that reads but does not open or decode
+    /// is flagged the same way; the next save moves it aside (kept, not
+    /// deleted — see `AssistantStoreFile.setAside`) and then writes, so a
     /// schema change or truncated write is never overwritten and later turns
     /// are not held unsaved for good.
     private let unreadableOnDisk = OSAllocatedUnfairLock(initialState: false)
 
     /// True while the file on disk holds turns the caller has not seen.
     var needsReloadFromDisk: Bool { unreadableOnDisk.withLock { $0 } }
-
-    private func noteUnreadableIfPresent() {
-        guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
-        unreadableOnDisk.withLock { $0 = true }
-        debugLog("[ConversationStore] history present but unreadable (device locked?) — saves will merge, not overwrite", level: .warning)
-    }
 
     /// `current` with every turn still on disk merged back in, or nil while the
     /// file stays unreadable.
@@ -217,19 +198,31 @@ final class ConversationStore: @unchecked Sendable {
     /// `mergedWithDisk`'s work; runs only while `diskMerge` is held.
     private func mergeWithDiskLocked(_ current: [ChatTurn], acknowledging: Bool) -> [ChatTurn]? {
         guard unreadableOnDisk.withLock({ $0 }) else { return current }
-        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+        switch AssistantStoreFile.read(fileURL, caller: "ConversationStore") {
+        case .missing:
             unreadableOnDisk.withLock { $0 = false }
             return current
+        case .unreadable: return nil
+        case .undecodable: return setAsideUndecodable(keeping: current)
+        case let .json(data): return merge(data, into: current, acknowledging: acknowledging)
         }
-        guard let data = attempt("conversationStore.readBeforeWrite", { try Data(contentsOf: fileURL) }) else { return nil }
-        guard let onDisk = Self.decodedTurns(data) else {
-            guard UndecodableFile.setAside(fileURL, caller: "ConversationStore") else { return nil }
-            unreadableOnDisk.withLock { $0 = false }
-            return current
-        }
+    }
+
+    /// `current` with the turns in `data` it lacks, in time order; an
+    /// undecodable `data` is set aside instead.
+    private func merge(_ data: Data, into current: [ChatTurn], acknowledging: Bool) -> [ChatTurn]? {
+        guard let onDisk = Self.decodedTurns(data) else { return setAsideUndecodable(keeping: current) }
         if acknowledging { unreadableOnDisk.withLock { $0 = false } }
         let known = Set(current.map(\.id))
         return (onDisk.filter { !known.contains($0.id) } + current).sorted { $0.createdAt < $1.createdAt }
+    }
+
+    /// Moves an undecodable history aside so saving can resume; `current`
+    /// once it is moved, nil (the save stays held) when it could not be.
+    private func setAsideUndecodable(keeping current: [ChatTurn]) -> [ChatTurn]? {
+        guard AssistantStoreFile.setAside(fileURL, caller: "ConversationStore") else { return nil }
+        unreadableOnDisk.withLock { $0 = false }
+        return current
     }
 
     /// Nil while the history on disk is still unreadable (or undecodable and
@@ -252,37 +245,107 @@ final class ConversationStore: @unchecked Sendable {
     private let saveDebounceMs: Int
     static let defaultSaveDebounceMs: Int = 750
 
-    /// Whether the history file holds no turns once every change already
-    /// queued (a `clear()` included) has run: true when the file is gone or
-    /// decodes to an empty list. A file that cannot be read or decoded counts
-    /// as holding turns. Delete All My Data reads its result back with it.
+    /// Whether nothing of the history is left on disk once every change
+    /// already queued (a `clear()` included) has run: true when the file is
+    /// gone or decodes to an empty list and no set-aside copy remains. A file
+    /// that cannot be read or decoded counts as holding turns. Delete All My
+    /// Data reads its result back with it.
     func isEmptyOnDisk() -> Bool {
         queue.sync {
-            guard FileManager.default.fileExists(atPath: fileURL.path) else { return true }
-            guard let data = attempt("conversationStore.readBack", { try Data(contentsOf: fileURL) }) else { return false }
-            return Self.decodedTurns(data)?.isEmpty ?? false
+            guard !AssistantStoreFile.hasSetAsideCopies(of: fileURL, caller: "ConversationStore") else { return false }
+            switch AssistantStoreFile.read(fileURL, caller: "ConversationStore") {
+            case .missing: return true
+            case .unreadable, .undecodable: return false
+            case let .json(data): return Self.decodedTurns(data)?.isEmpty ?? false
+            }
         }
     }
 
-    func clear() {
-        queue.async { [weak self] in
-            guard let self else { return }
-            _ = attempt("ConversationStore.remove") { try FileManager.default.removeItem(at: self.fileURL) }
-            // Reset the in-memory snapshot so any trailing save from
-            // the coalescer doesn't resurrect the cleared chat.
-            self.latestTurns = []
-            self.saveScheduled = false
-            self.writePending = false
-            self.unreadableOnDisk.withLock { $0 = false }
+    /// Erases the history: every set-aside copy, then the file itself, on the
+    /// queue after any write already queued. True when none of them is left.
+    ///
+    /// Only a complete erase resets the in-memory snapshot and cancels the
+    /// pending coalesced write (`saveScheduled`), so the trailing fire cannot
+    /// re-create the file. When something could not be removed the
+    /// in-memory state is left as it was and false is returned: the caller
+    /// still holds the turns and says the chat was not erased.
+    @discardableResult
+    func clear() -> Bool {
+        queue.sync {
+            guard AssistantStoreFile.erase(fileURL, caller: "ConversationStore") else { return false }
+            latestTurns = []
+            saveScheduled = false
+            writePending = false
+            unreadableOnDisk.withLock { $0 = false }
+            return true
         }
     }
 }
 
-/// A history file that reads but does not decode (a truncated write, or one
-/// written by a newer schema) is renamed beside the original rather than
-/// deleted, so nothing in it is lost, and the store can save again. Holding
-/// every save instead lost each later turn at the next launch.
-enum UndecodableFile {
+/// The on-disk side the assistant's stores share (`ConversationStore`,
+/// `UserFactsStore`, `AssistantArtifactStore`). Each keeps one JSON file,
+/// sealed with `EncryptionManager`, and a file that reads but does not open or
+/// decode (a truncated write, a newer schema, a damaged seal) is renamed
+/// beside the original as `<name>.undecodable-<unix time>.json` rather than
+/// deleted, so nothing in it is lost and the store can save again.
+enum AssistantStoreFile {
+    /// What a read of a store's file found.
+    enum Read {
+        case missing
+        /// Present but not readable now: file protection while the phone is
+        /// locked, or the keychain holding the key unavailable.
+        case unreadable
+        /// Present, and can never be opened by this build: a damaged seal or
+        /// a missing key.
+        case undecodable
+        /// The file's JSON: unsealed, or as written by a build that did not
+        /// seal it (`EncryptionManager.openStoredJSON`).
+        case json(Data)
+    }
+
+    static func read(_ url: URL, caller: String) -> Read {
+        guard FileManager.default.fileExists(atPath: url.path) else { return .missing }
+        do {
+            return opened(try Data(contentsOf: url), caller: caller)
+        } catch {
+            debugLog("[\(caller)] \(url.lastPathComponent) present but unreadable (device locked?): \(error)", level: .warning)
+            return .unreadable
+        }
+    }
+
+    /// A keychain failure is the phone's state and passes; any other failure
+    /// to open the seal is the file's and does not.
+    private static func opened(_ stored: Data, caller: String) -> Read {
+        do {
+            return try .json(JSONFileSeal.app.open(stored))
+        } catch where JSONFileSeal.isKeyLocked(error) {
+            debugLog("[\(caller)] key unavailable (\(error)); the file is read again later", level: .warning)
+            return .unreadable
+        } catch {
+            debugLog("[\(caller)] stored file cannot be opened: \(error)", level: .error)
+            return .undecodable
+        }
+    }
+
+    /// Seals `json` and writes it atomically, creating the directory first
+    /// (Delete All My Data removes it under a running store).
+    ///
+    /// `.completeFileProtectionUnlessOpen` lets the file be written while the
+    /// phone is locked, which the voice assistant needs, and keeps it
+    /// unreadable then. False when sealing or writing failed: the previous
+    /// file is left as it was and nothing is written in plain text.
+    static func write(_ json: Data, to url: URL, caller: String) -> Bool {
+        do {
+            let sealed = try JSONFileSeal.app.seal(json)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try sealed.write(to: url, options: [.atomic, .completeFileProtectionUnlessOpen])
+            return true
+        } catch {
+            debugLog("[\(caller)] write failed; the previous file is kept and the write retried: \(error)", level: .error)
+            return false
+        }
+    }
+
     /// Renames `url` to `<name>.undecodable-<unix time>.json`. True on success.
     static func setAside(_ url: URL, caller: String) -> Bool {
         let stamp = Int(Date().timeIntervalSince1970)
@@ -293,6 +356,52 @@ enum UndecodableFile {
             return true
         } catch {
             debugLog("[\(caller)] could not set the undecodable file aside, saves stay held: \(error)", level: .error)
+            return false
+        }
+    }
+
+    /// Every copy `setAside` left beside `url`; nil when the directory exists
+    /// but cannot be listed.
+    static func setAsideCopies(of url: URL, caller: String) -> [URL]? {
+        let directory = url.deletingLastPathComponent()
+        guard FileManager.default.fileExists(atPath: directory.path) else { return [] }
+        let prefix = url.deletingPathExtension().lastPathComponent + ".undecodable-"
+        do {
+            return try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+                .filter { $0.lastPathComponent.hasPrefix(prefix) && $0.pathExtension == "json" }
+        } catch {
+            debugLog("[\(caller)] could not list set-aside copies: \(error)", level: .error)
+            return nil
+        }
+    }
+
+    /// True when a set-aside copy of `url` exists, or when that cannot be
+    /// ruled out because the directory cannot be listed.
+    static func hasSetAsideCopies(of url: URL, caller: String) -> Bool {
+        setAsideCopies(of: url, caller: caller)?.isEmpty != true
+    }
+
+    /// Removes every set-aside copy of `url`, trying each one. True when none
+    /// is left.
+    static func eraseSetAsideCopies(of url: URL, caller: String) -> Bool {
+        guard let copies = setAsideCopies(of: url, caller: caller) else { return false }
+        return !copies.map { remove($0, caller: caller) }.contains(false)
+    }
+
+    /// Removes the set-aside copies, then `url` itself; `url` is left in place
+    /// when a copy could not be removed. True when nothing is left.
+    static func erase(_ url: URL, caller: String) -> Bool {
+        eraseSetAsideCopies(of: url, caller: caller) && remove(url, caller: caller)
+    }
+
+    /// True when `url` is gone, whether it was there or not.
+    private static func remove(_ url: URL, caller: String) -> Bool {
+        guard FileManager.default.fileExists(atPath: url.path) else { return true }
+        do {
+            try FileManager.default.removeItem(at: url)
+            return true
+        } catch {
+            debugLog("[\(caller)] could not remove \(url.lastPathComponent): \(error)", level: .error)
             return false
         }
     }

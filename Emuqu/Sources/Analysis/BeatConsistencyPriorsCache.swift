@@ -354,21 +354,30 @@ final class BeatConsistencyPriorsCache {
         }
     }
 
+    /// The features file, opened with the app's key (sealed, or plain JSON
+    /// from a build that did not seal it). No file is the first-launch case
+    /// and stays silent; one that cannot be read, opened (the key locked
+    /// among them) or decoded is logged and leaves the cache empty, to be
+    /// recomputed from the archive and written again.
     private func loadFromDisk() {
-        guard let data = try? Data(contentsOf: diskURL),
-              let decoded = try? JSONDecoder().decode(StoredEntries.self, from: data)
+        let url = diskURL
+        guard FileManager.default.fileExists(atPath: url.path),
+              let decoded = attempt("beatConsistencyPriors.load", {
+                  try JSONFileSeal.app.openJSON(StoredEntries.self, from: Data(contentsOf: url), with: JSONDecoder())
+              })
         else { return }
         let kept = decoded.entries.suffix(Self.entryCap)
         entries = Dictionary(kept.map { ($0.id, $0.features) }, uniquingKeysWith: { _, newer in newer })
         entryOrder = kept.map(\.id).filter { entries[$0] != nil }
     }
 
-    /// A missing file is the normal first-launch case and stays silent.
+    /// The featureless file, opened as `loadFromDisk` opens the features
+    /// file. A missing file is the normal first-launch case and stays silent.
     private func loadFeaturelessFromDisk() {
         guard FileManager.default.fileExists(atPath: featurelessURL.path) else { return }
         let url = featurelessURL
         guard let ids = attempt("beatConsistencyPriors.loadFeatureless", {
-            try JSONDecoder().decode([UUID].self, from: Data(contentsOf: url))
+            try JSONFileSeal.app.openJSON([UUID].self, from: Data(contentsOf: url), with: JSONDecoder())
         }) else { return }
         featurelessOrder = Array(ids.suffix(Self.entryCap))
         featureless = Set(featurelessOrder)
@@ -397,15 +406,18 @@ final class BeatConsistencyPriorsCache {
         }
     }
 
+    /// Seals `snapshot` with the app's key and writes it atomically under
+    /// `.completeFileProtectionUntilFirstUserAuthentication` (not
+    /// `.complete`, so a write while the phone is locked after the first
+    /// unlock still lands). A failure, a seal with no key reachable among
+    /// them, writes nothing: the previous file stays, the features stay in
+    /// memory for the next write, and they are never written in the clear.
     nonisolated private static func write(_ snapshot: some Encodable, to url: URL) {
-        guard let data = attempt("beatConsistencyPriors.encode", { try JSONEncoder().encode(snapshot) }) else { return }
         do {
-            // Explicit protection class on this RR-derived cache, matching
-            // the archive/backup writers. CUFUA (not `.complete`) so a
-            // background/locked write can't fail the way `.complete` did.
-            try data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+            let sealed = try JSONFileSeal.app.sealJSON(snapshot, with: JSONEncoder())
+            try sealed.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
         } catch {
-            debugLog("[BeatConsistencyPriorsCache] persist failed: \(error)", level: .warning)
+            debugLog("[BeatConsistencyPriorsCache] persist failed (previous file kept): \(error)", level: .warning)
         }
     }
 }

@@ -194,9 +194,9 @@ struct WebSearchNamespace: FactNamespaceResolver {
     }
 
     // A suspending timeout race with a 15 s budget, so the main actor is
-    // never parked. WebSearchService is non-@MainActor, so the URLSession
+    // never parked. WebSearchService is non-@MainActor, so the transport
     // await runs off-main while this resolver suspends. The budget is wider
-    // than URLSession's own 12 s timeout, so a network error normally
+    // than the request's own 12 s timeout, so a network error normally
     // arrives first; the race only stops a wedged request hanging the
     // assistant.
     //
@@ -217,10 +217,11 @@ struct WebSearchNamespace: FactNamespaceResolver {
             } catch let error as WebSearchService.SearchError {
                 return .failure(error)
             } catch {
-                // WebSearchService.search lets URLSession's own errors
-                // (offline, TLS, its 12 s timeout) through unwrapped, so
-                // every transport failure lands here; keep the message
-                // in the typed .network bucket the switch below covers.
+                // WebSearchService.search lets the errors of its injected
+                // HTTPTransport (offline, TLS, the request's 12 s timeout)
+                // through unwrapped, so every transport failure lands here;
+                // keep the message in the typed .network bucket the switch
+                // below covers.
                 return .failure(.network(error.localizedDescription))
             }
         }

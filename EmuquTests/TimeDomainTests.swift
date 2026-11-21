@@ -3,50 +3,7 @@ import XCTest
 
 /// Time domain HRV analysis tests
 final class TimeDomainTests: XCTestCase {
-    // MARK: - RMSSD Tests
-
-    /// RMSSD equals the hand-computed value for a known pattern
-    func testRMSSDAccuracy() throws {
-        // Create known RR intervals with calculable RMSSD
-        // Need at least 10 points for TimeDomain analysis
-        // Using pattern: 800, 820, 790, 830, 780, repeated twice
-        // Successive diffs: 20, -30, 40, -50, 20, 20, -30, 40, -50
-        // (the fifth is the 780 → 800 wraparound)
-        // Squares: 400, 900, 1600, 2500, 400, 400, 900, 1600, 2500 = 11200
-        // RMSSD = sqrt(11200 / 9) ≈ 35.28
-
-        let basePattern = [800, 820, 790, 830, 780]
-        var points: [RRPoint] = []
-        var t_ms: Int64 = 0
-
-        for _ in 0 ..< 2 {
-            for rr in basePattern {
-                points.append(RRPoint(t_ms: t_ms, rr_ms: rr))
-                t_ms += Int64(rr)
-            }
-        }
-        // Total: 10 points
-
-        let series = RRSeries(points: points, sessionId: UUID(), startDate: Date())
-        let flags = [ArtifactFlags](repeating: .clean, count: points.count)
-
-        let metrics = TimeDomainAnalyzer.computeTimeDomain(
-            series,
-            flags: flags,
-            windowStart: 0,
-            windowEnd: points.count
-        )
-
-        let m = try XCTUnwrap(metrics)
-
-        let expectedRMSSD = (11_200.0 / 9.0).squareRoot()
-        XCTAssertEqual(
-            m.rmssd,
-            expectedRMSSD,
-            accuracy: 0.01,
-            "RMSSD must equal the hand-computed reference. Expected \(expectedRMSSD), got \(m.rmssd)"
-        )
-    }
+    // MARK: - pNN50, Mean and Window Tests
 
     /// Test pNN50 calculation
     func testPNN50() throws {
@@ -85,44 +42,6 @@ final class TimeDomainTests: XCTestCase {
             accuracy: 0.1,
             "pNN50 should be 60%. Got \(m.pnn50)"
         )
-    }
-
-    /// Test SDNN calculation
-    func testSDNN() throws {
-        // Need at least 10 points for TimeDomain analysis
-        // RR intervals: 800, 900, 700, 850, 750, 800, 900, 700, 850, 750
-        // Mean: 800
-        // Variance and SD should be consistent with pattern
-
-        let pattern = [800, 900, 700, 850, 750]
-        var points: [RRPoint] = []
-        var t_ms: Int64 = 0
-
-        for _ in 0 ..< 2 {
-            for rr in pattern {
-                points.append(RRPoint(t_ms: t_ms, rr_ms: rr))
-                t_ms += Int64(rr)
-            }
-        }
-        // Total: 10 points
-
-        let series = RRSeries(points: points, sessionId: UUID(), startDate: Date())
-        let flags = [ArtifactFlags](repeating: .clean, count: points.count)
-
-        let metrics = TimeDomainAnalyzer.computeTimeDomain(
-            series,
-            flags: flags,
-            windowStart: 0,
-            windowEnd: points.count
-        )
-
-        XCTAssertNotNil(metrics)
-
-        // With repeated pattern [800, 900, 700, 850, 750], mean is 800
-        // SDNN should still be around 79 since pattern repeats
-        // Just verify it's in a reasonable range
-        XCTAssertGreaterThan(try XCTUnwrap(metrics?.sdnn), 70, "SDNN should be > 70 for this pattern")
-        XCTAssertLessThan(try XCTUnwrap(metrics?.sdnn), 90, "SDNN should be < 90 for this pattern")
     }
 
     /// Test mean RR and HR
@@ -308,7 +227,7 @@ final class TimeDomainTests: XCTestCase {
     func testRMSSDParityExact() throws {
         // Pattern [800, 820, 790, 830, 780] x2 → successive diffs
         // [20, -30, 40, -50, 20, 20, -30, 40, -50] (9 diffs, including the
-        // 780→800 wraparound), RMSSD = sqrt(8400/9) ≈ 35.27668.
+        // 780→800 wraparound), squares sum to 11200, RMSSD = sqrt(11200/9) ≈ 35.27668.
         let pattern = [800, 820, 790, 830, 780]
         var points: [RRPoint] = []
         var t_ms: Int64 = 0

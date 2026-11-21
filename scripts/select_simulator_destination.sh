@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+source "$(dirname "$0")/lib/xcodebuild.sh"
+
 SCHEME="${1:-Emuqu}"
 PROJECT="${2:-Emuqu.xcodeproj}"
 
 DESTINATION_ID="$({
-    xcodebuild -project "$PROJECT" -scheme "$SCHEME" -showdestinations 2>/dev/null || true
+    xcodebuild "$XCODEBUILD_PINNED" -project "$PROJECT" -scheme "$SCHEME" -showdestinations 2>/dev/null || true
 } | awk '
     /platform:iOS Simulator/ && $0 !~ /placeholder/ {
         if (match($0, /id:[^,]*/)) {

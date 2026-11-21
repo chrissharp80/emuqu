@@ -317,7 +317,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByRMSSD(_:)": "605b5a5dd0a43041",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByTier1Score(_:baseline:)": "1dbb8825dde76a2d",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryWindow(from:)": "3bfaa129c438de1a",
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryWindow(from:)": "9c4872072eb3b6e8",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -395,10 +395,11 @@
   },
   {
    "key": "func WindowSelector.recoveryWindow(from:)",
-   "hash": "0823f0eb10942706",
-   "does": "Builds the RecoveryWindow from the chosen organized block: isConsolidated = HR CV < 0.08 (always true in production, where an organized block without LF/HF is HR-stable; false only for a test block organized by LF/HF), qualityScore = RMSSD/100, recoveryScore with stability weight, isOrganizedRecovery true, classification from the block.",
+   "hash": "8b0b9ba754db2ffd",
+   "does": "Builds the RecoveryWindow from the chosen organized block: isConsolidated = the block's isConsolidatedRecovery (organized && HR CV < 0.08; every block reaching it is organized, so it is true in production, where an organized block without LF/HF is HR-stable, and false only for a test block organized by LF/HF), qualityScore = RMSSD/100, recoveryScore with stability weight, isOrganizedRecovery true, classification from the block.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isConsolidatedRecovery",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logSelectedWindow(finalBlock:positionPercent:isConsolidated:)",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectionReason(for:)",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)",
@@ -409,7 +410,8 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.classification": "1eff03953516f82e",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.classification": "dbe9cfd1ddb15f2e",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isConsolidatedRecovery": "39c3c5939f197eee",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.logSelectedWindow(finalBlock:positionPercent:isConsolidated:)": "023086b36064d32b",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.selectionReason(for:)": "2c193f059ce6d2f6",
     "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417"
@@ -517,7 +519,7 @@
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findPeakCapacity(in:flags:)": "16c3936d139cf456",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakCapacity(from:)": "f982489dcaac4121",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryOrPeakFallback(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "669eedb6ca395ad9",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryWindow(from:)": "3bfaa129c438de1a"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.recoveryWindow(from:)": "9c4872072eb3b6e8"
    }
   },
   {
@@ -785,11 +787,12 @@
   },
   {
    "key": "func WindowSelector.buildPeakRecoveryWindow(finalBlock:metric:)",
-   "hash": "b82ba31ed2b6dd18",
+   "hash": "54297bc274805223",
    "does": "Builds a RecoveryWindow for a peak-selected block, carrying its real isOrganizedRecovery and isConsolidated = organized && CV < 0.08.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isConsolidatedRecovery",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakSelectionReason(finalBlock:metric:)",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.classification"
@@ -799,8 +802,9 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.classification": "1eff03953516f82e",
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.classification": "dbe9cfd1ddb15f2e",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isConsolidatedRecovery": "39c3c5939f197eee",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "a94b71838be09fe7",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.peakSelectionReason(finalBlock:metric:)": "f85e23eb3f3b491d",
     "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417"
    }
@@ -966,11 +970,12 @@
   },
   {
    "key": "func WindowSelector.manualRecoveryWindow(from:)",
-   "hash": "9748a388aa26c135",
+   "hash": "60f2e983c6ac325c",
    "does": "Builds the manual RecoveryWindow carrying the block's isOrganizedRecovery and isConsolidated = organized && CV < 0.08.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isConsolidatedRecovery",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.manualSelectionReason(for:)",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.classification"
@@ -980,8 +985,9 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.classification": "1eff03953516f82e",
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "4179ba1b72db50c1",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.classification": "dbe9cfd1ddb15f2e",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isConsolidatedRecovery": "39c3c5939f197eee",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "a94b71838be09fe7",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.manualSelectionReason(for:)": "9d58763ab5e385a8",
     "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417"
    }

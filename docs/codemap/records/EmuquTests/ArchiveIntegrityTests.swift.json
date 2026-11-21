@@ -1,7 +1,7 @@
 {
  "file": "EmuquTests/ArchiveIntegrityTests.swift",
- "hash": "f23840b5c2a9017c",
- "role": "XCTest suite for SessionArchive storage integrity on a private temp directory: archive/retrieve, SHA256 hash, duplicates, re-upload notifications and modifiedAt stamping, trash, deletion, tags, concurrency, batch archive, integrity verification, encrypted repair, nearby-session detection and edge cases.",
+ "hash": "522fef5b8d11c372",
+ "role": "XCTest suite for SessionArchive storage integrity on a private temp directory: archive/retrieve, SHA256 hash, duplicates, re-upload notifications and modifiedAt stamping, trash, deletion, tags, concurrency, batch archive, integrity verification, encrypted repair, deleting from the Trash for good (deletion mark, outcome, breadcrumb route, pull of a forgotten session), the sealed index, nearby-session detection and edge cases.",
  "types": [
   "ArchiveIntegrityTests: class — XCTestCase over a hermetic SessionArchive (more tests in ArchiveIntegrityTests+Codec.swift)"
  ],
@@ -11,7 +11,7 @@
   "mem:ArchiveIntegrityTests.archive (lazy SessionArchive with injected 22:00/8h schedule, .defaultGap merge mode, 4.5h merge gap)",
   "mem:ArchiveIntegrityTests.testSessionIds / sessionCounter (per-instance)"
  ],
- "toplevel": "archiveDirectory is a per-instance temp URL; archive is a lazy SessionArchive(directory:archiveDirectory, schedule 22:00+8h, mergeMode .defaultGap, mergeGap 4.5h) so tests do not depend on SettingsManager. Class setUp pins NSTimeZone.default to UTC and warms static singletons.",
+ "toplevel": "archiveDirectory is a per-instance temp URL; archive is a lazy SessionArchive(directory:archiveDirectory, schedule 22:00+8h, mergeMode .defaultGap, mergeGap 4.5h) so tests do not depend on SettingsManager. Class setUp pins NSTimeZone.default to UTC and warms static singletons. Imports CloudKit for the pull test's CKRecord.",
  "units": [
   {
    "key": "func ArchiveIntegrityTests.setUp()",
@@ -270,7 +270,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "f7997155f08460b2",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "f558ffc445c3ff7c",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.trashedSession(_:)": "ea6c25378b23ce0c",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.trashedIds": "fe38e8bf34e55bbc",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
@@ -430,7 +430,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "f7997155f08460b2",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "f558ffc445c3ff7c",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.markAsDeleted(_:)": "a58f4705e0507267",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.unmarkAsDeleted(_:)": "cb64d5b6258c5088",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
@@ -457,7 +457,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.hasCompleteIndex": "4d992f398d9be95b",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "f7997155f08460b2"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "f558ffc445c3ff7c"
    }
   },
   {
@@ -777,8 +777,8 @@
   },
   {
    "key": "func ArchiveIntegrityTests.testRepairPreservesEncryptedFileIntegrity()",
-   "hash": "b987511c59892d64",
-   "does": "Skips when encryption is unavailable; archives a session, asserts its file is encrypted, overwrites its hash in index.json with zeros, opens a fresh SessionArchive on the same directory, asserts retrieve throws, runs repairArchive (>0 recovered) and asserts retrieve then succeeds with the same id.",
+   "hash": "c173377a4378876d",
+   "does": "Skips when encryption is unavailable; archives a session, asserts its file is encrypted, opens index.json (SessionArchive.indexJSON), overwrites the session's hash with zeros and writes it back as plain JSON, opens a fresh SessionArchive on the same directory, asserts retrieve throws, runs repairArchive (>0 recovered) and asserts retrieve then succeeds with the same id.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
@@ -790,7 +790,8 @@
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
     "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()",
     "ext:XCTSkipUnless",
-    "ext:Data.write"
+    "ext:Data.write",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.indexJSON(_:)"
    ],
    "reads": [
     "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
@@ -810,12 +811,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "de3b38dc99eee4a4",
-    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()": "c85791267b532f9c",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.indexJSON(_:)": "6b9b20505f4ffd9a",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "245124c441f7143c",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()": "c2062cc1de9004ba",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.looksEncrypted(_:)": "4561fbf4c8aa1e85",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
-    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "a892db29af7907c0",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
     "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "293d00b425d37802",
     "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d"
    }
@@ -896,6 +898,337 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testAFailedTrashRemovalKeepsTheDeletionMark()",
+   "hash": "5bfdaee1baae3578",
+   "does": "Archives and deletes a session, makes the Trash folder read-only (restored after), and asserts SessionRecoveryService.permanentlyDelete returns false with the session still tombstoned, still in the Trash, and not in ForgottenSessions.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.trashService()",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.trashedIds",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ForgottenSessions.ids",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.setAttributes"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "ud:sessionRecovery.forgottenBackupIds"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:)": "8fba1c517d94a264",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)": "0fcaeb8ff266a299",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.trashedIds": "fe38e8bf34e55bbc",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ArchiveStore.trashDirectory": "35607b44510f4479",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ForgottenSessions.ids": "1c0f4f2c06999790",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d",
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.trashService()": "7526b8bb8970b8e4"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testATombstoneIsNotForgottenBeforeICloudConfirmsIt()",
+   "hash": "6c38bf4bd30c9a0e",
+   "does": "With CloudKitSyncManager.shared.zoneCreated set true (restored after, with cloudkit.confirmedTombstones): archives and deletes a session; permanentlyDelete succeeds but the deletion mark stays and the id is in ForgottenSessions. After recording the deletion as confirmed in cloudkit.confirmedTombstones, a second permanentlyDelete drops the mark.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.trashService()",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.zoneCreated",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ForgottenSessions.ids"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "ud:cloudkit.confirmedTombstones",
+    "ud:UserDefaultsKeys.cloudKitZoneCreated"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "ud:cloudkit.confirmedTombstones",
+    "ud:UserDefaultsKeys.cloudKitZoneCreated"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:)": "8fba1c517d94a264",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)": "0fcaeb8ff266a299",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ForgottenSessions.ids": "1c0f4f2c06999790",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.zoneCreated": "fe4da675f906b2cd",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d",
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.trashService()": "7526b8bb8970b8e4"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testTheTrashOutcomeCountsWhatWasNotRemoved()",
+   "hash": "6dee1e59419af52c",
+   "does": "Archives and deletes one session, and writes a <id>.json for an id the archive neither lists nor tombstones; permanentlyDelete(_:removeHealthSamples:) over both with a Health remover that fails returns kept 1 and healthSamplesKept 1, and asks Health only about the removed session.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.trashService()",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:removeHealthSamples:)",
+    "ext:Data.write"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:removeHealthSamples:)": "ad8d9f5fcf49819c",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d",
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.trashService()": "7526b8bb8970b8e4"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testTheBreadcrumbTrailIsRemovedWithItsWorkout()",
+   "hash": "43b7883e233098f5",
+   "does": "Archives and deletes a session, files three trails in the test's breadcrumb store (one with the session's id, one with another id, one without), and asserts permanentlyDelete succeeds and leaves the other two.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.trashService()",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.trail(sessionId:)",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:)",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.loadArchive()"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "file:<archiveDirectory>/Breadcrumbs/archive.json"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "file:<archiveDirectory>/Breadcrumbs/archive.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)": "ce818f1d27dc80fe",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.loadArchive()": "d10c9c0ab8ac59a4",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:)": "8fba1c517d94a264",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d",
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.trail(sessionId:)": "6b76df62b0d6a95e",
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.trashService()": "7526b8bb8970b8e4"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testAForgottenSessionIsNotReimportedOnPull()",
+   "hash": "85ac792e940dca87",
+   "does": "Builds an iCloud record holding a live sealed copy of a session (liveRecord) and runs CloudKitSyncManager.shared.pull.processRemoteRecord with the session in forgotten: asserts nothing new is imported, the shared archive does not hold it and it is not marked uploaded. A teardown removes the session from the shared archive if it was imported.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.liveRecord(of:)",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.deleteWithoutTrash(_:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+   ],
+   "reads": [
+    "mem:CloudKitSyncState.uploadedSessionIds",
+    "archive:entries (shared archive)"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.deleteWithoutTrash(_:)": "7f526b7970e30e76",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)": "c959bfe60e03edc3",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull": "7cdf1d4648fc6bf2",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d",
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.liveRecord(of:)": "1d825ca878eb0d1b"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testTheIndexIsSealedAndReadsBack()",
+   "hash": "236b23823a870961",
+   "does": "Archives a session with a note and asserts index.json on disk carries the 'FR' seal and not the note's text, and that a reopened archive reads the note back from the index.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.looksEncrypted(_:)",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.reopenedArchive()",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entryById(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entryById(_:)": "f4478cd3281d1274",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.looksEncrypted(_:)": "4561fbf4c8aa1e85",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.reopenedArchive()": "9ddc895f89e4bab1"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testAPlainIndexStillLoadsAndIsSealedOnTheNextSave()",
+   "hash": "1ee224e749a39f2c",
+   "does": "Archives a session, overwrites index.json with the plain encoding of the entries (as a build that did not seal it wrote), asserts a reopened archive lists the session, archives another through it, and asserts index.json is then sealed and still lists the first session.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.reopenedArchive()",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entryById(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.looksEncrypted(_:)",
+    "ext:Data.write"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entryById(_:)": "f4478cd3281d1274",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.looksEncrypted(_:)": "4561fbf4c8aa1e85",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.indexEncoder": "0dea00d1e12c27f4",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.reopenedArchive()": "9ddc895f89e4bab1"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.testThePlainIndexIsResealedOnceTheKeyIsBack()",
+   "hash": "326412d06c6f9162",
+   "does": "Archives a session, overwrites index.json with the plain-JSON encoding of the entries, then on a reopened archive calls resealPlainIndexIfNeeded and asserts index.json now carries the 'FR' seal and that another reopened archive still finds the session.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.reopenedArchive()",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resealPlainIndexIfNeeded()",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.looksEncrypted(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entryById(_:)"
+   ],
+   "reads": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [
+    "file:ArchiveIntegrityTests-<uuid> temp archive directory (session .json files, index.json)",
+    "kc:EncryptionManager archive key"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resealPlainIndexIfNeeded()": "35c80740ec98eb57",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.entryById(_:)": "f4478cd3281d1274",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.looksEncrypted(_:)": "4561fbf4c8aa1e85",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.indexEncoder": "0dea00d1e12c27f4",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d",
+    "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.reopenedArchive()": "9ddc895f89e4bab1"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.trashService()",
+   "hash": "8964a61b715fa19f",
+   "does": "Installs AppDependencies with this test's BreadcrumbStore (Breadcrumbs/active.json in the test folder) as the breadcrumb store and returns a SessionRecoveryService over the test archive (a RawRRBackup in the test folder's RRBackup subfolder, ArtifactDetector, WindowSelector, the shared CloudKitSyncManager, a BaselineTracker in the test folder) with that store. A teardown resets AppDependencies and puts the ForgottenSessions list back as it was.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbStore(fileURL:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.breadcrumbStore",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::init SessionRecoveryService(archive:rawBackup:artifactDetector:windowSelector:cloudSyncManager:baselineTracker:)",
+    "ext:XCTestCase.addTeardownBlock"
+   ],
+   "reads": [
+    "ud:sessionRecovery.forgottenBackupIds"
+   ],
+   "writes": [
+    "mem:AppDependencies.current",
+    "ud:sessionRecovery.forgottenBackupIds"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "30cd3e6093580ceb",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)": "a41f1bac098eee8d",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbStore(fileURL:)": "06f0b3dce328fe38",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::init SessionRecoveryService(archive:rawBackup:artifactDetector:windowSelector:cloudSyncManager:baselineTracker:)": "cf74d2dace4470e3",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)": "ee0a6c3ab9df8456",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()": "e39e2f3e3a5e3aca",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::init AppDependencies()": "bea568cee298d114",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.breadcrumbStore": "dc8e989d3ec81ff1",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
+   }
+  },
+  {
+   "key": "func ArchiveIntegrityTests.trail(sessionId:)",
+   "hash": "268080b3ce614edb",
+   "does": "An empty BreadcrumbTrail started now, marked a workout track carrying sessionId when one is given, or a plain Get Me Back trail when nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func ArchiveIntegrityTests.liveRecord(of:)",
+   "hash": "476f246fb54ab49a",
+   "does": "An HRVSession CKRecord (test zone) whose sessionData asset is the session JSON (iso8601) compressed and sealed with CloudPayloadCodec.sealForUpload, written to <archiveDirectory>/<id>.asset: the record a device that still held the session would upload.",
+   "entry": null,
+   "calls": [
+    "ext:JSONEncoder",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)",
+    "ext:CKAsset",
+    "ext:CKRecord"
+   ],
+   "reads": [
+    "kc:CloudPayloadCodec key"
+   ],
+   "writes": [
+    "file:<archiveDirectory>/<id>.asset"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)": "88b5cfd374d70c6c",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "b4d5293d92fd3be4"
    }
   }
  ],

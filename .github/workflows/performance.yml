@@ -24,9 +24,11 @@ jobs:
         run: echo "value=$(./scripts/select_simulator_destination.sh Emuqu Emuqu.xcodeproj)" >> "$GITHUB_OUTPUT"
 
       - name: Run Analysis performance tests
+        # The package flag is defined in scripts/lib/xcodebuild.sh.
         run: |
           set -euo pipefail
           xcodebuild test \
+            -onlyUsePackageVersionsFromResolvedFile \
             -project Emuqu.xcodeproj \
             -scheme Emuqu \
             -destination "${{ steps.destination.outputs.value }}" \

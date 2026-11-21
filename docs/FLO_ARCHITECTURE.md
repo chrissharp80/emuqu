@@ -82,9 +82,9 @@ In order:
 2. Flo switched off, or its notice not accepted (`refusedWhileFloIsOff`) → `.rejectedNoProvider`.
 3. `medicalGuardRefused` — when the `medicalGuardEnabled` feature flag is on (default), or always for self-harm, `MedicalQueryGuard.evaluate` can return `.refuse(reply:)`. The exchange is appended locally with `localOnly: true` and no provider is called.
 4. Active provider has no key → `.rejectedNoProvider`.
-5. `ProviderConsentTracker.requiresConsent` → `.requiresConsent(provider)`. The view shows the consent sheet; `acknowledgeConsentAndContinue()` re-sends.
-6. A stream already running → `queueBehindStream` stores the message in `pendingSendOnFinish` (latest wins) → `.queued`.
-7. Voice only: `servedDeterministically` → `DeterministicIntent.tryMatch` (§15). A hit appends a local exchange.
+5. Voice only, with no stream running: `servedDeterministically` → `DeterministicIntent.tryMatch` (§15). A hit appends a local exchange and returns `.dispatched`; it is answered on the device, so it needs no consent.
+6. `ProviderConsentTracker.requiresConsent` → `.requiresConsent(provider)`. The view shows the consent sheet; `acknowledgeConsentAndContinue()` re-sends.
+7. A stream already running → `queueBehindStream` stores the message in `pendingSendOnFinish` (latest wins) → `.queued`.
 8. `dispatchToProvider` appends the user turn, sets `nextSendIsVoice`, prewarms Apple's model when Apple may be routed to, and calls `dispatch()`.
 
 ### 3.3 `dispatch()` — `AssistantViewModel+Routing.swift`
@@ -171,12 +171,14 @@ An extension adds a four-argument `send` with no tools, used by the summarizer a
 |----------|------|-----------|-------|
 | Apple | `AppleFoundationProvider.swift` | FoundationModels `LanguageModelSession` | Model `apple.foundation.on-device`, 4096-token context. Tools via `AppleToolDispatcher` (§16). |
 | Anthropic | `AnthropicProvider.swift`, `AnthropicProvider+Request.swift` | Messages API, SSE | Prompt cache: `cache_control` `ephemeral` with `ttl: "1h"` and the `extended-cache-ttl-2025-04-11` beta header. |
-| OpenAI | `OpenAIProvider.swift` | `OpenAICompatibleStreamer` | Sends `reasoning_effort: "none"` (gpt-6-luna takes tools on Chat Completions only at that effort). Reports `prompt_tokens_details.cached_tokens`. |
+| OpenAI | `OpenAIProvider.swift` | `OpenAICompatibleProvider` → `OpenAICompatibleStreamer` | Sends `reasoning_effort: "none"` (gpt-6-luna takes tools on Chat Completions only at that effort). Reports `prompt_tokens_details.cached_tokens`. |
 | Gemini | `GeminiProvider.swift` | streaming `generateContent`, SSE | Own request builder. |
-| Grok | `GrokProvider.swift` | `OpenAICompatibleStreamer` | `maxToolSchemaCount` is 110. |
-| DeepSeek | `DeepSeekProvider.swift` | `OpenAICompatibleStreamer` | Sends `thinking: {"type": "disabled"}`: a thinking turn with tools must have its `reasoning_content` passed back, which tool rounds do not carry. Reports `prompt_cache_hit_tokens`. |
+| Grok | `GrokProvider.swift` | `OpenAICompatibleProvider` → `OpenAICompatibleStreamer` | `maxToolSchemaCount` is 110. |
+| DeepSeek | `DeepSeekProvider.swift` | `OpenAICompatibleProvider` → `OpenAICompatibleStreamer` | Sends `thinking: {"type": "disabled"}`: a thinking turn with tools must have its `reasoning_content` passed back, which tool rounds do not carry. Reports `prompt_cache_hit_tokens`. |
 
-Each provider's `static let models` is its whole catalog; `ProviderModelCatalogTests` pins every shipped ID to the set last checked against the vendor's docs. Anthropic, Gemini and `OpenAICompatibleStreamer` build their streams with `ProviderStream.make`, which maps a cancelled task or URL load to `AIProviderError.cancelled` and any other `URLError` to `.network`, so an offline turn fails the same way whichever model was asked; whether another model may then answer is up to `TurnRouter.failureFallback` (§8.3).
+The five cloud providers conform to `KeyedCloudProvider`: each needs a key, is available once `APIKeyStore` holds one for its `id`, and its `availableModels` is its `static let models`. OpenAI, Grok and DeepSeek conform to `OpenAICompatibleProvider` as well: each declares only its `endpoint` and `reasoning` setting, and the protocol extension's `send` streams through `OpenAICompatibleStreamer`. `ProviderModelCatalogTests` pins every shipped ID to the set last checked against the vendor's docs.
+
+Anthropic, Gemini and `OpenAICompatibleStreamer` share the HTTP layer in `ProviderHTTP`: `streamRequest` builds the POST (sorted-key JSON body, the vendor's key headers), `openStream` sends it on the dedicated `streamSession` and returns the reply's lines or throws the status mapped by `statusFailure` (credit exhaustion first, then the provider's own overrides, then `statusError`), and `SSEEvents` reads the server-sent events from those lines. Each builds its stream with `ProviderStream.make`, which maps a cancelled task or URL load to `AIProviderError.cancelled` and any other `URLError` to `.network`, so an offline turn fails the same way whichever model was asked; whether another model may then answer is up to `TurnRouter.failureFallback` (§8.3).
 
 `ProviderRegistry` holds the providers and the user's selection. Keys are in the Keychain via `Emuqu/Sources/Assistant/Keys/APIKeyStore.swift`; nothing is bundled.
 
@@ -344,7 +346,7 @@ Routing acts only while Apple Intelligence is the selected model. With any other
 
 ### 12.2 `ConversationStore` — `Emuqu/Sources/Assistant/Chat/ConversationStore.swift`
 
-`Assistant/conversation.json` in the App Group container (falling back to Documents), written atomically with `.completeFileProtection`. API: `load()`, `save(_:)`, `clear()`, `mergedWithDisk(_:acknowledging:)`, `retryHeldSave()`.
+`Assistant/conversation.json` in the App Group container (falling back to Documents), sealed with `EncryptionManager` and written atomically with `.completeFileProtectionUnlessOpen`, so a voice turn taken with the phone locked is still saved (`AssistantStoreFile`, shared with `UserFactsStore` and `AssistantArtifactStore`). Plain files from builds that did not seal them still load and are sealed on the next save. A file that cannot be opened or decoded is kept beside it as `conversation.undecodable-<time>.json`. API: `load()`, `save(_:)`, `clear()` (removes the file and every set-aside copy, and returns whether nothing is left; `clearConversation()` keeps the thread on screen with an error when it returns false), `mergedWithDisk(_:acknowledging:)`, `retryHeldSave()`.
 
 ### 12.3 Truncation — `Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift`
 
@@ -378,7 +380,7 @@ Apple is exempt. Each cloud provider needs a one-time acknowledgement, stored in
 
 **File:** `Emuqu/Sources/Assistant/Chat/UserFactsStore.swift`
 
-`Assistant/user_facts.json` in the App Group container. API: `add(_:)` (deduped after normalizing case), `remove(_:)`, `clear()` (erases everything, including any backup), `clearKeepingBackup()` and `restoreCleared()` (the assistant's wipe and its undo; the copy lives in memory only, until the app quits), `systemPromptBlock()`.
+`Assistant/user_facts.json` in the App Group container, sealed like the conversation (§12.2). API: `add(_:)` (deduped after normalizing case), `remove(_:)` and `clear()` (each written or erased at once, set-aside `user_facts.undecodable-*` copies included, returning whether it is on disk; Settings says so when it is not and offers Forget everything while any copy remains), `clearKeepingBackup()` and `restoreCleared()` (the assistant's wipe and its undo; the wipe returns how many facts it erased, or nil when the erase failed and every fact is still stored; the copy lives in memory only, until the app quits), `systemPromptBlock()`.
 
 ### 14.1 Auto-extraction
 
@@ -394,7 +396,7 @@ The `AssistantMemoryNamespace` actions `assistant.memory.add`, `.remove`, `.clea
 
 **File:** `Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift`
 
-Voice only. A hand-written list of narrow regex patterns (recovery score, resting HR, HRV, last night's sleep, last workout, and similar). `tryMatch(_:in:)` takes the first matching pattern; its handler reads local data and returns a sentence, or nil to fall through to the model. There is no confidence score; precision comes from keeping patterns narrow. `DeterministicIntentTests` asserts both expected matches and utterances that must not match (medical, advice, tool, web).
+Voice only. A hand-written list of narrow regex patterns (recovery score, resting HR, HRV, last night's sleep, last workout, and similar). `tryMatch(_:in:)` takes the first matching pattern (`matchedPattern(for:)`, which normalises the utterance and matches nothing when it is empty); its handler reads local data and returns a sentence, or nil to fall through to the model. There is no confidence score; precision comes from keeping patterns narrow. `DeterministicIntentTests` asserts both expected matches and utterances that must not match (medical, advice, tool, web).
 
 There is no production counter for how often this path fires; each hit only writes a debug log line.
 

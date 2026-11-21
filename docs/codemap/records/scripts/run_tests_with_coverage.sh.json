@@ -1,6 +1,6 @@
 {
  "file": "scripts/run_tests_with_coverage.sh",
- "hash": "913ae3bd0f7bfe1c",
+ "hash": "c9f33bec879eabe5",
  "role": "Test runner (make test-coverage; ci.yml tests job when scope != gates) that runs xcodebuild test with coverage, retries once when every failure is a simulator-infrastructure failure, then runs check_coverage.sh.",
  "types": [],
  "state": [
@@ -10,12 +10,12 @@
   "file:$TMPDIR/xcodebuild-tests.XXXXXX",
   "mem:INFRA_MARKERS (the four simulator-infrastructure log strings, an ERE alternation)"
  ],
- "toplevel": "set -euo pipefail; sources preflight (no cd). TEST_SCOPE: unit -> -only-testing:EmuquTests and exports SKIP_OVERALL_COVERAGE=1/SKIP_LOGIC_COVERAGE=1 (overall and logic floors reported, not gated; the Views floor still applies); full -> all targets; other -> exit 64. DESTINATION from select_simulator_destination.sh if unset (the else branch assigns DESTINATION to itself, a no-op). rm -rf result bundle. TYPE_CHECK_FLAGS add -warn-long-expression-type-checking=4000 / -warn-long-function-bodies=6000 via OTHER_SWIFT_FLAGS. INFRA_MARKERS = 'Application failed preflight checks|Failed to get matching snapshots|process main thread busy|Unknown application display identifier'. Loop (max 2 attempts): run_tests; status 0 -> break; else counts `Test [Cc]ase '...' failed` lines, counts INFRA_MARKERS lines, and collects unexplained_failures. If attempt<2 and a marker is present but some failed test is unexplained -> prints that it is not retrying and lists those tests, then exits with the status. If attempt<2, a marker is present and every failed test (or none) is explained -> `xcrun simctl shutdown all`, sleep 10, rm bundle, retries the whole run. Otherwise exits with the status. After success runs check_coverage.sh <bundle> [MIN_COVERAGE]. Comments at 79-93 say MAX_SIM_CLONES 'stops cloning', while 95-102 say that flag has nothing to do with clones and PARALLEL_TESTING=NO is the real lever; both flags are still passed.",
+ "toplevel": "set -euo pipefail; sources lib/preflight.sh and lib/xcodebuild.sh (no cd). TEST_SCOPE: unit -> -only-testing:EmuquTests and exports SKIP_OVERALL_COVERAGE=1/SKIP_LOGIC_COVERAGE=1 (overall and logic floors reported, not gated; the Views floor still applies); full -> all targets; other -> exit 64. DESTINATION from select_simulator_destination.sh if unset (the else branch assigns DESTINATION to itself, a no-op). rm -rf result bundle. TYPE_CHECK_FLAGS add -warn-long-expression-type-checking=4000 / -warn-long-function-bodies=6000 via OTHER_SWIFT_FLAGS. INFRA_MARKERS = 'Application failed preflight checks|Failed to get matching snapshots|process main thread busy|Unknown application display identifier'. Loop (max 2 attempts): run_tests; status 0 -> break; else counts `Test [Cc]ase '...' failed` lines, counts INFRA_MARKERS lines, and collects unexplained_failures. If attempt<2 and a marker is present but some failed test is unexplained -> prints that it is not retrying and lists those tests, then exits with the status. If attempt<2, a marker is present and every failed test (or none) is explained -> `xcrun simctl shutdown all`, sleep 10, rm bundle, retries the whole run. Otherwise exits with the status. After success runs check_coverage.sh <bundle> [MIN_COVERAGE]. Comments at 79-93 say MAX_SIM_CLONES 'stops cloning', while 95-102 say that flag has nothing to do with clones and PARALLEL_TESTING=NO is the real lever; both flags are still passed.",
  "units": [
   {
    "key": "fn run_tests",
-   "hash": "e094ca9eab626efb",
-   "does": "Runs `xcodebuild test` with project/scheme/destination/result bundle, parallel-testing flag, worker and destination caps, optional -only-testing and -derivedDataPath, extra type-check OTHER_SWIFT_FLAGS and code coverage, tee'ing to $TEST_LOG; returns xcodebuild's exit status.",
+   "hash": "07b420cfd9c0a3bd",
+   "does": "Runs `xcodebuild test` with \"$XCODEBUILD_PINNED\" (packages held to the committed Package.resolved), project/scheme/destination/result bundle, parallel-testing flag, worker and destination caps, optional -only-testing and -derivedDataPath, extra type-check OTHER_SWIFT_FLAGS and code coverage, tee'ing to $TEST_LOG; returns xcodebuild's exit status.",
    "entry": null,
    "calls": [
     "ext:xcodebuild test"
@@ -54,7 +54,7 @@
   }
  ],
  "deps": {
-  "scripts/run_tests_with_coverage.sh::fn run_tests": "a81fa800842b2ce2",
+  "scripts/run_tests_with_coverage.sh::fn run_tests": "c53fe7cc88c339f7",
   "scripts/run_tests_with_coverage.sh::fn unexplained_failures": "46e35b1371f1d063"
  }
 }

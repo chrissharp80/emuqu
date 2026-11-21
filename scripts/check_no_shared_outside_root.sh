@@ -16,9 +16,11 @@
 # and are ignored.
 #
 # Scope is the iOS app AND the watch app. The watch is a separate target with
-# singletons of its own and no `AppDependencies`; its composition root is its
-# app struct (`WatchApp.swift`, listed below), and every other watch file has
-# them injected, the same rule as the phone.
+# singletons of its own and no `AppDependencies`; its composition root is
+# `WatchDependencies.swift`, listed below, and every other watch file, its app
+# struct included, has them injected, the same rule as the phone. The phone's
+# app struct (`EmuquApp.swift`) is not a root either: it takes every service
+# it holds from `AppDependencies.current`, so a test substitute reaches it.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
@@ -26,12 +28,7 @@ source "$(dirname "$0")/lib/preflight.sh"
 
 ROOT_FILES=(
     "Emuqu/Sources/Utilities/AppDependencies.swift"
-    # The app struct builds the root-level state objects it hands to the view
-    # tree; it is the other half of the composition root.
-    "Emuqu/EmuquApp.swift"
-    # The Watch target's app struct is its composition root; the connector
-    # and session manager are read there and injected everywhere else.
-    "EmuquWatch Watch App/WatchApp.swift"
+    "EmuquWatch Watch App/WatchDependencies.swift"
 )
 SYSTEM='UIApplication|URLSession|NotificationCenter|UNUserNotificationCenter|WCSession|HKHealthStore|UIDevice|AVAudioSession|UIScreen|CLLocationManager|UIPasteboard|ProcessInfo|FileManager|UIAccessibility|SKPaymentQueue|MPMusicPlayerController|MXMetricManager|AVAudioApplication|AppTransaction|WidgetCenter|UIAccessibility'
 

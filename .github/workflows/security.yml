@@ -70,8 +70,10 @@ jobs:
         # CodeQL's Swift extractor observes a real compile; autobuild guesses at
         # the scheme and has picked the wrong one on projects with a Watch
         # target. Build explicitly, and skip signing — nothing is installed.
+        # The package flag is defined in scripts/lib/xcodebuild.sh.
         run: |
           xcodebuild build \
+            -onlyUsePackageVersionsFromResolvedFile \
             -project Emuqu.xcodeproj \
             -scheme Emuqu \
             -destination 'generic/platform=iOS Simulator' \

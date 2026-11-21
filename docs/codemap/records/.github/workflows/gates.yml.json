@@ -20,7 +20,7 @@
     ".github/workflows/gates.yml::step script-gates/Localization (coverage, bundle, resolution, orphans, argumen",
     ".github/workflows/gates.yml::step script-gates/Source hygiene guards",
     ".github/workflows/gates.yml::step script-gates/Info.plist, privacy manifest and CloudKit guards",
-    ".github/workflows/gates.yml::step script-gates/Documentation, SBOM, no phone-home",
+    ".github/workflows/gates.yml::step script-gates/Documentation, SBOM, no phone-home, pinned packages",
     ".github/workflows/gates.yml::step script-gates/Code map is current",
     ".github/workflows/gates.yml::step script-gates/Code map impact of this pull request",
     ".github/workflows/gates.yml::step script-gates/The gates themselves are wired and fail closed",
@@ -36,7 +36,7 @@
     ".github/workflows/gates.yml::step script-gates/Code map is current": "816d6727b1d4d826",
     ".github/workflows/gates.yml::step script-gates/Copy perimeter, science register, scoring governance": "c6bf52871d62c452",
     ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "197c125d8c622cd8",
-    ".github/workflows/gates.yml::step script-gates/Documentation, SBOM, no phone-home": "7e18df019d929f4b",
+    ".github/workflows/gates.yml::step script-gates/Documentation, SBOM, no phone-home, pinned packages": "86d40258a58df0d2",
     ".github/workflows/gates.yml::step script-gates/Info.plist, privacy manifest and CloudKit guards": "c10da5efab8129c5",
     ".github/workflows/gates.yml::step script-gates/Localization (coverage, bundle, resolution, orphans, argumen": "cc5180b62acdb90e",
     ".github/workflows/gates.yml::step script-gates/Source hygiene guards": "a81cca29350b6c3f",
@@ -84,10 +84,11 @@
     "Makefile::target spec-conformance": "76fac68887ff9527",
     "Makefile::target strict-concurrency-enabled": "c813f57709ab4832",
     "Makefile::target uitest-reset-guard": "368e1ce40cd6fbc2",
+    "Makefile::target xcodebuild-pinned-guard": "81ad11c30f1d053a",
     "scripts/check_budget_monotonicity.sh::": "200e7799c911c1e5",
     "scripts/check_codemap.sh::": "d855ae4972e708aa",
     "scripts/check_infoplist_key_drift.sh::": "28c4fd1293c2d3b3",
-    "scripts/check_no_health_data_in_cloudkit.sh::": "3f21dbc8feb1aedf",
+    "scripts/check_no_health_data_in_cloudkit.sh::": "f3b7b9191fdb9851",
     "scripts/check_privacy_manifest_vocabulary.sh::": "1ba7a98c05ea0759",
     "scripts/codemap/codemap.py::": "124fefe07124e0ad"
    }
@@ -238,21 +239,22 @@
    ],
    "deps": {
     "scripts/check_infoplist_key_drift.sh::": "28c4fd1293c2d3b3",
-    "scripts/check_no_health_data_in_cloudkit.sh::": "3f21dbc8feb1aedf",
+    "scripts/check_no_health_data_in_cloudkit.sh::": "f3b7b9191fdb9851",
     "scripts/check_privacy_manifest_vocabulary.sh::": "1ba7a98c05ea0759"
    }
   },
   {
-   "key": "step script-gates/Documentation, SBOM, no phone-home",
-   "hash": "40c4b8d6a9b3fc32",
-   "does": "`make doc-counts-guard doc-links sbom-guard sbom-check no-phone-home`.",
+   "key": "step script-gates/Documentation, SBOM, no phone-home, pinned packages",
+   "hash": "f242733bcbcca434",
+   "does": "`make doc-counts-guard doc-links sbom-guard sbom-check no-phone-home xcodebuild-pinned-guard`.",
    "entry": "GitHub Actions step in gates.yml job script-gates (on push to main, every pull_request, and manual dispatch); a failing step fails the job and skips later steps",
    "calls": [
     "Makefile::target doc-counts-guard",
     "Makefile::target doc-links",
     "Makefile::target sbom-guard",
     "Makefile::target sbom-check",
-    "Makefile::target no-phone-home"
+    "Makefile::target no-phone-home",
+    "Makefile::target xcodebuild-pinned-guard"
    ],
    "reads": [],
    "writes": [],
@@ -262,7 +264,8 @@
     "Makefile::target doc-links": "4731861b7121254e",
     "Makefile::target no-phone-home": "66a41310eef1b44c",
     "Makefile::target sbom-check": "46aecc781adb961a",
-    "Makefile::target sbom-guard": "b6d05ef975bc25ca"
+    "Makefile::target sbom-guard": "b6d05ef975bc25ca",
+    "Makefile::target xcodebuild-pinned-guard": "81ad11c30f1d053a"
    }
   },
   {

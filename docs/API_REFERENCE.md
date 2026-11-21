@@ -459,7 +459,8 @@ final class RRCollector {
     func checkForLostSessions() async -> [(id: UUID, date: Date, beatCount: Int)]
     func recoverFromBackup(_ sessionId: UUID) async -> HRVSession?
     func restoreFromTrash(_ id: UUID) async -> HRVSession?
-    func permanentlyDelete(_ id: UUID)
+    @discardableResult
+    func permanentlyDelete(_ ids: [UUID]) async -> TrashDeletionOutcome
 
     // MARK: - Training Context
 
@@ -1602,7 +1603,12 @@ final class SessionRecoveryService {
     func checkForDeletedSessions() -> [(id: UUID, date: Date, beatCount: Int)]
     func restoreFromTrash(_ sessionId: UUID)
     func restoreFromTrashFailed(_ sessionId: UUID)
-    func permanentlyDelete(_ sessionId: UUID)
+    func deletedSessionSpan(_ sessionId: UUID) -> ClosedRange<Date>?
+    @discardableResult
+    func permanentlyDelete(_ sessionId: UUID) -> Bool
+    func permanentlyDelete(
+        _ ids: [UUID], removeHealthSamples: (UUID, ClosedRange<Date>) async -> Bool
+    ) async -> TrashDeletionOutcome
     func deleteLostSessions(_ sessionIds: [UUID])
 
     // Backup Recovery
@@ -1700,6 +1706,8 @@ struct BreadcrumbTrail: Codable, Equatable, Sendable {
     var fixes: [BreadcrumbFix]
     var label: String?
     var resolvedOriginLabel: String?
+    var isWorkoutTrack: Bool?
+    var sessionId: UUID?     // the workout a workout track was filed from
     func crowFlyDistanceFromTipToOriginMeters() -> Double?
     func walkedTrailLengthMeters() -> Double
 }
@@ -1713,14 +1721,17 @@ final class BreadcrumbStore: @unchecked Sendable {
     func save(_ trail: BreadcrumbTrail)
     func archiveActive()    // active → archive; active erased only after the archive write succeeds
                             // (unreadable/unwritable archive: trail stays active, error logged)
-    func clear()            // permanent delete of active
+    @discardableResult
+    func clear() -> Bool    // permanent delete of active; false when the file is still there
     func hasActiveTrail() -> Bool
     func hasArchiveFile() -> Bool
 
     // Archive (history, newest first, capped)
     func loadArchive() -> [BreadcrumbTrail]
     func archive(_ trail: BreadcrumbTrail)
-    func eraseArchive()
+    func removeTrails(ofSession sessionId: UUID) -> Bool  // a workout deleted forever
+    @discardableResult
+    func eraseArchive() -> Bool  // Delete All My Data
 }
 ```
 
@@ -1747,7 +1758,7 @@ final class BreadcrumbRecorder: NSObject {
 
     func engage(label: String? = nil)
     func disengage()
-    func clearTrail()
+    func clearTrail() -> Bool
     func updateLabel(_ label: String?)
     func updateResolvedOriginLabel(_ resolved: String?)
 }
@@ -1937,8 +1948,12 @@ final class RawRRBackup: @unchecked Sendable {
         var beatCount: Int          // computed
     }
 
+    convenience init()                      // the store in the shared container (RRBackup/)
+    init(directory: URL)                    // a store in `directory` (tests use a folder of their own)
+
     @discardableResult
-    func backup(points: [RRPoint], sessionId: UUID, deviceId: String? = nil) throws -> BackupEntry
+    func backup(points: [RRPoint], sessionId: UUID, deviceId: String? = nil, captureDate: Date? = nil) throws -> BackupEntry
+    func appendBackup(points: [RRPoint], sessionId: UUID, deviceId: String? = nil) throws
     func incrementalBackup(points: [RRPoint], sessionId: UUID, deviceId: String? = nil, force: Bool = false, interval: TimeInterval = 60) -> Bool
     func retrieve(_ sessionId: UUID) throws -> BackupEntry?
     func allBackups() -> [BackupEntry]
@@ -1947,11 +1962,24 @@ final class RawRRBackup: @unchecked Sendable {
     func markAsArchived(_ sessionId: UUID)
     func backedUpBeatCount(_ sessionId: UUID) -> Int?
     func exportToCSV(_ sessionId: UUID) throws -> String
+    func reencryptPendingBackups()
+    func reconcileIndexWithFiles()
     static func terminationForensicsSummary(for sessionId: UUID) -> TerminationForensicsSummary?
 }
 ```
 
 Instantiated directly (`RawRRBackup()`), not a `.shared` singleton.
+
+One-shot backups are files sealed with the archive key. The streamed format
+appends JSON Lines whose lines are each sealed (`SealedJSONLines`); a line or
+file written while the key was out of reach is plain, recorded in
+`PendingEncryptionLedger` (`.rawBackup`), and re-sealed by
+`reencryptPendingBackups`, which `init` queues. `init` also queues
+`reconcileIndexWithFiles`, which lists backups on disk that the index does not
+name. `discardBackup` removes every file of the session on `appendQueue` and
+throws, keeping the row, when any file is still on disk; `purgeOldBackups`
+drops the rows of archived backups older than `keepDays` only when all their
+files went.
 
 ### CloudKitSyncManager
 **File**: `Emuqu/Sources/Storage/CloudKitSyncManager.swift`
@@ -2300,7 +2328,7 @@ enum AIStreamEvent: Sendable {
 enum AIProviderError: LocalizedError {
     case missingKey(ProviderID), unsupportedOS(required: String), guardrailViolation
     case rateLimited, authFailed, network(String), invalidResponse(String)
-    case modelUnavailable(String), cancelled, unknown(String)
+    case modelUnavailable(String), outOfCredit(ProviderID), cancelled, unknown(String)
 }
 
 struct ToolSpec: Hashable, Codable, Sendable {
@@ -2341,25 +2369,65 @@ protocol AIProvider {
     ) -> AsyncThrowingStream<AIStreamEvent, Error>
 }
 
-// Concrete implementations
-final class AppleFoundationProvider: AIProvider   // iOS 26+ via FoundationModels — tool-capable
-final class AnthropicProvider: AIProvider         // Messages API + cache_control breakpoints (1h tools / 5min system / 5min history)
-final class OpenAIProvider: AIProvider            // Chat Completions w/ tool_calls
-final class GeminiProvider: AIProvider            // streamGenerateContent w/ functionDeclarations
-final class GrokProvider: AIProvider              // OpenAI-compatible (api.x.ai)
-final class DeepSeekProvider: AIProvider          // OpenAI-compatible (api.deepseek.com)
+// A cloud provider on the user's own key: requiresKey is true, isAvailable is
+// "a key is stored for id", and availableModels is the type's catalog.
+protocol KeyedCloudProvider: AIProvider {
+    static var models: [ModelOption] { get }
+}
 
-enum OpenAICompatibleStreamer {                   // shared SSE parser used by OpenAI/Grok/DeepSeek
+// A KeyedCloudProvider that speaks Chat Completions. Its send comes from the
+// protocol extension and streams through OpenAICompatibleStreamer.
+protocol OpenAICompatibleProvider: KeyedCloudProvider {
+    static var endpoint: URL? { get }
+    static var reasoning: OpenAICompatibleStreamer.Reasoning { get }
+}
+
+// Concrete implementations
+final class AppleFoundationProvider: AIProvider              // iOS 26+ via FoundationModels — tool-capable
+final class AnthropicProvider: KeyedCloudProvider            // Messages API + cache_control breakpoints (1h tools / 5min system / 5min history)
+final class GeminiProvider: KeyedCloudProvider               // streamGenerateContent w/ functionDeclarations
+final class OpenAIProvider: OpenAICompatibleProvider         // api.openai.com, reasoning .effortNone
+final class GrokProvider: OpenAICompatibleProvider           // api.x.ai, reasoning .modelDefault
+final class DeepSeekProvider: OpenAICompatibleProvider       // api.deepseek.com, reasoning .thinkingDisabled
+
+enum OpenAICompatibleStreamer {                   // shared Chat Completions streamer for OpenAI/Grok/DeepSeek
+    enum Endpoint { static let openAI, grok, deepSeek: URL? }
+    enum Reasoning { case modelDefault, effortNone, thinkingDisabled }
     static func send(
         providerID: ProviderID,
-        endpoint: URL,
+        endpoint: URL?,                           // nil fails the stream with ProviderHTTP.badEndpoint
+        reasoning: Reasoning,
         messages: [ChatTurn],
         model: ModelOption,
         contextRendered: String,
         systemPrompt: String,
-        tools: [ToolSpec],
-        toolRounds: [[ToolExchange]]
+        tools: [ToolSpec] = [],
+        toolRounds: [[ToolExchange]] = []
     ) -> AsyncThrowingStream<AIStreamEvent, Error>
+}
+
+// What every cloud provider shares (AIProvider.swift, ProviderStream.swift)
+enum ProviderHTTP {
+    static let streamSession: URLSession          // waits for connectivity; 30 s request / 180 s resource
+    static func streamRequest(url: URL, body: some Encodable, headers: [String: String]) throws -> URLRequest
+    static func openStream(                       // the reply's lines once the status is 2xx
+        _ request: URLRequest,
+        provider: ProviderID,
+        failure: (_ status: Int, _ body: Data) -> AIProviderError
+    ) async throws -> AsyncLineSequence<URLSession.AsyncBytes>
+    static func statusFailure(                    // credit exhaustion, then override, then statusError
+        _ status: Int, body: Data, provider: ProviderID,
+        override: StatusOverride = { _, _, _ in nil }
+    ) -> AIProviderError
+}
+
+struct SSEEvents<Lines: AsyncSequence>: AsyncSequence   // the server-sent events in a reply's lines
+    where Lines.Element == String { typealias Element = SSEEvent }   // SSEEvent: name?, data
+
+enum ProviderStream {                             // runs a provider request and closes its stream
+    static func make(_ operation: @escaping @Sendable (Continuation) async throws -> Void)
+        -> AsyncThrowingStream<AIStreamEvent, Error>
+    static func failure(from error: Error) -> Error   // cancellation → .cancelled, URLError → .network
 }
 
 extension AIProvider {
@@ -2534,6 +2602,10 @@ enum DeterministicIntent {
     /// underlying fact value is non-nil. Otherwise returns nil and
     /// the caller falls through to the LLM.
     static func tryMatch(_ utterance: String, in context: MatchContext) -> String?
+
+    /// The first pattern whose trigger matches the normalised utterance,
+    /// and that utterance; nil for an empty utterance or no match.
+    static func matchedPattern(for utterance: String) -> (pattern: Pattern, normalized: String)?
 }
 ```
 
@@ -2662,7 +2734,7 @@ final class ConversationStore {
     static let shared: ConversationStore
     func load() -> [ChatTurn]
     func save(_ turns: [ChatTurn])
-    func clear()
+    @discardableResult func clear() -> Bool    // file + set-aside copies; true when nothing is left
 }
 
 enum PrefabQuestion: String, CaseIterable, Identifiable {
@@ -2688,8 +2760,9 @@ final class UserFactsStore {
     private(set) var facts: [Fact]
     var autoExtractEnabled: Bool       // off by default
     func add(_ text: String)
-    func remove(_ id: UUID)
-    func clear()
+    @discardableResult func remove(_ id: UUID) -> Bool   // written at once; false keeps the fact
+    @discardableResult func clear() -> Bool              // facts + set-aside copies; false keeps them
+    var hasAnythingToForget: Bool                        // a fact or a set-aside copy is stored
     func systemPromptBlock() -> String            // injected into every send's system prompt
 }
 
@@ -2903,7 +2976,7 @@ final class SavedRouteStore {
 
     func add(_ route: SavedRoute)
     func rename(id: UUID, to newName: String)
-    func remove(id: UUID)
+    @discardableResult func remove(id: UUID) -> Bool   // written at once; false keeps the route
     func routes(for sport: Sport) -> [SavedRoute]
 }
 ```
@@ -2941,14 +3014,17 @@ enum RouteLibrary {
 @Observable
 final class WeatherService {
     static let shared: WeatherService
+    init(transport: HTTPTransport = .live)
     static let cacheTTL: TimeInterval = 30 * 60
     static let minimumRequestInterval: TimeInterval = 10 * 60
     static let maxSnapshotAge: TimeInterval = 3 * 3600
-    static let userAgent: String  // "Emuqu/<version> github.com/chrissharp80/emuqu"
+    nonisolated static let userAgent: String  // "Emuqu/<version> github.com/chrissharp80/emuqu"
 
     var current: WorkoutAIContext.WeatherSnapshot? { get }  // nil once older than maxSnapshotAge
 
     func refreshIfNeeded(for location: CLLocation?)
+    nonisolated static func fetch(at coord: CLLocationCoordinate2D, ifModifiedSince: String?,
+                                  transport: HTTPTransport) async -> FetchOutcome
     nonisolated static func localizedConditions(_ english: String) -> String
 }
 
@@ -2973,7 +3049,9 @@ later; a repeat for the same place sends `If-Modified-Since`, and a 304
 keeps the held forecast. The cache also refetches after >5 km of
 movement. The snapshot is the forecast step nearest now; MET Norway gives
 no apparent temperature, so that field is nil. Fetch failures are logged
-and leave `current` unchanged until it ages out.
+and leave `current` unchanged until it ages out. Requests go through the
+injected `HTTPTransport` (`.live` sends on `URLSession.shared`), so tests
+answer them without the network.
 
 ### RoadGeocodingService
 
@@ -3059,8 +3137,9 @@ ways). Free, no API key, global. Sorted results capped at 25.
 ### WebSearchService
 
 ```swift
-final class WebSearchService: @unchecked Sendable {
+final class WebSearchService: Sendable {
     static let shared: WebSearchService
+    init(transport: HTTPTransport = .live)
 
     enum Intent: String, Codable {
         case research, manufacturer, general
@@ -3081,6 +3160,8 @@ final class WebSearchService: @unchecked Sendable {
 
     func search(query: String, intent: Intent = .research, maxResults: Int = 5)
         async throws -> [Result]
+    func send(query: String, intent: Intent, maxResults: Int, apiKey: String)
+        async throws -> [Result]
 
     /// Curated authority-domain whitelists baked in:
     static let researchAuthorityDomains: [String]
@@ -3090,9 +3171,13 @@ final class WebSearchService: @unchecked Sendable {
 ```
 
 Tavily-backed search for the AI assistant. Off by default — gated on
-`UserSettings.enableWebSearch` AND a keychain'd Tavily key. Three
-curated domain whitelists. Intentionally NOT @MainActor so async
-work runs off-MainActor and the resolver bridge can't deadlock.
+`UserSettings.enableWebSearch` AND a keychain'd Tavily key, which
+`search` checks before handing over to `send`. `send` builds the request
+(the key in an `Authorization: Bearer` header), sends it through the
+injected `HTTPTransport`, maps the HTTP status and parses the results; a
+transport error is thrown unchanged. Three curated domain whitelists.
+Intentionally NOT @MainActor so async work runs off-MainActor and the
+resolver bridge can't deadlock.
 
 ### APIKeyStore (extended)
 
@@ -3131,7 +3216,7 @@ final class SavedRouteStore {
     // Existing CRUD
     func add(_ route: SavedRoute)
     func rename(id: UUID, to newName: String)
-    func remove(id: UUID)
+    @discardableResult func remove(id: UUID) -> Bool
     func routes(for sport: Sport) -> [SavedRoute]
 
     /// Background road-name enrichment. Geocodes each climb's start

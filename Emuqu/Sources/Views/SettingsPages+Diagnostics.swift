@@ -20,6 +20,8 @@ struct TroubleshootingPage: View {
     /// Set when the crash report is cleared here: the file's existence is not
     /// observable, so this is what hides the report's controls straight away.
     @State var crashReportCleared = false
+    /// Set when Clear All Logs left a log behind.
+    @State var logsClearFailed = false
     @State var showingTrainingRepairAlert = false
     @State var showingTrainingRepairConfirm = false
     @State var trainingRepairMessage = ""

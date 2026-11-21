@@ -130,7 +130,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName": "d978f16e726671bf",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::func AIAssistantSettingsPage.keyStatus(for:)": "5b187c85872912fc",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "2a80d3317d2c8ea6"
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "4f6f6e1d971ef1e6"
    }
   },
   {
@@ -229,7 +229,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var ProviderID.displayName": "d978f16e726671bf",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.applePathStatus": "2414b8e1ae435f95",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "2a80d3317d2c8ea6"
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "4f6f6e1d971ef1e6"
    }
   },
   {
@@ -477,8 +477,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.canSearchWeb": "028c83db16059828",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "2a80d3317d2c8ea6",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.canSearchWeb": "e35483ec59be2f91",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "4f6f6e1d971ef1e6",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.settingsManager": "7cdece2781d69ab1",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
@@ -541,7 +541,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "2a80d3317d2c8ea6",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "4f6f6e1d971ef1e6",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.tavilyKeyPlaceholder": "6e27cb145c9d5680"
    }
   },
@@ -779,7 +779,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.addFactRow": "5603f05032f2e6dd",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.autoRememberToggle": "2f86e0be41e89571",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.forgetEverythingButton": "315e1c30fb682e9b",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.forgetEverythingButton": "dd29be2c6377092b",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.rememberedFactsList": "6f4311968f41ff83"
    }
   },
@@ -854,7 +854,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::func AIAssistantSettingsPage.forgetFacts(at:)": "ec7d0c3d9ebce485",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::func AIAssistantSettingsPage.forgetFacts(at:)": "4718ae66f9205b02",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::func AIAssistantSettingsPage.rememberedFactRow(_:)": "aaca0b7c9463b857",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.facts": "ad59c042de644b04"
    }
@@ -874,27 +874,29 @@
   },
   {
    "key": "func AIAssistantSettingsPage.forgetFacts(at:)",
-   "hash": "1518954644164e67",
-   "does": "onDelete handler: resolves every offset to its fact id first, then removes each fact by id (persisting each time), so a multi-row delete hits the right facts.",
+   "hash": "6c7c5387c49a8d45",
+   "does": "onDelete handler: resolves every offset to its fact id first, then removes each fact by id (UserFactsStore.remove, each written at once and verified), so a multi-row delete hits the right facts; sets factChangeFailed when any remove reports failure, the fact then staying listed.",
    "entry": "SwiftUI .onDelete",
    "calls": [
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.facts"
    ],
    "reads": [
     "mem:UserFactsStore.facts"
    ],
    "writes": [
-    "file:user_facts.json (via UserFactsStore.remove → persist)"
+    "file:user_facts.json (via UserFactsStore.remove)",
+    "mem:AIAssistantSettingsPage.factChangeFailed"
    ],
    "branches": [
     {
-     "at": "+2",
-     "cond": "for each id",
-     "effect": "remove it"
+     "at": "+3",
+     "cond": "any remove returned false",
+     "effect": "factChangeFailed = true"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)": "5f671f580b979f5b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)": "959a11cea7fa2e44",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.facts": "ad59c042de644b04"
    }
   },
@@ -927,24 +929,28 @@
   },
   {
    "key": "var AIAssistantSettingsPage.forgetEverythingButton",
-   "hash": "4a04bf014854f675",
-   "does": "Destructive 'Forget everything' button shown when facts exist; sets showClearFactsConfirm (the alert in body calls facts.clear()).",
+   "hash": "a284eebae6ff23e3",
+   "does": "Destructive 'Forget everything' button shown whenever UserFactsStore.hasAnythingToForget (a fact, or a set-aside copy of an older facts file); sets showClearFactsConfirm (the alert in body runs forgetEverything()).",
    "entry": "SwiftUI Button action",
    "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.facts",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.hasAnythingToForget"
    ],
    "reads": [
-    "mem:UserFactsStore.facts"
+    "mem:UserFactsStore.facts",
+    "mem:UserFactsStore.setAsideCopiesRemain"
    ],
    "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "facts non-empty",
+     "cond": "hasAnythingToForget",
      "effect": "shows button; else nothing"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.hasAnythingToForget": "f2c09810ce6a5ae5",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.facts": "ad59c042de644b04",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
@@ -966,7 +972,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.autoExtractEnabled": "dd33e78cb9e18d0d",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "2a80d3317d2c8ea6",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "4f6f6e1d971ef1e6",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.facts": "ad59c042de644b04",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
@@ -1035,7 +1041,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "2a80d3317d2c8ea6",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "4f6f6e1d971ef1e6",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
@@ -1088,7 +1094,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "2a80d3317d2c8ea6",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "4f6f6e1d971ef1e6",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
@@ -1188,7 +1194,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Chat/STTProvider.swift::var STTProviderKind.displayName": "844f9d96b1d262f5",
     "Emuqu/Sources/Assistant/Chat/STTProvider.swift::var STTProviderKind.subtitle": "4cacb303432e8fd3",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "2a80d3317d2c8ea6"
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "4f6f6e1d971ef1e6"
    }
   },
   {
@@ -1275,7 +1281,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "2a80d3317d2c8ea6"
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "4f6f6e1d971ef1e6"
    }
   },
   {
@@ -1318,7 +1324,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "2a80d3317d2c8ea6",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.body": "4f6f6e1d971ef1e6",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },

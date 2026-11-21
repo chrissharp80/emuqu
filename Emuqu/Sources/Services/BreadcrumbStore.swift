@@ -98,6 +98,11 @@ struct BreadcrumbTrail: Codable, Equatable, Sendable {
     /// Get Me Back trail the user engaged. Nil on trails stored before the
     /// field existed. The archive cap evicts these first.
     var isWorkoutTrack: Bool?
+    /// The workout session a workout track was filed from, so deleting that
+    /// workout forever removes it (`BreadcrumbStore.removeTrails(ofSession:)`).
+    /// Nil on a Get Me Back trail and on workout tracks stored before the
+    /// field existed, which no delete can match.
+    var sessionId: UUID?
 
     /// Total straight-line distance from the most recent fix to the
     /// origin. Returns nil if either piece is missing.
@@ -206,7 +211,9 @@ final class BreadcrumbStore: @unchecked Sendable {
 
     /// Read the active (in-progress) trail off disk. Returns nil when
     /// no Get-Me-Back session is currently engaged.
-    /// A file that is present but unreadable or undecodable also reads as
+    /// The file is opened with the app's key (sealed, or plain JSON from a
+    /// build that did not seal it). A file that is present but unreadable,
+    /// unopenable (the key locked among them) or undecodable also reads as
     /// no trail, and is logged rather than passed over in silence.
     func load() -> BreadcrumbTrail? {
         queue.sync {
@@ -214,7 +221,7 @@ final class BreadcrumbStore: @unchecked Sendable {
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
             do {
-                return try decoder.decode(BreadcrumbTrail.self, from: data)
+                return try JSONFileSeal.app.openJSON(BreadcrumbTrail.self, from: data, with: decoder)
             } catch {
                 debugLog("[BreadcrumbStore] active trail present but failed to decode, reading it as no trail: \(error)", level: .error)
                 return nil
@@ -234,17 +241,19 @@ final class BreadcrumbStore: @unchecked Sendable {
         }
     }
 
-    /// Atomic write of the active trail. Called on every fix because
-    /// we promised the user the trail survives a crash mid-hike.
-    /// File-protection level set to
+    /// Atomic write of the active trail, sealed with the app's key. Called
+    /// on every fix because we promised the user the trail survives a crash
+    /// mid-hike. File-protection level set to
     /// `.completeUntilFirstUserAuthentication` so the recorder can
-    /// keep writing while the phone is locked and in the pocket.
+    /// keep writing while the phone is locked and in the pocket. A seal with
+    /// no key reachable writes nothing (logged): the file keeps the previous
+    /// fix's trail and the next fix writes again.
     func save(_ trail: BreadcrumbTrail) {
         queue.async { [activeURL] in
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
-            encoder.outputFormatting = [.sortedKeys] // stable diffs for tests
-            guard let data = attempt("breadcrumbs.active.encode", { try encoder.encode(trail) }) else { return }
+            encoder.outputFormatting = [.sortedKeys]
+            guard let data = attempt("breadcrumbs.active.seal", { try JSONFileSeal.app.sealJSON(trail, with: encoder) }) else { return }
             Self.ensureParentDirectory(of: activeURL)
             attempt("breadcrumbs.active.write") {
                 try data.write(
@@ -267,17 +276,18 @@ final class BreadcrumbStore: @unchecked Sendable {
                 debugLog("[BreadcrumbStore] archiving the active trail failed; keeping it as the active trail", level: .error)
                 return
             }
-            _ = attempt("BreadcrumbStore.remove") { try FileManager.default.removeItem(at: activeURL) }
+            Self.removeIfPresent(activeURL)
         }
     }
 
     /// Permanent delete of the active trail. Used by the sleep-prompt
     /// "Discard" path where the user explicitly chooses to drop the
-    /// data, not just file it away.
-    func clear() {
-        queue.async { [activeURL] in
-            _ = attempt("BreadcrumbStore.remove") { try FileManager.default.removeItem(at: activeURL) }
-        }
+    /// data, not just file it away, and by Delete All My Data. Runs behind
+    /// any queued write, so a fix saved just before is removed too. True when
+    /// no active trail is left; false (logged) when the file is still there.
+    @discardableResult
+    func clear() -> Bool {
+        queue.sync { Self.removeIfPresent(activeURL) }
     }
 
     /// Cheap "is there an active trail" check without deserialising the
@@ -320,15 +330,16 @@ final class BreadcrumbStore: @unchecked Sendable {
     /// already refuses to write over a file it could not parse; nil here makes
     /// the caller do the same, leaving the corrupt file intact for recovery.
     ///
-    /// The same holds for a file that is present and cannot be read at all —
-    /// before the first unlock, or an I/O error: it is not an empty archive.
+    /// The same holds for a file that is present and cannot be read or
+    /// opened at all — before the first unlock (file protection or the key),
+    /// or an I/O error: it is not an empty archive.
     private static func decodeArchive(at url: URL, using decoder: JSONDecoder) -> [BreadcrumbTrail]? {
         guard FileManager.default.fileExists(atPath: url.path) else { return [] }
         guard let data = contentsIfPresent(url) else { return nil }
         do {
-            return try decoder.decode([BreadcrumbTrail].self, from: data)
+            return try JSONFileSeal.app.openJSON([BreadcrumbTrail].self, from: data, with: decoder)
         } catch {
-            debugLog("[BreadcrumbStore] archive present but failed to decode — refusing to overwrite it: \(error)", level: .error)
+            debugLog("[BreadcrumbStore] archive present but failed to open or decode — refusing to overwrite it: \(error)", level: .error)
             return nil
         }
     }
@@ -339,9 +350,10 @@ final class BreadcrumbStore: @unchecked Sendable {
         }
     }
 
-    /// Insert `trail` at the front of the archive and write it back. False
-    /// when nothing was written: the archive is present but unreadable (left
-    /// intact, see `decodeArchive`), or encoding or the write failed. Runs on
+    /// Insert `trail` at the front of the archive and write it back, sealed
+    /// with the app's key. False when nothing was written: the archive is
+    /// present but unreadable (left intact, see `decodeArchive`), or
+    /// encoding, sealing (no key reachable) or the write failed. Runs on
     /// `queue`.
     @discardableResult
     private static func appendToArchive(_ trail: BreadcrumbTrail, at archiveURL: URL) -> Bool {
@@ -349,11 +361,34 @@ final class BreadcrumbStore: @unchecked Sendable {
         decoder.dateDecodingStrategy = .iso8601
         guard let existing = decodeArchive(at: archiveURL, using: decoder) else { return false }
         // Newest-first ordering so callers don't have to re-sort.
-        let trails = capped([trail] + existing)
+        return writeArchive(capped([trail] + existing), to: archiveURL)
+    }
+
+    /// Remove every archived trail filed from the workout `sessionId`, when
+    /// that workout is deleted forever. Runs behind any queued write. True
+    /// when none is left: removed, or there was none. False (logged) when the
+    /// archive is present but unreadable, or the rewrite failed; it is then
+    /// left as it was. Workout tracks stored before trails carried a session
+    /// id (`BreadcrumbTrail.sessionId`) cannot be matched and stay.
+    func removeTrails(ofSession sessionId: UUID) -> Bool {
+        queue.sync {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            guard let existing = Self.decodeArchive(at: archiveURL, using: decoder) else { return false }
+            let kept = existing.filter { $0.sessionId != sessionId }
+            guard kept.count != existing.count else { return true }
+            return Self.writeArchive(kept, to: archiveURL)
+        }
+    }
+
+    /// Write `trails` as the archive, sealed with the app's key, creating its
+    /// folder if a purge removed it. False (logged) when encoding, sealing
+    /// (no key reachable) or the write failed. Runs on `queue`.
+    private static func writeArchive(_ trails: [BreadcrumbTrail], to archiveURL: URL) -> Bool {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.sortedKeys]
-        guard let data = attempt("breadcrumbs.archive.encode", { try encoder.encode(trails) }) else { return false }
+        guard let data = attempt("breadcrumbs.archive.seal", { try JSONFileSeal.app.sealJSON(trails, with: encoder) }) else { return false }
         let options: Data.WritingOptions = [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
         ensureParentDirectory(of: archiveURL)
         return attempt("breadcrumbs.archive.write") { try data.write(to: archiveURL, options: options) } != nil
@@ -380,12 +415,28 @@ final class BreadcrumbStore: @unchecked Sendable {
         _ = attempt("BreadcrumbStore.create") { try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true) }
     }
 
-    /// Erase the entire archive. Surfaced via Settings → Privacy
-    /// (caller responsibility) — never auto-fires. Honours the user's
-    /// "delete my history" intent. Does not touch the active trail.
-    func eraseArchive() {
-        queue.async { [archiveURL] in
-            _ = attempt("BreadcrumbStore.remove") { try FileManager.default.removeItem(at: archiveURL) }
+    /// Erase the entire archive of past trails, for Delete All My Data
+    /// (`DataPurgeService`), its only caller. Does not touch the active trail
+    /// (`clear` does). Runs behind any queued write, so a trail filed just
+    /// before is erased too. True when no archive is left; false (logged)
+    /// when the file is still there.
+    @discardableResult
+    func eraseArchive() -> Bool {
+        queue.sync { Self.removeIfPresent(archiveURL) }
+    }
+
+    /// Removes `url` and checks it is gone. A file that is not there is
+    /// already removed; one still there afterwards is logged as an error.
+    /// Runs on `queue`.
+    @discardableResult
+    private static func removeIfPresent(_ url: URL) -> Bool {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: url.path) else { return true }
+        do {
+            try fm.removeItem(at: url)
+        } catch {
+            debugLog("[BreadcrumbStore] \(url.lastPathComponent) could not be removed: \(error)", level: .error)
         }
+        return !fm.fileExists(atPath: url.path)
     }
 }

@@ -209,6 +209,12 @@ jobs:
         # untrue when a dependency or a URL is added.
         run: ./scripts/check_no_developer_endpoint.sh
 
+      - name: Every xcodebuild run uses the committed package versions
+        # Package.resolved is committed and the TestFlight run records its
+        # hash. Without -onlyUsePackageVersionsFromResolvedFile a build can
+        # resolve other versions and the record no longer describes it.
+        run: ./scripts/check_xcodebuild_pinned.sh
+
       - name: Documentation links and constants
         # There were ten broken relative Markdown links and four
         # docs quoting a .ci/ budget value that had since ratcheted past them

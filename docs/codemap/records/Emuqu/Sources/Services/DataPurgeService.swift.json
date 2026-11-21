@@ -487,7 +487,7 @@
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDirectories(settingsManager:cloudSync:scope:errors:)": "b572b883b64571da",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeFallibleStores(errors:)": "5f0a397a0f59f964",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRemote(cloudSync:deleteRemote:errors:)": "6fe62cc8633e3cad",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackClearedStores(settingsManager:cloudSync:)": "4ea1ceb36dc01a9d",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackClearedStores(settingsManager:cloudSync:)": "fc9c0221c5868e8f",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackProfile(settingsManager:errors:)": "e29a678403bf0b1c",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.resetBaseline(_:)": "6175290b41cbe774",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllDefaults(scope:errors:)": "a58902c80a499460",
@@ -499,7 +499,7 @@
   {
    "key": "func DataPurgeService.readBackClearedStores(settingsManager:cloudSync:)",
    "hash": "812c1a616bd7f520",
-   "does": "After all purge steps, checks each store the report would otherwise assume cleared: CloudKit lastSyncDate nil and zoneCreated false; the conversation file empty or gone once the store's queued clear has run (ConversationStore.isEmptyOnDisk — unreadable or undecodable counts as not cleared); UserFactsStore.facts empty and the facts file holding no facts once its queued write has run (persistedFacts); SettingsManager.hasAcceptedDisclaimer false; the assistant disclaimer false in UserDefaults and in the view model; UnitsPreferenceStore.current == .auto; and no breadcrumb active.json or archive.json (checked on the store's queue, after its pending clear/erase).",
+   "does": "After all purge steps, checks each store the report would otherwise assume cleared: CloudKit lastSyncDate nil and zoneCreated false; the conversation file empty or gone once the store's queued clear has run (ConversationStore.isEmptyOnDisk — a remaining set-aside copy, or a file that is unreadable or undecodable, counts as not cleared); UserFactsStore.facts empty and the facts file holding no facts once its queued write has run (persistedFacts); SettingsManager.hasAcceptedDisclaimer false; the assistant disclaimer false in UserDefaults and in the view model; UnitsPreferenceStore.current == .auto; and no breadcrumb active.json or archive.json (checked on the store's queue, after its pending clear/erase).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.isEmptyOnDisk()",
@@ -525,8 +525,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.isEmptyOnDisk()": "cab88cf228ecc60b",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persistedFacts()": "11310f10b6c2ba16",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.isEmptyOnDisk()": "fa4723447a1fcb35",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.persistedFacts()": "529cfc9b46afdf6d",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.hasActiveTrail()": "0ffd5bc880f4cf8f",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.hasArchiveFile()": "51104b8916f09a9a",
@@ -580,7 +580,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.flushedFileHolds(_:)": "cb86c89e30a46b8d",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.flushedFileHolds(_:)": "0dd6a93a71329c13",
     "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.purgedSettings": "ceb845f1316bd9de",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
@@ -946,8 +946,8 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeCrashLogs(errors:)": "42e045ba20dd7aa3",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDebugLog(errors:)": "ad7e16b60f4bec32",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()": "cd13dca19f13552e"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDebugLog(errors:)": "aeb66620f6a66dba",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clearAll()": "dd9ee045b51bf20e"
    }
   },
   {
@@ -1017,17 +1017,17 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "9e63918d42003eae",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()": "7764742cd137f40f",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "305a2f6600079f86",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()": "276f25ef2ddab82c",
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.removeAllKeys()": "71525a349484c31c",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.clearConversation()": "56444bccdceaf3c4",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.clearConversation()": "af95a41f7463b816",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.resetToDefaults()": "4f9c0300611dc1ea",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.clear()": "20349278ec335013",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.eraseArchive()": "5dadc7492eb23757",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.clear()": "136e4673c9e1eea5",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.eraseArchive()": "8fd51e619c625f9f",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.forgetInMemoryStores()": "4fca4b588c94a223",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()": "bbe42fe440420a22",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.purgeAll()": "f6885593012bdf55",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.purgeAll()": "6c7f3904c6f61f72",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015",
@@ -1080,7 +1080,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.forgetAfterPurge()": "31314cea37c2b183",
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.forgetAfterPurge()": "5e239c9575a70bbd",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.forgetAfterPurge()": "c32a54807f0c7365",
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.forgetAfterPurge()": "4bec5307d0b7c44b",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.forgetAfterPurge()": "c7b46cd8b11593dc",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.disengage()": "4dcb1fe75435621b",
@@ -1128,7 +1128,7 @@
   {
    "key": "func DataPurgeService.purgeDebugLog(errors:)",
    "hash": "8a24669707e8fb82",
-   "does": "Clears the debug logger (memory, pending lines, and a queued removal of its file), then synchronously deletes debug_log.txt at the logger's own path (AppConfig.sharedContainerURL(), App Group or its Documents fallback) if present — the log re-created by logging during the purge, after the sweep removed the original; returns false and records an error only if that deletion throws.",
+   "does": "Clears the debug logger (memory, pending lines, and its file removed synchronously on the logger queue; the result is ignored), then deletes debug_log.txt at the logger's own path (AppConfig.sharedContainerURL(), App Group or its Documents fallback) if it is still present — the log re-created by logging during the purge; returns false and records an error only if that deletion throws.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clear()",
@@ -1157,7 +1157,7 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
     "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "cf6b353e36f53586",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clear()": "9831bde1cf366008"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clear()": "66a1557741b0e88a"
    }
   },
   {

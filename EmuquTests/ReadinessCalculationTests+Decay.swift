@@ -365,17 +365,18 @@ extension ReadinessCalculationTests {
     // MARK: - Rest Day Decay
 
     func testTwoRestDaysProducesHighReadiness() {
-        // After 2 rest days: ATL decays from ~48 to ~35 (two 6/7 multiplications),
-        // CTL barely changes (~47). Capacity ratio ≈ 0.74 → model readiness ~87.
-        // With good recovery (80), readiness should clearly indicate "ready."
-        let decayedATL = 48.0 * (6.0 / 7.0) * (6.0 / 7.0) // ≈35.3
+        // Two rest days through the production EWMA step: ATL decays from 48
+        // to ~36.1, CTL from 49 to ~46.7. Capacity ratio ≈ 0.77 → model
+        // readiness ~85. With good recovery (80), readiness should clearly
+        // indicate "ready."
+        let rested = TrainingLoadSeries.Point(atl: 48, ctl: 49).stepped(load: 0).stepped(load: 0)
         let readiness = RecoveryScoreCalculator.calculateReadiness(
             recoveryScore: 80,
             todayTrimp: 0,
-            ctl: 47,
-            atl: decayedATL,
+            ctl: rested.ctl,
+            atl: rested.atl,
             morningATL: nil,
-            acuteChronicRatio: decayedATL / 47.0
+            acuteChronicRatio: rested.atl / rested.ctl
         )
         XCTAssertGreaterThan(
             readiness,

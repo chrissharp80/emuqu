@@ -1,7 +1,7 @@
 {
  "file": "EmuquTests/RedactionPatternTests.swift",
  "hash": "f232f359f2a2ec47",
- "role": "Pins that every regex DebugLogger's log redactor and MetricsVerifier use compiles (they fail open on a malformed pattern), by keeping a verbatim copy, rebuilding the two runtime-composed patterns, and scraping raw-string literals from the source files at test time; and asserts what DebugLogger.scrubPHI actually leaves of sample log lines.",
+ "role": "Pins that every regex DebugLogger's log redactor and MetricsVerifier use compiles (they fail open on a malformed pattern), by keeping a verbatim copy, compiling the two runtime-composed production patterns (DebugLogger.metricValuePattern / valueChainPattern), and scraping raw-string literals from the source files at test time; and asserts what DebugLogger.scrubPHI actually leaves of sample log lines.",
  "types": [
   "RedactionPatternTests: class — XCTestCase for DebugLogger redaction pattern compilation"
  ],
@@ -32,10 +32,12 @@
   },
   {
    "key": "func RedactionPatternTests.testComposedValueChainPatternCompiles()",
-   "hash": "f137274d2033f6cf",
-   "does": "Rebuilds the value-chain regex the way redactValueChains does (DebugLog.swift:379) with the unit pattern and asserts it compiles with (?i) prefix.",
+   "hash": "891b3395e215b683",
+   "does": "Asserts DebugLogger.valueChainPattern, the composed pattern redactValueChains uses, compiles.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [],
+   "calls": [
+    "ext:NSRegularExpression.init(pattern:options:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [],
@@ -43,15 +45,13 @@
   },
   {
    "key": "func RedactionPatternTests.testComposedMetricPatternCompiles()",
-   "hash": "cd0176dd1b51c4a9",
-   "does": "Rebuilds scrubPHI's main pattern the way DebugLogger composes it ((?i)(\\b<metric>\\b<separator>)[-+]?\\d+(?:\\.\\d+)?<unit>, from patterns[1], [3] and [2]) and asserts it compiles.",
+   "hash": "48d9a0026c18a064",
+   "does": "Asserts DebugLogger.metricValuePattern, the composed pattern scrubPHI uses, compiles.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "ext:NSRegularExpression.init(pattern:options:)"
    ],
-   "reads": [
-    "mem:RedactionPatternTests.patterns"
-   ],
+   "reads": [],
    "writes": [],
    "branches": [],
    "deps": {}
@@ -74,7 +74,7 @@
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)": "368d0627695b64ef",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.redactValueChains(in:)": "47f2f851e771f6bc",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.replacing(_:_:with:)": "98e41a0944128cbf",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "d2ebc3c09c6c5f31"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "68f645e05bacaaed"
    }
   },
   {

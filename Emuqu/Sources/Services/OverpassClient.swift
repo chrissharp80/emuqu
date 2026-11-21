@@ -58,10 +58,6 @@ actor OverpassClient {
         case cancelled
     }
 
-    /// Sends one request and returns the reply; `URLSession` in the app, a
-    /// stub in tests.
-    typealias Transport = @Sendable (URLRequest) async throws -> (Data, URLResponse)
-
     /// Overpass instances, in the order they are tried.
     static let endpoints: [URL] = [
         "https://overpass.private.coffee/api/interpreter",
@@ -76,7 +72,8 @@ actor OverpassClient {
     static let refusalCooldown: TimeInterval = 5 * 60
     private let maxCachedReplies = 16
 
-    private let transport: Transport
+    /// Sends each request: `HTTPTransport.live` in the app, a stub in tests.
+    private let transport: HTTPTransport
     private let minRequestGap: TimeInterval
     private var lastRequestAt: Date?
     private var requestInFlight = false
@@ -88,7 +85,7 @@ actor OverpassClient {
 
     init(
         minRequestGap: TimeInterval = 1.1,
-        transport: @escaping Transport = { request in try await URLSession.shared.data(for: request) }
+        transport: HTTPTransport = .live
     ) {
         self.minRequestGap = minRequestGap
         self.transport = transport
@@ -241,7 +238,7 @@ actor OverpassClient {
         lastRequestAt = Date()
         let reply: (Data, URLResponse)
         do {
-            reply = try await transport(Self.request(query: query, to: url, timeout: timeout))
+            reply = try await transport.send(Self.request(query: query, to: url, timeout: timeout))
         } catch {
             if Task.isCancelled || (error as? URLError)?.code == .cancelled { throw .cancelled }
             throw .unreachable(error.localizedDescription)

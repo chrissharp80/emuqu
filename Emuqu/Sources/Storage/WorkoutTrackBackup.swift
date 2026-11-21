@@ -9,11 +9,18 @@ import Foundation
 /// Companion to `RawRRBackup`: that one keeps the heart-rate stream;
 /// this one keeps everything else `WorkoutAnalyzer.analyze` needs to
 /// reconstitute a workout (track for distance + polyline + splits,
-/// samples for charts, barometer for elevation).
+/// samples for charts, barometer for elevation). Its streams use the same
+/// line format as `RawRRBackup`'s points file (`SealedJSONLines`): each line
+/// sealed with `EncryptionManager`, or plain JSON when the key was out of
+/// reach, in which case the workout is queued in `PendingEncryptionLedger`
+/// (`.workoutTrack`) and `reencryptPendingTracks` seals it later. Files
+/// written before the streams were sealed are plain JSON lines and read as
+/// they are.
 ///
 /// File layout (per session, in the App Group's `WorkoutBackup/`
 /// directory):
-///   • `<uuid>_workout_header.json` — sport + start date, written once.
+///   • `<uuid>_workout_header.json` — sport + start date, written once,
+///     plain JSON like `RawRRBackup`'s header.
 ///   • `<uuid>_workout_track.jsonl` — one `PersistedFix` per line.
 ///   • `<uuid>_workout_samples.jsonl` — one `WorkoutSample` per line.
 ///   • `<uuid>_workout_baro.jsonl` — one `PersistedBaro` per line.
@@ -177,6 +184,7 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     init(directory: URL) {
         self.directory = directory
         createDirectoryIfNeeded()
+        reencryptPendingTracks()
     }
 
     /// Created with the class that lets a workout keep writing while the
@@ -188,7 +196,7 @@ final class WorkoutTrackBackup: @unchecked Sendable {
             try fileManager.createDirectory(
                 at: directory,
                 withIntermediateDirectories: true,
-                attributes: [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication]
+                attributes: [.protectionKey: BackupProtection.appendableClass]
             )
         } catch {
             debugLog("[WorkoutTrackBackup] Failed to create directory: \(error)")
@@ -378,9 +386,9 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         return index
     }
 
-    /// Protect at rest + allow writes while the device is locked mid-workout
-    /// (screen off). Matches RawRRBackup; a bare write defaults to
-    /// `.complete` and FAILS when locked.
+    /// Written with `BackupProtection.appendable` named explicitly, as
+    /// `RawRRBackup` writes its header, so it can be written while the device
+    /// is locked mid-workout (screen off).
     private func writeHeader(sessionId: UUID, sport: Sport, startDate: Date) -> Bool {
         do {
             let header = Header(
@@ -391,7 +399,7 @@ final class WorkoutTrackBackup: @unchecked Sendable {
             )
             try encoder.encode(header).write(
                 to: headerURL(sessionId),
-                options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
+                options: [.atomic, BackupProtection.appendable]
             )
             lock.lock()
             headerWritten.insert(sessionId)
@@ -514,33 +522,36 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         return attempt("WorkoutTrackBackup.move") { try fileManager.moveItem(at: url, to: preserved) } != nil
     }
 
-    /// Encode each item on its own line. The encoder writes non-finite
-    /// numbers as strings (`nonFiniteStrings`), so the rows these streams
-    /// hold always encode; one that still throws is logged and fails the
-    /// whole slice (nil) rather than leaving a gap the cursor would count as
-    /// written.
+    /// Encode each item on its own line, sealed (`SealedJSONLines`). The
+    /// encoder writes non-finite numbers as strings (`nonFiniteStrings`), so
+    /// the rows these streams hold always encode; one that still throws is
+    /// logged and fails the whole slice (nil) rather than leaving a gap the
+    /// cursor would count as written. A slice with a plain line queues the
+    /// workout in `PendingEncryptionLedger` before it is written.
     private func encodeLines(_ items: [some Encodable], sessionId: UUID, streamName: String) -> Data? {
-        var blob = Data()
         do {
-            for item in items {
-                blob.append(try encoder.encode(item))
-                blob.append(0x0A) // newline
+            let encoded = try SealedJSONLines.encode(items, with: encoder, manager: SealedJSONLines.availableManager())
+            if !encoded.allSealed {
+                debugLog("[WorkoutTrackBackup] \(streamName) of \(sessionId.uuidString.prefix(8)) written WITHOUT app-layer encryption", level: .error)
+                PendingEncryptionLedger.record(sessionId, in: .workoutTrack)
             }
+            return encoded.data
         } catch {
             debugLog("[WorkoutTrackBackup] \(streamName) encode failed for \(sessionId.uuidString.prefix(8)): \(error)", level: .error)
             return nil
         }
-        return blob
     }
 
     /// Atomic, as `RawRRBackup` writes a points file it rewrites: the rewrite
     /// fallback replaces rows already on disk, and a kill or a full disk part
-    /// way through a plain write left the stream truncated.
+    /// way through a plain write left the stream truncated. Written with
+    /// `BackupProtection.appendable`, so the stream can be appended to while
+    /// the device is locked.
     private func write(
         _ blob: Data, to url: URL, sessionId: UUID, streamName: String, label: String
     ) -> Bool {
         do {
-            try blob.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+            try blob.write(to: url, options: [.atomic, BackupProtection.appendable])
             return true
         } catch {
             debugLog("[WorkoutTrackBackup] \(streamName) \(label) failed for \(sessionId.uuidString.prefix(8)): \(error)")
@@ -625,19 +636,60 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         return names.filter { $0.hasPrefix(prefix) }.map { url.deletingLastPathComponent().appendingPathComponent($0) }
     }
 
+    /// Each line, sealed or plain, decoded; one that does not decode (a
+    /// torn write, or a sealed line whose key is not on this device) is
+    /// skipped, and the count logged.
     private func decodeJSONLFile<T: Decodable>(url: URL, as: T.Type) -> [T] {
-        guard fileManager.fileExists(atPath: url.path) else { return [] }
-        guard let raw = try? String(contentsOf: url, encoding: .utf8) else { return [] }
+        guard fileManager.fileExists(atPath: url.path),
+              let raw = attempt("WorkoutTrackBackup.readStream", { try String(contentsOf: url, encoding: .utf8) }) else { return [] }
+        let manager = AppDependencies.current.storage.encryptionManager
         var out: [T] = []
+        var skipped = 0
         for line in raw.split(separator: "\n", omittingEmptySubsequences: true) {
-            guard let data = line.data(using: .utf8) else { continue }
-            if let item = try? decoder.decode(T.self, from: data) {
-                out.append(item)
+            do {
+                out.append(try decoder.decode(T.self, from: SealedJSONLines.open(line, with: manager)))
+            } catch {
+                skipped += 1
             }
-            // Silently skip torn lines — better to recover what we can
-            // than refuse the whole stream because of one truncated row.
+        }
+        if skipped > 0 {
+            debugLog("[WorkoutTrackBackup] Skipped \(skipped) unreadable line(s) in \(url.lastPathComponent)")
         }
         return out
+    }
+
+    /// The stream files of a session: its four streams and any copies set
+    /// aside from them.
+    private func streamFiles(of sessionId: UUID) -> [URL] {
+        let streams = [trackURL(sessionId), samplesURL(sessionId), baroURL(sessionId), healthKitHRURL(sessionId)]
+        return streams + streams.flatMap(setAsideFiles(for:))
+    }
+
+    // MARK: - Re-encryption
+
+    /// Seals, off the caller's thread and behind the appends, the plain lines
+    /// of every workout queued in `PendingEncryptionLedger` (`.workoutTrack`).
+    /// A no-op while the key is out of reach; the next launch tries again.
+    func reencryptPendingTracks() {
+        appendQueue.async { [self] in
+            guard let manager = SealedJSONLines.availableManager() else { return }
+            PendingEncryptionLedger.pending(in: .workoutTrack).forEach { resealStreams(of: $0, with: manager) }
+        }
+    }
+
+    /// Rewrites each stream file of the workout holding a plain line sealed
+    /// (`SealedJSONLines.resealFile`), and takes the workout off the queue
+    /// once none holds one. A workout with no stream in this folder stays
+    /// queued: its files are elsewhere, or `discard` clears it.
+    private func resealStreams(of sessionId: UUID, with manager: EncryptionManager) {
+        let files = streamFiles(of: sessionId).filter { fileManager.fileExists(atPath: $0.path) }
+        guard !files.isEmpty else { return }
+        do {
+            let sealed = try files.map { try SealedJSONLines.resealFile(at: $0, with: manager) }
+            if sealed.allSatisfy({ $0 }) { PendingEncryptionLedger.clear(sessionId, in: .workoutTrack) }
+        } catch {
+            debugLog("[WorkoutTrackBackup] re-encryption deferred for \(sessionId.uuidString.prefix(8)): \(error)", level: .warning)
+        }
     }
 
     // MARK: - Cleanup
@@ -648,15 +700,29 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     ///
     /// On `appendQueue`, so an append in flight cannot recreate a stream or
     /// its cursor after the files are gone.
-    func discard(_ sessionId: UUID) {
+    /// - Returns: false when a file is still on disk (logged).
+    @discardableResult
+    func discard(_ sessionId: UUID) -> Bool {
         appendQueue.sync { discardSerialized(sessionId) }
     }
 
-    private func discardSerialized(_ sessionId: UUID) {
-        let streams = [trackURL(sessionId), samplesURL(sessionId), baroURL(sessionId), healthKitHRURL(sessionId)]
-        for url in [headerURL(sessionId)] + streams + streams.flatMap(setAsideFiles(for:)) {
-            _ = attempt("WorkoutTrackBackup.remove") { try fileManager.removeItem(at: url) }
+    /// The header goes first: it is what makes a workout recoverable, so a
+    /// stream that will not go is left without one, never offered again, and
+    /// still found by `purgeAll`. The cursors are forgotten either way; the
+    /// workout leaves the re-encryption queue only once every file is gone.
+    @discardableResult
+    private func discardSerialized(_ sessionId: UUID) -> Bool {
+        let leftovers = BackupFiles.remove([headerURL(sessionId)] + streamFiles(of: sessionId), using: fileManager)
+        forgetCursors(of: sessionId)
+        guard leftovers.isEmpty else {
+            debugLog("[WorkoutTrackBackup] \(leftovers.count) file(s) of \(sessionId.uuidString.prefix(8)) could not be removed", level: .error)
+            return false
         }
+        PendingEncryptionLedger.clear(sessionId, in: .workoutTrack)
+        return true
+    }
+
+    private func forgetCursors(of sessionId: UUID) {
         lock.lock()
         trackCursor.removeValue(forKey: sessionId)
         sampleCursor.removeValue(forKey: sessionId)
@@ -678,11 +744,13 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     /// nothing left to list: every cursor and header flag is cleared anyway,
     /// or the next workout of a session seen this launch would append past a
     /// count no file holds, and the folder is made again, or every later write
-    /// failed until relaunch. On `appendQueue`, like `discard`.
+    /// failed until relaunch. On `appendQueue`, like `discard`; a workout
+    /// whose files will not all go is logged.
     func purgeAll() {
         appendQueue.sync {
-            for id in allSessionIdsOnDisk() {
-                discardSerialized(id)
+            let kept = allSessionIdsOnDisk().filter { !discardSerialized($0) }
+            if !kept.isEmpty {
+                debugLog("[WorkoutTrackBackup] purge left files of \(kept.count) workout(s) on disk", level: .error)
             }
             lock.lock()
             trackCursor.removeAll()

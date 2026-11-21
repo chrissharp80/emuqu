@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/SettingsSubviews.swift",
- "hash": "2215610363a6f7dd",
+ "hash": "23f1b2c2d4a7e437",
  "role": "Settings sub-screens: DebugLogView (in-memory debug log list, clear, export), CrashLogView (previous crash report show/share/delete), ErrorCatalogView (warning/error catalogue with clear and text export), AddTagSheet (new custom tag name+colour form) and MetricExplanationsView/MetricExplanationRow (age-personalised HRV metric glossary).",
  "types": [
   "DebugLogView: struct (View) — lists DebugLogger.entries newest first; Clear + Export Diagnostic Log toolbar",
@@ -14,7 +14,7 @@
   "ErrorCatalogExport: struct (Transferable) — error catalog written on demand for ShareLink"
  ],
  "state": [
-  "mem:DebugLogView.showingClearConfirm (@State)",
+  "mem:DebugLogView.showingClearConfirm / clearFailed (@State)",
   "mem:CrashLogView.crashLog/showingShareSheet/exportURL/showingClearConfirm (@State)",
   "mem:ErrorCatalogView.showingExport/exportURL/showingClearConfirm/errorCount/isExporting (@State)",
   "mem:AddTagSheet.presetColors (12 Colors), static presetColorNames",
@@ -40,8 +40,8 @@
   },
   {
    "key": "var DebugLogView.body",
-   "hash": "d4d7a5431d24c7ae",
-   "does": "Renders logList with the Clear/Export toolbar and a 'Clear Debug Logs?' alert whose destructive Clear button calls debugLogger.clear(); the message quotes logger.entries.count.",
+   "hash": "e947ffe62ccc34ac",
+   "does": "Renders logList with the Clear/Export toolbar, a 'Clear Debug Logs?' alert whose destructive Clear button calls debugLogger.clear() and sets clearFailed from its result (the message quotes logger.entries.count), and a 'Some logs couldn't be deleted. Try again.' alert while clearFailed is set.",
    "entry": "SwiftUI body (pushed from Troubleshooting › Debug Logs, SettingsPages+DiagnosticActions.swift:255; snapshot test ScreenSnapshotTests.swift:66)",
    "calls": [
     "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.logList",
@@ -56,13 +56,14 @@
    "writes": [
     "mem:DebugLogger.entries",
     "mem:DebugLogger.errorCatalog",
-    "file:DebugLogger log file (removed)"
+    "file:DebugLogger log file (removed)",
+    "mem:DebugLogView.clearFailed"
    ],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clear()": "88092cd51ced3d06",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clear()": "66a1557741b0e88a",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.debugLogToolbar": "7c50209b9e924a0e",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.logList": "22c619ca0db0b632",
     "Emuqu/Sources/Views/SettingsSubviews.swift::var DebugLogView.logger": "6383fc6fa771a727"

@@ -305,6 +305,115 @@
     "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.day(_:from:)": "c3120dfc34a53f16",
     "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.workout(on:minutes:avgHR:load:)": "b232d32027713d1f"
    }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.snapshotFile()",
+   "hash": "0deb412da4269c91",
+   "does": "Creates a TrainingSnapshot-<uuid> folder in the temporary directory, removed by a teardown block, and returns the TrainingMetricsCache.json path in it.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.createDirectory",
+    "ext:XCTestCase.addTeardownBlock"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/TrainingSnapshot-<uuid>/"
+   ],
+   "branches": [],
+   "deps": {
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.snapshot(ctl:)",
+   "hash": "815d6222701f6150",
+   "does": "A PersistedCache with one day (day(0): atl 40, the given ctl, trimp 80), fingerprint 'fp', computedDay and savedAt day(0), no current metrics or load settings.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.day(_:from:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.day(_:from:)": "c3120dfc34a53f16"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testTheTrainingLoadSnapshotIsSealedAndReadsBack()",
+   "hash": "1059fda11e617e26",
+   "does": "Writes a snapshot with writeSnapshot; asserts the file does not start with '{' and readSnapshot returns ctl 55 and fingerprint 'fp'.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.snapshotFile()",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.snapshot(ctl:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.writeSnapshot(_:to:seal:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.readSnapshot(at:seal:)"
+   ],
+   "reads": [
+    "file:<tmp>/TrainingSnapshot-<uuid>/TrainingMetricsCache.json"
+   ],
+   "writes": [
+    "file:<tmp>/TrainingSnapshot-<uuid>/TrainingMetricsCache.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.readSnapshot(at:seal:)": "eff5011ae07c39d8",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.writeSnapshot(_:to:seal:)": "23663fe8c1854780",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.day(_:from:)": "c3120dfc34a53f16",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.snapshot(ctl:)": "68ddbcf56b47cfeb",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.snapshotFile()": "28e90f17f1cc1d1a"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testAPlainTrainingLoadSnapshotFromAnOlderBuildStillReads()",
+   "hash": "434a1df7645c68f1",
+   "does": "Asserts readSnapshot is nil with no file, then writes a plain JSON snapshot (as an older build did) and asserts readSnapshot returns its ctl 61.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.snapshotFile()",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.snapshot(ctl:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.readSnapshot(at:seal:)"
+   ],
+   "reads": [
+    "file:<tmp>/TrainingSnapshot-<uuid>/TrainingMetricsCache.json"
+   ],
+   "writes": [
+    "file:<tmp>/TrainingSnapshot-<uuid>/TrainingMetricsCache.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.readSnapshot(at:seal:)": "eff5011ae07c39d8",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.day(_:from:)": "c3120dfc34a53f16",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.snapshot(ctl:)": "68ddbcf56b47cfeb",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.snapshotFile()": "28e90f17f1cc1d1a"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testATrainingLoadSnapshotWithTheKeyLockedWritesNothing()",
+   "hash": "649027e8a9bf0b40",
+   "does": "Writes a sealed snapshot, then asserts writeSnapshot with a locked LockedKeySeal throws and the file bytes are unchanged.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.snapshotFile()",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.snapshot(ctl:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.writeSnapshot(_:to:seal:)",
+    "EmuquTests/UserSettingsTests.swift::var LockedKeySeal.fileSeal"
+   ],
+   "reads": [
+    "file:<tmp>/TrainingSnapshot-<uuid>/TrainingMetricsCache.json"
+   ],
+   "writes": [
+    "file:<tmp>/TrainingSnapshot-<uuid>/TrainingMetricsCache.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.writeSnapshot(_:to:seal:)": "23663fe8c1854780",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.snapshot(ctl:)": "68ddbcf56b47cfeb",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.snapshotFile()": "28e90f17f1cc1d1a",
+    "EmuquTests/UserSettingsTests.swift::var LockedKeySeal.fileSeal": "ae47c6b747ef2950"
+   }
   }
  ],
  "deps": {}

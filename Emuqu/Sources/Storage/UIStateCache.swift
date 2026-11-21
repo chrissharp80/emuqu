@@ -128,7 +128,7 @@ final class UIStateCache {
         let store = Store(schema: Self.schemaVersion, dashboard: dashboard, fitness: fitness)
         Self.writeQueue.async {
             do {
-                let sealed = try AppDependencies.current.storage.encryptionManager.encrypt(JSONEncoder().encode(store))
+                let sealed = try JSONFileSeal.app.sealJSON(store, with: JSONEncoder())
                 try sealed.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
             } catch {
                 debugLog("[UIStateCache] persist failed (nothing written): \(error)", level: .warning)
@@ -136,20 +136,13 @@ final class UIStateCache {
         }
     }
 
-    /// The stored JSON: sealed files are opened with `EncryptionManager`; a
-    /// file an earlier build wrote in plain JSON (starts with `{`) is read as
-    /// is and replaced, sealed, by the next write.
-    private static func storeJSON(_ data: Data) throws -> Data {
-        guard data.first != UInt8(ascii: "{") else { return data }
-        return try AppDependencies.current.storage.encryptionManager.decrypt(data)
-    }
-
     /// Restore the snapshots at launch. A decode failure or schema mismatch →
     /// empty cache → the surfaces render live exactly as before.
     private func loadFromDisk() {
         guard let url = Self.persistenceURL,
-              let data = try? Data(contentsOf: url),
-              let store = attempt("uiStateCache.decode", { try JSONDecoder().decode(Store.self, from: Self.storeJSON(data)) }),
+              FileManager.default.fileExists(atPath: url.path),
+              let data = attempt("uiStateCache.read", { try Data(contentsOf: url) }),
+              let store = attempt("uiStateCache.decode", { try JSONFileSeal.app.openJSON(Store.self, from: data, with: JSONDecoder()) }),
               store.schema == Self.schemaVersion
         else { return }
         dashboard = store.dashboard

@@ -64,12 +64,11 @@
   },
   {
    "key": "func DeterministicIntent.tryMatch(_:in:)",
-   "hash": "d857f272e8c76710",
-   "does": "Normalizes the utterance, finds the first pattern whose any trigger matches, runs its handler and returns the reply; returns nil (send to LLM) when empty, no match, or handler returned nil.",
+   "hash": "a851abcec81ee69a",
+   "does": "Finds the matching pattern and normalized utterance through matchedPattern(for:), runs the pattern's handler and returns the reply; returns nil (send to LLM) when the utterance is empty, nothing matches, or the handler returned nil.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.normalize(_:)",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.matches(_:_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.matchedPattern(for:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "closure:Pattern.handler — the 14 handler closures in DeterministicIntent.patterns"
    ],
@@ -82,6 +81,35 @@
    "writes": [],
    "branches": [
     {
+     "at": "+1",
+     "cond": "matchedPattern returned nil (empty utterance or no match)",
+     "effect": "returns nil"
+    },
+    {
+     "at": "+3",
+     "cond": "matched handler returned nil (data not ready)",
+     "effect": "logs 'match=<id> but no data' and returns nil; otherwise logs 'served' and returns the answer"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.matchedPattern(for:)": "83c9732b69a47acc",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.normalized()": "b09bce3385bbe04f"
+   }
+  },
+  {
+   "key": "func DeterministicIntent.matchedPattern(for:)",
+   "hash": "6ca260ec92941d03",
+   "does": "Normalizes the utterance and returns the first catalog pattern any of whose triggers matches it, with the normalized text; nil for an empty normalized utterance or no match. The matching half of tryMatch; DeterministicIntentTests drive it directly.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.normalize(_:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.matches(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
      "at": "+2",
      "cond": "normalized utterance empty",
      "effect": "returns nil"
@@ -89,18 +117,12 @@
     {
      "at": "+3",
      "cond": "no pattern matches",
-     "effect": "returns nil"
-    },
-    {
-     "at": "+4",
-     "cond": "matched handler returned nil (data not ready)",
-     "effect": "logs 'match=<id> but no data' and returns nil; otherwise logs 'served' and returns the answer"
+     "effect": "returns nil; otherwise returns (pattern, normalized)"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.matches(_:_:)": "97d4d663a9866f7d",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.normalize(_:)": "e621833a515b3262",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.normalize(_:)": "e621833a515b3262"
    }
   },
   {

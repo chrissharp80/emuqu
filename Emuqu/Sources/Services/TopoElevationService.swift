@@ -77,22 +77,25 @@ enum TopoElevationService {
     /// NED DEMs need a higher threshold to get the same physical
     /// answer because their vertical quantization is coarser.
     ///
-    /// For *future* recordings, the app uses CMAltimeter barometric
-    /// altitude (±0.5 m) directly — this retroactive DEM-based path is
-    /// a fallback only for pre-barometer-fix sessions.
+    /// Recordings with barometric samples take their gain from CMAltimeter
+    /// altitude (±0.5 m); this DEM lookup is only for sessions recorded
+    /// without them.
     ///
     /// - Parameter sustainedClimbThreshold: Metres of continuous climb
     ///   required before committing a run to gain. 15 m is the
     ///   empirically-calibrated default, and the only value the app uses.
+    /// - Parameter transport: Sends the OpenTopoData requests;
+    ///   `HTTPTransport.live` in the app, a stub in tests.
     static func elevations(
         for track: [CLLocation],
         maxSamples: Int = 100,
-        sustainedClimbThreshold: Double = 15.0
+        sustainedClimbThreshold: Double = 15.0,
+        transport: HTTPTransport = .live
     ) async throws -> Result {
         guard !track.isEmpty else { throw ServiceError.emptyTrack }
         let sampledIndices = downsampleIndices(count: track.count, target: maxSamples)
         let coords = sampledIndices.map { track[$0].coordinate }
-        let elevations = try await fetchElevations(for: coords)
+        let elevations = try await fetchElevations(for: coords, transport: transport)
         guard elevations.count == coords.count else {
             throw ServiceError.badResponse("Elevation count mismatch: got \(elevations.count), expected \(coords.count)")
         }
@@ -200,16 +203,20 @@ enum TopoElevationService {
     /// (all barometric) on the same rolling-hills loop: SRTM
     /// 30 m with 10 m threshold overcounts by ~25 %; NED 10 m with a
     /// 15 m threshold matches barometric gain within ~6 %.
-    private static func fetchElevations(for coords: [CLLocationCoordinate2D]) async throws -> [Double] {
+    private static func fetchElevations(
+        for coords: [CLLocationCoordinate2D], transport: HTTPTransport
+    ) async throws -> [Double] {
         // Try NED 10m first (US-only, higher resolution). It returns HTTP
         // 400 for points outside US; fall through to SRTM on any error.
         if let coord = coords.first, isLikelyUS(coord: coord) {
-            if let values = try? await fetchFromOpenTopoData(coords: coords, dataset: "ned10m") {
-                return values
+            do {
+                return try await fetchFromOpenTopoData(coords: coords, dataset: "ned10m", transport: transport)
+            } catch {
+                debugLog("[TopoElevation] NED 10 m lookup failed, trying SRTM 30 m: \(error.localizedDescription)", level: .info)
             }
             try await Task.sleep(nanoseconds: requestSpacingNanoseconds)
         }
-        return try await fetchFromOpenTopoData(coords: coords, dataset: "srtm30m")
+        return try await fetchFromOpenTopoData(coords: coords, dataset: "srtm30m", transport: transport)
     }
 
     /// The gap kept between two calls to the public endpoint, whose stated
@@ -236,7 +243,9 @@ enum TopoElevationService {
     /// Generic OpenTopoData query. Dataset is the URL path segment
     /// (`srtm30m`, `ned10m`, `aster30m`, etc.).
     /// Docs: https://www.opentopodata.org/
-    private static func fetchFromOpenTopoData(coords: [CLLocationCoordinate2D], dataset: String) async throws -> [Double] {
+    private static func fetchFromOpenTopoData(
+        coords: [CLLocationCoordinate2D], dataset: String, transport: HTTPTransport
+    ) async throws -> [Double] {
         // NOT %.6f, which is ~11 cm. These coordinates are the user's actual
         // workout route, sent to a third party in a URL query string (and so
         // into its access logs), and the FIRST point of a track is typically a
@@ -250,7 +259,7 @@ enum TopoElevationService {
         // `dataset` is caller-supplied, so throw a typed error rather than
         // force-unwrap.
         let url = try openTopoDataURL(dataset: dataset, locations: locations)
-        let data = try await fetchJSON(from: url, label: "OpenTopoData \(dataset)")
+        let data = try await fetchJSON(from: url, label: "OpenTopoData \(dataset)", transport: transport)
         return try decodeOpenTopoData(data, expecting: coords.count, dataset: dataset)
     }
 
@@ -277,11 +286,11 @@ enum TopoElevationService {
     }
 
     /// One bounded GET, with network and HTTP failures mapped onto typed errors.
-    private static func fetchJSON(from url: URL, label: String) async throws -> Data {
+    private static func fetchJSON(from url: URL, label: String, transport: HTTPTransport) async throws -> Data {
         let req = request(for: url)
         let (data, response): (Data, URLResponse)
         do {
-            (data, response) = try await URLSession.shared.data(for: req)
+            (data, response) = try await transport.send(req)
         } catch {
             throw ServiceError.networkError(error)
         }

@@ -136,20 +136,54 @@ final class SessionRecoveryService {
         let orphans = rawBackup.allBackups().filter {
             !archivedIds.contains($0.id) && !deletedIds.contains($0.id) && !live.contains($0.id)
         }
-        // Backups too short to analyze are discarded permanently so they stop
-        // showing up on every scan; the cloud copy goes too so another device
-        // doesn't re-seed them. A pause/resume fragment an archived session
-        // links to is kept: its beats belong to that night.
+        let counts = beatCounts(of: orphans)
+        // Backups too short to analyze, counted after a fuller file of them
+        // is adopted, are discarded permanently so they stop showing up on
+        // every scan; the cloud copy goes too so another device doesn't
+        // re-seed them. A pause/resume fragment an archived session links to
+        // is kept: its beats belong to that night.
         let linkedIds = Set(archive.entries.flatMap { $0.linkedSessionIds ?? [] })
-        let unrecoverable = orphans.filter { $0.beatCount < Self.minRecoverableBeatCount && !linkedIds.contains($0.id) }
-        discardUnrecoverable(unrecoverable.map(\.id))
-        let lost = orphans
-            .filter { $0.beatCount >= Self.minRecoverableBeatCount }
-            .map { (id: $0.id, date: $0.captureDate, beatCount: $0.beatCount) }
-        if !lost.isEmpty {
-            debugLog("[SessionRecoveryService] Found \(lost.count) lost sessions with backups")
+        discardUnrecoverable(orphans.map(\.id).filter { (counts[$0] ?? Int.max) < Self.minRecoverableBeatCount && !linkedIds.contains($0) })
+        let lost = orphans.compactMap { orphan -> (id: UUID, date: Date, beatCount: Int)? in
+            guard let count = counts[orphan.id], count >= Self.minRecoverableBeatCount else { return nil }
+            return (id: orphan.id, date: orphan.captureDate, beatCount: count)
         }
+        if !lost.isEmpty { debugLog("[SessionRecoveryService] Found \(lost.count) lost sessions with backups") }
         return lost
+    }
+
+    /// Each lost backup's beat count. One below `minRecoverableBeatCount` is
+    /// counted after a fuller file of it is adopted
+    /// (`beatCountAfterAdoptingFullerFile`), and is left out when that
+    /// adoption failed, so it is neither discarded nor listed this scan.
+    private func beatCounts(of orphans: [RawRRBackup.BackupEntry]) -> [UUID: Int] {
+        var counts: [UUID: Int] = [:]
+        for orphan in orphans {
+            counts[orphan.id] = orphan.beatCount >= Self.minRecoverableBeatCount
+                ? orphan.beatCount
+                : beatCountAfterAdoptingFullerFile(orphan.id, indexed: orphan.beatCount)
+        }
+        return counts
+    }
+
+    /// The beats a short backup holds once the fullest one-shot file of the
+    /// session the index does not name, when it holds more, becomes its
+    /// backup (`OneShotBackupName.fullerUnindexedBackup`, `RawRRBackup.backup`).
+    /// The discard removes every file of the session, so a night whose index
+    /// row is short but whose file is full is kept this way. `indexed` when
+    /// there is no row or no fuller file; nil (logged) when a fuller file
+    /// could not be read or adopted.
+    private func beatCountAfterAdoptingFullerFile(_ id: UUID, indexed: Int) -> Int? {
+        let row = rawBackup.indexLock.withLock { rawBackup.index.first { $0.id == id } }
+        guard let row else { return indexed }
+        do {
+            guard let fuller = try OneShotBackupName.fullerUnindexedBackup(than: row, in: rawBackup.backupDirectory) else { return indexed }
+            try rawBackup.backup(points: fuller.points, sessionId: id, deviceId: fuller.deviceId, captureDate: fuller.captureDate)
+            return fuller.points.count
+        } catch {
+            debugLog("[SessionRecoveryService] \u{26a0}\u{fe0f} A fuller backup of \(id.uuidString.prefix(8)) could not be adopted: \(error) — keeping it", level: .error)
+            return nil
+        }
     }
 
     private func discardUnrecoverable(_ ids: [UUID]) {
@@ -198,25 +232,10 @@ final class SessionRecoveryService {
         let retired = Set(archive.entries.map(\.sessionId))
             .union(rawBackup.allBackups().map(\.id))
             .union(archive.deletedIds)
-            .union(Self.forgottenIds())
+            .union(ForgottenSessions.ids)
         for backup in cloudBackups where !live.contains(backup.sessionId) {
             if retired.contains(backup.sessionId) { retireCloudBackup(backup.sessionId) } else { savePulledBackup(backup) }
         }
-    }
-
-    /// Sessions the user deleted forever, so a cloud copy that outlived the
-    /// delete is not pulled back. The most recent `maxForgottenIds` are kept.
-    private static let forgottenIdsKey = "sessionRecovery.forgottenBackupIds"
-    private static let maxForgottenIds = 500
-
-    private static func forgottenIds() -> Set<UUID> {
-        Set((UserDefaults.standard.stringArray(forKey: forgottenIdsKey) ?? []).compactMap(UUID.init(uuidString:)))
-    }
-
-    private static func rememberForgotten(_ id: UUID) {
-        let defaults = UserDefaults.standard
-        let kept = (defaults.stringArray(forKey: forgottenIdsKey) ?? []).filter { $0 != id.uuidString }
-        defaults.set(Array((kept + [id.uuidString]).suffix(maxForgottenIds)), forKey: forgottenIdsKey)
     }
 
     /// Already have it locally — retire the cloud copy.
@@ -281,30 +300,90 @@ final class SessionRecoveryService {
         }
     }
 
-    /// Permanently forget a deleted session.
+    /// The span a deleted session's recording covers, which its Apple Health
+    /// export lies in: its trashed file's start and end, or its raw backup's
+    /// capture date and last beat. Nil for a session the archive holds, and
+    /// for one with neither (nothing dates it).
+    func deletedSessionSpan(_ sessionId: UUID) -> ClosedRange<Date>? {
+        guard !archive.exists(sessionId) else { return nil }
+        if let kept = archive.trashedSession(sessionId) {
+            return kept.startDate ... max(kept.startDate, kept.endDate ?? kept.startDate)
+        }
+        guard let backup = storedBackup(sessionId) else { return nil }
+        return backup.captureDate ... max(backup.captureDate, Self.backupEndDate(backup) ?? backup.captureDate)
+    }
+
+    /// Permanently delete a session from the Trash. True when nothing of it
+    /// is left on this device; false (logged) when something could not be
+    /// removed, and it then stays in the Trash to be deleted again.
     ///
-    /// Its raw backup goes too, locally and in iCloud. The Trash lists deleted
-    /// sessions that still have a backup; forgetting only the deletion left
-    /// that backup behind, so the session reappeared under Lost Sessions and
-    /// "Recover" brought back what the user had just deleted forever.
+    /// Removed in order, stopping at the first failure: the route its
+    /// workout filed in the breadcrumb history, its trashed file (and any
+    /// `<id>.json` a failed delete left), and its raw backup. The Trash lists
+    /// a deleted session while it has a trashed file or a backup, so a
+    /// failure leaves it listed. Then the id is remembered as deleted forever
+    /// (`ForgottenSessions`), so neither pull brings back a copy iCloud still
+    /// holds, and the iCloud live backup is deleted. The deletion mark is
+    /// dropped only once iCloud has confirmed the deletion or this device has
+    /// never synced (`CloudDeletionCoordinator.tombstoneIsSettled`); until
+    /// then the full sync keeps sending it, and confirming it drops the mark.
     ///
-    /// A backup that cannot be discarded keeps the deletion mark, so it stays
-    /// in the Trash rather than reappearing under Lost Sessions. The id is
-    /// remembered so a cloud copy the delete misses is not pulled back.
-    func permanentlyDelete(_ sessionId: UUID) {
-        archive.discardTrashed(sessionId)
+    /// A session the archive holds (restored, or brought back by a pull) is
+    /// not deleted: only a stray Trash file of it is removed.
+    @discardableResult
+    func permanentlyDelete(_ sessionId: UUID) -> Bool {
+        guard !archive.exists(sessionId) else { return archive.discardTrashed(sessionId) }
+        guard removeLocalCopies(of: sessionId) else { return false }
+        ForgottenSessions.remember(sessionId)
+        Task { await cloudSyncManager.deleteLiveBackup(sessionId: sessionId) }
+        forgetDeletionIfSettled(sessionId)
+        return true
+    }
+
+    /// Deletes each session forever (`permanentlyDelete(_:)`), then hands
+    /// the span its recording covered (`deletedSessionSpan`) to
+    /// `removeHealthSamples`, which deletes what it exported to Apple Health
+    /// and says whether that worked. That runs only after the local delete
+    /// succeeded and never undoes it: a failure there is counted, and the
+    /// session is gone from the Trash either way.
+    func permanentlyDelete(
+        _ ids: [UUID], removeHealthSamples: (UUID, ClosedRange<Date>) async -> Bool
+    ) async -> TrashDeletionOutcome {
+        var outcome = TrashDeletionOutcome()
+        for id in ids {
+            let span = deletedSessionSpan(id)
+            guard permanentlyDelete(id) else {
+                outcome.kept += 1
+                continue
+            }
+            if let span, !(await removeHealthSamples(id, span)) { outcome.healthSamplesKept += 1 }
+        }
+        return outcome
+    }
+
+    /// The breadcrumb route, the trashed file and the raw backup, in that
+    /// order; false at the first that could not be removed.
+    private func removeLocalCopies(of sessionId: UUID) -> Bool {
+        guard AppDependencies.current.location.breadcrumbStore.removeTrails(ofSession: sessionId) else {
+            debugLog("[SessionRecoveryService] \u{26a0}\u{fe0f} The route of \(sessionId.uuidString.prefix(8)) could not be removed from the breadcrumb history — keeping it in the Trash", level: .error)
+            return false
+        }
+        guard archive.discardTrashed(sessionId) else { return false }
         do {
             try rawBackup.discardBackup(sessionId)
+            return true
         } catch {
             debugLog("[SessionRecoveryService] \u{26a0}\u{fe0f} Failed to discard the backup of \(sessionId.uuidString.prefix(8)): \(error) — keeping it in the Trash", level: .error)
-            return
+            return false
         }
-        Self.rememberForgotten(sessionId)
-        Task { await cloudSyncManager.deleteLiveBackup(sessionId: sessionId) }
+    }
+
+    private func forgetDeletionIfSettled(_ sessionId: UUID) {
+        guard cloudSyncManager.deletion.tombstoneIsSettled(sessionId) else { return }
         do {
             try archive.forgetDeletedSession(sessionId)
         } catch {
-            debugLog("[SessionRecoveryService] \u{26a0}\u{fe0f} Failed to permanently delete session \(sessionId.uuidString.prefix(8)): \(error)")
+            debugLog("[SessionRecoveryService] \u{26a0}\u{fe0f} Failed to drop the deletion mark of \(sessionId.uuidString.prefix(8)): \(error)", level: .warning)
         }
     }
 
@@ -422,4 +501,16 @@ final class SessionRecoveryService {
             }
         }
     }
+}
+
+/// What deleting sessions from the Trash for good achieved
+/// (`SessionRecoveryService.permanentlyDelete(_:removeHealthSamples:)`), for
+/// the Trash to report.
+struct TrashDeletionOutcome: Equatable, Sendable {
+    /// Sessions something of which could not be removed from this device;
+    /// they stay in the Trash.
+    var kept = 0
+    /// Sessions removed from this device whose HRV samples could not be
+    /// deleted from Apple Health.
+    var healthSamplesKept = 0
 }

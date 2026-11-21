@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift",
- "hash": "e185ae088877b70a",
+ "hash": "c78e86d659fa5d5e",
  "role": "Settings → Flo page (AIAssistantSettingsPage: title/alert shell, per-provider kill-switch toggles, Tavily placeholder, Apple status) and the per-provider BYOK key editor (APIKeyEditorView: save/replace/remove keychain key, consent status and withdrawal, data-use notes).",
  "types": [
   "AIAssistantSettingsPage: struct View — Settings → Flo shell; its list sections live in AIAssistantSettingsPage+Sections.swift",
@@ -10,8 +10,8 @@
  ],
  "state": [
   "@State AIAssistantSettingsPage.refreshToken (UUID bumped to force redraw after flag/key changes, line 10)",
-  "@State AIAssistantSettingsPage.newFactText / showClearFactsConfirm / tavilyKeyDraft / tavilyKeyShown / tavilyKeySaveFailed (lines 11-15; used by +Sections)",
-  "@State APIKeyEditorView.keyText / hasExistingKey / saveStatus / showWithdrawConfirm (lines 105-108)",
+  "@State AIAssistantSettingsPage.newFactText / showClearFactsConfirm / factChangeFailed / tavilyKeyDraft / tavilyKeyShown / tavilyKeySaveFailed (lines 11-17; used by +Sections)",
+  "@State APIKeyEditorView.keyText / hasExistingKey / saveStatus / showWithdrawConfirm (lines 108-111)",
   "kc:com.chrissharp.flowrecovery.assistant.apikey/<ProviderID> (accessed via APIKeyStore, not declared here)"
  ],
  "toplevel": "No global code. Both types read services from @Environment(\\.dependencies). AIAssistantSettingsPage.body delegates its content to `settingsList` declared in AIAssistantSettingsPage+Sections.swift:21.",
@@ -75,25 +75,47 @@
   },
   {
    "key": "var AIAssistantSettingsPage.body",
-   "hash": "d6217e6a33de3d78",
-   "does": "Renders settingsList with inline nav title 'Flo' and a 'Forget everything?' alert whose destructive button clears every saved memory fact (UserFactsStore.clear → persists empty list to user_facts.json).",
+   "hash": "b41a4733b48d02d8",
+   "does": "Renders settingsList with inline nav title 'Flo', a 'Forget everything?' alert whose destructive button runs forgetEverything(), and a 'Your change couldn't be saved. Try again.' alert shown while factChangeFailed is set (Forget or a fact delete left something stored).",
    "entry": "SwiftUI view body evaluation; alert buttons are user taps",
    "calls": [
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.settingsList",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.forgetEverything()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:AIAssistantSettingsPage.factChangeFailed"
+   ],
+   "writes": [
+    "mem:AIAssistantSettingsPage.factChangeFailed"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.settingsList": "672ffe5c89ff11a8",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::func AIAssistantSettingsPage.forgetEverything()": "5d36ed8f931633e8",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+   }
+  },
+  {
+   "key": "func AIAssistantSettingsPage.forgetEverything()",
+   "hash": "5a77c9ea0b1b0a53",
+   "does": "Calls UserFactsStore.clear() (every fact, every set-aside copy) and sets factChangeFailed when it reports that something is still stored.",
+   "entry": "Destructive 'Forget' button in the 'Forget everything?' alert (body)",
+   "calls": [
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.facts",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()"
    ],
    "reads": [],
    "writes": [
-    "file:Assistant/user_facts.json (UserFactsStore.clear)",
-    "mem:UserFactsStore.facts"
+    "mem:AIAssistantSettingsPage.factChangeFailed",
+    "mem:UserFactsStore.facts",
+    "file:Assistant/user_facts.json",
+    "file:Assistant/user_facts.undecodable-<unix>.json"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()": "f364b3b25daf067d",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.settingsList": "672ffe5c89ff11a8",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.facts": "ad59c042de644b04",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()": "276f25ef2ddab82c",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage.swift::var AIAssistantSettingsPage.facts": "ad59c042de644b04"
    }
   },
   {

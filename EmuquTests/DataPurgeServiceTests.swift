@@ -70,6 +70,11 @@ final class DataPurgeServiceTests: XCTestCase {
     private lazy var baselineTracker = BaselineTracker(
         baselineFile: containers[0].appendingPathComponent("HRVBaseline.json"), onBaselineUpdated: nil
     )
+    /// The raw backups the purge empties: in the temporary App Group
+    /// container, where the purge sweeps them, never the app's own store.
+    private lazy var rawBackup = RawRRBackup(
+        directory: containers[0].appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true)
+    )
     private lazy var archive = SessionArchive(
         directory: containers[0].appendingPathComponent(AppConfig.archiveDirectoryName, isDirectory: true),
         sleepScheduleProvider: { SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0) },
@@ -117,7 +122,7 @@ final class DataPurgeServiceTests: XCTestCase {
         remoteDeleted: Bool = true, scope customScope: DataPurgeService.PurgeScope? = nil
     ) async throws -> DataPurgeService.Report {
         try await DataPurgeService.purgeAllUserData(
-            archive: archive, rawBackup: RawRRBackup(),
+            archive: archive, rawBackup: rawBackup,
             cloudSync: CloudKitSyncManager.shared, settingsManager: SettingsManager.shared,
             baselineTracker: baselineTracker, recordingInProgress: { false },
             deleteRemote: { remoteDeleted }, scope: customScope ?? scope
@@ -395,9 +400,9 @@ final class DataPurgeServiceTests: XCTestCase {
         let report = try await purge()
 
         XCTAssertTrue(report.profileReset, "The purge did not confirm the profile on disk: \(report.errors)")
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        let onDisk = try decoder.decode(UserSettings.self, from: Data(contentsOf: manager.settingsURL))
+        let onDisk = try JSONFileSeal.app.openJSON(
+            UserSettings.self, from: Data(contentsOf: manager.settingsURL), with: SettingsManager.settingsDecoder()
+        )
         XCTAssertNil(onDisk.bodyWeightKg, "Body weight survived Delete All My Data in the settings file")
         XCTAssertNil(onDisk.maxHR, "Max HR survived Delete All My Data in the settings file")
         XCTAssertEqual(manager.settings.bodyWeightKg, UserSettings().bodyWeightKg)
@@ -515,7 +520,7 @@ final class DataPurgeServiceTests: XCTestCase {
 
         do {
             _ = try await DataPurgeService.purgeAllUserData(
-                archive: archive, rawBackup: RawRRBackup(),
+                archive: archive, rawBackup: rawBackup,
                 cloudSync: CloudKitSyncManager.shared, settingsManager: SettingsManager.shared,
                 baselineTracker: baselineTracker, recordingInProgress: { true },
                 deleteRemote: {
@@ -542,7 +547,7 @@ final class DataPurgeServiceTests: XCTestCase {
         try Data("sentinel".utf8).write(to: sentinel)
 
         let report = try await DataPurgeService.purgeAllUserData(
-            archive: archive, rawBackup: RawRRBackup(),
+            archive: archive, rawBackup: rawBackup,
             cloudSync: CloudKitSyncManager.shared, settingsManager: SettingsManager.shared,
             baselineTracker: baselineTracker,
             recordingInProgress: { DataPurgeService.isRecordingInProgress(collector: collector, workout: nil) },

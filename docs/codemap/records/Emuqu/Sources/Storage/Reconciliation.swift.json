@@ -1,218 +1,89 @@
 {
  "file": "Emuqu/Sources/Storage/Reconciliation.swift",
- "hash": "0fed0bb242bdd904",
- "role": "ReconciliationManager: duplicate-collection guard (sessionExists) used by device recording, plus an offline sync queue persisted to Documents/HRVOffline/pending.json that nothing in the app drains.",
+ "hash": "c226d1dbdb5b4794",
+ "role": "ReconciliationManager: duplicate-collection guard (sessionExists, true when the archive holds the session id) used by device recording. Built once at launch with the collector, it removes the Documents/HRVOffline folder (pending.json, whole sessions in plain JSON) that older builds kept for an offline sync queue nothing drained.",
  "types": [
-  "ReconciliationManager: class — duplicate guard + undrained offline queue",
-  "ReconciliationManager.ReconciliationError: enum — sessionAlreadyExists"
+  "ReconciliationManager: class — duplicate guard; removes the retired HRVOffline queue"
  ],
  "state": [
-  "file:Documents/HRVOffline/pending.json (or tmp/HRVOffline) — [OfflineSession] with full HRVSession incl. RR series",
-  "mem:ReconciliationManager.pendingSessions (guarded by lock)"
+  "file:Documents/HRVOffline/ (retired offline queue from older builds, pending.json; removed at launch, never written)"
  ],
- "toplevel": "Stored properties: fileManager default, pendingSessions [], lock NSLock. Owned by RRCollector (RRCollector.swift:709).",
+ "toplevel": "Stored property: archive (SessionArchive). Owned by RRCollector (RRCollector.swift:724).",
  "units": [
   {
    "key": "init ReconciliationManager(archive:)",
-   "hash": "bfb27250d60ccb95",
-   "does": "Stores the archive, picks Documents/HRVOffline (tmp fallback), creates the directory and loads pending.json.",
-   "entry": null,
+   "hash": "c256d80122220221",
+   "does": "Stores the archive and, when the Documents URL resolves, removes the retired offline queue there (removeRetiredOfflineQueue).",
+   "entry": "Called once at launch by RRCollector's init (no reconciliation injected), and by tests.",
    "calls": [
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.createDirectoryIfNeeded()",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.removeRetiredOfflineQueue(in:)",
+    "ext:FileManager.urls(for:in:)"
    ],
    "reads": [
-    "file:Documents/HRVOffline/pending.json"
+    "file:Documents/HRVOffline/"
    ],
-   "writes": [],
+   "writes": [
+    "file:Documents/HRVOffline/ (removed)"
+   ],
    "branches": [
     {
-     "at": "+3",
+     "at": "+2",
      "cond": "Documents URL available",
-     "effect": "true: Documents/HRVOffline; false: tmp/HRVOffline and log WARNING"
+     "effect": "true: removeRetiredOfflineQueue(in: documents); false: nothing removed"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.createDirectoryIfNeeded()": "7e3511f4c5d567ae",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "2b702b27dd7514f1",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.removeRetiredOfflineQueue(in:)": "b95566893975b8ba"
    }
   },
   {
    "key": "func ReconciliationManager.sessionExists(_:)",
-   "hash": "02e4775a4735e5f2",
-   "does": "True when the archive already has the session id or the offline queue holds it.",
+   "hash": "b49fb70c51cbfb8d",
+   "does": "True when the archive already has the session id (SessionArchive.exists).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)"
    ],
    "reads": [
-    "archive:exists",
-    "mem:ReconciliationManager.pendingSessions"
+    "archive:exists"
    ],
    "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "archive.exists(sessionId)",
-     "effect": "true: return true; false: check pendingSessions under lock"
-    }
-   ],
+   "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2"
    }
   },
   {
-   "key": "func ReconciliationManager.queueForSync(_:)",
-   "hash": "9f14e825b6406a23",
-   "does": "Under lock, throws sessionAlreadyExists when the session is archived or queued; otherwise appends an OfflineSession and writes pending.json.",
-   "entry": null,
+   "key": "func ReconciliationManager.removeRetiredOfflineQueue(in:)",
+   "hash": "b1fa4d17a5f5c140",
+   "does": "Removes <documents>/HRVOffline, the folder where older builds kept an offline sync queue (pending.json, whole sessions as plain JSON) that nothing read or drained, logging the removal. No folder: returns without doing anything. A failed removal is logged as a warning and tried again at the next launch.",
+   "entry": "Called by init ReconciliationManager(archive:) with Documents; ReconciliationManagerTests call it on a temporary folder.",
    "calls": [
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.fileExists(atPath:)",
+    "ext:FileManager.removeItem(at:)"
    ],
    "reads": [
-    "archive:exists",
-    "mem:ReconciliationManager.pendingSessions"
-   ],
-   "writes": [
-    "mem:ReconciliationManager.pendingSessions",
-    "file:Documents/HRVOffline/pending.json"
-   ],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "not archived AND not already queued",
-     "effect": "false: throw sessionAlreadyExists; true: append and save"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)": "f93a1b0b5def666a",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.savePendingSessions()": "0fceaeeeb86e0344"
-   }
-  },
-  {
-   "key": "var ReconciliationManager.pending",
-   "hash": "8118ba8eeaff9022",
-   "does": "Queued sessions with needsSync (syncedAt nil and fewer than 3 attempts), under lock.",
-   "entry": null,
-   "calls": [],
-   "reads": [
-    "mem:ReconciliationManager.pendingSessions"
-   ],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "1b80916fca3633a0"
-   }
-  },
-  {
-   "key": "func ReconciliationManager.createDirectoryIfNeeded()",
-   "hash": "cf1722a99c498c48",
-   "does": "Creates the HRVOffline directory when missing (failure logged by attempt).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "ext:FileManager.createDirectory"
-   ],
-   "reads": [],
-   "writes": [
     "file:Documents/HRVOffline/"
    ],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "directory missing",
-     "effect": "true: create; false: nothing"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
-   }
-  },
-  {
-   "key": "var ReconciliationManager.pendingFile",
-   "hash": "bc8f1dd6aaa6b4f8",
-   "does": "URL of HRVOffline/pending.json.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {}
-  },
-  {
-   "key": "func ReconciliationManager.loadPendingSessions()",
-   "hash": "158ab4b6a9555daf",
-   "does": "Reads and decodes pending.json into pendingSessions; missing file or any decode error → empty list.",
-   "entry": null,
-   "calls": [
-    "ext:Data(contentsOf:)",
-    "ext:JSONDecoder",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
-   ],
-   "reads": [
-    "file:Documents/HRVOffline/pending.json"
-   ],
    "writes": [
-    "mem:ReconciliationManager.pendingSessions"
+    "file:Documents/HRVOffline/ (removed)"
    ],
-   "branches": [
-    {
-     "at": "+6",
-     "cond": "error is NSFileReadNoSuchFileError",
-     "effect": "pendingSessions = [] silently"
-    },
-    {
-     "at": "+9",
-     "cond": "any other read/decode error",
-     "effect": "log, pendingSessions = [] (the next save would overwrite the undecodable file)"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
-    "Emuqu/Sources/Storage/Reconciliation.swift::var ReconciliationManager.pendingFile": "d021c3ec9036929e",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
-   }
-  },
-  {
-   "key": "func ReconciliationManager.savePendingSessions()",
-   "hash": "586bc8ab29d2606d",
-   "does": "Encodes pendingSessions (pretty, sorted, iso8601) and writes pending.json atomically with until-first-auth protection (not app-layer encrypted).",
-   "entry": null,
-   "calls": [
-    "ext:JSONEncoder",
-    "ext:Data.write"
-   ],
-   "reads": [],
-   "writes": [
-    "file:Documents/HRVOffline/pending.json"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Storage/Reconciliation.swift::var ReconciliationManager.pendingFile": "d021c3ec9036929e"
-   }
-  },
-  {
-   "key": "var ReconciliationManager.ReconciliationError.errorDescription",
-   "hash": "f46bfca54396c89d",
-   "does": "Localized description for ReconciliationError.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "case sessionAlreadyExists",
-     "effect": "'A session with this ID already exists'"
+     "cond": "no HRVOffline folder",
+     "effect": "returns; nothing removed"
+    },
+    {
+     "at": "+6",
+     "cond": "removeItem throws",
+     "effect": "logged as a warning; retried next launch"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
   }
  ],
  "deps": {}

@@ -83,19 +83,52 @@ import Foundation
             try await handler(arguments.argumentsJSON)
         }
     }
+#endif
 
-    /// Build Apple-compatible tools from the cross-provider `[ToolSpec]`
-    /// catalog + per-tool handler map. Exists only where FoundationModels
-    /// does (iOS 26+): without it this enum is compiled out and the caller
-    /// takes the toolless code path.
-    @available(iOS 26, *)
-    enum AppleToolCatalog {
+/// Turns the cross-provider `[ToolSpec]` catalog into what Apple's on-device
+/// model takes. The text and token arithmetic here is plain Swift and
+/// compiles everywhere; `wrap`, which builds the `Tool` itself, exists only
+/// where FoundationModels does (iOS 26+), and without it the caller takes
+/// the toolless code path.
+enum AppleToolCatalog {
+    /// Estimated tokens one tool adds to the session: its name and
+    /// enriched description, plus a little framing overhead. Counted
+    /// against Apple's 4K window alongside the instructions.
+    static func estimatedTokens(for spec: ToolSpec) -> Int {
+        AppleContextCompactor.estimateTokens(spec.name + enrichedDescription(for: spec)) + 10
+    }
+
+    /// Augments the tool's natural-language description with a
+    /// compact form of the input schema so the model knows what
+    /// JSON shape to emit. Apple's `Tool` protocol doesn't have
+    /// a separate schema field — the Generable wrapper only
+    /// describes the wrapper's own struct (one `String`). So
+    /// the per-tool schema must be conveyed in the description.
+    private static func enrichedDescription(for spec: ToolSpec) -> String {
+        guard !spec.inputSchema.properties.isEmpty else {
+            return spec.description + "\n\nThis tool takes no arguments — pass `{}` as argumentsJSON."
+        }
+        // Render the schema as a compact JSON example.
+        var fields: [String] = []
+        for (key, prop) in spec.inputSchema.properties.sorted(by: { $0.key < $1.key }) {
+            let optional = !spec.inputSchema.required.contains(key)
+            let suffix = optional ? " (optional)" : ""
+            fields.append("\"\(key)\": <\(prop.type)\(suffix) — \(prop.description)>")
+        }
+        let schemaHint = "{\n  " + fields.joined(separator: ",\n  ") + "\n}"
+        return spec.description + "\n\nargumentsJSON shape:\n\(schemaHint)"
+    }
+}
+
+#if canImport(FoundationModels)
+    extension AppleToolCatalog {
         /// Convert a `ToolSpec` + handler into an Apple `Tool` instance.
         /// The handler signature matches what `OpenAICompatibleStreamer`,
         /// `AnthropicProvider`, and `GeminiProvider` already invoke
         /// — JSON-string in, string out — so wiring is one line per
         /// tool at the registration site (no per-tool arg-struct
         /// definitions required).
+        @available(iOS 26, *)
         static func wrap(
             _ spec: ToolSpec,
             handler: @escaping @Sendable (String) async throws -> String
@@ -105,34 +138,6 @@ import Foundation
                 description: enrichedDescription(for: spec),
                 handler: handler
             )
-        }
-
-        /// Estimated tokens one tool adds to the session: its name and
-        /// enriched description, plus a little framing overhead. Counted
-        /// against Apple's 4K window alongside the instructions.
-        static func estimatedTokens(for spec: ToolSpec) -> Int {
-            AppleContextCompactor.estimateTokens(spec.name + enrichedDescription(for: spec)) + 10
-        }
-
-        /// Augments the tool's natural-language description with a
-        /// compact form of the input schema so the model knows what
-        /// JSON shape to emit. Apple's `Tool` protocol doesn't have
-        /// a separate schema field — the Generable wrapper only
-        /// describes the wrapper's own struct (one `String`). So
-        /// the per-tool schema must be conveyed in the description.
-        private static func enrichedDescription(for spec: ToolSpec) -> String {
-            guard !spec.inputSchema.properties.isEmpty else {
-                return spec.description + "\n\nThis tool takes no arguments — pass `{}` as argumentsJSON."
-            }
-            // Render the schema as a compact JSON example.
-            var fields: [String] = []
-            for (key, prop) in spec.inputSchema.properties.sorted(by: { $0.key < $1.key }) {
-                let optional = !spec.inputSchema.required.contains(key)
-                let suffix = optional ? " (optional)" : ""
-                fields.append("\"\(key)\": <\(prop.type)\(suffix) — \(prop.description)>")
-            }
-            let schemaHint = "{\n  " + fields.joined(separator: ",\n  ") + "\n}"
-            return spec.description + "\n\nargumentsJSON shape:\n\(schemaHint)"
         }
     }
 #endif

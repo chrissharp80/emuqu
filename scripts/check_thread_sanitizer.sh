@@ -2,6 +2,7 @@
 set -euo pipefail
 
 source "$(dirname "$0")/lib/preflight.sh"
+source "$(dirname "$0")/lib/xcodebuild.sh"
 
 # Data-race detection over the unit suite.
 #
@@ -60,6 +61,7 @@ heartbeat=$!
 
 set +e
 xcodebuild test \
+    "$XCODEBUILD_PINNED" \
     -project "$PROJECT" \
     -scheme "$SCHEME" \
     -destination "$DESTINATION" \

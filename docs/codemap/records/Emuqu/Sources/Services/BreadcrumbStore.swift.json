@@ -1,10 +1,10 @@
 {
  "file": "Emuqu/Sources/Services/BreadcrumbStore.swift",
- "hash": "afc85d788447fae5",
+ "hash": "26b40e8044b2af62",
  "role": "Get-Me-Back breadcrumb model (BreadcrumbFix, BreadcrumbTrail) and the file-backed store for the one active trail (active.json) plus a newest-first archive of up to 50 trails (archive.json) in the App Group 'Breadcrumbs' directory.",
  "types": [
   "BreadcrumbFix: struct — one Codable GPS fix (time, lat/lon, h-accuracy, optional altitude/course/speed)",
-  "BreadcrumbTrail: struct — Codable trail: startedAt, origin fix, ordered fixes, optional label, resolved origin label and isWorkoutTrack",
+  "BreadcrumbTrail: struct — Codable trail: startedAt, origin fix, ordered fixes, optional label, resolved origin label, isWorkoutTrack and sessionId (the workout a workout track was filed from)",
   "BreadcrumbStore: final class @unchecked Sendable — serial-queue JSON persistence of active trail and archive"
  ],
  "state": [
@@ -234,16 +234,18 @@
   },
   {
    "key": "func BreadcrumbStore.load()",
-   "hash": "c9077aaa407d4b71",
-   "does": "Synchronously (on the serial queue, so after pending saves) reads active.json via contentsIfPresent and decodes a BreadcrumbTrail with iso8601 dates; nil when the file is missing, present but unreadable (logged by contentsIfPresent) or fails to decode (logged).",
+   "hash": "3850658c35e6714c",
+   "does": "Synchronously (on the serial queue, so after pending saves) reads active.json via contentsIfPresent, opens it with the app's key (sealed, or plain JSON from builds that did not seal it) and decodes a BreadcrumbTrail with iso8601 dates; nil when the file is missing, present but unreadable (logged by contentsIfPresent), or fails to open (the key locked among them) or decode (logged).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.contentsIfPresent(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "ext:JSONDecoder"
    ],
    "reads": [
-    "file:Breadcrumbs/active.json"
+    "file:Breadcrumbs/active.json",
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
    ],
    "writes": [],
    "branches": [
@@ -254,11 +256,12 @@
     },
     {
      "at": "+7",
-     "cond": "catch decode error",
+     "cond": "catch open or decode error",
      "effect": "log error, nil (callers read it as no trail)"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)": "31bc2aea46cfe8ad",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.contentsIfPresent(_:)": "e032f00b9fc592f5",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -296,42 +299,45 @@
   },
   {
    "key": "func BreadcrumbStore.save(_:)",
-   "hash": "6544b41456adcbde",
-   "does": "Asynchronously on the serial queue encodes the trail (iso8601, sortedKeys), recreates the Breadcrumbs directory if missing, and atomically writes active.json with completeUntilFirstUserAuthentication protection; encode/write errors are logged by attempt and dropped.",
+   "hash": "550b0112feafca06",
+   "does": "Asynchronously on the serial queue encodes the trail (iso8601, sortedKeys) and seals it with the app's key, recreates the Breadcrumbs directory if missing, and atomically writes active.json with completeUntilFirstUserAuthentication protection; an encode, seal (no key reachable) or write error is logged by attempt and nothing more is written, so the file keeps the previous fix's trail.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.ensureParentDirectory(of:)",
     "ext:JSONEncoder",
     "ext:Data.write"
    ],
-   "reads": [],
+   "reads": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
    "writes": [
     "file:Breadcrumbs/active.json"
    ],
    "branches": [
     {
      "at": "+5",
-     "cond": "encode succeeded",
+     "cond": "encode and seal succeeded",
      "effect": "false: return without writing (logged); true: ensure dir and write"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)": "506794a8a13263fb",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.ensureParentDirectory(of:)": "141df6043cbac134",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
    "key": "func BreadcrumbStore.archiveActive()",
-   "hash": "2ae15edff06a0f92",
-   "does": "Moves the active trail into the archive: load() it, then on the serial queue appendToArchive and, only when that wrote the archive, remove active.json; when the archive could not be read or written the active trail is kept (error logged).",
+   "hash": "de5c073b020c45a3",
+   "does": "Moves the active trail into the archive: load() it, then on the serial queue appendToArchive and, only when that wrote the archive, remove active.json (removeIfPresent, a failure logged); when the archive could not be read or written the active trail is kept (error logged).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.appendToArchive(_:at:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "ext:FileManager.removeItem"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.removeIfPresent(_:)"
    ],
    "reads": [
     "file:Breadcrumbs/active.json"
@@ -353,20 +359,19 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.appendToArchive(_:at:)": "601896d4f2afbfef",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "f80525a8222cb7ff",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.appendToArchive(_:at:)": "c11bfb9244ce22bf",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.load()": "e1282e17fd6e3ecb",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.removeIfPresent(_:)": "aa6aaf26ba0d9b89",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func BreadcrumbStore.clear()",
-   "hash": "c1e37a9f54849b98",
-   "does": "Asynchronously deletes active.json on the serial queue; a missing file error is logged by attempt and ignored.",
+   "hash": "d5c9d1e7d526b84c",
+   "does": "Synchronously, on the serial queue behind any queued write, removes active.json (removeIfPresent) and returns true when no active trail is left, false (logged at .error) when the file is still there. The result may be ignored.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "ext:FileManager.removeItem"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.removeIfPresent(_:)"
    ],
    "reads": [],
    "writes": [
@@ -374,7 +379,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.removeIfPresent(_:)": "aa6aaf26ba0d9b89"
    }
   },
   {
@@ -428,22 +433,24 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.decodeArchive(at:using:)": "b1c01ebb84c085c9"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.decodeArchive(at:using:)": "7730ca34c1bcec0d"
    }
   },
   {
    "key": "func BreadcrumbStore.decodeArchive(at:using:)",
-   "hash": "8d6982a497fee43e",
-   "does": "Reads the archive for a write: [] when the file does not exist, nil when it exists but cannot be read (logged by contentsIfPresent) or decoded (logged), else the decoded trails.",
+   "hash": "9ec5b22b48c5bb3c",
+   "does": "Reads the archive for a write: [] when the file does not exist, nil when it exists but cannot be read (logged by contentsIfPresent) or opened with the app's key (the key locked among them) or decoded (logged), else the decoded trails (sealed, or plain JSON from builds that did not seal it).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.contentsIfPresent(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "ext:FileManager.fileExists",
     "ext:JSONDecoder"
    ],
    "reads": [
-    "file:Breadcrumbs/archive.json"
+    "file:Breadcrumbs/archive.json",
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
    ],
    "writes": [],
    "branches": [
@@ -459,11 +466,12 @@
     },
     {
      "at": "+5",
-     "cond": "catch decode error",
+     "cond": "catch open or decode error",
      "effect": "logs error and returns nil so caller refuses to overwrite"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)": "31bc2aea46cfe8ad",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.contentsIfPresent(_:)": "e032f00b9fc592f5",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -484,21 +492,19 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.appendToArchive(_:at:)": "601896d4f2afbfef"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.appendToArchive(_:at:)": "c11bfb9244ce22bf"
    }
   },
   {
    "key": "func BreadcrumbStore.appendToArchive(_:at:)",
-   "hash": "0085d3842f745b67",
-   "does": "On the serial queue: reads the archive with decodeArchive, prepends the trail, trims with capped (50, workout tracks evicted first), encodes (iso8601, sortedKeys) and atomically writes it with completeUntilFirstUserAuthentication. Returns true only when the write succeeded; false (archive untouched) when the existing archive is present but unreadable, or encoding or the write failed.",
+   "hash": "57d1dbd744efe9fd",
+   "does": "On the serial queue: reads the archive with decodeArchive, prepends the trail, trims with capped (50, workout tracks evicted first) and writes it through writeArchive. Returns true only when the write succeeded; false (archive untouched) when the existing archive is present but unreadable, or writeArchive failed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.decodeArchive(at:using:)",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.capped(_:)",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.ensureParentDirectory(of:)",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "ext:JSONEncoder",
-    "ext:Data.write"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.writeArchive(_:to:)",
+    "ext:JSONDecoder"
    ],
    "reads": [
     "file:Breadcrumbs/archive.json"
@@ -513,19 +519,85 @@
      "effect": "false, nothing written"
     },
     {
-     "at": "+10",
-     "cond": "encode failed",
-     "effect": "false (logged by attempt)"
-    },
-    {
-     "at": "+13",
-     "cond": "write failed",
-     "effect": "false (logged by attempt); else true"
+     "at": "+6",
+     "cond": "writeArchive failed",
+     "effect": "false; else true"
     }
    ],
    "deps": {
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.capped(_:)": "1f8294fd04316957",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.decodeArchive(at:using:)": "b1c01ebb84c085c9",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.decodeArchive(at:using:)": "7730ca34c1bcec0d",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.writeArchive(_:to:)": "472e63d1cd92c4b3"
+   }
+  },
+  {
+   "key": "func BreadcrumbStore.removeTrails(ofSession:)",
+   "hash": "81fb12e486e6de16",
+   "does": "Synchronously on the serial queue (behind any queued write): reads the archive (decodeArchive) and, when any trail carries this sessionId, writes the archive back without them (writeArchive). True when none is left (removed, or none matched, or no archive); false when the archive is present but unreadable, or the rewrite failed, leaving it as it was. Trails without a sessionId never match.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.decodeArchive(at:using:)",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.writeArchive(_:to:)",
+    "ext:JSONDecoder"
+   ],
+   "reads": [
+    "file:Breadcrumbs/archive.json"
+   ],
+   "writes": [
+    "file:Breadcrumbs/archive.json"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "archive present but unreadable",
+     "effect": "false"
+    },
+    {
+     "at": "+6",
+     "cond": "no trail of the session",
+     "effect": "true, nothing written"
+    },
+    {
+     "at": "+7",
+     "cond": "rewrite",
+     "effect": "writeArchive's result"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.decodeArchive(at:using:)": "7730ca34c1bcec0d",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.writeArchive(_:to:)": "472e63d1cd92c4b3",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
+   }
+  },
+  {
+   "key": "func BreadcrumbStore.writeArchive(_:to:)",
+   "hash": "3b8d12b59c7ee3e3",
+   "does": "Encodes the trails (iso8601, sortedKeys), seals them with JSONFileSeal.app, ensures the Breadcrumbs folder exists and atomically writes archive.json with completeUntilFirstUserAuthentication. False (logged by attempt) when encoding, sealing (no key reachable) or the write failed.",
+   "entry": null,
+   "calls": [
+    "ext:JSONEncoder",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.ensureParentDirectory(of:)",
+    "ext:Data.write"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Breadcrumbs/archive.json"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "encode or seal failed",
+     "effect": "false"
+    },
+    {
+     "at": "+7",
+     "cond": "write failed",
+     "effect": "false; else true"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)": "506794a8a13263fb",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.ensureParentDirectory(of:)": "141df6043cbac134",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
@@ -573,12 +645,11 @@
   },
   {
    "key": "func BreadcrumbStore.eraseArchive()",
-   "hash": "6e8dbc02f54f7ba1",
-   "does": "Asynchronously deletes archive.json; does not touch active.json. Called by DataPurgeService.",
+   "hash": "6f1d7e0b7808c6a8",
+   "does": "Synchronously, on the serial queue behind any queued write, removes archive.json (removeIfPresent); does not touch active.json. Returns true when no archive is left, false (logged at .error) when it is still there. Called by DataPurgeService.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "ext:FileManager.removeItem"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.removeIfPresent(_:)"
    ],
    "reads": [],
    "writes": [
@@ -586,7 +657,37 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.removeIfPresent(_:)": "aa6aaf26ba0d9b89"
+   }
+  },
+  {
+   "key": "func BreadcrumbStore.removeIfPresent(_:)",
+   "hash": "38070930b85461d9",
+   "does": "Removes the file at url when it exists (a missing file counts as removed); a removal that throws is logged at .error. Returns whether the file is gone afterwards, checked on disk. Runs on the serial queue.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.fileExists",
+    "ext:FileManager.removeItem",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Breadcrumbs/active.json or archive.json"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no file",
+     "effect": "true"
+    },
+    {
+     "at": "+6",
+     "cond": "removal threw",
+     "effect": "log at .error; the file check decides the result"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }
  ],

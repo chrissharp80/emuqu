@@ -21,11 +21,14 @@ extension SessionArchive {
         return store.entryById(id)
     }
     func exists(_ id: UUID) -> Bool { store.exists(id) }
-    /// Permanently forget a deleted session: the same removal from the
-    /// deleted list as `unmarkAsDeleted`.
+    /// Drop the deletion mark of a session deleted forever: the same removal
+    /// from the deleted list as `unmarkAsDeleted`. Called only once iCloud
+    /// has confirmed the deletion or this device has never synced
+    /// (`CloudDeletionCoordinator.tombstoneIsSettled`).
     func forgetDeletedSession(_ id: UUID) throws { try store.unmarkAsDeleted(id) }
     func trashedSession(_ id: UUID) -> HRVSession? { store.trashedSession(id) }
-    func discardTrashed(_ id: UUID) { store.discardTrashed(id) }
+    @discardableResult
+    func discardTrashed(_ id: UUID) -> Bool { store.discardTrashed(id) }
     func expiredDeletionIds(keepDays: Int = 90) -> [UUID] { store.expiredDeletionIds(keepDays: keepDays) }
     var trashedIds: Set<UUID> { store.trashedIds }
     func markAsDeleted(_ id: UUID) throws { try store.markAsDeleted(id) }

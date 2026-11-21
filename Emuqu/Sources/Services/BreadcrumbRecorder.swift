@@ -171,11 +171,14 @@ final class BreadcrumbRecorder: NSObject {
     }
 
     /// "End and save": file the trail in the archive and stop recording.
-    func endAndArchive() {
+    /// `disengage` runs behind the store's archive write, so it drops the
+    /// in-memory trail only once the active file is gone. True when it was
+    /// dropped; false when the archive could not be read or written and the
+    /// trail is still on disk, where it stays loaded.
+    func endAndArchive() -> Bool {
         AppDependencies.current.location.breadcrumbStore.archiveActive()
         disengage()
-        activeTrail = nil
-        lastCommittedFix = nil
+        return activeTrail == nil
     }
 
     /// Delete All My Data: stop recording and drop the in-memory trail so an
@@ -190,12 +193,15 @@ final class BreadcrumbRecorder: NSObject {
     }
 
     /// User-confirmed delete. Stops recording AND clears the trail
-    /// from disk. Always-confirm semantics enforced by the caller.
-    func clearTrail() {
+    /// from disk. Always-confirm semantics enforced by the caller. True when
+    /// the trail is gone; false when its file could not be removed, and the
+    /// trail stays loaded, as it is still on disk.
+    func clearTrail() -> Bool {
         disengage()
-        AppDependencies.current.location.breadcrumbStore.clear()
+        guard AppDependencies.current.location.breadcrumbStore.clear() else { return false }
         activeTrail = nil
         lastCommittedFix = nil
+        return true
     }
 
     // MARK: - Throttle gate

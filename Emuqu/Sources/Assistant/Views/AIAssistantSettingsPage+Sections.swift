@@ -462,12 +462,12 @@ extension AIAssistantSettingsPage {
     }
 
     /// Resolves every offset to its fact's id before removing any, so a
-    /// multi-row delete doesn't index into an array already shifted.
+    /// multi-row delete doesn't index into an array already shifted. A fact
+    /// the store could not erase stays listed, and the page says so.
     func forgetFacts(at indexSet: IndexSet) {
         let ids = indexSet.map { facts.facts[$0].id }
-        for id in ids {
-            facts.remove(id)
-        }
+        let removed = ids.map { facts.remove($0) }
+        if removed.contains(false) { factChangeFailed = true }
     }
 
     var addFactRow: some View {
@@ -486,9 +486,11 @@ extension AIAssistantSettingsPage {
         }
     }
 
+    /// Shown whenever anything is stored, set-aside copies of an older facts
+    /// file included, even with no fact listed.
     @ViewBuilder
     var forgetEverythingButton: some View {
-        if !facts.facts.isEmpty {
+        if facts.hasAnythingToForget {
             Button(role: .destructive) {
                 showClearFactsConfirm = true
             } label: {

@@ -1,9 +1,9 @@
 {
  "file": "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift",
- "hash": "022fe0ffd7d9604e",
- "role": "Anthropic Messages API (Claude) provider: static model catalog, availability from the keychain, request body types and encoders, message-history assembly with conversation cache breakpoint, live-state splice into the last user turn, streaming request and SSE event handling into AIStreamEvents, and HTTP error mapping.",
+ "hash": "067c59d31baac5e7",
+ "role": "Anthropic Messages API (Claude) provider: static model catalog (key handling and availability from KeyedCloudProvider), request body types and encoders, message-history assembly with conversation cache breakpoint, live-state splice into the last user turn, streaming request and SSE event handling into AIStreamEvents, and its non-2xx mapping through ProviderHTTP.statusFailure.",
  "types": [
-  "AnthropicProvider: class (AIProvider, Sendable) — Claude provider",
+  "AnthropicProvider: class (KeyedCloudProvider, Sendable) — Claude provider",
   "AnthropicProvider.RequestBody: struct — Messages API body (model, max_tokens, system, messages, stream, tools)",
   "RequestBody.MessageContent: enum — plain/blocks/cachedBlocks",
   "RequestBody.ContentBlock: enum — text/toolUse/toolResult/raw (a block replayed as the model sent it)",
@@ -22,53 +22,8 @@
   "net:https://api.anthropic.com/v1/messages (sent through ProviderHTTP.streamSession)",
   "kc:APIKeyStore service com.chrissharp.flowrecovery.assistant.apikey account anthropic"
  ],
- "toplevel": "id is a stored let .anthropic. RequestBody and nested types declare Encodable conformances; ContentBlock/CachedContentBlock/SystemBlock.CacheControl/ToolDecl encoders live in extensions at the file end. max_tokens is hard-coded 2048 at stream(); a reply stopped by it ends with '…', a reply paused by the server web search (pause_turn) is continued (continuingPausedTurns), and a refusal throws a blocked reply (messageDelta). The URL session, error-body draining, error-envelope parsing and status mapping are ProviderHTTP's.",
+ "toplevel": "id is a stored let .anthropic. RequestBody and nested types declare Encodable conformances; ContentBlock/CachedContentBlock/SystemBlock.CacheControl/ToolDecl encoders live in extensions at the file end. max_tokens is hard-coded 2048 at stream(); a reply stopped by it ends with '…', a reply paused by the server web search (pause_turn) is continued (continuingPausedTurns), and a refusal throws a blocked reply (messageDelta). The URL session, opening the stream, error-body draining, error-envelope parsing and status mapping are ProviderHTTP's.",
  "units": [
-  {
-   "key": "var AnthropicProvider.availableModels",
-   "hash": "761626cd7f4ea4b6",
-   "does": "Returns the static Claude model catalog.",
-   "entry": "AIProvider conformance",
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {}
-  },
-  {
-   "key": "var AnthropicProvider.requiresKey",
-   "hash": "e9238caebf755141",
-   "does": "Returns true (Claude needs an API key).",
-   "entry": "AIProvider conformance",
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {}
-  },
-  {
-   "key": "var AnthropicProvider.isAvailable",
-   "hash": "8cca839ced020dab",
-   "does": "True when the keychain holds a non-empty Anthropic key (SecItemCopyMatching on every read).",
-   "entry": "AIProvider conformance (ProviderRegistry / routing availability)",
-   "calls": [
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore",
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)"
-   ],
-   "reads": [
-    "kc:APIKeyStore service com.chrissharp.flowrecovery.assistant.apikey account anthropic"
-   ],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)": "5d589653df6e990b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore": "9644ad4752275337"
-   }
-  },
   {
    "key": "func AnthropicProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
    "hash": "5a0347f6fc0a3094",
@@ -152,7 +107,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.cachedMessage(role:blocks:)": "b0dd12623c882abc",
-    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.block(cleanBeatCount:dfaAlpha1:lfHfRatio:hrCV:)": "ea932045e1a531b7"
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.block(cleanBeatCount:dfaAlpha1:lfHfRatio:hrCV:)": "62bc833dfc6c1edc"
    }
   },
   {
@@ -307,7 +262,7 @@
   },
   {
    "key": "func AnthropicProvider.stream(messages:model:contextRendered:systemPrompt:tools:toolRounds:continuation:)",
-   "hash": "04a3d77c1ea46432",
+   "hash": "6b6be1dbbab75dbc",
    "does": "Runs one Claude reply: reads the key from the keychain, builds history, system blocks, live-state splice and tool declarations into a body with max_tokens 2048 and stream true, then hands it to continuingPausedTurns with perform as the request, so a reply paused by the server web search is sent back and continued until it completes (bounded; a reply cut at the token cap ends with '…').",
    "entry": null,
    "calls": [
@@ -347,7 +302,7 @@
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.continuingPausedTurns(_:continuation:perform:)": "649c2bc8d8bf51f5",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.toolDeclarations(for:)": "694da6020f5247ea",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.buildMessageHistory(messages:toolRounds:)": "0df5d5d18ee8183d",
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.perform(_:url:apiKey:continuation:)": "1687dbd840b7ab15",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.perform(_:url:apiKey:continuation:)": "cdbc99916dc59aea",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.spliceLiveState(_:into:systemBlocks:)": "4c6c402553ec99ee",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015",
@@ -356,17 +311,14 @@
   },
   {
    "key": "func AnthropicProvider.perform(_:url:apiKey:continuation:)",
-   "hash": "9943f6153cb37fc0",
-   "does": "One HTTP request: builds the URLRequest (makeRequest), POSTs over ProviderHTTP.streamSession, throws mapped errors for non-2xx (throwForStatus), then parses the SSE stream into the continuation and returns consumeSSE's result (the reply's content when it paused, nil when it completed).",
+   "hash": "3b66cbddf054f4ce",
+   "does": "One HTTP request: builds the URLRequest (makeRequest), opens the stream through ProviderHTTP.openStream (which logs a connect failure and throws statusFailure's error for a non-2xx reply), then parses the SSE lines into the continuation and returns consumeSSE's result (the reply's content when it paused, nil when it completed).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.makeRequest(url:apiKey:body:)",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::let ProviderHTTP.streamSession",
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.throwForStatus(_:bytes:)",
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)",
-    "ext:URLSession.bytes(for:)",
-    "ext:Task.checkCancellation",
-    "ext:URLSession.AsyncBytes.lines"
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderHTTP.openStream(_:provider:failure:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.statusFailure(_:body:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)"
    ],
    "reads": [
     "net:api.anthropic.com/v1/messages"
@@ -376,25 +328,26 @@
    ],
    "branches": [
     {
-     "at": "+9",
-     "cond": "response is HTTP and status outside 200...299",
-     "effect": "throwForStatus drains ≤4 KB and throws mapped error; else SSE consumed"
+     "at": "+7",
+     "cond": "status outside 200...299 (inside openStream)",
+     "effect": "throws statusFailure of the status and the first 4 KB of the body; else SSE consumed"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::let ProviderHTTP.streamSession": "755d0d1ab8a8cbe4",
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "88fd168045913f13",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "3fd867b337964de8",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.makeRequest(url:apiKey:body:)": "78754869ee6292c4",
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.throwForStatus(_:bytes:)": "f24d18d9a8f56666",
-    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)": "8965c0bed0b1cf6e"
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.statusFailure(_:body:)": "7e6085dbd1d0fb58",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderHTTP.openStream(_:provider:failure:)": "a00ec95424a437ab"
    }
   },
   {
    "key": "func AnthropicProvider.yieldUsage(_:to:)",
-   "hash": "f863f20711cbd633",
+   "hash": "ebcf926538882c46",
    "does": "Yields one .usage event from a usage dictionary (input, output, cache_read, cache_creation tokens, missing fields 0) when any counter is non-zero.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderHTTP.yieldUsage(input:output:cached:cacheCreation:to:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -429,7 +382,9 @@
      "effect": "returns without yielding; else yields .usage"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderHTTP.yieldUsage(input:output:cached:cacheCreation:to:)": "1bc58c502e1e203a"
+   }
   },
   {
    "key": "func AnthropicProvider.handle(eventName:data:state:continuation:)",
@@ -637,11 +592,12 @@
   },
   {
    "key": "func AnthropicProvider.closeBlock(_:openToolUses:continuation:)",
-   "hash": "b8fc9ebbb522f6c8",
+   "hash": "e82ef3be74b97b08",
    "does": "On content_block_stop for an open tool block, removes it; its accumulated input (\"{}\" when empty) must parse as a JSON object (ProviderHTTP.isJSONObject), else it throws .invalidResponse and the call is never emitted (a max_tokens stop inside the arguments); otherwise yields .toolUse.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.isJSONObject(_:)"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.isJSONObject(_:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderHTTP.incompleteArguments(toolName:)"
    ],
    "reads": [],
    "writes": [],
@@ -663,50 +619,23 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.isJSONObject(_:)": "6a9e26d5fc9f1953"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.isJSONObject(_:)": "6a9e26d5fc9f1953",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderHTTP.incompleteArguments(toolName:)": "5f04732ec3e5ce44"
    }
   },
   {
-   "key": "func AnthropicProvider.throwForStatus(_:bytes:)",
-   "hash": "59d974cd7cceb2e4",
-   "does": "Drains up to 4096 bytes of an error body (ProviderHTTP.errorBody), redacts keys, throws outOfCredit when ProviderAccountReply detects credit exhaustion, otherwise throws ProviderHTTP.statusError with the parsed error.message (or the body's first 300 chars) and ProviderHTTP.overloadedMessage(.anthropic) ('Anthropic is overloaded…') for 5xx.",
+   "key": "func AnthropicProvider.statusFailure(_:body:)",
+   "hash": "c471dde317ff6b03",
+   "does": "The error a non-2xx Anthropic reply becomes: ProviderHTTP.statusFailure with no provider-specific override (credit failure → .outOfCredit(.anthropic); 401/403 auth, 429 rate limit, 404 modelUnavailable, 529 and other 5xx the overloaded text, else invalidResponse with the envelope message or 300 characters of the body).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorBody(_:)",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.isCreditExhausted(status:body:)",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.statusError(_:message:overloaded:)",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.overloadedMessage(for:)"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.statusFailure(_:body:provider:override:)"
    ],
-   "reads": [
-    "net:api.anthropic.com error body"
-   ],
+   "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "body not UTF-8",
-     "effect": "\"\""
-    },
-    {
-     "at": "+3",
-     "cond": "credit exhausted (402 or marker)",
-     "effect": "throws outOfCredit(.anthropic)"
-    },
-    {
-     "at": "+10",
-     "cond": "errorMessage nil",
-     "effect": "falls back to the redacted body's first 300 chars"
-    }
-   ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.isCreditExhausted(status:body:)": "132b59eb8e966828",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorBody(_:)": "a687cba664e39621",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "db217136d3ed0694",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.overloadedMessage(for:)": "17c60e6299c39e16",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.statusError(_:message:overloaded:)": "8b93e6a53d290b7b",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)": "2461162d36fc3850"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.statusFailure(_:body:provider:override:)": "069d43e20707cb97"
    }
   },
   {

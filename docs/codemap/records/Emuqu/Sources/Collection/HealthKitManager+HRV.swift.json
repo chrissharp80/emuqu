@@ -186,6 +186,33 @@
    }
   },
   {
+   "key": "func HealthWriteAndObserve.removeExportedHRV(sessionId:from:to:)",
+   "hash": "40ba621c45d6429e",
+   "does": "For a session deleted forever: without HealthKit returns; otherwise deletes every HRV sample this app exported for it (deleteOurHRVSamples) over start-25h ... end+25h, which covers both export paths. Errors propagate so the caller can report the samples are still in Health.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.deleteOurHRVSamples(sessionId:from:to:)"
+   ],
+   "reads": [
+    "hk:heartRateVariabilitySDNN"
+   ],
+   "writes": [
+    "hk:heartRateVariabilitySDNN"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "HealthKit unavailable",
+     "effect": "return; nothing deleted"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.deleteOurHRVSamples(sessionId:from:to:)": "ae4e2b66dc3d8820",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7d45a9a4a2660610"
+   }
+  },
+  {
    "key": "func HealthWriteAndObserve.deleteOurHRVSamples(sessionId:from:to:)",
    "hash": "c9a069147150ff1f",
    "does": "Reads this app's own ExternalUUID SDNN samples in start...end (fail-closed) and deletes those isOurHRVExport assigns to the session, logging the count; errors propagate so the caller skips the save.",

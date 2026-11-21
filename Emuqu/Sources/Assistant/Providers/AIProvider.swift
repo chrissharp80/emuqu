@@ -512,7 +512,8 @@ enum ProviderAccountReply {
 // MARK: - Shared HTTP plumbing
 
 /// What the three cloud streamers (Anthropic, Gemini and the
-/// OpenAI-compatible one) do identically: the URL session, draining an error
+/// OpenAI-compatible one) do identically: the URL session, building and
+/// opening the streaming request (`ProviderStream.swift`), draining an error
 /// body, reading a vendor's JSON error envelope, mapping a status to the
 /// error the chat shows, and splitting the composed prompt around the cache
 /// marker. One copy, so a fix to any of them reaches every provider.
@@ -570,10 +571,16 @@ enum ProviderHTTP {
         return collected
     }
 
+    /// The most characters of a raw error body the chat shows when the body
+    /// carries no readable `error.message`: enough for a vendor's sentence,
+    /// short of a wall of HTML or JSON.
+    static let errorExcerptLength = 300
+
     /// Pulls `error.message` out of a vendor's JSON error envelope
-    /// (`{"error":{"message":"..."}}`, Anthropic's and Gemini's shape) so the
-    /// banner shows one readable sentence instead of raw JSON. Redacted: a
-    /// provider can echo part of the request, key included, back in it.
+    /// (`{"error":{"message":"..."}}`, the shape Anthropic, Gemini, OpenAI,
+    /// xAI and DeepSeek all send) so the banner shows one readable sentence
+    /// instead of raw JSON. Redacted: a provider can echo part of the
+    /// request, key included, back in it.
     static func errorMessage(from data: Data) -> String? {
         let object: Any
         do { object = try JSONSerialization.jsonObject(with: data) } catch { return nil }
@@ -582,6 +589,34 @@ enum ProviderHTTP {
               let message = error["message"] as? String, !message.isEmpty
         else { return nil }
         return redactAPIKeys(message)
+    }
+
+    /// A provider's own reading of a failed reply, given the status, the raw
+    /// body and the body as redacted text. Nil leaves the failure to
+    /// `statusError`.
+    typealias StatusOverride = (_ status: Int, _ body: Data, _ text: String) -> AIProviderError?
+
+    /// The error a non-2xx reply becomes, for every cloud provider. A credit
+    /// failure is checked first: vendors send an empty account as 402, 429
+    /// `insufficient_quota`, or 400/403 about credits, and none of those is
+    /// a rate limit or a bad key. Then `override` gets the provider-specific
+    /// statuses (Gemini's bad key on 400, OpenAI's 400 envelope), and
+    /// anything it leaves maps through `statusError`, with the envelope's
+    /// message or the first `errorExcerptLength` characters of the body.
+    static func statusFailure(
+        _ status: Int,
+        body: Data,
+        provider: ProviderID,
+        override: StatusOverride = { _, _, _ in nil }
+    ) -> AIProviderError {
+        let text = redactAPIKeys(String(data: body, encoding: .utf8) ?? "")
+        if ProviderAccountReply.isCreditExhausted(status: status, body: text) { return .outOfCredit(provider) }
+        if let specific = override(status, body, text) { return specific }
+        return statusError(
+            status,
+            message: errorMessage(from: body) ?? String(text.prefix(errorExcerptLength)),
+            overloaded: overloadedMessage(for: provider)
+        )
     }
 
     /// Maps an HTTP failure to the error the chat banner shows. 5xx are
@@ -738,6 +773,28 @@ protocol AIProvider {
         tools: [ToolSpec],
         toolRounds: [[ToolExchange]]
     ) -> AsyncThrowingStream<AIStreamEvent, Error>
+}
+
+/// A cloud provider that runs on the user's own API key: it always needs a
+/// key, it is callable once one is stored for its `id`, and its catalog is
+/// the type's `models`.
+protocol KeyedCloudProvider: AIProvider {
+    /// The models this provider offers, in picker order.
+    static var models: [ModelOption] { get }
+}
+
+extension KeyedCloudProvider {
+    var availableModels: [ModelOption] {
+        Self.models
+    }
+
+    var requiresKey: Bool {
+        true
+    }
+
+    var isAvailable: Bool {
+        AppDependencies.current.providers.apiKeyStore.hasKey(for: id)
+    }
 }
 
 extension AIProvider {

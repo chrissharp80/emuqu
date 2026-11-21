@@ -63,7 +63,7 @@ extension AssistantMemoryNamespace {
             return Self.userRequestRequired("add a contact")
         }
         guard let contact = addContact(name: name, email: email, notes: args["notes"]) else {
-            return Self.contactsUnreadable()
+            return Self.contactsNotChanged()
         }
         return .record([
             "status": .string("added"),
@@ -83,11 +83,12 @@ extension AssistantMemoryNamespace {
         return nil
     }
 
-    /// The answer when the address book cannot be read (and so not saved).
-    private static func contactsUnreadable() -> FactValue {
+    /// The answer when the address book could not be read or the change could
+    /// not be written, so nothing was changed.
+    private static func contactsNotChanged() -> FactValue {
         .missing(
             reason: .notRecorded,
-            detail: "the address book couldn't be read (phone not unlocked since a restart?) so nothing was changed — ask the user to unlock and try again"
+            detail: "the address book couldn't be read or saved, so nothing was changed — ask the user to try again, and to unlock the phone first if it was just restarted"
         )
     }
 
@@ -150,7 +151,7 @@ extension AssistantMemoryNamespace {
         }
         let question = "Remove \(target.name) (\(target.email)) from your contacts? Reply yes to confirm."
         if let unconfirmed = context.gate(action: "assistant.contacts.remove", target: target.id.uuidString, question: question) { return unconfirmed }
-        guard store.remove(id: target.id) else { return contactsUnreadable() }
+        guard store.remove(id: target.id) else { return contactsNotChanged() }
         return .record([
             "status": .string("removed"),
             "name": .string(target.name),

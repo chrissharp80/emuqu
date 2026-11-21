@@ -112,7 +112,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.compressedPoints(_:)": "dadea6a1cf27fdb2",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.compressedPoints(_:)": "620e79302b6a35c6",
     "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.handleUploadFailure(_:)": "1fa043f45efccfb3",
     "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.isUploadDue(pointCount:force:)": "7c6cb26ea429c177",
     "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.liveBackupRecord(sessionId:)": "21b8e821452fe6c8",
@@ -211,28 +211,22 @@
   },
   {
    "key": "func CloudKitLiveBackupManager.compressedPoints(_:)",
-   "hash": "491507df40e46819",
-   "does": "In an autoreleasepool: fails closed if no usable CloudPayloadCodec key; JSON-encodes points (ISO-8601), compresses, encrypts.",
+   "hash": "6e42a49b0b519266",
+   "does": "In an autoreleasepool: JSON-encodes the points (ISO-8601), compresses them and seals them with CloudPayloadCodec.sealForUpload, which throws CloudSyncError.encryptionUnavailable when no cloud key can be read or made (no plaintext fallback).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::var CloudPayloadCodec.hasUsableKey",
     "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)"
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)"
    ],
    "reads": [
     "kc:CloudPayloadCodec key"
    ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "no usable key",
-     "effect": "throws CloudSyncError.encryptionUnavailable (no plaintext fallback)"
-    }
+   "writes": [
+    "kc:CloudPayloadCodec key (new key when none)"
    ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "fe1f3772ccd7e6b5",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::var CloudPayloadCodec.hasUsableKey": "b689df1a23a0f576",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)": "88b5cfd374d70c6c",
     "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "b4d5293d92fd3be4"
    }
   },
@@ -287,8 +281,8 @@
   },
   {
    "key": "func CloudKitLiveBackupManager.delete(sessionId:)",
-   "hash": "c586c8658e1363b3",
-   "does": "When sync is enabled, or this device uploaded a live backup for the session (backedUpIds, persisted), deletes record live_<id> without creating the zone; a missing record or zone counts as deleted. Then forgets the id; another error is logged and the id kept for a later attempt.",
+   "hash": "c5e2467d6149fa01",
+   "does": "When sync is enabled, or the session is awaiting deletion here (backedUpIds, persisted), deletes record live_<id> without creating the zone; a missing record or zone counts as deleted. Then forgets the id. Another error is logged at .warning and the id added to (or kept in) backedUpIds, so the full sync deletes it again once its session is deleted (retryAwaitingDeletion).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.settings",
@@ -307,7 +301,7 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "sync disabled and no backup uploaded from here",
+     "cond": "sync disabled and the session not awaiting deletion here",
      "effect": "returns without deleting"
     },
     {
@@ -318,7 +312,7 @@
     {
      "at": "+8",
      "cond": "other error",
-     "effect": "logged, return (id kept)"
+     "effect": "logged, id added to backedUpIds, return"
     }
    ],
    "deps": {
@@ -327,6 +321,34 @@
     "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.privateDB": "5dedadc9a4d5ae80",
     "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.settings": "3cf8669f9238d696",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func CloudKitLiveBackupManager.retryAwaitingDeletion(among:)",
+   "hash": "e53d4107afafe0bb",
+   "does": "For every id in backedUpIds (awaiting deletion) that is in finished (sessions deleted, or deleted forever), runs delete(sessionId:) again, one after another. A session not in finished, such as a recording in progress, keeps its backup. Called by CloudDeletionCoordinator.reconcileLocalDeletions in the full sync.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.backedUpIds",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.delete(sessionId:)"
+   ],
+   "reads": [
+    "ud:cloudkit.liveBackup.awaitingDeletion"
+   ],
+   "writes": [
+    "ck:RawBackup/HRVSessions",
+    "ud:cloudkit.liveBackup.awaitingDeletion"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "each due id",
+     "effect": "delete(sessionId:)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.delete(sessionId:)": "a78d4f34f328c07c",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::var CloudKitLiveBackupManager.backedUpIds": "c2b715a038756d12"
    }
   },
   {

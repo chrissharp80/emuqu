@@ -129,8 +129,9 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedBytesError(for:)": "7f54fda39143b6b3",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)": "c7576c47f94a2e18",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.storedRRSeries(for:)": "c2573033590d042e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -168,19 +169,21 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "245124c441f7143c",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "2bebe4b4224a2d06"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "0b3ffc735a23d053"
    }
   },
   {
    "key": "func ArchiveStore.storedRRSeries(for:)",
-   "hash": "379dada8d593f614",
-   "does": "Reads the stored session for id: via hash-checked _retrieve first; on failure via the hash-agnostic loadAndDecodeSessionFile on the indexed file. Returns preserved(beats, viaRawDecode), noBeatsStored, or unreadable.",
+   "hash": "244b433a19b6541a",
+   "does": "Reads the stored session for id: through the hash-checked reader first (hashCheckedRead, which logs a failure); when that gives nothing, through the hash-agnostic loadAndDecodeSessionFile on the indexed file (a failure logged by attempt). Returns preserved(beats, viaRawDecode), noBeatsStored, or unreadable.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._retrieve(_:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.hashCheckedRead(_:)",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.loadAndDecodeSessionFile(at:decoder:)",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
    ],
    "reads": [
     "mem:SessionArchive.index",
@@ -190,30 +193,53 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "try? _retrieve(id) returned a session",
-     "effect": "return .preserved(rrSeries, viaRawDecode:false) or .noBeatsStored when its rrSeries is nil; errors are discarded by try? and fall to the raw path"
-    },
-    {
-     "at": "+2",
-     "cond": "existing.rrSeries is nil (?? fallback)",
-     "effect": "return .noBeatsStored"
+     "cond": "the hash-checked read returned a session",
+     "effect": "return .preserved(rrSeries, viaRawDecode:false), or .noBeatsStored when its rrSeries is nil"
     },
     {
      "at": "+4",
      "cond": "an index entry exists AND the raw decode succeeded",
-     "effect": "continue; otherwise (no entry, or decode/decrypt threw — error discarded) return .unreadable"
+     "effect": "continue; otherwise (no entry, or decode/decrypt threw, logged) return .unreadable"
     },
     {
-     "at": "+10",
+     "at": "+9",
      "cond": "salvaged.rrSeries is nil (?? fallback)",
      "effect": "return .noBeatsStored; else .preserved(viaRawDecode:true)"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "245124c441f7143c",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.hashCheckedRead(_:)": "ae700b006e7faf28",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.loadAndDecodeSessionFile(at:decoder:)": "1b597f5044deb50f",
+    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionDecoder": "ca0eef42258b468f",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+   }
+  },
+  {
+   "key": "func ArchiveStore.hashCheckedRead(_:)",
+   "hash": "53ae4176f4f42fce",
+   "does": "The session through _retrieve (hash-checked). Nil when the index has no entry, or when the read threw: the error is logged at .warning and nil lets the caller try the raw reader. Caller holds archiveLock.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._retrieve(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:SessionArchive.index",
+    "file:<archiveDirectory>/<uuid>.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "_retrieve threw",
+     "effect": "log at .warning, return nil"
+    }
+   ],
+   "deps": {
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._retrieve(_:)": "24c88f25992eca37",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.loadAndDecodeSessionFile(at:decoder:)": "8b16996dd6305c79",
-    "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionDecoder": "ca0eef42258b468f"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -315,10 +341,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "907008a128361c54",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "2d06ba44e8e8015c",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)": "e279cc050a658fb7",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.encodedForDisk(_:)": "29d80916bd56a55b",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.rollBackWrite(to:filePath:prior:id:)": "58bdffb2d92aae2d",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.rollBackWrite(to:filePath:prior:id:)": "7adfe94797a0d0b6",
     "Emuqu/Sources/Storage/Archive+Internal.swift::init ArchiveStore.PriorFile(at:id:fileManager:)": "320b6db69109e18e",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func writeArchiveBytes(_:to:format:sessionID:)": "b0adb3c1e0c04836"
    }
@@ -369,7 +396,7 @@
   {
    "key": "func ArchiveStore.rollBackWrite(to:filePath:prior:id:)",
    "hash": "9c9298f4851dfbd1",
-   "does": "Restores the pre-write state after a failed index save: puts the index back, drops the derived caches, and either rewrites the previous bytes through writeArchiveBytes with the format they had (plaintext pending encryption → .completeFileProtection and re-queued; otherwise encrypted protection and ledger cleared) or, when there was no file before, clears the ledger entry and removes the new file. File failures are logged (attempt), not thrown. Caller holds the lock (writeAndIndex, ArchiveMigrations.relinkUnderLock).",
+   "does": "Restores the pre-write state after a failed index save: puts the index back, drops the derived caches, and either rewrites the previous bytes through writeArchiveBytes with the format they had (plaintext pending encryption → .completeFileProtectionUnlessOpen and re-queued; otherwise encrypted protection and ledger cleared) or, when there was no file before, clears the ledger entry and removes the new file. File failures are logged (attempt), not thrown. Caller holds the lock (writeAndIndex, ArchiveMigrations.relinkUnderLock).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func writeArchiveBytes(_:to:format:sessionID:)",
@@ -437,7 +464,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)": "703c2a2085c25cdf",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "2bebe4b4224a2d06",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "0b3ffc735a23d053",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.readSessionBytes(for:id:)": "8c75a4c843d693cf",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func verifyHash(of:against:id:)": "1a0a1d508d1dedf9",
     "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionDecoder": "ca0eef42258b468f",
@@ -478,13 +505,13 @@
   },
   {
    "key": "func ArchiveStore.plaintextBytes(_:id:)",
-   "hash": "5ae3e07b53b43dab",
-   "does": "Turns stored bytes into plaintext JSON: 'FR'-prefixed bytes are decrypted (errors rethrown); JSON-looking bytes pass through; anything else is decrypt-attempted with failure falling back to the raw bytes.",
+   "hash": "910ac44cd7732200",
+   "does": "Turns stored bytes into plaintext JSON: 'FR'-prefixed bytes are decrypted (errors logged and rethrown); anything else goes through jsonOrLegacyPlaintext (JSON as it is, else a legacy decrypt, else the raw bytes, logged).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksLikeJSON(_:)",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.jsonOrLegacyPlaintext(_:name:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -497,24 +524,46 @@
     },
     {
      "at": "+4",
-     "cond": "catch: decrypt of FR bytes threw",
+     "cond": "decrypt of FR bytes threw",
      "effect": "log error and rethrow"
-    },
-    {
-     "at": "+9",
-     "cond": "looksLikeJSON",
-     "effect": "return the raw bytes unchanged"
-    },
-    {
-     "at": "+10",
-     "cond": "decrypt of non-JSON, non-FR bytes fails (?? fallback)",
-     "effect": "return the raw bytes (decoder then reports dataCorrupted); success returns decrypted legacy Format 2/3 plaintext"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.jsonOrLegacyPlaintext(_:name:)": "b247dc77da3a2da7",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)": "d617abae8ea527b1",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "0da96942872536de",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func ArchiveStore.jsonOrLegacyPlaintext(_:name:)",
+   "hash": "9fd3be1ecd56ac8d",
+   "does": "Bytes that look like JSON are returned as they are. Anything else is decrypted as a legacy Format 2/3 ciphertext without the 'FR' magic; when that throws, the error is logged at .warning with the file's name and the raw bytes are returned, so the decoder reports the corruption.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksLikeJSON(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "looksLikeJSON",
+     "effect": "return the bytes unchanged"
+    },
+    {
+     "at": "+4",
+     "cond": "legacy decrypt threw",
+     "effect": "log at .warning, return the raw bytes"
+    }
+   ],
+   "deps": {
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksLikeJSON(_:)": "fc01ce10ec8bd2df",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "f5111c347369a719",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "0da96942872536de",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
@@ -570,14 +619,15 @@
   },
   {
    "key": "func ArchiveStore.loadAndDecodeSessionFile(at:decoder:)",
-   "hash": "84f864bd38f62add",
-   "does": "Reads a session file at a URL and decodes it with the given decoder, handling FR-encrypted (decrypt, errors thrown), plaintext JSON, and legacy Format 2/3 ciphertext (decrypt attempted, failure falls back to raw bytes). No hash check.",
+   "hash": "47145d069d8f4f8f",
+   "does": "Reads a session file at a URL and decodes it with the given decoder: FR-encrypted bytes are decrypted (errors thrown); anything else goes through jsonOrLegacyPlaintext (plaintext JSON as it is, legacy Format 2/3 ciphertext decrypted, else the raw bytes with the failure logged, so the decode throws). No hash check.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksLikeJSON(_:)",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)",
-    "ext:Data(contentsOf:)"
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.jsonOrLegacyPlaintext(_:name:)",
+    "ext:Data(contentsOf:)",
+    "ext:JSONDecoder.decode"
    ],
    "reads": [
     "file:<archiveDirectory>/<uuid>.json"
@@ -585,25 +635,15 @@
    "writes": [],
    "branches": [
     {
-     "at": "+3",
+     "at": "+2",
      "cond": "looksEncrypted",
-     "effect": "decrypt (throws on failure)"
-    },
-    {
-     "at": "+5",
-     "cond": "looksLikeJSON",
-     "effect": "use bytes as-is"
-    },
-    {
-     "at": "+13",
-     "cond": "catch: legacy decrypt threw",
-     "effect": "swallow; decode raw bytes so JSONDecoder throws dataCorrupted"
+     "effect": "decrypt (throws on failure); else jsonOrLegacyPlaintext"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.jsonOrLegacyPlaintext(_:name:)": "b247dc77da3a2da7",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)": "d617abae8ea527b1",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksLikeJSON(_:)": "fc01ce10ec8bd2df",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "f5111c347369a719",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "0da96942872536de",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c"
    }
@@ -1069,7 +1109,7 @@
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "245124c441f7143c",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "8c0f1c459dbeaae2",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "bc9f8909df43d2dd",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.dropFromIndex(_:)": "1076945f98cef7ec",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)": "703c2a2085c25cdf",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.undoDrop(_:)": "b907535626240f39",
@@ -1172,7 +1212,7 @@
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "38a4b1f67bd1c949",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "8c0f1c459dbeaae2",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "bc9f8909df43d2dd",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.recordDeletionTime(_:)": "458c4130b9c80d9d",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.undoDrop(_:)": "b907535626240f39"
    }

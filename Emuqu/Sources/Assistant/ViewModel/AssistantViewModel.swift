@@ -606,26 +606,41 @@ final class AssistantViewModel {
     }
 
     /// Wipe the conversation and start over. Does not affect API keys or settings.
-    /// Everything happens off the visible frame so the menu dismisses instantly:
-    /// UI state clears on main, disk + UserDefaults writes run on background queues.
+    ///
+    /// The streaming turn is stopped first, then the history file, its
+    /// set-aside copies and the chat exports are erased. Only when all of them
+    /// are gone does the screen clear, along with the summary, the routing
+    /// state and the prompt audit (which quotes the chat). Otherwise the
+    /// thread stays on screen with an error, so nothing claims a wipe that did
+    /// not happen, and Clear can be tried again.
     func clearConversation() {
         cancel()
+        let historyErased = store.clear()
+        let exportsErased = Self.removeChatExports()
+        guard historyErased, exportsErased else {
+            errorMessage = String(localized: "The conversation couldn't be fully erased. Try again.", bundle: LanguageManager.appBundle)
+            return
+        }
+        resetConversationState()
+        AppDependencies.current.providers.llmRequestAudit.clear()
+        // UserDefaults writes block on synchronous disk sync — push off main.
+        Task.detached(priority: .utility) {
+            UserDefaults.standard.removeObject(forKey: Self.summaryKey)
+        }
+    }
+
+    /// The in-memory side of a cleared conversation: turns, error, held
+    /// consent request, summary and its anchor, speech cursors, and the
+    /// adaptive-routing session (a new conversation is classified afresh).
+    private func resetConversationState() {
         turns = []
         errorMessage = nil
         pendingConsentRequest = nil
         priorSummary = nil
         summarizedThroughTurnID = nil
         speakableTextCursor = [:]
-        // Reset adaptive-routing session state too. New
-        // conversation = fresh tier classification on the first turn.
         sessionState.currentTier = .quick
         sessionState.turnCount = 0
-        store.clear()
-        Self.removeChatExports()
-        // UserDefaults writes block on synchronous disk sync — push off main.
-        Task.detached(priority: .utility) {
-            UserDefaults.standard.removeObject(forKey: Self.summaryKey)
-        }
     }
 
     /// Serialize the current thread to Markdown and return a temporary file URL
@@ -658,17 +673,30 @@ final class AssistantViewModel {
     private static let chatExportPrefix = "EmuquChat-"
 
     /// Delete every chat export (`EmuquChat-*.md`) left in the temporary
-    /// directory. Failures are logged; a leftover file is retried next time.
-    static func removeChatExports() {
+    /// directory, trying each one. True when none is left; a failure is
+    /// logged, and a leftover file is retried next time.
+    @discardableResult
+    static func removeChatExports() -> Bool {
         let fileManager = FileManager.default
         let directory = fileManager.temporaryDirectory
+        let names: [String]
         do {
-            let names = try fileManager.contentsOfDirectory(atPath: directory.path)
-            for name in names where name.hasPrefix(chatExportPrefix) && name.hasSuffix(".md") {
-                try fileManager.removeItem(at: directory.appendingPathComponent(name))
-            }
+            names = try fileManager.contentsOfDirectory(atPath: directory.path)
         } catch {
-            debugLog("[Assistant] removing old chat exports failed: \(error.localizedDescription)", level: .warning)
+            debugLog("[Assistant] listing old chat exports failed: \(error.localizedDescription)", level: .warning)
+            return false
+        }
+        let exports = names.filter { $0.hasPrefix(chatExportPrefix) && $0.hasSuffix(".md") }
+        return !exports.map { removeChatExport(directory.appendingPathComponent($0)) }.contains(false)
+    }
+
+    private static func removeChatExport(_ url: URL) -> Bool {
+        do {
+            try FileManager.default.removeItem(at: url)
+            return true
+        } catch {
+            debugLog("[Assistant] removing an old chat export failed: \(error.localizedDescription)", level: .warning)
+            return false
         }
     }
 

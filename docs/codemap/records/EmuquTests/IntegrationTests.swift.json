@@ -53,28 +53,26 @@
   },
   {
    "key": "func IntegrationTests.testReconciliationBlocksDuplicateSession()",
-   "hash": "69e85b031812f172",
-   "does": "Archives a completed quick session into a temp-dir archive, asserts ReconciliationManager.sessionExists(id) is true and queueForSync(session) throws a ReconciliationError.",
+   "hash": "9c4a211c5eafd05f",
+   "does": "Archives a completed quick session into a temp-dir archive and asserts ReconciliationManager.sessionExists(id) is true.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)",
     "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.createDirectoryIfNeeded()",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
     "EmuquTests/IntegrationTests.swift::func IntegrationTests.createTestSeries(beatCount:sessionId:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
     "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.sessionExists(_:)",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)"
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.removeRetiredOfflineQueue(in:)"
    ],
    "reads": [
-    "file:Documents/HRVOffline (ReconciliationManager pending sessions)"
+    "file:Documents/HRVOffline/ (removed by the ReconciliationManager init when present)"
    ],
    "writes": [
     "file:temp ReconciliationTest-<UUID> archive",
-    "file:Documents/HRVOffline (directory created)"
+    "file:Documents/HRVOffline/ (removed when present)"
    ],
    "branches": [],
    "deps": {
@@ -82,12 +80,10 @@
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
-    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "a892db29af7907c0",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.createDirectoryIfNeeded()": "7e3511f4c5d567ae",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.loadPendingSessions()": "2b702b27dd7514f1",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.queueForSync(_:)": "b919cf08f0fdacb9",
-    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.sessionExists(_:)": "17d074d153fdef6e",
-    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "fad2758814b0975e",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.removeRetiredOfflineQueue(in:)": "b95566893975b8ba",
+    "Emuqu/Sources/Storage/Reconciliation.swift::func ReconciliationManager.sessionExists(_:)": "42f9f1d1676e14d4",
+    "Emuqu/Sources/Storage/Reconciliation.swift::init ReconciliationManager(archive:)": "ca6cce4dca006744",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439",
     "EmuquTests/IntegrationTests.swift::func IntegrationTests.createTestSeries(beatCount:sessionId:)": "07817035de90f97b"
    }

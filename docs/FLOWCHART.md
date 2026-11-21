@@ -629,17 +629,22 @@ EmuquApp.init
 The launch housekeeping phase (`AppLaunchTasks.scheduleMigrationJobs`,
 after the dashboard's first load or a 6 s ceiling) runs two background jobs.
 
-`archive.runDeferredMigrations()` (also run after a CloudKit pull).
+The first upgrades the archive's file protection, runs
+`archive.runDeferredMigrations()` (also run after a CloudKit pull), and
+empties the Trash of sessions deleted more than 90 days ago through
+`RRCollector.permanentlyDelete`.
 Each migration uses 3-phase locking to avoid blocking the main thread:
         Phase 1 (locked):   gather entries + file URLs from index
         Phase 2 (unlocked): disk I/O (file reads, JSON decode/encode)
         Phase 3 (locked):   apply patches to index + saveIndex()
 
-      └→ reencryptPendingSessions()
+      └→ reencryptPendingSessions() — re-encrypt session files written plain while the key was unavailable
+      └→ resealPlainIndexIfNeeded() — reseal index.json when it is plain JSON and the key is back
       └→ migrateRecoveryScores()   — backfill nil recoveryScore from session files
       └→ migrateEndDates()         — backfill nil endDate from session files
       └→ migrateMetrics()          — backfill nil meanHR/stressIndex from session files
       └→ migrateSleepIndexFields() — backfill sleepEnd / sleepSegmentCount on the index
+      └→ migrateLegacyEliteImportIndex()
       └→ removeDuplicates()        — delete same-night duplicate overnight sessions
       └→ relinkSameNightSessions() — fix unlinked same-night split-sleep segments
 
@@ -677,9 +682,9 @@ And `collector.runDeferredSessionMigrationsIfNeeded()`
       session is marked `napRepaired` so it is never processed twice.
   └→ runTimeInBedRepairIfNeeded()
       Guarded by `didRunTimeInBedRepair_v1`. Sets a stage-built night's
-      stored time in bed back to sleep plus awake (an October 2026
-      build counted the stretch from the sleep search window's start),
-      recomputes its efficiency and rescores the nights it changed.
+      stored time in bed back to sleep plus awake where it was counted
+      from the sleep search window's start, recomputes its efficiency
+      and rescores the nights it changed.
 
 InsufficientData, TrimpRepair and WorkoutSleepCleanup have parity tests in
 `EmuquTests/CollectorMigrationParityTests.swift`. The Archive-level migrations are covered by
@@ -1020,6 +1025,7 @@ each gated by its own export setting
 
 ```
 Live workout:
+  (`location.*` services are `AppDependencies.current.location`.)
   User taps Start → WorkoutRecorder.start(
         sport:, source:, intervalPlan:,
         thresholds: [WorkoutThreshold],   ← user-declared constraints
@@ -1083,9 +1089,9 @@ Per tick (WorkoutRecorder.incrementalBackupTick):
     │       True  → counter += dt seconds
     │       False → counter = 0   (reset)
     │       nil   → leave unchanged (metric not available)
-    ├─ WeatherService.shared.refreshIfNeeded(for: location.currentLocation)
+    ├─ location.weatherService.refreshIfNeeded(for: location.currentLocation)
     │     30-min cache TTL, re-fetch on >5 km movement, silent on failure.
-    ├─ RoadGeocodingService.shared.refreshIfNeeded(for: location.currentLocation)
+    ├─ location.roadGeocodingService.refreshIfNeeded(for: location.currentLocation)
     │     Apple CLGeocoder reverse-geocode → road name + locality + state
     │     + country. Re-fetch only on >15 m movement OR >60 s elapsed.
     │     Backs off after 8 consecutive failures, retrying every 30 s. Result lands in the
@@ -1191,12 +1197,13 @@ User taps Stop → WorkoutRecorder.stop():
   ├─ ZwiftPeripheralBroadcaster.shared.stop()
   ├─ Auto-archive workout track as breadcrumb trail:
   │     if sport.usesGPS AND track.count >= 2:
-  │       BreadcrumbStore.shared.archive(
+  │       location.breadcrumbStore.archive(
   │         BreadcrumbTrail(
   │           startedAt: session.startDate,
   │           origin:    BreadcrumbFix(from: track.first!),
   │           fixes:     decimated(track, 25 m or 30 s),
-  │           label:     "<Sport.displayName> on <date> <time>"
+  │           label:     "<Sport.displayName> on <date> <time>",
+  │           isWorkoutTrack: true, sessionId: session.id
   │         )
   │       )
   │     50-trail retention cap; oldest evicted on append.
@@ -1320,6 +1327,8 @@ Look up real elevation (post-summary action)
   │     └─ Else / on error: OpenTopoData SRTM 30m
   │                   https://api.opentopodata.org/v1/srtm30m
   │                   (error on failure — shown, no silent fallback)
+  │     Requests go through the HTTPTransport passed in (.live in the
+  │     app); the SRTM retry after a US lookup waits 1 s first.
   │     Applies a 15 m sustained-climb threshold:
   │     accumulate same-sign deltas, commit to gain/loss only
   │     once the run crosses ≥ 15 m.
@@ -1363,7 +1372,8 @@ Live recording (new sessions):
 WorkoutRecorder.stop() → finalizeSession():
   if barometerAvailable && !barometricSamples.isEmpty:
     BarometricAltitudeProcessor.process(samples:)
-      ├─ Symmetric moving-average smoother, window 15 samples (~15 s)
+      ├─ Symmetric moving-average smoother, 15 s window read from the
+      │   timestamps (~15 samples at 1 Hz)
       │   • matches ~8 s complementary-filter τ (Barczyk & Nemra 2014)
       │   • zero phase lag (offline / symmetric kernel)
       │   • endpoints clamped (no zero-padding collapse)
@@ -1383,7 +1393,8 @@ Retroactive repair (pre-barometer-buffer sessions):
   User taps "Look up and save real elevation" →
     TopoElevationService.elevations(for: track):
       ├─ If first coord in US bbox → OpenTopoData NED 10m (higher res)
-      └─ Else / on NED error → OpenTopoData SRTM 30m
+      └─ Else / on NED error → OpenTopoData SRTM 30m (1 s after a failed NED call)
+      (both through TopoElevationService's HTTPTransport, .live in the app)
     → apply 15 m sustained-climb threshold (calibrated against
        barometric ground truth on rolling neighborhood terrain)
     → archive.archive(updated) + notifyArchiveChanged()
@@ -1439,17 +1450,21 @@ User speaks / types
 AssistantViewModel.send(text:fromVoice:)
   ↓
 trimmed = text.trimmingCharacters(.whitespacesAndNewlines)
+  ├─ empty                         → .rejectedEmpty
+  ├─ Flo off / notice not accepted → .rejectedNoProvider
+  ├─ medical guard fires           → local answer, .dispatched
+  └─ active provider unavailable   → errorMessage, .rejectedNoProvider
   ↓
-nextSendIsVoice = fromVoice          ← consumed by next dispatch()
-  ↓
-turns.append(ChatTurn(role: .user, text: trimmed))
-  ↓
-[fast path] DeterministicIntent.tryMatch(trimmed, ctx) → String?
-  ├─ HIT  (14-pattern catalog, regex match + non-nil fact value)
-  │       → append assistant turn with rendered string
-  │       → telemetry: deterministic_hit
+[fast path, voice only, no stream in flight]
+servedDeterministically(trimmed) → DeterministicIntent.tryMatch(trimmed, ctx) → String?
+  ├─ HIT  (14-pattern catalog: a trigger matches and the handler returns text)
+  │       → appendExchange(user:, assistant:) — on the device, before the consent check
   │       → DONE — no LLM call
-  └─ MISS → continue to dispatch()
+  └─ MISS → continue
+  ↓
+active provider needs consent → hold the text, .requiresConsent
+stream in flight              → queue behind it
+otherwise                     → dispatchToProvider(trimmed, fromVoice:)
 ```
 
 The deterministic intent path costs zero tokens and ~50 ms. Coverage:

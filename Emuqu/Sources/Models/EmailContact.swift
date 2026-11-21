@@ -63,8 +63,9 @@ final class EmailContactStore {
 
     private let storeURL: URL
 
-    /// Set when the contacts file exists but could not be read (file
-    /// protection before first unlock). Saves are blocked while it is set,
+    /// Set when the contacts file exists but could not be read or opened
+    /// (file protection, or the keychain refusing the key, before first
+    /// unlock). Saves are blocked while it is set,
     /// so an edit never overwrites the user's saved contacts with the empty
     /// list this store fell back to — the same guard as `SavedRouteStore`.
     /// A file that reads but does not decode is set aside instead
@@ -76,8 +77,9 @@ final class EmailContactStore {
 
     /// Serial, newest-wins writer: saves land in the order they were made, so
     /// a delete followed by an add cannot bring the deleted contact back.
-    /// Contact emails are PII, so the file gets an explicit protection class,
-    /// matching the archive and backup writers.
+    /// Contact emails are PII, so the file is sealed with the app's key and
+    /// gets an explicit protection class, matching the archive and backup
+    /// writers.
     private let writer: LatestWinsFileWriter<[EmailContact]>
 
     /// `storeURL` is injectable so a test can use its own file. Without it,
@@ -117,14 +119,20 @@ final class EmailContactStore {
         return true
     }
 
-    /// False, removing nothing, while the contacts file still cannot be read
-    /// after a retry; see `add`.
+    /// Writes the book without the contact at once, after removing the
+    /// set-aside copy of an older undecodable file (which can hold the
+    /// contact too). True once that is on disk. False, with `contacts`
+    /// unchanged, while the file still cannot be read after a retry (see
+    /// `add`) or when the copy's removal or the write failed: the contact is
+    /// still stored.
     @discardableResult
     func remove(id: UUID) -> Bool {
         retryLoadIfBlocked()
         guard !loadFailed else { return false }
-        contacts.removeAll { $0.id == id }
-        save()
+        let remaining = contacts.filter { $0.id != id }
+        let backup = storeURL.deletingLastPathComponent().appendingPathComponent(Self.undecodableBackupName)
+        guard writer.replaceNow(with: remaining, removing: backup) else { return false }
+        contacts = remaining
         return true
     }
 
@@ -202,9 +210,23 @@ final class EmailContactStore {
             debugLog("[EmailContact] store present but unreadable, blocking saves: \(error)", level: .error)
             return
         }
+        adoptStoredBook(data)
+    }
+
+    /// The second half of `load()`: the contacts in `data`, opened with the
+    /// app's key (sealed, or plain JSON from a build that did not seal the
+    /// file) and decoded. While the keychain refuses the key, saves stay
+    /// blocked (`loadFailed`) and the read is retried before the next edit,
+    /// as for file protection. Bytes that do not open or decode for any
+    /// other reason are set aside (`setAsideUndecodable`); saves stay blocked
+    /// only when that fails.
+    private func adoptStoredBook(_ data: Data) {
         do {
-            contacts = try JSONDecoder().decode([EmailContact].self, from: data)
+            contacts = try JSONFileSeal.app.openJSON([EmailContact].self, from: data, with: JSONDecoder())
             loadFailed = false
+        } catch let error where JSONFileSeal.isKeyLocked(error) {
+            loadFailed = true
+            debugLog("[EmailContact] store is sealed and the key is locked — blocking saves until it opens: \(error)", level: .error)
         } catch {
             loadFailed = !Self.setAsideUndecodable(storeURL, reason: error)
         }

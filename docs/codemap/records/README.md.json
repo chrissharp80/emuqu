@@ -65,8 +65,8 @@
   },
   {
    "key": "§ Emuqu > How it is built",
-   "hash": "ae5fa274761d0d5e",
-   "does": "49 scripted gates in `make ci` (the Makefile ci target has exactly 49 prerequisites, counting lint, release-build, thread-sanitizer and test-coverage); verify-gates, gate-preflight, gates-wired-guard meta-gates exist; >3,000 unit tests (3,611 func test in EmuquTests) and ~100 UI tests (102); warnings-as-errors; Swift 6 complete strict concurrency (project.pbxproj:4851-4852); no try!/as!/fatalError/TODO/FIXME in Emuqu/Sources (0 hits); ~220k lines (223,966 in Emuqu/Sources); SBOM for eleven packages; Actions pinned to SHAs (verified in all workflows).",
+   "hash": "30ee83d9413956e4",
+   "does": "50 scripted gates in `make ci` (the Makefile ci target has exactly 50 prerequisites, counting lint, release-build, thread-sanitizer and test-coverage); verify-gates, gate-preflight, gates-wired-guard meta-gates exist; >3,000 unit tests (3,611 func test in EmuquTests) and ~100 UI tests (102); warnings-as-errors; Swift 6 complete strict concurrency (project.pbxproj:4851-4852); no try!/as!/fatalError/TODO/FIXME in Emuqu/Sources (0 hits); ~220k lines (223,966 in Emuqu/Sources); SBOM for eleven packages; Actions pinned to SHAs (verified in all workflows).",
    "entry": null,
    "calls": [
     "Makefile::target ci",
@@ -81,7 +81,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target ci": "314d826a23831255",
+    "Makefile::target ci": "60ad2e16c12b11bb",
     "Makefile::target doc-counts-guard": "81cc0795ce562bec",
     "Makefile::target doc-links": "4731861b7121254e",
     "Makefile::target gate-preflight": "4af96d525dd02798",
@@ -180,7 +180,7 @@
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToKeychain(_:)": "6b1fb137822c7ac6",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.trainingWithoutHealthKitReadings(_:)": "bc7707c0df3bc036",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "fe1f3772ccd7e6b5"
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "55b023f3b89c01c0"
    }
   },
   {
@@ -240,7 +240,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target ci": "314d826a23831255",
+    "Makefile::target ci": "60ad2e16c12b11bb",
     "Makefile::target debt-budget": "107274ad82f7d924",
     "Makefile::target format": "6be525b65224f5f8",
     "Makefile::target lint": "cc79eff098f91f28",
@@ -269,7 +269,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "c16025f9ed6e67fc",
+    ".github/workflows/ci.yml::job lint-and-budgets": "b37673427f6cec36",
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
     ".github/workflows/ci.yml::job tests": "717dc9698a3dc7ba",
     ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859",
@@ -304,7 +304,7 @@
    "calls": [
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.request(at:ifModifiedSince:)",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.openTopoDataURL(dataset:locations:)",
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.openTopoDataURL(dataset:locations:)",
     "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.fetchTile(cellKey:centerLat:centerLon:cellLatIndex:cellLonIndex:)",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)",
@@ -318,7 +318,6 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.openTopoDataURL(dataset:locations:)": "dd22654c446d6832",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)": "212ef74d72560eb7",
     "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.autoMapping(_:)": "82a3cd48321f650a",
     "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.deepMapping(_:)": "e24210dbe73e3f98",
@@ -327,6 +326,7 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.makeTierStageInputs(mode:)": "430c3617358bedaf",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)": "02d73fe5c6d8e8a9",
     "Emuqu/Sources/Services/RoadGraphService.swift::func RoadGraphService.fetchTile(cellKey:centerLat:centerLon:cellLatIndex:cellLonIndex:)": "7c48500322effe1d",
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.openTopoDataURL(dataset:locations:)": "dd22654c446d6832",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.request(at:ifModifiedSince:)": "9161637c63632c3f",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)": "8c5da6b396d13175"
    }

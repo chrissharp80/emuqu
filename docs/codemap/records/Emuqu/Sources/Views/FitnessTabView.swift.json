@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/FitnessTabView.swift",
- "hash": "6912a41afc2b336e",
+ "hash": "1e0fff2488e5bae1",
  "role": "Root view of the Fitness tab: routes between the recording screen and the default dashboard by recorder phase, owns the summary sheet, GPX export/preview/share, GPX and Apple Health import entry points, workout delete, and workout start; also declares WorkoutSummaryItem, PhaseObservingStateBody and the shared RecorderBox.",
  "types": [
   "WorkoutSummaryItem: struct — Identifiable sheet item (session + isJustCompleted)",
@@ -12,7 +12,7 @@
   "static RecorderBox.shared (FitnessTabView.swift:786)",
   "mem:RecorderBox.recorder (FitnessTabView.swift:787)",
   "ud:fitness.getMeBack.disclaimerSeenV1 — FitnessTabView.getMeBackDisclaimerSeenKey (FitnessTabView.swift:107; read/written in FitnessTabView+Sections.swift:49,61)",
-  "@State FitnessTabView: startError, planModel (WorkoutPlanModel), showImporter, importMessage, exportMessage, showHealthImport, interruptedRecordings, gpxShareURL (set only while a share is pending or shown), gpxSharePresented, gpxPreviewPayload, passiveSteps, todayWorkoutElevationMeters, weekWorkoutElevationMeters, dailyActivity, todayWorkoutAttributedSteps/DistanceMeters/Flights, meanHRR1m7d, dailyActivityFromPedometer, lastCompletedSession, selectedHistorySession, showGetMeBackSheet, showGetMeBackDisclaimer, latestWorkoutSession, latestWorkoutLoadFailed, recentWorkoutLoadFailed"
+  "@State FitnessTabView: startError, planModel (WorkoutPlanModel), showImporter, importMessage, exportMessage, showHealthImport, interruptedRecordings, gpxShareURL (set only while a share is pending or shown), gpxSharePresented, gpxPreviewPayload, passiveSteps, todayWorkoutElevationMeters, weekWorkoutElevationMeters, dailyActivity, todayWorkoutAttributedSteps/DistanceMeters/Flights, meanHRR1m7d, dailyActivityFromPedometer, lastCompletedSession, selectedHistorySession, showGetMeBackSheet, showGetMeBackDisclaimer, latestWorkoutSession, latestWorkoutLoadFailed, recentWorkoutLoadFailed, workoutDeleteFailed"
  ],
  "toplevel": "Stored @State initialisers: planModel = WorkoutPlanModel(), all others empty/false/nil/0. Environment: dependencies, RRCollector, ArchiveSignal, VoiceConversationController, SettingsManager. RecorderBox.shared is a static singleton constructed lazily; the header and PhaseObservingStateBody comments say the recorder lives in that app-wide box and that both WorkoutRecorder and WorkoutLifecycle are @Observable.",
  "units": [
@@ -190,7 +190,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.workoutSummarySheet(_:)": "6dd277755c9a9434",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.workoutSummarySheet(_:)": "38014b9d6f7a990e",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.workoutSummaryBinding": "ae1bf5845cfbccab"
    }
   },
@@ -239,19 +239,24 @@
   },
   {
    "key": "func FitnessTabView.workoutSummarySheet(_:)",
-   "hash": "c0e66dafdaf36888",
-   "does": "NavigationStack hosting FitnessPostSummaryView for the item's session with onDone → dismissSummary and onDelete → deleteFromSummary.",
+   "hash": "47f2d03389eafa0f",
+   "does": "NavigationStack hosting FitnessPostSummaryView for the item's session with onDone → dismissSummary and onDelete → deleteFromSummary, and the 'Couldn't delete this reading. Try again.' alert bound to workoutDeleteFailed, presented from the sheet where the delete is made (OK clears it).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.dismissSummary(_:)",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteFromSummary(_:)"
    ],
-   "reads": [],
-   "writes": [],
+   "reads": [
+    "mem:FitnessTabView.workoutDeleteFailed"
+   ],
+   "writes": [
+    "mem:FitnessTabView.workoutDeleteFailed"
+   ],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::init FitnessPostSummaryView(session:onDone:onDelete:)": "e09ba5b8b6a1747e",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteFromSummary(_:)": "99955e771958e16a",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteFromSummary(_:)": "e5e276e6db9489f7",
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.dismissSummary(_:)": "92a5834cf8a75cd6"
    }
   },
@@ -283,8 +288,8 @@
   },
   {
    "key": "func FitnessTabView.deleteFromSummary(_:)",
-   "hash": "94448672d4264372",
-   "does": "Deletes the item's workout from the archive and, for a just-completed item, acknowledges the recorder.",
+   "hash": "0fdf0c4c3813522b",
+   "does": "Moves the item's workout to the Trash (deleteWorkout) and, only when that worked and the item was just completed, acknowledges the recorder. A failed delete leaves the sheet open with its alert.",
    "entry": "closure:onDelete from FitnessPostSummaryView",
    "calls": [
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteWorkout(_:)",
@@ -296,6 +301,11 @@
    ],
    "branches": [
     {
+     "at": "+1",
+     "cond": "the delete failed",
+     "effect": "return; nothing acknowledged"
+    },
+    {
      "at": "+2",
      "cond": "item.isJustCompleted",
      "effect": "true → acknowledgeFinished(); false → nothing more"
@@ -303,7 +313,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+DeviceBackup.swift::func WorkoutRecorder.acknowledgeFinished()": "72c2dde3f0758689",
-    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteWorkout(_:)": "d7b76e3bbdc7bc24",
+    "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.deleteWorkout(_:)": "525046ea6f053f3b",
     "Emuqu/Sources/Views/FitnessTabView.swift::var FitnessTabView.recorderBox": "e21307e5349b7d9b",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
    }
@@ -836,45 +846,46 @@
   },
   {
    "key": "func FitnessTabView.deleteWorkout(_:)",
-   "hash": "053610780025516a",
-   "does": "Deletes the workout from the archive, notifies archive change, uploads the deletion to CloudKit in a Task, and closes the summary if it was showing that session; errors are logged only.",
+   "hash": "330f49986f2530f2",
+   "does": "Moves the workout to the Trash through SessionTrash.move (archive delete, archive-changed notice, iCloud deletion in a Task) and closes the summary if it was showing that session; returns true. When the archive could not move it, logs at .error, sets workoutDeleteFailed (the summary sheet's alert) and returns false.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)",
+    "Emuqu/Sources/Views/HistoryView.swift::func SessionTrash.move(_:collector:cloudKit:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [
     "archive:SessionArchive.delete",
     "notif:archive changed (RRCollector.notifyArchiveChanged)",
-    "ck:session deletion"
+    "ck:session deletion",
+    "mem:FitnessTabView.workoutDeleteFailed",
+    "mem:FitnessTabView.selectedHistorySession",
+    "mem:FitnessTabView.lastCompletedSession"
    ],
    "branches": [
     {
-     "at": "+6",
+     "at": "+4",
+     "cond": "SessionTrash.move threw",
+     "effect": "log at .error, workoutDeleteFailed = true, return false"
+    },
+    {
+     "at": "+9",
      "cond": "selectedHistorySession id == deleted id",
      "effect": "true → clears it"
     },
     {
-     "at": "+7",
+     "at": "+10",
      "cond": "lastCompletedSession id == deleted id",
      "effect": "true → clears it"
-    },
-    {
-     "at": "+8",
-     "cond": "catch delete error",
-     "effect": "debugLog warning only; user gets no feedback and the row stays"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)": "0576298ec8979497",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSyncManager": "71598a6e60000bb7",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Views/FitnessTabView.swift::var WorkoutSummaryItem.id": "aa23ed1e162665a0"
+    "Emuqu/Sources/Views/FitnessTabView.swift::var WorkoutSummaryItem.id": "aa23ed1e162665a0",
+    "Emuqu/Sources/Views/HistoryView.swift::func SessionTrash.move(_:collector:cloudKit:)": "b2656c4803bdf3c8"
    }
   },
   {

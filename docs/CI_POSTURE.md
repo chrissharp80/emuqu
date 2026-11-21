@@ -72,7 +72,7 @@ baseline differs between them (below).
 | **Correctness traps** | Empty-range loops (`1 ..< count` on a possibly-empty collection), unchecked `Sendable`, strict-concurrency enablement, orphaned Swift files |
 | **Privacy & safety** | No health data in CloudKit, log redaction, no developer endpoint, privacy-manifest vocabulary, Info.plist key drift, FDA copy perimeter + runtime-guard sync |
 | **Localization** | Coverage across every locale, bundle reachability, literal resolution, orphaned catalogue keys, locale-aware decimal formatting |
-| **Supply chain** | SBOM currency, SBOM drift against `Package.resolved` and the in-app acknowledgements |
+| **Supply chain** | SBOM currency, SBOM drift against `Package.resolved` and the in-app acknowledgements, every `xcodebuild` run pinned to `Package.resolved` |
 | **Documentation** | Link and constant integrity, comment `file:line` citations resolve, documented file counts match the tree |
 | **Change tracking** | Code map: every function, script, workflow step and doc section has a record written after its code last changed, and records whose callees changed since are listed for re-check |
 | **Tests about the tests** | Snapshot references committed, UI-test fresh-install reset, coverage floors (overall / logic / views) |

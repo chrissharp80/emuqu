@@ -1,10 +1,11 @@
 {
  "file": "Emuqu/Sources/Storage/EncryptionManager.swift",
- "hash": "b5d22809b6755c6d",
- "role": "At-rest AES-GCM encryption for archive session files and one-shot raw RR backups, with versioned non-synchronizable Keychain keys (FR magic + version framing, legacy version-prefixed and bare formats readable), an in-process key cache, and migration of old ThisDeviceOnly keys to AfterFirstUnlock.",
+ "hash": "f3bd795a9f2d85b6",
+ "role": "At-rest AES-GCM encryption for archive session files, raw RR backups and the app's sealed local JSON files, with versioned non-synchronizable Keychain keys (FR magic + version framing, legacy version-prefixed and bare formats readable), an in-process key cache, and migration of old ThisDeviceOnly keys to AfterFirstUnlock. Also declares JSONFileSeal, the seal the app's local health, location and profile JSON files share.",
  "types": [
   "EncryptionManager: final class (Sendable singleton) — encrypt/decrypt/key management",
-  "EncryptionManager.EncryptionError: enum — encryptionFailed/decryptionFailed/keyNotFound/keychainError"
+  "EncryptionManager.EncryptionError: enum — encryptionFailed/decryptionFailed/keyNotFound/keychainError",
+  "JSONFileSeal: struct (file scope, Sendable) — seal/open closures over the app's key (`app`) or a test's; sealJSON/openJSON encode-then-seal and open-then-decode; isKeyLocked tells a locked keychain from damaged bytes. Used by SettingsManager, BaselineTracker, TrainingMetricsCache, BeatConsistencyPriorsCache, SavedRouteStore/LatestWinsFileWriter, EmailContactStore, BreadcrumbStore and the assistant stores"
  ],
  "state": [
   "mem:EncryptionManager.shared",
@@ -13,7 +14,7 @@
   "mem:EncryptionManager.cachedKeys (OSAllocatedUnfairLock [UInt8: SymmetricKey])",
   "kc:AppConfig.keychainService / session-encryption-key[-vN] (v1 account 'session-encryption-key', vN 'session-encryption-key-vN'; kSecAttrAccessibleAfterFirstUnlock)"
  ],
- "toplevel": "keychainService is AppConfig.keychainService. shared built lazily on first access.",
+ "toplevel": "keychainService is AppConfig.keychainService. shared built lazily on first access. JSONFileSeal.app (static let) seals with AppDependencies.current.storage.encryptionManager.encrypt and opens with its openStoredJSON.",
  "units": [
   {
    "key": "func EncryptionManager.keychainAccount(for:)",
@@ -489,6 +490,83 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
+  },
+  {
+   "key": "func EncryptionManager.openStoredJSON(_:)",
+   "hash": "d14621dab44a246f",
+   "does": "Returns stored bytes that start with `{` or `[` (plain JSON written by a build that did not seal the file) unchanged, and decrypts anything else with decrypt; throws decrypt's error. Empty data is returned unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)"
+   ],
+   "reads": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]",
+    "mem:EncryptionManager.cachedKeys"
+   ],
+   "writes": [
+    "mem:EncryptionManager.cachedKeys"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "data is empty or its first byte is { or [",
+     "effect": "return the bytes as they are; otherwise decrypt"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "0da96942872536de"
+   }
+  },
+  {
+   "key": "func JSONFileSeal.sealJSON(_:with:)",
+   "hash": "24339d8b96a66c33",
+   "does": "Encodes the value with the given encoder and seals the bytes with `seal`; throws the encode or seal error (the app's seal throws when no key can be read or made).",
+   "entry": null,
+   "calls": [
+    "ext:JSONEncoder.encode",
+    "dyn:JSONFileSeal.seal (EncryptionManager.encrypt for .app)"
+   ],
+   "reads": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
+   "writes": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN] (created when absent)"
+   ],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func JSONFileSeal.openJSON(_:from:with:)",
+   "hash": "b9151f0f80071ac1",
+   "does": "Opens the stored bytes with `open` (for .app: sealed bytes decrypted, plain JSON starting with { or [ passed through) and decodes them as the given type with the given decoder; throws the open or decode error.",
+   "entry": null,
+   "calls": [
+    "dyn:JSONFileSeal.open (EncryptionManager.openStoredJSON for .app)",
+    "ext:JSONDecoder.decode"
+   ],
+   "reads": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func JSONFileSeal.isKeyLocked(_:)",
+   "hash": "12df42c56b47f912",
+   "does": "True when the error is EncryptionManager.EncryptionError.keychainError — the keychain refusing the key for now (before the first unlock), so a sealed file may be intact and opens later; false for anything else (no key at all, bytes that fail authentication, decode errors).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "error is EncryptionError.keychainError",
+     "effect": "true; otherwise false"
+    }
+   ],
+   "deps": {}
   }
  ],
  "deps": {}

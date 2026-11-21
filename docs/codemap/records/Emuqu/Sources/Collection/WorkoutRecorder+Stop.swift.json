@@ -101,7 +101,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.archiveBreadcrumbTrailIfNeeded(finished:)": "ccfcb77307445b76",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.archiveBreadcrumbTrailIfNeeded(finished:)": "34bd0ca2ce4e37f0",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.chargeStrapBatteryUsage()": "c31357fe54f33478",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.disconnectFootPodPostWorkout()": "29bef757ae0c8830",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.resetRecorderStateAfterStop()": "1a3e4292236ded12",
@@ -298,11 +298,11 @@
   },
   {
    "key": "func WorkoutRecorder.archiveBreadcrumbTrailIfNeeded(finished:)",
-   "hash": "57f355de2b10972a",
-   "does": "If the finished session's sport uses GPS, archives the live location.track as a dated, sport-labelled breadcrumb trail (for later 'lead me back' directions).",
+   "hash": "5dd1373fe358bba9",
+   "does": "If the finished session's sport uses GPS, archives the live location.track as a dated, sport-labelled breadcrumb trail carrying the session's id (for later 'lead me back' directions; removed when the workout is deleted forever).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:sessionId:)",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location",
     "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS"
    ],
@@ -320,7 +320,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:)": "a24b73ca3e60b394",
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:sessionId:)": "419334f9c5362a27",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "bf6480b3ac06b1d3",
     "Emuqu/Sources/Models/Sport.swift::var Sport.usesGPS": "17652f56f6054d5a"
    }
