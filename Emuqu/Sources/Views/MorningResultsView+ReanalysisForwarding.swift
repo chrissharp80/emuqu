@@ -15,6 +15,7 @@ extension MorningResultsView {
             result: result,
             recentSessions: recentSessions,
             collector: collector,
+            sessionReanalysis: dependencies.collection.sessionReanalysis,
             onReanalyze: onReanalyze,
             onReanalyzeAt: onReanalyzeAt,
             onApplyManualResult: onApplyManualResult,

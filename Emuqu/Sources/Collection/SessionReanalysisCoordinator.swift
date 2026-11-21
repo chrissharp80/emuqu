@@ -1,29 +1,265 @@
 import Foundation
 
-/// Re-scoring sessions that are already archived: a settings change that should
-/// apply retroactively, a manually chosen window, sleep data that arrived after
-/// the night was scored, and the listeners that notice those events.
+/// Re-scoring sessions that are already archived: a single Reanalyze, the
+/// bulk passes a settings change or a repair runs over every night, the
+/// one-shot session-data migrations, and the listeners that notice sleep or
+/// training data arriving after a night was scored
+/// (`+Listeners`).
 ///
-/// ## Why this is not on `RRCollector`
-///
-/// As a 612-line extension it would be, on the largest type in the
-/// codebase.
-///
-/// Reanalysis is the archive's editor, not the recorder's: it never touches a
-/// live capture. The coupling was measured before the move rather than assumed —
-/// 29 collector members, mostly the archive, the settings and the analysis
-/// pipeline it re-runs.
-///
-/// The provider closures handed to `ReanalysisService` capture the collector
-/// weakly (`{ [weak collector] in collector?.something ?? fallback }`), so the
-/// cached service can read current settings without keeping the collector
-/// alive, and each falls back once it is gone.
-///
-/// Holds its owner strongly and is built on demand by the collector — a
-/// value with no state of its own, so nothing here can outlive what it
-/// points at.
+/// The composition root (`AppDependencies.collection.sessionReanalysis`)
+/// builds the one instance from explicit dependencies: the archive, HealthKit,
+/// the scoring context (settings, baseline tracker, training load) and the
+/// archive signal it shares with the collector, the training-metrics cache,
+/// and a `ReanalysisService` whose callbacks reach only those. Nothing here
+/// reaches the collector. A rescored night the review card may hold is
+/// announced with `.reanalysisRewroteArchivedSession`, which the collector
+/// observes; the window, scoring and archive writes are the service's.
 @MainActor
-struct SessionReanalysisCoordinator {
-    let collector: RRCollector
+final class SessionReanalysisCoordinator {
+    /// The reanalysis engine: window selection, scoring and the archive
+    /// writes. Manual windows, sleep-boundary edits and segment unlinks call
+    /// it directly (`AppDependencies.collection.reanalysisService`).
+    let service: ReanalysisService
+    let archive: SessionArchive
+    let healthKit: HealthKitManager
+    let scoring: SessionScoringContext
+    let archiveSignal: ArchiveSignal
+    /// Resolved when a reanalysis first warms it, not at launch: building the
+    /// cache reads and decrypts its snapshot from disk.
+    private let trainingMetricsCache: @MainActor () -> TrainingMetricsCache
 
+    /// Tokens for the block observers `startListening` registers, removed in
+    /// `deinit`; block observers are not released with their owner.
+    let notificationObservers = NotificationTokens()
+
+    /// Sessions being reanalysed now. Pull-to-refresh, the sleep-delta
+    /// rescore and the training-cache-heal rescore can ask for the same
+    /// session within seconds; a second request gets the archived copy and
+    /// queues one trailing pass (`pendingReanalyses`) instead of a competing run.
+    var inFlightReanalyses: Set<UUID> = []
+    /// Sessions asked for again while in flight: each gets one trailing pass.
+    var pendingReanalyses: Set<UUID> = []
+
+    /// Reentrancy guard for `autoRefreshTodaysSleepIfImproved`. Apple writes
+    /// sleep in STAGES (each bumps `sleepDataVersion`), so without this the
+    /// overlapping invocations each read the session before any sibling wrote,
+    /// all detect the source upgrade, and all post a rescore → a redundant
+    /// double reanalysis. `…Pending` records that a bump arrived mid-run so
+    /// exactly one trailing pass runs against the freshly-written state.
+    var isAutoRefreshingSleep = false
+    var autoRefreshSleepPending = false
+
+    init(
+        service: ReanalysisService,
+        archive: SessionArchive,
+        healthKit: HealthKitManager,
+        scoring: SessionScoringContext,
+        archiveSignal: ArchiveSignal,
+        trainingMetricsCache: @escaping @MainActor () -> TrainingMetricsCache
+    ) {
+        self.service = service
+        self.archive = archive
+        self.healthKit = healthKit
+        self.scoring = scoring
+        self.archiveSignal = archiveSignal
+        self.trainingMetricsCache = trainingMetricsCache
+    }
+
+    deinit {
+        notificationObservers.removeAll()
+    }
+
+    /// Install the saved-session listeners: the rescore request, the CloudKit
+    /// snapshot backfill (which also drains what an earlier launch left
+    /// queued), and HealthKit sleep arrival. The composition root calls it
+    /// once, on the instance it builds at launch.
+    func startListening() {
+        installRescoreListener()
+        installCloudKitSnapshotBackfillListener()
+        observeHealthKitSleep()
+    }
+
+    // MARK: - Reanalysis
+
+    /// Re-analyze a session with current algorithms. This updates the HRV
+    /// analysis (window, metrics) but keeps the frozen trainingSnapshot on the
+    /// session: reanalysis only changes HRV and sleep.
+    ///
+    /// Re-entrancy guard: a request for a session already being reanalysed
+    /// returns the archived copy (`coalescedInFlightSession`) and queues one
+    /// trailing pass over the freshly written session, since it may carry
+    /// newer inputs (sleep that landed after the running pass read HealthKit),
+    /// as `autoRefreshTodaysSleepIfImproved` does.
+    func reanalyzeSession(_ session: HRVSession, method: WindowSelectionMethod = .consolidatedRecovery) async -> HRVSession? {
+        if inFlightReanalyses.contains(session.id) {
+            pendingReanalyses.insert(session.id)
+            return await coalescedInFlightSession(session)
+        }
+        inFlightReanalyses.insert(session.id)
+        defer { inFlightReanalyses.remove(session.id) }
+        var result = await reanalyzeOnce(session, method: method)
+        while pendingReanalyses.remove(session.id) != nil {
+            debugLog("[Reanalyze] trailing pass for \(session.id.uuidString.prefix(8)) — requested while in flight")
+            result = await reanalyzeOnce(session, method: method) ?? result
+        }
+        return result
+    }
+
+    /// One pass over the session as it is on disk now, with the training load
+    /// as of the session's day held for the pass.
+    private func reanalyzeOnce(_ session: HRVSession, method: WindowSelectionMethod) async -> HRVSession? {
+        let fullSession = await fullSessionFromDisk(session)
+        let sessionDate = fullSession.endDate ?? fullSession.startDate
+        let pastDay = await scoring.holdPastDayTrainingLoad(asOf: sessionDate)
+        defer { if let pastDay { scoring.releasePastDayTrainingLoad(pastDay) } }
+        await warmTrainingMetricsCacheIfCold()
+        return await service.reanalyzeSession(fullSession, method: method)
+    }
+
+    /// The current session, not nil: at the call site a nil reads as "no RR
+    /// data", so pull-to-refresh would report missing beats whenever a manual
+    /// reanalyze coincided with the auto-rescore a fresh Apple-sleep sync
+    /// starts. The in-flight run finishes and bumps the archive signal.
+    private func coalescedInFlightSession(_ session: HRVSession) async -> HRVSession? {
+        debugLog("[Reanalyze] suppressing duplicate run for \(session.id.uuidString.prefix(8)) — already in flight")
+        let archive = self.archive
+        let id = session.id
+        return await Task.detached(priority: .userInitiated) {
+            archive.retrieveOrLog(id, caller: "reanalyze.inFlightCoalesce") ?? session
+        }.value
+    }
+
+    /// Callers hand over sessions loaded without their beats (the
+    /// dashboard's `retrieveLightweightOrLog` copies), and
+    /// `ReanalysisService.reanalyzeSession` refuses one with no rrSeries. The
+    /// full session is re-read from disk, off the main actor, so that gate
+    /// sees what is stored.
+    private func fullSessionFromDisk(_ session: HRVSession) async -> HRVSession {
+        let archive = self.archive
+        let sessionId = session.id
+        return await Task.detached(priority: .userInitiated) {
+            archive.retrieveOrLog(sessionId, caller: "SessionReanalysis.reanalyzeSession") ?? session
+        }.value
+    }
+
+    /// Fill the shared training-metrics cache before a reanalysis, only when
+    /// it is cold or empty, and anchored at now (`refresh()`), the anchor the
+    /// rest of the app uses for it. Anchoring it at the session's date would
+    /// republish the cache with that morning's values and change the
+    /// dashboard's TRAINING LOAD card every time the user tapped Reanalyze.
+    private func warmTrainingMetricsCacheIfCold() async {
+        let cache = trainingMetricsCache()
+        let isCold = cache.current == nil
+            || ((cache.current?.atl ?? 0) == 0 && (cache.current?.ctl ?? 0) == 0)
+        guard isCold else { return }
+        await cache.refresh()
+    }
+
+    // MARK: - Bulk passes
+
+    /// Re-analyze all sessions with current algorithms. Each session runs
+    /// through `reanalyzeSession`, so it gets the same past-day training load,
+    /// warm cache and in-flight guard as a single Reanalyze. Returns
+    /// (updated, skipped) where skipped counts sessions with manual window
+    /// overrides.
+    func reanalyzeAllSessions(
+        from: Date? = nil, to: Date? = nil, progress: @escaping (Int, Int) -> Void = { _, _ in }
+    ) async -> (updated: Int, skipped: Int) {
+        await service.reanalyzeAllSessions(
+            sessions: archivedSessionsOffMain(), from: from, to: to,
+            reanalyzeOne: { await self.reanalyzeSession($0) },
+            progress: progress
+        )
+    }
+
+    /// Reprocess sleep for every overnight session using current settings,
+    /// so a changed sleep setting applies to past nights. Workouts, naps,
+    /// quick readings and breathing sessions are skipped. For each night:
+    ///   1. Re-runs the sleep pipeline (picking up the current augmentation setting)
+    ///   2. Backfills a `sleepSnapshot` from HRV/RR data when none existed before
+    ///   3. Recalculates the recovery score with the updated sleep data
+    /// It never writes sleep to Apple Health.
+    func retroApplySleepSettings(progress: @escaping (Int, Int) -> Void = { _, _ in }) async -> Int {
+        await service.retroApplySleepSettings(sessions: archivedSessionsOffMain(), progress: progress)
+    }
+
+    /// Recompute training snapshots from HealthKit workout history for all
+    /// archived sessions, for sessions whose ATL/CTL/TSB drifted from the
+    /// frozen morning values.
+    func repairTrainingSnapshots(
+        progress: @escaping (Int, Int) -> Void = { _, _ in }
+    ) async -> ReanalysisService.TrainingRepairResult {
+        await service.repairTrainingSnapshots(sessions: archivedSessionsOffMain(), progress: progress)
+    }
+
+    /// Run the one-shot session-data repairs (`SessionDataMigrations`), each
+    /// gated by its own UserDefaults flag.
+    func runDeferredSessionMigrationsIfNeeded() async {
+        await SessionDataMigrations(
+            archive: archive,
+            healthKit: healthKit,
+            settingsManager: scoring.settingsManager,
+            baselineTracker: scoring.baselineTracker,
+            reanalysisService: service
+        ).runAllIfNeeded()
+    }
+
+    /// Every archived session, full (beats included), newest first, decoded
+    /// off the main actor: a full-archive decrypt and decode on it held the
+    /// screen.
+    func archivedSessionsOffMain() async -> [HRVSession] {
+        let archive = self.archive
+        return await Task.detached(priority: .userInitiated) {
+            Self.loadAllSessions(from: archive)
+        }.value
+    }
+
+    nonisolated private static func loadAllSessions(from archive: SessionArchive) -> [HRVSession] {
+        let entries = archive.entries  // already sorted newest-first
+        debugLog("[SessionReanalysis] archivedSessions: Loading \(entries.count) entries from archive")
+        var sessions: [HRVSession] = []
+        var errorCount = 0
+        for entry in entries {
+            if let session = retrieveLoggingFailure(entry.sessionId, from: archive) {
+                sessions.append(session)
+            } else {
+                errorCount += 1
+            }
+        }
+        debugLog("[SessionReanalysis] archivedSessions: Loaded \(sessions.count) sessions (\(errorCount) errors)")
+        return sessions
+    }
+
+    /// Nil covers both "not in the archive" and "failed to decode"; both are
+    /// logged and counted as errors by the caller.
+    nonisolated private static func retrieveLoggingFailure(_ sessionId: UUID, from archive: SessionArchive) -> HRVSession? {
+        do {
+            guard let session = try archive.retrieve(sessionId) else {
+                debugLog("[SessionReanalysis] WARNING: Session \(sessionId) not found in archive (nil)")
+                return nil
+            }
+            return session
+        } catch {
+            debugLog("[SessionReanalysis] ERROR: Failed to retrieve session \(sessionId): \(error)")
+            return nil
+        }
+    }
+}
+
+// MARK: - Rewritten-session announcement
+
+extension Notification.Name {
+    /// Posted on the main actor by `SessionReanalysisCoordinator` after it
+    /// rewrote a saved session; the object is an `ArchivedSessionRewrite`.
+    /// `RRCollector.installArchivedCopyListener` carries it onto the review
+    /// card when the card holds that night.
+    static let reanalysisRewroteArchivedSession = Notification.Name("SessionReanalysis.rewroteArchivedSession")
+}
+
+/// A saved session as reanalysis wrote it.
+struct ArchivedSessionRewrite: Sendable {
+    let session: HRVSession
+    /// True for a rescore, which reaches the review card only while a night
+    /// awaits acceptance; false for a sleep refresh.
+    let onlyWhileAwaitingAcceptance: Bool
 }

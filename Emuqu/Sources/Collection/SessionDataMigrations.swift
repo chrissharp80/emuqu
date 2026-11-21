@@ -42,10 +42,9 @@ final class SessionDataMigrations {
     let settingsManager: SettingsManager
     let baselineTracker: BaselineTracker
 
-    /// The reanalysis engine. Injected rather than rebuilt here — `RRCollector`
-    /// caches one and its providers close over the collector's settings
-    /// snapshot, so constructing a second would quietly diverge from the one
-    /// the rest of the app uses.
+    /// The reanalysis engine (`SessionReanalysisCoordinator.service`).
+    /// Injected rather than rebuilt here, so the migrations' rescores update
+    /// the same baseline tracker and archive signal as the rest of the app.
     let reanalysisService: ReanalysisService
 
     init(

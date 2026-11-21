@@ -44,6 +44,16 @@ final class HealthKitManager {
     }
     nonisolated let settingsProvider: @Sendable () -> UserSettings
 
+    /// The store exports replace their samples through: the app's Health
+    /// store unless one was given at init (tests give an in-memory store).
+    @ObservationIgnored private let givenSampleStore: (any HealthSampleStore)?
+
+    /// Every export and removal of a session's samples goes through this one
+    /// replacer, so those for the same session run one at a time.
+    @ObservationIgnored lazy var sampleReplacer = HealthSampleReplacer(
+        store: givenSampleStore ?? HealthKitSampleStore(manager: self)
+    )
+
     /// IMPORTANT: This flag only indicates authorization was REQUESTED, not that it was granted.
     /// HealthKit deliberately doesn't reveal if read access was denied to protect user privacy.
     ///
@@ -85,8 +95,12 @@ final class HealthKitManager {
 
     // MARK: - Init
 
-    nonisolated init(settingsProvider: @escaping @Sendable () -> UserSettings = { AppDependencies.current.app.settingsManager.settingsSnapshot }) {
+    nonisolated init(
+        settingsProvider: @escaping @Sendable () -> UserSettings = { AppDependencies.current.app.settingsManager.settingsSnapshot },
+        sampleStore: (any HealthSampleStore)? = nil
+    ) {
         self.settingsProvider = settingsProvider
+        self.givenSampleStore = sampleStore
     }
 
     // MARK: - Types

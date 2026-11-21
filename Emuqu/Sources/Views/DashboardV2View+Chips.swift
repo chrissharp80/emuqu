@@ -366,23 +366,14 @@ extension DashboardV2View {
     /// Pull-to-refresh re-runs the analysis
     /// pipeline against today's data and surfaces a "Re-analyzed." toast.
     ///
-    /// No timeout race. Reanalysis is
-    /// LOCAL CPU work (artifact detection + window selection + HRV
-    /// math + archive write). No network, no HK fetch, no BLE. A
-    /// 30s race-to-timeout reported "Re-analyze took too
-    /// long. Try again" while the actual work continued in the
-    /// background and eventually completed — so the user saw a failure
-    /// toast for a job that succeeded. Tapping "Try again" then got
-    /// suppressed by the `inFlightReanalyses` re-entrancy guard in
-    /// `RRCollector+Reanalysis.swift:73`, so the second tap did
-    /// nothing. From the user's perspective: timeout, retry, silent
-    /// nothing, repeat.
-    ///
-    /// Instead: just await the result. If it takes 60 s on an
-    /// old phone, that's the truth; the toast reports what actually
-    /// happened. If the call genuinely hangs (programmer bug, not a
-    /// slow phone) the user can navigate away and the spinner ends
-    /// when the view leaves the screen.
+    /// No timeout race. Reanalysis is LOCAL CPU work (artifact detection +
+    /// window selection + HRV math + archive write): no network, no HK
+    /// fetch, no BLE. A timeout would report a failure for a job still
+    /// running in the background, and a retry would only be coalesced by the
+    /// in-flight guard in `SessionReanalysisCoordinator.reanalyzeSession`.
+    /// So the result is awaited, and the toast reports what happened. If the
+    /// call hangs, the user can navigate away and the spinner ends when the
+    /// view leaves the screen.
     func refreshDashboard() async {
         guard let session = latestOvernightComplete, let onReanalyze = onReanalyzeSession else {
             toast = ToastPayload(glyph: "info.circle", message: String(localized: "Nothing to re-analyze yet.", bundle: LanguageManager.appBundle))

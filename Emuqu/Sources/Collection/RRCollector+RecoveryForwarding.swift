@@ -69,8 +69,10 @@ extension RRCollector {
         return await recovery.augmentWorkoutFromStrap(sessionId: sessionId)
     }
 
-    func augmentOvernightFromStrap(sessionId: UUID) async -> SessionRecoveryCoordinator.OvernightAugmentResult {
-        return await recovery.augmentOvernightFromStrap(sessionId: sessionId)
+    func augmentOvernightFromStrap(
+        sessionId: UUID, rescoringWith reanalysis: SessionReanalysisCoordinator
+    ) async -> SessionRecoveryCoordinator.OvernightAugmentResult {
+        return await recovery.augmentOvernightFromStrap(sessionId: sessionId, rescoringWith: reanalysis)
     }
 
     func surfaceExistingRecoveredWorkoutForReview() {

@@ -1,7 +1,7 @@
 {
  "file": "EmuquTests/HRVReferenceValidationTests.swift",
  "hash": "71079ea6a6f94f1e",
- "role": "XCTest suite validating TimeDomainAnalyzer against 6,000 ECG-annotated RR intervals from 20 nsr2db records with independently computed Python reference values: corpus sanity, meanRR/SDNN and unfiltered RMSSD to 1e-6, ectopic-filter relations, pNN50 where unfiltered, mean-HR scale, finiteness and shift invariance.",
+ "role": "XCTest suite validating TimeDomainAnalyzer against 6,000 ECG-annotated RR intervals from 20 nsr2db records with independently computed Python reference values: corpus sanity, meanRR/SDNN and unfiltered RMSSD to 1e-6, the pipeline RMSSD recomputed from the kept adjacent pairs, pNN50 where unfiltered, mean-HR scale, finiteness and shift invariance.",
  "types": [
   "HRVReferenceValidationTests: class — XCTestCase over HRVReferenceFixtures",
   "HRVReferenceValidationTests.Expected: struct — decoded reference metrics",
@@ -28,20 +28,35 @@
    "deps": {}
   },
   {
-   "key": "func HRVReferenceValidationTests.analyse(_:)",
-   "hash": "9346be87fbf0d113",
-   "does": "Test helper: turns a record's rrMs into RRPoints with cumulative t_ms, marks every beat clean, and returns TimeDomainAnalyzer.computeTimeDomain over the whole series.",
+   "key": "func HRVReferenceValidationTests.points(_:)",
+   "hash": "bd2884560bb49fc6",
+   "does": "Turns integer RR intervals into RRPoints laid end to end (each beat's t_ms is the previous one's end).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)",
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd"
+   }
+  },
+  {
+   "key": "func HRVReferenceValidationTests.analyse(_:)",
+   "hash": "0e7516ee61de1e6e",
+   "does": "Test helper: turns a record's rrMs into contiguous RRPoints (points(_:)), marks every beat clean, and returns TimeDomainAnalyzer.computeTimeDomain over the whole series.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.points(_:)",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "b45f65e53d1a0cab",
-    "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.computeTimeDomain(_:flags:windowStart:windowEnd:)": "ae5a1983d1c7500d",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.points(_:)": "724594d7a532cb28"
    }
   },
   {
@@ -112,33 +127,66 @@
    }
   },
   {
-   "key": "func HRVReferenceValidationTests.testPipelineRMSSDIsNeverLargerThanTheUnfilteredValue()",
-   "hash": "8a1dabdae57aac91",
-   "does": "Asserts pipeline (ectopic-filtered) RMSSD ≤ unfiltered RMSSD for every record and that at least one record is strictly reduced.",
+   "key": "func HRVReferenceValidationTests.testPipelineRMSSDIsTheRMSOfTheKeptAdjacentPairs()",
+   "hash": "6bd43a14b8a78e41",
+   "does": "For every record asserts the pipeline RMSSD equals, to 1e-6, the RMS recomputed independently over the kept adjacent pairs (rmssdOverKeptAdjacentPairs), and counts records where it differs from the unfiltered RMSSD; asserts at least one does, so the corpus exercises the ectopic gate.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures",
     "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.rmssdOverKeptAdjacentPairs(_:)",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)"
+   ],
+   "reads": [
+    "mem:HRVReferenceValidationTests.fixtures"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "each record",
+     "effect": "compare"
+    },
+    {
+     "at": "+9",
+     "cond": "pipeline RMSSD differs from the unfiltered one",
+     "effect": "changed += 1"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)": "1596841c414b391c",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "87f6aa28975ab16e",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.rmssdOverKeptAdjacentPairs(_:)": "06eddbdab9c7fdcc",
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "149cb1808044a41f"
+   }
+  },
+  {
+   "key": "func HRVReferenceValidationTests.rmssdOverKeptAdjacentPairs(_:)",
+   "hash": "6fd38727b4df7311",
+   "does": "RMSSD from first principles: square root of the mean squared rr[i]-rr[i-1] over the pairs adjacent in the series as recorded with both beats kept by TimeDomainAnalyzer.ectopicKeepMask and no recording break between them (isRecordingBreak); nil when no pair qualifies.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.points(_:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.ectopicKeepMask(_:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.isRecordingBreak(between:and:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "for each record",
-     "effect": "asserts ≤ raw + tolerance"
+     "at": "+5",
+     "cond": "pair kept on both sides and not across a break",
+     "effect": "accumulated"
     },
     {
-     "at": "+7",
-     "cond": "pipeline RMSSD < raw − tolerance",
-     "effect": "counts the record as narrowed"
+     "at": "+11",
+     "cond": "no qualifying pair",
+     "effect": "nil"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)": "a192569ea4412900",
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "e22aa75e824f525e",
-    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "149cb1808044a41f"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.ectopicKeepMask(_:)": "02e01e27fe494a31",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.isRecordingBreak(between:and:)": "a83bfc29bd250f82",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.points(_:)": "724594d7a532cb28"
    }
   },
   {

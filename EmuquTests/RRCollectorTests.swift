@@ -184,6 +184,17 @@ final class RRCollectorSaveResultTests: XCTestCase {
         )
     }
 
+    /// Saved-session reanalysis over this test's archive and the collector's
+    /// scoring context and archive signal, its listeners not started.
+    private func makeReanalysis() -> SessionReanalysisCoordinator {
+        AppDependencies.makeSessionReanalysis(SessionReanalysisParts(
+            archive: archive, healthKit: collector.healthKit, scoring: collector.scoring,
+            archiveSignal: collector.archiveSignal, cloudSync: collector.cloudSyncManager,
+            trainingMetricsCache: { AppDependencies.current.analysis.trainingMetricsCache },
+            invalidateZones: { _ in }
+        ))
+    }
+
     private func night() -> HRVSession {
         HRVSession(
             id: UUID(), startDate: nightStart, endDate: nightStart.addingTimeInterval(8 * 3600),
@@ -271,7 +282,7 @@ final class RRCollectorSaveResultTests: XCTestCase {
         rescored.recoveryScore = 7.4
         rescored.morningFeeling = 2
 
-        collector.reanalysis.finishRescore(sessionId: card.id, prior: nil, updated: rescored, reason: "sleep")
+        makeReanalysis().finishRescore(sessionId: card.id, prior: nil, updated: rescored, reason: "sleep")
 
         XCTAssertEqual(collector.currentSession?.recoveryScore, 7.4)
         XCTAssertEqual(collector.currentSession?.tags, [ReadingTag.alcohol], "edited on the card")
@@ -290,7 +301,7 @@ final class RRCollectorSaveResultTests: XCTestCase {
         var oldArchived = card
         oldArchived.recoveryScore = 5.0
 
-        collector.reanalysis.finishRescore(sessionId: card.id, prior: nil, updated: oldArchived, reason: "sleep")
+        makeReanalysis().finishRescore(sessionId: card.id, prior: nil, updated: oldArchived, reason: "sleep")
 
         XCTAssertEqual(collector.currentSession?.recoveryScore, 8.2)
     }
@@ -302,7 +313,7 @@ final class RRCollectorSaveResultTests: XCTestCase {
         var rescored = card
         rescored.recoveryScore = 7.4
 
-        collector.reanalysis.finishRescore(sessionId: card.id, prior: nil, updated: rescored, reason: "sleep")
+        makeReanalysis().finishRescore(sessionId: card.id, prior: nil, updated: rescored, reason: "sleep")
 
         XCTAssertEqual(collector.currentSession?.recoveryScore, 6.1)
     }
@@ -312,7 +323,7 @@ final class RRCollectorSaveResultTests: XCTestCase {
         var other = night()
         other.recoveryScore = 7.4
 
-        collector.reanalysis.adoptArchivedCopy(other)
+        collector.adoptArchivedCopy(other)
 
         XCTAssertEqual(collector.currentSession?.id, card.id)
         XCTAssertEqual(collector.currentSession?.recoveryScore, 6.1)
@@ -320,21 +331,21 @@ final class RRCollectorSaveResultTests: XCTestCase {
 
     // MARK: - Segment unlink
 
-    /// No archived parent: nothing is unlinked and the collector says so,
-    /// so the report keeps the segment listed.
+    /// No archived parent: nothing is unlinked and the reanalysis service
+    /// says so, so the report keeps the segment listed.
     func testUnlinkReportsFailureWhenTheParentIsNotArchived() {
-        XCTAssertFalse(collector.unlinkSegment(segmentId: UUID(), fromSession: UUID()))
+        XCTAssertFalse(makeReanalysis().service.unlinkSegment(segmentId: UUID(), fromSession: UUID()))
     }
 
     /// A segment whose own copy cannot be read: its beats cannot be located,
-    /// so the link is kept and the collector reports false.
+    /// so the link is kept and the reanalysis service reports false.
     func testUnlinkReportsFailureAndKeepsTheLinkWhenTheSegmentCannotBeRead() throws {
         var parent = night()
         let segmentId = UUID()
         parent.linkedSessionIds = [segmentId]
         try archive.archive(parent)
 
-        XCTAssertFalse(collector.unlinkSegment(segmentId: segmentId, fromSession: parent.id))
+        XCTAssertFalse(makeReanalysis().service.unlinkSegment(segmentId: segmentId, fromSession: parent.id))
         XCTAssertEqual(try archive.retrieve(parent.id)?.linkedSessionIds, [segmentId])
     }
 }

@@ -1,14 +1,381 @@
 {
  "file": "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift",
- "hash": "ef29348db3cd9e63",
- "role": "Stateless @MainActor value wrapping a strong RRCollector reference; archived-session reanalysis methods are in extensions in other files (RRCollector+Reanalysis.swift).",
+ "hash": "aa06e875b593c4da",
+ "role": "SessionReanalysisCoordinator: the composition root's saved-session reanalysis — single Reanalyze with in-flight guard and past-day training load, the bulk passes, the one-shot session-data migrations — plus the rewritten-session notification and its payload.",
  "types": [
-  "SessionReanalysisCoordinator: struct (@MainActor) — namespace for reanalysis of archived sessions, built by RRCollector+ReanalysisForwarding.swift:9"
+  "SessionReanalysisCoordinator: @MainActor final class — saved-session reanalysis entry points and listener state",
+  "Notification.Name.reanalysisRewroteArchivedSession: extension — posted after a saved session is rewritten",
+  "ArchivedSessionRewrite: struct — the rewritten session and whether it reaches the review card only while a night awaits acceptance"
  ],
  "state": [
-  "mem:SessionReanalysisCoordinator.collector (let, strong RRCollector reference)"
+  "service, archive, healthKit, scoring, archiveSignal: injected; trainingMetricsCache: an injected resolver, called when a reanalysis warms the cache",
+  "notificationObservers: block-observer tokens",
+  "inFlightReanalyses / pendingReanalyses: re-entrancy guard",
+  "isAutoRefreshingSleep / autoRefreshSleepPending: sleep auto-refresh serialisation"
  ],
- "toplevel": "Declaration only; no units here.",
- "units": [],
+ "toplevel": "Declares Notification.Name.reanalysisRewroteArchivedSession (\"SessionReanalysis.rewroteArchivedSession\") and the ArchivedSessionRewrite payload struct.",
+ "units": [
+  {
+   "key": "init SessionReanalysisCoordinator(service:archive:healthKit:scoring:archiveSignal:trainingMetricsCache:)",
+   "hash": "6e24da067da6fc87",
+   "does": "Stores the reanalysis service, archive, HealthKit manager, scoring context, archive signal and a resolver for the training-metrics cache, which is not called here. Installs no listener (startListening does).",
+   "entry": "Built by AppDependencies.makeSessionReanalysis(_:) (the root instance and tests).",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "deinit SessionReanalysisCoordinator",
+   "hash": "fa39896ca5923bf4",
+   "does": "Removes every block observer whose token is in notificationObservers.",
+   "entry": "Deallocation.",
+   "calls": [
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)"
+   ],
+   "reads": [],
+   "writes": [
+    "notif:observers removed"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.removeAll(from:)": "dd504bad520a4d13"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.startListening()",
+   "hash": "28de4f6fee9be1f7",
+   "does": "Installs the rescore-request listener, the CloudKit snapshot-backfill listener (which also starts one launch-time drain) and the HealthKit sleep-version observation.",
+   "entry": "SessionReanalysisRoot.reanalysis when the root instance is first built (EmuquApp launch).",
+   "calls": [
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.installRescoreListener()",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.installCloudKitSnapshotBackfillListener()",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.observeHealthKitSleep()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.installCloudKitSnapshotBackfillListener()": "0046f7a6389691e6",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.installRescoreListener()": "64e2ca63340dcbb0",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.observeHealthKitSleep()": "f89a2c236bce54eb"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.reanalyzeSession(_:method:)",
+   "hash": "3f559abdb48d7544",
+   "does": "Reanalyses one saved session. If one is already in flight for the id it records a pending request and returns the archived copy; otherwise marks it in flight, runs one pass (reanalyzeOnce), then one more pass for each request that arrived meanwhile (it may carry newer inputs, e.g. sleep that landed after the pass read HealthKit), and returns the latest result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.coalescedInFlightSession(_:)",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.reanalyzeOnce(_:method:)"
+   ],
+   "reads": [
+    "mem:SessionReanalysisCoordinator.inFlightReanalyses",
+    "mem:SessionReanalysisCoordinator.pendingReanalyses"
+   ],
+   "writes": [
+    "mem:SessionReanalysisCoordinator.inFlightReanalyses",
+    "mem:SessionReanalysisCoordinator.pendingReanalyses"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "session id already in flight",
+     "effect": "records it pending, returns the coalesced archived copy"
+    },
+    {
+     "at": "+8",
+     "cond": "a request arrived while in flight",
+     "effect": "trailing pass; its nil result keeps the previous one"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.coalescedInFlightSession(_:)": "1f2a1febfd8ca465",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.reanalyzeOnce(_:method:)": "9f0e100fe84403e3",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.reanalyzeOnce(_:method:)",
+   "hash": "40fc8e2026af9406",
+   "does": "One reanalysis pass over the session as it is on disk now: loads the full session, holds the session day's past training load in the scoring context (released afterwards), warms the training-metrics cache if cold, and runs ReanalysisService.reanalyzeSession.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.fullSessionFromDisk(_:)",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.holdPastDayTrainingLoad(asOf:)",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.releasePastDayTrainingLoad(_:)",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.warmTrainingMetricsCacheIfCold()",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeSession(_:method:preserveManualWindows:)"
+   ],
+   "reads": [
+    "archive:session"
+   ],
+   "writes": [
+    "mem:SessionScoringContext.pastDayTrainingLoads",
+    "mem:SessionScoringContext.pastDayTrainingLoadHolders",
+    "archive:session (via service)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "endDate nil",
+     "effect": "use startDate"
+    },
+    {
+     "at": "+4",
+     "cond": "a past-day key was returned",
+     "effect": "released on return"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.fullSessionFromDisk(_:)": "11400a8fd7e92249",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.warmTrainingMetricsCacheIfCold()": "f5ede0ae2501b443",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.holdPastDayTrainingLoad(asOf:)": "25c97c5c5b9adda2",
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.releasePastDayTrainingLoad(_:)": "db6b73a392303a08",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeSession(_:method:preserveManualWindows:)": "1af065c739ef1b58"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.coalescedInFlightSession(_:)",
+   "hash": "66f40833273cd91f",
+   "does": "Logs and returns the archived copy of the session (detached retrieve), falling back to the passed-in session.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "retrieve fails/nil",
+     "effect": "return input session"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.fullSessionFromDisk(_:)",
+   "hash": "8f2c4d1b1c31515f",
+   "does": "Loads the full session (with rrSeries) from the archive off-main, falling back to the input.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "retrieve fails/nil",
+     "effect": "return input session (may lack rrSeries)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.warmTrainingMetricsCacheIfCold()",
+   "hash": "3d7936ea87277c64",
+   "does": "Resolves the training-metrics cache (trainingMetricsCache(), built on first use) and refreshes it (now-anchored) only when it is empty or ATL and CTL are both 0.",
+   "entry": null,
+   "calls": [
+    "closure:trainingMetricsCache — the parts' resolver (the container's AnalysisServices.trainingMetricsCache in the app)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)"
+   ],
+   "reads": [
+    "mem:TrainingMetricsCache.current"
+   ],
+   "writes": [
+    "mem:TrainingMetricsCache.current"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "current nil, or atl/ctl nil→0 and both 0",
+     "effect": "isCold true"
+    },
+    {
+     "at": "+4",
+     "cond": "not cold",
+     "effect": "return without refresh"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)": "511ba226503fa4e1",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.reanalyzeAllSessions(from:to:progress:)",
+   "hash": "570f2f276e2920e8",
+   "does": "Reanalyzes every archived session (decoded in full off the main actor) in the date range through ReanalysisService's reanalyzeOne overload, passing this coordinator's reanalyzeSession as the per-session pass so each night gets the past-day training load, warm cache and in-flight guard of a single Reanalyze; the service loop skips windowUserAdjusted sessions.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.archivedSessionsOffMain()",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeAllSessions(sessions:from:to:reanalyzeOne:progress:)",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)"
+   ],
+   "reads": [
+    "archive:all sessions"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.archivedSessionsOffMain()": "63bdd2d63565ddcd",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)": "22355b317aa90b2b",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeAllSessions(sessions:from:to:reanalyzeOne:progress:)": "90d86f3c1bf54662"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.retroApplySleepSettings(progress:)",
+   "hash": "471458df147a58b2",
+   "does": "Forwards retro-apply of sleep settings to ReanalysisService over all archived sessions, decoded in full off the main actor.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.archivedSessionsOffMain()",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.retroApplySleepSettings(sessions:progress:)"
+   ],
+   "reads": [
+    "archive:all sessions"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.archivedSessionsOffMain()": "63bdd2d63565ddcd",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.retroApplySleepSettings(sessions:progress:)": "890ac26aae8abfea"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.repairTrainingSnapshots(progress:)",
+   "hash": "c51d21a1cb2d530a",
+   "does": "Forwards training-snapshot repair over all archived sessions, decoded in full off the main actor, to ReanalysisService.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.archivedSessionsOffMain()",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.repairTrainingSnapshots(sessions:progress:)"
+   ],
+   "reads": [
+    "archive:all sessions"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.archivedSessionsOffMain()": "63bdd2d63565ddcd",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.repairTrainingSnapshots(sessions:progress:)": "cca8b6c42d8d9321"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.runDeferredSessionMigrationsIfNeeded()",
+   "hash": "400045dced2dd224",
+   "does": "Builds SessionDataMigrations from the archive, HealthKit manager, the scoring context's settings manager and baseline tracker, and the reanalysis service, and runs every flag-gated one-shot session-data repair.",
+   "entry": "EmuquApp.scheduleMigrationJobs housekeeping job at launch.",
+   "calls": [
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::init SessionDataMigrations(archive:healthKit:settingsManager:baselineTracker:reanalysisService:)",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.runAllIfNeeded()"
+   ],
+   "reads": [
+    "ud:migration flags"
+   ],
+   "writes": [
+    "archive:sessions (migrations)",
+    "ud:migration flags"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.runAllIfNeeded()": "935aa07e49488122",
+    "Emuqu/Sources/Collection/SessionDataMigrations.swift::init SessionDataMigrations(archive:healthKit:settingsManager:baselineTracker:reanalysisService:)": "a2598d8081e32d26"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.archivedSessionsOffMain()",
+   "hash": "63d10f6770711f07",
+   "does": "Every archived session in full (beats included), newest first, decoded on a detached user-initiated task (loadAllSessions) so the decrypt+decode does not hold the main actor. For the bulk reanalysis paths.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.loadAllSessions(from:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve (all)"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.loadAllSessions(from:)": "730f2386aa1dfdc8"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.loadAllSessions(from:)",
+   "hash": "0e20bf87d8dd1012",
+   "does": "Nonisolated: retrieves every archive entry's session in full, logs and counts failures, returns the decoded sessions in archive order.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.retrieveLoggingFailure(_:from:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.entries",
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "for each entry",
+     "effect": "iterate"
+    },
+    {
+     "at": "+6",
+     "cond": "retrieve returned a session",
+     "effect": "appended; else errorCount += 1 (session omitted)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.retrieveLoggingFailure(_:from:)": "473d15dd5886e341",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func SessionReanalysisCoordinator.retrieveLoggingFailure(_:from:)",
+   "hash": "af0b1b1a49253011",
+   "does": "Nonisolated: retrieves one session from the archive; returns nil (logged as WARNING when missing, as ERROR when the read throws).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "retrieve returned nil",
+     "effect": "logs not-found and returns nil; else returns session"
+    },
+    {
+     "at": "+7",
+     "cond": "retrieve throws",
+     "effect": "logs the error and returns nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  }
+ ],
  "deps": {}
 }

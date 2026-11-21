@@ -1,9 +1,10 @@
 {
  "file": "Emuqu/Sources/Services/ReanalysisService+Sleep.swift",
- "hash": "4208487c237b9cb2",
- "role": "Extension of ReanalysisService: sleep retro-apply over all overnight sessions (nap credit included, applied on the archived copy under the archive lock), manual-window reanalysis/apply, sleep-boundary updates (user edits and automatic HealthKit refreshes) with re-classification and re-scoring on the archived copy, training-snapshot repair, and segment unlinking.",
+ "hash": "bd5708435abb8644",
+ "role": "Extension of ReanalysisService: sleep retro-apply over all overnight sessions (nap credit included, applied on the archived copy under the archive lock), manual-window reanalysis/apply, sleep-boundary updates (user edits and automatic HealthKit refreshes) with re-classification and re-scoring on the archived copy, training-snapshot repair, and segment unlinking; and ArchivedSessionRead, which tells a session the archive does not hold apart from one whose read throws.",
  "types": [
-  "ReanalysisService.TrainingRepairResult: struct — counts and sample log of a training-snapshot repair"
+  "ReanalysisService.TrainingRepairResult: struct — counts and sample log of a training-snapshot repair",
+  "ArchivedSessionRead: enum (file scope, Sendable) — stored / notArchived / unreadable result of one archive read; read(_:from:caller:) logs a thrown read at .error"
  ],
  "state": [
   "mem:ReanalysisService.assumedSessionLength (private static 12 h)",
@@ -20,7 +21,7 @@
    "calls": [
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.sessionsInRange(_:from:to:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.retroApply(to:)",
-    "closure:ReanalysisService.onArchiveChanged — set in RRCollector+Reanalysis.swift:37 to collector.archiveSignal.notifyChanged()",
+    "closure:ReanalysisService.onArchiveChanged — set in AppDependencies.makeReanalysisService (AppDependencies+Reanalysis.swift) over the shared scoring context, archive signal and CloudKit sync",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -246,7 +247,7 @@
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.retroApplied(_:to:sessionEnd:)",
-    "closure:ReanalysisService.onSessionUploaded — set in RRCollector+Reanalysis.swift:40 to a CloudKitSyncManager upload",
+    "closure:ReanalysisService.onSessionUploaded — set in AppDependencies.makeReanalysisService (AppDependencies+Reanalysis.swift) over the shared scoring context, archive signal and CloudKit sync",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
@@ -308,9 +309,9 @@
    "calls": [
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.latestArchivedCopy(of:)",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.hydrated(_:)",
-    "closure:ReanalysisService.trainingContextProvider — RRCollector+Reanalysis.swift:34 collector.createTrainingContext(relativeTo:)",
+    "closure:ReanalysisService.trainingContextProvider — set in AppDependencies.makeReanalysisService (AppDependencies+Reanalysis.swift) over the shared scoring context, archive signal and CloudKit sync",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.reanalyzeAtPosition(session:targetMs:trainingContext:ansConfig:)",
-    "closure:ReanalysisService.ansConfigProvider — RRCollector+Reanalysis.swift:33"
+    "closure:ReanalysisService.ansConfigProvider — set in AppDependencies.makeReanalysisService (AppDependencies+Reanalysis.swift) over the shared scoring context, archive signal and CloudKit sync"
    ],
    "reads": [
     "archive:SessionArchive.retrieve (latest copy, hydrate)"
@@ -376,12 +377,12 @@
   },
   {
    "key": "func ReanalysisService.latestArchivedCopy(of:)",
-   "hash": "282473eb2a3e0a74",
-   "does": "Returns the archived copy of the session by id (what the archive holds now, including sleep edits, strap merges or rescores made after a sheet captured its copy); falls back to the given session when it is not archived (retrieve returns nil) or the read throws (logged as a warning).",
+   "hash": "059c5fb14c53a6b8",
+   "does": "Returns the archived copy of the session by id (what the archive holds now, including sleep edits, strap merges or rescores made after a sheet captured its copy); falls back to the given session when it is not archived or the read throws (logged at .error by ArchivedSessionRead).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ArchivedSessionRead.read(_:from:caller:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::var ArchivedSessionRead.session"
    ],
    "reads": [
     "archive:SessionArchive.retrieve"
@@ -389,19 +390,14 @@
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "retrieve returns a session",
-     "effect": "return it; nil: return the given session"
-    },
-    {
-     "at": "+3",
-     "cond": "retrieve throws",
-     "effect": "log warning and return the given session"
+     "at": "+1",
+     "cond": "no archived copy (not archived or unreadable)",
+     "effect": "returns the given session"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ArchivedSessionRead.read(_:from:caller:)": "6c4eb2ad5c0756a6",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::var ArchivedSessionRead.session": "6263557be8ed02f6"
    }
   },
   {
@@ -451,9 +447,9 @@
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)",
-    "closure:ReanalysisService.settingsProvider — RRCollector+Reanalysis.swift:31 returns collector.settingsManager.settings",
-    "closure:ReanalysisService.onArchiveChanged — set in RRCollector+Reanalysis.swift:37 to collector.archiveSignal.notifyChanged()",
-    "closure:ReanalysisService.onSessionUploaded — set in RRCollector+Reanalysis.swift:40 to a CloudKitSyncManager upload",
+    "closure:ReanalysisService.settingsProvider — set in AppDependencies.makeReanalysisService (AppDependencies+Reanalysis.swift) over the shared scoring context, archive signal and CloudKit sync",
+    "closure:ReanalysisService.onArchiveChanged — set in AppDependencies.makeReanalysisService (AppDependencies+Reanalysis.swift) over the shared scoring context, archive signal and CloudKit sync",
+    "closure:ReanalysisService.onSessionUploaded — set in AppDependencies.makeReanalysisService (AppDependencies+Reanalysis.swift) over the shared scoring context, archive signal and CloudKit sync",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -591,8 +587,8 @@
    "does": "Logs the minutes change, notifies archive changed on the main actor and schedules a CloudKit upload of the written session.",
    "entry": null,
    "calls": [
-    "closure:ReanalysisService.onArchiveChanged — set in RRCollector+Reanalysis.swift:37 to collector.archiveSignal.notifyChanged()",
-    "closure:ReanalysisService.onSessionUploaded — set in RRCollector+Reanalysis.swift:40 to a CloudKitSyncManager upload",
+    "closure:ReanalysisService.onArchiveChanged — set in AppDependencies.makeReanalysisService (AppDependencies+Reanalysis.swift) over the shared scoring context, archive signal and CloudKit sync",
+    "closure:ReanalysisService.onSessionUploaded — set in AppDependencies.makeReanalysisService (AppDependencies+Reanalysis.swift) over the shared scoring context, archive signal and CloudKit sync",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -732,7 +728,7 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reclassifyHRVQuality(of:result:)",
-    "closure:ReanalysisService.trainingContextProvider — RRCollector+Reanalysis.swift:34 collector.createTrainingContext(relativeTo:)",
+    "closure:ReanalysisService.trainingContextProvider — set in AppDependencies.makeReanalysisService (AppDependencies+Reanalysis.swift) over the shared scoring context, archive signal and CloudKit sync",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.rescoredBreakdown(of:result:training:referenceDate:)",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)",
@@ -778,7 +774,7 @@
    "calls": [
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.logRepairPreamble(sessions:candidates:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.repairSnapshot(for:into:)",
-    "closure:ReanalysisService.onArchiveChanged — set in RRCollector+Reanalysis.swift:37 to collector.archiveSignal.notifyChanged()",
+    "closure:ReanalysisService.onArchiveChanged — set in AppDependencies.makeReanalysisService (AppDependencies+Reanalysis.swift) over the shared scoring context, archive signal and CloudKit sync",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -887,7 +883,7 @@
    "does": "VO2max override from settings wins; otherwise clears vo2Max unless useHealthKitVO2Max is on.",
    "entry": null,
    "calls": [
-    "closure:ReanalysisService.settingsProvider — RRCollector+Reanalysis.swift:31 returns collector.settingsManager.settings"
+    "closure:ReanalysisService.settingsProvider — set in AppDependencies.makeReanalysisService (AppDependencies+Reanalysis.swift) over the shared scoring context, archive signal and CloudKit sync"
    ],
    "reads": [],
    "writes": [],
@@ -949,7 +945,7 @@
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)",
-    "closure:ReanalysisService.onSessionUploaded — set in RRCollector+Reanalysis.swift:40 to a CloudKitSyncManager upload"
+    "closure:ReanalysisService.onSessionUploaded — set in AppDependencies.makeReanalysisService (AppDependencies+Reanalysis.swift) over the shared scoring context, archive signal and CloudKit sync"
    ],
    "reads": [
     "archive:SessionArchive.update"
@@ -975,15 +971,15 @@
   },
   {
    "key": "func ReanalysisService.unlinkSegment(segmentId:fromSession:)",
-   "hash": "988039d8e1f26de1",
-   "does": "Strips the segment's beats from the parent's merged series, then removes segmentId from linkedSessionIds, archives with reupload, reanalyzes asynchronously and schedules upload; returns true. Returns false with nothing written (link kept) when the parent or link is missing, when the segment can't be read so its beats can't be located, or when retrieve/archive throws (logged). Callers today discard the result.",
+   "hash": "4b58d415a2355d64",
+   "does": "Strips the segment's beats from the parent's merged series, then removes segmentId from linkedSessionIds, archives with reupload, reanalyzes asynchronously and schedules upload; returns true. Returns false with nothing written (link kept) when the parent or link is missing, when the segment can't be read so its beats can't be located, or when retrieve/archive throws (logged at .error).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.stripSegmentPoints(segmentId:from:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.reanalyzeAfterUnlink(_:)",
-    "closure:ReanalysisService.onSessionUploaded — set in RRCollector+Reanalysis.swift:40 to a CloudKitSyncManager upload",
+    "closure:ReanalysisService.onSessionUploaded — set in AppDependencies.makeReanalysisService to a CloudKitSyncManager force re-upload",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
@@ -1019,12 +1015,13 @@
     {
      "at": "+18",
      "cond": "retrieve/archive throws",
-     "effect": "log, return false"
+     "effect": "log at .error, return false"
     }
    ],
    "deps": {
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.reanalyzeAfterUnlink(_:)": "a9c0dc5f2beb034d",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.stripSegmentPoints(segmentId:from:)": "9bb64aa34af20bc7",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::var ArchivedSessionRead.session": "6263557be8ed02f6",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
@@ -1102,7 +1099,7 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeSession(_:method:preserveManualWindows:)",
-    "closure:ReanalysisService.onArchiveChanged — set in RRCollector+Reanalysis.swift:37 to collector.archiveSignal.notifyChanged()",
+    "closure:ReanalysisService.onArchiveChanged — set in AppDependencies.makeReanalysisService (AppDependencies+Reanalysis.swift) over the shared scoring context, archive signal and CloudKit sync",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -1124,6 +1121,55 @@
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeSession(_:method:preserveManualWindows:)": "1af065c739ef1b58",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "var ArchivedSessionRead.session",
+   "hash": "b076cbcab6113c45",
+   "does": "The archived copy for .stored; nil for .notArchived and .unreadable.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "the read found a copy",
+     "effect": "returns it; else nil"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func ArchivedSessionRead.read(_:from:caller:)",
+   "hash": "36908c8e7adf9878",
+   "does": "Reads one session with SessionArchive.retrieve: .stored(session), .notArchived when retrieve returns nil, .unreadable when it throws (a corrupt or undecryptable file, a hash mismatch, a storage error) after logging the error with the caller's name at .error, which files it in the Recent Problems catalog.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "archive:SessionArchive.retrieve"
+   ],
+   "writes": [
+    "mem:DebugLogger.errorCatalog (via .error log)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "retrieve returned nil",
+     "effect": ".notArchived; else .stored"
+    },
+    {
+     "at": "+4",
+     "cond": "retrieve throws",
+     "effect": "logs at .error, .unreadable"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }

@@ -370,11 +370,14 @@ extension SessionRecoveryCoordinator {
     /// fetch was skipped and only the (possibly truncated) live stream was
     /// scored. The H10 keeps its full-night internal file until the next
     /// recording clears it, so this reconnects, downloads it, merges with the archived stream
-    /// (device-preferred, stream fills gaps), and re-scores through the same
-    /// overnight `collector.reanalyzeSession` path so the HRV window + recovery score are
-    /// recomputed from the fuller data. Overnight sibling of
-    /// `augmentWorkoutFromStrap`.
-    func augmentOvernightFromStrap(sessionId: UUID) async -> OvernightAugmentResult {
+    /// (device-preferred, stream fills gaps), and re-scores through the
+    /// saved-session reanalysis the caller hands in
+    /// (`SessionReanalysisCoordinator.reanalyzeSession`) so the HRV window +
+    /// recovery score are recomputed from the fuller data. Overnight sibling
+    /// of `augmentWorkoutFromStrap`.
+    func augmentOvernightFromStrap(
+        sessionId: UUID, rescoringWith reanalysis: SessionReanalysisCoordinator
+    ) async -> OvernightAugmentResult {
         guard let session = collector.archive.retrieveOrLog(sessionId) else { return .failed }
         // Nothing to add if the device recording is already in the mix.
         if let src = session.dataSourceSummary?.selectedSource, src == "internal" || src == "composite" {
@@ -393,7 +396,7 @@ extension SessionRecoveryCoordinator {
                 session: session, sessionId: sessionId, mergedPoints: mergedPoints,
                 selection: selection, existingCount: existing.count, strapCount: strapRR.count
               ) else { return .failed }
-        return await rescoreAugmentedOvernight(updated, strapCount: strapRR.count, streamedCount: existing.count)
+        return await rescoreAugmentedOvernight(updated, strapCount: strapRR.count, streamedCount: existing.count, with: reanalysis)
     }
 
     /// The selector's points, or the strap's when it chose nothing and the
@@ -406,8 +409,10 @@ extension SessionRecoveryCoordinator {
         return strapRR.count > existing.count ? strapRR : nil
     }
 
-    private func rescoreAugmentedOvernight(_ updated: HRVSession, strapCount: Int, streamedCount: Int) async -> OvernightAugmentResult {
-        let rescored = await collector.reanalyzeSession(updated)
+    private func rescoreAugmentedOvernight(
+        _ updated: HRVSession, strapCount: Int, streamedCount: Int, with reanalysis: SessionReanalysisCoordinator
+    ) async -> OvernightAugmentResult {
+        let rescored = await reanalysis.reanalyzeSession(updated)
         await MainActor.run { collector.archiveSignal.notifyChanged() }
         let finalSession = rescored ?? updated
         let mergedBeatCount = finalSession.rrSeries?.points.count ?? 0
@@ -455,7 +460,7 @@ extension SessionRecoveryCoordinator {
     }
 
     /// Persist merged points + updated provenance. This must be written BEFORE
-    /// re-analysis, because `collector.reanalyzeSession` re-loads the archived session
+    /// re-analysis, because `SessionReanalysisCoordinator.reanalyzeSession` re-loads the archived session
     /// from disk (and re-archives the rescored result itself).
     private func persistMergedOvernight(
         session: HRVSession, sessionId: UUID, mergedPoints: [RRPoint],

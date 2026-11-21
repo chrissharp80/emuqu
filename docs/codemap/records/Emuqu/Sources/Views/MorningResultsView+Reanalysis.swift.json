@@ -161,7 +161,7 @@
    "deps": {
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.settings": "f32f54c780468841",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.reanalyzeWithMethod(_:)": "29dc4f30f97f1771"
    }
   },
@@ -389,12 +389,12 @@
   },
   {
    "key": "func MorningReanalysisControls.mergeOvernightFromStrap()",
-   "hash": "1dec359c359c4d1e",
-   "does": "Sets strapMergeWorking, clears the message, then asynchronously asks the collector to reconnect to the strap, pull its stored overnight recording, merge and re-score the session; on .merged reloads the full session into vm.reanalyzedSession; finally clears the working flag and shows an outcome message.",
+   "hash": "20e3071e51a4f3ea",
+   "does": "Sets strapMergeWorking, clears the message, then asynchronously asks the collector to reconnect to the strap, pull its stored overnight recording and merge it, rescoring through the injected sessionReanalysis; on .merged reloads the full session into vm.reanalyzedSession; finally clears the working flag and shows an outcome message.",
    "entry": "strapMergeButton tap.",
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.augmentOvernightFromStrap(sessionId:)",
-    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.augmentOvernightFromStrap(sessionId:)",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.augmentOvernightFromStrap(sessionId:rescoringWith:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.augmentOvernightFromStrap(sessionId:rescoringWith:)",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.showMergedSession(_:)",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.mergeOutcomeMessage(for:)",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession"
@@ -409,14 +409,14 @@
    ],
    "branches": [
     {
-     "at": "+6",
+     "at": "+8",
      "cond": "result is .merged",
-     "effect": "true: await showMergedSession(sessionId); false: skip reload"
+     "effect": "showMergedSession"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.augmentOvernightFromStrap(sessionId:)": "1bba9a63a14547f2",
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.augmentOvernightFromStrap(sessionId:)": "216b650f83c0e0d4",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.augmentOvernightFromStrap(sessionId:rescoringWith:)": "fd7d663aaf08c4af",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.augmentOvernightFromStrap(sessionId:rescoringWith:)": "8b88fa092a86ee1e",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "7e00ddacb825aef1",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.mergeOutcomeMessage(for:)": "0891d590f5b77ad9",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.showMergedSession(_:)": "ff37a51243ac733a"

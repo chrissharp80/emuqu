@@ -13,7 +13,7 @@
   {
    "key": "job lint-and-budgets",
    "hash": "833cff3093196b90",
-   "does": "macOS-26 job \"Lint + tech-debt budgets\" (timeout 25 min): full-history checkout, Xcode 26.6, the pinned SwiftLint (downloaded and checksum-verified), then SwiftLint, every budget and every static script gate in sequence (steps 71–434). Runs for every scope including gates.",
+   "does": "macOS-26 job \"Lint + tech-debt budgets\" (timeout 25 min): full-history checkout, Xcode 26.6, the pinned SwiftLint (downloaded and checksum-verified), then SwiftLint, every budget and every static script gate in sequence (steps 71–437). Runs for every scope including gates.",
    "entry": "GitHub Actions job; runs on pull_request, push to main, workflow_dispatch and workflow_call (testflight.yml quality-gate). No `if:`, so every scope.",
    "calls": [
     ".github/workflows/ci.yml::step lint-and-budgets/Checkout",
@@ -47,6 +47,7 @@
     ".github/workflows/ci.yml::step lint-and-budgets/No license text in source files",
     ".github/workflows/ci.yml::step lint-and-budgets/Dated comment budget",
     ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root",
+    ".github/workflows/ci.yml::step lint-and-budgets/Explicit dependencies stay explicit; only tests install a co",
     ".github/workflows/ci.yml::step lint-and-budgets/Empty-range loop guard",
     ".github/workflows/ci.yml::step lint-and-budgets/CoreMotion handler isolation",
     ".github/workflows/ci.yml::step lint-and-budgets/HR feed subscribes on link",
@@ -85,6 +86,7 @@
     ".github/workflows/ci.yml::step lint-and-budgets/Empty-range loop guard": "578ecd21844f6985",
     ".github/workflows/ci.yml::step lint-and-budgets/Every gate is wired into CI": "1134d06d24e24bd1",
     ".github/workflows/ci.yml::step lint-and-budgets/Every xcodebuild run uses the committed package versions": "79dc1fc12f0e22c6",
+    ".github/workflows/ci.yml::step lint-and-budgets/Explicit dependencies stay explicit; only tests install a co": "9c13a0d1d8575620",
     ".github/workflows/ci.yml::step lint-and-budgets/FDA copy perimeter": "f8ab28e6efdbb397",
     ".github/workflows/ci.yml::step lint-and-budgets/FDA perimeter sync (build-time list vs runtime lexicon)": "7f20236a8f7657f9",
     ".github/workflows/ci.yml::step lint-and-budgets/Fixed-point font budget": "ee48af43f9befa6f",
@@ -138,6 +140,7 @@
     "scripts/check_doc_file_counts.sh::": "ea5d071473f0cfbc",
     "scripts/check_doc_links.sh::": "e124dbf75252d374",
     "scripts/check_empty_range_loops.sh::": "b355c6f84b50aeef",
+    "scripts/check_explicit_dependencies.sh::": "824eaf109c10dc49",
     "scripts/check_fixed_font_budget.sh::": "8b5e55ad1dda074c",
     "scripts/check_gate_preflight.sh::": "50d2bc54de2f5eb5",
     "scripts/check_gates_wired.sh::": "16a4971f63a61cc9",
@@ -173,7 +176,7 @@
     "scripts/enforce_swiftlint_budget.sh::": "78a35b6942b2f21a",
     "scripts/enforce_tech_debt_budgets.sh::": "199fdaf4697daea6",
     "scripts/generate_sbom.py::": "5b067133926b429f",
-    "scripts/verify_gates_fail.sh::": "2fd11bf97a403f78"
+    "scripts/verify_gates_fail.sh::": "e5e641ee1d68784d"
    }
   },
   {
@@ -390,7 +393,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/verify_gates_fail.sh::": "2fd11bf97a403f78"
+    "scripts/verify_gates_fail.sh::": "e5e641ee1d68784d"
    }
   },
   {
@@ -707,6 +710,21 @@
    "branches": [],
    "deps": {
     "scripts/check_no_shared_outside_root.sh::": "4422bbd4342c8091"
+   }
+  },
+  {
+   "key": "step lint-and-budgets/Explicit dependencies stay explicit; only tests install a co",
+   "hash": "9694c8f62687b59e",
+   "does": "Runs scripts/check_explicit_dependencies.sh.",
+   "entry": "GitHub Actions step in ci.yml job lint-and-budgets (runs on every ci.yml run, any scope: workflow_dispatch or workflow_call from testflight.yml); a failing step fails the job and skips later steps",
+   "calls": [
+    "ext:script scripts/check_explicit_dependencies.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/check_explicit_dependencies.sh::": "824eaf109c10dc49"
    }
   },
   {

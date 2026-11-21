@@ -468,7 +468,7 @@ struct SleepSettingsPage: View {
     private var settingsBinding: Binding<UserSettings> {
         Binding(get: { settingsManager.settings }, set: { settingsManager.settings = $0 })
     }
-    @Environment(RRCollector.self) var collector
+    @Environment(\.dependencies) var dependencies
     @Environment(LanguageManager.self) private var languageManager
 
     @State private var isRetroApplying = false
@@ -755,7 +755,9 @@ struct SleepSettingsPage: View {
         retroApplyProgress = 0
         retroApplyTotal = 0
         Task {
-            let count = await collector.retroApplySleepSettings { publishRetroProgress($0, total: $1) }
+            let count = await dependencies.collection.sessionReanalysis.retroApplySleepSettings {
+                publishRetroProgress($0, total: $1)
+            }
             await MainActor.run { finishRetroApply(count: count) }
         }
     }

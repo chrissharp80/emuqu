@@ -21,6 +21,8 @@ struct MorningReanalysisControls {
     let result: HRVAnalysisResult
     let recentSessions: [HRVSession]
     let collector: RRCollector
+    /// Saved-session reanalysis, which rescores a night after a strap merge.
+    let sessionReanalysis: SessionReanalysisCoordinator
 
     let onReanalyze: ((HRVSession, WindowSelectionMethod) async -> HRVSession?)?
     let onReanalyzeAt: ((Int64) async -> HRVAnalysisResult?)?

@@ -88,6 +88,13 @@ struct InterruptedSessionInfo {
 // the app holds.
 struct EmuquApp: App {
     @State var collector = launchStep("collector", "init.collector") { RRCollector.makeDefault() }
+    /// Saved-session reanalysis, built at launch so its rescore, CloudKit
+    /// backfill and HealthKit-sleep listeners are installed before any
+    /// notification they answer can arrive. It shares the collector's
+    /// baseline tracker, archive signal and scoring context.
+    @State var reanalysis = launchStep("reanalysis", "init.reanalysis") {
+        AppDependencies.current.collection.sessionReanalysis
+    }
     @State var syncManager = launchStep("syncManager", "init.cloudKitSyncManager") {
         AppDependencies.current.storage.cloudKitSyncManager
     }
@@ -120,6 +127,9 @@ struct EmuquApp: App {
     /// the bridge is shared, so two `.sheet(item:)` modifiers across
     /// the tree behave correctly — only one presents at a time.
     @State private var emailBridge = AppDependencies.current.assistant.assistantEmailBridge
+    /// The services the launch work in `AppLaunchTasks.swift` uses. Taking
+    /// them resolves nothing: each is built when that work first reaches it.
+    let launchServices = AppDependencies.current.launchServices
     @State var isLoading = true
     @State var activeModal: LaunchModal?
     /// Set by onboarding's "Take a reading", taken by `MainTabView`.

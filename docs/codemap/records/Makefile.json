@@ -1,6 +1,6 @@
 {
  "file": "Makefile",
- "hash": "dccd46cef04f6b15",
+ "hash": "5e85e86632c3d9ea",
  "role": "Developer entry point for every gate, test and build task; `make ci` is the local equivalent of ci.yml, and gates.yml invokes many targets on Linux.",
  "types": [],
  "state": [
@@ -146,6 +146,21 @@
    }
   },
   {
+   "key": "target explicit-deps-guard",
+   "hash": "4c570659125a87b1",
+   "does": "Runs scripts/check_explicit_dependencies.sh: no `AppDependencies.current` read in the files handed their dependencies explicitly, and no `AppDependencies.install` call in app code.",
+   "entry": "`make explicit-deps-guard` from a developer shell; prerequisite of `make ci` (Makefile:318); invoked by a step of .github/workflows/gates.yml on push to main / pull_request",
+   "calls": [
+    "ext:script scripts/check_explicit_dependencies.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "scripts/check_explicit_dependencies.sh::": "824eaf109c10dc49"
+   }
+  },
+  {
    "key": "target dated-comment-budget",
    "hash": "ec99ee6d70e42e57",
    "does": "Runs scripts/check_dated_comment_budget.sh against .ci/dated_comment_budget.txt (0).",
@@ -189,7 +204,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target ci": "60ad2e16c12b11bb",
+    "Makefile::target ci": "cf2e840175bcfc4b",
     "scripts/check_logger_self_reference.sh::": "a38e378f33900911"
    }
   },
@@ -789,7 +804,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/verify_gates_fail.sh::": "2fd11bf97a403f78"
+    "scripts/verify_gates_fail.sh::": "e5e641ee1d68784d"
    }
   },
   {
@@ -999,8 +1014,8 @@
   },
   {
    "key": "target ci",
-   "hash": "e6be8ddca3a43416",
-   "does": "Aggregate target with no recipe: runs the 50 prerequisite targets left to right (static gates first, then verify-gates, release-build, thread-sanitizer, and test-coverage last), stopping at the first failure. Excludes format, test, sbom, ci-local*, clean-build, setup-hooks and the codemap report/impact targets.",
+   "hash": "83e0dcbe43072bfd",
+   "does": "Aggregate target with no recipe: runs the 51 prerequisite targets left to right (static gates first, then verify-gates, release-build, thread-sanitizer, and test-coverage last), stopping at the first failure. Excludes format, test, sbom, ci-local*, clean-build, setup-hooks and the codemap report/impact targets.",
    "entry": "`make ci` from a developer shell",
    "calls": [
     "Makefile::target lint",
@@ -1016,6 +1031,7 @@
     "Makefile::target license-header-guard",
     "Makefile::target dated-comment-budget",
     "Makefile::target shared-root-guard",
+    "Makefile::target explicit-deps-guard",
     "Makefile::target spec-conformance",
     "Makefile::target locale-format-guard",
     "Makefile::target sbom-guard",
@@ -1071,6 +1087,7 @@
     "Makefile::target doc-links": "4731861b7121254e",
     "Makefile::target eager-prompt-guard": "1546b659949fcc08",
     "Makefile::target empty-range-guard": "d2cc5a46df38f2e0",
+    "Makefile::target explicit-deps-guard": "f839113f5d8e6bda",
     "Makefile::target fixed-font-budget": "85a3e2b2bff351e6",
     "Makefile::target gate-preflight": "4af96d525dd02798",
     "Makefile::target gates-wired-guard": "29ee806453e41bae",
