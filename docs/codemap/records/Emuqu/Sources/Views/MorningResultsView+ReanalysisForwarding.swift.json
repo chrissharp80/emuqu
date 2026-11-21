@@ -10,14 +10,20 @@
  "units": [
   {
    "key": "var MorningResultsView.reanalysis",
-   "hash": "44de950bff3ee46c",
-   "does": "Constructs MorningReanalysisControls with vm, session, result, recentSessions, collector, the three reanalysis callbacks and bindings to exportURL/emailURL/isManualWindowMode/manualResult/manualPickMessage/strapMergeWorking/strapMergeMessage.",
+   "hash": "6da68485c0608823",
+   "does": "Constructs MorningReanalysisControls with vm, session, result, recentSessions, collector, the app's saved-session reanalysis (dependencies.collection.sessionReanalysis), the three reanalysis callbacks and bindings to exportURL/emailURL/isManualWindowMode/manualResult/manualPickMessage/strapMergeWorking/strapMergeMessage.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.sessionReanalysis",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection"
+   ],
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.sessionReanalysis": "7e7eff2d9ea401f1"
+   }
   },
   {
    "key": "var MorningResultsView.windowSelectionMethodSection",

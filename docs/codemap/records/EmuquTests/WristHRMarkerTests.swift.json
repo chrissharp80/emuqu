@@ -1,12 +1,13 @@
 {
  "file": "EmuquTests/WristHRMarkerTests.swift",
- "hash": "f843e3770d4e8353",
+ "hash": "cef2e19c60b7dddf",
  "role": "Hosted unit tests that Apple Watch wrist-HR row markers (healthKitHROffsets) survive live HR arbitration, sample-buffer capping, finalize, the crash backup (WorkoutTrackBackup), recovery rebuild and trim carry-forward; and that the crash backup's streams are sealed, older plain streams read and are re-sealed, and a discard removes every file.",
  "types": [
-  "WristHRMarkerTests: class — XCTestCase (@MainActor)"
+  "WristHRMarkerTests: class — XCTestCase (@MainActor)",
+  "WorkoutTrackBackupTests: class — XCTestCase (not on the main actor) for WorkoutTrackBackup: torn rows and the reseal on unlock"
  ],
  "state": [],
- "toplevel": "typealias Arbitration = WorkoutRecorder.HRArbitration (= WorkoutTicker.HRArbitration via WorkoutRecorder+TickerForwarding.swift:25).",
+ "toplevel": "typealias Arbitration = WorkoutRecorder.HRArbitration (= WorkoutTicker.HRArbitration via WorkoutRecorder+TickerForwarding.swift:25). WorkoutTrackBackupTests stores a fresh temporary folder, one workout id and a fixed start date per test; tearDownWithError clears the id from the ledger and removes the folder.",
  "units": [
   {
    "key": "func WristHRMarkerTests.testWristHRCopiedToTheDisplayMarksTheDisplayAsWrist()",
@@ -211,7 +212,7 @@
     "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionEncoder": "349bd41e509b1925",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3d8dab3c4fd26bfd",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "f61e2f4521563426",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "22e176d3c141b5aa",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439",
     "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "699ce5740e639a1f"
    }
@@ -258,7 +259,7 @@
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3d8dab3c4fd26bfd",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.purgeAll()": "6c7f3904c6f61f72",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "f61e2f4521563426",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "22e176d3c141b5aa",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
@@ -295,7 +296,7 @@
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.hasPlainLine(_:)": "7fa9a505f692a5b6",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3d8dab3c4fd26bfd",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "f61e2f4521563426",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "22e176d3c141b5aa",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup.PersistedFix(_:)": "3904632de3af9eb7",
     "EmuquTests/WristHRMarkerTests.swift::func WristHRMarkerTests.temporaryBackupFolder()": "78dde410684224e9"
    }
@@ -338,9 +339,9 @@
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.encode(_:with:manager:)": "ba864e9622862fb5",
     "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.hasPlainLine(_:)": "7fa9a505f692a5b6",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3d8dab3c4fd26bfd",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()": "5cabfb39cb9c5dcd",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()": "dcf99dbebe765d9d",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "f61e2f4521563426",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "22e176d3c141b5aa",
     "EmuquTests/WristHRMarkerTests.swift::func WristHRMarkerTests.temporaryBackupFolder()": "78dde410684224e9"
    }
   },
@@ -368,7 +369,7 @@
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3d8dab3c4fd26bfd",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.discard(_:)": "45421191b24c53ad",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "f61e2f4521563426",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:)": "22e176d3c141b5aa",
     "EmuquTests/WristHRMarkerTests.swift::func WristHRMarkerTests.temporaryBackupFolder()": "78dde410684224e9"
    }
   },
@@ -426,6 +427,200 @@
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b",
     "Emuqu/Sources/Services/WorkoutRecoveryService+CarryForward.swift::func WorkoutRecoveryService.carryForward(from:into:)": "831fac62d7fe8a12"
+   }
+  },
+  {
+   "key": "func WorkoutTrackBackupTests.tearDownWithError()",
+   "hash": "ab817d62e8febf68",
+   "does": "Clears the test's workout id from the .workoutTrack ledger and removes the test's folder when it exists, then calls super.",
+   "entry": "XCTest runner: after each test of WorkoutTrackBackupTests",
+   "calls": [
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)",
+    "ext:FileManager.fileExists",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:storage.pendingReencryption.workoutTrackIDs",
+    "file:<tmp>/WorkoutTrackBackupTests-<uuid>/"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "folder exists",
+     "effect": "remove it"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:in:)": "a68d8c6c5a265e3c"
+   }
+  },
+  {
+   "key": "var WorkoutTrackBackupTests.streamFileURL",
+   "hash": "cfd278b3476463a9",
+   "does": "The samples stream file of the test's workout in the test's folder.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutTrackBackupTests.sampleRows(_:)",
+   "hash": "c07137fd3a6cbcfd",
+   "does": "One WorkoutSample at heart rate 120 for each offset in the range.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b"
+   }
+  },
+  {
+   "key": "func WorkoutTrackBackupTests.append(_:to:)",
+   "hash": "9315f3c8d7bae0fb",
+   "does": "Appends the rows as the samples stream of the test's run workout (no track, markers or barometer) through appendIncremental and returns its result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/WorkoutTrackBackupTests-<uuid>/<uuid>_workout_*"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3d8dab3c4fd26bfd"
+   }
+  },
+  {
+   "key": "func WorkoutTrackBackupTests.testAnAppendAfterATornRowKeepsEveryRow()",
+   "hash": "551f0f2df092f9e3",
+   "does": "Appends samples 1-3 through a store observing the test's own center (notifications), adds a half-written row to the samples file, then from a new store on the same folder (a relaunch) appends samples 1-6; asserts it wrote and that samples 1-6 read back once each.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WristHRMarkerTests.swift::func WorkoutTrackBackupTests.append(_:to:)",
+    "EmuquTests/WristHRMarkerTests.swift::func WorkoutTrackBackupTests.sampleRows(_:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:notificationCenter:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)",
+    "ext:Data.write"
+   ],
+   "reads": [
+    "file:<tmp>/WorkoutTrackBackupTests-<uuid>/<uuid>_workout_samples.jsonl"
+   ],
+   "writes": [
+    "file:<tmp>/WorkoutTrackBackupTests-<uuid>/<uuid>_workout_samples.jsonl",
+    "file:<tmp>/WorkoutTrackBackupTests-<uuid>/<uuid>_workout_header.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:notificationCenter:)": "469fe62263ca0c99",
+    "EmuquTests/WristHRMarkerTests.swift::func WorkoutTrackBackupTests.append(_:to:)": "e4f01489c17c8ee9",
+    "EmuquTests/WristHRMarkerTests.swift::func WorkoutTrackBackupTests.sampleRows(_:)": "ffdd26fa96bfa5b1",
+    "EmuquTests/WristHRMarkerTests.swift::var WorkoutTrackBackupTests.streamFileURL": "de99c18a90fbea87"
+   }
+  },
+  {
+   "key": "func WorkoutTrackBackupTests.testUnlockResealsAQueuedWorkout()",
+   "hash": "a786b678e2c3233e",
+   "does": "Makes a workout with three plain, queued sample rows (plainQueuedWorkout), posts UIApplication.protectedDataDidBecomeAvailableNotification on the test's own center (notifications), then reads it back (retrieve runs behind the reseal on the store's queue); asserts the stream holds plain lines only when no key is reachable, the workout is queued exactly while they remain, and samples 1-3 read back.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WristHRMarkerTests.swift::func WorkoutTrackBackupTests.plainQueuedWorkout(rows:)",
+    "ext:NotificationCenter.post",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.hasPlainLine(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.availableManager()",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)"
+   ],
+   "reads": [
+    "file:<tmp>/WorkoutTrackBackupTests-<uuid>/<uuid>_workout_samples.jsonl",
+    "ud:storage.pendingReencryption.workoutTrackIDs"
+   ],
+   "writes": [
+    "notif:UIApplication.protectedDataDidBecomeAvailableNotification",
+    "file:<tmp>/WorkoutTrackBackupTests-<uuid>/<uuid>_workout_samples.jsonl"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "c7d52a25233a7067",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.availableManager()": "3fe4c23abb6fccf2",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.hasPlainLine(_:)": "7fa9a505f692a5b6",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
+    "EmuquTests/WristHRMarkerTests.swift::func WorkoutTrackBackupTests.plainQueuedWorkout(rows:)": "6df73258790ec247",
+    "EmuquTests/WristHRMarkerTests.swift::var WorkoutTrackBackupTests.streamFileURL": "de99c18a90fbea87"
+   }
+  },
+  {
+   "key": "func WorkoutTrackBackupTests.testUnlockResealLeavesAppendsInFlightIntact()",
+   "hash": "4b8047dd0babb76c",
+   "does": "Makes a workout with three plain, queued sample rows, then on concurrentPerform's threads runs 200 appends of growing prefixes of samples 1-203, queueing reencryptPendingTracks on four of the steps; asserts samples 1-203 read back once each in order, the stream holds exactly 203 lines, and it holds plain lines only when no key is reachable.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WristHRMarkerTests.swift::func WorkoutTrackBackupTests.plainQueuedWorkout(rows:)",
+    "EmuquTests/WristHRMarkerTests.swift::func WorkoutTrackBackupTests.sampleRows(_:)",
+    "ext:DispatchQueue.concurrentPerform",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.hasPlainLine(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.availableManager()"
+   ],
+   "reads": [
+    "file:<tmp>/WorkoutTrackBackupTests-<uuid>/<uuid>_workout_samples.jsonl"
+   ],
+   "writes": [
+    "file:<tmp>/WorkoutTrackBackupTests-<uuid>/<uuid>_workout_samples.jsonl"
+   ],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "step % 50 == 25",
+     "effect": "also queue reencryptPendingTracks before that step's append"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.availableManager()": "3fe4c23abb6fccf2",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.hasPlainLine(_:)": "7fa9a505f692a5b6",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.appendIncremental(sessionId:sport:startDate:track:samples:healthKitHROffsets:barometricSamples:)": "3d8dab3c4fd26bfd",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()": "dcf99dbebe765d9d",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.retrieve(_:)": "0a864e20379f4fc9",
+    "EmuquTests/WristHRMarkerTests.swift::func WorkoutTrackBackupTests.plainQueuedWorkout(rows:)": "fd3c6d4ac0ad9faa",
+    "EmuquTests/WristHRMarkerTests.swift::func WorkoutTrackBackupTests.sampleRows(_:)": "ffdd26fa96bfa5b1",
+    "EmuquTests/WristHRMarkerTests.swift::var WorkoutTrackBackupTests.streamFileURL": "de99c18a90fbea87"
+   }
+  },
+  {
+   "key": "func WorkoutTrackBackupTests.plainQueuedWorkout(rows:)",
+   "hash": "a668b4af8adc9c5c",
+   "does": "Creates a store on the test's folder that observes the test's own center (notifications), writes the workout's header through an empty append, writes samples 1...rows to the samples stream as plain JSON lines and records the workout in the .workoutTrack ledger; returns the store.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:notificationCenter:)",
+    "EmuquTests/WristHRMarkerTests.swift::func WorkoutTrackBackupTests.append(_:to:)",
+    "EmuquTests/WristHRMarkerTests.swift::func WorkoutTrackBackupTests.sampleRows(_:)",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.encode(_:with:manager:)",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)",
+    "ext:Data.write"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/WorkoutTrackBackupTests-<uuid>/<uuid>_workout_header.json",
+    "file:<tmp>/WorkoutTrackBackupTests-<uuid>/<uuid>_workout_samples.jsonl",
+    "ud:storage.pendingReencryption.workoutTrackIDs"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "471ac438c2a3e780",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func SealedJSONLines.encode(_:with:manager:)": "ba864e9622862fb5",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:notificationCenter:)": "469fe62263ca0c99",
+    "EmuquTests/WristHRMarkerTests.swift::func WorkoutTrackBackupTests.append(_:to:)": "e4f01489c17c8ee9",
+    "EmuquTests/WristHRMarkerTests.swift::func WorkoutTrackBackupTests.sampleRows(_:)": "ffdd26fa96bfa5b1",
+    "EmuquTests/WristHRMarkerTests.swift::var WorkoutTrackBackupTests.streamFileURL": "de99c18a90fbea87"
    }
   }
  ],

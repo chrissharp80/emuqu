@@ -312,27 +312,24 @@
   },
   {
    "key": "func CollectorSessionControl.bindHealthKitSleep()",
-   "hash": "789605efedb4d5c2",
-   "does": "Observes healthKit.sleepDataVersion: copies it into collector.sleepDataVersion and runs autoRefreshTodaysSleepIfImproved; also installs the vitals binding.",
+   "hash": "39dce6706244ccfe",
+   "does": "Observes healthKit.sleepDataVersion and copies it into collector.sleepDataVersion (the morning results screen observes it); also installs the vitals binding. The rescore of today's night on new sleep is SessionReanalysisCoordinator.observeHealthKitSleep's.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.sleepDataVersion",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.autoRefreshTodaysSleepIfImproved()",
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindHealthKitVitals()"
    ],
    "reads": [
     "mem:HealthKitManager.sleepDataVersion"
    ],
    "writes": [
-    "mem:MorningCoordination.sleepDataVersion",
-    "archive:today's overnight session (via rescore)"
+    "mem:MorningCoordination.sleepDataVersion"
    ],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindHealthKitVitals()": "8b13a03b76bad95e",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.sleepDataVersion": "5af31be207fd7d67",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.autoRefreshTodaysSleepIfImproved()": "3664359c37ea9635",
     "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)": "45b1e058ecfcb78e",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5"
    }
@@ -560,7 +557,7 @@
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.currentLiveHRVSnapshotMirror(of:)": "a1208558e0a5653d",
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.liveSnapshot(from:now:)": "a60e9c13d7357b5e",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"
    }
   },
   {

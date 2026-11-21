@@ -28,9 +28,9 @@ protocol SealableBackupStore: AnyObject {
 /// rewrites every queued backup sealed and takes it off the queue.
 ///
 /// The repair runs on the store's `appendQueue` (`RawRRBackup
-/// .reencryptPendingBackups`), so no append or discard runs during a
-/// rewrite; index rows are read and changed only through the store, under
-/// its `indexLock`.
+/// .reencryptPendingBackups` at launch, `repairAfterUnlock` on unlock and
+/// activation), so no append or discard runs during a rewrite; index rows
+/// are read and changed only through the store, under its `indexLock`.
 struct RawBackupSealer {
     /// The folder whose backups this seals.
     let directory: URL
@@ -106,8 +106,8 @@ struct RawBackupSealer {
     }
 
     /// Repairs every queued backup of `store` (`reencrypt`); a no-op when
-    /// nothing is queued or the key is still out of reach (the next launch
-    /// tries again). Run on the store's `appendQueue`.
+    /// nothing is queued or the key is still out of reach (the next launch,
+    /// unlock or activation tries again). Run on the store's `appendQueue`.
     func reencryptPending(in store: some SealableBackupStore) {
         let pending = PendingEncryptionLedger.pending(in: .rawBackup)
         guard !pending.isEmpty, AppDependencies.current.storage.encryptionManager.isAvailable else { return }

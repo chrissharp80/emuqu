@@ -652,13 +652,7 @@ enum FactResolveTimeout {
     /// the continuation. Returns true only for the first caller.
     private static func singleShotClaim() -> @Sendable () -> Bool {
         let resumed = OSAllocatedUnfairLock(initialState: false)
-        return {
-            resumed.withLock { (done: inout Bool) -> Bool in
-                let already = done
-                done = true
-                return !already
-            }
-        }
+        return { resumed.setIfClear() }
     }
 }
 

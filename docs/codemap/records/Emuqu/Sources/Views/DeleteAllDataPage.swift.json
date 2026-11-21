@@ -365,16 +365,17 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.runPurge()": "40a8805b0bf61a82"
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.runPurge()": "f7318c35bf47150c"
    }
   },
   {
    "key": "func DeleteAllDataPage.runPurge()",
-   "hash": "de154faf760d7014",
-   "does": "Awaits DataPurgeService.purgeAllUserData(archive, rawBackup, cloudSync, settingsManager) — refused while a recording is under way or a reading is waiting to be accepted, otherwise remote CloudKit zone deletion then local container/defaults/keychain wipe. On success stores the Report and clears refusal; on refusal stores the refusal's localized description and keeps the earlier report (nothing was deleted).",
+   "hash": "b22974ad73df1602",
+   "does": "Awaits DataPurgeService.purgeAllUserData(archive, rawBackup, cloudSync, settingsManager, stores: dependencies.purgeStores — the stores of the view's composition-root container) — refused while a recording is under way or a reading is waiting to be accepted, otherwise remote CloudKit zone deletion then local container/defaults/keychain wipe. On success stores the Report and clears refusal; on refusal stores the refusal's localized description and keeps the earlier report (nothing was deleted).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeStores"
    ],
    "reads": [],
    "writes": [
@@ -394,13 +395,14 @@
      "effect": "report = it, refusal = nil"
     },
     {
-     "at": "+9",
+     "at": "+10",
      "cond": "purge throws Refusal.recordingInProgress",
      "effect": "refusal = its localized description"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)": "2c4e0f1253cea3a1"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)": "36147ec30ebddd0c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeStores": "4aef152a558c87c5"
    }
   }
  ],

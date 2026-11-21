@@ -1,5 +1,7 @@
 import CoreLocation
 import Foundation
+import os
+import UIKit
 
 /// Append-only persistence of a workout's GPS fixes, per-tick `WorkoutSample`
 /// rows, and barometric-altitude samples. Writes incrementally during the
@@ -112,6 +114,13 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     private let directory: URL
     private let fileManager = FileManager.default
     private let lock = NSLock()
+    /// The unlock and activation observers (`observeUnlock`).
+    private let unlockObservers = NotificationTokens()
+    /// Where `observeUnlock` listens: `.default` in the app.
+    private let notificationCenter: NotificationCenter
+    /// True while a re-seal is queued and has not started, so unlock and
+    /// activation arriving together queue one.
+    private let resealQueued = OSAllocatedUnfairLock(initialState: false)
 
     /// Serializes an entire incremental append, and reads against it.
     ///
@@ -181,10 +190,33 @@ final class WorkoutTrackBackup: @unchecked Sendable {
 
     /// A backup kept in `directory`; the app's lives in the shared container
     /// (`init()`), tests use their own.
-    init(directory: URL) {
+    convenience init(directory: URL) {
+        self.init(directory: directory, notificationCenter: .default)
+    }
+
+    /// A backup kept in `directory` that observes unlock and activation on
+    /// `notificationCenter`.
+    init(directory: URL, notificationCenter: NotificationCenter) {
         self.directory = directory
+        self.notificationCenter = notificationCenter
         createDirectoryIfNeeded()
         reencryptPendingTracks()
+        observeUnlock()
+    }
+
+    deinit {
+        unlockObservers.removeAll(from: notificationCenter)
+    }
+
+    /// Runs `reencryptPendingTracks` when protected data becomes available
+    /// and when the app becomes active (a suspended app can miss the
+    /// unlock), as `ConversationStore` retries a held save.
+    private func observeUnlock() {
+        for name in [UIApplication.protectedDataDidBecomeAvailableNotification, UIApplication.didBecomeActiveNotification] {
+            unlockObservers.add(notificationCenter.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
+                self?.reencryptPendingTracks()
+            })
+        }
     }
 
     /// Created with the class that lets a workout keep writing while the
@@ -412,8 +444,11 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     }
 
     /// Append one slice of JSON-encoded items as line-delimited JSON.
-    /// Centralised so all three streams use the same FileHandle pattern,
-    /// the same fall-back-on-corruption logic, and the same logging.
+    /// Centralised so every stream uses the same append
+    /// (`JSONLinesFile.append`, which cuts off a row torn by a kill
+    /// mid-write first: the launch count counts only complete rows, so that
+    /// row is written again now), the same fall-back-on-corruption logic,
+    /// and the same logging.
     /// False, with nothing written, when a row does not encode: the caller's
     /// cursor counts rows on disk, so every row is written or none.
     private func appendJSONL(
@@ -426,13 +461,14 @@ final class WorkoutTrackBackup: @unchecked Sendable {
         guard fileManager.fileExists(atPath: url.path) else {
             return write(blob, to: url, sessionId: sessionId, streamName: streamName, label: "initial write")
         }
-        switch appendToExisting(blob, at: url) {
+        switch JSONLinesFile.append(blob, toExisting: url) {
         case .appended:
             return true
-        case .writeFailed:
+        case let .writeFailed(error):
             // Full disk or an I/O error. The cursor stays put and the next
             // tick retries; moving the file aside here would strand
             // everything already written.
+            debugLog("[WorkoutTrackBackup] Append to \(url.lastPathComponent) failed: \(error)", level: .warning)
             return false
         case .couldNotOpen:
             return rewriteUnopenable(url, adding: blob, sessionId: sessionId, streamName: streamName)
@@ -440,77 +476,19 @@ final class WorkoutTrackBackup: @unchecked Sendable {
     }
 
     /// The bytes may still read even though the handle would not open: rewrite
-    /// them with the new slice rather than setting them aside (atomically, so
-    /// a kill mid-write leaves the old file whole). Only a file that won't
-    /// read either is moved aside and started fresh.
+    /// their complete rows (`JSONLinesFile.completeLines`) with the new slice
+    /// rather than setting them aside (atomically, so a kill mid-write leaves
+    /// the old file whole). Only a file that won't read either is moved aside
+    /// and started fresh.
     /// When the file can be neither read nor moved aside, nothing is written:
     /// a fresh write would replace the rows it still holds. The cursor stays
     /// put and the next tick tries again.
     private func rewriteUnopenable(_ url: URL, adding blob: Data, sessionId: UUID, streamName: String) -> Bool {
         if let existing = attempt("WorkoutTrackBackup.readForRewrite", { try Data(contentsOf: url) }) {
-            return write(existing + blob, to: url, sessionId: sessionId, streamName: streamName, label: "rewrite fallback")
+            return write(JSONLinesFile.completeLines(of: existing) + blob, to: url, sessionId: sessionId, streamName: streamName, label: "rewrite fallback")
         }
         guard preserveCorruptedFile(at: url) else { return false }
         return write(blob, to: url, sessionId: sessionId, streamName: streamName, label: "fresh-write fallback")
-    }
-
-    private enum AppendOutcome {
-        case appended
-        /// Rare — usually a permissions or quota issue.
-        case couldNotOpen
-        case writeFailed
-    }
-
-    /// The throwing `FileHandle` calls: `seekToEndOfFile()` / `write(_:)`
-    /// raise an Objective-C exception on a full disk, which Swift cannot
-    /// catch, so a full disk mid-workout crashed the app.
-    ///
-    /// A row torn by a kill mid-write (no trailing newline) is cut off first:
-    /// the launch count only counts complete rows, so that row is written again
-    /// now, and appended after the fragment it would fuse with it into one line
-    /// that decodes as neither.
-    ///
-    /// A write that throws may have written part of the slice. The cursor is
-    /// not advanced, so the next tick appends the whole slice again; the file
-    /// is cut back to where this append started so those rows are not in it
-    /// twice (`RawRRBackup.appendThroughHandle` does the same).
-    private func appendToExisting(_ blob: Data, at url: URL) -> AppendOutcome {
-        guard let handle = try? FileHandle(forUpdating: url) else { return .couldNotOpen }
-        defer { _ = attempt("WorkoutTrackBackup.close") { try handle.close() } }
-        let start: UInt64
-        do {
-            try dropTornTail(handle)
-            start = try handle.seekToEnd()
-        } catch {
-            debugLog("[WorkoutTrackBackup] Append to \(url.lastPathComponent) failed: \(error)", level: .warning)
-            return .writeFailed
-        }
-        do {
-            try handle.write(contentsOf: blob)
-            return .appended
-        } catch {
-            debugLog("[WorkoutTrackBackup] Append to \(url.lastPathComponent) failed: \(error)", level: .warning)
-            attempt("WorkoutTrackBackup.truncateFailedAppend") { try handle.truncate(atOffset: start) }
-            return .writeFailed
-        }
-    }
-
-    /// Truncates the file after its last newline when it does not end with
-    /// one. The usual case reads one byte; only a torn file reads its tail
-    /// (a row is far shorter than 64 KB).
-    private func dropTornTail(_ handle: FileHandle) throws {
-        let end = try handle.seekToEnd()
-        guard end > 0 else { return }
-        try handle.seek(toOffset: end - 1)
-        guard try handle.read(upToCount: 1)?.first != 0x0A else { return }
-        let tailStart = end > 65_536 ? end - 65_536 : 0
-        try handle.seek(toOffset: tailStart)
-        let tail = try handle.readToEnd() ?? Data()
-        guard let lastNewline = tail.lastIndex(of: 0x0A) else {
-            if tailStart == 0 { try handle.truncate(atOffset: 0) }
-            return
-        }
-        try handle.truncate(atOffset: tailStart + UInt64(lastNewline - tail.startIndex + 1))
     }
 
     /// Keep whatever was already on disk under a `.corrupted` name rather than
@@ -669,9 +647,15 @@ final class WorkoutTrackBackup: @unchecked Sendable {
 
     /// Seals, off the caller's thread and behind the appends, the plain lines
     /// of every workout queued in `PendingEncryptionLedger` (`.workoutTrack`).
-    /// A no-op while the key is out of reach; the next launch tries again.
+    /// On `appendQueue`, so a stream being recorded is rewritten only between
+    /// appends, never under one. Run at init and on unlock and activation
+    /// (`observeUnlock`); a no-op while the key is out of reach. A call while
+    /// one is still queued adds nothing; one made while a re-seal runs queues
+    /// the next.
     func reencryptPendingTracks() {
+        guard resealQueued.setIfClear() else { return }
         appendQueue.async { [self] in
+            resealQueued.withLock { $0 = false }
             guard let manager = SealedJSONLines.availableManager() else { return }
             PendingEncryptionLedger.pending(in: .workoutTrack).forEach { resealStreams(of: $0, with: manager) }
         }

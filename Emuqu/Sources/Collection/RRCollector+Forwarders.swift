@@ -18,8 +18,8 @@ extension RRCollector {
     // `MorningCoordination`, `SessionState`. `RRCollector` is itself
     // `@Observable`, and its own stored `var`s (about fifteen, among them
     // `deviceFetchPolicy`, `useDeviceBackupForOvernight`,
-    // `overnightDeviceBackupActive`, `sessionStartTime`, the training-load
-    // caches and the reanalysis bookkeeping) are tracked like any other;
+    // `overnightDeviceBackupActive`, `sessionStartTime`) are tracked like
+    // any other;
     // only the properties marked `@ObservationIgnored` are not. `RecordView`
     // reads a few of them directly.
     //

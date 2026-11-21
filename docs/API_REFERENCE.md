@@ -435,13 +435,9 @@ final class RRCollector {
     func acceptSession() async throws
     func rejectSession() async
     func resetSession()
-    func reanalyzeSession(_ session: HRVSession, method: WindowSelectionMethod) async -> HRVSession?
-    func reanalyzeAtPosition(_ session: HRVSession, targetMs: Int64) async -> HRVAnalysisResult?
-    func applyManualAnalysis(_ session: HRVSession, result: HRVAnalysisResult) async -> HRVSession?
-    @discardableResult
-    func updateSessionSleepBoundaries(sessionId: UUID, sleepData: SleepData, isUserAdjustment: Bool = false) -> Bool
-    func unlinkSegment(segmentId: UUID, fromSession: UUID) -> Bool
     func notifyArchiveChanged()
+    /// Carries a rescored night (`.reanalysisRewroteArchivedSession`) onto the review card.
+    func adoptArchivedCopy(_ archived: HRVSession)
 
     // MARK: - Session Loading
 
@@ -462,12 +458,41 @@ final class RRCollector {
     @discardableResult
     func permanentlyDelete(_ ids: [UUID]) async -> TrashDeletionOutcome
 
-    // MARK: - Training Context
+    // MARK: - Training Context (forwarded to `scoring: SessionScoringContext`)
 
-    /// Synchronous — reads the last-known `TrainingMetricsCache` snapshot.
+    /// The training load as of `referenceDate`: today's cached load, or a
+    /// past day's load held for a reanalysis of that day.
     func createTrainingContext(relativeTo referenceDate: Date = Date()) -> TrainingContext?
-    /// Async variant that awaits a fresh cache refresh before building context.
+    /// Fetches the load from HealthKit when none is held.
     func createTrainingContextEnsuringFresh(relativeTo referenceDate: Date = Date()) async -> TrainingContext?
+}
+```
+
+### SessionReanalysisCoordinator
+**File**: `Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift` (listeners in `+Listeners`)
+
+Built once by the composition root (`AppDependencies.collection.sessionReanalysis`,
+`AppDependencies.makeSessionReanalysis(_:)`); never reaches `RRCollector`.
+
+```swift
+@MainActor
+final class SessionReanalysisCoordinator {
+    let service: ReanalysisService
+
+    init(service: ReanalysisService, archive: SessionArchive, healthKit: HealthKitManager,
+         scoring: SessionScoringContext, archiveSignal: ArchiveSignal,
+         trainingMetricsCache: @escaping @MainActor () -> TrainingMetricsCache)  // resolved on first warm
+
+    /// Rescore request, CloudKit snapshot backfill and HealthKit sleep listeners.
+    func startListening()
+    /// In-flight guard, past-day training load, warm metrics cache.
+    func reanalyzeSession(_ session: HRVSession, method: WindowSelectionMethod = .consolidatedRecovery) async -> HRVSession?
+    func reanalyzeAllSessions(from: Date? = nil, to: Date? = nil,
+                              progress: @escaping (Int, Int) -> Void = { _, _ in }) async -> (updated: Int, skipped: Int)
+    func retroApplySleepSettings(progress: @escaping (Int, Int) -> Void = { _, _ in }) async -> Int
+    func repairTrainingSnapshots(progress: @escaping (Int, Int) -> Void = { _, _ in }) async -> ReanalysisService.TrainingRepairResult
+    func runDeferredSessionMigrationsIfNeeded() async
+    func autoRefreshTodaysSleepIfImproved() async
 }
 ```
 
@@ -1433,7 +1458,7 @@ final class ReanalysisService {
         baselineTracker: BaselineTracker,
         settingsProvider: @escaping () -> UserSettings,
         scoringConfigProvider: @escaping () -> RecoveryScoreCalculator.ScoringConfiguration,
-        ansConfigProvider: @escaping () -> HRVAnalysisPipeline.ANSConfiguration,
+        ansConfigProvider: @escaping (HRVSession) -> HRVAnalysisPipeline.ANSConfiguration,
         trainingContextProvider: @escaping (Date) -> TrainingContext?,
         analyzeWithWindow: @escaping (HRVSession, WindowSelector.RecoveryWindow, [ArtifactFlags], PeakCapacity?) async -> HRVAnalysisResult?,
         analyzeFullSession: @escaping (HRVSession, PeakCapacity?) async -> HRVAnalysisResult?,
@@ -1949,7 +1974,8 @@ final class RawRRBackup: @unchecked Sendable {
     }
 
     convenience init()                      // the store in the shared container (RRBackup/)
-    init(directory: URL)                    // a store in `directory` (tests use a folder of their own)
+    convenience init(directory: URL)        // a store in `directory` (tests use a folder of their own)
+    init(directory: URL, notificationCenter: NotificationCenter)  // repairs on unlock/activation posted there
 
     @discardableResult
     func backup(points: [RRPoint], sessionId: UUID, deviceId: String? = nil, captureDate: Date? = nil) throws -> BackupEntry

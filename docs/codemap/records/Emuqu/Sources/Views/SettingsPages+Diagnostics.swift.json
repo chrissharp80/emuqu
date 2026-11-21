@@ -971,11 +971,13 @@
   },
   {
    "key": "func TroubleshootingPage.startReanalysis()",
-   "hash": "e9380e9493cce273",
-   "does": "Starts reanalysis: resets progress, computes from = start of From day and to = To date (ReanalysisService extends it to 23:59:59) when range on, stores a Task that awaits RRCollector.reanalyzeAllSessions with a progress callback, checks Task.isCancelled for Stop, then finishReanalysis on main.",
+   "hash": "34595cafc3bda68f",
+   "does": "Starts reanalysis: resets progress, computes from = start of From day and to = To date (ReanalysisService extends it to 23:59:59) when range on, stores a Task that awaits the saved-session reanalysis's reanalyzeAllSessions with a progress callback, checks Task.isCancelled for Stop, then finishReanalysis on main.",
    "entry": "Reanalyze confirmation dialog button (reanalyzeDialogActions)",
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeAllSessions(from:to:progress:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.sessionReanalysis",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.reanalyzeAllSessions(from:to:progress:)",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.publishReanalyzeProgress(_:total:)",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.finishReanalysis(_:stopped:)",
     "ext:Task",
@@ -1001,8 +1003,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeAllSessions(from:to:progress:)": "b510c2e21c141121",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.reanalyzeAllSessions(from:to:progress:)": "f1408b7854a622b3",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.sessionReanalysis": "7e7eff2d9ea401f1",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.finishReanalysis(_:stopped:)": "7aa582ff0dbd385d",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.publishReanalyzeProgress(_:total:)": "69cc52185322179f"
    }
@@ -1061,11 +1064,13 @@
   },
   {
    "key": "func TroubleshootingPage.repairTrainingSnapshots()",
-   "hash": "7a6cc94e26aed477",
-   "does": "Resets progress, awaits RRCollector.repairTrainingSnapshots (recomputes ATL/CTL/TSB + readiness snapshots on every archived session) with progress callback, then finishTrainingRepair on main.",
+   "hash": "6530ad4a9a19c78a",
+   "does": "Resets progress, awaits the saved-session reanalysis's repairTrainingSnapshots (recomputes ATL/CTL/TSB + readiness snapshots on every archived session) with progress callback, then finishTrainingRepair on main.",
    "entry": "\"Repair All Sessions\" confirmation button (trainingRepairDialogActions)",
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.repairTrainingSnapshots(progress:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.sessionReanalysis",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.repairTrainingSnapshots(progress:)",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.publishTrainingRepairProgress(_:total:)",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.finishTrainingRepair(_:)",
     "closure:progress callback → Emuqu/Sources/Views/SettingsPages+Diagnostics.swift:524 set here, invoked by ReanalysisService.repairTrainingSnapshots"
@@ -1079,7 +1084,9 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.repairTrainingSnapshots(progress:)": "651c8d42aea22123",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.repairTrainingSnapshots(progress:)": "f57c7007a40c61a7",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.sessionReanalysis": "7e7eff2d9ea401f1",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.finishTrainingRepair(_:)": "b6b2496fe8a394ed",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::func TroubleshootingPage.publishTrainingRepairProgress(_:total:)": "9a09962873bcc644"
    }

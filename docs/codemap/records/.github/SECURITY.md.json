@@ -341,8 +341,8 @@
   },
   {
    "key": "§ Security Policy > Data at Rest > Local session files",
-   "hash": "2258052056dac259",
-   "does": "Lists the local files sealed with the app's archive key (EncryptionManager): archive sessions and index, raw RR backups (streamed lines sealed one by one), workout track backups, settings, baseline, training-load cache, beat-consistency priors, saved routes, email contacts, breadcrumbs (JSONFileSeal), the assistant conversation/facts/artifacts (AssistantStoreFile) and the UI state cache. Most are written completeUntilFirstUserAuthentication (with the reasons against complete and completeUnlessOpen); the assistant files completeUnlessOpen. With the key unreachable: whole session files and one-shot raw backups are written plain with completeUnlessOpen and recorded in PendingEncryptionLedger; streamed raw RR points and workout tracks get plain lines, keep until-first-unlock and are recorded; the archive index is written plain; every other sealed file skips the write and keeps the previous file. The next launch with the key repairs them (reencryptPendingSessions, RawRRBackup.reencryptPendingBackups, WorkoutTrackBackup.reencryptPendingTracks, SessionArchive.resealPlainIndexIfNeeded).",
+   "hash": "87c2ce05f90cb010",
+   "does": "Lists the local files sealed with the app's archive key (EncryptionManager): archive sessions and index, raw RR backups (streamed lines sealed one by one), workout track backups, settings, baseline, training-load cache, beat-consistency priors, saved routes, email contacts, breadcrumbs (JSONFileSeal), the assistant conversation/facts/artifacts (AssistantStoreFile) and the UI state cache. Most are written completeUntilFirstUserAuthentication (with the reasons against complete and completeUnlessOpen); the assistant files completeUnlessOpen. With the key unreachable: whole session files and one-shot raw backups are written plain with completeUnlessOpen and recorded in PendingEncryptionLedger; streamed raw RR points and workout tracks get plain lines, keep until-first-unlock and are recorded; the archive index is written plain; every other sealed file skips the write and keeps the previous file. The next launch with the key repairs them, and the two backup stores also repair theirs when protected data becomes available or the app becomes active (reencryptPendingSessions, RawRRBackup.reencryptPendingBackups, WorkoutTrackBackup.reencryptPendingTracks, SessionArchive.resealPlainIndexIfNeeded).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
@@ -371,7 +371,7 @@
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "471ac438c2a3e780",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reencryptPendingBackups()": "07f26c6929ec40b9",
     "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.persist()": "cfd31f4deb858931",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()": "5cabfb39cb9c5dcd"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()": "dcf99dbebe765d9d"
    }
   },
   {
@@ -453,7 +453,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target ci": "60ad2e16c12b11bb",
+    "Makefile::target ci": "cf2e840175bcfc4b",
     "Makefile::target sbom": "d9760b22b25c5f99",
     "Makefile::target sbom-check": "46aecc781adb961a",
     "Makefile::target sbom-guard": "b6d05ef975bc25ca",
@@ -489,10 +489,10 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeRemote(cloudSync:deleteRemote:errors:)",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:)",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDirectories(settingsManager:cloudSync:scope:errors:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeLocalStores(cloudSync:settingsManager:stores:)",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeDirectories(settingsManager:cloudSync:stores:scope:errors:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllContainers(scope:liveSettingsFile:errors:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.deleteAllRemoteData()",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.deleteAllRemoteData()",

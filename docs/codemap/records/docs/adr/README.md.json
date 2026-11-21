@@ -55,8 +55,8 @@
   },
   {
    "key": "§ Architecture decision records > 001 — Sensitive storage falls back, then repairs",
-   "hash": "91db05f792230fe1",
-   "does": "Claims: with EncryptionManager's key unreachable (before first unlock), whole files (archive sessions, one-shot raw backups) are written plain with .completeFileProtectionUnlessOpen and recorded in PendingEncryptionLedger (.session/.rawBackup); streamed files (raw RR points, workout streams) keep completeUntilFirstUserAuthentication with plain lines, recorded (.rawBackup/.workoutTrack), because locked overnight appends need it; the archive index is written plain. Repairs at the next launch with the key: reencryptPendingSessions, RawRRBackup.reencryptPendingBackups, WorkoutTrackBackup.reencryptPendingTracks (line by line), SessionArchive.resealPlainIndexIfNeeded; an id leaves the ledger once no plaintext is left. CloudKit uploads fail closed (CloudPayloadCodec.sealForUpload throws encryptionUnavailable, retried later); rebuildable caches (UI state, training metrics) skip the write. Only a throwing encrypt() is logged; the key-unavailable fallback shows only as the ledger entry.",
+   "hash": "a8014e42518b8923",
+   "does": "Claims: with EncryptionManager's key unreachable (before first unlock), whole files (archive sessions, one-shot raw backups) are written plain with .completeFileProtectionUnlessOpen and recorded in PendingEncryptionLedger (.session/.rawBackup); streamed files (raw RR points, workout streams) keep completeUntilFirstUserAuthentication with plain lines, recorded (.rawBackup/.workoutTrack), because locked overnight appends need it; the archive index is written plain. Repairs at the next launch with the key, and for the two backup stores also on protectedDataDidBecomeAvailable/didBecomeActive on the same queue as their appends (RawRRBackup.repairAfterUnlock): reencryptPendingSessions, RawRRBackup.reencryptPendingBackups, WorkoutTrackBackup.reencryptPendingTracks (line by line), SessionArchive.resealPlainIndexIfNeeded; an id leaves the ledger once no plaintext is left. CloudKit uploads fail closed (CloudPayloadCodec.sealForUpload throws encryptionUnavailable, retried later); rebuildable caches (UI state, training metrics) skip the write. Only a throwing encrypt() is logged; the key-unavailable fallback shows only as the ledger entry.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)",
@@ -93,7 +93,7 @@
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "471ac438c2a3e780",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reencryptPendingBackups()": "07f26c6929ec40b9",
     "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.persist()": "cfd31f4deb858931",
-    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()": "5cabfb39cb9c5dcd"
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()": "dcf99dbebe765d9d"
    }
   },
   {
@@ -171,32 +171,40 @@
   },
   {
    "key": "§ Architecture decision records > 007 — One app target, one composition root",
-   "hash": "becb4c15d007742a",
-   "does": "Summary of ADR 007: the iPhone app is one target and module with its layers as directories, the Watch app, unit tests and UI tests are separate targets; services are reached through AppDependencies (WatchDependencies on the Watch) whose overrides let a test substitute any of them; .shared is read only in those two files, enforced by check_no_shared_outside_root.sh. Consistent with 007-single-target-composition-root.md.",
+   "hash": "bc9af0a33a13bd00",
+   "does": "Summary of ADR 007: the iPhone app is one target and module with its layers as directories, the Watch app, unit tests and UI tests are separate targets; services are reached through AppDependencies (WatchDependencies on the Watch) whose overrides let a test substitute any of them; .shared is read only in those two files, enforced by check_no_shared_outside_root.sh; AppDependencies.current has no setter and only a test puts another container in force, for a scope that restores the previous one; the launch work and the data purge are handed exactly the services they use, and check_explicit_dependencies.sh keeps container reads out of them and install out of app code. Consistent with 007-single-target-composition-root.md.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.install(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.InstalledScope.end()",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var DependenciesKey.defaultValue",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
     "EmuquWatch Watch App/WatchDependencies.swift::var WatchDependencies.sessionManager",
     "EmuquWatch Watch App/WatchDependencies.swift::var WatchDependencies.strapConnector",
     "Makefile::target shared-root-guard",
-    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root"
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.launchServices",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeStores",
+    "Makefile::target explicit-deps-guard"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "f618f94a3a7cb84c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()": "e39e2f3e3a5e3aca",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.InstalledScope.end()": "2883f22c40d81b31",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.install(_:)": "7deb301260afd282",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.launchServices": "dd94a37f42767d6e",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeStores": "4aef152a558c87c5",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var DependenciesKey.defaultValue": "2ac01458964f7b92",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "daa043f0af306c2c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a",
     "EmuquWatch Watch App/WatchDependencies.swift::var WatchDependencies.sessionManager": "808974657b47ac82",
     "EmuquWatch Watch App/WatchDependencies.swift::var WatchDependencies.strapConnector": "9fef76c83ae90fb0",
+    "Makefile::target explicit-deps-guard": "f839113f5d8e6bda",
     "Makefile::target shared-root-guard": "a9263da85d483554"
    }
   }

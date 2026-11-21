@@ -38,7 +38,7 @@ struct MorningResultsView: View {
     /// Apply the previewed manual window. `onReanalyzeAt` alone produces
     /// an `HRVAnalysisResult` for comparison only; without persisting it
     /// back to the session the user's pick is lost when the sheet closes
-    /// and the recovery score never recomputes. Callers wire this to `RRCollector.applyManualAnalysis`, which
+    /// and the recovery score never recomputes. Callers wire this to `ReanalysisService.applyManualAnalysis`, which
     /// writes `windowUserAdjusted = true`, recomputes the recovery
     /// score against the new window, and re-archives the session.
     var onApplyManualResult: ((HRVAnalysisResult) async -> HRVSession?)?

@@ -510,11 +510,11 @@ struct HistoryView: View {
             onDelete: { deleteAndDismiss(session) },
             onReanalyze: { s, method in await onReanalyze?(s, method) },
             onUpdateTags: { tags, notes in saveTags(session, tags: tags, notes: notes) },
-            onReanalyzeAt: { await collector.reanalyzeAtPosition(session, targetMs: $0) },
-            onApplyManualResult: { await collector.applyManualAnalysis(session, result: $0) },
+            onReanalyzeAt: { await dependencies.collection.reanalysisService.reanalyzeAtPosition(session, targetMs: $0) },
+            onApplyManualResult: { await dependencies.collection.reanalysisService.applyManualAnalysis(session, result: $0) },
             onUpdateSleep: { saveSleep(session, sleepData: $0, isUserAdjustment: false) },
             onAdjustSleep: { saveSleep(session, sleepData: $0, isUserAdjustment: true) },
-            onUnlinkSegment: { collector.unlinkSegment(segmentId: $0, fromSession: session.id) },
+            onUnlinkSegment: { dependencies.collection.reanalysisService.unlinkSegment(segmentId: $0, fromSession: session.id) },
             linkedSegments: selectedLinkedSegments
         )
     }
@@ -537,7 +537,7 @@ struct HistoryView: View {
     }
 
     private func saveSleep(_ session: HRVSession, sleepData: SleepData, isUserAdjustment: Bool) {
-        guard !collector.updateSessionSleepBoundaries(
+        guard !dependencies.collection.reanalysisService.updateSessionSleepBoundaries(
             sessionId: session.id, sleepData: sleepData, isUserAdjustment: isUserAdjustment
         ) else { return }
         failureMessage = String(localized: "Your timeline change couldn't be stored. Please try again.", bundle: LanguageManager.appBundle)

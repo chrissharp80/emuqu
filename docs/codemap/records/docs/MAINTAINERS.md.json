@@ -376,7 +376,7 @@
    "does": "Claims Services/ (~50; actual 49) holds StoreKitManager + EntitlementAnchor, WatchConnectivityBridge, DataPurgeService, the morning/recovery services, the location/road/nav stack, LanguageManager, NarrativeLanguage, WeatherService, WebSearchService. Named types exist.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)"
    ],
    "reads": [],
    "writes": [],
@@ -969,19 +969,29 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 9. Cross-cutting concerns > 9.4 Dependency injection & testing seams",
-   "hash": "a2e64e22a51b9d33",
-   "does": "Claims no DI framework; AppDependencies is the composition root with RRCollector.makeDefault wiring the collector; HealthKitServiceProtocol is the one live protocol; AppDependencies groups app/analysis/assistant/collection/location/providers/services/storage (verified AppDependencies.swift:28-35), resolves lazily, exposes current, overrides and reset() (:42,:48); .shared read only in the root (check_no_shared_outside_root.sh).",
+   "hash": "38bb3ee8d9a38123",
+   "does": "Claims no DI framework; AppDependencies is the composition root with RRCollector.makeDefault wiring the collector; HealthKitServiceProtocol is the one live protocol; AppDependencies groups app/analysis/assistant/collection/location/providers/services/storage (verified AppDependencies.swift:32-39), resolves lazily, exposes a read-only current, overrides and the test-only install(_:) whose scope restores the previous container in teardown; views read @Environment(\\.dependencies), static helpers current, and the launch work and DataPurgeService are handed launchServices and purgeStores and read no container; check_explicit_dependencies.sh keeps install out of app code; .shared read only in the root (check_no_shared_outside_root.sh).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.install(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.InstalledScope.end()",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.launchServices",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeStores",
+    "Makefile::target explicit-deps-guard"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()": "be1e45efca604118",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()": "e39e2f3e3a5e3aca"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.InstalledScope.end()": "2883f22c40d81b31",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.install(_:)": "7deb301260afd282",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.launchServices": "dd94a37f42767d6e",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeStores": "4aef152a558c87c5",
+    "Makefile::target explicit-deps-guard": "f839113f5d8e6bda"
    }
   },
   {
@@ -1111,7 +1121,7 @@
    "branches": [],
    "deps": {
     "Makefile::target budget-monotonicity": "f2990c87cb8c36d4",
-    "Makefile::target ci": "60ad2e16c12b11bb",
+    "Makefile::target ci": "cf2e840175bcfc4b",
     "Makefile::target ci-local": "e2b0391dda4db254",
     "Makefile::target ci-local-unit": "8e51d93d38811f72",
     "Makefile::target codemap-guard": "31a759d3fd34483c",
@@ -1221,8 +1231,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 10. Build, test, CI & tooling > CI/CD (`.github/workflows/`)",
-   "hash": "930c12ceefad4192",
-   "does": "Claims ci.yml runs on every pull request and push to main (scope unit), workflow_dispatch (gates/unit/full) and workflow_call from testflight.yml (scope full) on macos-26 with Xcode 26.6; job 1 lint-and-budgets (its listed gates include pinned package versions), job 2 strict-concurrency on ubuntu, job 3 thread-sanitizer, job 4 release-build (make release-build, in parallel with the tests) and job 5 tests (coverage floors at full, unit target with the Views floor at unit), each of jobs 3-5 ending with a step that writes its result to the run summary and skipped at the gates scope; gates.yml on push to main, pull_request and dispatch on ubuntu, including the code-map check, plus the code-map impact report in the job summary on pull requests; main requires the gates.yml job (Script gates (no Xcode)) to pass before anything merges and the ci.yml jobs are advisory; security.yml, performance.yml, testflight.yml workflow_dispatch only, the testflight deploy job running in the testflight environment that holds the signing secrets, accepts only main and waits for the owner's approval.",
+   "hash": "314cced58c1c50fc",
+   "does": "Claims ci.yml runs on every pull request and push to main (scope unit), workflow_dispatch (gates/unit/full) and workflow_call from testflight.yml (scope full) on macos-26 with Xcode 26.6; job 1 lint-and-budgets (its listed gates include pinned package versions), job 2 strict-concurrency on ubuntu, job 3 thread-sanitizer, job 4 release-build (make release-build, in parallel with the tests) and job 5 tests (coverage floors at full, unit target with the Views floor at unit), each of jobs 3-5 ending with a step that writes its result to the run summary and skipped at the gates scope; gates.yml on push to main, pull_request and dispatch on ubuntu, including the code-map check, plus the code-map impact report in the job summary on pull requests; main requires the gates.yml job (Script gates (no Xcode)) and the five ci.yml jobs to pass, on a branch up to date with main, before anything merges; security.yml, performance.yml, testflight.yml workflow_dispatch only, the testflight deploy job running in the testflight environment that holds the signing secrets, accepts only main and waits for the owner's approval.",
    "entry": null,
    "calls": [
     ".github/workflows/ci.yml::job lint-and-budgets",
@@ -1243,7 +1253,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "b37673427f6cec36",
+    ".github/workflows/ci.yml::job lint-and-budgets": "850dff7c2c40af40",
     ".github/workflows/ci.yml::job release-build": "5662b1002f46c0a7",
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
     ".github/workflows/ci.yml::job tests": "717dc9698a3dc7ba",
@@ -1378,7 +1388,7 @@
    "does": "Claims four runbooks in docs/runbooks (incident-response, hotfix, app-store-rejection, data-deletion → DataPurgeService); all files exist.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:baselineTracker:recordingInProgress:deleteRemote:scope:)"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)"
    ],
    "reads": [],
    "writes": [],

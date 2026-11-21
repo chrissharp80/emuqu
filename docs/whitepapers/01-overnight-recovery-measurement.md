@@ -1024,7 +1024,7 @@ function stageNight(P, s, e):
 | Vitals | `Emuqu/Sources/Analysis/VitalsScoring.swift`, `Emuqu/Sources/Models/RecoveryVitals.swift` |
 | Freeze and quality decision | `Emuqu/Sources/Services/SessionAcceptanceService.swift` |
 | Version | `Emuqu/Sources/Analysis/ScoringVersion.swift` |
-| Automatic refresh | `Emuqu/Sources/Collection/SleepRefreshPolicy.swift`, `Emuqu/Sources/Collection/RRCollector+Reanalysis.swift` |
+| Automatic refresh | `Emuqu/Sources/Collection/SleepRefreshPolicy.swift`, `Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift` |
 | Cross-device merge | `Emuqu/Sources/Storage/CloudKitSyncSupport.swift`, `Emuqu/Sources/Storage/CloudKitSessionFreshness.swift`, `Emuqu/Sources/Storage/SessionMerger.swift` |
 | Manual-window preservation | `Emuqu/Sources/Services/ReanalysisService.swift` |
 | Sleep staging, Watch augmentation | `Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift`, `Emuqu/Sources/Analysis/HRVSleepStageClassifier+Watch.swift`, `Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift` |
