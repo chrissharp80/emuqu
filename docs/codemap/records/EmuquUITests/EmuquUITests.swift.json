@@ -302,12 +302,13 @@
   },
   {
    "key": "func UITestNav.scrollTo(_:identifier:label:attempts:)",
-   "hash": "8cd8a9aaa06391ca",
-   "does": "Waits for any cell (or static text) to exist, then swipes up to `attempts` times re-querying UITestFind.row until the row exists and is safely hittable; if still not found swipes down up to `attempts` times. Returns the last row query (possibly non-existent).",
+   "hash": "9e6aad09ad61a226",
+   "does": "Waits for any cell (or static text) to exist, then swipes up to `attempts` times re-querying UITestFind.row until the row exists and is safely hittable; if still not found swipes down up to `attempts` times. After any swipe it waits for the row to stop moving (waitUntilSettled) so a tap does not land on a decelerating list. Returns the last row query (possibly non-existent).",
    "entry": null,
    "calls": [
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)",
     "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.waitUntilSettled(_:)",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
    ],
    "reads": [],
@@ -326,18 +327,54 @@
     {
      "at": "+27",
      "cond": "row found going down",
-     "effect": "return row"
+     "effect": "after any swipe wait for it to settle, then return row"
     },
     {
-     "at": "+34",
+     "at": "+37",
      "cond": "row not found and tries < attempts (upward sweep)",
-     "effect": "swipe down and re-query; return final row"
+     "effect": "swipe down and re-query"
+    },
+    {
+     "at": "+42",
+     "cond": "any upward swipe happened",
+     "effect": "wait for the row to settle; return final row"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
     "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)": "0c9ccc799aa11008",
     "EmuquUITests/EmuquUITests.swift::func UITestFind.row(in:identifier:label:timeout:)": "708946feb8b3ec09",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.waitUntilSettled(_:)": "eb5d31053ca512e3",
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
+   }
+  },
+  {
+   "key": "func UITestNav.waitUntilSettled(_:)",
+   "hash": "668c79972dfe180d",
+   "does": "Polls the element's frame from snapshot() every 0.15 s for up to UITestTiming.s(2) and returns as soon as two consecutive reads match or the element is gone (snapshot throws), so a row just scrolled into view has stopped moving before it is tapped.",
+   "entry": null,
+   "calls": [
+    "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)",
+    "ext:XCUIElement.snapshot",
+    "ext:RunLoop.run(until:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "deadline not reached",
+     "effect": "wait 0.15 s and read the frame again"
+    },
+    {
+     "at": "+6",
+     "cond": "element gone or frame unchanged since the last read",
+     "effect": "return"
+    }
+   ],
+   "deps": {
+    "EmuquTests/MetricKitCrashStackTests.swift::func MetricKitCrashStackTests.frame(_:_:uuid:subFrames:)": "b1f9dd22a7942cf9",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "699ce5740e639a1f",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
@@ -468,7 +505,7 @@
    ],
    "deps": {
     "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)": "0c9ccc799aa11008",
-    "EmuquUITests/EmuquUITests.swift::func UITestNav.scrollTo(_:identifier:label:attempts:)": "9934cd4d819fd2ee",
+    "EmuquUITests/EmuquUITests.swift::func UITestNav.scrollTo(_:identifier:label:attempts:)": "4f8cf29321007931",
     "EmuquUITests/EmuquUITests.swift::func UITestNav.selectTab(_:identifier:title:attempts:)": "20fdac3cec598901"
    }
   },
