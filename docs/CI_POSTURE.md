@@ -16,7 +16,7 @@ Every pull request and every push to `main` runs two workflows:
 
 The repository is public, and standard GitHub-hosted runners cost public
 repositories no Actions minutes. The UI target and the full coverage floors
-(scope `full`, about 90 minutes) run on demand and before every release.
+(scope `full`, about two hours on current runners) run on demand and before every release.
 
 ## What actually enforces quality here
 

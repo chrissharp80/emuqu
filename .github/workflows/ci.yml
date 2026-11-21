@@ -504,10 +504,12 @@ jobs:
     # tests in the unit target are what execute view bodies.
     if: inputs.scope != 'gates'
     runs-on: macos-26
-    # measured ~88 min incl. the UI target; a hung macOS job bills at 10x, so this is a cost ceiling as much as a liveness one.
-    # A full run is roughly build 7.5 min, unit suite 2.1 min, UI suite 66 min.
-    # 110 leaves room for the retry the script allows itself.
-    timeout-minutes: 110
+    # A liveness ceiling: the repository is public, so standard runners bill
+    # nothing. On today's runners a full-scope run's tests step takes roughly
+    # 125-130 min (run 44743762268 was cut off at 108 min with three of the 19
+    # UI suites never started; each Settings sub-page test alone takes ~80 s).
+    # 180 leaves room for the retry the script allows itself.
+    timeout-minutes: 180
     env:
       TEST_SCOPE: ${{ inputs.scope == 'full' && 'full' || 'unit' }}
       # MIN_COVERAGE is deliberately NOT set here. The floors live in
