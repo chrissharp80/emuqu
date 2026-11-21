@@ -105,7 +105,7 @@ final class SettingsNavigationUITests: XCTestCase {
         // proves anything moved. The tapped row leaving the screen does: it
         // stops being hittable once a page is pushed (or a sheet covers it).
         XCTAssertTrue(
-            waitUntil(UITestTiming.s(5)) { !row.exists || !UITestFind.isSafelyHittable(row, in: app) },
+            waitUntil(UITestTiming.s(5)) { !UITestFind.isSafelyHittable(row, in: app) },
             "'\(identifier)' tap did not leave the Settings root — \(UITestFind.onScreen(app))",
             file: file, line: line
         )
