@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Utilities/Extensions.swift",
- "hash": "6a3470e04b32a31e",
- "role": "Small shared extensions: the English 'Xh Ym' duration fallback used by LocalizedDuration, and Bundle version strings.",
+ "hash": "c9475efb8959a8ad",
+ "role": "Small shared extensions: the English 'Xh Ym' duration fallback used by LocalizedDuration, Bundle version strings, and the once-only helpers: OSAllocatedUnfairLock<Bool>.setIfClear and resumingOnce for continuations a reply and its timeout race to resume.",
  "types": [
   "DurationFormatter: enum — 'Xh Ym' fallback formatter",
   "Bundle: extension — version strings"
@@ -80,6 +80,63 @@
    "deps": {
     "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appBuild": "a877386a7f924daa",
     "Emuqu/Sources/Utilities/Extensions.swift::var Bundle.appVersion": "eface46bdd3b318b"
+   }
+  },
+  {
+   "key": "func OSAllocatedUnfairLock.setIfClear()",
+   "hash": "f15603e57e8fc6b3",
+   "does": "Under the lock, sets the Bool and returns true when it was clear, false when it was already set, so exactly one of several racing callers goes ahead.",
+   "entry": null,
+   "calls": [
+    "ext:OSAllocatedUnfairLock.withLock"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func resumingOnce(_: CheckedContinuation<T, Error>)",
+   "hash": "63b0a6beae838151",
+   "does": "Returns a Sendable closure that resumes the throwing continuation with the first Result it is given and ignores later ones (setIfClear on its own flag).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Extensions.swift::func OSAllocatedUnfairLock.setIfClear()",
+    "ext:CheckedContinuation.resume"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "already resumed",
+     "effect": "result dropped"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::func OSAllocatedUnfairLock.setIfClear()": "7eb7fa9354ab076a"
+   }
+  },
+  {
+   "key": "func resumingOnce(_: CheckedContinuation<T?, Never>)",
+   "hash": "d95a10984bf22847",
+   "does": "Returns a Sendable closure that resumes the non-throwing continuation with the first value (or nil) it is given and ignores later ones (setIfClear on its own flag).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Extensions.swift::func OSAllocatedUnfairLock.setIfClear()",
+    "ext:CheckedContinuation.resume"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "already resumed",
+     "effect": "value dropped"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Extensions.swift::func OSAllocatedUnfairLock.setIfClear()": "7eb7fa9354ab076a"
    }
   }
  ],

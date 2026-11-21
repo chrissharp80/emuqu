@@ -332,7 +332,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.appendLine(_:to:)": "ba125f20b39560df",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.appendLine(_:to:)": "cc1b9981adc3fc77",
     "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.jsonLineData(_:)": "cf397cfec3080cc1",
     "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.trimIfNeeded(_:maxBytes:)": "f077b65efe4b1d31",
     "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::var SystemDiagnosticsManager.metricKitLogURL": "eb2b4a0a1bcdf7d9"
@@ -957,7 +957,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.appendLine(_:to:)": "ba125f20b39560df",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.appendLine(_:to:)": "cc1b9981adc3fc77",
     "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.jsonLineData(_:)": "cf397cfec3080cc1"
    }
   },
@@ -985,14 +985,14 @@
   },
   {
    "key": "func SystemDiagnosticsManager.appendLine(_:to:)",
-   "hash": "3071d66e8d57c018",
-   "does": "Appends the encoded bytes to the file (seekToEnd + write(contentsOf:), then close, each logged via attempt on failure); when the file does not exist, creates it — and its folder — through createDiagnosticsFile. Runs on samplingQueue.",
+   "hash": "b85a55fa08ec8050",
+   "does": "When the file does not exist, creates it — and its folder — with this line through createDiagnosticsFile. Otherwise appends through JSONLinesFile.append, which cuts off a line a kill left half-written first and throws rather than raising on a full disk; a write failure is logged and the line dropped (a handle that won't open is logged by JSONLinesFile.append). Runs on samplingQueue.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.createDiagnosticsFile(at:first:)",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "ext:FileManager.fileExists",
-    "ext:FileHandle.write"
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func JSONLinesFile.append(_:toExisting:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:FileManager.fileExists"
    ],
    "reads": [],
    "writes": [
@@ -1007,13 +1007,13 @@
     },
     {
      "at": "+5",
-     "cond": "opening FileHandle for writing failed",
-     "effect": "returns, line lost, failure logged by attempt"
+     "cond": "append outcome is .writeFailed",
+     "effect": "logs the error; the line is lost (.couldNotOpen: logged inside JSONLinesFile.append, line lost)"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::func handle(_:)": "3fe009cf9aa411e3",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
+    "Emuqu/Sources/Storage/RawRRBackup+Streaming.swift::func JSONLinesFile.append(_:toExisting:)": "82f94e7ca99c5081",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.createDiagnosticsFile(at:first:)": "d5385d1e0d34f6b5"
    }
   },

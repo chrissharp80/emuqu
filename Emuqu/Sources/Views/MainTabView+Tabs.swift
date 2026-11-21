@@ -197,11 +197,11 @@ extension MainTabView {
     }
 
     func reanalyzeSession(_ session: HRVSession, method: WindowSelectionMethod) async -> HRVSession? {
-        // ReanalysisService calls `onArchiveChanged` which bumps
-        // `RRCollector.archiveVersion`. Dashboard, TrendView, and the
-        // MainTabView dashboard-sessions loader all observe that signal
-        // and refresh themselves — no manual session write needed.
-        await collector.reanalyzeSession(session, method: method)
+        // ReanalysisService calls `onArchiveChanged`, which bumps the shared
+        // `ArchiveSignal`. Dashboard, TrendView, and the MainTabView
+        // dashboard-sessions loader all observe that signal and refresh
+        // themselves — no manual session write needed.
+        await dependencies.collection.sessionReanalysis.reanalyzeSession(session, method: method)
     }
 
     // MARK: - Send report (Dashboard toolbar menu)

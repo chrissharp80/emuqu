@@ -242,7 +242,7 @@ to. `Tools/copy_linter` now blocks the verdict language from returning.
 
 **SNS Index** (-3 to +3): Average of z-scores for meanHR (ref 66bpm), stressIndex (ref 100), SD2 inverted (ref 65ms).
 
-**Readiness Score** (1-10, `StressAnalyzer.computeReadinessScore`): starts at 5.0. RMSSD ratio to the baseline (the geometric baseline over the last 60 stored nights, VO2max-adjusted): 0.85–1.15 → +2, 0.70–1.30 → +1, below 0.60 or above 1.50 → −2, otherwise 0. Until that baseline exists, `RRCollector.ansConfig` falls back to the legacy settings baseline and then to the age- and fitness-based population RMSSD (`populationBaselineRMSSD`, 35 ms with no age set), so every reading the app scores uses the ratio. The absolute RMSSD bands (VO2max-adjusted) run only when no configuration is passed or the baseline is not above zero. DFA α1: 0.75–1.0 → +2, 0.60–1.25 → +0.5, otherwise −1. PNS − SNS: ≥ +1 → +1.5, ≥ 0 → +0.5, ≥ −1 → −0.5, else −1.5. Recent hard training adds back its (negative) load adjustment. Clamped to [1, 10]. It is a nearness score: a night 31% above the baseline earns no RMSSD points, so α1 and the PNS/SNS balance can put it at 3.5 under a high Recovery Score. The Help Center describes it the same way.
+**Readiness Score** (1-10, `StressAnalyzer.computeReadinessScore`): starts at 5.0. RMSSD ratio to the baseline (the geometric baseline over the last 60 stored nights, VO2max-adjusted): 0.85–1.15 → +2, 0.70–1.30 → +1, below 0.60 or above 1.50 → −2, otherwise 0. Until that baseline exists, `SessionScoringContext.ansConfig` falls back to the legacy settings baseline and then to the age- and fitness-based population RMSSD (`populationBaselineRMSSD`, 35 ms with no age set), so every reading the app scores uses the ratio. The absolute RMSSD bands (VO2max-adjusted) run only when no configuration is passed or the baseline is not above zero. DFA α1: 0.75–1.0 → +2, 0.60–1.25 → +0.5, otherwise −1. PNS − SNS: ≥ +1 → +1.5, ≥ 0 → +0.5, ≥ −1 → −0.5, else −1.5. Recent hard training adds back its (negative) load adjustment. Clamped to [1, 10]. It is a nearness score: a night 31% above the baseline earns no RMSSD points, so α1 and the PNS/SNS balance can put it at 3.5 under a high Recovery Score. The Help Center describes it the same way.
 
 ### Respiration Rate Estimation
 
@@ -702,7 +702,7 @@ Edits reach devices that already hold the session. An edit (feeling, tags or not
 
 ### Apple Health Export
 
-Writes SDNN and mean HR back to Health as a **windowed SDNN series** (`exportWindowedHRV`; HealthKit has no RMSSD type) and a **heart-rate series** (`exportHeartRateSeries`), and resting HR for overnight readings only, one per night (a later reading of the same night replaces it). A session or workout built from Apple Health data never writes its samples back: its readings are already in Health, and a copy would carry Emuqu as their source. A workout rebuilt from Health exports only the `HKWorkout`, with no samples and no route. Sleep export creates one `HKCategorySample` per stage interval (iOS 16+ values) — plus an overall `inBed` sample — each stamped with `HKMetadataKeyExternalUUID` for idempotent re-writes. Toggling the setting on applies to all archived sessions. (Export code lives in `Collection/HealthKitManager+{HRV,HeartRate,Sleep}.swift`.)
+Writes SDNN and mean HR back to Health as a **windowed SDNN series** (`exportHRV`, or a single summary when the recording is too short; HealthKit has no RMSSD type) and a **heart-rate series** (`exportHeartRateSeries`), and resting HR for overnight readings only, one per night (a later reading of the same night replaces it). A session or workout built from Apple Health data never writes its samples back: its readings are already in Health, and a copy would carry Emuqu as their source. A workout rebuilt from Health exports only the `HKWorkout`, with no samples and no route. Sleep export creates one `HKCategorySample` per stage interval (iOS 16+ values) — plus an overall `inBed` sample — each stamped with `HKMetadataKeyExternalUUID` for idempotent re-writes. Every metric's re-write saves the new samples before deleting the session's earlier ones, and re-writes of the same session run one at a time, each Health call bounded by a timeout (`HealthSampleReplacer`). Toggling the setting on applies to all archived sessions. (Export code lives in `Collection/HealthKitManager+{HRV,HeartRate,Sleep}.swift`.)
 
 ### PDF Reports
 
@@ -1069,8 +1069,12 @@ into them, so they would have been indirection with no consumer.
 `AppDependencies` (`Emuqu/Sources/Utilities/AppDependencies.swift`) is the composition root, reached
 as `AppDependencies.current.{app,storage,collection,analysis,location,services,providers,assistant}`.
 Each accessor returns the substitute on the container's `overrides`, if one is set, and otherwise
-the production object, built on first use. The app never assigns `current`; a test assigns a
-container with substitutes and calls `AppDependencies.reset()` afterwards. Views read it through
+the production object, built on first use. `current` has no setter: a test puts a container with
+substitutes in force with `AppDependencies.install(_:)` and ends the returned scope afterwards,
+which restores the container before it. The launch work (`AppLaunchTasks.swift`) and the data purge
+(`DataPurgeService`) read no container; the root hands them exactly the services they use
+(`launchServices`, `purgeStores`), and `scripts/check_explicit_dependencies.sh` keeps
+`AppDependencies.current` out of those files and `install` out of app code. Views read it through
 `@Environment(\.dependencies)`, classes through an `init` parameter defaulting to `.current`, and
 static helpers and `EmuquApp` through `AppDependencies.current`. `.shared` is read only in this
 file and in the Watch target's root, `WatchDependencies`, which
@@ -1108,7 +1112,24 @@ The earlier "god object" `RRCollector` was decomposed into focused
   state, organized-recovery selection
 
 All live state lives in the sub-objects; the parent `RRCollector`
-itself holds no observable state of its own. Views observe the sub-object
+itself holds no observable state of its own.
+
+**Saved-session reanalysis is not the collector's.** The composition root
+(`Emuqu/Sources/Utilities/AppDependencies+Reanalysis.swift`) builds one
+`SessionReanalysisCoordinator` around one `ReanalysisService`, from explicit
+parts: the archive, HealthKit, the training-metrics cache, iCloud sync, and a
+`SessionScoringContext` (settings, `BaselineTracker`, the training load as of
+a session's day) and `ArchiveSignal` it also hands to the collector built by
+`RRCollector.makeDefault()`. None of the service's providers or callbacks
+reaches the collector. Reanalyze, the bulk passes (reanalyze all, retro-apply
+sleep, repair training snapshots), the one-shot session-data migrations and
+the rescore, CloudKit-backfill and HealthKit-sleep listeners are the
+coordinator's; manual windows, sleep-boundary edits and segment unlinks call
+the service (`dependencies.collection.reanalysisService`). After a rescore or
+sleep refresh the coordinator posts `.reanalysisRewroteArchivedSession`, and
+the collector takes that copy onto its review card when the card holds the
+same night. `EmuquApp` builds the coordinator at launch so its listeners are
+installed before anything they answer can arrive. Views observe the sub-object
 they need (`@Environment(DeviceStatus.self)`); under `@Observable`, nested
 observation flows automatically.
 

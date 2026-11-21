@@ -1,14 +1,352 @@
 {
  "file": "Emuqu/Sources/Collection/HealthWriteAndObserve.swift",
- "hash": "2ea55193df5e6167",
- "role": "Declares the stateless MainActor struct holding a strong HealthKitManager reference; its methods (HRV/sleep writes, deletion, observers) live in extensions in HealthKitManager+HRV.swift and HealthKitManager+SleepTrends.swift.",
+ "hash": "c6365bf05ea7d794",
+ "role": "Declares the stateless MainActor struct holding a strong HealthKitManager reference (its HRV/sleep writes, deletion and observers live in HealthKitManager+HRV.swift and +SleepTrends.swift), and the one replace operation every export uses: HealthSampleReplacement (what one replacement covers), the HealthSampleStore seam over query/save/delete, its HealthKit implementation HealthKitSampleStore, and HealthSampleReplacer (read earlier, save new, delete those read; serialized per key; the save and delete bounded by the replacement's timeout).",
  "types": [
-  "HealthWriteAndObserve: struct — write/observe half of HealthKit, holds `manager`"
+  "HealthWriteAndObserve: struct — write/observe half of HealthKit, holds `manager`",
+  "HealthSampleReplacement: struct — type, search span, timeout, label, serial key, ExternalUUID match",
+  "HealthSampleStore: protocol — ownSamples / save / delete",
+  "HealthKitSampleStore: class — HealthSampleStore over the manager's HKHealthStore and bounded query",
+  "HealthSampleReplacer: class — serialized replace of exported samples"
  ],
  "state": [
-  "mem:HealthWriteAndObserve.manager (let HealthKitManager, strong)"
+  "mem:HealthWriteAndObserve.manager (let HealthKitManager, strong)",
+  "mem:HealthKitSampleStore.manager (weak)",
+  "mem:HealthSampleReplacer.store",
+  "mem:HealthSampleReplacer.tails ([serialKey: Task] last queued replacement per key)"
  ],
- "toplevel": "Struct declaration only; no units.",
- "units": [],
+ "toplevel": "Type declarations; stored properties only outside the units.",
+ "units": [
+  {
+   "key": "requirement HealthSampleStore.ownSamples(of:in:timeout:label:)",
+   "hash": "9506cf37f954aa44",
+   "does": "Protocol requirement: this app's own samples of a type within a span (all time when nil); throws on a query error or when the read does not answer within the timeout.",
+   "entry": "Called through `any HealthSampleStore` by HealthSampleReplacer.replaceNow and HealthWriteAndObserve.deleteAllAppWrittenSleepSamples.",
+   "calls": [
+    "dyn:HealthKitSampleStore.ownSamples (production)",
+    "dyn:InMemoryHealthSampleStore.ownSamples (tests)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthKitSampleStore.ownSamples(of:in:timeout:label:)": "942641193606857f",
+    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.ownSamples(of:in:timeout:label:)": "2de2734a16060564"
+   }
+  },
+  {
+   "key": "requirement HealthSampleStore.save(_:)",
+   "hash": "a8c6791aff808736",
+   "does": "Protocol requirement: saves samples to the Health store; throws when the save fails.",
+   "entry": "Called through `any HealthSampleStore` by HealthSampleReplacer.replaceNow.",
+   "calls": [
+    "dyn:HealthKitSampleStore.save (production)",
+    "dyn:InMemoryHealthSampleStore.save (tests)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthKitSampleStore.save(_:)": "b9d3e668fc3a6395",
+    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.save(_:)": "8e6d0675cd52a3b4"
+   }
+  },
+  {
+   "key": "requirement HealthSampleStore.delete(_:)",
+   "hash": "13b36d55410a1d67",
+   "does": "Protocol requirement: deletes samples from the Health store; throws when the delete fails.",
+   "entry": "Called through `any HealthSampleStore` by HealthSampleReplacer.replaceNow and deleteAllAppWrittenSleepSamples.",
+   "calls": [
+    "dyn:HealthKitSampleStore.delete (production)",
+    "dyn:InMemoryHealthSampleStore.delete (tests)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthKitSampleStore.delete(_:)": "4b918c97a2347437",
+    "EmuquTests/HealthSampleFactoryTests.swift::func InMemoryHealthSampleStore.delete(_:)": "983073ef480aa4dd"
+   }
+  },
+  {
+   "key": "init HealthKitSampleStore(manager:)",
+   "hash": "391f7ceb9797ae57",
+   "does": "Stores a weak reference to the manager whose Health store it reads and writes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:HealthKitSampleStore.manager"
+   ],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthKitSampleStore.ownSamples(of:in:timeout:label:)",
+   "hash": "f243d725403b7ea4",
+   "does": "Runs an unlimited HKSampleQuery for `type` with ownSamplesPredicate(in: span) (this app's source, and the span when given) through the manager's bounded throwing query; a timeout fails with queryTimedOut(label) (fail closed), a query error throws, otherwise returns the samples.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthKitSampleStore.ownSamplesPredicate(in:)",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthKitSampleStore.requireManager()",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedThrowingQuery(timeout:makeQuery:onTimeout:)",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.sampleResult(_:_:)",
+    "ext:HKSampleQuery"
+   ],
+   "reads": [
+    "hk:<type> (own source)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "manager released",
+     "effect": "requireManager throws notAvailable"
+    },
+    {
+     "at": "+9",
+     "cond": "query does not answer in timeout",
+     "effect": "stops the query, throws queryTimedOut(label)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedThrowingQuery(timeout:makeQuery:onTimeout:)": "b4e42c1bf96126f4",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.sampleResult(_:_:)": "f0f0fcc2e303d8c8",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthKitSampleStore.ownSamplesPredicate(in:)": "d9228133283c30b0",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthKitSampleStore.requireManager()": "c54a07ef35dc2a5d",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6"
+   }
+  },
+  {
+   "key": "func HealthKitSampleStore.save(_:)",
+   "hash": "61406cbe35e8c8cc",
+   "does": "Saves the samples with the manager's HKHealthStore; throws its error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthKitSampleStore.requireManager()",
+    "ext:HKHealthStore.save"
+   ],
+   "reads": [],
+   "writes": [
+    "hk:<sample types>"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "manager released",
+     "effect": "throws notAvailable"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthKitSampleStore.requireManager()": "c54a07ef35dc2a5d"
+   }
+  },
+  {
+   "key": "func HealthKitSampleStore.delete(_:)",
+   "hash": "56059a03838fd5c9",
+   "does": "Deletes the samples with the manager's HKHealthStore; throws its error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthKitSampleStore.requireManager()",
+    "ext:HKHealthStore.delete"
+   ],
+   "reads": [],
+   "writes": [
+    "hk:<sample types>"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "manager released",
+     "effect": "throws notAvailable"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthKitSampleStore.requireManager()": "c54a07ef35dc2a5d"
+   }
+  },
+  {
+   "key": "func HealthKitSampleStore.requireManager()",
+   "hash": "7e905cd4006559d5",
+   "does": "Returns the manager, or throws HealthStoreError.notAvailable when it has been released.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:HealthKitSampleStore.manager"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "manager nil",
+     "effect": "throws notAvailable"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func HealthKitSampleStore.ownSamplesPredicate(in:)",
+   "hash": "2268755ec8db572e",
+   "does": "Predicate for this app's own source (HKSource.default()); with a span, ANDed with a sample-date predicate over the span, an instant span widened to one second.",
+   "entry": null,
+   "calls": [
+    "ext:HKQuery.predicateForObjects(from:)",
+    "ext:HKQuery.predicateForSamples(withStart:end:options:)",
+    "ext:NSCompoundPredicate"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "span nil",
+     "effect": "own-source predicate only"
+    },
+    {
+     "at": "+3",
+     "cond": "span duration 0",
+     "effect": "end = start + 1 s"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "init HealthSampleReplacer(store:)",
+   "hash": "0705943d765bc5d4",
+   "does": "Stores the Health store the replacements read, save to and delete from.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:HealthSampleReplacer.store"
+   ],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthSampleReplacer.replace(_:_:)",
+   "hash": "8260146aea4c724a",
+   "does": "Queues a replacement behind the last one with the same serialKey: starts a task that awaits the previous tail, then runs replaceNow; records a tail task that ends when this work ends, removes the tail entry when it is still its own once done, and rethrows the work's error. Replacements under different keys run concurrently.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replaceNow(_:_:)",
+    "ext:Task"
+   ],
+   "reads": [
+    "mem:HealthSampleReplacer.tails"
+   ],
+   "writes": [
+    "mem:HealthSampleReplacer.tails"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "a previous replacement under the key",
+     "effect": "waits for it to finish (success or failure) first"
+    },
+    {
+     "at": "+9",
+     "cond": "the key's tail is still this one",
+     "effect": "removes the key's entry"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replaceNow(_:_:)": "c1ab95744b56a177"
+   }
+  },
+  {
+   "key": "func HealthSampleReplacer.replaceNow(_:_:)",
+   "hash": "d13890e0b3d0104d",
+   "does": "Reads this app's samples of the replacement's type in its span (store.ownSamples, fail closed on its timeout), keeps those whose ExternalUUID `matches`, saves the new samples, then deletes exactly the ones read, each of the save and the delete bounded by the replacement's timeout (bounded, labelled '<label> save' / '<label> delete'), and logs what it wrote and removed. A failed or timed-out read or save throws before anything is deleted; a failed or timed-out delete throws with the new samples saved.",
+   "entry": null,
+   "calls": [
+    "dyn:HealthSampleStore.ownSamples",
+    "dyn:HealthSampleStore.save",
+    "dyn:HealthSampleStore.delete",
+    "closure:HealthSampleReplacement.matches",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.bounded(_:timeout:_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "hk:<type> (own source)"
+   ],
+   "writes": [
+    "hk:<type>"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "sample has no ExternalUUID",
+     "effect": "not replaced"
+    },
+    {
+     "at": "+7",
+     "cond": "no new samples",
+     "effect": "nothing saved"
+    },
+    {
+     "at": "+10",
+     "cond": "nothing read matched",
+     "effect": "nothing deleted"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.bounded(_:timeout:_:)": "892afe5cd2f314b8",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/SettingsSearchIndex.swift::func SettingsSearchEntry.matches(_:)": "da000aba8fe12a54"
+   }
+  },
+  {
+   "key": "func HealthSampleReplacer.bounded(_:timeout:_:)",
+   "hash": "a748d0f84ce71866",
+   "does": "Runs `operation` on the main actor and returns when it finishes, rethrowing its error (outcome(of:)), or throws HealthKitError.queryTimedOut(label) once `timeout` seconds pass first; whichever comes first resumes the caller (resumingOnce), and the operation keeps running after a timeout.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Extensions.swift::func resumingOnce(_: CheckedContinuation<T, Error>)",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.outcome(of:)",
+    "ext:withCheckedThrowingContinuation",
+    "ext:Task",
+    "ext:DispatchQueue.asyncAfter"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "operation finishes first",
+     "effect": "resumes with its outcome"
+    },
+    {
+     "at": "+6",
+     "cond": "timeout passes first",
+     "effect": "resumes with queryTimedOut(label)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.outcome(of:)": "2eeea1413ec33a5d",
+    "Emuqu/Sources/Utilities/Extensions.swift::func resumingOnce(_: CheckedContinuation<T, Error>)": "02bb96fe595de067",
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6"
+   }
+  },
+  {
+   "key": "func HealthSampleReplacer.outcome(of:)",
+   "hash": "d3932cbe4810b9d7",
+   "does": "Awaits `operation` and returns .success, or .failure with the error it threw.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "operation throws",
+     "effect": ".failure(error)"
+    }
+   ],
+   "deps": {
+    "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6"
+   }
+  }
+ ],
  "deps": {}
 }

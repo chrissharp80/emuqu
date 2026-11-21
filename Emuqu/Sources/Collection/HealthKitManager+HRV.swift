@@ -3,87 +3,100 @@ import Foundation
 @preconcurrency import HealthKit
 
 extension HealthWriteAndObserve {
-    // MARK: - SDNN Export
+    // MARK: - HRV Export
 
-    /// Export SDNN (Standard Deviation of NN intervals) to Apple Health
-    /// Uses the standard heartRateVariabilitySDNN type to match Apple Watch HRV format
+    /// Export a session's SDNN to Apple Health, replacing every HRV sample the
+    /// session wrote before (`HealthSampleReplacer`, `isOurHRVExport`).
     ///
-    /// Validates the value BEFORE constructing HKQuantity. Passing
-    /// NaN/Inf to HKQuantity raises NSInvalidArgumentException, which Swift
-    /// `throws` can't catch. SDNN comes from RR analysis and CAN be NaN if the
-    /// filter window produced no valid intervals.
-    ///
-    /// The sample carries the session's `HealthExportIdentity` summary
-    /// identity (`{uuid}-sdnn`). Every HRV sample the session wrote before —
-    /// by either export path, under either identity — is deleted first
-    /// (`deleteOurHRVSamples`), over a day either side of `date` so an export
-    /// made under a different end date is reached too.
-    func exportSDNN(value: Double, at date: Date, sessionId: UUID) async throws {
-        guard manager.isHealthKitAvailable else { throw HealthKitManager.HealthKitError.notAvailable }
-        guard value.isFinite else {
-            debugLog("[HealthKit] exportSDNN: refusing non-finite value (\(value)) for session \(sessionId.uuidString.prefix(8))", level: .warning)
-            return
-        }
-        guard let sdnnType = HKTypes.quantity(.heartRateVariabilitySDNN) else { return }
-        try await deleteOurHRVSamples(sessionId: sessionId, from: date.addingTimeInterval(-25 * 3600), to: date.addingTimeInterval(25 * 3600))
-        let sample = HealthSampleFactory.quantitySample(
-            type: sdnnType, value: value, unit: .secondUnit(with: .milli), start: date, end: date,
-            metadata: [HKMetadataKeyExternalUUID: HealthExportIdentity.summary(sessionId: sessionId, metric: .sdnn), "Source": "Emuqu"]
-        )
-        guard let sample else { return }
-        try await manager.healthStore.save(sample)
-    }
-
-    // MARK: - Windowed HRV Export
-
-    /// Export SDNN in 5-minute rolling windows across the session.
-    ///
-    /// Apple Watch writes ~30–90 discrete HRV samples per night (one per
-    /// 5–15 min window). This replicates that pattern so the chest-strap data
-    /// appears as a full overnight trend in the Health app, instead of a single
-    /// invisible dot. Each sample's `startDate…endDate` spans the 5-min window
-    /// it represents, matching Apple's convention.
+    /// The samples are `hrvExportSamples`: SDNN in 5-minute windows across
+    /// the recording, or the single summary when there aren't enough beats
+    /// for a series. Apple Watch writes ~30–90 discrete HRV samples per night
+    /// (one per 5–15 min window); the series replicates that pattern, so the
+    /// strap's night shows in the Health app as an overnight trend rather
+    /// than one dot. Each sample spans the window it represents, matching
+    /// Apple's convention.
     ///
     /// SDNN only. HealthKit has no RMSSD type, and RMSSD values written into
-    /// `.heartRateVariabilitySDNN` (as earlier builds did, marked only by an
-    /// `HRVMetric=RMSSD` metadata key) show up in the Health app and in every
-    /// app that does not read that key as SDNN readings they are not.
-    /// Guideline 5.1.3(ii) forbids writing inaccurate data into HealthKit. The
-    /// re-export below deletes those old RMSSD samples along with the rest.
+    /// `.heartRateVariabilitySDNN` (marked only by an `HRVMetric=RMSSD`
+    /// metadata key) show up in the Health app and in every app that does not
+    /// read that key as SDNN readings they are not. Guideline 5.1.3(ii)
+    /// forbids writing inaccurate data into HealthKit; the replacement removes
+    /// RMSSD samples with that key along with the rest.
     ///
-    /// This function is idempotent across re-export (e.g. after reanalysis):
-    /// every sample we wrote previously for this session is deleted first via
-    /// the `HKMetadataKeyExternalUUID` prefix predicate, then the fresh series
-    /// is written. Without that, reanalysis would silently double-write — old
-    /// + new samples coexisting in Health for the same windows. The cleanup
-    /// also removes a single summary SDNN an earlier export wrote for the
-    /// session, so the two paths never leave both.
-    /// `internal` so HealthKitManager+SleepTrends.swift's `exportSessionMetrics`
-    /// can call this across files.
-    ///
-    /// Returns how many samples were written: 0 when no 5-minute window had
-    /// enough clean beats, so the caller can write the single summary instead.
-    @discardableResult
-    func exportWindowedHRV(
-        from rrPoints: [RRPoint],
-        sessionStart: Date,
-        sessionId: UUID
-    ) async throws -> Int {
+    /// One replacement covers both shapes, so a session re-exported as the
+    /// other shape, or under a changed end date, never keeps its old SDNN
+    /// beside the new one, and a failed save leaves the earlier export in
+    /// place.
+    func exportHRV(session: HRVSession, result: HRVAnalysisResult) async throws {
         guard manager.isHealthKitAvailable else { throw HealthKitManager.HealthKitError.notAvailable }
-        guard let sdnnType = HKTypes.quantity(.heartRateVariabilitySDNN) else { return 0 }
-        let (samples, windowCount) = Self.windowedHRVSamples(
-            rrPoints: rrPoints, sdnnType: sdnnType, sessionStart: sessionStart, sessionId: sessionId
+        guard let sdnnType = HKTypes.quantity(.heartRateVariabilitySDNN),
+              let samples = Self.hrvExportSamples(session: session, result: result, sdnnType: sdnnType) else { return }
+        try await manager.sampleReplacer.replace(
+            samples, hrvReplacement(sdnnType: sdnnType, sessionId: session.id, span: Self.hrvSearchSpan(session: session, samples: samples))
         )
-        // A failed cleanup aborts the export (the caller logs it): writing
-        // anyway would add a second copy of the night beside the first. The
-        // span is padded like the HR cleanup: a re-analysis that trimmed the
-        // night must still reach the earlier export's tail.
-        let cleanupEnd = max(samples.last?.endDate ?? sessionStart, sessionStart.addingTimeInterval(24 * 3600))
-        try await deleteOurHRVSamples(sessionId: sessionId, from: sessionStart.addingTimeInterval(-3600), to: cleanupEnd)
-        guard !samples.isEmpty else { return 0 }
-        try await manager.healthStore.save(samples)
-        debugLog("[HealthKit Export] Wrote \(samples.count) windowed SDNN samples across \(windowCount) windows")
-        return samples.count
+    }
+
+    /// What a session writes as HRV, or nil to leave Health as it is.
+    ///
+    /// With at least 30 beats (≈ 30 seconds at 60 bpm), so ANY recording long
+    /// enough for one analysable window gets the full series, which is what
+    /// Athlytic / Training Today integrators need. When no 5-minute window had
+    /// enough clean beats, or the recording is shorter, the measured SDNN is
+    /// the single summary, dated at the session's end. An estimated SDNN
+    /// (`HRVAnalysisResult.estimatedMetrics`, from an Elite HRV summary) is
+    /// never written: Health would show it as a reading. A series attempt that
+    /// leaves nothing to write returns empty, which removes the earlier
+    /// export; a short recording with nothing to write returns nil.
+    nonisolated static func hrvExportSamples(session: HRVSession, result: HRVAnalysisResult, sdnnType: HKQuantityType) -> [HKQuantitySample]? {
+        let summary = result.measuredSDNN.flatMap { summarySDNNSample($0, session: session, sdnnType: sdnnType) }
+        guard let points = session.rrSeries?.points, points.count >= 30 else { return summary.map { [$0] } }
+        let (series, _) = windowedHRVSamples(rrPoints: points, sdnnType: sdnnType, sessionStart: session.startDate, sessionId: session.id)
+        guard series.isEmpty else { return series }
+        return summary.map { [$0] } ?? []
+    }
+
+    /// The single summary SDNN, at the session's end, under the session's
+    /// `HealthExportIdentity` summary identity (`{uuid}-sdnn`). Nil, with a
+    /// warning logged, for a non-finite value: passing NaN/Inf to HKQuantity
+    /// raises an NSException Swift `throws` can't catch (`HealthSampleFactory`
+    /// refuses one too).
+    nonisolated private static func summarySDNNSample(_ value: Double, session: HRVSession, sdnnType: HKQuantityType) -> HKQuantitySample? {
+        guard value.isFinite else {
+            debugLog("[HealthKit] HRV export: refusing non-finite SDNN (\(value)) for session \(session.id.uuidString.prefix(8))", level: .warning)
+            return nil
+        }
+        let date = session.endDate ?? session.startDate
+        return HealthSampleFactory.quantitySample(
+            type: sdnnType, value: value, unit: .secondUnit(with: .milli), start: date, end: date,
+            metadata: [HKMetadataKeyExternalUUID: HealthExportIdentity.summary(sessionId: session.id, metric: .sdnn), "Source": "Emuqu"]
+        )
+    }
+
+    /// Where a session's earlier HRV export is searched for: both shapes'
+    /// windows together. The series' window runs from an hour before the
+    /// start to a day after it (or the new series' end, if later), so a
+    /// re-analysis that trimmed the night still reaches the earlier tail;
+    /// the summary's runs 25 hours either side of the end date, so a summary
+    /// exported under a different end date is reached too.
+    nonisolated static func hrvSearchSpan(session: HRVSession, samples: [HKQuantitySample]) -> DateInterval {
+        let date = session.endDate ?? session.startDate
+        let start = min(session.startDate.addingTimeInterval(-3600), date.addingTimeInterval(-25 * 3600))
+        let end = max(
+            samples.map(\.endDate).max() ?? session.startDate,
+            session.startDate.addingTimeInterval(24 * 3600),
+            date.addingTimeInterval(25 * 3600)
+        )
+        return DateInterval(start: start, end: end)
+    }
+
+    /// One replacement of the session's HRV samples: this app's SDNN samples
+    /// in `span` that `isOurHRVExport` matches, under the session's key.
+    private func hrvReplacement(sdnnType: HKQuantityType, sessionId: UUID, span: DateInterval) -> HealthSampleReplacement {
+        HealthSampleReplacement(
+            type: sdnnType, span: span, timeout: HealthKitManager.vitalsQueryTimeoutSec,
+            label: "HRV export", serialKey: sessionId.uuidString,
+            matches: { Self.isOurHRVExport($0, sessionId: sessionId) }
+        )
     }
 
     /// Walk the beat stream in fixed 5-minute windows, returning every sample
@@ -185,35 +198,17 @@ extension HealthWriteAndObserve {
 
     /// Delete every HRV sample this app exported for a session deleted
     /// forever. `start...end` is the recording's span; the search reaches 25
-    /// hours past either end, which covers both export paths (the summary is
-    /// dated at the end, the series from an hour before the start). Without
-    /// HealthKit there is nothing to delete. Errors propagate, so the caller
-    /// can say the samples are still in Health.
+    /// hours past either end, which covers both export shapes (the summary is
+    /// dated at the end, the series from an hour before the start). It runs
+    /// as a replacement with nothing to save, so it waits for an export of
+    /// the same session still running. Without HealthKit there is nothing to
+    /// delete. Errors propagate, so the caller can say the samples are still
+    /// in Health.
     func removeExportedHRV(sessionId: UUID, from start: Date, to end: Date) async throws {
-        guard manager.isHealthKitAvailable else { return }
+        guard manager.isHealthKitAvailable, let sdnnType = HKTypes.quantity(.heartRateVariabilitySDNN) else { return }
         let padding: TimeInterval = 25 * 3600
-        try await deleteOurHRVSamples(sessionId: sessionId, from: start.addingTimeInterval(-padding), to: end.addingTimeInterval(padding))
-    }
-
-    /// Delete every HRV sample this app wrote for the session in
-    /// `start...end` (`isOurHRVExport`): the summary SDNN, the SDNN series and
-    /// the old RMSSD series, among this app's own samples only, so samples
-    /// written by Apple Watch or other apps are never touched. Both export
-    /// paths call it, so a session re-exported through the other path, or
-    /// under a changed end date, does not keep its old SDNN beside the new
-    /// one, and a session deleted forever has them removed
-    /// (`removeExportedHRV`). Errors propagate: the caller skips the save
-    /// rather than duplicate the night.
-    private func deleteOurHRVSamples(sessionId: UUID, from start: Date, to end: Date) async throws {
-        guard let sdnnType = HKTypes.quantity(.heartRateVariabilitySDNN) else { return }
-        let samples = try await ownExternalUUIDSDNNSamples(sdnnType: sdnnType, start: start, end: end)
-        let mine = samples.filter { sample in
-            guard let uuid = sample.metadata?[HKMetadataKeyExternalUUID] as? String else { return false }
-            return Self.isOurHRVExport(uuid, sessionId: sessionId)
-        }
-        guard !mine.isEmpty else { return }
-        try await manager.healthStore.delete(mine)
-        debugLog("[HealthKit Export] Re-export idempotency: deleted \(mine.count) prior HRV samples for session \(sessionId.uuidString.prefix(8))")
+        let span = DateInterval(start: start.addingTimeInterval(-padding), end: end.addingTimeInterval(padding))
+        try await manager.sampleReplacer.replace([], hrvReplacement(sdnnType: sdnnType, sessionId: sessionId, span: span))
     }
 
     /// Whether an ExternalUUID is one of the session's HRV exports: the SDNN
@@ -225,30 +220,5 @@ extension HealthWriteAndObserve {
         externalUUID == sessionId.uuidString
             || HealthExportIdentity.belongsToSession(externalUUID, sessionId: sessionId, metric: .sdnn)
             || HealthExportIdentity.isSeriesMember(externalUUID, sessionId: sessionId, metric: .rmssd)
-    }
-
-    /// This app's SDNN samples carrying an ExternalUUID in `start...end`.
-    ///
-    /// Bounded, FAIL CLOSED (dedup-before-delete for re-export idempotency):
-    /// an empty result on timeout would skip the delete and let duplicates
-    /// accumulate, so a stall throws (as a query error already does here).
-    private func ownExternalUUIDSDNNSamples(sdnnType: HKQuantityType, start: Date, end: Date) async throws -> [HKQuantitySample] {
-        let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            HKQuery.predicateForObjects(withMetadataKey: HKMetadataKeyExternalUUID),
-            HKQuery.predicateForObjects(from: Set([HKSource.default()])),
-            HKQuery.predicateForSamples(withStart: start, end: end, options: [])
-        ])
-        return try await manager.runBoundedThrowingQuery(
-            timeout: HealthKitManager.vitalsQueryTimeoutSec,
-            makeQuery: { resolve in
-                HKSampleQuery(
-                    sampleType: sdnnType, predicate: predicate,
-                    limit: HKObjectQueryNoLimit, sortDescriptors: nil
-                ) { _, samples, error in
-                    resolve(HealthKitManager.quantityResult(samples, error))
-                }
-            },
-            onTimeout: { .failure(HealthKitManager.HealthKitError.queryTimedOut("deleteOurSDNNSamples")) }
-        )
     }
 }

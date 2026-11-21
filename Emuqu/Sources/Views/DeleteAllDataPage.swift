@@ -253,7 +253,8 @@ struct DeleteAllDataPage: View {
                 archive: collector.archive,
                 rawBackup: collector.rawBackup,
                 cloudSync: collector.cloudSyncManager,
-                settingsManager: settingsManager
+                settingsManager: settingsManager,
+                stores: dependencies.purgeStores
             )
             refusal = nil
         } catch {

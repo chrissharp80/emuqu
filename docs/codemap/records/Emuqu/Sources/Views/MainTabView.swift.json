@@ -429,12 +429,14 @@
   },
   {
    "key": "func MainTabView.rescoreReportAt(_:targetMs:)",
-   "hash": "51ca132675c98bb7",
-   "does": "Manual-window reanalysis at targetMs: collector.reanalyzeAtPosition then applyManualAnalysis; on success writes the updated session back to the sheet.",
+   "hash": "d7f85a0f03f23f97",
+   "does": "Manual-window reanalysis at targetMs through the reanalysis service: reanalyzeAtPosition then applyManualAnalysis; on success writes the updated session back to the sheet.",
    "entry": "onReanalyzeAt closure from RecoveryScoreDetailView.",
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeAtPosition(_:targetMs:)",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.applyManualAnalysis(_:result:)"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.reanalyzeAtPosition(_:targetMs:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyManualAnalysis(_:result:)"
    ],
    "reads": [],
    "writes": [
@@ -442,14 +444,16 @@
    ],
    "branches": [
     {
-     "at": "+1",
+     "at": "+2",
      "cond": "both reanalyzeAtPosition and applyManualAnalysis return non-nil",
-     "effect": "assign updated session; either nil: nothing happens, no message"
+     "effect": "selectedReportSession = updated"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.applyManualAnalysis(_:result:)": "333a29ae1bdd40eb",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeAtPosition(_:targetMs:)": "c48db2045ab27323"
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyManualAnalysis(_:result:)": "a33c0cff3e7e52a8",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.reanalyzeAtPosition(_:targetMs:)": "6d9db5d724cc59d1",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService": "66fe82646a7ded58"
    }
   },
   {
@@ -546,11 +550,13 @@
   },
   {
    "key": "func MainTabView.refreshTodaysSleep()",
-   "hash": "0d9b8a4751381d48",
-   "does": "Awaits collector.autoRefreshTodaysSleepIfImproved() (HealthKit sleep re-read; archive notify on change).",
+   "hash": "9b9bba1362e5efba",
+   "does": "Awaits the saved-session reanalysis's autoRefreshTodaysSleepIfImproved (HealthKit sleep re-read; archive notify on change).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.autoRefreshTodaysSleepIfImproved()"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.sessionReanalysis",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.autoRefreshTodaysSleepIfImproved()"
    ],
    "reads": [
     "hk:sleepAnalysis (via RRCollector)"
@@ -560,7 +566,9 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.autoRefreshTodaysSleepIfImproved()": "3664359c37ea9635"
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.autoRefreshTodaysSleepIfImproved()": "de4cbdf433e33511",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.sessionReanalysis": "7e7eff2d9ea401f1"
    }
   },
   {

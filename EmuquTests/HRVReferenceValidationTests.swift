@@ -3,12 +3,13 @@ import XCTest
 
 /// The app's HRV metrics, checked against ECG-derived beat annotations.
 ///
-/// ## The gap this closes
+/// ## Why real data
 ///
-/// The app reports RMSSD, SDNN and pNN50 and nothing demonstrated those numbers
-/// are right. The existing unit tests exercise the functions against hand-made
-/// input — useful for edge cases, silent about accuracy, because the author of
-/// the test and the author of the code shared the same idea of the answer.
+/// The app reports RMSSD, SDNN and pNN50. The unit tests exercise those
+/// functions against hand-made input — useful for edge cases, silent about
+/// accuracy, because the author of the test and the author of the code share
+/// the same idea of the answer. These tests compare them with values computed
+/// elsewhere, on recordings neither side chose.
 ///
 /// ## What this validates, and what it cannot
 ///
@@ -74,13 +75,19 @@ final class HRVReferenceValidationTests: XCTestCase {
     /// is the thing being looked for.
     private let tolerance = 1e-6
 
-    private func analyse(_ record: Record) -> TimeDomainMetrics? {
+    /// The intervals as a contiguous recording: each beat starts where the
+    /// previous one ended.
+    private static func points(_ rrMs: [Int]) -> [RRPoint] {
         var elapsed: Int64 = 0
-        let points: [RRPoint] = record.rrMs.map { rr in
+        return rrMs.map { rr in
             let point = RRPoint(t_ms: elapsed, rr_ms: rr)
             elapsed += Int64(rr)
             return point
         }
+    }
+
+    private func analyse(_ record: Record) -> TimeDomainMetrics? {
+        let points = Self.points(record.rrMs)
         let series = RRSeries(points: points, sessionId: UUID(), startDate: Date())
         let clean = [ArtifactFlags](repeating: .clean, count: points.count)
         return TimeDomainAnalyzer.computeTimeDomain(
@@ -91,8 +98,7 @@ final class HRVReferenceValidationTests: XCTestCase {
     // MARK: - The fixtures themselves
 
     /// A validation suite that silently loaded nothing would pass every test
-    /// below. This is the same failure this repository keeps finding, so the
-    /// corpus is asserted before it is used.
+    /// below, so the corpus is asserted before it is used.
     func testFixtureCorpusIsPresentAndPlausible() {
         let records = Self.fixtures.records
         XCTAssertEqual(records.count, 20, "Expected 20 reference recordings")
@@ -136,27 +142,51 @@ final class HRVReferenceValidationTests: XCTestCase {
 
     // MARK: - The ectopic filter, which is why the two RMSSDs differ
 
-    /// `computeTimeDomain` filters ectopic beats before taking successive
-    /// differences; `rmssd(fromCleanRRs:)` does not. So the pipeline's RMSSD
-    /// must be no larger than the raw one — removing outliers can only shrink
-    /// a root-mean-square of differences.
+    /// `computeTimeDomain` gates ectopic beats before taking successive
+    /// differences; `rmssd(fromCleanRRs:)` does not. Removing beats does not
+    /// bound RMSSD in either direction: RMSSD is the root mean square over the
+    /// pairs that survive, so dropping pairs whose squared difference is below
+    /// the average raises it.
     ///
-    /// This is the relationship the first version of these tests got wrong. It
-    /// compared the pipeline against an unfiltered reference and read a
-    /// deliberate, documented design choice as a defect: on nsr005 the app
-    /// reported 16.03 against 28.98, which is the filter working, not failing.
-    func testPipelineRMSSDIsNeverLargerThanTheUnfilteredValue() throws {
-        var narrowed = 0
+    /// What does hold is the adjacency rule. The pipeline's RMSSD is the root
+    /// mean square of `rr[i] - rr[i-1]` over exactly the pairs adjacent in the
+    /// original series, with both beats kept by the ectopic gate and no
+    /// recording break between them, never a difference across a removed
+    /// beat. That value is recomputed here from the kept beats and compared,
+    /// and the filter must change at least one record's RMSSD, or the corpus
+    /// could not tell a working filter from one that does nothing.
+    func testPipelineRMSSDIsTheRMSOfTheKeptAdjacentPairs() throws {
+        var changed = 0
         for record in Self.fixtures.records {
             let metrics = try XCTUnwrap(analyse(record))
+            let expected = try XCTUnwrap(Self.rmssdOverKeptAdjacentPairs(record.rrMs),
+                                         "\(record.record) has no kept adjacent pair")
+            XCTAssertEqual(metrics.rmssd, expected, accuracy: tolerance,
+                           "Pipeline RMSSD is not the RMS of the kept adjacent pairs on \(record.record)")
             let raw = try XCTUnwrap(TimeDomainAnalyzer.rmssd(fromCleanRRs: record.rrMs.map(Double.init)))
-            XCTAssertLessThanOrEqual(metrics.rmssd, raw + tolerance,
-                                     "Ectopic filtering raised RMSSD on \(record.record)")
-            if metrics.rmssd < raw - tolerance { narrowed += 1 }
+            if abs(metrics.rmssd - raw) > tolerance { changed += 1 }
         }
-        XCTAssertGreaterThan(narrowed, 0,
+        XCTAssertGreaterThan(changed, 0,
                              "No record was affected by ectopic filtering — the corpus cannot "
                                  + "distinguish a working filter from one that does nothing")
+    }
+
+    /// RMSSD over the pairs (i-1, i) adjacent in the series as recorded, both
+    /// kept by the ectopic gate, with no recording break between them; nil
+    /// when there is no such pair. The fixtures carry no artifact flags, so
+    /// every beat is in the window and series adjacency is index adjacency.
+    private static func rmssdOverKeptAdjacentPairs(_ rrMs: [Int]) -> Double? {
+        let points = Self.points(rrMs)
+        let kept = TimeDomainAnalyzer.ectopicKeepMask(rrMs.map(Double.init))
+        var sumOfSquares = 0.0
+        var pairs = 0
+        for i in 1 ..< points.count where kept[i] && kept[i - 1]
+            && !TimeDomainAnalyzer.isRecordingBreak(between: points[i - 1], and: points[i]) {
+            let difference = Double(rrMs[i] - rrMs[i - 1])
+            sumOfSquares += difference * difference
+            pairs += 1
+        }
+        return pairs > 0 ? (sumOfSquares / Double(pairs)).squareRoot() : nil
     }
 
     /// pNN50 against the reference on every record the ectopic filter leaves
@@ -190,9 +220,8 @@ final class HRVReferenceValidationTests: XCTestCase {
 
     /// Mean HR is NOT the reciprocal of mean RR in this app: it comes from
     /// rolling 10-second windows, and the mean of reciprocals is not the
-    /// reciprocal of the mean. Asserting equality was this suite's own bug —
-    /// it failed on nsr001 with 88.53 against 88.46, which is Jensen's
-    /// inequality, not an error. What must hold is that they agree in scale.
+    /// reciprocal of the mean (Jensen's inequality: on nsr001 the two are
+    /// 88.53 and 88.46). What must hold is that they agree in scale.
     func testMeanHeartRateAgreesInScaleWithMeanRR() throws {
         for record in Self.fixtures.records {
             let metrics = try XCTUnwrap(analyse(record))

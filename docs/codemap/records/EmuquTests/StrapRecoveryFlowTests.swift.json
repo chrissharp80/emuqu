@@ -32,7 +32,7 @@
    ],
    "branches": [],
    "deps": {
-    "EmuquTests/StrapRecoveryFlowTests.swift::func XCTestCase.isolateFromHostRecordingState()": "19a75a8617e2e0b0"
+    "EmuquTests/StrapRecoveryFlowTests.swift::func XCTestCase.isolateFromHostRecordingState()": "62d86dbb365f5c13"
    }
   },
   {
@@ -459,8 +459,8 @@
   },
   {
    "key": "func XCTestCase.isolateFromHostRecordingState()",
-   "hash": "b93b039a77ffd13e",
-   "does": "Saves the host's persisted recording state (PersistedRecordingState.load) and dismissed-prompt list, clears the persisted state, and installs a fresh AppDependencies whose overrides hold an empty RecorderBox (no live workout). Registers a teardown block that resets AppDependencies, clears the persisted state again and puts the saved state and dismissed list back (removing the key when there was none).",
+   "hash": "5c946f3d031222f7",
+   "does": "Saves the host's persisted recording state (PersistedRecordingState.load) and dismissed-prompt list, clears the persisted state, and puts a fresh AppDependencies whose overrides hold an empty RecorderBox (no live workout) in force with AppDependencies.install. Registers a teardown block that ends that scope (restoring the container in force before), clears the persisted state again and puts the saved state and dismissed list back (removing the key when there was none).",
    "entry": "Called from setUp of StrapRecoveryFlowTests and SessionDiscardTests",
    "calls": [
     "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()",
@@ -468,8 +468,8 @@
     "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.save(_:)",
     "Emuqu/Sources/Utilities/AppDependencies.swift::init AppDependencies()",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.recorderBox",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.install(_:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.InstalledScope.end()",
     "ext:XCTestCase.addTeardownBlock"
    ],
    "reads": [
@@ -494,10 +494,10 @@
     "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.clear()": "33e94c72eef0b465",
     "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.load()": "286e8ca1bed4c447",
     "Emuqu/Sources/Collection/PersistedRecordingState.swift::func PersistedRecordingState.save(_:)": "dcd8c1803354ac04",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()": "e39e2f3e3a5e3aca",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.InstalledScope.end()": "2883f22c40d81b31",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.install(_:)": "7deb301260afd282",
     "Emuqu/Sources/Utilities/AppDependencies.swift::init AppDependencies()": "bea568cee298d114",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.recorderBox": "73dac10592c57d93",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.recorderBox": "73dac10592c57d93"
    }
   },
   {
@@ -506,11 +506,11 @@
    "does": "Builds an RRCollector over the given PolarManager and archive with a fresh HealthKitManager, a RawRRBackup in a new folder of its own under the temporary directory (RRBackup-<UUID>, so backups other tests left in the shared folder are never listed in it), a fresh BaselineTracker, and a SessionAcceptanceService on the same archive/backup/tracker whose onCloudSync and onCloudDelete do nothing; the collector's other dependencies default.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:sampleStore:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::init SessionAcceptanceService(archive:healthKit:baselineTracker:rawBackup:onCloudSync:onCloudDelete:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)"
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:scoring:)"
    ],
    "reads": [],
    "writes": [
@@ -519,10 +519,10 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "a5f6a55fc002c5dc",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)": "75377b33a56513c7",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ac5fb66c0359130b",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:sampleStore:)": "d9768b730a189edf",
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:scoring:)": "1eba2516dc6628c1",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::init SessionAcceptanceService(archive:healthKit:baselineTracker:rawBackup:onCloudSync:onCloudDelete:)": "955073b942718ab5",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)": "ee0a6c3ab9df8456",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)": "21d7d6755a44a229",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   }

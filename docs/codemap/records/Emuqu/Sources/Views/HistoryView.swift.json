@@ -1007,15 +1007,17 @@
   },
   {
    "key": "func HistoryView.sessionDetailContent(session:result:)",
-   "hash": "1d8f970bc68e565e",
-   "does": "Builds MorningResultsView for a past session, wiring discard, delete (deleteAndDismiss), reanalyze (parent closure), tag save (saveTags), reanalyze-at-position, manual-analysis apply, sleep update and adjustment (saveSleep, which reports a failed save) and segment unlink to the collector.",
+   "hash": "dcb17f4de26e33be",
+   "does": "Builds MorningResultsView for a past session, wiring discard, delete (deleteAndDismiss), reanalyze (parent closure), tag save (saveTags), reanalyze-at-position, manual-analysis apply and segment unlink to the reanalysis service (dependencies.collection.reanalysisService), and sleep update and adjustment to saveSleep (which reports a failed save).",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteAndDismiss(_:)",
     "closure:onReanalyze = MainTabView.reanalyzeSession via DashboardV2View.onReanalyzeSession",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeAtPosition(_:targetMs:)",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.applyManualAnalysis(_:result:)",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.unlinkSegment(segmentId:fromSession:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.reanalyzeAtPosition(_:targetMs:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyManualAnalysis(_:result:)",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.unlinkSegment(segmentId:fromSession:)",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveTags(_:tags:notes:)",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveSleep(_:sleepData:isUserAdjustment:)"
    ],
@@ -1029,11 +1031,13 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.applyManualAnalysis(_:result:)": "333a29ae1bdd40eb",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.reanalyzeAtPosition(_:targetMs:)": "c48db2045ab27323",
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.unlinkSegment(segmentId:fromSession:)": "cb9b8e39eb673b4d",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyManualAnalysis(_:result:)": "a33c0cff3e7e52a8",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.reanalyzeAtPosition(_:targetMs:)": "6d9db5d724cc59d1",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.unlinkSegment(segmentId:fromSession:)": "a1614ff522bce952",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService": "66fe82646a7ded58",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteAndDismiss(_:)": "6d67b2d3bce3e3ad",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveSleep(_:sleepData:isUserAdjustment:)": "3da72af0ae6930a6",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveSleep(_:sleepData:isUserAdjustment:)": "89ea900a59853a23",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveTags(_:tags:notes:)": "d1c0d843e53e5f99",
     "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "77c1bc60f515191c"
    }
@@ -1100,11 +1104,13 @@
   },
   {
    "key": "func HistoryView.saveSleep(_:sleepData:isUserAdjustment:)",
-   "hash": "13508c7a8e651092",
-   "does": "Stores the sleep boundaries through RRCollector.updateSessionSleepBoundaries (automatic measured-sleep update or user adjustment); when it returns false sets failureMessage \"Your timeline change couldn't be stored. Please try again.\".",
+   "hash": "d360aa35fdeda574",
+   "does": "Stores the sleep boundaries through ReanalysisService.updateSessionSleepBoundaries (automatic measured-sleep update or user adjustment); when it returns false sets failureMessage \"Your timeline change couldn't be stored. Please try again.\".",
    "entry": "closures: MorningResultsView.onUpdateSleep / onAdjustSleep",
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -1116,12 +1122,14 @@
     {
      "at": "+1",
      "cond": "update returned true",
-     "effect": "return; false: failure alert"
+     "effect": "returns; else sets failureMessage"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+ReanalysisForwarding.swift::func RRCollector.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "dd89e7bdb872b231",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "c11d10dab10551e5",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService": "66fe82646a7ded58"
    }
   },
   {
