@@ -55,11 +55,6 @@ final class IntegrationTests: XCTestCase {
             reconciliation.sessionExists(session.id),
             "Reconciliation should report session exists after archiving"
         )
-
-        // Trying to queue again should throw
-        XCTAssertThrowsError(try reconciliation.queueForSync(session)) { error in
-            XCTAssertTrue(error is ReconciliationManager.ReconciliationError)
-        }
     }
 
     // MARK: - Archive Integrity

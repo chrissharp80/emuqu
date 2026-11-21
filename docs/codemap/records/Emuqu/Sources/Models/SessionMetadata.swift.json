@@ -1,19 +1,18 @@
 {
  "file": "Emuqu/Sources/Models/SessionMetadata.swift",
- "hash": "c8eef8f56a6bd1b1",
- "role": "Core session data model: DeviceProvenance, SessionType, HRVDataQuality, HRVSession (40+ fields with hand-written Codable), OfflineSession, and the lightweight SessionArchiveEntry index record.",
+ "hash": "d8f43f46fc93c58b",
+ "role": "Core session data model: DeviceProvenance, SessionType, HRVDataQuality, HRVSession (40+ fields with hand-written Codable), and the lightweight SessionArchiveEntry index record.",
  "types": [
   "DeviceProvenance: struct — source device/firmware/mode/app+OS version",
   "DeviceProvenance.RecordingMode: enum — device_internal|streaming|imported",
   "SessionType: enum — overnight|nap|quick|breathe|workout",
-  "HRVDataQuality: enum — good|preSleep|insufficient, with allowsHRVAggregates(_:), the shared reliability rule",
+  "HRVDataQuality: enum (CaseIterable) — good|preSleep|insufficient, with allowsHRVAggregates(_:), the shared reliability rule",
   "HRVSession: struct — full session payload persisted by SessionArchive and synced via CloudKit",
   "HRVSession.DataSourceSummary: struct — chosen RR source + beat counts",
   "HRVSession.SleepSegmentMs: struct",
   "HRVSession.SessionState: enum — collecting|analyzing|complete|paused|failed",
   "HRVSession.ImportedMetrics: struct",
   "HRVSession.CodingKeys: enum",
-  "OfflineSession: struct — pending-sync wrapper used by Reconciliation",
   "SessionArchiveEntry: struct — index row with mirrored metrics/sleep fields and the transient sourceSchemaVersion it was decoded with",
   "SessionArchiveEntry.CodingKeys: enum",
   "KeyedDecodingContainer: extension — decodeKnown / decodeKnownIfPresent / holdsUnknownCase, lenient String-backed enum decoding"
@@ -24,7 +23,7 @@
   "mem:SessionArchiveEntry.currentSchemaVersion = 1",
   "mem:HRVSession.ImportedMetrics.eliteHRVSource = \"Elite HRV\""
  ],
- "toplevel": "Static lets above; HRVSession and SessionArchiveEntry have custom init(from:)/encode(to:); DeviceProvenance, DataSourceSummary, SleepSegmentMs, ImportedMetrics, OfflineSession use synthesized Codable. HRVSession.sourceSchemaVersion and SessionArchiveEntry.sourceSchemaVersion are transient (decoded, never encoded). The KeyedDecodingContainer extension at the end gives both decoders (and SleepStageInterval's) lenient enum reads.",
+ "toplevel": "Static lets above; HRVSession and SessionArchiveEntry have custom init(from:)/encode(to:); DeviceProvenance, DataSourceSummary, SleepSegmentMs and ImportedMetrics use synthesized Codable. HRVSession.sourceSchemaVersion and SessionArchiveEntry.sourceSchemaVersion are transient (decoded, never encoded). The KeyedDecodingContainer extension at the end gives both decoders (and SleepStageInterval's) lenient enum reads.",
  "units": [
   {
    "key": "func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)",
@@ -575,28 +574,6 @@
    "key": "var HRVSession.sport",
    "hash": "7146260854a4fcb0",
    "does": "workoutMetadata?.sport.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {}
-  },
-  {
-   "key": "init OfflineSession(session:)",
-   "hash": "1998bfff2282dfb8",
-   "does": "Wraps a session for offline sync: id=session.id, createdAt=now, syncAttempts=0.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {}
-  },
-  {
-   "key": "var OfflineSession.needsSync",
-   "hash": "467dee47162d8ac4",
-   "does": "True when never synced and fewer than 3 attempts.",
    "entry": null,
    "calls": [],
    "reads": [],

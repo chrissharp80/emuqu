@@ -6,24 +6,34 @@ import os
 ///
 /// ## Why this exists
 ///
-/// Without this ledger, `Archive` and `RawRRBackup` silently fall
-/// back to writing plaintext JSON whenever `EncryptionManager` is unavailable
-/// or `encrypt` throws. File protection still applies, but the application layer
-/// — the part that survives a filesystem image or a device backup — is
-/// downgraded with no signal, at exactly the moment the controls are failing.
+/// Without this ledger, `Archive`, `RawRRBackup` and `WorkoutTrackBackup`
+/// would fall back to writing plaintext JSON whenever `EncryptionManager` is
+/// unavailable or `encrypt` throws with no record of it. File protection still
+/// applies, but the application layer — the part that survives a filesystem
+/// image or a device backup — would be downgraded with no signal, at exactly
+/// the moment the controls are failing.
 ///
 /// The obvious fix, refusing the write, is worse. The realistic trigger is a
 /// background write before the first unlock after a reboot, and that is
 /// precisely when a completed overnight recording is archived. Throwing there
-/// loses a night of data the user cannot regenerate, to protect a file that
-/// `.completeFileProtection` already makes unreadable while the device is
-/// locked.
+/// loses a night of data the user cannot regenerate.
 ///
-/// So the write proceeds under the strictest protection class, the session is
-/// recorded here, and `reencryptPendingSessions(in:)` (archive) or
-/// `RawRRBackup.reencryptPendingBackups()` repairs it on
-/// the next launch where the key is available. Confidentiality is restored
-/// without ever putting the recording at risk.
+/// So the write proceeds and the id is recorded here:
+///   • `.session`: an archived session file, written whole in plain JSON
+///     under the archive's plaintext class; `reencryptPendingSessions(in:)`
+///     repairs it.
+///   • `.rawBackup`: a raw RR one-shot file, written whole with
+///     `BackupProtection.plaintext` (creatable while locked, unreadable once
+///     closed until the next unlock), or a streamed points file holding
+///     plain lines, which keeps `BackupProtection.appendable` so the
+///     overnight appends go on; `RawRRBackup.reencryptPendingBackups()`
+///     repairs both.
+///   • `.workoutTrack`: workout GPS, sample or HR streams holding plain lines,
+///     also kept appendable; `WorkoutTrackBackup.reencryptPendingTracks()`
+///     repairs them.
+/// Each repair runs on the next launch where the key is available, and an id
+/// leaves the list only once its files hold no plaintext. Confidentiality is
+/// restored without ever putting the recording at risk.
 ///
 /// Each list is kept twice: under a `UserDefaults` key and in a small JSON
 /// file written without data protection. It holds no health data — only
@@ -34,14 +44,24 @@ import os
 /// would come back empty and the next write would replace the stored ids with
 /// only the new ones. The loaded list is the union of both copies.
 ///
-/// Archive sessions and raw RR backups are listed apart: each store's repair
-/// pass rewrites its own files, and an encrypted write in one store says
-/// nothing about the other's file for the same id.
+/// Each store is listed apart: each store's repair pass rewrites its own
+/// files, and an encrypted write in one store says nothing about another's
+/// file for the same id.
 enum PendingEncryptionLedger {
     /// Which files an id refers to.
-    enum Store: String {
+    enum Store: String, CaseIterable {
         case session = "storage.pendingReencryption.sessionIDs"
         case rawBackup = "storage.pendingReencryption.rawBackupIDs"
+        case workoutTrack = "storage.pendingReencryption.workoutTrackIDs"
+
+        /// How the log names an id of this store.
+        var label: String {
+            switch self {
+            case .session: "session"
+            case .rawBackup: "raw backup"
+            case .workoutTrack: "workout track"
+            }
+        }
     }
 
     /// The lists, read from `UserDefaults` on first use and kept here after.
@@ -89,7 +109,7 @@ enum PendingEncryptionLedger {
         guard let count else { return }
         schedulePersist(store)
         debugLog(
-            "[Storage] \(store == .session ? "session" : "raw backup") \(id.uuidString.prefix(8)) written WITHOUT app-layer "
+            "[Storage] \(store.label) \(id.uuidString.prefix(8)) written WITHOUT app-layer "
                 + "encryption (key unavailable); queued for re-encryption. Pending: \(count)",
             level: .error
         )
@@ -108,9 +128,8 @@ enum PendingEncryptionLedger {
 
     /// Drop every entry. Used by the data purge, where the files themselves go.
     static func clearAll() {
-        cache.withLockUnchecked { $0 = [.session: [], .rawBackup: []] }
-        schedulePersist(.session)
-        schedulePersist(.rawBackup)
+        cache.withLockUnchecked { $0 = Dictionary(uniqueKeysWithValues: Store.allCases.map { ($0, Set<UUID>()) }) }
+        Store.allCases.forEach(schedulePersist)
     }
 
     /// Block until every scheduled write has reached `UserDefaults`. For tests

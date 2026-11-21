@@ -2,6 +2,7 @@
 set -euo pipefail
 
 source "$(dirname "$0")/lib/preflight.sh"
+source "$(dirname "$0")/lib/xcodebuild.sh"
 
 SCHEME="${SCHEME:-Emuqu}"
 PROJECT="${PROJECT:-Emuqu.xcodeproj}"
@@ -234,6 +235,7 @@ fi
 run_tests() {
     # shellcheck disable=SC2086
     xcodebuild test \
+        "$XCODEBUILD_PINNED" \
         -project "$PROJECT" \
         -scheme "$SCHEME" \
         -destination "$DESTINATION" \

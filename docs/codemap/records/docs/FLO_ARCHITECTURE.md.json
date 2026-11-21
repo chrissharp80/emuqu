@@ -83,8 +83,8 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 3. Turn Lifecycle > 3.2 `AssistantViewModel.send(text:fromVoice:)` — gating",
-   "hash": "5641edbf58e632e4",
-   "does": "Claims gate order: empty → rejectedEmpty; Flo off → rejectedNoProvider; medical guard (flag on, or self-harm always) appends a localOnly exchange; no key → rejectedNoProvider; consent required → requiresConsent; streaming → queued (latest wins); voice-only deterministic; else dispatchToProvider appends the user turn, sets nextSendIsVoice, prewarms Apple, dispatch(). Exactly matches send().",
+   "hash": "f4aa3c17aa76e1ae",
+   "does": "Claims gate order: empty → rejectedEmpty; Flo off → rejectedNoProvider; medical guard (flag on, or self-harm always) appends a localOnly exchange; no key → rejectedNoProvider; a voice turn with no stream running served by DeterministicIntent before the consent check; consent required → requiresConsent; streaming → queued (latest wins); else dispatchToProvider appends the user turn, sets nextSendIsVoice, prewarms Apple, dispatch().",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)",
@@ -96,10 +96,10 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "c2aeaf0df6675cea",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "775d621e9e4bc2e9",
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "644e84c46a1f96f1",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "6cc9d2a50a137c6c",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "9b3d0ecd257813a4"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "72eb08e01b5dcafe"
    }
   },
   {
@@ -225,33 +225,37 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 5. Providers > 5.2 Provider matrix",
-   "hash": "a8a6b737bc7fdac8",
-   "does": "Provider matrix: Apple FoundationModels 4096 context; Anthropic cache_control ephemeral ttl 1h with extended-cache-ttl-2025-04-11 beta header; OpenAI reasoning_effort none; Gemini own builder; Grok maxToolSchemaCount 110; DeepSeek thinking disabled; ProviderStream.make maps cancellations/URLErrors so an offline turn fails the same way for every model, with whether another model may answer left to TurnRouter.failureFallback (§8.3); keys in Keychain via APIKeyStore. Spot-checked values match.",
+   "hash": "99ba039399cf9579",
+   "does": "Provider matrix: Apple FoundationModels 4096 context; Anthropic cache_control ephemeral ttl 1h with extended-cache-ttl-2025-04-11 beta header; OpenAI reasoning_effort none; Gemini own builder; Grok maxToolSchemaCount 110; DeepSeek thinking disabled. The five cloud providers are KeyedCloudProviders (key-gated availability, availableModels = static models); OpenAI/Grok/DeepSeek are OpenAICompatibleProviders whose send streams through OpenAICompatibleStreamer. Shared ProviderHTTP (streamRequest, openStream on streamSession, statusFailure) and SSEEvents; ProviderStream.make maps cancellations/URLErrors so an offline turn fails the same way for every model, with whether another model may answer left to TurnRouter.failureFallback (§8.3); keys in Keychain via APIKeyStore.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
-    "Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::func OpenAIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
-    "Emuqu/Sources/Assistant/Providers/GrokProvider.swift::func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
-    "Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
     "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.cacheTagged(_:)",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.makeSystemBlocks(stable:variable:)",
-    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)"
+    "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var KeyedCloudProvider.availableModels",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderHTTP.streamRequest(url:body:headers:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderHTTP.openStream(_:provider:failure:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.statusFailure(_:body:provider:override:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.statusFailure(_:body:provider:override:)": "069d43e20707cb97",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var KeyedCloudProvider.availableModels": "d826a77b6192f465",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.cacheTagged(_:)": "2cd22fbdf6472de7",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.makeSystemBlocks(stable:variable:)": "25247d69db0f4dd4",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "07d9efd1b8137da2",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "1ccac547ae32c782",
-    "Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "e147cb3b2ab70077",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "771c53ab5510cc28",
-    "Emuqu/Sources/Assistant/Providers/GrokProvider.swift::func GrokProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "42d9646264753a9d",
-    "Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::func OpenAIProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "a58d651f6700e56c",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "711e6c674147430f",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderHTTP.openStream(_:provider:failure:)": "a00ec95424a437ab",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderHTTP.streamRequest(url:body:headers:)": "398c2895ca1e29a2",
     "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "08722a68117b042e",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "0c985becfe5c2b42"
    }
@@ -715,8 +719,8 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 12. Conversation Persistence and Truncation > 12.2 `ConversationStore` — `Emuqu/Sources/Assistant/Chat/ConversationStore.swift",
-   "hash": "a09b958eeed5e749",
-   "does": "Claims ConversationStore writes Assistant/conversation.json atomically with .completeFileProtection in the App Group container, API load/save/clear/mergedWithDisk/retryHeldSave. Matches ConversationStore.swift:39,139.",
+   "hash": "f793db04a9c96098",
+   "does": "Claims ConversationStore writes Assistant/conversation.json in the App Group container sealed with EncryptionManager, atomically with .completeFileProtectionUnlessOpen so a locked-phone voice turn is saved (AssistantStoreFile, shared with UserFactsStore and AssistantArtifactStore); plain files from older builds load and are sealed on the next save; undecodable files are kept as conversation.undecodable-<time>.json; clear() removes the file and every copy and reports whether nothing is left, and clearConversation() keeps the thread on screen with an error otherwise. API load/save/clear/mergedWithDisk/retryHeldSave. Matches ConversationStore.swift and AssistantViewModel.clearConversation.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()",
@@ -729,9 +733,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "9e63918d42003eae",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "de93b526e2a64d31",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "5ec8797cc5e4303e",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "305a2f6600079f86",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "65338e15c91cf183",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "4fec008743e3c5c5",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.retryHeldSave()": "aa783f277d1e6109",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f"
    }
@@ -854,8 +858,8 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 14. UserFactsStore — Cross-session memory",
-   "hash": "c55c01bb288fd568",
-   "does": "Claims UserFactsStore persists Assistant/user_facts.json with add (case-normalized dedupe), remove, clear (erases everything including the backup), clearKeepingBackup/restoreCleared (the assistant's wipe and its undo, copy in memory until the app quits), systemPromptBlock. Matches UserFactsStore.swift.",
+   "hash": "a7b90a3ea0a2cfdd",
+   "does": "Claims UserFactsStore persists Assistant/user_facts.json sealed like the conversation, with add (case-normalized dedupe), remove and clear written or erased at once (set-aside user_facts.undecodable-* copies included) and reporting whether it is on disk, Settings saying so when not and offering Forget everything while a copy remains; clearKeepingBackup/restoreCleared (the assistant's wipe, returning the erased count or nil when it failed, and its undo, copy in memory until the app quits), systemPromptBlock. Matches UserFactsStore.swift and AIAssistantSettingsPage.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)",
@@ -870,9 +874,9 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "ad454a3decd772f0",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()": "7764742cd137f40f",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clearKeepingBackup()": "d8850c6e9b7dbc9d",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)": "5f671f580b979f5b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()": "276f25ef2ddab82c",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clearKeepingBackup()": "0d56d2132b416b5d",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)": "959a11cea7fa2e44",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.restoreCleared()": "f5e4e6631a246f68",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.systemPromptBlock()": "4323ea47776c5cdb"
    }
@@ -913,19 +917,21 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 15. DeterministicIntent — No-model answers",
-   "hash": "d4605e599417242d",
-   "does": "Claims DeterministicIntent is voice-only, narrow regex patterns, first match wins, handler returns nil to fall through, no confidence score and no production counter (debug log only). Matches send() and servedDeterministically.",
+   "hash": "36e205e1de830742",
+   "does": "Claims DeterministicIntent is voice-only, narrow regex patterns, first match wins (matchedPattern(for:), nothing for an empty normalised utterance), handler returns nil to fall through, no confidence score and no production counter (debug log only).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.matchedPattern(for:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "c2aeaf0df6675cea",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "9b3d0ecd257813a4"
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.matchedPattern(for:)": "83c9732b69a47acc",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "775d621e9e4bc2e9",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "72eb08e01b5dcafe"
    }
   },
   {

@@ -228,6 +228,77 @@ final class UserFactsStoreTests: XCTestCase {
         XCTAssertEqual(reopened.facts.first?.text, "Fresh start")
     }
 
+    // MARK: - Verified forget
+
+    /// Copies of an older facts file are the user's notes even when no fact
+    /// is listed: Forget everything is offered for them, and erases them.
+    func testForgetEverythingIsOfferedWhenOnlyASetAsideCopyRemains() throws {
+        let copy = tempDir.appendingPathComponent("user_facts.undecodable-1700000000.json")
+        try Data("{ not facts".utf8).write(to: copy)
+        let store = UserFactsStore(fileURL: fileURL)
+        XCTAssertTrue(store.facts.isEmpty)
+        XCTAssertTrue(store.hasAnythingToForget)
+
+        XCTAssertTrue(store.clear())
+
+        XCTAssertFalse(store.hasAnythingToForget)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: copy.path))
+    }
+
+    func testClearReportsFailureAndKeepsFactsThatCouldNotBeErased() throws {
+        let store = UserFactsStore(fileURL: fileURL)
+        store.add("alpha")
+        _ = waitForStore(at: fileURL, toHold: 1)
+        try makeDirectoryReadOnly()
+
+        XCTAssertFalse(store.clear())
+
+        XCTAssertEqual(store.facts.map(\.text), ["alpha"])
+        XCTAssertTrue(store.hasAnythingToForget)
+    }
+
+    func testRemoveReportsFailureAndKeepsTheFactListed() throws {
+        let store = UserFactsStore(fileURL: fileURL)
+        store.add("alpha")
+        _ = waitForStore(at: fileURL, toHold: 1)
+        let id = try XCTUnwrap(store.facts.first).id
+        try makeDirectoryReadOnly()
+
+        XCTAssertFalse(store.remove(id))
+
+        XCTAssertEqual(store.facts.map(\.text), ["alpha"])
+    }
+
+    // MARK: - Sealed at rest
+
+    func testFactsAreSealedAtRestAndRoundTrip() throws {
+        let store = UserFactsStore(fileURL: fileURL)
+        store.add("Training for a marathon")
+        let reopened = waitForStore(at: fileURL, toHold: 1)
+
+        XCTAssertEqual(reopened.facts.first?.text, "Training for a marathon")
+        XCTAssertNil(try Data(contentsOf: fileURL).range(of: Data("marathon".utf8)), "Facts must not be readable on disk")
+    }
+
+    /// A plain facts file written by a build that did not seal it still loads.
+    func testPlainFactsFileLoads() throws {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        try encoder.encode([UserFactsStore.Fact(text: "Plain fact")]).write(to: fileURL)
+
+        XCTAssertEqual(UserFactsStore(fileURL: fileURL).facts.map(\.text), ["Plain fact"])
+    }
+
+    /// Nothing in the folder can be removed or created until teardown puts
+    /// the permissions back.
+    private func makeDirectoryReadOnly() throws {
+        let dir = tempDir
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: dir.path)
+        addTeardownBlock {
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: dir.path)
+        }
+    }
+
     // MARK: - System prompt rendering
 
     func testSystemPromptBlockIsEmptyWhenNoFacts() {

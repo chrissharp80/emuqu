@@ -463,23 +463,24 @@ extension ArchiveIntegrityTests {
         XCTAssertEqual(written["schemaVersion"] as? Int, newerVersion)
     }
 
-    /// With no entry from a newer build, the index is the plain encoding.
+    /// With no entry from a newer build, the index opens to the plain encoding.
     func testIndexWithoutNewerEntriesIsThePlainEncoding() throws {
         let session = createTestSession()
         testSessionIds.append(session.id)
         _ = try archive.archive(session)
         let indexURL = archiveDirectory.appendingPathComponent("index.json")
-        XCTAssertEqual(try Data(contentsOf: indexURL), try SessionArchive.indexEncoder.encode(archive.entries))
+        XCTAssertEqual(try SessionArchive.indexJSON(Data(contentsOf: indexURL)), try SessionArchive.indexEncoder.encode(archive.entries))
     }
 
     /// Archives one session through `archive`, then appends `object` to the
-    /// `index.json` it wrote, as a newer build sharing the directory would.
+    /// `index.json` it wrote, as a newer build sharing the directory would,
+    /// written back as plain JSON (which the archive still reads).
     func appendToIndexFile(_ object: [String: Any]) throws {
         let session = createTestSession()
         testSessionIds.append(session.id)
         _ = try archive.archive(session)
         let indexURL = archiveDirectory.appendingPathComponent("index.json")
-        var objects = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: indexURL)) as? [Any])
+        var objects = try XCTUnwrap(JSONSerialization.jsonObject(with: SessionArchive.indexJSON(Data(contentsOf: indexURL))) as? [Any])
         objects.append(object)
         try JSONSerialization.data(withJSONObject: objects).write(to: indexURL, options: .atomic)
     }
@@ -494,7 +495,7 @@ extension ArchiveIntegrityTests {
     }
 
     func indexFileObject(sessionId: UUID) throws -> [String: Any]? {
-        let data = try Data(contentsOf: archiveDirectory.appendingPathComponent("index.json"))
+        let data = try SessionArchive.indexJSON(Data(contentsOf: archiveDirectory.appendingPathComponent("index.json")))
         let objects = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [[String: Any]])
         return objects.first { $0["sessionId"] as? String == sessionId.uuidString }
     }

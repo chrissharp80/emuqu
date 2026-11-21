@@ -124,23 +124,20 @@ final class CloudKitLiveBackupManager {
         return record
     }
 
-    /// Drained in an autoreleasepool. This fires every ~5 min
-    /// through the night and encodes the ENTIRE accumulated buffer (25k+
-    /// points by morning), so the transient JSONEncoder tree would otherwise
-    /// grow all night and could coincide with the finalize spike. Freed immediately.
-    /// Encoded, compressed, then ENCRYPTED.
+    /// The night's points, encoded, compressed and sealed for upload by
+    /// `CloudPayloadCodec.sealForUpload`, which throws rather than upload
+    /// plaintext.
     ///
-    /// Guideline 5.1.3(ii) forbids storing personal health information in
-    /// iCloud, and raw RR intervals are exactly that. Compression is not
-    /// confidentiality — compressed-only beats upload readable.
-    /// Fails closed rather than falling back to plaintext.
+    /// Runs in an autoreleasepool: this fires about every 5 minutes through
+    /// the night and encodes the whole accumulated buffer (25k+ points by
+    /// morning), so the transient JSONEncoder tree is freed at once instead of
+    /// growing all night.
     private static func compressedPoints(_ points: [RRPoint]) throws -> Data {
         try autoreleasepool {
-            guard CloudPayloadCodec.hasUsableKey else { throw CloudSyncError.encryptionUnavailable }
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
             let compressed = try DataCompression.compress(try encoder.encode(points))
-            return try CloudPayloadCodec.encode(compressed)
+            return try CloudPayloadCodec.sealForUpload(compressed)
         }
     }
 
@@ -172,7 +169,9 @@ final class CloudKitLiveBackupManager {
     /// With iCloud Sync on, or for a backup this device uploaded whatever the
     /// setting is now: removing the user's own data from iCloud is not an
     /// upload. No zone is created for it; a missing zone means there is
-    /// nothing to delete.
+    /// nothing to delete. A delete that fails leaves the session awaiting
+    /// deletion (`backedUpIds`, persisted), and the full sync deletes it
+    /// again once its session is deleted (`retryAwaitingDeletion`).
     func delete(sessionId: UUID) async {
         guard settings.iCloudSyncEnabled || backedUpIds.contains(sessionId.uuidString) else { return }
         do {
@@ -182,10 +181,22 @@ final class CloudKitLiveBackupManager {
         } catch let error as CKError where [.unknownItem, .zoneNotFound, .userDeletedZone].contains(error.code) {
             debugLog("[CloudKit] No live backup in iCloud for \(sessionId.uuidString.prefix(8))")
         } catch {
-            debugLog("[CloudKit] Failed to clean up live backup: \(error.localizedDescription)")
+            debugLog("[CloudKit] Failed to clean up live backup, kept for the next full sync: \(error.localizedDescription)", level: .warning)
+            backedUpIds.insert(sessionId.uuidString)
             return
         }
         backedUpIds.remove(sessionId.uuidString)
+    }
+
+    /// Delete again every backup awaiting deletion whose session is in
+    /// `finished` (deleted, or deleted forever). Run by the full sync
+    /// (`CloudDeletionCoordinator.reconcileLocalDeletions`). A session not in
+    /// `finished`, such as a recording still in progress, keeps its backup.
+    func retryAwaitingDeletion(among finished: Set<UUID>) async {
+        let due = backedUpIds.compactMap(UUID.init(uuidString:)).filter { finished.contains($0) }
+        for sessionId in due {
+            await delete(sessionId: sessionId)
+        }
     }
 
     /// Fetch any live backups in CloudKit for recovery after device loss.

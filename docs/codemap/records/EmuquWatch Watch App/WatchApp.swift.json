@@ -1,26 +1,27 @@
 {
  "file": "EmuquWatch Watch App/WatchApp.swift",
- "hash": "b41309d67819103f",
- "role": "@main entry of the watchOS app: owns the session manager, workout manager and strap connector as @StateObjects, wires them together and builds the WatchLiveView scene.",
+ "hash": "efd23d041eb0178f",
+ "role": "@main entry of the watchOS app: holds the session manager and strap connector it takes from WatchDependencies.current, and a fresh workout manager, as @StateObjects, wires them together and builds the WatchLiveView scene.",
  "types": [
-  "WatchApp: struct (App, @main) — Watch target composition root"
+  "WatchApp: struct (App, @main) — Watch app entry; its services come from the Watch composition root, WatchDependencies"
  ],
  "state": [
-  "mem:WatchApp.sessionManager (@StateObject = WatchSessionManager.shared)",
+  "mem:WatchApp.sessionManager (@StateObject = WatchDependencies.current.sessionManager)",
   "mem:WatchApp.workoutManager (@StateObject WatchWorkoutManager())",
-  "mem:WatchApp.strapConnector (@StateObject = WatchStrapConnector.shared)",
+  "mem:WatchApp.strapConnector (@StateObject = WatchDependencies.current.strapConnector)",
   "mem:WatchApp.scenePhase (@Environment)"
  ],
- "toplevel": "Stored-property initializers read WatchSessionManager.shared (whose first access runs WatchSessionManager.init, activating WCSession) and WatchStrapConnector.shared, and construct a fresh WatchWorkoutManager (WatchApp.swift:11-16). The comment at 13-15 says this file is the only place a `.shared` instance is read in the Watch target; grep confirms (only WatchApp.swift:11,16,23).",
+ "toplevel": "Stored-property initializers read WatchDependencies.current.sessionManager and .strapConnector (the process-wide instances unless a substitute is set) and construct a fresh WatchWorkoutManager. The file reads no `.shared` instance; WatchDependencies.swift is the Watch target's only root file in scripts/check_no_shared_outside_root.sh.",
  "units": [
   {
    "key": "init WatchApp()",
-   "hash": "9d8aaa9ec5727644",
-   "does": "App init: attaches WatchSessionManager.shared to WatchStrapConnector.shared so direct-strap HR samples have a destination before any view exists. First touch of WatchSessionManager.shared runs its init (WCSession activation).",
+   "hash": "ba91caa05ef54944",
+   "does": "App init: reads WatchDependencies.current and attaches its session manager to its strap connector so direct-strap HR samples have a destination before any view exists. In the app these are WatchSessionManager.shared (first touch runs its init, activating WCSession) and WatchStrapConnector.shared.",
    "entry": "@main: SwiftUI instantiates WatchApp at process launch",
    "calls": [
-    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.attach(sessionManager:)",
-    "EmuquWatch Watch App/WatchSessionManager.swift::init WatchSessionManager()"
+    "EmuquWatch Watch App/WatchDependencies.swift::var WatchDependencies.strapConnector",
+    "EmuquWatch Watch App/WatchDependencies.swift::var WatchDependencies.sessionManager",
+    "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.attach(sessionManager:)"
    ],
    "reads": [],
    "writes": [
@@ -28,7 +29,8 @@
    ],
    "branches": [],
    "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::init WatchSessionManager()": "b118ee51566677fa",
+    "EmuquWatch Watch App/WatchDependencies.swift::var WatchDependencies.sessionManager": "808974657b47ac82",
+    "EmuquWatch Watch App/WatchDependencies.swift::var WatchDependencies.strapConnector": "9fef76c83ae90fb0",
     "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.attach(sessionManager:)": "7d48ec4309a5a4d5"
    }
   },

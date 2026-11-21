@@ -6,6 +6,8 @@ struct TrashView: View {
     @Environment(RRCollector.self) var collector
     @State private var deletedSessions: [(id: UUID, date: Date, beatCount: Int)] = []
     @State private var isRestoring = false
+    /// A permanent delete is running; every action waits for it.
+    @State private var isDeleting = false
     @State private var restoringId: UUID?
     @State private var showingClearAllConfirmation = false
     @State private var statusMessage: String?
@@ -73,7 +75,7 @@ struct TrashView: View {
             } label: {
                 bodyLabel
             }
-            .disabled(isRestoring)
+            .disabled(isRestoring || isDeleting)
         }
     }
 
@@ -117,8 +119,9 @@ struct TrashView: View {
 
     // MARK: - Deleted Session Row
 
-    /// While a restore runs, every row's buttons are disabled, not only the
-    /// restoring row's, so a second restore or delete cannot start over it.
+    /// While a restore or a permanent delete runs, every row's buttons are
+    /// disabled, not only the affected row's, so a second action cannot start
+    /// over it.
     private func deletedSessionRow(_ session: (id: UUID, date: Date, beatCount: Int)) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
@@ -135,7 +138,7 @@ struct TrashView: View {
                     .scaleEffect(0.8)
             } else {
                 trashRowActions(session.id)
-                    .disabled(isRestoring)
+                    .disabled(isRestoring || isDeleting)
             }
         }
         .padding(.vertical, 4)
@@ -218,16 +221,48 @@ struct TrashView: View {
     }
 
     private func permanentlyDelete(_ id: UUID) {
-        collector.permanentlyDelete(id)
-        loadDeletedSessions()
+        deletePermanently([id], successMessage: nil)
     }
 
     private func permanentlyDeleteAll() {
-        for session in deletedSessions {
-            collector.permanentlyDelete(session.id)
+        let message = String(localized: "All deleted sessions permanently removed", bundle: LanguageManager.appBundle)
+        deletePermanently(deletedSessions.map(\.id), successMessage: message)
+    }
+
+    /// Deletes for good, then reloads the list, which still shows every
+    /// session that could not be removed.
+    private func deletePermanently(_ ids: [UUID], successMessage: String?) {
+        isDeleting = true
+        Task { @MainActor in
+            let outcome = await collector.permanentlyDelete(ids)
+            isDeleting = false
+            loadDeletedSessions()
+            report(outcome, successMessage: successMessage)
         }
-        loadDeletedSessions()
-        showTransientStatus(String(localized: "All deleted sessions permanently removed", bundle: LanguageManager.appBundle))
+    }
+
+    /// A failure stays on screen until the next action; a success clears an
+    /// earlier failure and shows `successMessage`, if any, for three seconds.
+    private func report(_ outcome: TrashDeletionOutcome, successMessage: String?) {
+        if let failure = Self.failureMessage(for: outcome) {
+            statusMessage = failure
+            return
+        }
+        statusMessage = nil
+        if let successMessage { showTransientStatus(successMessage) }
+    }
+
+    /// One line for sessions still in the Trash, one for HRV samples still
+    /// in Apple Health; nil when everything went.
+    private static func failureMessage(for outcome: TrashDeletionOutcome) -> String? {
+        var lines: [String] = []
+        if outcome.kept > 0 {
+            lines.append(String(localized: "\(outcome.kept) sessions could not be removed. Try again.", bundle: LanguageManager.appBundle))
+        }
+        if outcome.healthSamplesKept > 0 {
+            lines.append(String(localized: "Some HRV samples could not be deleted from Apple Health. Remove them in the Health app: tap your picture, then Privacy, then Apps and Services, then Emuqu.", bundle: LanguageManager.appBundle))
+        }
+        return lines.isEmpty ? nil : lines.joined(separator: "\n")
     }
 
     // MARK: - Helpers
@@ -242,7 +277,8 @@ struct TrashView: View {
 }
 
 /// Confirms a single permanent delete: it removes the trashed file, its raw
-/// backup and its iCloud copy, and a slip of the finger must not do that.
+/// backup, its iCloud copy and its HRV in Apple Health, and a slip of the
+/// finger must not do that.
 private struct SingleDeleteConfirmation: ViewModifier {
     @Binding var pendingDeleteId: UUID?
     let onDelete: (UUID) -> Void

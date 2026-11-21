@@ -46,6 +46,7 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 
 source "$(dirname "$0")/lib/preflight.sh"
+source "$(dirname "$0")/lib/xcodebuild.sh"
 
 FILTER="${1:-}"
 PROJECT="Emuqu.xcodeproj"
@@ -83,7 +84,7 @@ trap 'restore_all; rm -rf "$BACKUP_DIR"; gate_release_tree_lock' EXIT INT TERM H
 # and must not be mistaken for one.
 run_suite() {
     local log="$BACKUP_DIR/run.log"
-    if xcodebuild test -project "$PROJECT" -scheme "$SCHEME" -destination "$DEST" \
+    if xcodebuild test "$XCODEBUILD_PINNED" -project "$PROJECT" -scheme "$SCHEME" -destination "$DEST" \
         -derivedDataPath "$DERIVED" -only-testing:"$1" \
         -parallel-testing-enabled NO >"$log" 2>&1; then
         return 0
@@ -243,14 +244,14 @@ mutate "route_trimp_whole_loop_unbounded" "EmuquTests/RouteTRIMPEstimatorTests" 
 # fragments and discards them: a quantised 20 m climb reports ZERO gain.
 #
 mutate "elevation_flat_step_splits_climb" "EmuquTests/TopoElevationServiceTests" \
-    "Emuqu/Sources/Analysis/TopoElevationService.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/TopoElevationService.swift');s=p.read_text();o='            if sign == 0 { return }                      // flat: not a reversal';assert s.count(o)==1;p.write_text(s.replace(o,'            if sign == 0 { runSign = 0; return }'))"
+    "Emuqu/Sources/Services/TopoElevationService.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/TopoElevationService.swift');s=p.read_text();o='            if sign == 0 { return }                      // flat: not a reversal';assert s.count(o)==1;p.write_text(s.replace(o,'            if sign == 0 { runSign = 0; return }'))"
 
 # The threshold is what keeps DEM wobble out of the gain figure. Dropping it
 # inflates elevation on every workout.
 mutate "elevation_threshold_removed" "EmuquTests/TopoElevationServiceTests" \
-    "Emuqu/Sources/Analysis/TopoElevationService.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Analysis/TopoElevationService.swift');s=p.read_text();o='            guard abs(runSum) >= threshold else { return }';assert s.count(o)==1;p.write_text(s.replace(o,'            guard abs(runSum) >= 0 else { return }'))"
+    "Emuqu/Sources/Services/TopoElevationService.swift" \
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Services/TopoElevationService.swift');s=p.read_text();o='            guard abs(runSum) >= threshold else { return }';assert s.count(o)==1;p.write_text(s.replace(o,'            guard abs(runSum) >= 0 else { return }'))"
 
 # HRR contamination filtering is two-sided: too strict hides a real 2-minute
 # recovery, too loose presents a yawn as physiology. Both directions of the
@@ -367,7 +368,7 @@ mutate "healthkit_energy_ignores_body_mass" "EmuquTests/HealthKitWorkoutExportTe
 # asserts on it, the encrypted write can silently regress to a plaintext fallback.
 mutate "plaintext_write_undetected" "EmuquTests/PendingEncryptionLedgerTests" \
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/Archive+PendingEncryption.swift');s=p.read_text();o='return [.atomic, .completeFileProtection]';assert s.count(o)==1;p.write_text(s.replace(o,'return [.atomic, .completeFileProtectionUntilFirstUserAuthentication]'))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/Archive+PendingEncryption.swift');s=p.read_text();o='return [.atomic, .completeFileProtectionUnlessOpen]';assert s.count(o)==1;p.write_text(s.replace(o,'return [.atomic, .completeFileProtectionUntilFirstUserAuthentication]'))"
 
 # ---------------------------------------------------------------------------
 # Mutations for the logic lifted out of the god objects. The tests for that

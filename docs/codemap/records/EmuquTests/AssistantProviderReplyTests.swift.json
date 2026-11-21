@@ -121,24 +121,16 @@
   },
   {
    "key": "func AppleToolRankingTests.appleCost(_:)",
-   "hash": "0beb7ea10b622446",
-   "does": "Returns a tool's Apple token cost: AppleToolCatalog.estimatedTokens on iOS 26 with FoundationModels, else estimateTokens(name+description)+10.",
+   "hash": "8843d821110d89c7",
+   "does": "Returns a tool's Apple token cost from the production AppleToolCatalog.estimatedTokens.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.estimatedTokens(for:)",
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)"
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.estimatedTokens(for:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "FoundationModels importable and iOS 26 available",
-     "effect": "uses AppleToolCatalog.estimatedTokens; otherwise the compactor estimate + 10"
-    }
-   ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.estimateTokens(_:)": "ae30d335bc9f248c",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.estimatedTokens(for:)": "03a78b894cd2187f"
    }
   },
@@ -161,8 +153,7 @@
     "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.fitting(_:budget:cost:)": "4197e9bfa08e0bee",
     "Emuqu/Sources/Assistant/Facts/ToolRetriever.swift::func ToolRetriever.ranked(for:tools:)": "0bd75129e67a18aa",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+ToolForwarding.swift::var AssistantViewModel.tools": "4418043899d6c1da",
-    "Emuqu/Sources/Assistant/VoiceEchoHeuristics.swift::func VoiceEchoHeuristics.tokens(_:)": "30c02bd048cdb7b9",
-    "EmuquTests/AssistantProviderReplyTests.swift::func AppleToolRankingTests.appleCost(_:)": "b51752df3cb6307f"
+    "EmuquTests/AssistantProviderReplyTests.swift::func AppleToolRankingTests.appleCost(_:)": "632de0c7de998185"
    }
   },
   {

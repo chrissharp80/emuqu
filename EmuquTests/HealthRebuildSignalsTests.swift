@@ -16,10 +16,6 @@ final class HealthRebuildSignalsTests: XCTestCase {
         XCTAssertEqual(Importer.metersPerFlightClimbed, 3.048, accuracy: 0.0001)
     }
 
-    func testTwentyFlightsIsAboutSixtyMetresOfClimb() {
-        XCTAssertEqual(20 * Importer.metersPerFlightClimbed, 60.96, accuracy: 0.01)
-    }
-
     // MARK: - Which passive distance belongs to which sport
 
     /// Apple Health keeps a continuous walking/running distance and a

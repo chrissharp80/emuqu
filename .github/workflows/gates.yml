@@ -60,8 +60,8 @@ jobs:
       - name: Info.plist, privacy manifest and CloudKit guards
         run: ./scripts/check_no_health_data_in_cloudkit.sh && ./scripts/check_privacy_manifest_vocabulary.sh && ./scripts/check_infoplist_key_drift.sh
 
-      - name: Documentation, SBOM, no phone-home
-        run: make doc-counts-guard doc-links sbom-guard sbom-check no-phone-home
+      - name: Documentation, SBOM, no phone-home, pinned packages
+        run: make doc-counts-guard doc-links sbom-guard sbom-check no-phone-home xcodebuild-pinned-guard
 
       # Every function, script target, workflow step and doc section has a record
       # in docs/codemap written after its last change. See docs/codemap/README.md.

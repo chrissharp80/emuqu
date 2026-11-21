@@ -556,8 +556,8 @@
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 11. App Startup & Deferred Migrations",
-   "hash": "b0c89233c785d746",
-   "does": "Claims startup: RRCollector.init loads the index, rebuilds baseline if daysCollected == 0, sets up bindings/observers, restores paused state and recent paused session off-main, runs repairMergeDataLoss gated by a flag; housekeeping phase runs archive.runDeferredMigrations (reencrypt, recoveryScores, endDates, metrics, sleepIndexFields, removeDuplicates, relinkSameNightSessions) and SessionDataMigrations.runAllIfNeeded (InsufficientData, TrainingRecalibration, TrimpRepair, WorkoutSleepCleanup, NapRepair, TimeInBedRepair) with the listed UserDefaults flags. Migration order, flag keys and skip rules match code; parity test files exist.",
+   "hash": "f1bf46c92ff8bb6f",
+   "does": "Claims startup: RRCollector.init loads the index, rebuilds baseline if daysCollected == 0, sets up bindings/observers, restores paused state and recent paused session off-main, runs repairMergeDataLoss gated by a flag; the housekeeping phase's first job upgrades archive file protection, runs archive.runDeferredMigrations (reencryptPendingSessions, resealPlainIndexIfNeeded, recoveryScores, endDates, metrics, sleepIndexFields, legacyEliteImportIndex, removeDuplicates, relinkSameNightSessions) and expires 90-day Trash through RRCollector.permanentlyDelete; SessionDataMigrations.runAllIfNeeded (InsufficientData, TrainingRecalibration, TrimpRepair, WorkoutSleepCleanup, NapRepair, TimeInBedRepair) with the listed UserDefaults flags; parity test files named.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()",
@@ -568,10 +568,12 @@
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.scheduleMigrationJobs(lowPower:)",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptPendingSessions(in:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resealPlainIndexIfNeeded()",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateRecoveryScores()",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateEndDates()",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateMetrics()",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateSleepIndexFields()",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateLegacyEliteImportIndex()",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.removeDuplicates()",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relinkSameNightSessions()",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.runDeferredSessionMigrationsIfNeeded()",
@@ -600,14 +602,16 @@
     "Emuqu/Sources/Collection/SessionDataMigrations+TrimpMigration.swift::func SessionDataMigrations.runTrimpRepairMigrationIfNeeded()": "aba3fe476d6810c5",
     "Emuqu/Sources/Collection/SessionDataMigrations+WorkoutSleepCleanupMigration.swift::func SessionDataMigrations.runWorkoutSleepCleanupIfNeeded()": "7053fab5ec54dc3d",
     "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.runAllIfNeeded()": "935aa07e49488122",
-    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.scheduleMigrationJobs(lowPower:)": "412b8b6bfa91f483",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.scheduleMigrationJobs(lowPower:)": "40031662a6da08b0",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resealPlainIndexIfNeeded()": "35c80740ec98eb57",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateEndDates()": "b77218c32ea392dc",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateLegacyEliteImportIndex()": "b04f455c10ed849c",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateMetrics()": "74f3d4005f7b70db",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateRecoveryScores()": "b60491853b274d71",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.migrateSleepIndexFields()": "918ea66fe1806d96",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.relinkSameNightSessions()": "3d58a77a5be6a8fc",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.removeDuplicates()": "349f9e8ec8c5e07c",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "485e43dbca59f728",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "d25458414f1bd37b",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptPendingSessions(in:)": "7691596c91c3e28b"
    }
   },
@@ -829,8 +833,8 @@
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)": "407d7a2fb0f9bc29",
     "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func postSleepRescoreRequest(sessionId:fresh:verdict:)": "e78b61406e6798cc",
     "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "26cb9251401b7661",
-    "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testArchivedScoreUpdateScoresAnUntrustworthyNightFromTheBaseline()": "9b0267c2e1ed4c62",
-    "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testBaselineHRVDerivationMatchesAcceptanceRuleForAllQualities()": "fe062331955b7177",
+    "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testArchivedScoreUpdateScoresAnUntrustworthyNightFromTheBaseline()": "cc4c4810511ca130",
+    "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testBaselineHRVDerivationMatchesAcceptanceRuleForAllQualities()": "4ddf295bb801ce49",
     "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testCompositeScoreAndFrozenReadinessAreDeterministic()": "b0cad9760d774271",
     "EmuquTests/SessionImmutabilityTests.swift::func SessionImmutabilityTests.testDerivedBaselineFallbackReproducesTheAcceptedCompositeForAnInsufficientNight()": "7f57364383cf38f9"
    }
@@ -995,8 +999,8 @@
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 18. Fitness Tab — Workout Recording Pipeline",
-   "hash": "6ebbfdc4eb004951",
-   "does": "Claims the live-workout pipeline: start() reconnects known secondary sensors, starts strap streaming, GPS/altimeter (lazy WorkoutLocationManager), pedometer, foot pod/PM5/FTMS, Watch session, α1 analyzer, voice coach, Zwift broadcast and a 1 Hz ticker; each tick ingests RR into LiveDFAAnalyzer (2-min window, 20 s cadence), backs up incrementally, records samples, auto-detects a saved route after 500 m (150 m start reject, ≤ 30 m mean nearest-neighbour), updates threshold breach counters, refreshes weather (30 min TTL, 5 km) and road geocoding (15 m / 60 s, 8-failure backoff, 30 s retry), publishes a LiveWorkoutSnapshot, pushes Watch/Zwift state, runs voice-coach/turn/mile-marker engines (turn bands 150/60/25 m) and the interval controller; stop() snapshots RR without stopping the stream, tears down live services, finalizes via WorkoutAnalyzer (Banister male 0.64/1.92, female 0.86/1.67, hrTSS, power metrics, splits), archives a breadcrumb trail (50-trail cap), disconnects the foot pod, flips to .finished and runs detached HRR capture (+60/+120 s strap) before stopping and disconnecting the strap. Constants checked match code.",
+   "hash": "cff36be78d341489",
+   "does": "Claims the live-workout pipeline: start() reconnects known secondary sensors, starts strap streaming, GPS/altimeter (lazy WorkoutLocationManager), pedometer, foot pod/PM5/FTMS, Watch session, α1 analyzer, voice coach, Zwift broadcast and a 1 Hz ticker; each tick ingests RR into LiveDFAAnalyzer (2-min window, 20 s cadence), backs up incrementally, records samples, auto-detects a saved route after 500 m (150 m start reject, ≤ 30 m mean nearest-neighbour), updates threshold breach counters, refreshes weather (30 min TTL, 5 km) and road geocoding (15 m / 60 s, 8-failure backoff, 30 s retry), publishes a LiveWorkoutSnapshot, pushes Watch/Zwift state, runs voice-coach/turn/mile-marker engines (turn bands 150/60/25 m) and the interval controller; stop() snapshots RR without stopping the stream, tears down live services, finalizes via WorkoutAnalyzer (Banister male 0.64/1.92, female 0.86/1.67, hrTSS, power metrics, splits), archives a breadcrumb trail (50-trail cap) marked a workout track with the session's id, disconnects the foot pod, flips to .finished and runs detached HRR capture (+60/+120 s strap) before stopping and disconnecting the strap. The weather, road-geocoding and breadcrumb services are reached through AppDependencies.current.location.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.start(sport:source:intervalPlan:thresholds:route:)",
@@ -1045,7 +1049,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.finalizeSession(rrPoints:stopDate:hrrSamples:)": "a7d5cc61801af2cf",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.reconnectOrDisconnectSecondarySensors(sport:)": "933d41cc094bc7e5",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.start(sport:source:intervalPlan:thresholds:route:)": "5f56efcad87b7b36",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.archiveBreadcrumbTrailIfNeeded(finished:)": "ccfcb77307445b76",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.archiveBreadcrumbTrailIfNeeded(finished:)": "34bd0ca2ce4e37f0",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.captureHRRAndRearchive(captureService:stopDate:endHR:strap:archive:sessionId:)": "2c00c6b5c6401c04",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.disconnectFootPodPostWorkout()": "29bef757ae0c8830",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.launchHRRCaptureAndRearchive(stopDate:endHR:finished:)": "1cb2758726692616",
@@ -1061,7 +1065,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.start(sport:source:intervalPlan:thresholds:route:)": "6ef658b176509f08",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.enrichWithRoadNames(routeID:)": "f91e54d315319ac0",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.refreshIfNeeded(for:enrichCrossStreet:)": "a4c3b987ae29dd27",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.refreshIfNeeded(for:)": "ca8627f0b773dc60"
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.refreshIfNeeded(for:)": "de72c50325c28f39"
    }
   },
   {
@@ -1110,11 +1114,11 @@
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 18b. Fitness — Retroactive Repair Actions",
-   "hash": "c7be4b20cf65c5aa",
-   "does": "Claims two summary-sheet repairs: real-elevation lookup via TopoElevationService (≤ 100 samples, NED 10 m in US else SRTM 30 m, 15 m sustained-climb threshold, preview then write + notifyArchiveChanged) and α1 re-analysis (2-min windows at 20 s, Kubios-style ±20 % vs 5-beat median with interpolation, nearest-in-time replacement, early samples cleared). Constants match TopoElevationService, WorkoutAlpha1Reanalyzer and LiveDFAAnalyzer.cleanRRForDFA (which also rejects RR < 300 or > 2000 ms).",
+   "hash": "85339bb2eec60b8b",
+   "does": "Claims two summary-sheet repairs: real-elevation lookup via TopoElevationService (≤ 100 samples, NED 10 m in US else SRTM 30 m, the SRTM retry 1 s after a US lookup, requests through the HTTPTransport passed in, 15 m sustained-climb threshold, preview then write + notifyArchiveChanged) and α1 re-analysis (2-min windows at 20 s, Kubios-style ±20 % vs 5-beat median with interpolation, nearest-in-time replacement, early samples cleared). Constants match TopoElevationService, WorkoutAlpha1Reanalyzer and LiveDFAAnalyzer.cleanRRForDFA (which also rejects RR < 300 or > 2000 ms).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)",
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:transport:)",
     "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)",
     "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.applyReadings(_:to:)",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)",
@@ -1125,29 +1129,29 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)": "5656cbdeb6baee1a",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)": "2662dacd6f0a9521",
     "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.applyReadings(_:to:)": "b82647c97e7ac2f4",
     "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)": "3446776e2575bc4f",
-    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419"
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()": "9e0fe9b7e9389419",
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:transport:)": "863a874d96dcc48f"
    }
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 18c. Elevation capture — pro-grade barometric pipeline",
-   "hash": "2eecd015ac6ec252",
-   "does": "Claims barometric samples are buffered unthresholded during recording and at finalize BarometricAltitudeProcessor applies a 15-sample symmetric moving average and 2 m hysteresis to compute gain/loss, falling back to GPS gain when no barometer; retroactive repair via TopoElevationService. Constants match BarometricAltitudeProcessor (window 15, 2.0 m).",
+   "hash": "bd7d053ea6976e88",
+   "does": "Claims barometric samples are buffered unthresholded during recording and at finalize BarometricAltitudeProcessor applies a symmetric moving average over a 15 s window read from the timestamps and 2 m hysteresis to compute gain/loss, falling back to GPS gain when no barometer; retroactive repair via TopoElevationService (NED 10 m in the US, else or after a failed NED call SRTM 30 m, through its HTTPTransport).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.finalizeSession(rrPoints:stopDate:hrrSamples:)",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)"
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:transport:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)": "2662dacd6f0a9521",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.finalizeSession(rrPoints:stopDate:hrrSamples:)": "64bf251428145cd9"
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "ad1f23d4e060bae9",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.finalizeSession(rrPoints:stopDate:hrrSamples:)": "a7d5cc61801af2cf",
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:transport:)": "863a874d96dcc48f"
    }
   },
   {
@@ -1186,19 +1190,21 @@
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 20. AI Dispatch Flow > Entry point",
-   "hash": "a6e1803c0e360300",
-   "does": "Claims every send trims text, sets nextSendIsVoice, appends the user turn, then tries DeterministicIntent.tryMatch (14-pattern catalog) and on a hit appends the reply, records deterministic_hit telemetry and skips the LLM.",
+   "hash": "d5fcb5d550130b49",
+   "does": "Claims send trims the text and returns early for empty text, Flo off or notice not accepted, a medical-guard answer or an unavailable provider; then, for a voice turn with no stream in flight, servedDeterministically tries DeterministicIntent.tryMatch (14-pattern catalog) and on a hit appends the exchange on the device before the consent check and skips the LLM; otherwise holds the text for consent, queues behind a stream or dispatches to the provider. Lists the 14 pattern ids.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)"
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.servedDeterministically(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "c2aeaf0df6675cea",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "9b3d0ecd257813a4"
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "775d621e9e4bc2e9",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "72eb08e01b5dcafe",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.servedDeterministically(_:)": "0ace0c4a15390e50"
    }
   },
   {

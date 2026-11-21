@@ -332,3 +332,56 @@ final class EncryptionManager: Sendable {
         }
     }
 }
+
+extension EncryptionManager {
+    /// The JSON held in a file that is sealed with `encrypt`.
+    ///
+    /// Files written as plain JSON by builds that did not seal them start
+    /// with `{` or `[` and are returned as they are; the caller's next write
+    /// replaces them sealed. Sealed bytes start with the `FR` framing, so the
+    /// two can never be confused.
+    func openStoredJSON(_ stored: Data) throws -> Data {
+        guard let first = stored.first, first != UInt8(ascii: "{"), first != UInt8(ascii: "[") else {
+            return stored
+        }
+        return try decrypt(stored)
+    }
+}
+
+/// Seals and opens the local JSON files that hold health, location or
+/// profile data with the app's key, as the session archive is. `app` uses
+/// `EncryptionManager`; tests pass closures that fail as a locked keychain
+/// does.
+struct JSONFileSeal: Sendable {
+    /// Seals bytes for the disk; throws when no key can be read or made.
+    let seal: @Sendable (Data) throws -> Data
+    /// The JSON in stored bytes: sealed bytes opened, plain JSON written by a
+    /// build that did not seal the file passed through as it is.
+    let open: @Sendable (Data) throws -> Data
+
+    /// The app's key, through `AppDependencies.current`.
+    static let app = JSONFileSeal(
+        seal: { try AppDependencies.current.storage.encryptionManager.encrypt($0) },
+        open: { try AppDependencies.current.storage.encryptionManager.openStoredJSON($0) }
+    )
+
+    /// `value` encoded with `encoder`, then sealed.
+    func sealJSON(_ value: some Encodable, with encoder: JSONEncoder) throws -> Data {
+        try seal(encoder.encode(value))
+    }
+
+    /// The `T` held in `stored`, opened, then decoded with `decoder`.
+    func openJSON<T: Decodable>(_ type: T.Type, from stored: Data, with decoder: JSONDecoder) throws -> T {
+        try decoder.decode(type, from: open(stored))
+    }
+
+    /// Whether `error`, thrown by `seal` or `open`, is the keychain refusing
+    /// the key for now (the device has not been unlocked since it started),
+    /// so a sealed file may be intact and opens later. A key that is not
+    /// there at all, or bytes that fail authentication, are not: this
+    /// install can never open those bytes.
+    static func isKeyLocked(_ error: any Error) -> Bool {
+        if case .keychainError? = error as? EncryptionManager.EncryptionError { return true }
+        return false
+    }
+}

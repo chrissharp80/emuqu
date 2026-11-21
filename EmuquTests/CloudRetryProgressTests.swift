@@ -3,112 +3,93 @@ import XCTest
 
 /// A deferred upload must eventually become eligible again.
 ///
-/// ## What this pins
+/// Every assertion runs against `CloudKitSyncManager.defersForBackoff`, the
+/// decision `pendingPushBatch` uses, with the cycle passed in so it can be
+/// advanced deterministically instead of waiting on real pushes.
 ///
-/// A `shouldDeferForBackoff` of the form
-/// `stableRetryBucket(id) % skipCycles != 0` never recovers. Both operands are constant while
-/// an item is being skipped — the bucket comes from the UUID, and the failure
-/// count only changes when an attempt is actually made — so a session that
-/// defers once defers on every cycle for the life of the process. A backup
-/// pending its first upload never retries, even after connectivity returns.
-///
-/// A worked example: UUID `01000000-0000-4000-8000-000000000000`
-/// gives bucket 1. After one failure the test is `1 % 2 != 0` → true, and
-/// re-evaluating it changes nothing.
-///
-/// A test that only checked bucket STABILITY would pass against that form,
-/// because stability is not the problem. What has to be asserted is
-/// PROGRESS: that advancing the cycle eventually makes a deferred session
-/// eligible.
-@MainActor
+/// What has to be asserted is PROGRESS, not bucket stability. A decision built
+/// only from the session's bucket and failure count (`bucket % period != 0`)
+/// has a stable bucket and still never recovers: both operands stay constant
+/// while a session is skipped, so it defers on every cycle. UUID
+/// `01000000-0000-4000-8000-000000000000` gives bucket 1, which under that form
+/// defers forever after a single failure.
 final class CloudRetryProgressTests: XCTestCase {
-    /// The UUID from the worked example above: bucket 1, which under the
-    /// cycle-free form defers forever after a single failure.
-    private static let workedExampleUUID = UUID(
+    private static let bucketOneUUID = UUID(
         uuid: (0x01, 0, 0, 0, 0, 0, 0x40, 0, 0x80, 0, 0, 0, 0, 0, 0, 0)
     )
 
-    /// The production expression, with the cycle counter passed in so it can
-    /// be advanced deterministically instead of waiting on real pushes.
     private func defers(bucket: Int, failCount: Int, cycle: Int) -> Bool {
-        let exponent = min(failCount, 6)
-        let period = min(1 << exponent, 32)
-        let offset = bucket % period
-        return (cycle + offset) % period != 0
+        CloudKitSyncManager.defersForBackoff(failCount: failCount, bucket: bucket, cycle: cycle)
     }
 
-    /// The cycle-free form, kept so the failure it causes stays legible.
-    private func oldDefers(bucket: Int, failCount: Int) -> Bool {
-        bucket % min(1 << failCount, 32) != 0
+    func testTheBucketIsDerivedFromTheUUIDBytes() {
+        XCTAssertEqual(CloudKitSyncManager.stableRetryBucket(for: Self.bucketOneUUID), 1)
+        XCTAssertEqual(
+            CloudKitSyncManager.stableRetryBucket(for: Self.bucketOneUUID),
+            CloudKitSyncManager.stableRetryBucket(for: Self.bucketOneUUID),
+            "The bucket must not change between calls (hashValue would)"
+        )
     }
 
-    // MARK: - The cycle-free form
-
-    func testTheOldExpressionNeverBecomesEligible() {
-        let bucket = CloudKitSyncManager.stableRetryBucket(for: Self.workedExampleUUID)
-        XCTAssertEqual(bucket, 1, "The report's worked example depends on this bucket")
-        for _ in 0 ..< 1_000 {
-            XCTAssertTrue(oldDefers(bucket: bucket, failCount: 1),
-                          "The old expression deferred forever — that is F1")
+    func testASessionWithNoFailuresNeverDefers() {
+        for cycle in 0 ..< 64 {
+            XCTAssertFalse(defers(bucket: 1, failCount: 0, cycle: cycle))
         }
     }
 
-    // MARK: - The production form
+    /// The bucket-1 session after one failure is the case a cycle-free
+    /// decision defers forever.
+    func testTheBucketOneSessionRetriesOnceTheCycleAdvances() {
+        let bucket = CloudKitSyncManager.stableRetryBucket(for: Self.bucketOneUUID)
+        let attempts = (0 ..< 16).filter { !defers(bucket: bucket, failCount: 1, cycle: $0) }.count
+        XCTAssertGreaterThan(attempts, 1, "A session that failed once never retried")
+    }
 
-    /// Every session, at every failure count, must become eligible within its
-    /// backoff period. This is the assertion the cycle-free form cannot satisfy.
-    func testEverySessionBecomesEligibleWithinItsPeriod() {
+    /// Every session, at every failure count, becomes eligible within the
+    /// backoff ceiling.
+    func testEverySessionBecomesEligibleWithinTheCeiling() {
+        let ceiling = CloudKitSyncManager.maxBackoffCycles
         for failCount in 1 ... 8 {
-            let period = min(1 << min(failCount, 6), 32)
             for bucket in [0, 1, 2, 7, 31, 12_345, 8_388_607] {
-                let eligible = (0 ..< period).contains {
-                    !defers(bucket: bucket, failCount: failCount, cycle: $0)
+                for start in [0, 5, 1_000] {
+                    let eligible = (start ..< start + ceiling).contains {
+                        !defers(bucket: bucket, failCount: failCount, cycle: $0)
+                    }
+                    XCTAssertTrue(eligible, "bucket \(bucket) at failCount \(failCount) from cycle \(start) "
+                        + "never became eligible within \(ceiling) cycles")
                 }
-                XCTAssertTrue(eligible,
-                              "bucket \(bucket) at failCount \(failCount) never became eligible "
-                                  + "within \(period) cycles")
             }
         }
     }
 
-    /// A transient failure followed by advancing cycles must produce another
-    /// attempt.
-    func testATransientFailureRetriesOnceTheCycleAdvances() {
-        let bucket = CloudKitSyncManager.stableRetryBucket(for: Self.workedExampleUUID)
-        var attempts = 0
-        for cycle in 0 ..< 16 where !defers(bucket: bucket, failCount: 1, cycle: cycle) {
-            attempts += 1
+    /// The period doubles with each failure and stops at the ceiling.
+    func testThePeriodDoublesThenStopsAtTheCeiling() {
+        XCTAssertEqual(CloudKitSyncManager.backoffPeriod(failCount: 1), 2)
+        XCTAssertEqual(CloudKitSyncManager.backoffPeriod(failCount: 2), 4)
+        XCTAssertEqual(CloudKitSyncManager.backoffPeriod(failCount: 3), 8)
+        XCTAssertEqual(CloudKitSyncManager.backoffPeriod(failCount: 5), 32)
+        for failCount in [6, 7, 63, 64, 200, Int.max] {
+            XCTAssertEqual(CloudKitSyncManager.backoffPeriod(failCount: failCount),
+                           CloudKitSyncManager.maxBackoffCycles,
+                           "failCount \(failCount) must stop at the ceiling without overflowing")
         }
-        XCTAssertGreaterThan(attempts, 1, "A transient failure never retried")
     }
 
-    /// Backoff must still back off — retrying every cycle would hammer
-    /// CloudKit, which is what the mechanism exists to prevent.
+    /// Backoff still backs off: retrying every cycle would hammer CloudKit.
     func testHigherFailureCountsRetryLessOften() {
-        let bucket = 5
-        let window = 256
         func attempts(failCount: Int) -> Int {
-            (0 ..< window).filter { !defers(bucket: bucket, failCount: failCount, cycle: $0) }.count
+            (0 ..< 256).filter { !defers(bucket: 5, failCount: failCount, cycle: $0) }.count
         }
-        XCTAssertGreaterThan(attempts(failCount: 1), attempts(failCount: 3))
-        XCTAssertGreaterThan(attempts(failCount: 3), attempts(failCount: 6))
-        XCTAssertGreaterThan(attempts(failCount: 6), 0, "Backoff must not become a permanent stop")
+        XCTAssertEqual(attempts(failCount: 1), 128)
+        XCTAssertEqual(attempts(failCount: 3), 32)
+        XCTAssertEqual(attempts(failCount: 6), 8)
     }
 
-    /// Sessions that fail together must not all retry on the same cycle — the
-    /// reason a per-session offset is in the expression at all.
+    /// Sessions that fail together do not all retry on the same cycle.
     func testDistinctSessionsAreSpreadAcrossCycles() {
-        let period = 8
-        let cycles = Set((0 ..< 64).map { bucket in
-            (0 ..< period).first { !defers(bucket: bucket, failCount: 3, cycle: $0) }
+        let firstRetry = Set((0 ..< 64).map { bucket in
+            (0 ..< 8).first { !defers(bucket: bucket, failCount: 3, cycle: $0) }
         })
-        XCTAssertGreaterThan(cycles.count, 1, "Every session retried on the same cycle")
-    }
-
-    /// A large failure count must not shift past Int width.
-    func testTheExponentIsCappedBeforeShifting() {
-        for failCount in [7, 32, 63, 200] {
-            XCTAssertNoThrow(_ = defers(bucket: 3, failCount: failCount, cycle: 1))
-        }
+        XCTAssertEqual(firstRetry.count, 8, "Sessions failing together must spread over the whole period")
     }
 }

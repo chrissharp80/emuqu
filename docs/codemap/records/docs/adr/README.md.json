@@ -1,15 +1,15 @@
 {
  "file": "docs/adr/README.md",
  "hash": "e3b0c44298fc1c14",
- "role": "Index of ADRs 001-006 with inline summaries of 001 (encryption fallback), 002 (CI scopes: unit on every pull request and push, full on demand), 003 (concurrency allowlist) and pointers to 004-006.",
+ "role": "Index of ADRs 001-007 with inline summaries of 001 (encryption fallback), 002 (CI scopes: unit on every pull request and push, full on demand), 003 (concurrency allowlist), 006 (Swift 6 mode) and 007 (one target, composition roots), and pointers to 004-007.",
  "types": [],
  "state": [],
  "toplevel": "",
  "units": [
   {
    "key": "§ Architecture decision records",
-   "hash": "a1cbf9d8fc7f0d8b",
-   "does": "Index table mapping ADR 001-006 to where reasoning lives (PendingEncryptionLedger.swift, CI_POSTURE.md, check_unchecked_sendable.sh, adr files); says the first three are written up next to the code they govern. All linked files exist.",
+   "hash": "c948d3e6b75cf92d",
+   "does": "Says the ADRs cover seven decisions and names them; index table mapping ADR 001-007 to where reasoning lives (PendingEncryptionLedger.swift, CI_POSTURE.md, check_unchecked_sendable.sh, adr files), ADR 001 titled as local storage falling back then repairing while a CloudKit upload fails closed; says the first three are written up next to the code they govern.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)",
@@ -38,8 +38,8 @@
     ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64",
     ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "197c125d8c622cd8",
     ".github/workflows/gates.yml::step script-gates/Source hygiene guards": "a81cca29350b6c3f",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "485e43dbca59f728",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "e97adee60a9352fe",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "d25458414f1bd37b",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "d11072f0ae247cd7",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptOne(_:in:)": "9d0d7818e676156f",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptPendingSessions(in:)": "7691596c91c3e28b",
     "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:)": "b2d76b7ce6014d3e",
@@ -55,8 +55,8 @@
   },
   {
    "key": "§ Architecture decision records > 001 — Sensitive storage falls back, then repairs",
-   "hash": "b9b95ccee9b8d065",
-   "does": "Claims: when EncryptionManager is unavailable (before first unlock), archive writes plaintext with .completeFileProtection, records the session in PendingEncryptionLedger, and reencryptPendingSessions() rewrites it encrypted at the next launch where the key is reachable; the window is 'bounded by one app launch'; only a throwing encrypt() is logged at .error, while the key-unavailable fallback is not logged and shows only as the ledger entry. Verified the write options (Archive+PendingEncryption.swift:18-30), encryptOrReportFailure (Archive+SessionCodec.swift:113-126: isAvailable guard returns nil silently, catch logs .error), and the launch-time repair called from ArchiveMigrations.runDeferredMigrations.",
+   "hash": "91db05f792230fe1",
+   "does": "Claims: with EncryptionManager's key unreachable (before first unlock), whole files (archive sessions, one-shot raw backups) are written plain with .completeFileProtectionUnlessOpen and recorded in PendingEncryptionLedger (.session/.rawBackup); streamed files (raw RR points, workout streams) keep completeUntilFirstUserAuthentication with plain lines, recorded (.rawBackup/.workoutTrack), because locked overnight appends need it; the archive index is written plain. Repairs at the next launch with the key: reencryptPendingSessions, RawRRBackup.reencryptPendingBackups, WorkoutTrackBackup.reencryptPendingTracks (line by line), SessionArchive.resealPlainIndexIfNeeded; an id leaves the ledger once no plaintext is left. CloudKit uploads fail closed (CloudPayloadCodec.sealForUpload throws encryptionUnavailable, retried later); rebuildable caches (UI state, training metrics) skip the write. Only a throwing encrypt() is logged; the key-unavailable fallback shows only as the ledger entry.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)",
@@ -67,21 +67,33 @@
     "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func encryptOrReportFailure(_:)",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reencryptPendingBackups()"
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reencryptPendingBackups()",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resealPlainIndexIfNeeded()",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.sealedOrPlain(_:)",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)",
+    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.persist()",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.writeSnapshot(_:to:seal:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "485e43dbca59f728",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "e97adee60a9352fe",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.writeSnapshot(_:to:seal:)": "23663fe8c1854780",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resealPlainIndexIfNeeded()": "35c80740ec98eb57",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.sealedOrPlain(_:)": "a00359c9ff3d4dd6",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "d25458414f1bd37b",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "d11072f0ae247cd7",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptArchived(_:in:)": "34c0d7e7f4546552",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptOne(_:in:)": "9d0d7818e676156f",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptPendingSessions(in:)": "7691596c91c3e28b",
     "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func SessionArchive.SessionFileCodec.encodeForDisk(_:encoder:)": "b2d76b7ce6014d3e",
     "Emuqu/Sources/Storage/Archive+SessionCodec.swift::func encryptOrReportFailure(_:)": "ccfccb4b9320771f",
-    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "e6099c40e631f44d",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reencryptPendingBackups()": "adb9e6a4a9583739"
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)": "88b5cfd374d70c6c",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "471ac438c2a3e780",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reencryptPendingBackups()": "07f26c6929ec40b9",
+    "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.persist()": "cfd31f4deb858931",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()": "5cabfb39cb9c5dcd"
    }
   },
   {
@@ -138,6 +150,54 @@
    "branches": [],
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/No unowned references": "47cd48e03e74800a"
+   }
+  },
+  {
+   "key": "§ Architecture decision records > 006 — Swift 6 language mode is the concurrency gate",
+   "hash": "a9e7c646a31eabda",
+   "does": "Summary of ADR 006: every build configuration compiles in Swift 6 mode with complete strict concurrency, so a race diagnostic is a compile error; the only escapes are ADR 003's allowlist; check_strict_concurrency_enabled.sh fails CI if a configuration leaves the mode. Consistent with 006-swift-6-strict-concurrency.md.",
+   "entry": null,
+   "calls": [
+    "scripts/check_strict_concurrency_enabled.sh::fn fail",
+    ".github/workflows/ci.yml::step strict-concurrency/Strict concurrency is switched on"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    ".github/workflows/ci.yml::step strict-concurrency/Strict concurrency is switched on": "ce44a5cbbe2657c3",
+    "scripts/check_strict_concurrency_enabled.sh::fn fail": "8d5dfcf6ca16c0ba"
+   }
+  },
+  {
+   "key": "§ Architecture decision records > 007 — One app target, one composition root",
+   "hash": "becb4c15d007742a",
+   "does": "Summary of ADR 007: the iPhone app is one target and module with its layers as directories, the Watch app, unit tests and UI tests are separate targets; services are reached through AppDependencies (WatchDependencies on the Watch) whose overrides let a test substitute any of them; .shared is read only in those two files, enforced by check_no_shared_outside_root.sh. Consistent with 007-single-target-composition-root.md.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var DependenciesKey.defaultValue",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
+    "EmuquWatch Watch App/WatchDependencies.swift::var WatchDependencies.sessionManager",
+    "EmuquWatch Watch App/WatchDependencies.swift::var WatchDependencies.strapConnector",
+    "Makefile::target shared-root-guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "f618f94a3a7cb84c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()": "e39e2f3e3a5e3aca",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var DependenciesKey.defaultValue": "2ac01458964f7b92",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "daa043f0af306c2c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a",
+    "EmuquWatch Watch App/WatchDependencies.swift::var WatchDependencies.sessionManager": "808974657b47ac82",
+    "EmuquWatch Watch App/WatchDependencies.swift::var WatchDependencies.strapConnector": "9fef76c83ae90fb0",
+    "Makefile::target shared-root-guard": "a9263da85d483554"
    }
   }
  ],

@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift",
- "hash": "8633f31c73deb510",
+ "hash": "458b09fd56968d5c",
  "role": "Push half of CloudKit session sync: batch selection with exponential backoff, record preparation (HealthKit strip, compress, encrypt, temp CKAsset), conflict/zone/prep-failure handling, zone management, live-backup forwarders and the timeout/no-progress watchdog helpers used by the full sync.",
  "types": [
   "CloudSyncError: enum — LocalizedError with single case encryptionUnavailable (cloud key missing; fail closed)",
@@ -10,9 +10,9 @@
  ],
  "state": [
   "mem:CloudKitSyncManager.pushBatchLimit (static let 25)",
-  "mem:CloudKitSyncManager.maxBackoffCycles (static let 32)",
+  "mem:CloudKitSyncManager.maxBackoffCycles (nonisolated static let 32)",
   "mem:CloudKitSyncManager.pushCycleCounter (private static var, MainActor, in-memory only, reset each launch)",
-  "mem:CloudKitSyncManager.maxBackoffExponent (static let 6)",
+  "mem:CloudKitSyncManager.maxBackoffExponent (nonisolated static let 6)",
   "file:<tmp>/ck_<sessionId>_<8hex>.gz (CKAsset temp file, completeFileProtectionUntilFirstUserAuthentication, removed by cleanupTempAsset)",
   "ck:HRVSession record fields written: sessionId, startDate, isDeleted=0, modifiedAt (via CloudKitSessionFreshness.stampRecord), sessionData (CKAsset)"
  ],
@@ -260,17 +260,19 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.shouldDeferForBackoff(_:)": "92876fae7752d9ab",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.shouldDeferForBackoff(_:)": "bd212f7fbc98da5b",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.quarantinedSessionIds": "912c8598aa7d834a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func CloudKitSyncManager.shouldDeferForBackoff(_:)",
-   "hash": "f76043acc8bbdb75",
-   "does": "Returns true when a session with failures should sit out this cycle: period = min(2^min(failCount,6), 32), offset = stableRetryBucket % period, defer unless (pushCycleCounter + offset) % period == 0.",
+   "hash": "5285c23317556293",
+   "does": "Returns defersForBackoff(failCount:bucket:cycle:) for the session, with its stored upload failure count (0 when none is recorded), its stableRetryBucket and the current pushCycleCounter.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.defersForBackoff(failCount:bucket:cycle:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.stableRetryBucket(for:)"
    ],
    "reads": [
@@ -280,18 +282,46 @@
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "?? — no failure count recorded",
-     "effect": "failCount defaults to 0"
-    },
-    {
      "at": "+2",
-     "cond": "failCount == 0",
-     "effect": "return false (never deferred); else compute period/offset test"
+     "cond": "?? — no failure count recorded",
+     "effect": "failCount 0 (never deferred)"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.defersForBackoff(failCount:bucket:cycle:)": "79648f752c97c037",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.stableRetryBucket(for:)": "91c292ac0d6dfa42"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.backoffPeriod(failCount:)",
+   "hash": "9c9286c035f4de14",
+   "does": "Returns the number of push cycles between attempts for a session that has failed failCount times: 2^failCount with the exponent clamped to 0...maxBackoffExponent (6) before shifting, and the result capped at maxBackoffCycles (32).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudKitSyncManager.defersForBackoff(failCount:bucket:cycle:)",
+   "hash": "815ef535294ee45c",
+   "does": "Pure retry decision: false when failCount is 0 or less; otherwise period = backoffPeriod(failCount:) and the session defers unless (cycle + bucket % period) % period == 0, so it is tried once per period, on a cycle offset by its bucket.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.backoffPeriod(failCount:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "failCount <= 0",
+     "effect": "return false (never deferred); otherwise apply the period test"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.backoffPeriod(failCount:)": "c2255785020df0c3"
    }
   },
   {
@@ -614,7 +644,7 @@
   },
   {
    "key": "func CloudKitSyncManager.stableRetryBucket(for:)",
-   "hash": "b651d87850fea902",
+   "hash": "70a7547db07d9739",
    "does": "Returns a stable per-UUID integer from the first three bytes of the UUID (b0 | b1<<8 | b2<<16), used as backoff jitter that does not reshuffle across launches (the failure counts themselves are in memory only).",
    "entry": null,
    "calls": [],
@@ -692,52 +722,31 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.compressedPayload(for:)": "70cc5adf4eb618c8",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.compressedPayload(for:)": "1d56bd4d249f2025",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.writeAssetFile(_:sessionId:)": "cdcf1ff50857ec77"
    }
   },
   {
    "key": "func CloudKitSyncManager.compressedPayload(for:)",
-   "hash": "39d3603e2114c6a7",
-   "does": "Strips the session via CloudSessionPayload.uploadable, JSON-encodes it (ISO-8601 dates, sorted keys), compresses it and encrypts it with the cloud key.",
+   "hash": "ab8602be80f5050e",
+   "does": "Strips the session via CloudSessionPayload.uploadable, JSON-encodes it (ISO-8601 dates, sorted keys), compresses it and seals it with CloudPayloadCodec.sealForUpload; throws CloudSyncError.encryptionUnavailable when no cloud key can be read or made, and encode/compress errors as they are.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)",
     "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.encryptedForCloud(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.encryptedForCloud(_:)": "cb4b8fa6ff80ab03",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "b4d5293d92fd3be4"
-   }
-  },
-  {
-   "key": "func CloudKitSyncManager.encryptedForCloud(_:)",
-   "hash": "d4577d8d26a28973",
-   "does": "Encrypts the compressed payload with CloudPayloadCodec (iCloud-Keychain synchronizable key); throws CloudSyncError.encryptionUnavailable when no usable key exists (no plaintext fallback).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::var CloudPayloadCodec.hasUsableKey",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)"
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)"
    ],
    "reads": [
-    "kc:CloudPayloadCodec cloud key"
+    "kc:com.chrissharp.flowrecovery.cloud (synchronizable generic passwords, accounts cloud-payload-key-v1 and cloud-payload-key-id-<UUID>)"
    ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "CloudPayloadCodec.hasUsableKey is false",
-     "effect": "throw encryptionUnavailable; else return encoded ciphertext"
-    }
+   "writes": [
+    "kc:com.chrissharp.flowrecovery.cloud (synchronizable generic passwords, accounts cloud-payload-key-v1 and cloud-payload-key-id-<UUID>) (new key when none)"
    ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "fe1f3772ccd7e6b5",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::var CloudPayloadCodec.hasUsableKey": "b689df1a23a0f576"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)": "88b5cfd374d70c6c",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "b4d5293d92fd3be4"
    }
   },
   {
@@ -879,7 +888,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.delete(sessionId:)": "0c712756c1e1234f",
+    "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.delete(sessionId:)": "a78d4f34f328c07c",
     "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::init CloudKitLiveBackupManager(settingsManager:ensureZone:)": "f4fe4c8a6d976633"
    }
   },

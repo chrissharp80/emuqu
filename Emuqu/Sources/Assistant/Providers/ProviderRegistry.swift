@@ -23,8 +23,25 @@ final class ProviderRegistry {
     let grok: GrokProvider
     let deepseek: DeepSeekProvider
 
+    /// The order every provider list follows: Apple first, then the cloud
+    /// providers. Fallback and routing pick the first match in it, so the
+    /// order is behaviour.
+    static let providerOrder: [ProviderID] = [.apple, .anthropic, .openai, .gemini, .grok, .deepseek]
+
     var allProviders: [AIProvider] {
-        [apple, anthropic, openai, gemini, grok, deepseek]
+        Self.providerOrder.map { registeredProvider($0) }
+    }
+
+    /// The registry's one instance of the provider with `id`.
+    func registeredProvider(_ id: ProviderID) -> AIProvider {
+        switch id {
+        case .apple: return apple
+        case .anthropic: return anthropic
+        case .openai: return openai
+        case .gemini: return gemini
+        case .grok: return grok
+        case .deepseek: return deepseek
+        }
     }
 
     /// Friendly display name for a model identified by its (provider, apiID)

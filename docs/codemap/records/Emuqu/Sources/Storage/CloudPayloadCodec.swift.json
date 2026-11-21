@@ -1,9 +1,9 @@
 {
  "file": "Emuqu/Sources/Storage/CloudPayloadCodec.swift",
  "hash": "059f398b50b7768b",
- "role": "The single encrypted envelope for every iCloud payload (sessions, live backups, settings): EMQC magic + version byte + AES-GCM combined box sealed with a synchronizable iCloud-Keychain cloud key; decode also opens legacy FR (EncryptionManager archive key) payloads and passes unframed legacy bytes through.",
+ "role": "The single encrypted envelope for every iCloud payload (sessions, live backups, settings): EMQC magic + version byte + AES-GCM combined box sealed with a synchronizable iCloud-Keychain cloud key. sealForUpload is the upload entry point and fails closed (CloudSyncError.encryptionUnavailable) when no key can be read or made; decode also opens legacy FR (EncryptionManager archive key) payloads and passes unframed legacy bytes through.",
  "types": [
-  "CloudPayloadCodec: enum — encode/decode, multi-key Keychain management",
+  "CloudPayloadCodec: enum — sealForUpload/encode/decode, multi-key Keychain management",
   "CloudPayloadCodec.CodecError: enum — keyUnreadable/malformedEnvelope/unsupportedVersion/noMatchingKey"
  ],
  "state": [
@@ -51,12 +51,13 @@
    }
   },
   {
-   "key": "var CloudPayloadCodec.hasUsableKey",
-   "hash": "40f5411c40e7cc5f",
-   "does": "Returns true when a writing key exists or can be created (calls writingKey, which creates a key on genuine absence); logs and returns false on Keychain read/add failure.",
+   "key": "func CloudPayloadCodec.sealForUpload(_:)",
+   "hash": "020406da4d455e15",
+   "does": "Seals a payload bound for CloudKit (session records, live backups, settings): gets writingKey() (created when the device has none) and returns seal(_:with:) under it. When no key can be read or made it logs the error and throws CloudSyncError.encryptionUnavailable, so nothing is uploaded unencrypted.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.seal(_:with:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
@@ -67,24 +68,25 @@
    ],
    "branches": [
     {
-     "at": "+4",
-     "cond": "writingKey threw",
-     "effect": "log error, return false; else true"
+     "at": "+3",
+     "cond": "writingKey() throws",
+     "effect": "log the error and throw CloudSyncError.encryptionUnavailable; otherwise seal under the key"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.seal(_:with:)": "6360506784c81a5e",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "01ad8aa9e04c47de",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func CloudPayloadCodec.encode(_:)",
-   "hash": "e0d95e8d4812fb96",
-   "does": "Seals payload with AES-GCM under the writing key and returns magic + version + combined box.",
+   "hash": "b307c9aea438a554",
+   "does": "Seals the payload with seal(_:with:) under writingKey() (created when the device has none); key and seal errors propagate unchanged.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()",
-    "ext:AES.GCM.seal"
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.seal(_:with:)"
    ],
    "reads": [
     "kc:com.chrissharp.flowrecovery.cloud (synchronizable generic passwords, accounts cloud-payload-key-v1 and cloud-payload-key-id-<UUID>)"
@@ -92,6 +94,22 @@
    "writes": [
     "kc:com.chrissharp.flowrecovery.cloud (synchronizable generic passwords, accounts cloud-payload-key-v1 and cloud-payload-key-id-<UUID>) (new key when none)"
    ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.seal(_:with:)": "6360506784c81a5e",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "01ad8aa9e04c47de"
+   }
+  },
+  {
+   "key": "func CloudPayloadCodec.seal(_:with:)",
+   "hash": "f666124e56398b6c",
+   "does": "Seals the payload with AES-GCM under the given key and returns magic EMQC + version byte + the combined box.",
+   "entry": null,
+   "calls": [
+    "ext:AES.GCM.seal"
+   ],
+   "reads": [],
+   "writes": [],
    "branches": [
     {
      "at": "+2",
@@ -99,9 +117,7 @@
      "effect": "throw malformedEnvelope (unreachable with the default 12-byte nonce)"
     }
    ],
-   "deps": {
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.writingKey()": "01ad8aa9e04c47de"
-   }
+   "deps": {}
   },
   {
    "key": "func CloudPayloadCodec.decode(_:)",

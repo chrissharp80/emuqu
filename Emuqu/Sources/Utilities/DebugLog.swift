@@ -298,9 +298,9 @@ final class DebugLogger {
     /// line lands on disk the user can export it (Settings →
     /// Troubleshooting → Export logs) and the file leaves the device.
     /// We must not bake HRV / heart rate / sleep / location values
-    /// into a shareable artefact. The scrubber preserves the metric
-    /// *name* and the unit so the line stays diagnostic ("RMSSD: ms"
-    /// is still useful triage), but replaces the *value* with
+    /// into a shareable artefact. The scrubber keeps the metric *name* so
+    /// the line stays diagnostic ("RMSSD: <redacted>" is still useful
+    /// triage), and replaces the *value* and any unit after it with
     /// `<redacted>` so the export carries no PHI.
     nonisolated private func flushPendingLines() {
         let lines = pendingLines.withLock { lines -> [String] in
@@ -364,14 +364,14 @@ final class DebugLogger {
     // MARK: - PHI scrub
 
     /// Replace numeric values that look like HRV / HR / sleep / location
-    /// readings with `<redacted>` while keeping the metric name + unit
-    /// intact. Conservative: only matches well-formed `<key>: <number>
+    /// readings, with any unit that follows, by `<redacted>`, keeping the
+    /// metric name and its separator. Conservative: only matches well-formed `<key>: <number>
     /// <unit>` patterns common in our log lines, plus bare-number RMSSD
     /// / SDNN sweeps. False positives would degrade triage usefulness;
     /// false negatives leak PHI. The current pattern set was chosen by
     /// grep'ing 100% of debugLog call sites for value emissions.
     nonisolated static func scrubPHI(_ line: String) -> String {
-        var out = replacing(line, "(?i)(\\b\(metricPattern)\\b\(separatorPattern))[-+]?\\d+(?:\\.\\d+)?\(unitPattern)", with: "$1<redacted>")
+        var out = replacing(line, metricValuePattern, with: "$1<redacted>")
         out = redactValueChains(in: out)
         // Bare lat/lon coordinate pairs (lat=37.123 lon=-122.456 etc.)
         return replacing(
@@ -395,17 +395,26 @@ final class DebugLogger {
     /// into the user-exportable debug_log.txt.
     nonisolated private static let separatorPattern = #"\s*(?:[:=]|->|→|<|>)?\s*"#
 
+    /// A metric name, a separator and a number with an optional unit; the
+    /// number is what `scrubPHI` replaces, group 1 is what it keeps.
+    nonisolated static let metricValuePattern =
+        "(?i)(\\b\(metricPattern)\\b\(separatorPattern))[-+]?\\d+(?:\\.\\d+)?\(unitPattern)"
+
+    /// A number joined to an already-redacted value by an arrow, comparator,
+    /// `to`, `vs`, comma or slash; `redactValueChains` replaces the number.
+    nonisolated static let valueChainPattern =
+        "(?i)(<redacted>\\s*(?:->|→|<|>|to|vs\\.?|,|/)\\s*)[-+]?\\d+(?:\\.\\d+)?\(unitPattern)"
+
     /// Value chains: a further number joined to an already-redacted value by
     /// an arrow / comparator (e.g. "RMSSD 42.0→51.3" or "prior 55 → new 61").
     /// Loop until stable so 3+ link chains are fully covered.
     nonisolated private static func redactValueChains(in line: String) -> String {
-        let chain = "(<redacted>\\s*(?:->|→|<|>|to|vs\\.?|,|/)\\s*)[-+]?\\d+(?:\\.\\d+)?\(unitPattern)"
         var out = line
         var previous = ""
         var guardCount = 0
         while previous != out && guardCount < 8 {
             previous = out
-            out = replacing(out, "(?i)\(chain)", with: "$1<redacted>")
+            out = replacing(out, valueChainPattern, with: "$1<redacted>")
             guardCount += 1
         }
         return out
@@ -527,17 +536,28 @@ final class DebugLogger {
     /// behind after "Delete All My Data", the next flush wrote the pending
     /// lines into a new log file and Recent Problems kept listing pre-wipe
     /// messages.
-    func clear() {
+    ///
+    /// The file is removed on `queue`, after any flush already running, and
+    /// the caller waits for it. True when no log file is left; a failure is
+    /// reported through NSLog (logging it here would write to the file being
+    /// removed).
+    @discardableResult
+    func clear() -> Bool {
         mutateRingBuffer { $0.removeAll() }
         errorCatalog.removeAll()
         pendingLines.withLock { $0.removeAll() }
         pendingEntries.withLock { $0.removeAll() }
-        queue.async { [logFileURL] in
-            do {
-                try FileManager.default.removeItem(at: logFileURL)
-            } catch {
-                NSLog("[DebugLogger] removing the log file failed: %@", error.localizedDescription)
-            }
+        return queue.sync { [logFileURL] in Self.removeLogFile(at: logFileURL) }
+    }
+
+    nonisolated private static func removeLogFile(at url: URL) -> Bool {
+        guard FileManager.default.fileExists(atPath: url.path) else { return true }
+        do {
+            try FileManager.default.removeItem(at: url)
+            return true
+        } catch {
+            NSLog("[DebugLogger] removing the log file failed: %@", error.localizedDescription)
+            return false
         }
     }
 

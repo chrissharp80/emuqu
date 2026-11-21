@@ -30,7 +30,13 @@ import Foundation
 final class WebSearchService: Sendable {
     static let shared = WebSearchService()
 
-    private init() {}
+    /// Sends the Tavily request: `HTTPTransport.live` in the app, a stub in
+    /// tests.
+    private let transport: HTTPTransport
+
+    init(transport: HTTPTransport = .live) {
+        self.transport = transport
+    }
 
     /// Curated authority-domain whitelist for "research" intent searches.
     /// Anchored to peer-reviewed sources and established training-science
@@ -146,10 +152,17 @@ final class WebSearchService: Sendable {
         guard let apiKey = AppDependencies.current.providers.apiKeyStore.serviceKey(for: .tavilyWebSearch), !apiKey.isEmpty else {
             throw SearchError.missingKey
         }
+        return try await send(query: query, intent: intent, maxResults: maxResults, apiKey: apiKey)
+    }
+
+    /// One Tavily search with `apiKey`, past the settings and key checks:
+    /// builds the request, sends it through `transport`, maps the HTTP
+    /// status and parses the results. A transport error is thrown unchanged.
+    func send(query: String, intent: Intent, maxResults: Int, apiKey: String) async throws -> [Result] {
         let request = try Self.tavilyRequest(
             query: query, intent: intent, maxResults: maxResults, apiKey: apiKey
         )
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await transport.send(request)
         try Self.checkStatus(response)
         return try Self.parse(data: data)
     }
@@ -175,7 +188,7 @@ final class WebSearchService: Sendable {
         request.timeoutInterval = 12
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
         return request
     }
 

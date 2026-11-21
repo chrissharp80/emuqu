@@ -25,35 +25,17 @@
   },
   {
    "key": "func DeterministicIntentTests.anyPatternMatches(_:)",
-   "hash": "5ad3455ac3900de3",
-   "does": "Normalises the utterance (lowercase, trim whitespace, trim .?!, at the edges) and returns true when any compiled trigger regex of any DeterministicIntent pattern matches.",
+   "hash": "f52506ba908110d5",
+   "does": "True when DeterministicIntent.matchedPattern(for:), the matcher tryMatch uses, finds a pattern for the utterance.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)"
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.matchedPattern(for:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "for each pattern",
-     "effect": "checks its compiled triggers"
-    },
-    {
-     "at": "+6",
-     "cond": "for each regex",
-     "effect": "tests firstMatch"
-    },
-    {
-     "at": "+8",
-     "cond": "regex matches",
-     "effect": "true: return true; false: continue; after all: return false"
-    }
-   ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "301ee561eb92c688"
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.matchedPattern(for:)": "83c9732b69a47acc"
    }
   },
   {
@@ -70,9 +52,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "187ba10408a36e8b",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "301ee561eb92c688",
-    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "79db7f2e776f0c4a"
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "7e77daaa55b5b288"
    }
   },
   {
@@ -89,9 +71,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "187ba10408a36e8b",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "301ee561eb92c688",
-    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "79db7f2e776f0c4a"
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "7e77daaa55b5b288"
    }
   },
   {
@@ -108,9 +90,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "187ba10408a36e8b",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "301ee561eb92c688",
-    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "79db7f2e776f0c4a"
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "7e77daaa55b5b288"
    }
   },
   {
@@ -127,9 +109,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "187ba10408a36e8b",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "301ee561eb92c688",
-    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "79db7f2e776f0c4a"
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "7e77daaa55b5b288"
    }
   },
   {
@@ -146,9 +128,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "187ba10408a36e8b",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "301ee561eb92c688",
-    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "79db7f2e776f0c4a"
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "7e77daaa55b5b288"
    }
   },
   {
@@ -165,9 +147,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "187ba10408a36e8b",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "301ee561eb92c688",
-    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "79db7f2e776f0c4a"
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "7e77daaa55b5b288"
    }
   },
   {
@@ -184,9 +166,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "187ba10408a36e8b",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "301ee561eb92c688",
-    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "79db7f2e776f0c4a"
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "7e77daaa55b5b288"
    }
   },
   {
@@ -203,9 +185,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "187ba10408a36e8b",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "301ee561eb92c688",
-    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "79db7f2e776f0c4a"
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "7e77daaa55b5b288"
    }
   },
   {
@@ -222,9 +204,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "187ba10408a36e8b",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "301ee561eb92c688",
-    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "79db7f2e776f0c4a"
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "7e77daaa55b5b288"
    }
   },
   {
@@ -241,9 +223,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "187ba10408a36e8b",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "301ee561eb92c688",
-    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "79db7f2e776f0c4a"
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "7e77daaa55b5b288"
    }
   },
   {
@@ -260,9 +242,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "187ba10408a36e8b",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "301ee561eb92c688",
-    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "79db7f2e776f0c4a"
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "7e77daaa55b5b288"
    }
   },
   {
@@ -279,9 +261,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "187ba10408a36e8b",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "301ee561eb92c688",
-    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "79db7f2e776f0c4a"
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "7e77daaa55b5b288"
    }
   },
   {
@@ -298,9 +280,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "187ba10408a36e8b",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "301ee561eb92c688",
-    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "79db7f2e776f0c4a"
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "7e77daaa55b5b288"
    }
   },
   {
@@ -324,11 +306,11 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "187ba10408a36e8b",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.matches(_:_:)": "97d4d663a9866f7d",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.normalize(_:)": "e621833a515b3262",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.todaysOvernightEntry(now:archive:)": "2bffe9a20054f303",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "c2aeaf0df6675cea",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "775d621e9e4bc2e9",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "301ee561eb92c688",
     "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.emptyContext()": "1a84a58bdf481f3c"
    }
@@ -350,10 +332,10 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "4f034ec5ae2c40a4",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.compiledTriggers(forPatternID:triggers:)": "187ba10408a36e8b",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.matches(_:_:)": "97d4d663a9866f7d",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.normalize(_:)": "e621833a515b3262",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "c2aeaf0df6675cea",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "775d621e9e4bc2e9",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::var DeterministicIntent.Pattern.compiled": "301ee561eb92c688",
     "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.emptyContext()": "1a84a58bdf481f3c"
    }

@@ -1,7 +1,7 @@
 {
  "file": "EmuquTests/RRModelsTests.swift",
  "hash": "f9cd513f2ec0cb26",
- "role": "XCTest suite for core value models: RRPoint, RRSeries timing/gap helpers, ArtifactFlags, TimeDomainMetrics codable/legacy decoding, FrequencyDomainMetrics normalised units, TrainingContext ACR and snapshot construction, TrainingLoad.daysSinceHardWorkout, SessionDataMigrations.recalibratedContext, SessionType, ReadingTag, DeviceProvenance and OfflineSession.",
+ "role": "XCTest suite for core value models: RRPoint, RRSeries timing/gap helpers, ArtifactFlags, TimeDomainMetrics codable/legacy decoding, FrequencyDomainMetrics normalised units, TrainingContext ACR and snapshot construction, TrainingLoad.daysSinceHardWorkout, SessionDataMigrations.recalibratedContext, SessionType, ReadingTag and DeviceProvenance.",
  "types": [
   "RRModelsTests: class — XCTestCase for RR/HRV model types"
  ],
@@ -775,44 +775,6 @@
    "writes": [],
    "branches": [],
    "deps": {}
-  },
-  {
-   "key": "func RRModelsTests.testOfflineSessionNeedsSync()",
-   "hash": "f30446298822e609",
-   "does": "Asserts a new OfflineSession needsSync until syncedAt is set.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)": "f93a1b0b5def666a",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "1b80916fca3633a0"
-   }
-  },
-  {
-   "key": "func RRModelsTests.testOfflineSessionMaxRetries()",
-   "hash": "87b9585d0825531e",
-   "does": "Asserts needsSync is false after 3 sync attempts.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init OfflineSession(session:)": "f93a1b0b5def666a",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var OfflineSession.needsSync": "1b80916fca3633a0"
-   }
   }
  ],
  "deps": {}

@@ -1,10 +1,11 @@
 {
  "file": "EmuquTests/ProviderStreamTests.swift",
- "hash": "393ce416a4b3e648",
- "role": "XCTest suites over the cloud providers' streams and the chat layer's handling of a reply that failed partway: ProviderStreamTests checks ProviderStream.make's error mapping (URLError → .network / .cancelled, CancellationError → .cancelled, provider and unrelated errors pass through), normal event delivery, and that a consumer leaving cancels the operation; OpenAICompatibleReasoningTests checks the reasoning fields OpenAICompatibleStreamer.requestFor writes for DeepSeek (thinking disabled), OpenAI (reasoning_effort none) and Grok (neither); OpenAICompatibleEndOfStreamTests, GeminiEndOfStreamTests and AnthropicEndOfStreamTests replay in-memory SSE lines through each provider's consumeSSE (via SSEReplay) and check how a reply ends: a clean close without the terminal signal is a dropped connection, the terminal signal completes, a malformed event throws, a token-cap stop ends with '…', a safety stop is a non-fallbackable .blockedReply, a repeated finish reason adds one '…', a cut or unparseable tool call is never emitted, a mid-stream server failure is the overloaded modelUnavailable, and (Gemini, Anthropic) usage that arrived before a failure is still reported; for Anthropic, a pause_turn reply is sent back with its raw content and continued into one reply, at most maxPauseContinuations times. EndOfStreamCancellationTests checks that each reader, cancelled before its lines end cleanly, throws CancellationError rather than a dropped connection. PartialReplyTests checks ChatTurn.incomplete (old transcripts decode as complete, the mark survives storage, truncateForSend withholds it), the fallback splice (AssistantToolRunner.settle), the fact-extraction gate (AssistantTurnRouter.factExtractionExchange) and that AssistantViewModel.collect returns nothing for a failed or timed-out stream.",
+ "hash": "1cc1aa8c2ac2645c",
+ "role": "XCTest suites over the cloud providers' streams and the chat layer's handling of a reply that failed partway: ProviderStreamTests checks ProviderStream.make's error mapping (URLError → .network / .cancelled, CancellationError → .cancelled, provider and unrelated errors pass through), normal event delivery, and that a consumer leaving cancels the operation; ProviderStatusFailureTests checks each provider's production non-2xx mapping (statusFailure): the 300-character body cap, OpenAI's 400 param-model case, Gemini's API_KEY_INVALID auth failure, credit exhaustion ahead of the status, and the shared auth/rate-limit/overloaded statuses; OpenAICompatibleReasoningTests checks the reasoning fields OpenAICompatibleStreamer.requestFor writes for DeepSeek (thinking disabled), OpenAI (reasoning_effort none) and Grok (neither); OpenAICompatibleEndOfStreamTests, GeminiEndOfStreamTests and AnthropicEndOfStreamTests replay in-memory SSE lines through each provider's consumeSSE (via SSEReplay) and check how a reply ends: a clean close without the terminal signal is a dropped connection, the terminal signal completes, a malformed event throws, a token-cap stop ends with '…', a safety stop is a non-fallbackable .blockedReply, a repeated finish reason adds one '…', a cut or unparseable tool call is never emitted, a mid-stream server failure is the overloaded modelUnavailable, and (Gemini, Anthropic) usage that arrived before a failure is still reported; for Anthropic, a pause_turn reply is sent back with its raw content and continued into one reply, at most maxPauseContinuations times. EndOfStreamCancellationTests checks that each reader, cancelled before its lines end cleanly, throws CancellationError rather than a dropped connection. PartialReplyTests checks ChatTurn.incomplete (old transcripts decode as complete, the mark survives storage, truncateForSend withholds it), the fallback splice (AssistantToolRunner.settle), the fact-extraction gate (AssistantTurnRouter.factExtractionExchange) and that AssistantViewModel.collect returns nothing for a failed or timed-out stream.",
  "types": [
   "ProviderStreamTests: class — XCTestCase over ProviderStream",
   "ProviderStreamTests.Unrelated: private enum Error — a non-provider error",
+  "ProviderStatusFailureTests: class — XCTestCase over the providers' statusFailure mappings",
   "OpenAICompatibleReasoningTests: class — XCTestCase over OpenAICompatibleStreamer.requestFor body JSON",
   "SSEReplay: enum — replays SSE lines through a provider line reader inside ProviderStream.make and records the outcome",
   "SSEReplay.Outcome: struct — text, tool names and inputs, input and output tokens of each .usage event, whether .done arrived, and the error",
@@ -287,6 +288,109 @@
     "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "08722a68117b042e",
     "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.run(_:continuation:)": "baa234c133b6664d",
     "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
+   }
+  },
+  {
+   "key": "func ProviderStatusFailureTests.testRawBodyIsCappedForEveryProvider()",
+   "hash": "0f6418195f417a5d",
+   "does": "Sends a 4000-character non-JSON body with HTTP 418 through AnthropicProvider, GeminiProvider and OpenAICompatibleStreamer statusFailure and asserts each is .invalidResponse('HTTP 418: ' + exactly ProviderHTTP.errorExcerptLength characters); a DeepSeek 404 with the same body is .modelUnavailable of that excerpt.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.statusFailure(_:body:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.statusFailure(_:body:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.statusFailure(_:body:providerID:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+10",
+     "cond": "for each provider's failure",
+     "effect": "asserts the capped invalidResponse"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.statusFailure(_:body:)": "7e6085dbd1d0fb58",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.statusFailure(_:body:)": "a5b67e7ea8fd8215",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.statusFailure(_:body:providerID:)": "a50dbf42da66c8c0",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleReasoningTests.body(for:)": "2a2e0d959773808e",
+    "EmuquTests/ProviderStreamTests.swift::func ProviderStreamTests.failure(thrown:)": "ece5e457020aae57"
+   }
+  },
+  {
+   "key": "func ProviderStatusFailureTests.testOpenAIBadRequestReadsTheEnvelope()",
+   "hash": "36c79bb3dbd658cc",
+   "does": "Asserts an OpenAI 400 envelope with param 'model' is .modelUnavailable containing the vendor message, and a Grok 400 envelope with another param is .invalidResponse of exactly the message.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.statusFailure(_:body:providerID:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.statusFailure(_:body:providerID:)": "a50dbf42da66c8c0"
+   }
+  },
+  {
+   "key": "func ProviderStatusFailureTests.testGeminiInvalidKeyIsAnAuthFailure()",
+   "hash": "a6e16ac35b84f870",
+   "does": "Asserts a Gemini 400 whose body carries API_KEY_INVALID is .authFailed, and a 400 envelope without it is .invalidResponse('HTTP 400: <message>').",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.statusFailure(_:body:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.statusFailure(_:body:)": "a5b67e7ea8fd8215"
+   }
+  },
+  {
+   "key": "func ProviderStatusFailureTests.testCreditExhaustionWinsOverTheStatus()",
+   "hash": "6f8ec13049f97c55",
+   "does": "Asserts credit failures are .outOfCredit for their own provider ahead of the status mapping: OpenAI 429 insufficient_quota, Anthropic 400 'credit balance is too low', Gemini 402 with an empty body.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.statusFailure(_:body:providerID:)",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.statusFailure(_:body:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.statusFailure(_:body:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.statusFailure(_:body:)": "7e6085dbd1d0fb58",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.statusFailure(_:body:)": "a5b67e7ea8fd8215",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.statusFailure(_:body:providerID:)": "a50dbf42da66c8c0"
+   }
+  },
+  {
+   "key": "func ProviderStatusFailureTests.testSharedStatusesMapAlike()",
+   "hash": "559d2153e574b1a6",
+   "does": "Asserts 401/403 are .authFailed for Anthropic, Gemini and DeepSeek, a Gemini 429 is .rateLimited and an Anthropic 529 is .modelUnavailable.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.statusFailure(_:body:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.statusFailure(_:body:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.statusFailure(_:body:providerID:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "for each auth failure",
+     "effect": "asserts .authFailed"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.statusFailure(_:body:)": "7e6085dbd1d0fb58",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.statusFailure(_:body:)": "a5b67e7ea8fd8215",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.statusFailure(_:body:providerID:)": "a50dbf42da66c8c0",
+    "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleReasoningTests.body(for:)": "2a2e0d959773808e",
+    "EmuquTests/ProviderStreamTests.swift::func ProviderStreamTests.failure(thrown:)": "ece5e457020aae57"
    }
   },
   {
@@ -575,7 +679,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.consumeSSE(_:providerID:continuation:)": "9f74985f618acaab",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.consumeSSE(_:providerID:continuation:)": "8c06cd9b1e947d6f",
     "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)": "8965c0bed0b1cf6e",
     "EmuquTests/ProviderStreamTests.swift::func SSEReplay.run(_:)": "f32e2dd57e18979a"
    }
@@ -1062,7 +1166,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "88fd168045913f13",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "3fd867b337964de8",
     "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)": "8965c0bed0b1cf6e",
     "EmuquTests/ProviderStreamTests.swift::func SSEReplay.run(_:)": "f32e2dd57e18979a"
    }
@@ -1354,7 +1458,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "88fd168045913f13",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "3fd867b337964de8",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.continuingPausedTurns(_:continuation:perform:)": "649c2bc8d8bf51f5",
     "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb",
     "EmuquTests/ProviderStreamTests.swift::func OpenAICompatibleReasoningTests.body(for:)": "2a2e0d959773808e",
@@ -1477,9 +1581,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "88fd168045913f13",
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.consumeSSE(_:continuation:)": "3fd867b337964de8",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.consumeSSE(_:continuation:)": "05bcc359c8556e76",
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.consumeSSE(_:providerID:continuation:)": "9f74985f618acaab",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.consumeSSE(_:providerID:continuation:)": "8c06cd9b1e947d6f",
     "EmuquTests/ProviderStreamTests.swift::func EndOfStreamCancellationTests.errorFromCancelledReader(_:)": "2b625dceda9dee1b",
     "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)": "8965c0bed0b1cf6e"
    }

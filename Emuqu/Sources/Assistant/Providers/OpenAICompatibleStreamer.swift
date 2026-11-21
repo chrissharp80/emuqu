@@ -4,8 +4,9 @@ import Foundation
 /// API surface (OpenAI, xAI Grok, DeepSeek, and several others). Same request
 /// shape, same `data: { ... }` event format, same `[DONE]` sentinel.
 ///
-/// The provider classes are thin: they own the model catalog + endpoint URL,
-/// and delegate the streaming/parse to this helper.
+/// The provider classes are thin: they own the model catalog, endpoint URL
+/// and reasoning setting, and `OpenAICompatibleProvider` routes their `send`
+/// through this helper.
 ///
 /// Tool use follows OpenAI's `tools` + `tool_calls` + `role:"tool"` protocol:
 ///   • outbound: `tools: [{type:"function", function:{...}}]` at top level
@@ -61,7 +62,7 @@ enum OpenAICompatibleStreamer {
         toolRounds: [[ToolExchange]] = []
     ) -> AsyncThrowingStream<AIStreamEvent, Error> {
         guard let endpoint else {
-            return AsyncThrowingStream { $0.finish(throwing: AIProviderError.invalidResponse("bad endpoint")) }
+            return AsyncThrowingStream { $0.finish(throwing: ProviderHTTP.badEndpoint) }
         }
         let call = StreamCall(
             providerID: providerID, endpoint: endpoint, reasoning: reasoning, messages: messages,
@@ -242,14 +243,14 @@ enum OpenAICompatibleStreamer {
         }
     }
 
-    /// Builds the POST for a chat-completions call.
+    /// Builds the POST for a chat-completions call through
+    /// `ProviderHTTP.streamRequest`, with the key as a bearer token.
     ///
     /// Kept out of `stream`, alongside `buildMessages`, to hold it
     /// under the body-length budget.
     ///
-    /// `.sortedKeys` is required for cache-stable payload serialisation —
-    /// DeepSeek's prompt cache hinges on byte-identical prefixes across turns,
-    /// and Dictionary iteration order isn't stable in Swift.
+    /// The sorted-key body matters here: DeepSeek's prompt cache hinges on
+    /// byte-identical prefixes across turns.
     private static func buildRequest(
         endpoint: URL,
         apiKey: String,
@@ -269,15 +270,7 @@ enum OpenAICompatibleStreamer {
             reasoning_effort: reasoning == .effortNone ? "none" : nil,
             thinking: reasoning == .thinkingDisabled ? .init(type: "disabled") : nil
         )
-        var request = URLRequest(url: endpoint)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys]
-        request.httpBody = try encoder.encode(body)
-        return request
+        return try ProviderHTTP.streamRequest(url: endpoint, body: body, headers: ["Authorization": "Bearer \(apiKey)"])
     }
 
     private static func stream(
@@ -288,12 +281,10 @@ enum OpenAICompatibleStreamer {
             throw AIProviderError.missingKey(call.providerID)
         }
         let request = try requestFor(call, apiKey: apiKey)
-        let (bytes, response) = try await connect(request, providerID: call.providerID)
-        try Task.checkCancellation()
-        if let http = response as? HTTPURLResponse, !(200 ... 299).contains(http.statusCode) {
-            try await throwForStatus(http.statusCode, bytes: bytes, providerID: call.providerID)
+        let lines = try await ProviderHTTP.openStream(request, provider: call.providerID) { status, body in
+            statusFailure(status, body: body, providerID: call.providerID)
         }
-        try await consumeSSE(bytes.lines, providerID: call.providerID, continuation: continuation)
+        try await consumeSSE(lines, providerID: call.providerID, continuation: continuation)
     }
 
     /// Flatten one call into the wire request, messages included. Pure, so
@@ -312,26 +303,6 @@ enum OpenAICompatibleStreamer {
             ),
             tools: call.tools
         )
-    }
-
-    /// Use the dedicated session (`ProviderHTTP.streamSession`) so
-    /// cellular blips during walks don't immediately surface
-    /// as "cannot connect."
-    ///
-    /// Surfaces the specific NSURLError code in the debug log so
-    /// the next user report can be diagnosed without guessing
-    /// (timed out vs. cancelled vs. notConnectedToInternet vs.
-    /// networkConnectionLost — they have very different fixes).
-    private static func connect(
-        _ request: URLRequest,
-        providerID: ProviderID
-    ) async throws -> (URLSession.AsyncBytes, URLResponse) {
-        do {
-            return try await ProviderHTTP.streamSession.bytes(for: request)
-        } catch let urlError as URLError {
-            debugLog("[AIStreamer] \(providerID.rawValue) connect failed: code=\(urlError.code.rawValue) (\(urlError.localizedDescription))", level: .warning)
-            throw urlError
-        }
     }
 
     /// Per-request SSE state: tool calls still being assembled, and the
@@ -365,16 +336,12 @@ enum OpenAICompatibleStreamer {
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) async throws where Lines.Element == String {
         var state = StreamState()
-        for try await line in lines {
-            try Task.checkCancellation()
-            guard line.hasPrefix("data:") else { continue }
-            let payload = line.dropFirst("data:".count).trimmingCharacters(in: .whitespaces)
-            if payload.isEmpty { continue }
-            if payload == "[DONE]" {
+        for try await event in SSEEvents(lines) {
+            if event.data == "[DONE]" {
                 try finishReply(&state, continuation: continuation)
                 return
             }
-            try handleChunk(payload, providerID: providerID, state: &state, continuation: continuation)
+            try handleChunk(event.data, providerID: providerID, state: &state, continuation: continuation)
         }
         try Task.checkCancellation()
         guard state.finishReason != nil else { throw URLError(.networkConnectionLost) }
@@ -499,11 +466,7 @@ enum OpenAICompatibleStreamer {
         let cached = (details?["cached_tokens"] as? Int).flatMap { $0 == 0 ? nil : $0 }
             ?? usage["prompt_cache_hit_tokens"] as? Int ?? 0
         let input = max(0, (usage["prompt_tokens"] as? Int ?? 0) - cached)
-        guard input > 0 || output > 0 || cached > 0 else { return }
-        continuation.yield(.usage(
-            inputTokens: input, outputTokens: output,
-            cachedInputTokens: cached, cacheCreationInputTokens: 0
-        ))
+        ProviderHTTP.yieldUsage(input: input, output: output, cached: cached, to: continuation)
     }
 
     /// Emit one `.toolUse` per accumulated tool_call in deterministic index
@@ -521,87 +484,71 @@ enum OpenAICompatibleStreamer {
         calls.removeAll(keepingCapacity: false)
         let ready = ordered.map { (call: $0, args: $0.arguments.isEmpty ? "{}" : $0.arguments) }
         if let broken = ready.first(where: { !ProviderHTTP.isJSONObject($0.args) }) {
-            throw AIProviderError.invalidResponse("tool call \(broken.call.name) arrived with incomplete arguments")
+            throw ProviderHTTP.incompleteArguments(toolName: broken.call.name)
         }
         for item in ready {
             continuation.yield(.toolUse(id: item.call.id, name: item.call.name, inputJSON: item.args))
         }
     }
 
-    /// Maps an HTTP failure to the error the chat shows. A credit failure is
-    /// checked first: OpenAI sends an empty account as 429
-    /// `insufficient_quota`, DeepSeek as 402, xAI as 403/429 about credits,
-    /// and none of those is a rate limit or a bad key. A 5xx is the vendor's
-    /// own failure and maps as `ProviderHTTP.statusError` maps it for
-    /// Anthropic and Gemini: `.modelUnavailable` with the overloaded text.
-    private static func throwForStatus(
-        _ status: Int,
-        bytes: URLSession.AsyncBytes,
-        providerID: ProviderID
-    ) async throws -> Never {
-        let collected = try await ProviderHTTP.errorBody(bytes)
-        let bodyText = redactAPIKeys(String(data: collected, encoding: .utf8) ?? "")
-        if ProviderAccountReply.isCreditExhausted(status: status, body: bodyText) {
-            throw AIProviderError.outOfCredit(providerID)
-        }
-        let parsed = parseOpenAIError(collected)
-        switch status {
-        case 401, 403: throw AIProviderError.authFailed
-        case 429: throw AIProviderError.rateLimited
-        case 404: throw AIProviderError.modelUnavailable(parsed?.message ?? bodyText)
-        case 400: throw badRequestError(parsed, bodyText: bodyText, status: status)
-        case 500...599: throw AIProviderError.modelUnavailable(ProviderHTTP.overloadedMessage(for: providerID))
-        default:
-            throw AIProviderError.invalidResponse("HTTP \(status): \(parsed?.message ?? bodyText)")
+    /// The error a non-2xx reply becomes. Credit failures and every status
+    /// but 400 map through `ProviderHTTP.statusFailure`. A 400 with an
+    /// `{"error":{...}}` envelope is most often a model-config problem
+    /// ("not a chat model", "max_tokens > context"): `param` "model" means
+    /// the model is missing or not open to this key, which reads as
+    /// `.modelUnavailable` with the vendor's message; any other parameter
+    /// is `.invalidResponse` with that message. A 400 without a readable
+    /// message maps through the shared path like any other status.
+    static func statusFailure(_ status: Int, body: Data, providerID: ProviderID) -> AIProviderError {
+        ProviderHTTP.statusFailure(status, body: body, provider: providerID) { status, body, _ in
+            guard status == 400, let message = ProviderHTTP.errorMessage(from: body) else { return nil }
+            return errorParam(in: body) == "model"
+                ? .modelUnavailable(String(localized: "Model unavailable: \(message)", bundle: LanguageManager.appBundle))
+                : .invalidResponse(message)
         }
     }
 
-    /// 400 is most often a model-config problem ("not a chat model",
-    /// "max_tokens > context", "invalid prompt format"). Surface a
-    /// model-parameter failure as `modelUnavailable` so the chat bubble's
-    /// error copy reads naturally rather than as a generic "unexpected
-    /// response."
-    ///
-    /// OpenAI returns its errors as JSON like:
-    ///   {"error":{"message":"...", "type":"invalid_request_error", "param":"model", "code":null}}
-    /// Surfacing the raw body text in the chat bubble gives users a wall of
-    /// JSON they can't parse. `parseOpenAIError` extracts
-    /// `error.message` and `error.param`; we fall back to the raw body when it
-    /// can't, so we never lose information.
-    private static func badRequestError(
-        _ parsed: ParsedOpenAIError?,
-        bodyText: String,
-        status: Int
-    ) -> AIProviderError {
-        guard let parsed else { return .invalidResponse("HTTP \(status): \(bodyText)") }
-        // Model not found / not accessible to this key — the model id is the
-        // actionable detail.
-        return parsed.param == "model"
-            ? .modelUnavailable(String(localized: "Model unavailable: \(parsed.message)", bundle: LanguageManager.appBundle))
-            : .invalidResponse(parsed.message)
+    /// `error.param` of an OpenAI-style error envelope: the request field
+    /// the vendor rejected. Nil when the body is not JSON or names none.
+    private static func errorParam(in body: Data) -> String? {
+        let object: Any
+        do { object = try JSONSerialization.jsonObject(with: body) } catch { return nil }
+        let error = (object as? [String: Any])?["error"] as? [String: Any]
+        return error?["param"] as? String
     }
+}
 
-    /// Extract the human-readable bits from OpenAI's
-    /// (and OpenAI-compatible providers') JSON error envelope.
-    private struct ParsedOpenAIError {
-        let message: String
-        let type: String?
-        let param: String?
-        let code: String?
-    }
+/// A provider that speaks the OpenAI Chat Completions API (OpenAI, xAI
+/// Grok, DeepSeek). The conforming class supplies its catalog, `id`,
+/// endpoint and reasoning setting; key handling comes from
+/// `KeyedCloudProvider`, and `send` streams through
+/// `OpenAICompatibleStreamer`.
+protocol OpenAICompatibleProvider: KeyedCloudProvider {
+    /// The provider's chat-completions URL, nil when it does not parse.
+    static var endpoint: URL? { get }
+    /// The reasoning fields every request to this provider carries.
+    static var reasoning: OpenAICompatibleStreamer.Reasoning { get }
+}
 
-    private static func parseOpenAIError(_ data: Data) -> ParsedOpenAIError? {
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let error = json["error"] as? [String: Any]
-        else { return nil }
-        guard let message = error["message"] as? String, !message.isEmpty else { return nil }
-        // Redacted like the Anthropic and Gemini paths: a provider can echo
-        // part of the request, key included, back in its error message.
-        return ParsedOpenAIError(
-            message: redactAPIKeys(message),
-            type: error["type"] as? String,
-            param: error["param"] as? String,
-            code: error["code"] as? String
+extension OpenAICompatibleProvider {
+    func send(
+        messages: [ChatTurn],
+        model: ModelOption,
+        contextRendered: String,
+        systemPrompt: String,
+        tools: [ToolSpec],
+        toolRounds: [[ToolExchange]]
+    ) -> AsyncThrowingStream<AIStreamEvent, Error> {
+        OpenAICompatibleStreamer.send(
+            providerID: id,
+            endpoint: Self.endpoint,
+            reasoning: Self.reasoning,
+            messages: messages,
+            model: model,
+            contextRendered: contextRendered,
+            systemPrompt: systemPrompt,
+            tools: tools,
+            toolRounds: toolRounds
         )
     }
 }

@@ -141,7 +141,7 @@ check "doc_links/wrong_directory" \
 check "cloudkit/plaintext_health" \
     "./scripts/check_no_health_data_in_cloudkit.sh" \
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift" \
-    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift');p.write_text(p.read_text().replace('return try encryptedForCloud(compressed)','return compressed',1))"
+    "import pathlib;p=pathlib.Path('Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift');p.write_text(p.read_text().replace('return try CloudPayloadCodec.sealForUpload(compressed)','return compressed',1))"
 
 check "privacy_manifest/bad_type" \
     "./scripts/check_privacy_manifest_vocabulary.sh" \
@@ -157,6 +157,11 @@ check "no_developer_endpoint/sdk" \
     "./scripts/check_no_developer_endpoint.sh" \
     "Emuqu.xcodeproj/project.pbxproj" \
     "import pathlib;p=pathlib.Path('Emuqu.xcodeproj/project.pbxproj');p.write_text(p.read_text()+'\n/* planted firebase-analytics reference */\n')"
+
+check "xcodebuild_pinned/unpinned_build" \
+    "./scripts/check_xcodebuild_pinned.sh" \
+    ".github/workflows/performance.yml" \
+    "import pathlib;p=pathlib.Path('.github/workflows/performance.yml');t=p.read_text();assert '-onlyUsePackageVersionsFromResolvedFile \\\\\n' in t;p.write_text(t.replace('-onlyUsePackageVersionsFromResolvedFile \\\\\n','',1))"
 
 check "strict_concurrency_enabled" \
     "./scripts/check_strict_concurrency_enabled.sh" \

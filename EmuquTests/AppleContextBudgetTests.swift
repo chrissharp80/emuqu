@@ -104,7 +104,9 @@ final class AppleContextBudgetTests: XCTestCase {
         var allowance = Compactor.ToolOutputAllowance(remaining: 500, perCallCap: 300)
         let small = #"{"value":63,"confidence":"high"}"#
         XCTAssertEqual(allowance.admit(small), small)
-        XCTAssertEqual(allowance.remaining, 500 - Compactor.estimateTokens(small) - Compactor.entryOverhead)
+        // 32 ASCII chars × 1.05 / 4 = 8.4 → 9 tokens, + 8 role marker:
+        // 500 − 9 − 8 = 483.
+        XCTAssertEqual(allowance.remaining, 483)
     }
 
     /// The tool calls and results an attempt took are counted, including the
@@ -116,9 +118,12 @@ final class AppleContextBudgetTests: XCTestCase {
         allowance.charge(call)
         let result = allowance.admit(String(repeating: "y", count: 4000))
         let spentNote = allowance.admit("more")
-        let expected = Compactor.estimateTokens(call) + Compactor.entryOverhead
-            + Compactor.estimateTokens(result) + Compactor.entryOverhead
-            + Compactor.estimateTokens(spentNote) + Compactor.entryOverhead
+        // Call: 37 ASCII chars × 1.05 / 4 = 9.7 → 10 tokens, + 8 = 18; 282 left.
+        // Result: capped at min(250, 282 − 8) = 250, cut to 249 tokens, + 8 = 257;
+        // 25 left, under the 60-token floor, so "more" gets the spent note.
+        // The note carries a timestamp, so its own size is measured.
+        let expected = 18 + 257 + Compactor.estimateTokens(spentNote) + 8
+        XCTAssertEqual(Compactor.estimateTokens(result), 249)
         XCTAssertEqual(spentNote, Compactor.ToolOutputAllowance.spentNote)
         XCTAssertEqual(allowance.spent, expected)
     }
@@ -129,9 +134,9 @@ final class AppleContextBudgetTests: XCTestCase {
     func testFreshLedgerLeavesTheFollowUpWhatTheWindowHasLeft() {
         let ledger = Compactor.SessionLedger(prefixTokens: 1500)
         let budget = ledger.followUpToolBudget(promptTokens: 40, perCallCap: 600)
-        let expected = Compactor.contextWindow - 1500 - 40 - 2 * Compactor.entryOverhead
-            - Compactor.responseReserve - Compactor.estimateMargin
-        XCTAssertEqual(budget, expected)
+        // 4096 window − 1500 prefix − 40 prompt − 2 × 8 role markers
+        // − 512 reply reserve − 300 estimate margin = 1728.
+        XCTAssertEqual(budget, 1728)
     }
 
     /// Follow-ups on a reused session with full-size tool results: every turn

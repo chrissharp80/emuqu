@@ -1,79 +1,17 @@
 {
  "file": "Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift",
- "hash": "762e279f59cf1e45",
- "role": "DeepSeek provider: two-model catalog (deepseek-flash default, deepseek-v4-pro) with thinking disabled, availability from the keychain, and send delegated to OpenAICompatibleStreamer's DeepSeek endpoint.",
+ "hash": "4140043b4fda293f",
+ "role": "DeepSeek provider: model catalog (deepseek-flash default, deepseek-v4-pro), endpoint and reasoning setting; key handling, availability and send come from OpenAICompatibleProvider, which streams through OpenAICompatibleStreamer.",
  "types": [
-  "DeepSeekProvider: class (AIProvider) — DeepSeek backend"
+  "DeepSeekProvider: class (OpenAICompatibleProvider) — DeepSeek backend"
  ],
  "state": [
-  "mem:DeepSeekProvider.models (static catalog, peak-hour prices)",
+  "mem:DeepSeekProvider.models (deepseek-flash default, deepseek-v4-pro)",
+  "mem:DeepSeekProvider.endpoint = OpenAICompatibleStreamer.Endpoint.deepSeek",
   "mem:DeepSeekProvider.reasoning = .thinkingDisabled",
-  "kc:APIKeyStore account deepseek"
+  "kc:com.chrissharp.flowrecovery.assistant.apikey account deepseek (via APIKeyStore, read by KeyedCloudProvider)"
  ],
- "toplevel": "id is a stored let .deepseek.",
- "units": [
-  {
-   "key": "var DeepSeekProvider.availableModels",
-   "hash": "761626cd7f4ea4b6",
-   "does": "Returns the static DeepSeek catalog.",
-   "entry": "AIProvider conformance",
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {}
-  },
-  {
-   "key": "var DeepSeekProvider.requiresKey",
-   "hash": "e9238caebf755141",
-   "does": "Returns true (key required).",
-   "entry": "AIProvider conformance",
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {}
-  },
-  {
-   "key": "var DeepSeekProvider.isAvailable",
-   "hash": "b8a27d38964d59de",
-   "does": "True when the keychain holds a DeepSeek key.",
-   "entry": "AIProvider conformance",
-   "calls": [
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore",
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)"
-   ],
-   "reads": [
-    "kc:APIKeyStore account deepseek"
-   ],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.hasKey(for:)": "5d589653df6e990b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var ProviderServices.apiKeyStore": "9644ad4752275337"
-   }
-  },
-  {
-   "key": "func DeepSeekProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
-   "hash": "432d06e902404c50",
-   "does": "Delegates streaming to OpenAICompatibleStreamer.send with the DeepSeek endpoint and thinking disabled.",
-   "entry": "AIProvider conformance",
-   "calls": [
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.send(providerID:endpoint:reasoning:messages:model:contextRendered:systemPrompt:tools:toolRounds:)"
-   ],
-   "reads": [],
-   "writes": [
-    "net:api.deepseek.com/chat/completions (via streamer)"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.send(providerID:endpoint:reasoning:messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "03a3190c38fce779"
-   }
-  }
- ],
+ "toplevel": "Static catalog pinned by ProviderModelCatalogTests; id is a stored let .deepseek; endpoint and reasoning are static lets.",
+ "units": [],
  "deps": {}
 }

@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift",
  "hash": "e33a180006e90106",
- "role": "Main-actor, @Observable singleton holding the assistant's long-term structured artifacts (bugs, features, decisions, notes) persisted as JSON in the App Group 'Assistant/artifacts.json'. A file that cannot be read yet (locked) holds saves and is re-read before the next change and on unlock; one that does not decode is set aside before the next save; a failed write is retried on unlock.",
+ "role": "Main-actor, @Observable singleton holding the assistant's long-term structured artifacts (bugs, features, decisions, notes) persisted as JSON sealed through AssistantStoreFile in the App Group 'Assistant/artifacts.json'. A file that cannot be read yet (locked) holds saves and is re-read before the next change and on unlock; one that does not open or decode is set aside before the next save; a failed write is retried on unlock; the purge follow-up erases the file and its set-aside copies after any queued write.",
  "types": [
   "AssistantArtifactStore: final class (@Observable @MainActor) — artifact add/update/list + persistence",
   "AssistantArtifactStore.Kind: enum — bug/feature/decision/note",
@@ -13,8 +13,8 @@
  "state": [
   "mem:AssistantArtifactStore.shared",
   "mem:AssistantArtifactStore.artifacts (@Observable, private(set))",
-  "file:<AppGroup or Documents>/Assistant/artifacts.json (atomic, completeFileProtection)",
-  "file:<AppGroup or Documents>/Assistant/artifacts.undecodable-<unix>.json (set aside, via UndecodableFile)",
+  "file:<AppGroup or Documents>/Assistant/artifacts.json (sealed with EncryptionManager, atomic, completeFileProtectionUnlessOpen)",
+  "file:<AppGroup or Documents>/Assistant/artifacts.undecodable-<unix>.json (set aside, via AssistantStoreFile.setAside)",
   "mem:AssistantArtifactStore.diskState",
   "mem:AssistantArtifactStore.writePending",
   "mem:AssistantArtifactStore.unlockObservers (NotificationTokens: protectedDataDidBecomeAvailable, didBecomeActive)",
@@ -54,18 +54,25 @@
   },
   {
    "key": "func AssistantArtifactStore.forgetAfterPurge()",
-   "hash": "5d53785cc8c9f384",
-   "does": "After Delete All My Data removed the file: clears the in-memory artifacts and resets diskState to .readable and writePending to false, so a stale read failure cannot hold later saves.",
+   "hash": "f0c00997a07ac7c1",
+   "does": "After Delete All My Data swept the file: synchronously on the queue (after any queued write, which could have re-created it) erases artifacts.json and its set-aside copies (AssistantStoreFile.erase), then clears the in-memory artifacts and resets diskState to .readable and writePending to false. Returns whether nothing is left on disk (discardable).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.erase(_:caller:)",
+    "ext:DispatchQueue.sync"
+   ],
    "reads": [],
    "writes": [
+    "file:Assistant/artifacts.json",
+    "file:Assistant/artifacts.undecodable-<unix>.json",
     "mem:AssistantArtifactStore.artifacts",
     "mem:AssistantArtifactStore.diskState",
     "mem:AssistantArtifactStore.writePending"
    ],
    "branches": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.erase(_:caller:)": "24e32283e179aa9e"
+   }
   },
   {
    "key": "init AssistantArtifactStore()",
@@ -95,7 +102,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.apply(_:)": "62983d981346ea7a",
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.readDisk()": "d6a9201e5574bcd0",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.readDisk()": "6909893e49d3ef8f",
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.wireRecoveryOnUnlock()": "c7318004bf96aa47",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
@@ -170,7 +177,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.apply(_:)": "62983d981346ea7a",
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.persist()": "dae4477320ab44ab",
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.readDisk()": "d6a9201e5574bcd0"
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.readDisk()": "6909893e49d3ef8f"
    }
   },
   {
@@ -191,7 +198,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.persist()": "dae4477320ab44ab",
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.reloadIfBlocked()": "93234e2d9de73107",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.reloadIfBlocked()": "71e89c86b7b0f847",
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::init AssistantArtifactStore.Artifact(id:kind:status:body:createdAt:updatedAt:)": "f6d4ff01046ff389"
    }
   },
@@ -218,7 +225,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.persist()": "dae4477320ab44ab",
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.reloadIfBlocked()": "93234e2d9de73107",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.reloadIfBlocked()": "71e89c86b7b0f847",
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::var AssistantArtifactStore.Kind.id": "c2a7929068ad53cf"
    }
   },
@@ -248,13 +255,12 @@
   },
   {
    "key": "func AssistantArtifactStore.readDisk()",
-   "hash": "34f571ceb9c6beda",
-   "does": "Reads artifacts.json and classifies it: .missing (no such file — first run), .unreadable (any other read error, e.g. locked; logged at warning), .undecodable (decode error; logged at error), else .artifacts(decoded list).",
+   "hash": "0b5ce15a60d87253",
+   "does": "Reads artifacts.json through AssistantStoreFile.read and maps it to DiskRead: .missing, .unreadable (locked or key unavailable), .undecodable (seal cannot be opened), or the result of decoded(_:) for JSON.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:Data(contentsOf:)",
-    "ext:JSONDecoder.decode"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.read(_:caller:)",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.decoded(_:)"
    ],
    "reads": [
     "file:Assistant/artifacts.json"
@@ -262,23 +268,50 @@
    "writes": [],
    "branches": [
     {
-     "at": "+4",
-     "cond": "CocoaError fileNoSuchFile / fileReadNoSuchFile",
+     "at": "+2",
+     "cond": "missing",
      "effect": "return .missing"
     },
     {
-     "at": "+6",
-     "cond": "other read error",
-     "effect": "log, return .unreadable"
+     "at": "+3",
+     "cond": "unreadable",
+     "effect": "return .unreadable"
     },
     {
-     "at": "+12",
-     "cond": "decode throws",
-     "effect": "log, return .undecodable; else .artifacts"
+     "at": "+4",
+     "cond": "undecodable",
+     "effect": "return .undecodable"
+    },
+    {
+     "at": "+5",
+     "cond": "json",
+     "effect": "return decoded(data)"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.decoded(_:)": "589ffb24b50d5ca0",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.read(_:caller:)": "6e6ce13df5c02712"
+   }
+  },
+  {
+   "key": "func AssistantArtifactStore.decoded(_:)",
+   "hash": "1d4066a9c35dc704",
+   "does": "Decodes [Artifact] from JSON: .artifacts on success, .undecodable (logged as an error) when decoding fails.",
+   "entry": null,
+   "calls": [
+    "ext:JSONDecoder.decode",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "decode throws",
+     "effect": "log error, return .undecodable"
+    }
+   ],
+   "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -306,13 +339,13 @@
   },
   {
    "key": "func AssistantArtifactStore.reloadIfBlocked()",
-   "hash": "eae71af47ce3dd27",
-   "does": "Before a change: re-reads an unreadable file (apply(readDisk())), then sets an undecodable file aside via UndecodableFile.setAside and marks the state readable when that succeeds.",
+   "hash": "838c5b232478841e",
+   "does": "Before a change: re-reads an unreadable file (apply(readDisk())), then sets an undecodable file aside via AssistantStoreFile.setAside and marks the state readable when that succeeds.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.readDisk()",
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.apply(_:)",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func UndecodableFile.setAside(_:caller:)"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.setAside(_:caller:)"
    ],
    "reads": [
     "mem:AssistantArtifactStore.diskState",
@@ -321,7 +354,8 @@
    "writes": [
     "mem:AssistantArtifactStore.artifacts",
     "mem:AssistantArtifactStore.diskState",
-    "file:Assistant/artifacts.json (renamed aside when undecodable)"
+    "file:Assistant/artifacts.json (renamed aside when undecodable)",
+    "file:Assistant/artifacts.undecodable-<unix>.json"
    ],
    "branches": [
     {
@@ -337,8 +371,8 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.apply(_:)": "62983d981346ea7a",
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.readDisk()": "d6a9201e5574bcd0",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func UndecodableFile.setAside(_:caller:)": "ece1c58cdf429e28"
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.readDisk()": "6909893e49d3ef8f",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.setAside(_:caller:)": "8b92242b00b6808b"
    }
   },
   {
@@ -372,21 +406,19 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.reloadIfBlocked()": "93234e2d9de73107",
-    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.write(_:to:)": "b03a4865fb6837ec",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.reloadIfBlocked()": "71e89c86b7b0f847",
+    "Emuqu/Sources/Assistant/Chat/AssistantArtifactStore.swift::func AssistantArtifactStore.write(_:to:)": "45c4293168950927",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func AssistantArtifactStore.write(_:to:)",
-   "hash": "3125bbea5bd3018e",
-   "does": "Nonisolated: JSON-encodes the snapshot, creates the parent directory (Delete All My Data removes it under a running store), writes atomically with complete file protection; true on success, false (logged at warning) on any error.",
+   "hash": "cd3bf762a60f43c6",
+   "does": "Encodes the snapshot as JSON and writes it sealed through AssistantStoreFile.write (creates the directory, atomic, completeFileProtectionUnlessOpen). False when encoding, sealing or writing failed; the previous file is left in place.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:JSONEncoder.encode",
-    "ext:FileManager.createDirectory",
-    "ext:Data.write(.atomic,.completeFileProtection)"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.write(_:to:caller:)"
    ],
    "reads": [],
    "writes": [
@@ -394,13 +426,14 @@
    ],
    "branches": [
     {
-     "at": "+8",
-     "cond": "encode, createDirectory or write throws",
-     "effect": "log, return false; else return true"
+     "at": "+1",
+     "cond": "encode fails",
+     "effect": "return false"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.write(_:to:caller:)": "fbcde6efeddba39f",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   }
  ],

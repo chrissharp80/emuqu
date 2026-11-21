@@ -26,13 +26,13 @@ import UIKit
 /// The AI accesses both via fact tools (`assistant.memory.*` for facts,
 /// `assistant.artifacts.*` for this).
 ///
-/// **Storage:** JSON file in the App Group container (Documents when the
-/// group is unavailable), written atomically with complete file protection.
-/// Like all app data it is removed when the app is deleted. A file that
-/// cannot be read (the phone has not been unlocked yet) holds saves and is
-/// read again before the next change and on unlock; one that does not
-/// decode is set aside (`UndecodableFile`) before the next save; a failed
-/// write is retried on unlock.
+/// **Storage:** sealed JSON file in the App Group container (Documents when
+/// the group is unavailable), written through `AssistantStoreFile`. Like all
+/// app data it is removed when the app is deleted. A file that cannot be read
+/// (the phone has not been unlocked yet) holds saves and is read again before
+/// the next change and on unlock; one that does not open or decode is set
+/// aside (`AssistantStoreFile.setAside`) before the next save; a failed write
+/// is retried on unlock.
 @Observable
 @MainActor
 final class AssistantArtifactStore {
@@ -81,14 +81,21 @@ final class AssistantArtifactStore {
 
     private(set) var artifacts: [Artifact] = []
 
-    /// Delete All My Data removed the file; this drops the in-memory copy so
-    /// nothing reads it afterwards and the next save cannot write it back.
-    /// The read and write flags reset too: there is no file left to protect
-    /// or retry, and a stale flag would hold every later save.
-    func forgetAfterPurge() {
+    /// Delete All My Data swept the file; this waits for any write already
+    /// queued, erases the file and its set-aside copies again in case that
+    /// write landed after the sweep, and drops the in-memory copy so nothing
+    /// reads it afterwards and the next save cannot write it back. The read
+    /// and write flags reset too: there is no file left to protect or retry,
+    /// and a stale flag would hold every later save. True when nothing is
+    /// left on disk.
+    @discardableResult
+    func forgetAfterPurge() -> Bool {
+        let url = fileURL
+        let erased = queue.sync { AssistantStoreFile.erase(url, caller: "AssistantArtifactStore") }
         artifacts = []
         diskState = .readable
         writePending = false
+        return erased
     }
 
     private let fileURL: URL
@@ -190,15 +197,15 @@ final class AssistantArtifactStore {
     }
 
     private func readDisk() -> DiskRead {
-        let data: Data
-        do {
-            data = try Data(contentsOf: fileURL)
-        } catch let error as CocoaError where error.code == .fileNoSuchFile || error.code == .fileReadNoSuchFile {
-            return .missing
-        } catch {
-            debugLog("[AssistantArtifactStore] artifacts.json present but unreadable (device locked?) — holding saves until it can be read: \(error)", level: .warning)
-            return .unreadable
+        switch AssistantStoreFile.read(fileURL, caller: "AssistantArtifactStore") {
+        case .missing: return .missing
+        case .unreadable: return .unreadable
+        case .undecodable: return .undecodable
+        case let .json(data): return Self.decoded(data)
         }
+    }
+
+    private static func decoded(_ data: Data) -> DiskRead {
         do {
             return .artifacts(try JSONDecoder().decode([Artifact].self, from: data))
         } catch {
@@ -226,7 +233,7 @@ final class AssistantArtifactStore {
     /// aside one that does not decode (kept, not deleted) so saving resumes.
     private func reloadIfBlocked() {
         if diskState == .unreadable { apply(readDisk()) }
-        if diskState == .undecodable, UndecodableFile.setAside(fileURL, caller: "AssistantArtifactStore") {
+        if diskState == .undecodable, AssistantStoreFile.setAside(fileURL, caller: "AssistantArtifactStore") {
             diskState = .readable
         }
     }
@@ -247,19 +254,12 @@ final class AssistantArtifactStore {
         }
     }
 
-    /// False when the write failed. The directory is created first: Delete
-    /// All My Data removes it under a running store, and only init created it.
+    /// Encodes the artifacts and writes them sealed (`AssistantStoreFile.write`,
+    /// which creates the directory Delete All My Data can remove under a
+    /// running store). False when either step failed, leaving the previous
+    /// file in place.
     nonisolated private static func write(_ snapshot: [Artifact], to url: URL) -> Bool {
-        do {
-            let data = try JSONEncoder().encode(snapshot)
-            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-            // Artifacts can quote health-adjacent context; protect at rest
-            // (readable only while unlocked), matching ConversationStore.
-            try data.write(to: url, options: [.atomic, .completeFileProtection])
-            return true
-        } catch {
-            debugLog("[AssistantArtifactStore] persist failed, retried on unlock or the next change: \(error)", level: .warning)
-            return false
-        }
+        guard let data = attempt("assistantArtifactStore.encode", { try JSONEncoder().encode(snapshot) }) else { return false }
+        return AssistantStoreFile.write(data, to: url, caller: "AssistantArtifactStore")
     }
 }

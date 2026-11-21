@@ -712,7 +712,7 @@
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.configure(healthKit:)": "e7fae975856bedca",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.prewarmRoadContext(powerMultiplier:)": "d9252fda92fecfbf",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.prewarmWorkoutStartHaptics(powerMultiplier:)": "1c9bf2701395475f",
-    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.scheduleMigrationJobs(lowPower:)": "a261be3687b99442",
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.scheduleMigrationJobs(lowPower:)": "40031662a6da08b0",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.scheduleSyncThenTrainingJobs(lowPower:)": "148d0ba4228229ab",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "62bd5275ef3f248f",
     "Emuqu/Sources/Services/PowerStatePolicy.swift::var PowerStatePolicy.launchDelayMultiplier": "9d7030c36ce9c462",
@@ -730,8 +730,8 @@
   },
   {
    "key": "func EmuquApp.scheduleMigrationJobs(lowPower:)",
-   "hash": "3db9823c7c02c075",
-   "does": "Schedules two housekeeping-phase background jobs (archive file-protection upgrade + deferred migrations + 90-day Trash expiry, which permanently deletes each expired deleted session via RRCollector.permanentlyDelete: trashed file, raw backup locally and in iCloud, deletion mark; collector session migrations) and the backup reconcile; never skipped in LPM.",
+   "hash": "e96e7b6c3dd323d5",
+   "does": "Schedules two housekeeping-phase background jobs (archive file-protection upgrade + deferred migrations + 90-day Trash expiry, which hands every expired deleted session to RRCollector.permanentlyDelete in one call: breadcrumb route, trashed file, raw backup locally and in iCloud, Apple Health HRV, and the deletion mark once iCloud has confirmed it; collector session migrations) and the backup reconcile; never skipped in LPM.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.launchCoordinator",
@@ -747,23 +747,19 @@
    "writes": [
     "archive:file protection upgrade",
     "archive:deferred migrations",
-    "archive:trash expiry (90 days: trashed file, deletion mark)",
+    "archive:trash expiry (90 days: trashed file, deletion mark once confirmed)",
     "file:raw RR backups of expired deleted sessions",
+    "file:Breadcrumbs/archive.json (routes of expired deleted workouts)",
     "ck:live backups of expired deleted sessions",
+    "hk:heartRateVariabilitySDNN (HRV of expired deleted sessions)",
     "archive:session-data migrations"
    ],
-   "branches": [
-    {
-     "at": "+12",
-     "cond": "for each expired deleted id",
-     "effect": "await RRCollector.permanentlyDelete(id) on the main actor"
-    }
-   ],
+   "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.runDeferredSessionMigrationsIfNeeded()": "bc95ccbf92484a71",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.permanentlyDelete(_:)": "cfdf4822119cb6a4",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.scheduleBackupReconcile(coord:archive:backup:lowPower:)": "55720a99932c26a2",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.upgradeExistingFileProtection()": "b0aaf9225360e362",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.upgradeExistingFileProtection()": "483bf77eecb900a5",
     "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "533489add6f1c58a",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.expiredDeletionIds(keepDays:)": "e431dbcac6c2956c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",

@@ -297,9 +297,9 @@ summarisation, so the next ordinary message cannot carry it to the provider.
 
 ### iCloud (CloudKit private database) — app-encrypted with a portable key
 
-Everything uploaded to CloudKit — session payloads and live RR backups — is
-encrypted by the app before it leaves the device, using `CloudPayloadCodec`
-(AES-GCM-256). No health value is written as a plaintext `CKRecord` field.
+Everything uploaded to CloudKit — session payloads, live RR backups and
+settings — is encrypted by the app before it leaves the device, using
+`CloudPayloadCodec` (AES-GCM-256). No health value is written as a plaintext `CKRecord` field.
 
 **Why.** App Review Guideline 5.1.3(ii) says apps may not store personal
 health information in iCloud. Compression is not confidentiality.
@@ -314,9 +314,10 @@ write before iCloud Keychain delivers the existing key creates one under its
 own account; sync carries all of them and `decode` tries each, since AES-GCM
 authentication rejects a wrong key outright.
 
-`CloudPayloadCodec.hasUsableKey` reports whether there is a key to encrypt
-with. It does not, and cannot, assert that another device can decrypt: a
-local Keychain read cannot tell whether iCloud Keychain is on and has synced.
+Every upload is sealed by `CloudPayloadCodec.sealForUpload`, which throws
+rather than upload plaintext when there is no key to encrypt with. A key on
+this device does not show that another device can decrypt: a local Keychain
+read cannot tell whether iCloud Keychain is on and has synced.
 
 **Framing.** Payloads carry a magic prefix (`EMQC`) and a version byte. A
 record with the older `FR` prefix was sealed by `EncryptionManager` and is
@@ -335,26 +336,60 @@ not a substitute.
 
 ### Local session files
 
-Session files are encrypted by `EncryptionManager` (AES-GCM-256, versioned
-keys) and written with `completeFileProtectionUntilFirstUserAuthentication`.
+Health, location and profile files on the device are sealed by the app with
+its archive key (`EncryptionManager`, AES-GCM-256, versioned keys) on top of
+iOS file protection:
+
+- archive session files and the archive index (`index.json`);
+- raw RR backups, both the one-shot files and the streamed points files, whose
+  lines are sealed one by one (`RawRRBackup`);
+- workout track backups: GPS, sample and heart-rate streams
+  (`WorkoutTrackBackup`);
+- settings, the HRV baseline, the training-load cache, the beat-consistency
+  priors, saved routes, email contacts and breadcrumb trails
+  (`JSONFileSeal`);
+- the assistant's conversation, remembered facts and artifacts
+  (`AssistantStoreFile`);
+- the UI state cache that paints the dashboard at launch.
+
+Most of these are written with `completeFileProtectionUntilFirstUserAuthentication`.
 
 - Overnight recording and background work (CloudKit sync, building assistant
   context) read and write while the phone is locked. `complete` would make
   those files unreadable then.
 - `completeUnlessOpen` keeps a file readable across a lock only while its
   handle stays open; `Data(contentsOf:)` opens and closes in one go, so locked
-  reads failed with "Operation not permitted".
+  reads fail with "Operation not permitted".
 - `completeUntilFirstUserAuthentication` is encrypted at rest with a
   hardware-backed key, needs an unlock since boot, and stays readable for the
   rest of that boot.
 
-If the archive key is unreachable at write time (a background write before the
-first unlock after a reboot), the session is written as plain JSON with
-`completeFileProtection` — unreadable whenever the phone is locked — and
-recorded in `PendingEncryptionLedger`. The next launch re-encrypts it.
+The assistant's files are written with `completeFileProtectionUnlessOpen`: the
+voice assistant can write them while the phone is locked, and they are
+unreadable then.
 
-Assistant conversations, remembered facts and assistant artifacts are written
-with `completeFileProtection`.
+**When the key cannot be reached** (a background write before the first unlock
+after a reboot, or a Keychain failure), what happens depends on the file
+(ADR 001):
+
+- A whole archive session file or a one-shot raw backup is written as plain
+  JSON with `completeFileProtectionUnlessOpen`: it can be created while the
+  phone is locked and cannot be read again until the next unlock. Its id is
+  recorded in `PendingEncryptionLedger`.
+- A streamed raw RR points file or workout track gets plain lines and keeps
+  until-first-unlock protection, because the overnight appends continue while
+  the phone is locked. Its id is recorded in `PendingEncryptionLedger` too.
+- The archive index is written as plain JSON.
+- Every other sealed file is not written at all: the previous file stays as it
+  was and the write is tried again later. Nothing in them is written in plain
+  text.
+
+The next launch where the key is available repairs what was written plain:
+`reencryptPendingSessions` rewrites the session files,
+`RawRRBackup.reencryptPendingBackups` and
+`WorkoutTrackBackup.reencryptPendingTracks` re-seal the backups line by line,
+and `SessionArchive.resealPlainIndexIfNeeded` reseals the index. An id leaves
+the ledger only once its files hold no plain text.
 
 The residual risk is device theft after first unlock combined with a
 jailbreak or forensic image. For personal HRV data this is an accepted

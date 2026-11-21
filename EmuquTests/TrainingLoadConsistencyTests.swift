@@ -142,4 +142,61 @@ final class TrainingLoadConsistencyTests: XCTestCase {
             TrainingMetricsCache.healthKitFingerprint(base + [workout(on: day(-1))])
         )
     }
+
+    // MARK: - Persisted snapshot
+
+    /// A snapshot file path in its own temporary directory, removed after the test.
+    private func snapshotFile() throws -> URL {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("TrainingSnapshot-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        addTeardownBlock {
+            do {
+                try FileManager.default.removeItem(at: directory)
+            } catch {
+                // swallow-ok: the directory is temporary.
+            }
+        }
+        return directory.appendingPathComponent("TrainingMetricsCache.json")
+    }
+
+    private func snapshot(ctl: Double) -> TrainingMetricsCache.PersistedCache {
+        let today = day(0)
+        return TrainingMetricsCache.PersistedCache(
+            current: nil, dailySeries: [today: .init(date: today, atl: 40, ctl: ctl, trimp: 80)],
+            fingerprint: "fp", computedDay: today, savedAt: today, loadSettings: nil
+        )
+    }
+
+    /// The training load is sealed with the app's key, never written as plain
+    /// JSON, and reads back as written.
+    func testTheTrainingLoadSnapshotIsSealedAndReadsBack() throws {
+        let file = try snapshotFile()
+        try TrainingMetricsCache.writeSnapshot(snapshot(ctl: 55), to: file)
+
+        XCTAssertNotEqual(try Data(contentsOf: file).first, UInt8(ascii: "{"), "The training load was written as plain JSON")
+        let read = try XCTUnwrap(TrainingMetricsCache.readSnapshot(at: file))
+        XCTAssertEqual(read.dailySeries[day(0)]?.ctl, 55)
+        XCTAssertEqual(read.fingerprint, "fp")
+    }
+
+    /// A plain snapshot an older build wrote still reads; no file reads as none.
+    func testAPlainTrainingLoadSnapshotFromAnOlderBuildStillReads() throws {
+        let file = try snapshotFile()
+        XCTAssertNil(try TrainingMetricsCache.readSnapshot(at: file))
+        try JSONEncoder().encode(snapshot(ctl: 61)).write(to: file)
+
+        XCTAssertEqual(try TrainingMetricsCache.readSnapshot(at: file)?.dailySeries[day(0)]?.ctl, 61)
+    }
+
+    /// With the key locked nothing is written, never the training load in
+    /// plain JSON: the write throws and the previous file stays as it was.
+    func testATrainingLoadSnapshotWithTheKeyLockedWritesNothing() throws {
+        let file = try snapshotFile()
+        try TrainingMetricsCache.writeSnapshot(snapshot(ctl: 55), to: file)
+        let sealedBytes = try Data(contentsOf: file)
+
+        XCTAssertThrowsError(try TrainingMetricsCache.writeSnapshot(snapshot(ctl: 70), to: file, seal: LockedKeySeal().fileSeal))
+        XCTAssertEqual(try Data(contentsOf: file), sealedBytes, "The file changed while the key was locked")
+    }
 }

@@ -1,13 +1,15 @@
 {
  "file": "EmuquTests/UserSettingsTests.swift",
- "hash": "7ebac0c01d6594fd",
- "role": "XCTest suite for UserSettings defaults and Codable, TemperatureUnit conversions, SleepSchedule wake time and overnight window, FitnessLevel names, and HRVSession windowUserAdjusted/sleepUserAdjusted round trip.",
+ "hash": "58663654cfa8f481",
+ "role": "XCTest suite for UserSettings defaults and Codable, TemperatureUnit conversions, SleepSchedule wake time and overnight window, FitnessLevel names, HRVSession windowUserAdjusted/sleepUserAdjusted round trip, SettingsManager's handling of an unreadable or held settings file, and the sealed settings file (round trip, plain files from older builds, a locked key at launch and at save). Declares LockedKeySeal, the lockable test seal BaselineTrackerTests and TrainingLoadConsistencyTests reuse.",
  "types": [
-  "UserSettingsTests: class (XCTestCase) — model value tests"
+  "UserSettingsTests: class (XCTestCase) — model value tests",
+  "LockedKeySeal: final class (Sendable, file scope) — a JSONFileSeal the test locks and unlocks; locked, sealing and opening sealed bytes throw EncryptionError.keychainError(-25308) while plain JSON passes through; unlocked, the app's key"
  ],
  "state": [
   "UserSettingsTests.SettingsReader: Sendable test reader (OSAllocatedUnfairLock state: POSIX failure to throw, read count) injected into SettingsManager(settingsURL:read:)",
-  "savedPerformanceFlags: the host's perf.* UserDefaults mirrors, saved in setUp and put back in tearDown"
+  "savedPerformanceFlags: the host's perf.* UserDefaults mirrors, saved in setUp and put back in tearDown",
+  "LockedKeySeal.locked (OSAllocatedUnfairLock<Bool>, starts true); LockedKeySeal.lockedError (static: keychainError(-25308), errSecInteractionNotAllowed)"
  ],
  "toplevel": " Imports os (the reader's lock) and UIKit (the retry notification names).",
  "units": [
@@ -415,7 +417,7 @@
    "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
    "calls": [
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:seal:)",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableBytes(_:beside:)"
    ],
    "reads": [
@@ -426,11 +428,10 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)": "4b75070cf79e4769",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:seal:)": "89d436bdca3f9309",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableBytes(_:beside:)": "2e616cf77e8e8861",
     "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
-    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()": "e9ff2f794bd8e2bb",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)": "337f4aa734a10f94"
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()": "e9ff2f794bd8e2bb"
    }
   },
   {
@@ -440,7 +441,7 @@
    "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
    "calls": [
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:seal:)",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableBytes(_:beside:)",
     "ext:FileManager.setAttributes(posixPermissions)"
    ],
@@ -452,12 +453,10 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)": "4b75070cf79e4769",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableFile(at:)": "007e650f9325807d",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
-    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()": "e9ff2f794bd8e2bb",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:seal:)": "89d436bdca3f9309",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.preserveUnreadableBytes(_:beside:)": "2e616cf77e8e8861",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)": "337f4aa734a10f94"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()": "e9ff2f794bd8e2bb"
    }
   },
   {
@@ -474,12 +473,12 @@
   {
    "key": "func UserSettingsTests.testAReadFailureThatCanPassHoldsSaves()",
    "hash": "30680d336a50c4bd",
-   "does": "For EIO, EMFILE and ENFILE read errors injected through load(from:read:), asserts (nil, .unreadableNotPreserved), and that the settings file keeps its bytes.",
+   "does": "For EIO, EMFILE and ENFILE read errors injected through load(from:read:seal:), asserts (nil, .unreadableNotPreserved), and that the settings file keeps its bytes.",
    "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
    "calls": [
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()",
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.readError(posix:)",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:seal:)"
    ],
    "reads": [
     "file:<tmp>/SettingsLoad-<uuid>/user_settings.json"
@@ -493,7 +492,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)": "337f4aa734a10f94",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:seal:)": "89d436bdca3f9309",
     "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.readError(posix:)": "b5e00162a4e71dde",
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()": "e9ff2f794bd8e2bb"
@@ -502,12 +501,12 @@
   {
    "key": "func UserSettingsTests.testAnEISDIRReadErrorLeavesNothingToKeep()",
    "hash": "598ad417ebe64a91",
-   "does": "Injects an EISDIR read error: load(from:read:) returns (nil, .unreadableOther) and no user_settings.unreadable.json is written.",
+   "does": "Injects an EISDIR read error: load(from:read:seal:) returns (nil, .unreadableOther) and no user_settings.unreadable.json is written.",
    "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
    "calls": [
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()",
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.readError(posix:)",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:seal:)"
    ],
    "reads": [
     "file:<tmp>/SettingsLoad-<uuid>/"
@@ -515,7 +514,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)": "337f4aa734a10f94",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:seal:)": "89d436bdca3f9309",
     "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.readError(posix:)": "b5e00162a4e71dde",
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()": "e9ff2f794bd8e2bb"
@@ -590,12 +589,12 @@
   {
    "key": "func UserSettingsTests.heldManager()",
    "hash": "3dedc02ba15af754",
-   "does": "Writes settings with maxHR 170 to a temporary user_settings.json, builds SettingsManager(settingsURL:read:) with a SettingsReader failing with EIO (setFailure(posix:)), asserts the load outcome is .unreadableNotPreserved and returns the manager, reader and file.",
+   "does": "Writes settings with maxHR 170 as plain JSON (as an older build did) to a temporary user_settings.json, builds SettingsManager(settingsURL:read:seal:) with a SettingsReader failing with EIO (setFailure(posix:)) and the app's seal, asserts the load outcome is .unreadableNotPreserved and returns the manager, reader and file.",
    "entry": null,
    "calls": [
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.unreadableSettingsFile()",
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.readError(posix:)",
-    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:)"
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:seal:)"
    ],
    "reads": [],
    "writes": [
@@ -603,7 +602,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:)": "82228c7d635edc98",
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:seal:)": "ede9ffb941ebbf43",
     "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "1c099582675121a6",
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.SettingsReader.read(_:)": "b19cc69f659cab4f",
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.SettingsReader.setFailure(posix:)": "59bc1ae332b3b9ef",
@@ -613,11 +612,13 @@
   },
   {
    "key": "func UserSettingsTests.settingsOnDisk(_:file:)",
-   "hash": "1ba6afe3acc079be",
-   "does": "Flushes the manager's pending write (asserting no error) and decodes the settings file.",
+   "hash": "152f75727dcf1273",
+   "does": "Flushes the manager's pending write (asserting no error), then reads the settings file, opens it with the app's key and decodes it (SettingsManager.settingsDecoder).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.flushPendingWritesSynchronously()"
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.flushPendingWritesSynchronously()",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.settingsDecoder()"
    ],
    "reads": [
     "file:<tmp>/SettingsLoad-<uuid>/user_settings.json"
@@ -625,7 +626,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.flushPendingWritesSynchronously()": "96642c2f565b8fca"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)": "31bc2aea46cfe8ad",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.flushPendingWritesSynchronously()": "96642c2f565b8fca",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.settingsDecoder()": "a84e7679597e007f"
    }
   },
   {
@@ -656,13 +659,13 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryHeldLoad()": "0f2b0d10bbc7dd30",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryHeldLoad()": "0aa338e0b68da97f",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.saveUnlessLocked()": "c59772159ed0611a",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0",
     "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.SettingsReader.setFailure(posix:)": "59bc1ae332b3b9ef",
-    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.heldManager()": "8a79d18a64150e50",
-    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.settingsOnDisk(_:file:)": "ac402e308c5966e7"
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.heldManager()": "285a15ada37cdd5b",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.settingsOnDisk(_:file:)": "a84e835f37cfbb8d"
    }
   },
   {
@@ -688,9 +691,9 @@
     "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.SettingsReader.setFailure(posix:)": "59bc1ae332b3b9ef",
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.drainMainActor()": "3dc6319b06bce1d4",
-    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.heldManager()": "8a79d18a64150e50",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.heldManager()": "285a15ada37cdd5b",
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.readError(posix:)": "b5e00162a4e71dde",
-    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.settingsOnDisk(_:file:)": "ac402e308c5966e7",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.settingsOnDisk(_:file:)": "a84e835f37cfbb8d",
     "EmuquTests/UserSettingsTests.swift::var UserSettingsTests.SettingsReader.reads": "f51421b5ad7ba74e"
    }
   },
@@ -716,9 +719,150 @@
     "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.SettingsReader.setFailure(posix:)": "59bc1ae332b3b9ef",
     "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.drainMainActor()": "3dc6319b06bce1d4",
-    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.heldManager()": "8a79d18a64150e50",
-    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.settingsOnDisk(_:file:)": "ac402e308c5966e7",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.heldManager()": "285a15ada37cdd5b",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.settingsOnDisk(_:file:)": "a84e835f37cfbb8d",
     "EmuquTests/UserSettingsTests.swift::var UserSettingsTests.SettingsReader.reads": "f51421b5ad7ba74e"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.freshSettingsFile()",
+   "hash": "018ccb10a8b32736",
+   "does": "Creates a SettingsSeal-<uuid> folder in the temporary directory, removed by a teardown block, and returns the not-yet-written user_settings.json path in it.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.createDirectory",
+    "ext:XCTestCase.addTeardownBlock"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/SettingsSeal-<uuid>/"
+   ],
+   "branches": [],
+   "deps": {
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testTheSettingsFileIsSealedAndReadsBack()",
+   "hash": "ec764b73007a8b61",
+   "does": "On a fresh file, sets bodyWeightKg 72 and flushes; asserts the file does not start with '{' (not plain JSON), and that a new manager on it loads (.loaded) with bodyWeightKg 72.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.freshSettingsFile()",
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:seal:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.flushPendingWritesSynchronously()"
+   ],
+   "reads": [
+    "file:<tmp>/SettingsSeal-<uuid>/user_settings.json"
+   ],
+   "writes": [
+    "file:<tmp>/SettingsSeal-<uuid>/user_settings.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.flushPendingWritesSynchronously()": "96642c2f565b8fca",
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:seal:)": "ede9ffb941ebbf43",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.freshSettingsFile()": "73a4b24e7d0148cf"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testAPlainSettingsFileFromAnOlderBuildLoadsAndIsResealed()",
+   "hash": "fb926e48e5ec2fa6",
+   "does": "Writes plain settings JSON with maxHR 181 (settingsEncoder), asserts a manager loads it (.loaded, maxHR 181); after setting bodyWeightKg 70 and flushing, asserts the file no longer starts with '{' and holds maxHR 181 and bodyWeightKg 70.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.freshSettingsFile()",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.settingsEncoder()",
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:seal:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.flushPendingWritesSynchronously()",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.settingsOnDisk(_:file:)"
+   ],
+   "reads": [
+    "file:<tmp>/SettingsSeal-<uuid>/user_settings.json"
+   ],
+   "writes": [
+    "file:<tmp>/SettingsSeal-<uuid>/user_settings.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.flushPendingWritesSynchronously()": "96642c2f565b8fca",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.settingsEncoder()": "d6c36c25ca0690a2",
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:seal:)": "ede9ffb941ebbf43",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "1c099582675121a6",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.freshSettingsFile()": "73a4b24e7d0148cf",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.settingsOnDisk(_:file:)": "a84e835f37cfbb8d"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testALockedKeyAtLaunchNeverResetsOrOverwritesTheSettings()",
+   "hash": "c1d713b40d256a77",
+   "does": "Seals settings with maxHR 175 into a fresh file; a manager with a locked LockedKeySeal loads .blockedByProtection; after setting bodyWeightKg 66 and flushing, asserts the file bytes are unchanged and no unreadable copy was written. Unlocks, runs retryLoadAfterUnlock, and asserts .loaded with maxHR 175 in memory and on disk, and bodyWeightKg 66 on disk.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.freshSettingsFile()",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.settingsEncoder()",
+    "EmuquTests/UserSettingsTests.swift::var LockedKeySeal.fileSeal",
+    "EmuquTests/UserSettingsTests.swift::func LockedKeySeal.setLocked(_:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:seal:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.flushPendingWritesSynchronously()",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryLoadAfterUnlock()",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.settingsOnDisk(_:file:)"
+   ],
+   "reads": [
+    "file:<tmp>/SettingsSeal-<uuid>/user_settings.json"
+   ],
+   "writes": [
+    "file:<tmp>/SettingsSeal-<uuid>/user_settings.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)": "506794a8a13263fb",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.flushPendingWritesSynchronously()": "96642c2f565b8fca",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.retryLoadAfterUnlock()": "7d65d546dc09af34",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.settingsEncoder()": "d6c36c25ca0690a2",
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:seal:)": "ede9ffb941ebbf43",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "1c099582675121a6",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
+    "EmuquTests/UserSettingsTests.swift::func LockedKeySeal.setLocked(_:)": "7674a0d9aabfd17f",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.freshSettingsFile()": "73a4b24e7d0148cf",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.settingsOnDisk(_:file:)": "a84e835f37cfbb8d",
+    "EmuquTests/UserSettingsTests.swift::var LockedKeySeal.fileSeal": "ae47c6b747ef2950"
+   }
+  },
+  {
+   "key": "func UserSettingsTests.testASaveWithTheKeyLockedKeepsTheFileAndIsRetried()",
+   "hash": "45a8ebe4f376be15",
+   "does": "With an unlocked LockedKeySeal, saves maxHR 160 and records the file bytes; locks it, sets bodyWeightKg 90 and asserts the flush returns an error and the bytes are unchanged; unlocks it and asserts the next flush writes maxHR 160 and bodyWeightKg 90.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.freshSettingsFile()",
+    "EmuquTests/UserSettingsTests.swift::var LockedKeySeal.fileSeal",
+    "EmuquTests/UserSettingsTests.swift::func LockedKeySeal.setLocked(_:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:seal:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.flushPendingWritesSynchronously()",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.settingsOnDisk(_:file:)"
+   ],
+   "reads": [
+    "file:<tmp>/SettingsSeal-<uuid>/user_settings.json"
+   ],
+   "writes": [
+    "file:<tmp>/SettingsSeal-<uuid>/user_settings.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.flushPendingWritesSynchronously()": "96642c2f565b8fca",
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:seal:)": "ede9ffb941ebbf43",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.bodyWeightKg": "e302225b31b458c0",
+    "EmuquTests/UserSettingsTests.swift::func LockedKeySeal.setLocked(_:)": "7674a0d9aabfd17f",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.freshSettingsFile()": "73a4b24e7d0148cf",
+    "EmuquTests/UserSettingsTests.swift::func UserSettingsTests.settingsOnDisk(_:file:)": "a84e835f37cfbb8d",
+    "EmuquTests/UserSettingsTests.swift::var LockedKeySeal.fileSeal": "ae47c6b747ef2950"
    }
   },
   {
@@ -735,6 +879,82 @@
    "deps": {
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a"
    }
+  },
+  {
+   "key": "func LockedKeySeal.setLocked(_:)",
+   "hash": "54d107c5502b52a7",
+   "does": "Sets the locked flag under its lock.",
+   "entry": null,
+   "calls": [
+    "ext:OSAllocatedUnfairLock.withLock"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:LockedKeySeal.locked"
+   ],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "var LockedKeySeal.fileSeal",
+   "hash": "1f0c31e1ce78ba0d",
+   "does": "A JSONFileSeal whose seal and open closures call this object's seal(_:) and open(_:).",
+   "entry": null,
+   "calls": [
+    "EmuquTests/UserSettingsTests.swift::func LockedKeySeal.seal(_:)",
+    "EmuquTests/UserSettingsTests.swift::func LockedKeySeal.open(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/UserSettingsTests.swift::func LockedKeySeal.open(_:)": "351961e98c3a2216",
+    "EmuquTests/UserSettingsTests.swift::func LockedKeySeal.seal(_:)": "86592076409d09d3"
+   }
+  },
+  {
+   "key": "func LockedKeySeal.seal(_:)",
+   "hash": "86370a477c162f48",
+   "does": "Locked: throws lockedError (keychainError -25308). Unlocked: seals with JSONFileSeal.app.",
+   "entry": "Called through fileSeal by the store under test.",
+   "calls": [
+    "dyn:JSONFileSeal.app.seal (EncryptionManager.encrypt)"
+   ],
+   "reads": [
+    "mem:LockedKeySeal.locked",
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "locked",
+     "effect": "throws lockedError"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func LockedKeySeal.open(_:)",
+   "hash": "4aa2e5079aff6ed9",
+   "does": "Locked and the bytes do not start with '{': throws lockedError (keychainError -25308). Otherwise opens with JSONFileSeal.app (plain JSON passed through, sealed bytes decrypted).",
+   "entry": "Called through fileSeal by the store under test.",
+   "calls": [
+    "dyn:JSONFileSeal.app.open (EncryptionManager.openStoredJSON)"
+   ],
+   "reads": [
+    "mem:LockedKeySeal.locked",
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "locked and not plain JSON",
+     "effect": "throws lockedError"
+    }
+   ],
+   "deps": {}
   }
  ],
  "deps": {}

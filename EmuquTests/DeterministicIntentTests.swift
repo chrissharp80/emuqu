@@ -36,22 +36,11 @@ final class DeterministicIntentTests: XCTestCase {
         )
     }
 
-    /// Returns true if any pattern's regex matches the utterance.
-    /// Independent of whether the handler can produce a string.
+    /// Returns true if any pattern's regex matches the utterance, through the
+    /// matcher `tryMatch` uses. Independent of whether the handler can
+    /// produce a string.
     private func anyPatternMatches(_ utterance: String) -> Bool {
-        let normalized = utterance
-            .lowercased()
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .trimmingCharacters(in: CharacterSet(charactersIn: ".?!,"))
-        for pattern in DeterministicIntent.patterns {
-            for regex in pattern.compiled {
-                let range = NSRange(normalized.startIndex..., in: normalized)
-                if regex.firstMatch(in: normalized, options: [], range: range) != nil {
-                    return true
-                }
-            }
-        }
-        return false
+        DeterministicIntent.matchedPattern(for: utterance) != nil
     }
 
     // MARK: - Patterns we EXPECT to match (precision side)

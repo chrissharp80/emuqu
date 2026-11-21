@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift",
  "hash": "10aa84bc67587d4b",
- "role": "AnthropicProvider extension holding request shaping: prompt-cache split of the system prompt, tool declarations (only for sends that carry tools; Anthropic server-side web_search replacing the app's Tavily tool), URLRequest construction, the SSE line reader that rejects a stream cut before message_stop, and the continuation of replies the server web search paused (pause_turn): the reply's raw content blocks are rebuilt from the stream and sent back as the assistant's message, at most maxPauseContinuations times.",
+ "role": "AnthropicProvider extension holding request shaping: prompt-cache split of the system prompt, tool declarations (only for sends that carry tools; Anthropic server-side web_search replacing the app's Tavily tool), URLRequest construction through ProviderHTTP.streamRequest, the SSE event reader that rejects a stream cut before message_stop, and the continuation of replies the server web search paused (pause_turn): the reply's raw content blocks are rebuilt from the stream and sent back as the assistant's message, at most maxPauseContinuations times.",
  "types": [
   "AnthropicProvider: extension — request assembly + SSE",
   "AnthropicProvider: extension — paused-turn continuation",
@@ -107,27 +107,31 @@
   },
   {
    "key": "func AnthropicProvider.makeRequest(url:apiKey:body:)",
-   "hash": "3690e6d44a6776bc",
+   "hash": "50bf45c5cdb59cce",
    "does": "Builds the POST URLRequest: x-api-key, anthropic-version 2023-06-01, anthropic-beta extended-cache-ttl-2025-04-11, JSON content-type, SSE accept; body JSON-encoded with .sortedKeys. Throws if encoding fails.",
    "entry": null,
    "calls": [
-    "ext:JSONEncoder.encode"
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderHTTP.streamRequest(url:body:headers:)"
    ],
    "reads": [],
    "writes": [
     "net:api.anthropic.com (request built, sent by caller)"
    ],
    "branches": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderHTTP.streamRequest(url:body:headers:)": "398c2895ca1e29a2"
+   }
   },
   {
    "key": "func AnthropicProvider.consumeSSE(_:continuation:)",
-   "hash": "698c6b6bf27265c8",
-   "does": "Reads a reply's SSE line sequence (the URL session's lines, or a test's) line by line: a blank line resets the event name, an \"event:\" line records it, \"data:\" payloads are passed to handle(); checks task cancellation per line. When the sequence ends, a cancelled task throws CancellationError, so Stop reads as cancellation. A stream that ends before message_stop was cut, and throws URLError(.networkConnectionLost) (ProviderStream maps it to a fallbackable .network) instead of passing a truncated reply as complete. Otherwise returns a PausedTurn with the reply's raw content blocks when it stopped with pause_turn, or nil. On every exit (deferred) flushUsage records message_start's usage if nothing recorded it yet, so a reply that failed after message_start still reports its usage.",
+   "hash": "69ad8909f294890d",
+   "does": "Reads a reply's SSE line sequence (the URL session's lines, or a test's) as server-sent events (SSEEvents: a blank line resets the event name, an \"event:\" line records it, non-empty \"data:\" payloads become events, task cancellation is checked per line) and passes each event's name and payload to handle(). When the sequence ends, a cancelled task throws CancellationError, so Stop reads as cancellation. A stream that ends before message_stop was cut, and throws URLError(.networkConnectionLost) (ProviderStream maps it to a fallbackable .network) instead of passing a truncated reply as complete. Otherwise returns a PausedTurn with the reply's raw content blocks when it stopped with pause_turn, or nil. On every exit (deferred) flushUsage records message_start's usage if nothing recorded it yet, so a reply that failed after message_start still reports its usage.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.handle(eventName:data:state:continuation:)",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.flushUsage(_:final:to:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::init SSEEvents(_:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func SSEEvents.Iterator.next()",
     "ext:Task.checkCancellation"
    ],
    "reads": [
@@ -142,36 +146,21 @@
     },
     {
      "at": "+7",
-     "cond": "for each line",
-     "effect": "loop until stream ends; throws on network error/cancellation"
+     "cond": "for each event",
+     "effect": "loop until the lines end; throws on network error/cancellation; handle(eventName:data:) may throw"
     },
     {
-     "at": "+9",
-     "cond": "line empty or starts with event:",
-     "effect": "empty clears lastEventName, event: stores the trimmed name; continue"
-    },
-    {
-     "at": "+14",
-     "cond": "line does not start with data:",
-     "effect": "skipped (comments, id:, retry:)"
-    },
-    {
-     "at": "+16",
-     "cond": "payload empty or not UTF-8",
-     "effect": "skipped; else handle(eventName:data:) which may throw"
-    },
-    {
-     "at": "+19",
+     "at": "+10",
      "cond": "task cancelled when the sequence ended",
      "effect": "throws CancellationError"
     },
     {
-     "at": "+20",
+     "at": "+11",
      "cond": "stream ended without message_stop",
      "effect": "throws URLError(.networkConnectionLost)"
     },
     {
-     "at": "+21",
+     "at": "+12",
      "cond": "reply paused ?:",
      "effect": "PausedTurn(content blocks), else nil"
     }
@@ -179,7 +168,9 @@
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::var AnthropicProvider.ReplyContent.orderedBlocks": "d7573c5122a23205",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.flushUsage(_:final:to:)": "235406e06fc8fde4",
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.handle(eventName:data:state:continuation:)": "349a1f3d121af575"
+    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.handle(eventName:data:state:continuation:)": "349a1f3d121af575",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func SSEEvents.Iterator.next()": "56c410c5c361b066",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::init SSEEvents(_:)": "4128f511bc32e0e6"
    }
   },
   {

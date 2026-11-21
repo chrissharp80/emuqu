@@ -48,7 +48,7 @@ extension CloudKitSyncManager {
 
     /// Exponential-backoff ceiling: a session is never skipped for more than
     /// this many cycles in a row.
-    private static let maxBackoffCycles = 32
+    nonisolated static let maxBackoffCycles = 32
 
     /// Advancing counter for the retry backoff.
     ///
@@ -59,7 +59,7 @@ extension CloudKitSyncManager {
     private static var pushCycleCounter = 0
     /// Shifting by more than this overflows before `maxBackoffCycles` can clamp
     /// the result.
-    private static let maxBackoffExponent = 6
+    nonisolated static let maxBackoffExponent = 6
 
     // DESIGN NOTE on serial vs batched uploads.
     // CKModifyRecordsOperation would parallelise these saves into a single
@@ -189,37 +189,35 @@ extension CloudKitSyncManager {
         return batch
     }
 
-    /// Whether this session is still inside its exponential-backoff window.
-    ///
-    /// Skips every 2^failCount cycles (capped). The spread uses a STABLE
-    /// per-id value, not `sessionId.hashValue`, which is
-    /// randomly seeded per process launch, so the schedule would reshuffle on
-    /// every launch and a session could be unlucky across many launches in a
-    /// row. The UUID's own bytes are stable forever.
-    /// Whether this session should sit out the current push cycle.
-    ///
-    /// Not simply
-    /// `stableRetryBucket(id) % skipCycles != 0`: both operands are constant
-    /// while an item is being skipped — the bucket is derived from the UUID and
-    /// the failure count only changes on an *attempt* — so a session that
-    /// deferred once would defer on every subsequent cycle for the life of the
-    /// process, and a backup pending its first upload would never retry, even
-    /// after the network came back. UUID `01000000-…` gives bucket 1: after one
-    /// failure the test is `1 % 2 != 0`, true, forever.
-    ///
-    /// The cycle counter is what makes it advance. The bucket stays in the
-    /// expression as deterministic jitter so a hundred sessions failing
-    /// together do not all retry on the same cycle, but it can no longer decide
-    /// the outcome on its own.
+    /// Whether this session should sit out the current push cycle, read from
+    /// its stored failure count, its stable bucket and the cycle counter.
     private func shouldDeferForBackoff(_ sessionId: UUID) -> Bool {
-        let failCount = state.uploadFailureCounts[sessionId] ?? 0
+        Self.defersForBackoff(
+            failCount: state.uploadFailureCounts[sessionId] ?? 0,
+            bucket: Self.stableRetryBucket(for: sessionId),
+            cycle: Self.pushCycleCounter
+        )
+    }
+
+    /// Cycles between attempts for a session that has failed `failCount`
+    /// times: 2^failCount, with the exponent capped before shifting (`1 << 64`
+    /// is undefined) and the result capped at `maxBackoffCycles`.
+    nonisolated static func backoffPeriod(failCount: Int) -> Int {
+        min(1 << min(max(failCount, 0), maxBackoffExponent), maxBackoffCycles)
+    }
+
+    /// Whether a session defers on push cycle `cycle`.
+    ///
+    /// A session with no failures never defers. Otherwise it is tried once
+    /// per backoff period, on the cycle where `(cycle + bucket) % period == 0`.
+    /// The cycle counter is what makes a deferred session eligible again: the
+    /// bucket and the failure count stay constant while it is skipped, so a
+    /// test built from them alone would defer the same session forever. The
+    /// bucket only spreads sessions that failed together across cycles.
+    nonisolated static func defersForBackoff(failCount: Int, bucket: Int, cycle: Int) -> Bool {
         guard failCount > 0 else { return false }
-        // Cap the EXPONENT, not the result: `1 << 64` is undefined, and a
-        // session that fails often enough would otherwise shift past Int width.
-        let exponent = min(failCount, Self.maxBackoffExponent)
-        let period = min(1 << exponent, Self.maxBackoffCycles)
-        let offset = Self.stableRetryBucket(for: sessionId) % period
-        return (Self.pushCycleCounter + offset) % period != 0
+        let period = backoffPeriod(failCount: failCount)
+        return (cycle + bucket % period) % period != 0
     }
 
     /// Re-save a record that lost a revision race.
@@ -408,7 +406,7 @@ extension CloudKitSyncManager {
     /// the retry spread does not reshuffle at each launch. The failure counts
     /// themselves are kept in memory only (`CloudKitSyncState`), so every
     /// backoff starts over when the app is relaunched.
-    static func stableRetryBucket(for id: UUID) -> Int {
+    nonisolated static func stableRetryBucket(for id: UUID) -> Int {
         let b = id.uuid
         return Int(b.0) | (Int(b.1) << 8) | (Int(b.2) << 16)
     }
@@ -471,50 +469,22 @@ extension CloudKitSyncManager {
     /// `frozenReadiness`, `hrvDataQuality`, the score breakdown's sub-scores),
     /// the app's training-load figures, a workout's GPS track and per-second
     /// samples, `tags`, `notes` and the morning feeling. What keeps it out of
-    /// reach is the encryption in `encryptedForCloud`, not this function.
+    /// reach is the encryption in `CloudPayloadCodec.sealForUpload`, not this
+    /// function.
     nonisolated private static func compressedPayload(for session: HRVSession) throws -> Data {
         let sanitized = CloudSessionPayload.uploadable(session)
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = .sortedKeys
         let compressed = try DataCompression.compress(try encoder.encode(sanitized))
-        return try encryptedForCloud(compressed)
+        return try CloudPayloadCodec.sealForUpload(compressed)
     }
 
-    /// Encrypt a payload before it is handed to CloudKit.
-    ///
-    /// ## Why
-    ///
-    /// App Review Guideline 5.1.3(ii): apps "may not store personal health
-    /// information in iCloud." The text carries no HealthKit-origin
-    /// qualification — assuming one meant uploading compressed-but-readable
-    /// JSON containing RR intervals, recovery scores and RMSSD.
-    ///
-    /// Compression is not confidentiality. A compressed payload is readable by
-    /// anyone who can read the container.
-    ///
-    /// Encrypting with the cloud key (`CloudPayloadCodec`, held in the iCloud
-    /// Keychain) means CloudKit holds ciphertext rather than health
-    /// information. The key never goes into a CloudKit record, so the stored
-    /// bytes are not personal health information to anyone holding them.
-    ///
-    /// Throws rather than falling back to plaintext. This is the same
-    /// fail-closed decision as `Archive+SessionCodec`, and
-    /// the stakes are higher here: a plaintext fallback would upload readable
-    /// health data to a third party. A skipped backup is recoverable; an
-    /// uploaded one is not.
-    nonisolated private static func encryptedForCloud(_ payload: Data) throws -> Data {
-        // `CloudPayloadCodec`, not `EncryptionManager`: the archive key is
-        // non-synchronizable, so a backup sealed with it could not be read by
-        // the user's other devices — which defeats the point of a cloud backup.
-        guard CloudPayloadCodec.hasUsableKey else { throw CloudSyncError.encryptionUnavailable }
-        return try CloudPayloadCodec.encode(payload)
-    }
-
-    /// The CKAsset temp file is short-lived (deleted right
-    /// after the save via `cleanupTempAsset`) but holds compressed health
-    /// data, so protect it at rest until first unlock rather than leaving
-    /// it readable while the device is locked.
+    /// The CKAsset temp file, deleted right after the save
+    /// (`cleanupTempAsset`). Its bytes are already sealed
+    /// (`compressedPayload`). The class is until-first-unlock, not complete:
+    /// a sync running in the background while the device is locked must
+    /// still be able to read the file to upload it.
     nonisolated private static func writeAssetFile(_ compressedData: Data, sessionId: UUID) throws -> URL {
         let tempURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("ck_\(sessionId.uuidString)_\(UUID().uuidString.prefix(8))")

@@ -1,7 +1,7 @@
 {
  "file": "EmuquTests/MetNorwayForecastTests.swift",
- "hash": "bf5f1f2355cf4a48",
- "role": "XCTest suite for the MET Norway Locationforecast compact parser (MetNorwayForecast.parse/hour), snapshot(at:) nearest-step selection, symbol→condition mapping, the Expires HTTP-date parser and WeatherService terms-of-service constants (userAgent, minimumRequestInterval).",
+ "hash": "f36d9b452af6746b",
+ "role": "XCTest suite for the MET Norway Locationforecast compact parser (MetNorwayForecast.parse/hour), snapshot(at:) nearest-step selection, symbol→condition mapping, the Expires HTTP-date parser, WeatherService terms-of-service constants (userAgent, minimumRequestInterval), and WeatherService.fetch driven through a stub transport (request URL and headers, reply parsed into a fresh forecast).",
  "types": [
   "MetNorwayForecastTests: class — @MainActor XCTestCase over MetNorwayForecast and WeatherService static members"
  ],
@@ -242,6 +242,44 @@
    "writes": [],
    "branches": [],
    "deps": {}
+  },
+  {
+   "key": "func MetNorwayForecastTests.testFetchSendsTheCompactRequestAndParsesTheReply()",
+   "hash": "77b6033201d53967",
+   "does": "Sends WeatherService.fetch for 59.91,10.75 through a StubHTTPTransport answering 200 with the fixture and a Last-Modified header; asserts one request to api.met.no /weatherapi/locationforecast/2.0/compact with query lat=59.91&lon=10.75 and the app User-Agent, and a .fresh outcome whose hours equal MetNorwayForecast.parse(fixture) and whose lastModified is the header value.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/Helpers/StubHTTPTransport.swift::init StubHTTPTransport(status:body:headers:)",
+    "EmuquTests/Helpers/StubHTTPTransport.swift::var StubHTTPTransport.transport",
+    "EmuquTests/Helpers/StubHTTPTransport.swift::func StubHTTPTransport.respond(to:)",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.fetch(at:ifModifiedSince:transport:)",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.request(at:ifModifiedSince:)",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.outcome(data:response:)",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.parse(_:)",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.httpDate(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "outcome is not .fresh",
+     "effect": "XCTFail and return; else checks the forecast"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.hour(from:)": "e6e5f2924672eaab",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.httpDate(_:)": "d6248135505e11b7",
+    "Emuqu/Sources/Services/WeatherService.swift::func MetNorwayForecast.parse(_:)": "e7fabc883fdb25ea",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.fetch(at:ifModifiedSince:transport:)": "74b488f889ff27d6",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.outcome(data:response:)": "28b89fb7eb34d9aa",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.request(at:ifModifiedSince:)": "9161637c63632c3f",
+    "EmuquTests/Helpers/StubHTTPTransport.swift::func StubHTTPTransport.respond(to:)": "9999d0e99b603476",
+    "EmuquTests/Helpers/StubHTTPTransport.swift::init StubHTTPTransport(status:body:headers:)": "aa8c1761529faa2f",
+    "EmuquTests/Helpers/StubHTTPTransport.swift::var StubHTTPTransport.transport": "11e37ca257fc9a8e",
+    "EmuquTests/MetNorwayForecastTests.swift::func MetNorwayForecastTests.forecast()": "4d2286d75a0e1f91"
+   }
   }
  ],
  "deps": {}

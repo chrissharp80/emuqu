@@ -68,6 +68,13 @@ struct ScoredRecoveryBlock {
         classification == .organizedRecovery
     }
 
+    /// Whether the window is consolidated recovery: organized and with HR CV
+    /// under `unstableCVThreshold`. The one rule every `RecoveryWindow`
+    /// builder stores as `isConsolidated`.
+    var isConsolidatedRecovery: Bool {
+        isOrganizedRecovery && hrIsStable
+    }
+
     /// Whether an optimal-α1 window also has the regulation that makes it
     /// organized. Without LF/HF, stable HR is required, so "organized" still
     /// reflects sustained regulation rather than an α1-only spike. With LF/HF

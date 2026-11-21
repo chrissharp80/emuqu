@@ -88,8 +88,8 @@ extension SessionArchive {
     /// the explicit protection-class option to break out of the stuck state.
     ///
     /// A session still written in plaintext (`PendingEncryptionLedger`) is
-    /// left alone: its `.completeFileProtection` stands in for the encryption
-    /// it lacks (`archiveWriteOptions`), and the re-encryption that follows
+    /// left alone: its `.completeFileProtectionUnlessOpen` stands in for the
+    /// encryption it lacks (`archiveWriteOptions`), and the re-encryption that follows
     /// at launch does nothing while the key is unreachable, so lowering it
     /// here left plaintext health data readable whenever the device was
     /// unlocked once. The rewrite that encrypts it sets the class.
@@ -140,10 +140,11 @@ extension SessionArchive {
         archiveLock.withLock { !indexReadFailed && !indexDecodeFailed }
     }
 
-    /// A read error (the file is locked by data protection, EPERM) is not
-    /// corruption: the file is left where it is, `indexReadFailed` is set and
-    /// the read is retried at `boot()` and before any save. Only bytes that
-    /// read but do not decode are moved aside as unreadable. One entry that
+    /// A read error (the file is locked by data protection, EPERM, or sealed
+    /// while the key cannot be reached, `readStoredIndex`) is not corruption:
+    /// the file is left where it is, `indexReadFailed` is set and the read is
+    /// retried at `boot()` and before any save. Only bytes that read but do
+    /// not open (`indexJSON`) or decode are moved aside as unreadable. One entry that
     /// does not decode on this build is left out of `index` (`decodeIndex`),
     /// not the whole index, and kept with the newer-schema ones in
     /// `newerBuildIndexEntries` for `saveIndex` to write back. Bytes that
@@ -153,14 +154,14 @@ extension SessionArchive {
         guard fileManager.fileExists(atPath: indexFile.path) else { return }
         let data: Data
         do {
-            data = try Data(contentsOf: indexFile)
+            data = try readStoredIndex()
         } catch {
             debugLog("Failed to read archive index: \(error) — keeping it and retrying before the next save", level: .error)
             indexReadFailed = true
             return
         }
         do {
-            (index, newerBuildIndexEntries) = try Self.decodeIndex(data)
+            (index, newerBuildIndexEntries) = try Self.decodeIndex(Self.indexJSON(data))
             sortedEntriesCache = nil
             sessionIdLookup = nil
         } catch {
@@ -178,10 +179,10 @@ extension SessionArchive {
     /// only list of the user's sessions. Caller holds `archiveLock`.
     func mergeIndexThatFailedToLoad() throws {
         guard indexReadFailed else { return }
-        let data = try Data(contentsOf: indexFile)
+        let data = try readStoredIndex()
         indexReadFailed = false
         do {
-            let onDisk = try Self.decodeIndex(data)
+            let onDisk = try Self.decodeIndex(Self.indexJSON(data))
             let known = Set(index.map(\.sessionId))
             index += onDisk.entries.filter { !known.contains($0.sessionId) && !deletedSessionIds.contains($0.sessionId) }
             newerBuildIndexEntries.merge(onDisk.newer)
@@ -196,6 +197,29 @@ extension SessionArchive {
                 throw error
             }
         }
+    }
+
+    /// The index file's bytes as stored. Throws when they cannot be read, or
+    /// are sealed while the key cannot be reached (before the first unlock,
+    /// or a Keychain failure): the index is then unreadable for now, not
+    /// corrupt, and stays where it is.
+    private func readStoredIndex() throws -> Data {
+        let stored = try Data(contentsOf: indexFile)
+        guard ArchiveStore.looksEncrypted(stored), !Self.indexEncryption.isAvailable else { return stored }
+        throw EncryptionManager.EncryptionError.keyNotFound
+    }
+
+    /// The key the index is sealed with: the archive's, as for session files.
+    private static var indexEncryption: EncryptionManager {
+        AppDependencies.current.storage.encryptionManager
+    }
+
+    /// The index JSON in `stored`: unsealed, or as it is when a build that
+    /// did not seal the index wrote it as plain JSON
+    /// (`EncryptionManager.openStoredJSON`). Throws when sealed bytes do not
+    /// open, which `loadIndex` treats as corruption.
+    static func indexJSON(_ stored: Data) throws -> Data {
+        try indexEncryption.openStoredJSON(stored)
     }
 
     /// The index entries in `data`, each decoded on its own: an entry this
@@ -299,12 +323,43 @@ extension SessionArchive {
     /// Entries a newer build wrote are written back as they were read
     /// (`IndexEntriesFromNewerBuild.indexData`) rather than dropped or
     /// re-encoded without the fields this build does not know.
+    ///
+    /// Sealed with the archive's key: the entries carry health values
+    /// (recovery score, RMSSD, heart rate, stress, sleep minutes, notes and
+    /// tags). When the key cannot be reached the index is written unsealed
+    /// rather than failing the save it belongs to, as session files fall back
+    /// (ADR 001); `resealPlainIndexIfNeeded` seals it once the key is back.
     func saveIndex() throws {
         try mergeIndexThatFailedToLoad()
         sortedEntriesCache = nil
         sessionIdLookup = nil
         let data = try newerBuildIndexEntries.indexData(for: index, deleted: deletedSessionIds)
-        try data.write(to: indexFile, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        try Self.sealedOrPlain(data).write(to: indexFile, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+    }
+
+    /// `data` sealed with the archive's key, or `data` itself, logged as an
+    /// error, when the key cannot be reached.
+    private static func sealedOrPlain(_ data: Data) -> Data {
+        do {
+            return try indexEncryption.encrypt(data)
+        } catch {
+            debugLog("[Archive] index written unsealed, the archive key is unavailable: \(error)", level: .error)
+            return data
+        }
+    }
+
+    /// Rewrites the index sealed when it is on disk as plain JSON (written
+    /// while the key was unavailable, or by a build that did not seal it) and
+    /// the key can now be reached. Skipped while the index did not load, so a
+    /// partial list never replaces it.
+    func resealPlainIndexIfNeeded() {
+        guard fileManager.fileExists(atPath: indexFile.path),
+              Self.indexEncryption.isAvailable, hasCompleteIndex else { return }
+        archiveLock.withLock {
+            guard let stored = attempt("Archive.readIndexForReseal", { try Data(contentsOf: indexFile) }),
+                  !ArchiveStore.looksEncrypted(stored) else { return }
+            _ = attempt("Archive.resealIndex") { try saveIndex() }
+        }
     }
 
     // MARK: - Errors

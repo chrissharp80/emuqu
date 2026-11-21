@@ -2,7 +2,7 @@ import Foundation
 
 /// Streams responses from Anthropic's Messages API (Claude).
 /// https://docs.claude.com/en/api/messages-streaming
-final class AnthropicProvider: AIProvider, Sendable {
+final class AnthropicProvider: KeyedCloudProvider, Sendable {
     // MARK: - Static catalog
 
     /// Checked against platform.claude.com/docs/en/about-claude/models and
@@ -54,17 +54,6 @@ final class AnthropicProvider: AIProvider, Sendable {
     // MARK: - AIProvider conformance
 
     let id: ProviderID = .anthropic
-    var availableModels: [ModelOption] {
-        Self.models
-    }
-
-    var requiresKey: Bool {
-        true
-    }
-
-    var isAvailable: Bool {
-        AppDependencies.current.providers.apiKeyStore.hasKey(for: .anthropic)
-    }
 
     func send(
         messages: [ChatTurn],
@@ -353,7 +342,7 @@ final class AnthropicProvider: AIProvider, Sendable {
             throw AIProviderError.missingKey(.anthropic)
         }
         guard let url = URL(string: "https://api.anthropic.com/v1/messages") else {
-            throw AIProviderError.invalidResponse("bad endpoint")
+            throw ProviderHTTP.badEndpoint
         }
         var mapped = buildMessageHistory(messages: messages, toolRounds: toolRounds)
         var systemBlocks = Self.cacheAwareSystemBlocks(systemPrompt)
@@ -376,12 +365,8 @@ final class AnthropicProvider: AIProvider, Sendable {
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) async throws -> PausedTurn? {
         let request = try makeRequest(url: url, apiKey: apiKey, body: body)
-        let (bytes, response) = try await ProviderHTTP.streamSession.bytes(for: request)
-        try Task.checkCancellation()
-        if let http = response as? HTTPURLResponse, !(200 ... 299).contains(http.statusCode) {
-            try await throwForStatus(http.statusCode, bytes: bytes)
-        }
-        return try await consumeSSE(bytes.lines, continuation: continuation)
+        let lines = try await ProviderHTTP.openStream(request, provider: .anthropic, failure: statusFailure(_:body:))
+        return try await consumeSSE(lines, continuation: continuation)
     }
 
     /// Accumulator for a streaming tool_use content block. Anthropic sends
@@ -422,13 +407,9 @@ final class AnthropicProvider: AIProvider, Sendable {
         let output = usage["output_tokens"] as? Int ?? 0
         let cacheRead = usage["cache_read_input_tokens"] as? Int ?? 0
         let cacheCreate = usage["cache_creation_input_tokens"] as? Int ?? 0
-        guard input > 0 || output > 0 || cacheRead > 0 || cacheCreate > 0 else { return }
-        continuation.yield(.usage(
-            inputTokens: input,
-            outputTokens: output,
-            cachedInputTokens: cacheRead,
-            cacheCreationInputTokens: cacheCreate
-        ))
+        ProviderHTTP.yieldUsage(
+            input: input, output: output, cached: cacheRead, cacheCreation: cacheCreate, to: continuation
+        )
     }
 
     static func handle(
@@ -553,24 +534,16 @@ final class AnthropicProvider: AIProvider, Sendable {
         else { return }
         let args = pending.inputJSON.isEmpty ? "{}" : pending.inputJSON
         guard ProviderHTTP.isJSONObject(args) else {
-            throw AIProviderError.invalidResponse("tool call \(pending.name) arrived with incomplete arguments")
+            throw ProviderHTTP.incompleteArguments(toolName: pending.name)
         }
         continuation.yield(.toolUse(id: pending.id, name: pending.name, inputJSON: args))
     }
 
-    static func throwForStatus(_ status: Int, bytes: URLSession.AsyncBytes) async throws -> Never {
-        let collected = try await ProviderHTTP.errorBody(bytes)
-        let bodyText = redactAPIKeys(String(data: collected, encoding: .utf8) ?? "")
-        if ProviderAccountReply.isCreditExhausted(status: status, body: bodyText) {
-            throw AIProviderError.outOfCredit(.anthropic)
-        }
-        // 529 (Anthropic's "overloaded") and other 5xx are transient on
-        // their side, so the user gets a plain "try again".
-        throw ProviderHTTP.statusError(
-            status,
-            message: ProviderHTTP.errorMessage(from: collected) ?? String(bodyText.prefix(300)),
-            overloaded: ProviderHTTP.overloadedMessage(for: .anthropic)
-        )
+    /// The error a non-2xx reply becomes. Anthropic has no status of its
+    /// own to read first: 529 ("overloaded") and other 5xx map to the plain
+    /// "try again" through the shared mapping.
+    static func statusFailure(_ status: Int, body: Data) -> AIProviderError {
+        ProviderHTTP.statusFailure(status, body: body, provider: .anthropic)
     }
 }
 

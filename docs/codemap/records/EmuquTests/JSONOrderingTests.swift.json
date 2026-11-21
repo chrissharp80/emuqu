@@ -1,100 +1,80 @@
 {
  "file": "EmuquTests/JSONOrderingTests.swift",
- "hash": "14e1d183daa6c0ff",
- "role": "XCTest suite for JSON key-order determinism: three tests pin Foundation's .sortedKeys contract on local structs, and two are the regression net for the provider request encoders, building requests through AnthropicProvider.makeRequest and OpenAICompatibleStreamer.requestFor and failing if either stops encoding with .sortedKeys (GeminiProvider.makeRequest is private and not covered).",
+ "hash": "6a7fb677143fd5e3",
+ "role": "XCTest suite for JSON key-order determinism of the provider request encoders: builds requests through AnthropicProvider.makeRequest, GeminiProvider.makeRequest and OpenAICompatibleStreamer.requestFor and fails if any body is not the .sortedKeys encoding, checking each request's vendor headers too.",
  "types": [
-  "JSONOrderingTests: class — XCTestCase",
-  "JSONOrderingTests.Payload: struct — local Encodable test payload",
-  "JSONOrderingTests.Payload.Nested: struct — nested Encodable",
-  "CacheControl: struct (local to testCacheControlSerializationIsStable)"
+  "JSONOrderingTests: class — XCTestCase"
  ],
  "state": [],
  "toplevel": "",
  "units": [
   {
-   "key": "func JSONOrderingTests.testEncoderWithSortedKeysIsDeterministic()",
-   "hash": "2a7ef712f4ed3a45",
-   "does": "Encodes a local Payload 100 times with a .sortedKeys JSONEncoder and asserts exactly one distinct Data.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [],
+   "key": "var JSONOrderingTests.sortedEncoder",
+   "hash": "4c2c334365610932",
+   "does": "A JSONEncoder with .sortedKeys, the expected encoding of a request body.",
+   "entry": null,
+   "calls": [
+    "ext:JSONEncoder"
+   ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+12",
-     "cond": "for 100 iterations",
-     "effect": "encodes and inserts into a Set"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb"
-   }
-  },
-  {
-   "key": "func JSONOrderingTests.testEncoderWithoutSortedKeysMayVary()",
-   "hash": "e15fc258f98a1abc",
-   "does": "Encodes the payload once without .sortedKeys and only asserts the UTF-8 string is non-empty.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+15",
-     "cond": "String(data:encoding:) ?? \"\"",
-     "effect": "fallback empty string when the data is not UTF-8, which fails the non-empty assertion"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb"
-   }
-  },
-  {
-   "key": "func JSONOrderingTests.testCacheControlSerializationIsStable()",
-   "hash": "22bf9e399aca95cc",
-   "does": "Encodes a local CacheControl(type:'ephemeral', ttl:'1h') 100 times with .sortedKeys and asserts one distinct Data.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+11",
-     "cond": "for 100 iterations",
-     "effect": "encodes and inserts into a Set"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::init AnthropicProvider.RequestBody.SystemBlock.CacheControl(type:ttl:)": "ef94418fb8544c61"
-   }
+   "branches": [],
+   "deps": {}
   },
   {
    "key": "func JSONOrderingTests.testAnthropicRequestBodyIsEncodedWithSortedKeys()",
-   "hash": "71676ba674b8e6f3",
-   "does": "Builds an AnthropicProvider.RequestBody (cacheAwareSystemBlocks('rules'), one plain user message, stream, no tools), sends it through AnthropicProvider.makeRequest, and asserts the request's httpBody equals a local .sortedKeys encoding of the body; a control asserts the plain (declaration-order) encoding differs, so the comparison can fail.",
+   "hash": "ce8cdeaa2cab3f1e",
+   "does": "Builds an AnthropicProvider.RequestBody (cacheAwareSystemBlocks('rules'), one plain user message, stream, no tools), sends it through AnthropicProvider.makeRequest, and asserts the request's httpBody equals a .sortedKeys encoding of the body, the method is POST, and the x-api-key, anthropic-version and Accept headers are set.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.cacheAwareSystemBlocks(_:)",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.splitOnCacheMarker(_:)",
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.makeSystemBlocks(stable:variable:)",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.makeRequest(url:apiKey:body:)",
+    "EmuquTests/JSONOrderingTests.swift::var JSONOrderingTests.sortedEncoder",
     "ext:JSONEncoder.encode"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.splitOnCacheMarker(_:)": "c484c39a3bf962e3",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.cacheAwareSystemBlocks(_:)": "24f5467acd330c46",
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider+Request.swift::func AnthropicProvider.makeRequest(url:apiKey:body:)": "78754869ee6292c4",
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::func AnthropicProvider.makeSystemBlocks(stable:variable:)": "25247d69db0f4dd4",
-    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb"
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb",
+    "EmuquTests/JSONOrderingTests.swift::var JSONOrderingTests.sortedEncoder": "480e5b4b4c42805a"
+   }
+  },
+  {
+   "key": "func JSONOrderingTests.testGeminiRequestBodyIsEncodedWithSortedKeys()",
+   "hash": "8d92c131e0d740bb",
+   "does": "Builds a GeminiProvider.RequestBody with system instruction 'rules', a user turn, a model turn carrying a functionCall part with a thoughtSignature, a user turn carrying a functionResponse part, and one tool declaration without parameters; sends it through GeminiProvider.makeRequest to GeminiProvider.streamEndpoint for the first catalog model, and asserts the httpBody equals a .sortedKeys encoding of the body, the method is POST, x-goog-api-key, Content-Type and Accept are set, and the URL is that endpoint (the model's streamGenerateContent?alt=sse) without the key in it.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.streamEndpoint(for:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.makeRequest(url:apiKey:body:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(text:)",
+    "EmuquTests/JSONOrderingTests.swift::var JSONOrderingTests.sortedEncoder",
+    "ext:JSONEncoder.encode",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(functionCall:thoughtSignature:)",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(functionResponse:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init AnyJSON(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init AnyJSON(_:)": "2ba6046744ab8baa",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.makeRequest(url:apiKey:body:)": "a85a659d63cd1b4e",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.streamEndpoint(for:)": "4f76cde6f5eaecff",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(functionCall:thoughtSignature:)": "e09bbe46e0e8ac38",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(functionResponse:)": "01859a14a6062a59",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::init GeminiProvider.RequestBody.Part(text:)": "4a5c1ff08179dc8a",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb",
+    "EmuquTests/JSONOrderingTests.swift::var JSONOrderingTests.sortedEncoder": "480e5b4b4c42805a"
    }
   },
   {
    "key": "func JSONOrderingTests.testOpenAICompatibleRequestBodyIsEncodedWithSortedKeys()",
-   "hash": "7e63e73e33623b0f",
-   "does": "Builds a DeepSeek StreamCall and its request through OpenAICompatibleStreamer.requestFor, finds the first '\"messages\":', '\"model\":', '\"stream\":' and '\"stream_options\":' in the body text (decoded as UTF-8; the test fails if it is not), and asserts messages precedes model and stream precedes stream_options, the reverse of the private body's declaration order (model, messages, stream, stream_options), i.e. the body was encoded with .sortedKeys.",
+   "hash": "0c20b2e63320af39",
+   "does": "Builds a DeepSeek StreamCall and its request through OpenAICompatibleStreamer.requestFor, finds the first '\"messages\":', '\"model\":', '\"stream\":' and '\"stream_options\":' in the body text (decoded as UTF-8; the test fails if it is not), and asserts messages precedes model and stream precedes stream_options, the reverse of the private body's declaration order (model, messages, stream, stream_options), i.e. the body was encoded with .sortedKeys; then asserts the request carries 'Bearer test-key' authorization and the SSE Accept header.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.requestFor(_:apiKey:)",

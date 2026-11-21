@@ -39,19 +39,15 @@ final class RedactionPatternTests: XCTestCase {
 
     /// The chain pattern is built at runtime by string interpolation, which is
     /// exactly where a malformed result is easiest to introduce and hardest to
-    /// see. Reconstruct it the same way `redactValueChains` does.
+    /// see. Compile the composed constant `redactValueChains` uses.
     func testComposedValueChainPatternCompiles() {
-        let unit = #"(?:\s*(?:ms|bpm|BPM|%|°[CF]|min|h|points?))?"#
-        let chain = "(<redacted>\\s*(?:->|→|<|>|to|vs\\.?|,|/)\\s*)[-+]?\\d+(?:\\.\\d+)?\(unit)"
-        XCTAssertNoThrow(try NSRegularExpression(pattern: "(?i)\(chain)", options: []))
+        XCTAssertNoThrow(try NSRegularExpression(pattern: DebugLogger.valueChainPattern, options: []))
     }
 
     /// The main `scrubPHI` pattern is also composed at runtime, from the
-    /// metric, separator and unit patterns above. Compose it the same way.
+    /// metric, separator and unit patterns above. Compile the composed constant.
     func testComposedMetricPatternCompiles() {
-        let metric = Self.patterns[1], unit = Self.patterns[2], separator = Self.patterns[3]
-        let composed = "(?i)(\\b\(metric)\\b\(separator))[-+]?\\d+(?:\\.\\d+)?\(unit)"
-        XCTAssertNoThrow(try NSRegularExpression(pattern: composed, options: []))
+        XCTAssertNoThrow(try NSRegularExpression(pattern: DebugLogger.metricValuePattern, options: []))
     }
 
     // MARK: - Redaction output

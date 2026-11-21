@@ -98,26 +98,22 @@ extension AnthropicProvider {
         }
     }
 
+    /// The streaming POST for one Messages call, built by
+    /// `ProviderHTTP.streamRequest` with Anthropic's key and version headers.
     /// The `anthropic-beta` header opts into the 1-hour
     /// cache TTL. The tool catalog's `cache_control` sets `ttl: "1h"`; without
     /// this header Anthropic falls back to the default 5-minute TTL, which
     /// still works but loses the longer amortization window.
     ///
-    /// `.sortedKeys` is required for cache-stable payload serialisation — any
+    /// The body's sorted keys keep it byte-stable across turns — any
     /// non-determinism here blows Anthropic's prompt cache and every turn pays
     /// full input-token inference cost.
     static func makeRequest(url: URL, apiKey: String, body: RequestBody) throws -> URLRequest {
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
-        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-        request.setValue("extended-cache-ttl-2025-04-11", forHTTPHeaderField: "anthropic-beta")
-        request.setValue("application/json", forHTTPHeaderField: "content-type")
-        request.setValue("text/event-stream", forHTTPHeaderField: "accept")
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys]
-        request.httpBody = try encoder.encode(body)
-        return request
+        try ProviderHTTP.streamRequest(url: url, body: body, headers: [
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+            "anthropic-beta": "extended-cache-ttl-2025-04-11"
+        ])
     }
 
     /// SSE parsing — anthropic emits "event: <type>" then "data: <json>" pairs.
@@ -148,20 +144,10 @@ extension AnthropicProvider {
         _ lines: Lines,
         continuation: AsyncThrowingStream<AIStreamEvent, Error>.Continuation
     ) async throws -> PausedTurn? where Lines.Element == String {
-        var lastEventName: String?
         var state = StreamState()
         defer { flushUsage(&state, final: nil, to: continuation) }
-        for try await line in lines {
-            try Task.checkCancellation()
-            if line.isEmpty || line.hasPrefix("event:") {
-                // A blank line ends an event; an event: line names the next one.
-                lastEventName = line.isEmpty ? nil : line.dropFirst("event:".count).trimmingCharacters(in: .whitespaces)
-                continue
-            }
-            guard line.hasPrefix("data:") else { continue }
-            let payload = line.dropFirst("data:".count).trimmingCharacters(in: .whitespaces)
-            guard !payload.isEmpty, let data = payload.data(using: .utf8) else { continue }
-            try handle(eventName: lastEventName, data: data, state: &state, continuation: continuation)
+        for try await event in SSEEvents(lines) {
+            try handle(eventName: event.name, data: Data(event.data.utf8), state: &state, continuation: continuation)
         }
         try Task.checkCancellation()
         guard state.messageStopped else { throw URLError(.networkConnectionLost) }

@@ -429,7 +429,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugLogLink": "51af2af875708fa8",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugResetButton": "1d8c0daa000ea934"
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.debugResetButton": "f6821773eb632f01"
    }
   },
   {
@@ -496,28 +496,65 @@
   },
   {
    "key": "var TroubleshootingPage.debugResetButton",
-   "hash": "0bba529d9d0b4155",
-   "does": "Destructive \"Clear All Logs\": DebugLogger.clear() empties entries, catalog, pending lines and deletes debug_log.txt.",
-   "entry": null,
+   "hash": "262a33edc1663dbc",
+   "does": "Destructive \"Clear All Logs\" button running clearAllLogs(), with a 'Some logs couldn't be deleted. Try again.' alert shown while logsClearFailed is set.",
+   "entry": "SwiftUI Button action",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::func TroubleshootingPage.clearAllLogs()"
+   ],
+   "reads": [
+    "mem:TroubleshootingPage.logsClearFailed"
+   ],
+   "writes": [
+    "mem:TroubleshootingPage.logsClearFailed"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::func TroubleshootingPage.clearAllLogs()": "21e411d2ff634a7f"
+   }
+  },
+  {
+   "key": "func TroubleshootingPage.clearAllLogs()",
+   "hash": "ceb6a02de7dbf047",
+   "does": "Clears every log 'All Logs' names: DebugLogger.clear() (memory and debug_log.txt) and CrashLogManager.clearAll() (live crash log, exception log and previous crash report; a throw is logged via attempt). Sets crashReportCleared when the crash logs are gone, hiding the Crash Report section, and sets logsClearFailed when either left something behind.",
+   "entry": "Clear All Logs button (debugResetButton)",
+   "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clear()"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clear()",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.clearAll()",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
    ],
    "reads": [],
    "writes": [
     "mem:DebugLogger.entries",
     "mem:DebugLogger.errorCatalog",
-    "file:debug_log.txt (App Group)"
+    "file:debug_log.txt (App Group)",
+    "file:crash_log / exception log / previous_crash (App Group)",
+    "mem:TroubleshootingPage.crashReportCleared",
+    "mem:TroubleshootingPage.logsClearFailed"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "crash logs cleared",
+     "effect": "crashReportCleared = true"
+    },
+    {
+     "at": "+4",
+     "cond": "either clear failed",
+     "effect": "logsClearFailed = true (alert); else false"
+    }
+   ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "b0514085566dc374",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "daa043f0af306c2c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger": "7a67c7397d8585c2",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clear()": "88092cd51ced3d06"
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.clearAll()": "c9358c666eb90c51",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clear()": "66a1557741b0e88a",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {

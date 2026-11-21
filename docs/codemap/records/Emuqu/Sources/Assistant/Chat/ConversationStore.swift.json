@@ -1,14 +1,15 @@
 {
  "file": "Emuqu/Sources/Assistant/Chat/ConversationStore.swift",
- "hash": "f06586fb44083064",
- "role": "Persists the assistant chat thread as ISO-8601 JSON (Assistant/conversation.json in the App Group) with debounced saves, complete file protection, unlock-retry and merge-on-unreadable protection; plus UndecodableFile helper that renames corrupt files aside.",
+ "hash": "13f7af3d5ab4facd",
+ "role": "Persists the assistant chat thread (Assistant/conversation.json in the App Group) sealed with EncryptionManager, with debounced saves, unlock-retry, merge-on-unreadable protection and a verified clear; plus AssistantStoreFile, the sealed-file read/write, set-aside and erase helpers shared by ConversationStore, UserFactsStore and AssistantArtifactStore.",
  "types": [
   "ConversationStore: final class @unchecked Sendable — chat persistence",
-  "UndecodableFile: enum — setAside(url, caller)"
+  "AssistantStoreFile: enum — read/write sealed JSON files, set undecodable files aside, list and erase set-aside copies",
+  "AssistantStoreFile.Read: enum — missing / unreadable / undecodable / json(Data)"
  ],
  "state": [
   "mem:ConversationStore.shared",
-  "file:<AppGroup|Documents|tmp>/Assistant/conversation.json (atomic, completeFileProtection)",
+  "file:<AppGroup|Documents|tmp>/Assistant/conversation.json (sealed with EncryptionManager, atomic, completeFileProtectionUnlessOpen)",
   "file:conversation.undecodable-<unix>.json (set-aside copy)",
   "mem:ConversationStore.queue (serial 'com.chrissharp.flowrecovery.assistant.conversationstore', utility)",
   "mem:ConversationStore.latestTurns/saveScheduled/writePending (queue-only)",
@@ -65,11 +66,11 @@
   },
   {
    "key": "func ConversationStore.load()",
-   "hash": "fc3a0cb2a39d2f60",
-   "does": "Synchronously reads and decodes the conversation file; on read failure flags unreadable if the file exists and returns []; on decode failure sets unreadableOnDisk and returns [].",
+   "hash": "df16a3fe334dd90d",
+   "does": "Synchronously reads the conversation file through AssistantStoreFile.read and decodes it: a missing file returns []; a file that is unreadable (locked, key unavailable), unopenable or undecodable sets unreadableOnDisk, logs a warning and returns []; otherwise returns the decoded turns.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.noteUnreadableIfPresent()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.read(_:caller:)",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.decodedTurns(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -81,19 +82,24 @@
    ],
    "branches": [
     {
-     "at": "+6",
-     "cond": "file cannot be read (missing or locked)",
-     "effect": "noteUnreadableIfPresent, return []"
+     "at": "+2",
+     "cond": "file missing",
+     "effect": "return []"
     },
     {
-     "at": "+10",
-     "cond": "decode fails",
-     "effect": "set unreadableOnDisk=true, log error, return []; else return turns"
+     "at": "+3",
+     "cond": "unreadable or undecodable",
+     "effect": "fall through: flag unreadableOnDisk, log, return []"
+    },
+    {
+     "at": "+5",
+     "cond": "json decodes",
+     "effect": "return turns; a decode failure falls through to flag and return []"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.read(_:caller:)": "6e6ce13df5c02712",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.decodedTurns(_:)": "443a0898c240e572",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.noteUnreadableIfPresent()": "45e9f2f505cd535f",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -177,19 +183,17 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.snapshotSafeToWrite()": "cceb013557669e90",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.write(_:)": "bca3d2249ee72f92"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.write(_:)": "87fd85c24dace45c"
    }
   },
   {
    "key": "func ConversationStore.write(_:)",
-   "hash": "8bb5ef4a5724ce42",
-   "does": "Encodes the turns as ISO-8601 JSON, creates the parent directory (Delete All My Data removes it under a running store), writes atomically with complete file protection; true on success, false when encode (logged by attempt) or the directory/write fails (logged at error).",
+   "hash": "bc2dbb7401ee3d1f",
+   "does": "Encodes the turns as ISO-8601 JSON and writes them sealed through AssistantStoreFile.write (creates the directory, atomic, completeFileProtectionUnlessOpen). False when encoding, sealing (key unavailable) or writing failed; the previous file is then left as it was.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:FileManager.createDirectory",
-    "ext:Data.write(.atomic,.completeFileProtection)"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.write(_:to:caller:)"
    ],
    "reads": [],
    "writes": [
@@ -200,15 +204,10 @@
      "at": "+3",
      "cond": "encode fails",
      "effect": "return false"
-    },
-    {
-     "at": "+8",
-     "cond": "createDirectory or write throws",
-     "effect": "log error, return false; else true"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.write(_:to:caller:)": "fbcde6efeddba39f",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
@@ -278,29 +277,6 @@
    "deps": {}
   },
   {
-   "key": "func ConversationStore.noteUnreadableIfPresent()",
-   "hash": "92ceddae9906b0e0",
-   "does": "If the conversation file exists (but could not be read), sets unreadableOnDisk and logs a warning.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:ConversationStore.unreadableOnDisk"
-   ],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "file does not exist",
-     "effect": "return (normal first launch); else flag unreadable"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
-   }
-  },
-  {
    "key": "func ConversationStore.mergedWithDisk(_:acknowledging:)",
    "hash": "d7290d2acfd2258c",
    "does": "Runs mergeWithDiskLocked while holding diskMerge, so the view model's adoption (main actor) and a save's merge (store queue) never read or set aside the file at the same time.",
@@ -314,26 +290,25 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergeWithDiskLocked(_:acknowledging:)": "805d8dab0240c620"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergeWithDiskLocked(_:acknowledging:)": "9456547660ec0326"
    }
   },
   {
    "key": "func ConversationStore.mergeWithDiskLocked(_:acknowledging:)",
-   "hash": "01d0e14025685b4a",
-   "does": "When disk was unreadable: returns current merged with on-disk turns not already present (sorted by createdAt); nil while still unreadable; sets an undecodable file aside; clears the flag only when acknowledging or when the file vanished/was set aside. Called only with diskMerge held.",
+   "hash": "527877440ecc5f27",
+   "does": "When disk was flagged unreadable: reads the file through AssistantStoreFile.read; missing clears the flag and returns current; still unreadable returns nil (save held); undecodable sets the file aside (setAsideUndecodable); readable JSON is merged in by merge(_:into:acknowledging:). Returns current unchanged when the flag is not set. Called only with diskMerge held.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.decodedTurns(_:)",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func UndecodableFile.setAside(_:caller:)"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.read(_:caller:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.setAsideUndecodable(keeping:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.merge(_:into:acknowledging:)"
    ],
    "reads": [
     "file:Assistant/conversation.json",
     "mem:ConversationStore.unreadableOnDisk"
    ],
    "writes": [
-    "mem:ConversationStore.unreadableOnDisk",
-    "file:conversation.undecodable-<unix>.json"
+    "mem:ConversationStore.unreadableOnDisk"
    ],
    "branches": [
     {
@@ -342,35 +317,85 @@
      "effect": "return current unchanged"
     },
     {
-     "at": "+2",
-     "cond": "file no longer exists",
+     "at": "+3",
+     "cond": "file missing",
      "effect": "clear flag, return current"
     },
     {
      "at": "+6",
-     "cond": "file still unreadable",
+     "cond": "still unreadable",
      "effect": "return nil (save held)"
     },
     {
      "at": "+7",
-     "cond": "file reads but does not decode",
-     "effect": "set aside; on failure return nil, on success clear flag and return current"
+     "cond": "undecodable (seal cannot be opened)",
+     "effect": "return setAsideUndecodable(keeping: current)"
     },
     {
      "at": "+8",
-     "cond": "setAside failed",
-     "effect": "return nil; saves stay held"
+     "cond": "json",
+     "effect": "return merge(data, into: current, acknowledging:)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.read(_:caller:)": "6e6ce13df5c02712",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.merge(_:into:acknowledging:)": "7bc758488c506c08",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.setAsideUndecodable(keeping:)": "f0d82d8d6153ec55"
+   }
+  },
+  {
+   "key": "func ConversationStore.merge(_:into:acknowledging:)",
+   "hash": "e2f09d70f2048c7a",
+   "does": "Decodes the on-disk turns and returns current plus the on-disk turns it lacks (by id), sorted by createdAt; clears unreadableOnDisk only when acknowledging. JSON that does not decode is set aside instead (setAsideUndecodable).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.decodedTurns(_:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.setAsideUndecodable(keeping:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:ConversationStore.unreadableOnDisk"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "data does not decode",
+     "effect": "return setAsideUndecodable(keeping: current)"
     },
     {
-     "at": "+12",
+     "at": "+2",
      "cond": "acknowledging",
-     "effect": "clear flag (view model adopted turns); else keep flag set"
+     "effect": "clear unreadableOnDisk (view model adopted the turns); else leave it set"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.decodedTurns(_:)": "443a0898c240e572",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func UndecodableFile.setAside(_:caller:)": "ece1c58cdf429e28",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.setAsideUndecodable(keeping:)": "f0d82d8d6153ec55"
+   }
+  },
+  {
+   "key": "func ConversationStore.setAsideUndecodable(keeping:)",
+   "hash": "95d418e3684b2229",
+   "does": "Moves the undecodable history aside (AssistantStoreFile.setAside); on success clears unreadableOnDisk and returns current, otherwise returns nil so the save stays held.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.setAside(_:caller:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Assistant/conversation.json",
+    "file:Assistant/conversation.undecodable-<unix>.json",
+    "mem:ConversationStore.unreadableOnDisk"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "setAside failed",
+     "effect": "return nil; saves stay held"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.setAside(_:caller:)": "8b92242b00b6808b"
    }
   },
   {
@@ -400,51 +425,61 @@
   },
   {
    "key": "func ConversationStore.isEmptyOnDisk()",
-   "hash": "05eede97e6985022",
-   "does": "Runs synchronously on the store's queue (after every change already queued, a clear() included): true when the history file does not exist or decodes to an empty list; false when it holds turns or cannot be read or decoded.",
+   "hash": "00949b50e6eee33c",
+   "does": "Runs synchronously on the store's queue (after every change already queued, a clear() included): false when a set-aside copy exists or the folder cannot be listed; true when the history file is missing or decodes to an empty list; false when it holds turns or cannot be read, opened or decoded.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.decodedTurns(_:)"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.hasSetAsideCopies(of:caller:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.read(_:caller:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.decodedTurns(_:)",
+    "ext:DispatchQueue.sync"
    ],
    "reads": [
-    "file:<AppGroup>/Assistant/conversation.json"
+    "file:Assistant/conversation.json",
+    "file:Assistant/conversation.undecodable-<unix>.json"
    ],
    "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "file absent",
-     "effect": "true"
-    },
-    {
-     "at": "+3",
-     "cond": "read fails",
-     "effect": "false"
+     "cond": "a set-aside copy remains (or cannot be ruled out)",
+     "effect": "return false"
     },
     {
      "at": "+4",
-     "cond": "decode fails",
-     "effect": "false; else whether the turns are empty"
+     "cond": "file missing",
+     "effect": "return true"
+    },
+    {
+     "at": "+5",
+     "cond": "unreadable or undecodable",
+     "effect": "return false"
+    },
+    {
+     "at": "+6",
+     "cond": "json",
+     "effect": "return whether it decodes to an empty list (false when it does not decode)"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.decodedTurns(_:)": "443a0898c240e572",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.hasSetAsideCopies(of:caller:)": "283c59ae56d8761e",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.read(_:caller:)": "6e6ce13df5c02712",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.decodedTurns(_:)": "443a0898c240e572"
    }
   },
   {
    "key": "func ConversationStore.clear()",
-   "hash": "f8288b0bb85ec2d7",
-   "does": "On the queue: deletes the conversation file and resets latestTurns, saveScheduled, writePending and unreadableOnDisk so a pending trailing write does not resurrect it.",
+   "hash": "fd2f44586451451c",
+   "does": "Synchronously on the queue (after any queued write): erases every set-aside copy and then the history file (AssistantStoreFile.erase). On success resets latestTurns, saveScheduled (so a pending trailing write does not re-create the file), writePending and unreadableOnDisk and returns true; when anything could not be removed leaves the in-memory state as it was and returns false. Discardable result.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "ext:FileManager.removeItem"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.erase(_:caller:)",
+    "ext:DispatchQueue.sync"
    ],
    "reads": [],
    "writes": [
     "file:Assistant/conversation.json",
+    "file:Assistant/conversation.undecodable-<unix>.json",
     "mem:ConversationStore.latestTurns",
     "mem:ConversationStore.saveScheduled",
     "mem:ConversationStore.writePending",
@@ -453,22 +488,190 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "self deallocated",
-     "effect": "return"
+     "cond": "erase failed",
+     "effect": "return false; nothing in memory changes"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.erase(_:caller:)": "24e32283e179aa9e"
    }
   },
   {
-   "key": "func UndecodableFile.setAside(_:caller:)",
-   "hash": "f5c671aaa715828b",
-   "does": "Renames url to '<name>.undecodable-<unix seconds>.json'; true on success, false (logged) on failure.",
+   "key": "func AssistantStoreFile.read(_:caller:)",
+   "hash": "45f6a41957a397d7",
+   "does": "Reads a store's file: .missing when it does not exist; .unreadable (logged) when reading throws (file protection while locked); otherwise the bytes are classified by opened(_:caller:).",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.opened(_:caller:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:FileManager.moveItem"
+    "ext:Data(contentsOf:)",
+    "ext:FileManager.fileExists"
+   ],
+   "reads": [
+    "file:<store file> (conversation.json, user_facts.json, artifacts.json)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "file does not exist",
+     "effect": "return .missing"
+    },
+    {
+     "at": "+4",
+     "cond": "read throws",
+     "effect": "log warning, return .unreadable"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.opened(_:caller:)": "22483a5cb317928e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func AssistantStoreFile.opened(_:caller:)",
+   "hash": "dc09375db48da965",
+   "does": "Opens stored bytes with EncryptionManager.openStoredJSON (sealed bytes decrypted, plain JSON from builds that did not seal passed through): .json(data) on success; .unreadable (logged) when the keychain refuses the key (EncryptionError.keychainError); .undecodable (logged) for any other failure (damaged seal, missing key).",
+   "entry": null,
+   "calls": [
+    "dyn:JSONFileSeal.open (JSONFileSeal.app: EncryptionManager.openStoredJSON)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openStoredJSON(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.isKeyLocked(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "kc:session-encryption-key"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "keychainError",
+     "effect": "log warning, return .unreadable"
+    },
+    {
+     "at": "+6",
+     "cond": "any other error",
+     "effect": "log error, return .undecodable"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openStoredJSON(_:)": "70fb7963385a6749",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.isKeyLocked(_:)": "7c29c0d5a06f281b",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func AssistantStoreFile.write(_:to:caller:)",
+   "hash": "e16ca951c93470b6",
+   "does": "Seals the JSON with EncryptionManager.encrypt, creates the parent directory and writes atomically with completeFileProtectionUnlessOpen (writable while locked, unreadable then). True on success; false (logged) when sealing or writing failed, leaving the previous file untouched and nothing written in plain text.",
+   "entry": null,
+   "calls": [
+    "dyn:JSONFileSeal.seal (JSONFileSeal.app: EncryptionManager.encrypt)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
+    "ext:FileManager.createDirectory",
+    "ext:Data.write",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "kc:session-encryption-key"
+   ],
+   "writes": [
+    "file:<store file>"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "seal, mkdir or write throws",
+     "effect": "log error, return false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "EmuquTests/UserSettingsTests.swift::func LockedKeySeal.seal(_:)": "86592076409d09d3"
+   }
+  },
+  {
+   "key": "func AssistantStoreFile.setAside(_:caller:)",
+   "hash": "f5c671aaa715828b",
+   "does": "Renames url to '<name>.undecodable-<unix time>.json' beside it, logging the outcome. True on success, false when the move failed.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.moveItem",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<store file>",
+    "file:<name>.undecodable-<unix>.json"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "move throws",
+     "effect": "log error, return false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func AssistantStoreFile.setAsideCopies(of:caller:)",
+   "hash": "fdf59adbc57c90ee",
+   "does": "Lists the '<name>.undecodable-*.json' copies beside url: [] when the directory does not exist; nil (logged) when it exists but cannot be listed.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.contentsOfDirectory",
+    "ext:FileManager.fileExists",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "file:<name>.undecodable-<unix>.json"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "directory missing",
+     "effect": "return []"
+    },
+    {
+     "at": "+7",
+     "cond": "listing throws",
+     "effect": "log error, return nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func AssistantStoreFile.hasSetAsideCopies(of:caller:)",
+   "hash": "e4c6479a96e74ade",
+   "does": "True when a set-aside copy of url exists, or when the directory cannot be listed to rule it out.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.setAsideCopies(of:caller:)"
+   ],
+   "reads": [
+    "file:<name>.undecodable-<unix>.json"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.setAsideCopies(of:caller:)": "915d95612ea69c1f"
+   }
+  },
+  {
+   "key": "func AssistantStoreFile.eraseSetAsideCopies(of:caller:)",
+   "hash": "65d0b594ed2c3ca5",
+   "does": "Tries to remove every set-aside copy of url. True when none is left; false when the directory cannot be listed or any removal failed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.setAsideCopies(of:caller:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.remove(_:caller:)"
    ],
    "reads": [],
    "writes": [
@@ -476,9 +679,66 @@
    ],
    "branches": [
     {
-     "at": "+7",
-     "cond": "moveItem throws",
-     "effect": "log error, return false (caller keeps saves held)"
+     "at": "+1",
+     "cond": "directory cannot be listed",
+     "effect": "return false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.remove(_:caller:)": "3a91315121c831bf",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.setAsideCopies(of:caller:)": "915d95612ea69c1f"
+   }
+  },
+  {
+   "key": "func AssistantStoreFile.erase(_:caller:)",
+   "hash": "af0b62bfd95799ee",
+   "does": "Removes every set-aside copy, then url itself; url is not touched when a copy could not be removed. True when nothing is left.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.eraseSetAsideCopies(of:caller:)",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.remove(_:caller:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<store file>",
+    "file:<name>.undecodable-<unix>.json"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "copies not all removed",
+     "effect": "return false without removing url"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.eraseSetAsideCopies(of:caller:)": "7056a49fac26dee1",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.remove(_:caller:)": "3a91315121c831bf"
+   }
+  },
+  {
+   "key": "func AssistantStoreFile.remove(_:caller:)",
+   "hash": "921f0c01d55aa99d",
+   "does": "Removes url. True when it is gone (including when it was never there); false (logged) when removal failed.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.removeItem",
+    "ext:FileManager.fileExists",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<store file or set-aside copy>"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "file absent",
+     "effect": "return true"
+    },
+    {
+     "at": "+5",
+     "cond": "removeItem throws",
+     "effect": "log error, return false"
     }
    ],
    "deps": {

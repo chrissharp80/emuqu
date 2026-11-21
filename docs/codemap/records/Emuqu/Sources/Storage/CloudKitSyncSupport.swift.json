@@ -325,7 +325,7 @@
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.handlePushFailure(_:)": "c1c98629b4ecb56a",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushSkipReason()": "199f3f097b4951af",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.saveSettingsRecord(_:)": "b256f713df37da58",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.sealedLocalSettings()": "fc2f4d590b73e810",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.sealedLocalSettings()": "68ffe3321b5a93af",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -381,14 +381,14 @@
   },
   {
    "key": "func CloudKitSettingsSync.sealedLocalSettings()",
-   "hash": "110e6c6ef65c2706",
-   "does": "Gets the fully-loaded local settings JSON from SettingsManager, removes Health-filled profile fields and encrypts with the cloud key. Returns .ready(sealed) or .unavailable(reason); an encryption failure also sets status=.error.",
+   "hash": "24f7c53534bca7fd",
+   "does": "Gets the fully-loaded local settings JSON from SettingsManager, removes Health-filled profile fields and seals it with CloudPayloadCodec.sealForUpload. Returns .ready(sealed) or .unavailable(reason); a scrub or seal failure (no cloud key: CloudSyncError.encryptionUnavailable) also sets status=.error, and nothing is pushed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
     "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.currentSettingsJSON()",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.uploadable(_:)",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.encryptedSettingsPayload(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
@@ -412,10 +412,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.currentSettingsJSON()": "a5138370fd08a882",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.currentSettingsJSON()": "e5f73e52eee3c919",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.encryptedSettingsPayload(_:)": "f751320c8761608e",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.uploadable(_:)": "4c24b41735228125",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)": "88b5cfd374d70c6c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
@@ -482,13 +482,13 @@
   },
   {
    "key": "func CloudKitSettingsSync.scrubStoredRecord(keepingOutHealthFilledFrom:)",
-   "hash": "7f01982c90edc1ea",
+   "hash": "1d13044ed150341b",
    "does": "One-time (per install) rewrite of the stored settings record while iCloud Sync is off: fetches it, re-seals it with Health-filled profile fields removed (using local markers), keeps its modifiedAt, saves, and sets the done flag. A record sealed with a key this device does not hold yet stays pending (retried on a later call).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.encryptedSettingsPayload(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.write(_:to:modifiedAt:)",
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -536,11 +536,11 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "cbe5cd4ccaecc694",
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)": "ce3859c45e532228",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.noteUnrewritableRecord(_:)": "87d0dde474e3e8bd",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.encryptedSettingsPayload(_:)": "f751320c8761608e",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.scrubbed(_:markedBy:)": "e511e433e0fb84c4",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.settingsJSON(from:)": "ea385178c3d9bbad",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSettingsRecord.write(_:to:modifiedAt:)": "feed3afb796d51b4",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudKitSettingsSync.privateDB": "4ce4f9874bc8e29f",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)": "88b5cfd374d70c6c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -695,33 +695,6 @@
    "writes": [],
    "branches": [],
    "deps": {}
-  },
-  {
-   "key": "func CloudSettingsRecord.encryptedSettingsPayload(_:)",
-   "hash": "020e3252e75062f8",
-   "does": "Encrypts settings JSON with CloudPayloadCodec; throws CloudSyncError.encryptionUnavailable when no cloud key (fail closed).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::var CloudPayloadCodec.hasUsableKey",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)"
-   ],
-   "reads": [
-    "kc:com.chrissharp.flowrecovery.cloud"
-   ],
-   "writes": [
-    "kc:com.chrissharp.flowrecovery.cloud (key created if none)"
-   ],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "CloudPayloadCodec.hasUsableKey",
-     "effect": "encode; else throw encryptionUnavailable"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.encode(_:)": "fe1f3772ccd7e6b5",
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::var CloudPayloadCodec.hasUsableKey": "b689df1a23a0f576"
-   }
   },
   {
    "key": "func CloudSettingsRecord.write(_:to:modifiedAt:)",

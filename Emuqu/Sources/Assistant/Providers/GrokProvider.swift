@@ -8,7 +8,7 @@ import Foundation
 /// grok-4-1-fast models and grok-4-0709 and redirects them to grok-4.3.
 /// Each model runs at its default reasoning effort (grok-4.3 low,
 /// grok-4.7 high). Prices are for prompts under 200k tokens.
-final class GrokProvider: AIProvider {
+final class GrokProvider: OpenAICompatibleProvider {
     static let models: [ModelOption] = [
         ModelOption(
             providerID: .grok,
@@ -33,20 +33,10 @@ final class GrokProvider: AIProvider {
     ]
 
     let id: ProviderID = .grok
-    var availableModels: [ModelOption] {
-        Self.models
-    }
+    static let endpoint = OpenAICompatibleStreamer.Endpoint.grok
 
     /// Each model's default reasoning effort.
     static let reasoning: OpenAICompatibleStreamer.Reasoning = .modelDefault
-
-    var requiresKey: Bool {
-        true
-    }
-
-    var isAvailable: Bool {
-        AppDependencies.current.providers.apiKeyStore.hasKey(for: .grok)
-    }
 
     /// xAI's retired grok-4-1-fast models rejected requests with more than
     /// 200 tool schemas (HTTP 400 "Maximum tools limit reached"), and the
@@ -56,25 +46,4 @@ final class GrokProvider: AIProvider {
     /// If it ever binds, `AssistantViewModel.trimTools` keeps the first 110
     /// tools in `ToolRetriever`'s order and drops the rest.
     var maxToolSchemaCount: Int? { 110 }
-
-    func send(
-        messages: [ChatTurn],
-        model: ModelOption,
-        contextRendered: String,
-        systemPrompt: String,
-        tools: [ToolSpec],
-        toolRounds: [[ToolExchange]]
-    ) -> AsyncThrowingStream<AIStreamEvent, Error> {
-        OpenAICompatibleStreamer.send(
-            providerID: .grok,
-            endpoint: OpenAICompatibleStreamer.Endpoint.grok,
-            reasoning: Self.reasoning,
-            messages: messages,
-            model: model,
-            contextRendered: contextRendered,
-            systemPrompt: systemPrompt,
-            tools: tools,
-            toolRounds: toolRounds
-        )
-    }
 }

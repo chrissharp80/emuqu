@@ -57,12 +57,17 @@ extension AssistantMemoryNamespace {
     @MainActor
     static func clearAllMemory(store: UserFactsStore, context: DestructiveActionContext) -> FactValue {
         let count = store.facts.count
-        guard count > 0 else {
+        guard store.hasAnythingToForget else {
             return .record(["cleared": .boolean(false), "count_before": .integer(0), "note": .string("no saved memory facts — nothing to clear")])
         }
-        let question = "Delete all \(count) saved memory facts? Reply yes to confirm."
+        let question = count > 0
+            ? "Delete all \(count) saved memory facts? Reply yes to confirm."
+            : "Delete the unreadable copy of your saved memory? Reply yes to confirm."
         if let unconfirmed = context.gate(action: "assistant.memory.clear", target: "all", question: question) { return unconfirmed }
-        let cleared = store.clearKeepingBackup()
+        guard let cleared = store.clearKeepingBackup() else {
+            return .record(["cleared": .boolean(false), "count_before": .integer(count),
+                            "note": .string("the saved facts couldn't be erased, so they are all still stored — ask the user to try again")])
+        }
         return .record([
             "cleared": .boolean(true),
             "count_before": .integer(cleared),
@@ -78,7 +83,10 @@ extension AssistantMemoryNamespace {
         }
         let question = "Forget the saved memory fact \"\(fact.text)\"? Reply yes to confirm."
         if let unconfirmed = context.gate(action: "assistant.memory.remove", target: id.uuidString, question: question) { return unconfirmed }
-        store.remove(id)
+        guard store.remove(id) else {
+            return .record(["removed": .boolean(false), "id": .string(id.uuidString),
+                            "note": .string("the fact couldn't be removed, so it is still stored — ask the user to try again")])
+        }
         return .record(["removed": .boolean(true), "id": .string(id.uuidString), "text": .string(fact.text)])
     }
 

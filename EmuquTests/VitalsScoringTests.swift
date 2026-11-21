@@ -66,12 +66,13 @@ final class VitalsScoringTests: XCTestCase {
         XCTAssertEqual(score, 100, accuracy: 0.0001)
     }
 
-    /// One SD above baseline costs `rhrPenaltyPerSD`.
+    /// One SD above baseline costs the documented 10 points per SD
+    /// (whitepaper 01, constants table): 100 − 10 = 90.
     func testOneStandardDeviationAboveBaselineCostsTheDocumentedPenalty() throws {
         let score = try XCTUnwrap(VitalsScoring.calculateVitalsScore(
             vitals: vitals(restingHeartRate: 61), baselineStats: baseline
         ))
-        XCTAssertEqual(score, 100 - ScoringWeights.Vitals.rhrPenaltyPerSD, accuracy: 0.0001)
+        XCTAssertEqual(score, 90, accuracy: 0.0001)
     }
 
     /// The penalty is one-sided. A resting HR BELOW baseline is a good sign,
@@ -110,7 +111,8 @@ final class VitalsScoringTests: XCTestCase {
     /// Wrist temperature arrives as a deviation, and the bands are asymmetric:
     /// a rise signals illness or inflammation, a dip does not.
     func testTemperatureWithinTheNormalBandScoresFull() throws {
-        for deviation in [0.0, 0.1, ScoringWeights.Vitals.temperatureBandNormalCelsius] {
+        // The documented normal band ends at +0.3 °C (whitepaper 01).
+        for deviation in [0.0, 0.1, 0.3] {
             let score = try XCTUnwrap(VitalsScoring.calculateVitalsScore(
                 vitals: vitals(wristTemperature: deviation), baselineStats: nil
             ))
@@ -124,13 +126,13 @@ final class VitalsScoringTests: XCTestCase {
                 vitals: vitals(wristTemperature: deviation), baselineStats: nil
             ))
         }
-        XCTAssertEqual(try score(0.4), ScoringWeights.Vitals.temperatureScoreMild, accuracy: 0.0001)
-        XCTAssertEqual(try score(ScoringWeights.Vitals.temperatureBandMildCelsius),
-                       ScoringWeights.Vitals.temperatureScoreMild, accuracy: 0.0001)
-        XCTAssertEqual(try score(0.8), ScoringWeights.Vitals.temperatureScoreModerate, accuracy: 0.0001)
-        XCTAssertEqual(try score(ScoringWeights.Vitals.temperatureBandModerateCelsius),
-                       ScoringWeights.Vitals.temperatureScoreModerate, accuracy: 0.0001)
-        XCTAssertEqual(try score(1.5), ScoringWeights.Vitals.temperatureScoreSevere, accuracy: 0.0001)
+        // Documented bands (whitepaper 01): edges 0.3 / 0.5 / 1.0 °C,
+        // scores 100 / 75 / 50 / 25.
+        XCTAssertEqual(try score(0.4), 75, accuracy: 0.0001)
+        XCTAssertEqual(try score(0.5), 75, accuracy: 0.0001)
+        XCTAssertEqual(try score(0.8), 50, accuracy: 0.0001)
+        XCTAssertEqual(try score(1.0), 50, accuracy: 0.0001)
+        XCTAssertEqual(try score(1.5), 25, accuracy: 0.0001)
     }
 
     /// Bands never invert: hotter is never scored better.
@@ -165,10 +167,8 @@ final class VitalsScoringTests: XCTestCase {
             vitals: vitals(respiratoryRate: 15, wristTemperature: 1.5, restingHeartRate: 61),
             baselineStats: baseline
         ))
-        let expected = ((100 - ScoringWeights.Vitals.rhrPenaltyPerSD)
-            + 100
-            + ScoringWeights.Vitals.temperatureScoreSevere) / 3
-        XCTAssertEqual(score, expected, accuracy: 0.0001)
+        // (90 + 100 + 25) / 3 = 71.666…
+        XCTAssertEqual(score, 215.0 / 3.0, accuracy: 0.0001)
     }
 
     /// A missing input is left out of the mean, not counted as zero — that is
@@ -177,7 +177,7 @@ final class VitalsScoringTests: XCTestCase {
         let onlyTemperature = try XCTUnwrap(VitalsScoring.calculateVitalsScore(
             vitals: vitals(wristTemperature: 1.5), baselineStats: baseline
         ))
-        XCTAssertEqual(onlyTemperature, ScoringWeights.Vitals.temperatureScoreSevere, accuracy: 0.0001)
+        XCTAssertEqual(onlyTemperature, 25, accuracy: 0.0001)
     }
 
     // MARK: - SpO2 override
@@ -188,7 +188,8 @@ final class VitalsScoringTests: XCTestCase {
         let adjusted = VitalsScoring.applyVitalsOverrides(
             score: 80, vitals: vitals(oxygenSaturation: 92)
         )
-        XCTAssertEqual(adjusted, 80 - RecoveryScoreConstants.Vitals.spo2Penalty, accuracy: 0.0001)
+        // The documented SpO2 penalty is 10 points (user manual): 80 − 10 = 70.
+        XCTAssertEqual(adjusted, 70, accuracy: 0.0001)
     }
 
     func testNormalBloodOxygenLeavesTheScoreAlone() {

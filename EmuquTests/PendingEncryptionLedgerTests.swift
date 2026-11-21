@@ -12,13 +12,14 @@ import XCTest
 /// Refusing the write is not the fix. The realistic trigger is a background
 /// write before the first unlock after a reboot, which is exactly when a
 /// completed overnight recording is archived — throwing there loses a night the
-/// user cannot regenerate, to protect a file that `.completeFileProtection`
-/// already makes unreadable while locked.
+/// user cannot regenerate, to protect a file that its protection class
+/// (`.completeFileProtectionUnlessOpen`) already makes unreadable while locked.
 ///
 /// So the contract these tests hold is narrower and stronger than "never write
 /// plaintext":
 ///
-///   1. Unencrypted bytes are written under the STRICTEST protection class.
+///   1. Unencrypted bytes are written under a stricter protection class than
+///      encrypted ones: complete-unless-open, unreadable once closed while locked.
 ///   2. Every unencrypted write is recorded, so it can be repaired.
 ///   3. The record survives a relaunch, because the repair runs at next launch.
 ///   4. Re-encryption clears the record; a purge clears all of them.
@@ -28,7 +29,7 @@ import XCTest
 /// decision and the ledger — because forcing a genuine Keychain outage needs a
 /// device, and a test that fakes `EncryptionManager` would be testing the fake.
 final class PendingEncryptionLedgerTests: XCTestCase {
-    private static let stores: [PendingEncryptionLedger.Store] = [.session, .rawBackup]
+    private static let stores = PendingEncryptionLedger.Store.allCases
 
     /// The app host's own ledger. The ledger is process-global (UserDefaults
     /// plus its file copy), so each test starts from an empty one; the host's
@@ -55,15 +56,17 @@ final class PendingEncryptionLedgerTests: XCTestCase {
 
     // MARK: - Protection class
 
-    /// The whole point of the change: an unencrypted body must not be written
-    /// with the same options as an encrypted one.
-    func testUnencryptedWritesUseTheStrictestProtectionClass() {
+    /// An unencrypted body is not written with the same options as an
+    /// encrypted one: it gets complete-unless-open, which can be created while
+    /// the device is locked (when the fallback runs) and cannot be reopened
+    /// until it is unlocked.
+    func testUnencryptedWritesUseCompleteUnlessOpenProtection() {
         let id = UUID()
         let encrypted = archiveWriteOptions(for: .encrypted, sessionID: id)
         let plaintext = archiveWriteOptions(for: .plaintextPendingEncryption, sessionID: id)
 
-        XCTAssertTrue(plaintext.contains(.completeFileProtection),
-                      "Unencrypted health data must be unreadable whenever the device is locked")
+        XCTAssertTrue(plaintext.contains(.completeFileProtectionUnlessOpen),
+                      "Unencrypted health data must be writable while locked and unreadable once closed until unlock")
         XCTAssertFalse(plaintext.contains(.completeFileProtectionUntilFirstUserAuthentication),
                        "Until-first-unlock is the weaker class and must not be used for plaintext")
         XCTAssertTrue(encrypted.contains(.completeFileProtectionUntilFirstUserAuthentication))
@@ -168,10 +171,12 @@ final class PendingEncryptionLedgerTests: XCTestCase {
     /// A purge deletes the files, so the entries pointing at them must go too —
     /// otherwise the next launch tries to re-encrypt data the user erased.
     func testPurgeClearsEveryPendingEntry() {
-        [UUID(), UUID()].forEach(PendingEncryptionLedger.record)
-        XCTAssertFalse(PendingEncryptionLedger.pending.isEmpty)
+        for store in Self.stores {
+            PendingEncryptionLedger.record(UUID(), in: store)
+        }
+        XCTAssertFalse(Self.stores.contains { PendingEncryptionLedger.pending(in: $0).isEmpty })
         PendingEncryptionLedger.clearAll()
-        XCTAssertTrue(PendingEncryptionLedger.pending.isEmpty)
+        XCTAssertTrue(Self.stores.allSatisfy { PendingEncryptionLedger.pending(in: $0).isEmpty })
     }
 
     // MARK: - Launch protection walk
@@ -322,7 +327,7 @@ final class PendingEncryptionLedgerTests: XCTestCase {
 
         for id in [queued, fresh] {
             let entry = RawRRBackup.BackupEntry(id: id, captureDate: Date(), deviceId: nil, points: [], hash: "")
-            XCTAssertThrowsError(try RawRRBackup.writeEntry(entry, to: missingDirectory.appendingPathComponent("\(id).json"), sessionId: id))
+            XCTAssertThrowsError(try RawBackupSealer.writeEntry(entry, to: missingDirectory.appendingPathComponent("\(id).json"), sessionId: id))
         }
 
         let pending = PendingEncryptionLedger.pending(in: .rawBackup)

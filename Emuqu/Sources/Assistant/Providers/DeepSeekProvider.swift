@@ -14,7 +14,7 @@ import Foundation
 ///
 /// Prices are the peak-hour rates, so the figure never understates a bill;
 /// off-peak rates are half.
-final class DeepSeekProvider: AIProvider {
+final class DeepSeekProvider: OpenAICompatibleProvider {
     static let models: [ModelOption] = [
         ModelOption(
             providerID: .deepseek,
@@ -39,39 +39,8 @@ final class DeepSeekProvider: AIProvider {
     ]
 
     let id: ProviderID = .deepseek
-    var availableModels: [ModelOption] {
-        Self.models
-    }
+    static let endpoint = OpenAICompatibleStreamer.Endpoint.deepSeek
 
     /// Thinking off; see the type comment.
     static let reasoning: OpenAICompatibleStreamer.Reasoning = .thinkingDisabled
-
-    var requiresKey: Bool {
-        true
-    }
-
-    var isAvailable: Bool {
-        AppDependencies.current.providers.apiKeyStore.hasKey(for: .deepseek)
-    }
-
-    func send(
-        messages: [ChatTurn],
-        model: ModelOption,
-        contextRendered: String,
-        systemPrompt: String,
-        tools: [ToolSpec],
-        toolRounds: [[ToolExchange]]
-    ) -> AsyncThrowingStream<AIStreamEvent, Error> {
-        OpenAICompatibleStreamer.send(
-            providerID: .deepseek,
-            endpoint: OpenAICompatibleStreamer.Endpoint.deepSeek,
-            reasoning: Self.reasoning,
-            messages: messages,
-            model: model,
-            contextRendered: contextRendered,
-            systemPrompt: systemPrompt,
-            tools: tools,
-            toolRounds: toolRounds
-        )
-    }
 }

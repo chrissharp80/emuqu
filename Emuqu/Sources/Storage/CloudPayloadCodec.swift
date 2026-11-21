@@ -51,9 +51,9 @@ import Security
 /// Writers all choose the same key (`primaryAccount`) once their Keychains
 /// have converged, so the set stops growing. The original shared account is
 /// still read, and preferred, so records and devices that use only that
-/// account keep working. `hasUsableKey` reports whether a key exists to encrypt with; it does
-/// NOT assert that another device can decrypt, because a local Keychain read
-/// cannot establish that iCloud Keychain is on and has synced.
+/// account keep working. A key existing on this device does not show that
+/// another device can decrypt, because a local Keychain read cannot establish
+/// that iCloud Keychain is on and has synced.
 ///
 /// ## Framing
 ///
@@ -100,43 +100,49 @@ enum CloudPayloadCodec {
         }
     }
 
-    /// Whether a usable cloud key is present on this device.
+    /// Seal a payload bound for CloudKit. Every upload goes through here:
+    /// session records, live backups and settings.
     ///
-    /// Not proof of
-    /// portability, which a local Keychain read cannot establish. The item is
-    /// marked synchronizable, but whether it has actually reached another
-    /// device depends on iCloud Keychain being enabled and having synced —
-    /// neither of which is observable from here. Apple documents
-    /// synchronization as conditional and user-disableable.
+    /// Throws `CloudSyncError.encryptionUnavailable` when there is no key to
+    /// encrypt with, rather than falling back to plaintext. App Review
+    /// Guideline 5.1.3(ii) says apps "may not store personal health
+    /// information in iCloud", for all health data, not only data read from
+    /// HealthKit, and compression is not confidentiality. The local archive
+    /// does the opposite (`Archive+SessionCodec` writes plaintext under
+    /// `.completeFileProtectionUnlessOpen` and re-encrypts it later, ADR 001): a local
+    /// file can be repaired in place, but an upload cannot be taken back. A
+    /// skipped upload is retried on a later cycle.
     ///
-    /// So this answers the question it can answer: is there a key to encrypt
-    /// with. It does NOT assert that a second device can decrypt, and callers
-    /// must not present it as a restore guarantee.
-    ///
-    /// Creates a key when the device has none, exactly as `encode` would. That
-    /// never displaces a key another backup depends on: each key has its own
-    /// Keychain account.
-    static var hasUsableKey: Bool {
+    /// Creates a key when the device has none. That never displaces a key
+    /// another backup depends on: each key has its own Keychain account. A key
+    /// existing here does not prove another device can decrypt: the item is
+    /// synchronizable, but whether iCloud Keychain is on and has synced is not
+    /// observable from this device.
+    static func sealForUpload(_ payload: Data) throws -> Data {
+        let key: SymmetricKey
         do {
-            _ = try writingKey()
-            return true
+            key = try writingKey()
         } catch {
             debugLog("[Cloud] No cloud backup key available: \(error.localizedDescription)", level: .error)
-            return false
+            throw CloudSyncError.encryptionUnavailable
         }
+        return try seal(payload, with: key)
     }
 
     /// Wrap `payload` in the versioned, encrypted envelope.
     static func encode(_ payload: Data) throws -> Data {
-        let sealed = try AES.GCM.seal(payload, using: writingKey())
+        try seal(payload, with: writingKey())
+    }
+
+    private static func seal(_ payload: Data, with key: SymmetricKey) throws -> Data {
+        let sealed = try AES.GCM.seal(payload, using: key)
         guard let combined = sealed.combined else { throw CodecError.malformedEnvelope }
         return magic + Data([version]) + combined
     }
 
-    /// `FR` — the framing `EncryptionManager` writes.
-    ///
-    /// The cloud writer used it at commit c4670af, so records in that format
-    /// exist and must keep decoding.
+    /// `FR` — the framing `EncryptionManager` writes: the two bytes `FR`, then
+    /// `EncryptionManager`'s own envelope, sealed with the device archive key.
+    /// Cloud records in that format exist and must keep decoding.
     private static let legacyEncryptedMagic = Data([0x46, 0x52])
 
     /// Unwrap a payload written by any writer that has produced a cloud record.

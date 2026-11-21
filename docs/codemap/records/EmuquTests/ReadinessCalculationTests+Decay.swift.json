@@ -499,10 +499,11 @@
   },
   {
    "key": "func ReadinessCalculationTests.testTwoRestDaysProducesHighReadiness()",
-   "hash": "33cb7d570bd98be7",
-   "does": "CTL 47, ATL 48×(6/7)² ≈ 35.3, recovery 80, matching ACWR: asserts readiness > 80.",
+   "hash": "66e796d1c3c44e1d",
+   "does": "Steps Point(atl 48, ctl 49) through two rest days with the production EWMA step (ATL ≈ 36.1, CTL ≈ 46.7), then asserts readiness with recovery 80 and the matching ACWR is > 80.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeAcuteFatigue(todayTrimp:recentWorkoutLoads:)",
@@ -524,7 +525,9 @@
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.computeBaseReadiness(ctl:atl:acuteFatigue:rawAcuteFatigue:)": "9b7372d63af0f799",
     "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.mapCapacityRatioToReadiness(_:)": "c73d8f4cc0baddaa",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "3221ad191742a819",
-    "EmuquTests/ReadinessCalculationTests+Decay.swift::func ReadinessCalculationTests.readiness(morningATL:)": "3b801aeacf18ab85"
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "0484425576594949",
+    "EmuquTests/ReadinessCalculationTests+Decay.swift::func ReadinessCalculationTests.readiness(morningATL:)": "3b801aeacf18ab85",
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {

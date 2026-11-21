@@ -120,6 +120,9 @@ struct FitnessTabView: View {
     @State var latestWorkoutLoadFailed = false
     /// A tapped Recent workout couldn't be read; drives the load-failure alert.
     @State var recentWorkoutLoadFailed = false
+    /// A workout could not be moved to the Trash; drives the alert on its
+    /// summary sheet.
+    @State var workoutDeleteFailed = false
 
     /// Unit preference shortcut, read from UnitsPreferenceStore on every
     /// access. Every distance on the tab formats through this, so a km/mi
@@ -214,6 +217,8 @@ struct FitnessTabView: View {
         )
     }
 
+    /// The delete is made from inside the sheet, so its failure alert is
+    /// presented from the sheet too.
     private func workoutSummarySheet(_ item: WorkoutSummaryItem) -> some View {
         NavigationStack {
             FitnessPostSummaryView(
@@ -221,6 +226,9 @@ struct FitnessTabView: View {
                 onDone: { dismissSummary(item) },
                 onDelete: { deleteFromSummary(item) }
             )
+        }
+        .alert(String(localized: "Couldn't delete this reading. Try again.", bundle: LanguageManager.appBundle), isPresented: $workoutDeleteFailed) {
+            Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) { workoutDeleteFailed = false }
         }
     }
 
@@ -231,7 +239,7 @@ struct FitnessTabView: View {
     }
 
     private func deleteFromSummary(_ item: WorkoutSummaryItem) {
-        deleteWorkout(item.session.id)
+        guard deleteWorkout(item.session.id) else { return }
         if item.isJustCompleted { recorderBox.recorder?.acknowledgeFinished() }
     }
 
@@ -571,17 +579,22 @@ struct FitnessTabView: View {
 
     // MARK: - Session kick-off
 
-    func deleteWorkout(_ id: UUID) {
+    /// Moves the workout to the Trash the way History does
+    /// (`SessionTrash.move`) and closes its summary sheet. False when the
+    /// archive could not move it: the sheet stays open and an alert says so
+    /// (`workoutDeleteFailed`).
+    @discardableResult
+    func deleteWorkout(_ id: UUID) -> Bool {
         do {
-            try collector.archive.delete(id)
-            collector.notifyArchiveChanged()
-            Task { await dependencies.storage.cloudKitSyncManager.uploadDeletion(id) }
-            // If the summary sheet was open on this session, close it.
-            if selectedHistorySession?.id == id { selectedHistorySession = nil }
-            if lastCompletedSession?.id == id { lastCompletedSession = nil }
+            try SessionTrash.move(id, collector: collector, cloudKit: dependencies.storage.cloudKitSyncManager)
         } catch {
-            debugLog("[Fitness] Failed to delete workout \(id): \(error)", level: .warning)
+            debugLog("[Fitness] Failed to delete workout \(id): \(error)", level: .error)
+            workoutDeleteFailed = true
+            return false
         }
+        if selectedHistorySession?.id == id { selectedHistorySession = nil }
+        if lastCompletedSession?.id == id { lastCompletedSession = nil }
+        return true
     }
 
     /// Trailing toolbar GPX download. Pulls the

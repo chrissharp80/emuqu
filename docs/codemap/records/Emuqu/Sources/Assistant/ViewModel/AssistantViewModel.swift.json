@@ -225,7 +225,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "de93b526e2a64d31",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "65338e15c91cf183",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.store(extractedFacts:)": "d6551226cbf3089d",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.wireArchiveInvalidation()": "f1e954dd18e433c7",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.wireComposerState(_:)": "394201f7b52247ec",
@@ -304,10 +304,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "5ec8797cc5e4303e",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "4fec008743e3c5c5",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::var ConversationStore.needsReloadFromDisk": "b7c9c8390d25c7ff",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.recoverAfterUnlock()": "6172d54cfc3b916a",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.recoverAfterUnlock()": "786b93b80d7ccf98",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.store(extractedFacts:)": "d6551226cbf3089d"
    }
   },
@@ -569,7 +569,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "c2aeaf0df6675cea",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "775d621e9e4bc2e9",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.appendExchange(user:assistant:localOnly:)": "11daa6b6ede428a3",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
@@ -826,36 +826,64 @@
   },
   {
    "key": "func AssistantViewModel.clearConversation()",
-   "hash": "cfb1258b71cece59",
-   "does": "Wipes the conversation: cancel() (which cancels the dispatch task, so an in-flight summary update writes nothing), empties turns, error, the held consent request, priorSummary, summarizedThroughTurnID, speakable cursors, resets sessionState tier/turnCount, clears ConversationStore, deletes chat exports from tmp, and removes 'assistant.priorSummary' from UserDefaults on a detached utility task. Does not clear nextSendIsVoice or lastCatalogHash.",
+   "hash": "9c87ca6c953dae87",
+   "does": "Wipes the conversation, verified: cancel() (which cancels the dispatch task, so an in-flight summary update writes nothing), then ConversationStore.clear() (history file and every set-aside copy) and removeChatExports(). When either left something behind, sets errorMessage to 'The conversation couldn't be fully erased. Try again.' and returns with the turns still on screen. Otherwise resetConversationState() (turns, error, consent request, summary, speech cursors, routing session), clears the LLM prompt audit (which quotes the chat) and removes 'assistant.priorSummary' from UserDefaults on a detached utility task. Does not clear nextSendIsVoice or lastCatalogHash.",
    "entry": "Clear button/alert in chat (AssistantChatView.swift:117) and DataPurgeService.deleteAll (DataPurgeService.swift:559)",
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancel()",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.removeChatExports()",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.resetConversationState()",
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.clear()",
     "ext:UserDefaults.removeObject"
    ],
    "reads": [],
    "writes": [
+    "mem:AssistantViewModel.errorMessage",
+    "file:Assistant/conversation.json",
+    "file:Assistant/conversation.undecodable-<unix>.json",
+    "file:<tmp>/EmuquChat-*.md (deleted)",
+    "mem:LLMRequestAudit.entries",
+    "ud:assistant.priorSummary"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "history or exports not fully erased",
+     "effect": "set errorMessage, return; turns and audit kept"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "305a2f6600079f86",
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.clear()": "f49f85de829c8255",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.store(extractedFacts:)": "d6551226cbf3089d",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancel()": "d67babaf48d886b4",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.removeChatExports()": "f70f24b77a45fe36",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.resetConversationState()": "f79b3d303c6cc7f3",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015"
+   }
+  },
+  {
+   "key": "func AssistantViewModel.resetConversationState()",
+   "hash": "d8e4633263e31f9a",
+   "does": "Empties turns, errorMessage, pendingConsentRequest, priorSummary, summarizedThroughTurnID and speakableTextCursor, and resets sessionState to the quick tier with turnCount 0.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
     "mem:AssistantViewModel.turns",
     "mem:AssistantViewModel.errorMessage",
+    "mem:AssistantViewModel.pendingConsentRequest",
     "mem:AssistantViewModel.priorSummary",
     "mem:AssistantViewModel.summarizedThroughTurnID",
     "mem:AssistantViewModel.speakableTextCursor",
     "mem:RoutingSessionState.currentTier",
-    "mem:RoutingSessionState.turnCount",
-    "file:conversation.json",
-    "ud:assistant.priorSummary",
-    "mem:AssistantViewModel.pendingConsentRequest",
-    "file:<tmp>/EmuquChat-*.md (deleted)"
+    "mem:RoutingSessionState.turnCount"
    ],
    "branches": [],
-   "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "9e63918d42003eae",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.store(extractedFacts:)": "d6551226cbf3089d",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.cancel()": "d67babaf48d886b4",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.removeChatExports()": "6f326a1cc5340b23"
-   }
+   "deps": {}
   },
   {
    "key": "func AssistantViewModel.exportConversation()",
@@ -889,18 +917,49 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.conversationMarkdown()": "23e7234458809329",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.removeChatExports()": "6f326a1cc5340b23",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.removeChatExports()": "f70f24b77a45fe36",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
    }
   },
   {
    "key": "func AssistantViewModel.removeChatExports()",
-   "hash": "2a8bcb5337942d23",
-   "does": "Static: deletes every EmuquChat-*.md file in the temporary directory; a listing or delete failure is logged as a warning (a leftover file is retried on the next export or clear).",
+   "hash": "3fafd8154c5530da",
+   "does": "Static: lists the temporary directory and tries to delete every EmuquChat-*.md file (removeChatExport). True when none is left; false (warning logged) when the listing or any delete failed — a leftover file is retried on the next export or clear. Discardable result.",
    "entry": "Also called by AssistantChatView's export share-sheet binding when the sheet closes.",
    "calls": [
     "ext:FileManager.contentsOfDirectory(atPath:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.removeChatExport(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/EmuquChat-*.md (deleted)"
+   ],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "listing throws",
+     "effect": "log warning, return false"
+    },
+    {
+     "at": "+11",
+     "cond": "for each EmuquChat-*.md",
+     "effect": "delete it; false if any delete failed"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.removeChatExport(_:)": "39ede52008a417f1",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
+   }
+  },
+  {
+   "key": "func AssistantViewModel.removeChatExport(_:)",
+   "hash": "cde0d90addb12e14",
+   "does": "Deletes one chat export file; true on success, false with a warning logged when removal throws.",
+   "entry": null,
+   "calls": [
     "ext:FileManager.removeItem(at:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -910,19 +969,13 @@
    ],
    "branches": [
     {
-     "at": "+5",
-     "cond": "for each tmp file named EmuquChat-*.md",
-     "effect": "delete it"
-    },
-    {
-     "at": "+8",
-     "cond": "listing or a delete throws",
-     "effect": "log warning; remaining files are left."
+     "at": "+4",
+     "cond": "removeItem throws",
+     "effect": "log warning, return false"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {

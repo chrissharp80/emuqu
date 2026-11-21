@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/GetMeBackView.swift",
- "hash": "dfcc2a0893a2ff7b",
+ "hash": "05920f4fa241c4c5",
  "role": "SwiftUI 'Get Me Back' safety screen: shows a compass arrow pointing back to the active breadcrumb trail's origin (bearing minus true heading), an honest GPS-accuracy ribbon, distance/origin label, Talk-to-AI, SOS dialing of a location-chosen emergency number, and end/discard trail actions; plus static emergency-number helpers reused by the assistant.",
  "types": [
   "GetMeBackView: struct (View) — the Get Me Back screen, presented as a sheet from FitnessTabView+Sections.swift:41",
@@ -15,6 +15,7 @@
   "mem:GetMeBackView.sosDialNumber (@State, initial emergencyNumber(currentCountry:nil))",
   "mem:GetMeBackView.showAIDisclaimer (@State)",
   "mem:GetMeBackView.showDialFailedAlert (@State)",
+  "mem:GetMeBackView.showTrailChangeFailed (@State, set when End and save or Discard left the trail on disk)",
   "mem:GetMeBackView.showSettings (@State)",
   "mem:GetMeBackView.brightnessOverride (@State, initial UIScreen.main.brightness)",
   "mem:GetMeBackView.systemBrightnessAtAppear (@State)",
@@ -582,50 +583,77 @@
     "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.dialEmergencyServices()": "902a4d6b69324d1d",
     "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.dialFailedMessage(dialling:canPlaceCalls:)": "1bbca4914a9a0d30",
     "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.sosConfirmMessage(dialling:canPlaceCalls:)": "de051630ff62adf5",
-    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.withEndTrailAlert(_:)": "30d41ff1bef9670f",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.withEndTrailAlert(_:)": "6acb637bd3463840",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.aiDisclaimerSheet": "ef7e37cb471a23b3"
    }
   },
   {
    "key": "func GetMeBackView.withEndTrailAlert(_:)",
-   "hash": "967158021236013a",
-   "does": "Attaches 'End this trail?' alert with endTrailAlertActions and explanatory message.",
+   "hash": "e8546c10f1842e70",
+   "does": "Attaches the 'End this trail?' alert with endTrailAlertActions and its explanatory message, and the \"Your change couldn't be saved. Try again.\" alert (OK) shown while showTrailChangeFailed is set.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.endTrailAlertActions",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [],
+   "reads": [
+    "mem:GetMeBackView.showClearConfirm",
+    "mem:GetMeBackView.showTrailChangeFailed"
+   ],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.endTrailAlertActions": "c76cf7a9ad219a41"
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.endTrailAlertActions": "96da43106ede4cd1"
    }
   },
   {
    "key": "var GetMeBackView.endTrailAlertActions",
-   "hash": "9191cc543c1aaba2",
-   "does": "Alert buttons: Keep going (no-op), End and save (recorder.endAndArchive + dismiss), Discard (recorder.clearTrail deletes trail from disk + dismiss).",
+   "hash": "d6bac8c28b576d59",
+   "does": "Alert buttons: Keep going (no-op), End and save (recorder.endAndArchive), Discard (recorder.clearTrail deletes the trail from disk); each passes its result to finishTrailChange, which closes the screen on success and otherwise shows the save-failed alert.",
    "entry": "Alert button actions (user tap)",
    "calls": [
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder",
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.endAndArchive()",
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.clearTrail()",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.finishTrailChange(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [
     "file:breadcrumb active trail / archive (BreadcrumbStore.archiveActive / clear)",
-    "mem:BreadcrumbRecorder.activeTrail"
+    "mem:BreadcrumbRecorder.activeTrail",
+    "mem:GetMeBackView.showTrailChangeFailed (via finishTrailChange)"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.clearTrail()": "9e7a0c0127416260",
-    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.endAndArchive()": "766bd76981e3e60e",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.clearTrail()": "828cff3b4dafd785",
+    "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.endAndArchive()": "81f5fc860425851f",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.finishTrailChange(_:)": "83469a9b7346bb22",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.recorder": "6c51dd3390a372e5"
    }
+  },
+  {
+   "key": "func GetMeBackView.finishTrailChange(_:)",
+   "hash": "c5944359cebb8508",
+   "does": "Closes the screen (dismiss) when the trail was filed or deleted; otherwise sets showTrailChangeFailed so the screen stays up with the trail and says the change did not take.",
+   "entry": "Called from endTrailAlertActions' End and save and Discard buttons.",
+   "calls": [
+    "ext:DismissAction.callAsFunction"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:GetMeBackView.showTrailChangeFailed"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "succeeded",
+     "effect": "true: dismiss; false: showTrailChangeFailed = true"
+    }
+   ],
+   "deps": {}
   },
   {
    "key": "func GetMeBackView.withLifecycle(_:)",

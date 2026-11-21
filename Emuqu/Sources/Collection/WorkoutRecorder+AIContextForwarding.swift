@@ -49,8 +49,8 @@ extension WorkoutRecorder {
         aiContext.liveIntervalProgressSnapshot()
     }
 
-    func archiveWorkoutTrackAsBreadcrumbTrail(track: [CLLocation], sport: Sport, start: Date) {
-        aiContext.archiveWorkoutTrackAsBreadcrumbTrail(track: track, sport: sport, start: start)
+    func archiveWorkoutTrackAsBreadcrumbTrail(track: [CLLocation], sport: Sport, start: Date, sessionId: UUID) {
+        aiContext.archiveWorkoutTrackAsBreadcrumbTrail(track: track, sport: sport, start: start, sessionId: sessionId)
     }
 
     /// `sportFTP` is a pure lookup over settings — no recorder state at all —

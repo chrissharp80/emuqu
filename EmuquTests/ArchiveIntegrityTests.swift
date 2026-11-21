@@ -1,3 +1,4 @@
+import CloudKit
 import CryptoKit
 @testable import Emuqu
 import os
@@ -583,7 +584,7 @@ final class ArchiveIntegrityTests: XCTestCase {
         // repair would normally fix.
         let archiveDir = fileURL.deletingLastPathComponent()
         let indexURL = archiveDir.appendingPathComponent("index.json")
-        var indexData = try Data(contentsOf: indexURL)
+        var indexData = try SessionArchive.indexJSON(Data(contentsOf: indexURL))
         if let str = String(data: indexData, encoding: .utf8) {
             let mutated = str.replacingOccurrences(of: entry.fileHash, with: String(repeating: "0", count: 64))
             indexData = Data(mutated.utf8)
@@ -646,5 +647,216 @@ final class ArchiveIntegrityTests: XCTestCase {
     func testDeleteNonExistent() throws {
         let fakeId = UUID()
         XCTAssertNoThrow(try archive.delete(fakeId))
+    }
+}
+
+// MARK: - Deleting from the Trash for good
+
+extension ArchiveIntegrityTests {
+    /// A Trash file that will not go keeps the session in the Trash with its
+    /// deletion mark: it is neither forgotten nor left for a pull to bring back.
+    @MainActor
+    func testAFailedTrashRemovalKeepsTheDeletionMark() throws {
+        let (service, _) = trashService()
+        let session = createTestSession()
+        _ = try archive.archive(session)
+        try archive.delete(session.id)
+        let trash = archive.store.trashDirectory
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: trash.path)
+        defer { attempt("test.unlockTrash") { try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: trash.path) } }
+
+        XCTAssertFalse(service.permanentlyDelete(session.id))
+
+        XCTAssertTrue(archive.wasIntentionallyDeleted(session.id))
+        XCTAssertTrue(archive.trashedIds.contains(session.id))
+        XCTAssertFalse(ForgottenSessions.ids.contains(session.id))
+    }
+
+    /// Deleting forever keeps the deletion mark until iCloud confirms the
+    /// deletion, so the full sync keeps sending it; once confirmed, the mark
+    /// is dropped.
+    @MainActor
+    func testATombstoneIsNotForgottenBeforeICloudConfirmsIt() throws {
+        let (service, _) = trashService()
+        let sync = CloudKitSyncManager.shared
+        let wasZoneCreated = sync.zoneCreated
+        let key = CloudDeletionCoordinator.confirmedTombstonesKey
+        let confirmed = UserDefaults.standard.dictionary(forKey: key)
+        sync.zoneCreated = true
+        defer {
+            sync.zoneCreated = wasZoneCreated
+            UserDefaults.standard.set(confirmed, forKey: key)
+        }
+        let session = createTestSession()
+        _ = try archive.archive(session)
+        try archive.delete(session.id)
+
+        XCTAssertTrue(service.permanentlyDelete(session.id))
+        XCTAssertTrue(archive.wasIntentionallyDeleted(session.id), "forgotten before iCloud confirmed the deletion")
+        XCTAssertTrue(ForgottenSessions.ids.contains(session.id))
+
+        UserDefaults.standard.set([session.id.uuidString: Date().timeIntervalSince1970], forKey: key)
+        XCTAssertTrue(service.permanentlyDelete(session.id))
+        XCTAssertFalse(archive.wasIntentionallyDeleted(session.id))
+    }
+
+    /// One session removed whose Apple Health samples would not go, and one
+    /// the Trash could not remove: both counted, and Health is asked only
+    /// about the session that was removed.
+    @MainActor
+    func testTheTrashOutcomeCountsWhatWasNotRemoved() async throws {
+        let (service, _) = trashService()
+        let removable = createTestSession()
+        _ = try archive.archive(removable)
+        try archive.delete(removable.id)
+        // A file of an id the archive neither lists nor tombstones may be a
+        // live write, so it is never removed and the id stays.
+        let stuck = UUID()
+        try Data("{}".utf8).write(to: archiveDirectory.appendingPathComponent("\(stuck.uuidString).json"))
+        var askedHealth: [UUID] = []
+
+        let outcome = await service.permanentlyDelete([removable.id, stuck]) { id, _ in
+            askedHealth.append(id)
+            return false
+        }
+
+        XCTAssertEqual(outcome, TrashDeletionOutcome(kept: 1, healthSamplesKept: 1))
+        XCTAssertEqual(askedHealth, [removable.id])
+    }
+
+    /// The route a workout filed in the trail history goes with it; another
+    /// workout's trail and a Get Me Back trail stay.
+    @MainActor
+    func testTheBreadcrumbTrailIsRemovedWithItsWorkout() throws {
+        let (service, trails) = trashService()
+        let workout = createTestSession()
+        _ = try archive.archive(workout)
+        try archive.delete(workout.id)
+        let other = UUID()
+        trails.archive(trail(sessionId: workout.id))
+        trails.archive(trail(sessionId: other))
+        trails.archive(trail(sessionId: nil))
+
+        XCTAssertTrue(service.permanentlyDelete(workout.id))
+
+        let left = trails.loadArchive()
+        XCTAssertEqual(left.count, 2)
+        XCTAssertFalse(left.contains { $0.sessionId == workout.id })
+        XCTAssertTrue(left.contains { $0.sessionId == other })
+    }
+
+    /// A session deleted forever is not brought back by a pull, even when
+    /// iCloud still holds a live copy of it.
+    @MainActor
+    func testAForgottenSessionIsNotReimportedOnPull() async throws {
+        let manager = CloudKitSyncManager.shared
+        let session = createTestSession()
+        let record = try liveRecord(of: session)
+        addTeardownBlock { @MainActor in
+            guard manager.archive.exists(session.id) else { return }
+            attempt("test.removePulled") { try manager.archive.deleteWithoutTrash(session.id) }
+        }
+
+        let outcome = await manager.pull.processRemoteRecord(record, forgotten: [session.id])
+
+        XCTAssertEqual(outcome.new, 0)
+        XCTAssertNil(outcome.backfillId)
+        XCTAssertFalse(manager.archive.exists(session.id))
+        XCTAssertFalse(manager.state.uploadedSessionIds.contains(session.id))
+    }
+
+    // MARK: Sealed index
+
+    /// The index holds health values, so it is sealed on disk; it reads back.
+    func testTheIndexIsSealedAndReadsBack() throws {
+        var session = createTestSession()
+        session.notes = "slept badly"
+        testSessionIds.append(session.id)
+        _ = try archive.archive(session)
+
+        let stored = try Data(contentsOf: archiveDirectory.appendingPathComponent("index.json"))
+        XCTAssertTrue(SessionArchive.looksEncrypted(stored))
+        XCTAssertNil(stored.range(of: Data("slept badly".utf8)))
+        XCTAssertEqual(reopenedArchive().entryById(session.id)?.notes, "slept badly")
+    }
+
+    /// An index written as plain JSON, by a build that did not seal it,
+    /// still loads, and the next save seals it.
+    func testAPlainIndexStillLoadsAndIsSealedOnTheNextSave() throws {
+        let session = createTestSession()
+        testSessionIds.append(session.id)
+        _ = try archive.archive(session)
+        let indexURL = archiveDirectory.appendingPathComponent("index.json")
+        try SessionArchive.indexEncoder.encode(archive.entries).write(to: indexURL)
+
+        let reopened = reopenedArchive()
+        XCTAssertNotNil(reopened.entryById(session.id))
+        _ = try reopened.archive(createTestSession())
+
+        XCTAssertTrue(SessionArchive.looksEncrypted(try Data(contentsOf: indexURL)))
+        XCTAssertNotNil(reopenedArchive().entryById(session.id))
+    }
+
+    /// An index on disk as plain JSON, as written while the key was
+    /// unavailable, is sealed by the launch repair without any other save.
+    func testThePlainIndexIsResealedOnceTheKeyIsBack() throws {
+        let session = createTestSession()
+        testSessionIds.append(session.id)
+        _ = try archive.archive(session)
+        let indexURL = archiveDirectory.appendingPathComponent("index.json")
+        try SessionArchive.indexEncoder.encode(archive.entries).write(to: indexURL)
+
+        let reopened = reopenedArchive()
+        reopened.resealPlainIndexIfNeeded()
+
+        XCTAssertTrue(SessionArchive.looksEncrypted(try Data(contentsOf: indexURL)))
+        XCTAssertNotNil(reopenedArchive().entryById(session.id))
+    }
+
+    // MARK: Helpers
+
+    /// A recovery service over this test's archive, with the trail history
+    /// and the raw backups in this test's folder. The deleted-forever list is
+    /// put back afterwards.
+    @MainActor
+    private func trashService() -> (SessionRecoveryService, BreadcrumbStore) {
+        let trails = BreadcrumbStore(fileURL: archiveDirectory.appendingPathComponent("Breadcrumbs/active.json"))
+        let dependencies = AppDependencies()
+        dependencies.overrides.breadcrumbStore = trails
+        AppDependencies.current = dependencies
+        let forgotten = UserDefaults.standard.stringArray(forKey: ForgottenSessions.defaultsKey)
+        addTeardownBlock {
+            AppDependencies.reset()
+            UserDefaults.standard.set(forgotten, forKey: ForgottenSessions.defaultsKey)
+        }
+        let service = SessionRecoveryService(
+            archive: archive,
+            rawBackup: RawRRBackup(directory: archiveDirectory.appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true)),
+            artifactDetector: ArtifactDetector(),
+            windowSelector: WindowSelector(), cloudSyncManager: .shared,
+            baselineTracker: BaselineTracker(baselineFile: archiveDirectory.appendingPathComponent("HRVBaseline.json"))
+        )
+        return (service, trails)
+    }
+
+    private func trail(sessionId: UUID?) -> BreadcrumbTrail {
+        BreadcrumbTrail(
+            startedAt: Date(), origin: nil, fixes: [], label: nil, resolvedOriginLabel: nil,
+            isWorkoutTrack: sessionId != nil, sessionId: sessionId
+        )
+    }
+
+    /// The iCloud record a device that still held the session would upload.
+    private func liveRecord(of session: HRVSession) throws -> CKRecord {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let payload = try CloudPayloadCodec.sealForUpload(DataCompression.compress(encoder.encode(session)))
+        try FileManager.default.createDirectory(at: archiveDirectory, withIntermediateDirectories: true)
+        let file = archiveDirectory.appendingPathComponent("\(session.id.uuidString).asset")
+        try payload.write(to: file)
+        let zone = CKRecordZone.ID(zoneName: "ArchiveIntegrityTests", ownerName: CKCurrentUserDefaultName)
+        let record = CKRecord(recordType: "HRVSession", recordID: CKRecord.ID(recordName: session.id.uuidString, zoneID: zone))
+        record["sessionData"] = CKAsset(fileURL: file)
+        return record
     }
 }

@@ -30,7 +30,7 @@
     }
    ],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "c16025f9ed6e67fc",
+    ".github/workflows/ci.yml::job lint-and-budgets": "b37673427f6cec36",
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
     ".github/workflows/ci.yml::job tests": "717dc9698a3dc7ba",
     ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859"
@@ -62,7 +62,7 @@
     }
    ],
    "deps": {
-    ".github/workflows/testflight.yml::step deploy/Build archive": "b036e8dd2ba96a1f",
+    ".github/workflows/testflight.yml::step deploy/Build archive": "a1718bd949e87e29",
     ".github/workflows/testflight.yml::step deploy/Checkout": "d342199d77b4a5df",
     ".github/workflows/testflight.yml::step deploy/Export IPA": "5d04d37fde4ab4a6",
     ".github/workflows/testflight.yml::step deploy/Record the build environment": "7e93a430cbbe34ab",
@@ -70,7 +70,8 @@
     ".github/workflows/testflight.yml::step deploy/Set up signing certificate": "e6878a4a43afa153",
     ".github/workflows/testflight.yml::step deploy/Upload to TestFlight": "c4c4a540e198d67a",
     ".github/workflows/testflight.yml::step deploy/Validate required secrets": "e17f3d1fb6c0b0f9",
-    ".github/workflows/testflight.yml::step deploy/Write App Store Connect API key": "67f030806bd3ce38"
+    ".github/workflows/testflight.yml::step deploy/Write App Store Connect API key": "67f030806bd3ce38",
+    "scripts/lib/xcodebuild.sh::": "12f293eb9e2fc697"
    }
   },
   {
@@ -175,12 +176,14 @@
     "file:~/.appstoreconnect/private_keys/AuthKey_<id>.p8"
    ],
    "branches": [],
-   "deps": {}
+   "deps": {
+    "scripts/lib/xcodebuild.sh::": "12f293eb9e2fc697"
+   }
   },
   {
    "key": "step deploy/Build archive",
-   "hash": "f81e4d684c2e5a31",
-   "does": "xcodebuild archive of scheme Emuqu, Release, generic iOS, into $RUNNER_TEMP/Emuqu.xcarchive with DEVELOPMENT_TEAM from secret, CURRENT_PROJECT_VERSION=<run_number>.<run_attempt> (applies to app and watch app), -allowProvisioningUpdates authenticated by the ASC API key. MARKETING_VERSION unchanged.",
+   "hash": "8c836b6c557a7f51",
+   "does": "xcodebuild archive with -onlyUsePackageVersionsFromResolvedFile (the package versions in the committed Package.resolved whose hash the run summary records) of scheme Emuqu, Release, generic iOS, into $RUNNER_TEMP/Emuqu.xcarchive with DEVELOPMENT_TEAM from secret, CURRENT_PROJECT_VERSION=<run_number>.<run_attempt> (applies to app and watch app), -allowProvisioningUpdates authenticated by the ASC API key. MARKETING_VERSION unchanged.",
    "entry": "Step of testflight.yml deploy job (runs only after quality-gate succeeded on a chrissharp80-owned repo)",
    "calls": [
     "ext:xcodebuild archive"

@@ -23,7 +23,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "c16025f9ed6e67fc",
+    ".github/workflows/ci.yml::job lint-and-budgets": "b37673427f6cec36",
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
     ".github/workflows/ci.yml::job tests": "717dc9698a3dc7ba",
     ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859",
@@ -50,8 +50,8 @@
    "branches": [],
    "deps": {
     "Makefile::target budget-monotonicity": "f2990c87cb8c36d4",
-    "Makefile::target ci": "314d826a23831255",
-    "Makefile::target release-build": "5357cf205e264442",
+    "Makefile::target ci": "60ad2e16c12b11bb",
+    "Makefile::target release-build": "8569be24c7eb1de6",
     "Makefile::target test-coverage": "2f52b6f381055f27",
     "Makefile::target thread-sanitizer": "adfca9b867c6ab56",
     "Makefile::target verify-gates": "62403efc5c06c498",
@@ -81,8 +81,8 @@
   },
   {
    "key": "§ CI posture > What actually enforces quality here > The gates",
-   "hash": "9506522801bbfea9",
-   "does": "Claims the listed gate groups (including a Change tracking row: the code map's records current with their code, records whose callees changed listed for re-check) are all scripts in scripts/ run by make ci, make ci-local and Actions, with only the budget ratchet's baseline differing; every gate except check_coverage.sh and check_thread_sanitizer.sh has a plant in verify_gates_fail.sh, whose meta-check enumerates scripts/check_*.sh and enforce_*.sh failing on any without a plant or exemption; check_budget_monotonicity.sh skips without a baseline, make budget-monotonicity passes the merge base with origin/main (or HEAD, saying so) overridable by BUDGET_BASE_REF, ci.yml compares with the parent commit and gates.yml with the PR base or push-before tip. Code: verify_gates_fail.sh loops over check_*/enforce_* and errors on unplanted gates; check_budget_monotonicity.sh exits 0 without a baseline (no_baseline) and accepts a ref argument; the Makefile target and both workflows pass the baselines described.",
+   "hash": "741564a898242af2",
+   "does": "Claims the listed gate groups (including a Supply chain row whose last gate is every xcodebuild run pinned to Package.resolved, and a Change tracking row: the code map's records current with their code, records whose callees changed listed for re-check) are all scripts in scripts/ run by make ci, make ci-local and Actions, with only the budget ratchet's baseline differing; every gate except check_coverage.sh and check_thread_sanitizer.sh has a plant in verify_gates_fail.sh, whose meta-check enumerates scripts/check_*.sh and enforce_*.sh failing on any without a plant or exemption; check_budget_monotonicity.sh skips without a baseline, make budget-monotonicity passes the merge base with origin/main (or HEAD, saying so) overridable by BUDGET_BASE_REF, ci.yml compares with the parent commit and gates.yml with the PR base or push-before tip. Code: verify_gates_fail.sh loops over check_*/enforce_* and errors on unplanted gates; check_budget_monotonicity.sh exits 0 without a baseline (no_baseline) and accepts a ref argument; the Makefile target and both workflows pass the baselines described.",
    "entry": null,
    "calls": [
     "scripts/verify_gates_fail.sh::fn backup",
@@ -177,8 +177,8 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.mergedWorkoutPoints(existing:strapRR:sessionId:sessionStart:)": "b13b474b5cc191a9",
-    "scripts/verify_tests_fail.sh::fn mutate": "e9b411096264e708",
-    "scripts/verify_tests_fail.sh::fn run_suite": "4e58c5ad77935ddb"
+    "scripts/verify_tests_fail.sh::fn mutate": "b17da90a86fc42d2",
+    "scripts/verify_tests_fail.sh::fn run_suite": "b8cb90b1e21631f2"
    }
   },
   {
@@ -217,7 +217,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "c16025f9ed6e67fc",
+    ".github/workflows/ci.yml::job lint-and-budgets": "b37673427f6cec36",
     ".github/workflows/testflight.yml::job quality-gate": "bce49f9b26dee90e"
    }
   },
@@ -237,7 +237,7 @@
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/Refactor-spec conformance (docs/REFACTOR_SPEC.md)": "13438c24dcea9cc9",
     "scripts/check_budget_monotonicity.sh::fn is_allowed": "76309c9411982f50",
-    "scripts/run_tests_with_coverage.sh::fn run_tests": "a81fa800842b2ce2"
+    "scripts/run_tests_with_coverage.sh::fn run_tests": "c53fe7cc88c339f7"
    }
   },
   {
@@ -283,7 +283,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "c16025f9ed6e67fc",
+    ".github/workflows/ci.yml::job lint-and-budgets": "b37673427f6cec36",
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
     ".github/workflows/ci.yml::job tests": "717dc9698a3dc7ba",
     ".github/workflows/ci.yml::job thread-sanitizer": "14fe4cf0a0cc6859",

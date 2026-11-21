@@ -11,7 +11,8 @@ import os
 /// Facts are injected into the system prompt of every send so the assistant
 /// always knows about them — Apple, Claude, GPT, Gemini, Grok, DeepSeek alike.
 ///
-/// Stored as JSON in the App Group. User-editable in Settings → Flo.
+/// Stored as sealed JSON in the App Group (`AssistantStoreFile`).
+/// User-editable in Settings → Flo.
 @Observable
 @MainActor
 final class UserFactsStore {
@@ -40,6 +41,15 @@ final class UserFactsStore {
     /// assistant's fact resolvers run on background tasks).
     @ObservationIgnored private let factsBox: OSAllocatedUnfairLock<[Fact]>
 
+    /// True while a copy of an undecodable facts file (`user_facts.undecodable-*`)
+    /// is still beside the live one, or the folder cannot be listed to tell.
+    /// Those copies are never read back, but they are the user's notes.
+    private(set) var setAsideCopiesRemain: Bool
+
+    /// Whether anything is stored that Forget everything would erase: a fact,
+    /// or a set-aside copy of an older file.
+    var hasAnythingToForget: Bool { !facts.isEmpty || setAsideCopiesRemain }
+
     nonisolated var factsSnapshot: [Fact] { factsBox.withLock { $0 } }
 
     /// When true, the AssistantViewModel runs an extraction pass after each
@@ -65,6 +75,7 @@ final class UserFactsStore {
         let loaded = Self.loadFacts(at: fileURL)
         _facts = loaded
         factsBox = OSAllocatedUnfairLock(initialState: loaded)
+        _setAsideCopiesRemain = AssistantStoreFile.hasSetAsideCopies(of: fileURL, caller: "UserFactsStore")
         _autoExtractEnabled = UserDefaults.standard.bool(forKey: Self.autoExtractKey)
     }
 
@@ -79,29 +90,19 @@ final class UserFactsStore {
         return fm.temporaryDirectory.appendingPathComponent("Assistant", isDirectory: true)
     }
 
-    /// Initial load (sync, but tiny file). Missing file is normal; a decode
-    /// failure is logged, and `unreadableOnDisk` then holds every write so
-    /// the file is preserved rather than overwritten with what this launch
-    /// could read.
+    /// Initial load (sync, but tiny file). A missing file is normal; a file
+    /// that cannot be read, opened or decoded loads as empty, and
+    /// `unreadableOnDisk` then holds every write so the file is preserved
+    /// rather than overwritten with what this launch could read.
     ///
     /// Dedup + cap on load so a file bloated by an older build is cleaned in
     /// memory immediately — the prompt is clean THIS launch. The cleaned set is
     /// rewritten to disk on the next add/remove (persist() can't run mid-init).
     nonisolated private static func loadFacts(at url: URL) -> [Fact] {
-        guard let data = try? Data(contentsOf: url) else {
-            if FileManager.default.fileExists(atPath: url.path) {
-                debugLog("[UserFactsStore] facts present but unreadable (device locked?) — writes will merge, not overwrite", level: .warning)
-            }
-            return []
-        }
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        do {
-            return dedupedAndCapped(try decoder.decode([Fact].self, from: data))
-        } catch {
-            debugLog("[UserFactsStore] load: decode failed — starting empty and holding writes so the file is kept: \(error)", level: .error)
-            return []
-        }
+        guard case let .json(data) = AssistantStoreFile.read(url, caller: "UserFactsStore"),
+              let decoded = decodedFacts(data)
+        else { return [] }
+        return dedupedAndCapped(decoded)
     }
 
     /// Testing-only initializer that lets a test inject its own backing file
@@ -119,6 +120,7 @@ final class UserFactsStore {
         let loaded = Self.loadFacts(at: fileURL)
         _facts = loaded
         factsBox = OSAllocatedUnfairLock(initialState: loaded)
+        _setAsideCopiesRemain = AssistantStoreFile.hasSetAsideCopies(of: fileURL, caller: "UserFactsStore")
         _autoExtractEnabled = UserDefaults.standard.bool(forKey: Self.autoExtractKey)
     }
 
@@ -172,20 +174,53 @@ final class UserFactsStore {
         return result
     }
 
-    func remove(_ id: UUID) {
-        facts.removeAll { $0.id == id }
-        persist()
+    /// Removes the fact with `id` and writes the rest at once, dropping every
+    /// set-aside copy (which can hold the same fact). True once that is on
+    /// disk. False, with `facts` unchanged, while the saved facts cannot be
+    /// read or when the write or a copy's removal failed: the fact is still
+    /// stored.
+    @discardableResult
+    func remove(_ id: UUID) -> Bool {
+        reloadIfUnreadable()
+        guard !unreadableOnDisk else { return false }
+        let remaining = facts.filter { $0.id != id }
+        guard writeNow(remaining) else { return false }
+        facts = remaining
+        return true
     }
 
-    /// Erases every fact and any copy `clearKeepingBackup()` kept. This is the
-    /// path for a wipe the user made themselves (Settings, Delete All My
-    /// Data), so nothing is left behind.
-    func clear() {
-        facts = []
+    /// Erases every fact, every set-aside copy and the copy
+    /// `clearKeepingBackup()` kept. This is the path for a wipe the user made
+    /// themselves (Settings, Delete All My Data), so nothing is left behind.
+    ///
+    /// The copies go first, then the file, on the queue after any write
+    /// already queued, so an earlier write cannot land afterwards. Removal
+    /// needs no read, so a file locked or undecodable is erased too. True
+    /// when none of them is left; false leaves `facts` as they were, since
+    /// they are still stored.
+    @discardableResult
+    func clear() -> Bool {
         clearedBackup = []
-        // Clearing is the one write that must not wait to read what it replaces.
+        let url = fileURL
+        let erased = queue.sync { AssistantStoreFile.erase(url, caller: "UserFactsStore") }
+        setAsideCopiesRemain = AssistantStoreFile.hasSetAsideCopies(of: url, caller: "UserFactsStore")
+        guard erased else { return false }
+        facts = []
         unreadableOnDisk = false
-        persist()
+        writePending = false
+        return true
+    }
+
+    /// Drops the set-aside copies and writes `snapshot`, on the queue after
+    /// any write already queued. True when both are done.
+    private func writeNow(_ snapshot: [Fact]) -> Bool {
+        let url = fileURL
+        let done = queue.sync {
+            AssistantStoreFile.eraseSetAsideCopies(of: url, caller: "UserFactsStore") && Self.write(snapshot, to: url)
+        }
+        setAsideCopiesRemain = AssistantStoreFile.hasSetAsideCopies(of: url, caller: "UserFactsStore")
+        if done { writePending = false }
+        return done
     }
 
     /// The facts the assistant's last memory wipe removed. Held in memory
@@ -195,11 +230,11 @@ final class UserFactsStore {
     @ObservationIgnored private(set) var clearedBackup: [Fact] = []
 
     /// Erases every fact like `clear()` but keeps them for `restoreCleared()`.
-    /// Returns how many facts were erased.
-    @discardableResult
-    func clearKeepingBackup() -> Int {
+    /// Returns how many facts were erased, or nil when the erase failed, in
+    /// which case every fact is still stored and in `facts`.
+    func clearKeepingBackup() -> Int? {
         let previous = facts
-        clear()
+        guard clear() else { return nil }
         clearedBackup = previous
         return previous.count
     }
@@ -223,9 +258,11 @@ final class UserFactsStore {
     func persistedFacts() -> [Fact]? {
         let url = fileURL
         return queue.sync {
-            guard FileManager.default.fileExists(atPath: url.path) else { return [] }
-            guard let data = attempt("UserFactsStore.readBack", { try Data(contentsOf: url) }) else { return nil }
-            return Self.decodedFacts(data)
+            switch AssistantStoreFile.read(url, caller: "UserFactsStore") {
+            case .missing: return []
+            case .unreadable, .undecodable: return nil
+            case let .json(data): return Self.decodedFacts(data)
+            }
         }
     }
 
@@ -243,26 +280,28 @@ final class UserFactsStore {
 
     // MARK: - Persistence
 
-    /// The file is written with complete protection, so it cannot be read while
-    /// the phone is locked, and the store then starts empty. A fact added in
-    /// that state was written over every fact already saved. Until the disk has
-    /// been read, a write first folds what is on disk back in, and holds off
-    /// entirely while it still cannot be read. A file that reads but does not
-    /// decode (truncated, or written by a newer schema) is moved aside, kept
-    /// rather than deleted (`UndecodableFile`), before the next write, so it is
-    /// never replaced by this launch's partial view and saving resumes;
-    /// `clear()` is the one write that goes ahead regardless.
+    /// The file cannot be read while the phone is locked, and the store then
+    /// starts empty. A fact added in that state was written over every fact
+    /// already saved. Until the disk has been read, a write first folds what
+    /// is on disk back in, and holds off entirely while it still cannot be
+    /// read. A file that reads but does not open or decode (truncated, written
+    /// by a newer schema, a damaged seal) is moved aside, kept rather than
+    /// deleted (`AssistantStoreFile.setAside`), before the next write, so it
+    /// is never replaced by this launch's partial view and saving resumes;
+    /// `clear()` erases regardless.
     @ObservationIgnored private var unreadableOnDisk: Bool
 
-    /// Set when the last write failed (the phone locked first, or the
+    /// Set when the last write failed (the key unavailable, or the
     /// directory was gone), so `recoverAfterUnlock()` writes the facts again
     /// instead of leaving the change only in memory.
     @ObservationIgnored private var writePending = false
 
     nonisolated private static func isUnreadable(_ url: URL) -> Bool {
-        guard FileManager.default.fileExists(atPath: url.path) else { return false }
-        guard let data = attempt("UserFactsStore.probe", { try Data(contentsOf: url) }) else { return true }
-        return decodedFacts(data) == nil
+        switch AssistantStoreFile.read(url, caller: "UserFactsStore") {
+        case .missing: return false
+        case .unreadable, .undecodable: return true
+        case let .json(data): return decodedFacts(data) == nil
+        }
     }
 
     nonisolated private static func decodedFacts(_ data: Data) -> [Fact]? {
@@ -280,18 +319,33 @@ final class UserFactsStore {
     }
 
     /// Reads the disk back in once it can be read and decoded, or sets an
-    /// undecodable file aside. Called before any write.
+    /// undecodable file aside; a file gone since leaves nothing to protect.
+    /// Called before any write.
     private func reloadIfUnreadable() {
-        guard unreadableOnDisk,
-              let data = attempt("UserFactsStore.reload", { try Data(contentsOf: fileURL) })
-        else { return }
-        guard let onDisk = Self.decodedFacts(data) else {
-            if UndecodableFile.setAside(fileURL, caller: "UserFactsStore") { unreadableOnDisk = false }
-            return
+        guard unreadableOnDisk else { return }
+        switch AssistantStoreFile.read(fileURL, caller: "UserFactsStore") {
+        case .missing: unreadableOnDisk = false
+        case .unreadable: return
+        case .undecodable: setAsideUndecodable()
+        case let .json(data): adopt(data)
         }
+    }
+
+    /// Folds the facts on disk in with the ones in memory, or sets the file
+    /// aside when it does not decode.
+    private func adopt(_ data: Data) {
+        guard let onDisk = Self.decodedFacts(data) else { return setAsideUndecodable() }
         unreadableOnDisk = false
         let known = Set(facts.map(\.id))
         facts = Self.dedupedAndCapped(onDisk.filter { !known.contains($0.id) } + facts)
+    }
+
+    /// Moves the undecodable file aside so writes resume; while it cannot be
+    /// moved, writes stay held.
+    private func setAsideUndecodable() {
+        guard AssistantStoreFile.setAside(fileURL, caller: "UserFactsStore") else { return }
+        unreadableOnDisk = false
+        setAsideCopiesRemain = true
     }
 
     private func persist() {
@@ -308,23 +362,14 @@ final class UserFactsStore {
         }
     }
 
-    /// Encodes and writes the facts; false when either step failed. The
-    /// directory is created first because Delete All My Data removes it
-    /// under a running store, and only init created it.
+    /// Encodes the facts and writes them sealed (`AssistantStoreFile.write`,
+    /// which creates the directory Delete All My Data can remove under a
+    /// running store); false when either step failed, leaving the previous
+    /// file in place.
     nonisolated private static func write(_ facts: [Fact], to url: URL) -> Bool {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
-        encoder.outputFormatting = [.prettyPrinted]
         guard let data = attempt("userFactsStore.encode", { try encoder.encode(facts) }) else { return false }
-        do {
-            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-            // Holds ongoing health context injected into every prompt; protect
-            // at rest (readable only while unlocked), matching ConversationStore.
-            try data.write(to: url, options: [.atomic, .completeFileProtection])
-            return true
-        } catch {
-            debugLog("[UserFactsStore] persist: write failed, retried after the next unlock or change: \(error)", level: .error)
-            return false
-        }
+        return AssistantStoreFile.write(data, to: url, caller: "UserFactsStore")
     }
 }

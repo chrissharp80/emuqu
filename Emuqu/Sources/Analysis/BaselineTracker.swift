@@ -90,6 +90,9 @@ final class BaselineTracker: @unchecked Sendable {
     // MARK: - Storage
 
     private let baselineFile: URL
+    /// Seals `baselineFile` and opens it: the app's key for the app, a seal
+    /// a test controls otherwise.
+    private let seal: JSONFileSeal
     private var currentBaseline: Baseline?
     private var historicalData: [BaselineDataPoint] = []
     private let fileManager = FileManager.default
@@ -119,13 +122,21 @@ final class BaselineTracker: @unchecked Sendable {
     /// has not been written (`.unreadableNotSetAside`). Under `lock`.
     private var undecodableBytes: Data?
 
+    /// Set when a save could not seal the nights (no key reachable), so the
+    /// file still holds the previous save; the unlock observers save again.
+    /// Under `lock`.
+    private var unsavedChanges = false
+
+    /// Whether the unlock observers are installed. Under `lock`, or in `init`.
+    private var observingUnlock = false
+
     /// The sleep schedule of the last `update` or `rebuildFromSessions`, which
     /// merging the nights held in memory onto a file read after unlock needs.
     /// Under `lock`.
     private var lastSleepSchedule: SleepSchedule?
 
     /// Protected-data, become-active and background observers, installed
-    /// when the file could not be read at load.
+    /// when the file could not be read at load or a save could not be sealed.
     private let unlockObservers = NotificationTokens()
 
     /// Data point for baseline calculation. Internal rather than `private`
@@ -188,15 +199,22 @@ final class BaselineTracker: @unchecked Sendable {
         self.init(baselineFile: container.appendingPathComponent("HRVBaseline.json"), onBaselineUpdated: onBaselineUpdated)
     }
 
-    /// A tracker persisted at `baselineFile`. Tests pass a temporary file so
-    /// they never read or overwrite the app's own baseline.
+    /// A tracker persisted at `baselineFile`, sealed with the app's key.
+    /// Tests pass a temporary file so they never read or overwrite the app's
+    /// own baseline.
+    convenience init(baselineFile: URL, onBaselineUpdated: BaselineUpdater? = nil) {
+        self.init(baselineFile: baselineFile, seal: .app, onBaselineUpdated: onBaselineUpdated)
+    }
+
+    /// A tracker persisted at `baselineFile` and sealed with `seal`.
     ///
     /// The stored display baseline is recomputed from the stored nights on
     /// load rather than trusted as saved, so it always follows the current
     /// window rule before it is pushed to the callback.
-    init(baselineFile: URL, onBaselineUpdated: BaselineUpdater? = nil) {
+    init(baselineFile: URL, seal: JSONFileSeal, onBaselineUpdated: BaselineUpdater?) {
         self.onBaselineUpdated = onBaselineUpdated
         self.baselineFile = baselineFile
+        self.seal = seal
         load()
         if saveHold == .fileNotRead { observeUnlock() }
         recalculateBaseline()
@@ -718,14 +736,21 @@ final class BaselineTracker: @unchecked Sendable {
         }
     }
 
-    /// The second half of `readFile()`: `data` decoded, or nil once its bytes
-    /// are written aside (no hold) or with `.unreadableNotSetAside` when that
-    /// write fails.
+    /// The second half of `readFile()`: `data` opened with `seal` (sealed, or
+    /// plain JSON from a build that did not seal the file) and decoded. While
+    /// the keychain refuses the key, nil with `.fileNotRead`: the file is
+    /// left as it is and read again after unlock. Bytes that do not open or
+    /// decode for any other reason: nil once they are written aside (no
+    /// hold), or with `.unreadableNotSetAside` when that write fails.
     private func decodeOrSetAside(_ data: Data) -> StoredData? {
         do {
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
-            return try decoder.decode(StoredData.self, from: data)
+            return try seal.openJSON(StoredData.self, from: data, with: decoder)
+        } catch let error where JSONFileSeal.isKeyLocked(error) {
+            debugLog("[Baseline] baseline file is sealed and the key is locked — saves wait until it opens: \(error)", level: .warning)
+            saveHold = .fileNotRead
+            return nil
         } catch {
             // A corrupt/undecodable file that fails load() silently AND
             // survives on disk means every launch re-reads the same garbage
@@ -741,9 +766,12 @@ final class BaselineTracker: @unchecked Sendable {
 
     /// Watches for protected data becoming available, the app becoming active
     /// (which a suspended app sees instead) and the app going to the
-    /// background while the file could not be read, so it is read again and
-    /// the nights held in memory are saved without waiting for the next change.
+    /// background once the file could not be read or a save could not be
+    /// written, so it is read again and the nights held in memory are saved
+    /// without waiting for the next change. Installed once.
     private func observeUnlock() {
+        guard !observingUnlock else { return }
+        observingUnlock = true
         let names = [
             UIApplication.protectedDataDidBecomeAvailableNotification,
             UIApplication.didBecomeActiveNotification,
@@ -756,11 +784,13 @@ final class BaselineTracker: @unchecked Sendable {
         }
     }
 
-    /// Notification entry for `reloadAfterUnlock()`; a no-op once the hold is gone.
+    /// Notification entry: `reloadAfterUnlock()` (a no-op once the hold is
+    /// gone), then a save of nights a sealed save could not write yet.
     private func retryAfterUnlock() {
         lock.lock()
         defer { lock.unlock() }
         reloadAfterUnlock()
+        if unsavedChanges { save() }
     }
 
     /// While the file could not be read at load, reads it again. Once it is
@@ -819,20 +849,27 @@ final class BaselineTracker: @unchecked Sendable {
         return true
     }
 
+    /// Seals the baseline and nights with `seal` and writes them atomically
+    /// under `.completeFileProtectionUntilFirstUserAuthentication`, so a
+    /// night archived while the phone is locked (after the first unlock of
+    /// the boot) is saved. Nothing is written while `mayWriteFile()` says no.
+    /// A save that fails (no key reachable, or the write) writes nothing: the
+    /// file keeps the previous save, never the nights in the clear; the
+    /// nights stay in memory and are saved by the next change or the unlock
+    /// observers. Caller holds `lock`.
     private func save() {
         guard mayWriteFile() else { return }
         do {
-            let stored = StoredData(baseline: currentBaseline, historicalData: historicalData)
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
             encoder.outputFormatting = [.prettyPrinted]
-            let data = try encoder.encode(stored)
-            // Protect the baseline file at rest. HRV
-            // history is health data; without a protection class it's readable
-            // whenever the device filesystem is mounted.
-            try data.write(to: baselineFile, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+            let sealed = try seal.sealJSON(StoredData(baseline: currentBaseline, historicalData: historicalData), with: encoder)
+            try sealed.write(to: baselineFile, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+            unsavedChanges = false
         } catch {
-            debugLog("Failed to save baseline: \(error)")
+            debugLog("[Baseline] baseline not saved — the file keeps the previous save and the save is retried: \(error)", level: .error)
+            unsavedChanges = true
+            observeUnlock()
         }
     }
 }
