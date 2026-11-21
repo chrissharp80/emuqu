@@ -15,8 +15,8 @@
   "mem:BeatConsistencyPriorsCache.queuedIds ([UUID] ids waiting for the warm-up walk)",
   "mem:BeatConsistencyPriorsCache.entryOrder ([UUID] insertion order)",
   "mem:BeatConsistencyPriorsCache.entryCap (static let 200)",
-  "file:Caches/beat_consistency_priors.json (diskURL; ordered [{id, features}] array, legacy [UUID: Features] still read)",
-  "file:Caches/beat_consistency_priors_featureless.json (featurelessURL)",
+  "file:Caches/beat_consistency_priors.json (diskURL; ordered [{id, features}] array, legacy [UUID: Features] still read; sealed with the app's key, plain JSON from builds that did not seal it still opens)",
+  "file:Caches/beat_consistency_priors_featureless.json (featurelessURL; sealed like the features file)",
   "mem:BeatConsistencyPriorsCache.notificationToken",
   "mem:BeatConsistencyPriorsCache.boundArchive (weak SessionArchive)",
   "mem:BeatConsistencyPriorsCache.walkTask",
@@ -76,8 +76,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.loadFeaturelessFromDisk()": "bdfebf9612486398",
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.loadFromDisk()": "ee19800f09b68992"
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.loadFeaturelessFromDisk()": "232a327a9d8a87e5",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.loadFromDisk()": "fd45509e008371fb"
    }
   },
   {
@@ -508,14 +508,17 @@
   },
   {
    "key": "func BeatConsistencyPriorsCache.loadFromDisk()",
-   "hash": "341cff52d9f5e7c1",
-   "does": "Decodes StoredEntries from diskURL (ordered, or legacy unordered), keeps the newest 200, and seeds entries and entryOrder from it so eviction order survives a relaunch.",
+   "hash": "1711b1b0030f9718",
+   "does": "When diskURL exists, reads it, opens it with the app's key (sealed, or plain JSON from builds that did not seal it) and decodes StoredEntries (ordered, or legacy unordered), keeps the newest 200, and seeds entries and entryOrder from it so eviction order survives a relaunch. A file that cannot be read, opened (the key locked among them) or decoded is logged by attempt and leaves the cache empty, to be recomputed and written again.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::init BeatConsistencyPriorsCache.StoredEntries(from:)"
    ],
    "reads": [
-    "file:Caches/beat_consistency_priors.json"
+    "file:Caches/beat_consistency_priors.json",
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
    ],
    "writes": [
     "mem:BeatConsistencyPriorsCache.entries",
@@ -523,27 +526,30 @@
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "file missing or undecodable",
-     "effect": "returns silently with empty cache"
+     "at": "+2",
+     "cond": "file missing, or read/open/decode fails (logged)",
+     "effect": "returns with empty cache"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.features(for:)": "c905bceea1190e17",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::init BeatConsistencyPriorsCache.StoredEntries(from:)": "f07bc1c26558f088",
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::let BeatConsistencyPriorsCache.diskURL": "f742a9029951dea9"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)": "31bc2aea46cfe8ad",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
    "key": "func BeatConsistencyPriorsCache.loadFeaturelessFromDisk()",
-   "hash": "749c0a14e34bd319",
-   "does": "Loads featureless ids from its file when present, keeping the newest 200 in order (featurelessOrder) and as a set.",
+   "hash": "63a330e7ed58c921",
+   "does": "Loads featureless ids from its file when present (opened with the app's key, sealed or plain JSON from builds that did not seal it), keeping the newest 200 in order (featurelessOrder) and as a set.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)"
    ],
    "reads": [
-    "file:Caches/beat_consistency_priors_featureless.json"
+    "file:Caches/beat_consistency_priors_featureless.json",
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
    ],
    "writes": [
     "mem:BeatConsistencyPriorsCache.featureless",
@@ -557,12 +563,13 @@
     },
     {
      "at": "+3",
-     "cond": "decode fails",
+     "cond": "read, open or decode fails",
      "effect": "attempt logs, returns"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::var BeatConsistencyPriorsCache.featurelessURL": "af710bece9e022fb",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)": "31bc2aea46cfe8ad",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
@@ -587,7 +594,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.write(_:to:)": "a4fe94541d57abc1",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.write(_:to:)": "043f7f3c1d5246d9",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::init BeatConsistencyPriorsCache.StoredEntries(entries:)": "1803e5bf8eada5ae",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::let BeatConsistencyPriorsCache.diskURL": "f742a9029951dea9",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::var BeatConsistencyPriorsCache.featurelessURL": "af710bece9e022fb"
@@ -595,33 +602,31 @@
   },
   {
    "key": "func BeatConsistencyPriorsCache.write(_:to:)",
-   "hash": "7f405a40cd07b5e4",
-   "does": "JSON-encodes and atomically writes with completeFileProtectionUntilFirstUserAuthentication; failures are logged at warning.",
+   "hash": "2c50f7b47c2bb434",
+   "does": "JSON-encodes the snapshot, seals it with the app's key and atomically writes it with completeFileProtectionUntilFirstUserAuthentication; an encode, seal (no key reachable) or write failure writes nothing, keeps the previous file and is logged at warning.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "ext:Data.write"
    ],
-   "reads": [],
+   "reads": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
    "writes": [
     "file:Caches/beat_consistency_priors.json",
     "file:Caches/beat_consistency_priors_featureless.json"
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "encode fails",
-     "effect": "attempt logs, returns"
-    },
-    {
-     "at": "+7",
-     "cond": "write throws",
-     "effect": "logged warning only"
+     "at": "+4",
+     "cond": "encode, seal or write throws",
+     "effect": "logged warning; nothing written"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)": "506794a8a13263fb",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }
  ],

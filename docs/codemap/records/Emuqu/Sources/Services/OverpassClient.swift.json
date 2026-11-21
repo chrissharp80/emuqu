@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Services/OverpassClient.swift",
- "hash": "d404d5465d10fdc7",
+ "hash": "49ee540862d94e4c",
  "role": "Actor that sends every OpenStreetMap Overpass request for the app (trail discovery and road graph): one-at-a-time with a minimum gap, per-host cooldowns for busy/refused replies, endpoint fallback, and an optional short reply cache.",
  "types": [
   "OverpassClient: actor — serialized Overpass POST client",
@@ -14,21 +14,21 @@
   "actor state: lastRequestAt, requestInFlight, queuedCallers [(ticket UUID, CheckedContinuation<Bool>)], cooling[URL], replies cache (max 16) (OverpassClient.swift:72-80)",
   "static malformedQueryStatus = 400: a malformed-query reply, not held against any host"
  ],
- "toplevel": "endpoints built by compactMap(URL(string:)); userAgent reads Bundle.main.appVersion and AppConfig.contactEmail at first access. One shared instance is created in AppDependencies.OverpassServices.client.",
+ "toplevel": "endpoints built by compactMap(URL(string:)); userAgent reads Bundle.main.appVersion and AppConfig.contactEmail at first access. One shared instance is created in AppDependencies.OverpassServices.client with the live HTTPTransport.",
  "units": [
   {
    "key": "init OverpassClient(minRequestGap:transport:)",
-   "hash": "e2881867f122ec0e",
-   "does": "Stores the minimum request gap (default 1.1 s) and transport (default URLSession.shared.data(for:)); tests inject a stub.",
+   "hash": "5587c70f1852329f",
+   "does": "Stores the minimum request gap (default 1.1 s) and the HTTPTransport every request is sent through (default HTTPTransport.live); tests pass a stub.",
    "entry": null,
    "calls": [
-    "ext:URLSession.data(for:)"
+    "Emuqu/Sources/Services/HTTPTransport.swift::var HTTPTransport.live"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.request(query:to:timeout:)": "911c63dec6852471"
+    "Emuqu/Sources/Services/HTTPTransport.swift::var HTTPTransport.live": "7990219adda8679a"
    }
   },
   {
@@ -277,7 +277,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.send(query:to:timeout:)": "e64d6097be23ac67",
+    "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.send(query:to:timeout:)": "c5d7ba82f906916f",
     "EmuquTests/OverpassClientTests.swift::var Result.failure": "29e73041c877b0a6"
    }
   },
@@ -394,14 +394,14 @@
   },
   {
    "key": "func OverpassClient.send(query:to:timeout:)",
-   "hash": "538a73d5d601502d",
-   "does": "Waits for the request gap, refuses if cancelled, stamps lastRequestAt, sends the POST via transport, maps transport errors to cancelled/unreachable, and validates status.",
+   "hash": "4d870356a67d287c",
+   "does": "Waits for the request gap, refuses if cancelled, stamps lastRequestAt, sends the POST through the injected HTTPTransport, maps transport errors to cancelled/unreachable, and validates status.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.waitForRequestGap()",
     "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.request(query:to:timeout:)",
     "Emuqu/Sources/Services/OverpassClient.swift::func OverpassClient.checkStatus(_:host:)",
-    "closure:transport (URLSession.shared.data in app, stub in OverpassClientTests)"
+    "closure:transport.send (HTTPTransport.live in the app, a stub in OverpassClientTests)"
    ],
    "reads": [
     "mem:OverpassClient.lastRequestAt",

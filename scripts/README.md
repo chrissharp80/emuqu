@@ -121,6 +121,21 @@ per-PR gate. Slow enough to be its own CI job; `make ci` runs it after the
 static gates. A run in which no test case executed fails: zero races from
 zero tests is not a result.
 
+### `check_xcodebuild_pinned.sh`
+
+Fails when an `xcodebuild` invocation in the `Makefile`, a workflow, a script or
+a git hook that builds, tests, archives or lists destinations lacks
+`-onlyUsePackageVersionsFromResolvedFile`. Without it xcodebuild may resolve the
+packages again and build against versions the committed `Package.resolved` does
+not name, while the TestFlight run records that file's hash as if it were used.
+
+The flag is defined once, as `XCODEBUILD_PINNED` in `scripts/lib/xcodebuild.sh`.
+Scripts source that file and pass `"$XCODEBUILD_PINNED"`; the `Makefile` includes
+it and passes `$(XCODEBUILD_PINNED)`; inline workflow steps pass the flag itself.
+A variable used without the include or `source` fails too, since it would expand
+to nothing. Invocations that open no project (`-version`, `-exportArchive`) are
+exempt.
+
 ### `remove_swift_file.py`
 
 The inverse of `add_swift_file.py` — strips all four `project.pbxproj` entries

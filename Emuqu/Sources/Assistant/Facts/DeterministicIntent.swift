@@ -421,16 +421,26 @@ enum DeterministicIntent {
     /// punctuation-stripped at the edges, then regex-anchored against
     /// each pattern's triggers. First match wins.
     static func tryMatch(_ utterance: String, in context: MatchContext) -> String? {
-        let normalized = normalize(utterance)
-        guard !normalized.isEmpty else { return nil }
-        guard let pattern = patterns.first(where: { matches($0, normalized) }) else { return nil }
-        guard let answer = pattern.handler(normalized, context) else {
+        guard let match = matchedPattern(for: utterance) else { return nil }
+        let pattern = match.pattern
+        guard let answer = pattern.handler(match.normalized, context) else {
             // Pattern matched but data not ready — fall through.
             debugLog("[DeterministicIntent] match=\(pattern.id) but no data; falling through to LLM")
             return nil
         }
         debugLog("[DeterministicIntent] match=\(pattern.id) — served")
         return answer
+    }
+
+    /// The first catalog pattern any of whose triggers matches the
+    /// normalized utterance, with that normalized text; nil for an empty
+    /// utterance or no match. The matching half of `tryMatch`, before any
+    /// handler runs.
+    static func matchedPattern(for utterance: String) -> (pattern: Pattern, normalized: String)? {
+        let normalized = normalize(utterance)
+        guard !normalized.isEmpty else { return nil }
+        guard let pattern = patterns.first(where: { matches($0, normalized) }) else { return nil }
+        return (pattern, normalized)
     }
 
     private static func matches(_ pattern: Pattern, _ normalized: String) -> Bool {

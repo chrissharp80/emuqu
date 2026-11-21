@@ -29,7 +29,9 @@ extension ArchiveMigrations {
 
     /// Run the archive's data migrations in the background so they don't block
     /// app launch or dashboard rendering. Runs at launch and after every
-    /// iCloud pull. Safe to call multiple times: the four backfills are
+    /// iCloud pull. Re-encrypts what was written while the key was
+    /// unavailable (session files and the index) first. Safe to call multiple
+    /// times: the four backfills are
     /// no-ops once their done flag is set, while `removeDuplicates` and
     /// `relinkSameNightSessions` run on every call because what they repair
     /// can come back.
@@ -39,6 +41,7 @@ extension ArchiveMigrations {
     /// more than a few milliseconds (eliminates "hang detected" warnings).
     func runDeferredMigrations() {
         reencryptPendingSessions(in: archive)
+        archive.resealPlainIndexIfNeeded()
         migrateRecoveryScores()
         migrateEndDates()
         migrateMetrics()
@@ -806,9 +809,9 @@ extension ArchiveMigrations {
     ///
     /// Routed through `SessionFileCodec` (the shared encode →
     /// encrypt-if-available → hash codec) so this site can never drift from
-    /// that contract. No plaintext-fallback warn log here: this site falls
-    /// back silently (`_archive`/`archiveBatch` each keep their own log
-    /// lines). The write also carries an explicit
+    /// that contract. Its plaintext fallback is the codec's: an `encrypt`
+    /// that throws is logged there, and the file is queued for re-encryption
+    /// (`writeArchiveBytes`). The write also carries an explicit
     /// protection class, matching every other archive write site: `.atomic`
     /// alone replaces the file and drops the directory-inherited protection
     /// class (the EPERM-storm root cause, see the note in

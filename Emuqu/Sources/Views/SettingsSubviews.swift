@@ -7,6 +7,8 @@ struct DebugLogView: View {
     @Environment(\.dependencies) var dependencies
     var logger: DebugLogger { dependencies.app.debugLogger }
     @State private var showingClearConfirm = false
+    /// Set when Clear could not remove the log file.
+    @State private var clearFailed = false
 
     var body: some View {
         logList
@@ -14,10 +16,13 @@ struct DebugLogView: View {
             .alert(String(localized: "Clear Debug Logs?", bundle: LanguageManager.appBundle), isPresented: $showingClearConfirm) {
                 Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
                 Button(String(localized: "Clear", bundle: LanguageManager.appBundle), role: .destructive) {
-                    dependencies.app.debugLogger.clear()
+                    clearFailed = !dependencies.app.debugLogger.clear()
                 }
             } message: {
                 Text(String(localized: "This will delete all \(logger.entries.count) log entries. You can't undo this.", bundle: LanguageManager.appBundle))
+            }
+            .alert(String(localized: "Some logs couldn't be deleted. Try again.", bundle: LanguageManager.appBundle), isPresented: $clearFailed) {
+                Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
             }
     }
 

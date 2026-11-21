@@ -22,8 +22,8 @@ extension RawRRBackup {
         guard points.count > previousCount else { return }
         let pointsPath = pointsURL(for: sessionId)
         let switchesFormat = try startAppendFormatIfNew(existingEntry, sessionId: sessionId, deviceId: deviceId, newCount: points.count)
-        try writeAppendData(try encodedLines(points[previousCount...]), to: pointsPath, sessionId: sessionId) {
-            try encodedLines(points[...])
+        try writeAppendData(try encodedLines(points[previousCount...], sessionId: sessionId), to: pointsPath, sessionId: sessionId) {
+            try encodedLines(points[...], sessionId: sessionId)
         }
         try updateAppendIndex(sessionId: sessionId, existingEntry: existingEntry, beatCount: points.count)
         if switchesFormat, let legacyName = existingEntry?.fileName { removeReplacedLegacyFile(legacyName) }
@@ -32,8 +32,8 @@ extension RawRRBackup {
     /// The one-shot backup a format switch replaced, removed once the
     /// streaming copy and its index row are written. A failed removal leaves
     /// a file the index no longer names, which costs space; one still queued
-    /// for re-encryption keeps the session queued, and `reencryptBackup`
-    /// removes it.
+    /// for re-encryption keeps the session queued, and
+    /// `RawBackupSealer.reencrypt` removes it.
     private func removeReplacedLegacyFile(_ legacyName: String) {
         do {
             try fileManager.removeItem(at: backupDirectory.appendingPathComponent(legacyName))
@@ -63,17 +63,13 @@ extension RawRRBackup {
         throw BackupError.wouldReplaceLargerBackup(existing: existing.beatCount, new: newCount)
     }
 
-    /// Write the session header and start a fresh points file. A legacy
+    /// Write the session header and start the points file. A legacy
     /// single-file backup being replaced is left in place; `appendBackup`
     /// removes it once the new copy is written and indexed.
     ///
-    /// Explicit `.completeFileProtectionUntilFirstUserAuthentication`
-    /// on both writes. Without this option `Data.write(to:)` falls back to
-    /// iOS's default `.complete` protection — which locks the file out when
-    /// the device locks, breaking every overnight backup write (an
-    /// iPhone 11 log: 29,067 RR points lost). Directory protection is set
-    /// correctly in `createBackupDirectoryIfNeeded`, but new file creation
-    /// doesn't inherit it on iOS — it must be passed explicitly.
+    /// Both files are written with `BackupProtection.appendable` named
+    /// explicitly, so the overnight appends keep working while the device is
+    /// locked.
     ///
     /// The header keeps a replaced one-shot backup's capture date: recovery
     /// uses it as the session start, and the moment of the switch is not that.
@@ -81,57 +77,64 @@ extension RawRRBackup {
         sessionId: UUID, deviceId: String?, existingEntry: BackupIndex?
     ) throws {
         let header = BackupHeader(id: sessionId, captureDate: existingEntry?.captureDate ?? Date(), deviceId: deviceId)
-        try lineEncoder.encode(header).write(
-            to: headerURL(for: sessionId),
-            options: [.completeFileProtectionUntilFirstUserAuthentication]
-        )
-        // Start fresh points file (overwrite if corrupt leftover exists)
-        try Data().write(to: pointsURL(for: sessionId), options: [.completeFileProtectionUntilFirstUserAuthentication])
+        try writeHeaderUnlessReadable(header)
+        try keepOrStartPointsFile(sessionId)
     }
 
-    /// Encode points as JSONL — one line per point. Each line is the point's
-    /// JSON sealed with `EncryptionManager` and base64-encoded, the same
+    /// A header already on disk that decodes is kept: it was written by this
+    /// session's first append, whose index save never happened, and its date
+    /// is the session's real start.
+    private func writeHeaderUnlessReadable(_ header: BackupHeader) throws {
+        let url = headerURL(for: header.id)
+        if fileManager.fileExists(atPath: url.path),
+           attempt("RawRRBackup.readExistingHeader", { try Self.decodedHeader(at: url) }) != nil {
+            return
+        }
+        try lineEncoder.encode(header).write(to: url, options: [.atomic, BackupProtection.appendable])
+    }
+
+    /// Starts an empty points file, or keeps the one already there: a first
+    /// append killed before its index save, or a session resumed after a
+    /// relaunch, left beats in it that no row counts. The batch is appended
+    /// after them and a read merges the two by time (`readAllPointLines`).
+    /// One that does not read is set aside first, as `rewriteKeepingExisting`
+    /// does, and throws when it cannot be.
+    private func keepOrStartPointsFile(_ sessionId: UUID) throws {
+        let url = pointsURL(for: sessionId)
+        if fileManager.fileExists(atPath: url.path) {
+            guard attempt("RawRRBackup.readExistingPoints", { try String(contentsOf: url, encoding: .utf8) }) == nil else { return }
+            try preserveCorruptedPointsFile(at: url, sessionId: sessionId)
+        }
+        try Data().write(to: url, options: [BackupProtection.appendable])
+    }
+
+    /// The header file at `url`, decoded.
+    static func decodedHeader(at url: URL) throws -> BackupHeader {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(BackupHeader.self, from: Data(contentsOf: url))
+    }
+
+    /// Encode points as JSONL, one line per point, each sealed with
+    /// `EncryptionManager` and base64-encoded (`SealedJSONLines`), the
     /// app-layer encryption one-shot backups and archived sessions get. When
-    /// the key cannot be reached the batch is written as plain JSON lines,
-    /// logged, and read back either way (`decodePointLine`).
-    func encodedLines(_ points: ArraySlice<RRPoint>) throws -> Data {
-        let manager = AppDependencies.current.storage.encryptionManager
-        var sealLines = manager.isAvailable
-        var appendData = Data()
-        for point in points {
-            let json = try lineEncoder.encode(point)
-            if sealLines {
-                appendData.append(sealedLine(json, with: manager, sealing: &sealLines))
-            } else {
-                appendData.append(json)
-            }
-            appendData.append(0x0A) // newline
+    /// the key cannot be reached, or sealing throws, the rest of the batch is
+    /// plain JSON lines: that is logged and the session is queued in
+    /// `PendingEncryptionLedger` before anything is written, and
+    /// `RawBackupSealer.reencrypt` seals them later. Both kinds read back
+    /// (`decodePointLine`).
+    func encodedLines(_ points: ArraySlice<RRPoint>, sessionId: UUID) throws -> Data {
+        let encoded = try SealedJSONLines.encode(points, with: lineEncoder, manager: SealedJSONLines.availableManager())
+        if !encoded.allSealed {
+            debugLog("[RawRRBackup] \(points.count) streamed beats of \(sessionId.uuidString.prefix(8)) appended WITHOUT app-layer encryption", level: .error)
+            PendingEncryptionLedger.record(sessionId, in: .rawBackup)
         }
-        if !sealLines, !points.isEmpty {
-            debugLog("[RawRRBackup] \(points.count) streamed beats appended WITHOUT app-layer encryption (key unavailable)", level: .error)
-        }
-        return appendData
+        return encoded.data
     }
 
-    /// One sealed, base64-encoded line, or the plain JSON when sealing throws
-    /// (and `sealing` is switched off for the rest of the batch).
-    private func sealedLine(_ json: Data, with manager: EncryptionManager, sealing: inout Bool) -> Data {
-        do {
-            return try manager.encrypt(json).base64EncodedData()
-        } catch {
-            debugLog("[RawRRBackup] sealing a streamed beat failed: \(error)", level: .error)
-            sealing = false
-            return json
-        }
-    }
-
-    /// A plain JSON line starts with `{`; anything else is a sealed line.
+    /// One point from a line of the points file, sealed or plain.
     func decodePointLine(_ line: Substring, decoder: JSONDecoder) throws -> RRPoint {
-        let bytes = Data(line.utf8)
-        guard line.first != "{" else { return try decoder.decode(RRPoint.self, from: bytes) }
-        guard let sealed = Data(base64Encoded: bytes) else { throw BackupError.hashMismatch }
-        let json = try AppDependencies.current.storage.encryptionManager.decrypt(sealed)
-        return try decoder.decode(RRPoint.self, from: json)
+        try decoder.decode(RRPoint.self, from: SealedJSONLines.open(line, with: AppDependencies.current.storage.encryptionManager))
     }
 
     /// Append to the points file. A file that is missing, or that would not
@@ -157,9 +160,7 @@ extension RawRRBackup {
             return
         }
         do {
-            // Explicit protection class so the file
-            // is writable while the device is locked overnight.
-            try allLines().write(to: pointsPath, options: [.completeFileProtectionUntilFirstUserAuthentication])
+            try allLines().write(to: pointsPath, options: [BackupProtection.appendable])
         } catch {
             debugLog("[RawRRBackup] ERROR: Fallback write failed for \(sessionId.uuidString.prefix(8)): \(error); the beats stay buffered for the next attempt", level: .error)
             throw error
@@ -190,7 +191,7 @@ extension RawRRBackup {
             try preserveCorruptedPointsFile(at: pointsPath, sessionId: sessionId)
             return false
         }
-        try (existing + appendData).write(to: pointsPath, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        try (existing + appendData).write(to: pointsPath, options: [.atomic, BackupProtection.appendable])
         return true
     }
 
@@ -259,7 +260,7 @@ extension RawRRBackup {
     func retrieveAppendFormat(sessionId: UUID, indexEntry: BackupIndex) throws -> BackupEntry {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        let header = try decoder.decode(BackupHeader.self, from: Data(contentsOf: headerURL(for: sessionId)))
+        let header = try Self.decodedHeader(at: headerURL(for: sessionId))
         let points = try readAllPointLines(sessionId: sessionId, decoder: decoder)
         guard !points.isEmpty else {
             throw BackupError.noDataToBackup
@@ -365,10 +366,7 @@ extension RawRRBackup {
             }
         }
         do {
-            try fileManager.setAttributes(
-                [FileAttributeKey.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
-                ofItemAtPath: backupDirectory.path
-            )
+            try fileManager.setAttributes([.protectionKey: BackupProtection.appendableClass], ofItemAtPath: backupDirectory.path)
         } catch {
             debugLog("[RawRRBackup] WARN: Failed to set file protection on backup dir: \(error)", level: .warning)
         }
@@ -377,7 +375,7 @@ extension RawRRBackup {
 
     /// Migrate EXISTING files in the backup directory
     /// from the old `.complete` protection class to
-    /// `.completeUntilFirstUserAuthentication`. The directory-level
+    /// `BackupProtection.appendableClass`. The directory-level
     /// attribute change only affects NEW files; pre-existing
     /// header / points / index files inherit their protection
     /// class from creation time and stay unwritable when locked
@@ -388,23 +386,21 @@ extension RawRRBackup {
     /// files are genuinely locked (device just booted, no first-unlock yet), a
     /// warning per file would spam, and the next launch retries anyway.
     ///
-    /// A one-shot backup still waiting for re-encryption keeps the stricter
-    /// `.completeFileProtection` it was written with; that class is what
-    /// stands in for the missing encryption until the rewrite.
+    /// A one-shot file of a session still waiting for re-encryption keeps
+    /// the plaintext class it was written with (`BackupProtection.plaintext`
+    /// or the older `.complete`); that class stands in for the missing
+    /// encryption until the rewrite. The append files of such a session are
+    /// migrated like any other: they must stay writable while locked.
     func migrateExistingFileProtection() {
-        guard let contents = try? fileManager.contentsOfDirectory(
-            at: backupDirectory,
-            includingPropertiesForKeys: nil,
-            options: [.skipsHiddenFiles]
-        ) else { return }
-        let unencrypted = PendingEncryptionLedger.pending(in: .rawBackup).map(\.uuidString)
+        let contents = attempt("RawRRBackup.listForProtection") {
+            try fileManager.contentsOfDirectory(at: backupDirectory, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])
+        } ?? []
+        let pending = PendingEncryptionLedger.pending(in: .rawBackup)
+        let isPendingPlaintext = { (url: URL) in OneShotBackupName.parse(url.lastPathComponent).map { pending.contains($0.id) } ?? false }
         var failures = 0
-        for fileURL in contents where !unencrypted.contains(where: { fileURL.lastPathComponent.hasPrefix($0) }) {
+        for fileURL in contents where !isPendingPlaintext(fileURL) {
             do {
-                try fileManager.setAttributes(
-                    [FileAttributeKey.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
-                    ofItemAtPath: fileURL.path
-                )
+                try fileManager.setAttributes([.protectionKey: BackupProtection.appendableClass], ofItemAtPath: fileURL.path)
             } catch {
                 failures += 1
             }
@@ -414,21 +410,23 @@ extension RawRRBackup {
         }
     }
 
-    /// Remove append-only header and points files for a session
-    func cleanupAppendFiles(for sessionId: UUID) {
-        let prefix = pointsURL(for: sessionId).lastPathComponent + ".corrupted_"
-        let siblings = (attempt("RawRRBackup.listSiblings") {
-            try fileManager.contentsOfDirectory(atPath: backupDirectory.path)
-        } ?? []).filter { $0.hasPrefix(prefix) }.map { backupDirectory.appendingPathComponent($0) }
-        for url in [headerURL(for: sessionId), pointsURL(for: sessionId)] + siblings {
-            do {
-                try fileManager.removeItem(at: url)
-            } catch let error as NSError where error.domain == NSCocoaErrorDomain && error.code == NSFileNoSuchFileError {
-                // File already gone — expected during cleanup
-            } catch {
-                debugLog("[RawRRBackup] ⚠️ Failed to clean up \(url.lastPathComponent): \(error)")
-            }
-        }
+    /// The append-format files of a session: its header, points file and any
+    /// `.corrupted_*` points files set aside from it.
+    func appendFiles(of sessionId: UUID) -> [URL] {
+        [headerURL(for: sessionId)] + appendPointFiles(of: sessionId)
+    }
+
+    /// The points file of a session and any set aside from it.
+    func appendPointFiles(of sessionId: UUID) -> [URL] {
+        let points = pointsURL(for: sessionId)
+        return [points] + corruptedSiblingNames(of: points).map { backupDirectory.appendingPathComponent($0) }
+    }
+
+    /// Remove the append-only files of a session (`appendFiles`), returning
+    /// any still on disk; each failure is logged.
+    @discardableResult
+    func cleanupAppendFiles(for sessionId: UUID) -> [URL] {
+        BackupFiles.remove(appendFiles(of: sessionId), using: fileManager)
     }
 
     /// A read error (the file locked by data protection, EPERM) is not
@@ -504,7 +502,7 @@ extension RawRRBackup {
         // Protection class. The index needs to be writable
         // while the device is locked (the active recording's
         // `incrementalBackup` updates the index every few seconds).
-        try data.write(to: indexFile, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        try data.write(to: indexFile, options: [.atomic, BackupProtection.appendable])
     }
 
     // MARK: - Errors
@@ -516,6 +514,8 @@ extension RawRRBackup {
         case wouldReplaceLargerBackup(existing: Int, new: Int)
         /// An unreadable file could not be moved aside, so it was not written over.
         case couldNotSetAside(String)
+        /// Files of a backup being removed are still on disk; its row is kept.
+        case couldNotRemove([String])
 
         var errorDescription: String? {
             switch self {
@@ -529,7 +529,126 @@ extension RawRRBackup {
                 "Kept the existing backup: it holds \(existing) beats, the new data \(new)"
             case let .couldNotSetAside(fileName):
                 "Kept \(fileName): it could not be read or moved aside"
+            case let .couldNotRemove(fileNames):
+                "Kept the backup: \(fileNames.joined(separator: ", ")) could not be removed"
             }
         }
+    }
+}
+
+/// The protection classes backup files are written with. The app has no
+/// data-protection entitlement, so a write that names no class gets
+/// until-first-unlock; every write here names its class explicitly anyway.
+enum BackupProtection {
+    /// Sealed one-shot files, and every file appended to while the device
+    /// may be locked (headers, points, the index, workout streams): readable
+    /// and writable from the first unlock after a boot.
+    static let appendable: Data.WritingOptions = .completeFileProtectionUntilFirstUserAuthentication
+    /// `appendable` as a file attribute, for folders and the migration walk.
+    static let appendableClass = FileProtectionType.completeUntilFirstUserAuthentication
+    /// A whole file written in plain JSON because the key was out of reach.
+    /// It can be created while the device is locked, which is when that
+    /// happens, and once closed it is unreadable until the next unlock.
+    static let plaintext: Data.WritingOptions = .completeFileProtectionUnlessOpen
+}
+
+/// JSON Lines whose lines are each sealed with `EncryptionManager` and
+/// base64-encoded: the streamed files of `RawRRBackup` and
+/// `WorkoutTrackBackup`. A line that could not be sealed is plain JSON.
+/// Sealed bytes start with the `FR` framing, so a sealed line starts with
+/// `R`, which no JSON value does; the first byte tells the two apart.
+enum SealedJSONLines {
+    enum Failure: Error {
+        /// A line that is neither JSON nor base64.
+        case unreadableLine
+    }
+
+    private static let newline = UInt8(ascii: "\n")
+    private static let jsonLeadBytes = Set("{[\"-0123456789tfn".utf8)
+
+    /// The stored manager when its key can be reached, else nil.
+    static func availableManager() -> EncryptionManager? {
+        let manager = AppDependencies.current.storage.encryptionManager
+        return manager.isAvailable ? manager : nil
+    }
+
+    /// One newline-terminated line per item. Lines are sealed while
+    /// `manager` is non-nil; after the first sealing failure, which is
+    /// logged, the rest of the batch is plain. `allSealed` is false when any
+    /// line is plain. Throws only when an item does not encode.
+    static func encode<Item: Encodable>(
+        _ items: some Sequence<Item>, with encoder: JSONEncoder, manager: EncryptionManager?
+    ) throws -> (data: Data, allSealed: Bool) {
+        var sealer = manager
+        var data = Data()
+        for item in items {
+            data.append(sealedOrPlain(try encoder.encode(item), sealer: &sealer))
+            data.append(newline)
+        }
+        return (data, sealer != nil || data.isEmpty)
+    }
+
+    /// The sealed line, or the JSON itself once `sealer` is nil or sealing
+    /// throws (which sets `sealer` to nil).
+    private static func sealedOrPlain(_ json: Data, sealer: inout EncryptionManager?) -> Data {
+        guard let manager = sealer else { return json }
+        do {
+            return try manager.encrypt(json).base64EncodedData()
+        } catch {
+            debugLog("[SealedJSONLines] sealing a line failed: \(error)", level: .error)
+            sealer = nil
+            return json
+        }
+    }
+
+    /// The JSON a line holds: the line itself when plain, else opened.
+    static func open(_ line: Substring, with manager: EncryptionManager) throws -> Data {
+        let bytes = Data(line.utf8)
+        guard !isPlain(bytes) else { return bytes }
+        guard let sealed = Data(base64Encoded: bytes) else { throw Failure.unreadableLine }
+        return try manager.decrypt(sealed)
+    }
+
+    /// Whether a line is plain JSON.
+    static func isPlain(_ line: Data) -> Bool {
+        line.first.map { jsonLeadBytes.contains($0) } ?? false
+    }
+
+    /// Whether any line of `data` is plain JSON.
+    static func hasPlainLine(_ data: Data) -> Bool {
+        data.split(separator: newline).contains(where: isPlain)
+    }
+
+    /// `data` with each plain line sealed and every other byte as it was,
+    /// a trailing line without its newline included.
+    static func resealed(_ data: Data, with manager: EncryptionManager) throws -> Data {
+        let lines = try data.split(separator: newline, omittingEmptySubsequences: false).map { line in
+            try isPlain(line) ? manager.encrypt(line).base64EncodedData() : line
+        }
+        return Data(lines.joined(separator: [newline]))
+    }
+
+    /// Rewrites the file at `url` with every plain line sealed, atomically
+    /// and with `BackupProtection.appendable`, the class it was created
+    /// with. True once the file read back holds no plain line; a file with
+    /// none is not rewritten. Throws when it cannot be read, sealed or
+    /// written.
+    static func resealFile(at url: URL, with manager: EncryptionManager) throws -> Bool {
+        let data = try Data(contentsOf: url)
+        guard hasPlainLine(data) else { return true }
+        try resealed(data, with: manager).write(to: url, options: [.atomic, BackupProtection.appendable])
+        return try !hasPlainLine(Data(contentsOf: url))
+    }
+}
+
+/// Removing a backup's files.
+enum BackupFiles {
+    /// Removes each file and returns those still on disk afterwards. A file
+    /// already gone counts as removed; any other failure is logged.
+    static func remove(_ urls: [URL], using fileManager: FileManager) -> [URL] {
+        for url in urls where fileManager.fileExists(atPath: url.path) {
+            attempt("BackupFiles.remove") { try fileManager.removeItem(at: url) }
+        }
+        return urls.filter { fileManager.fileExists(atPath: $0.path) }
     }
 }

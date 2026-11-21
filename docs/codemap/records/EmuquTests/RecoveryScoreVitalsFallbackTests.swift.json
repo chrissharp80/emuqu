@@ -1,15 +1,15 @@
 {
  "file": "EmuquTests/RecoveryScoreVitalsFallbackTests.swift",
- "hash": "afaca69b1303fb83",
+ "hash": "b9fd1f30412cb1b6",
  "role": "Tests the respiratory-rate population-window fallback (12-18 br/min) in the Vitals sub-score and that calculateVitalsScore picks deviation vs population branch.",
  "types": [
   "RecoveryScoreVitalsFallbackTests: class — XCTestCase for RecoveryScoreCalculator.respiratoryPopulationScore / calculateVitalsScore"
  ],
  "state": [
-  "mem:RecoveryScoreVitalsFallbackTests.popMin (= ScoringWeights.Vitals.respiratoryRatePopulationMinBPM, 12)",
-  "mem:RecoveryScoreVitalsFallbackTests.popMax (= respiratoryRatePopulationMaxBPM, 18)"
+  "mem:RecoveryScoreVitalsFallbackTests.popMin (12, the documented population window floor)",
+  "mem:RecoveryScoreVitalsFallbackTests.popMax (18, the documented population window ceiling)"
  ],
- "toplevel": "Two private stored lets read the population window bounds from ScoringWeights.Vitals (Constants.swift:498).",
+ "toplevel": "Two private stored lets hold the documented 12–18 br/min population window as literals.",
  "units": [
   {
    "key": "func RecoveryScoreVitalsFallbackTests.testRateInsideWindowScoresFull()",
@@ -30,8 +30,8 @@
   },
   {
    "key": "func RecoveryScoreVitalsFallbackTests.testRateAboveWindowScoresGradedPenalty()",
-   "hash": "dd2d4c7219aa3689",
-   "does": "Asserts rate popMax+2 scores 100 - 2*respiratoryRatePenaltyPerBreath (=70).",
+   "hash": "27b26fd4a7078bc3",
+   "does": "Asserts rate 20 (2 above the window) scores the documented 70 (100 − 2 × 15).",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.respiratoryPopulationScore(rate:)",
@@ -64,8 +64,8 @@
   },
   {
    "key": "func RecoveryScoreVitalsFallbackTests.testRateBelowWindowScoresBelowPopulationConstant()",
-   "hash": "a51187aadff1192e",
-   "does": "Asserts rate popMin-3 returns the flat respiratoryRateBelowPopulationScore (90).",
+   "hash": "1d101517c09582cb",
+   "does": "Asserts rate 9 (below the window) returns the documented flat 90.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.respiratoryPopulationScore(rate:)",

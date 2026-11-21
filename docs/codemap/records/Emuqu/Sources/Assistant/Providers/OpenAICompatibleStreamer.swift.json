@@ -1,14 +1,16 @@
 {
  "file": "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift",
- "hash": "403ae3b272039d57",
- "role": "Shared OpenAI Chat Completions client for OpenAI, Grok and DeepSeek: endpoints, request body shapes, message building with cache-marker split, SSE parse with tool_call accumulation (a reply is complete only after [DONE] or a finish_reason; a cut stream reports a dropped connection, a malformed event or mid-stream error throws, length ends with '…', content_filter is a blocked reply, cut or unparseable tool arguments never run), usage mapping and HTTP error mapping (5xx is the overloaded modelUnavailable). Sends through ProviderHTTP.streamSession.",
+ "hash": "f984e0baf7aafc35",
+ "role": "Shared OpenAI Chat Completions client for OpenAI, Grok and DeepSeek: endpoints, request body shapes, message building with cache-marker split, SSE parse with tool_call accumulation (a reply is complete only after [DONE] or a finish_reason; a cut stream reports a dropped connection, a malformed event or mid-stream error throws, length ends with '…', content_filter is a blocked reply, cut or unparseable tool arguments never run), usage mapping and the non-2xx mapping through ProviderHTTP.statusFailure (a 400 envelope naming param model is modelUnavailable, another 400 envelope its message). Opens the stream through ProviderHTTP.openStream. Also declares OpenAICompatibleProvider, whose extension supplies send for OpenAI, Grok and DeepSeek.",
  "types": [
   "OpenAICompatibleStreamer: enum — namespace",
   "Endpoint: enum — parsed endpoint URLs",
   "Reasoning: enum — modelDefault/effortNone/thinkingDisabled",
   "StreamCall: struct — one call's inputs",
   "MessageShape: enum — Encodable chat message variants",
-  "OutgoingToolCall/OutgoingTool/RequestBody/PendingToolCall/StreamState/ParsedOpenAIError: structs — wire/accumulator shapes"
+  "OutgoingToolCall/OutgoingTool/RequestBody/PendingToolCall/StreamState: structs — wire/accumulator shapes",
+  "OpenAICompatibleProvider: protocol (KeyedCloudProvider) — requires static endpoint and reasoning",
+  "OpenAICompatibleProvider: extension — send through OpenAICompatibleStreamer.send"
  ],
  "state": [
   "net:api.openai.com/v1/chat/completions",
@@ -16,11 +18,11 @@
   "net:api.deepseek.com/chat/completions",
   "kc:com.chrissharp.flowrecovery.assistant.apikey accounts per providerID (via APIKeyStore)"
  ],
- "toplevel": "Endpoint URLs are optional URL(string:) constants; Reasoning, StreamCall and private wire types declared with synthesized Encodable except MessageShape. The URL session, cache-marker split, <live_state> envelope and error-body draining are ProviderHTTP's.",
+ "toplevel": "Endpoint URLs are optional URL(string:) constants; Reasoning, StreamCall and private wire types declared with synthesized Encodable except MessageShape. The URL session, request building, opening the stream, cache-marker split, <live_state> envelope, error-body draining and status mapping are ProviderHTTP's.",
  "units": [
   {
    "key": "func OpenAICompatibleStreamer.send(providerID:endpoint:reasoning:messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
-   "hash": "cd44b03c050985fc",
+   "hash": "a0be41c2c7620f9c",
    "does": "Entry for OpenAI-compatible providers: returns a stream that fails immediately with invalidResponse(\"bad endpoint\") if the endpoint URL is nil, otherwise packages inputs into StreamCall and runs stream() inside ProviderStream.make.",
    "entry": null,
    "calls": [
@@ -37,7 +39,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.stream(_:continuation:)": "04aad6a1a82b93d2",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.stream(_:continuation:)": "c1b327edcf6a2d46",
     "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderStream.make(_:)": "08722a68117b042e"
    }
   },
@@ -141,11 +143,11 @@
   },
   {
    "key": "func OpenAICompatibleStreamer.buildRequest(endpoint:apiKey:model:reasoning:mapped:tools:)",
-   "hash": "2f8488d073c7450e",
+   "hash": "43a77db92e34d515",
    "does": "Builds the POST: optional tools array, reasoning_effort \"none\" for .effortNone, thinking {\"type\":\"disabled\"} for .thinkingDisabled, stream true with include_usage, Bearer auth, sortedKeys JSON.",
    "entry": null,
    "calls": [
-    "ext:JSONEncoder.encode"
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderHTTP.streamRequest(url:body:headers:)"
    ],
    "reads": [],
    "writes": [],
@@ -168,22 +170,21 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::init AnthropicProvider.RequestBody.SystemBlock.CacheControl(type:ttl:)": "ef94418fb8544c61",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderHTTP.streamRequest(url:body:headers:)": "398c2895ca1e29a2",
     "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb"
    }
   },
   {
    "key": "func OpenAICompatibleStreamer.stream(_:continuation:)",
-   "hash": "bec320d7c087224f",
-   "does": "Reads the provider key from Keychain, builds the request, connects, maps non-2xx statuses to errors and consumes the SSE body's lines (consumeSSE yields .done only after a terminal signal and throws for a cut, malformed, filtered or overloaded reply).",
+   "hash": "1c88fe2c4a6e076b",
+   "does": "Reads the provider key from Keychain, builds the request, opens the stream through ProviderHTTP.openStream (connect failure logged, a non-2xx reply thrown as statusFailure's error) and consumes the SSE body's lines (consumeSSE yields .done only after a terminal signal and throws for a cut, malformed, filtered or overloaded reply).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.key(for:)",
     "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.requestFor(_:apiKey:)",
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.connect(_:providerID:)",
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.throwForStatus(_:bytes:providerID:)",
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.consumeSSE(_:providerID:continuation:)",
-    "ext:URLSession.AsyncBytes.lines",
-    "ext:Task.checkCancellation"
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderHTTP.openStream(_:provider:failure:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.statusFailure(_:body:providerID:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.consumeSSE(_:providerID:continuation:)"
    ],
    "reads": [
     "kc:com.chrissharp.flowrecovery.assistant.apikey:<providerID>"
@@ -198,20 +199,19 @@
      "effect": "throws AIProviderError.missingKey(providerID)."
     },
     {
-     "at": "+10",
-     "cond": "HTTP status outside 200-299",
-     "effect": "throwForStatus throws; otherwise consumeSSE."
+     "at": "+8",
+     "cond": "HTTP status outside 200-299 (inside openStream)",
+     "effect": "statusFailure's error is thrown; otherwise consumeSSE."
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.key(for:)": "1d2a4ac58caeb322",
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.connect(_:providerID:)": "17fd88baddaf42c6",
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.consumeSSE(_:providerID:continuation:)": "9f74985f618acaab",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.consumeSSE(_:providerID:continuation:)": "8c06cd9b1e947d6f",
     "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.requestFor(_:apiKey:)": "d52529df719c6906",
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.throwForStatus(_:bytes:providerID:)": "bc2373fa5f5ac21e",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.statusFailure(_:body:providerID:)": "a50dbf42da66c8c0",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderHTTP.openStream(_:provider:failure:)": "a00ec95424a437ab",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015",
-    "EmuquTests/ProviderStreamTests.swift::func SSEReplay.lines(_:)": "8965c0bed0b1cf6e"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015"
    }
   },
   {
@@ -234,38 +234,13 @@
    }
   },
   {
-   "key": "func OpenAICompatibleStreamer.connect(_:providerID:)",
-   "hash": "94c6ef8e9d243cb4",
-   "does": "Opens the streaming request on ProviderHTTP.streamSession; a URLError is logged at warning level with its code and rethrown.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::let ProviderHTTP.streamSession",
-    "ext:URLSession.bytes(for:)"
-   ],
-   "reads": [
-    "mem:ProviderHTTP.streamSession"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+6",
-     "cond": "session.bytes threw a URLError",
-     "effect": "logs \"[AIStreamer] <provider> connect failed: code=...\" (.warning, shown in Troubleshooting) and rethrows; other errors propagate unlogged."
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::let ProviderHTTP.streamSession": "755d0d1ab8a8cbe4",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
-   }
-  },
-  {
    "key": "func OpenAICompatibleStreamer.consumeSSE(_:providerID:continuation:)",
-   "hash": "d6dddccbf4f6e1b5",
-   "does": "Reads a reply's SSE line sequence (the URL session's lines, or a test's): only data: payloads are read. [DONE] ends the reply through finishReply (flush open tool calls, .done) and returns; every other payload goes to handleChunk, which records a finish_reason and throws on a malformed event, an error object, a filtered or overloaded stop, or cut tool arguments. When the sequence ends, a cancelled task throws CancellationError, so Stop reads as cancellation. A stream that closes after a finish_reason but without [DONE] also ends through finishReply; one that closes with neither was cut and throws URLError(.networkConnectionLost) (ProviderStream maps it to a fallbackable .network), so open tool-call fragments never run and the partial text never reads as complete.",
+   "hash": "e585ea2948058e28",
+   "does": "Reads a reply's SSE line sequence (the URL session's lines, or a test's) as server-sent events (SSEEvents: only non-empty data: payloads, task cancellation checked per line). [DONE] ends the reply through finishReply (flush open tool calls, .done) and returns; every other payload goes to handleChunk, which records a finish_reason and throws on a malformed event, an error object, a filtered or overloaded stop, or cut tool arguments. When the sequence ends, a cancelled task throws CancellationError, so Stop reads as cancellation. A stream that closes after a finish_reason but without [DONE] also ends through finishReply; one that closes with neither was cut and throws URLError(.networkConnectionLost) (ProviderStream maps it to a fallbackable .network), so open tool-call fragments never run and the partial text never reads as complete.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::init SSEEvents(_:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func SSEEvents.Iterator.next()",
     "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.finishReply(_:continuation:)",
     "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.handleChunk(_:providerID:state:continuation:)",
     "ext:Task.checkCancellation"
@@ -275,31 +250,21 @@
    "branches": [
     {
      "at": "+6",
-     "cond": "for each line",
+     "cond": "for each event",
      "effect": "loop; sequence errors propagate."
     },
     {
-     "at": "+8",
-     "cond": "line is not data: (comment, blank, event:)",
-     "effect": "skipped"
-    },
-    {
-     "at": "+10",
-     "cond": "payload empty",
-     "effect": "skipped"
-    },
-    {
-     "at": "+11",
+     "at": "+7",
      "cond": "payload == \"[DONE]\"",
      "effect": "finishReply, return."
     },
     {
-     "at": "+17",
+     "at": "+13",
      "cond": "task cancelled when the sequence ended",
      "effect": "throws CancellationError"
     },
     {
-     "at": "+17",
+     "at": "+14",
      "cond": "stream closed with no finish_reason and no [DONE]",
      "effect": "throws URLError(.networkConnectionLost); otherwise finishReply."
     }
@@ -307,7 +272,9 @@
    "deps": {
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.finishReason(in:)": "698cfc1a6535a837",
     "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.finishReply(_:continuation:)": "4357ec67dcae9a1b",
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.handleChunk(_:providerID:state:continuation:)": "9957c2a7d4807d8f"
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.handleChunk(_:providerID:state:continuation:)": "9957c2a7d4807d8f",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func SSEEvents.Iterator.next()": "56c410c5c361b066",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::init SSEEvents(_:)": "4128f511bc32e0e6"
    }
   },
   {
@@ -486,10 +453,12 @@
   },
   {
    "key": "func OpenAICompatibleStreamer.yieldUsage(_:to:)",
-   "hash": "3cc2f49bdda14f34",
+   "hash": "5dd614a90e6c26a5",
    "does": "Maps OpenAI/DeepSeek usage to .usage: cached = prompt_tokens_details.cached_tokens (if non-zero) else prompt_cache_hit_tokens else 0; input = prompt_tokens − cached (floored 0); output = completion_tokens; skipped when all zero.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderHTTP.yieldUsage(input:output:cached:cacheCreation:to:)"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -524,15 +493,18 @@
      "effect": "returns without emitting; otherwise yields .usage."
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderHTTP.yieldUsage(input:output:cached:cacheCreation:to:)": "1bc58c502e1e203a"
+   }
   },
   {
    "key": "func OpenAICompatibleStreamer.flushToolCalls(_:continuation:)",
-   "hash": "7d5bc97f96113bee",
+   "hash": "572759c229c779ae",
    "does": "Takes the pending calls with a non-empty name in index order (empty arguments become \"{}\") and clears the dictionary; if any call's arguments do not parse as a JSON object (ProviderHTTP.isJSONObject) it throws .invalidResponse and none is emitted, otherwise yields one .toolUse per call.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.isJSONObject(_:)"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.isJSONObject(_:)",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderHTTP.incompleteArguments(toolName:)"
    ],
    "reads": [],
    "writes": [],
@@ -560,131 +532,77 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.isJSONObject(_:)": "6a9e26d5fc9f1953",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolAdapter.call(arguments:)": "405b4d39fa2c71a6"
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolAdapter.call(arguments:)": "405b4d39fa2c71a6",
+    "Emuqu/Sources/Assistant/Providers/ProviderStream.swift::func ProviderHTTP.incompleteArguments(toolName:)": "5f04732ec3e5ce44"
    }
   },
   {
-   "key": "func OpenAICompatibleStreamer.throwForStatus(_:bytes:providerID:)",
-   "hash": "3c2813e94c145cf2",
-   "does": "Drains up to 4096 bytes of the error body (ProviderHTTP.errorBody), redacts keys, throws outOfCredit when credit is exhausted, otherwise maps 401/403→authFailed, 429→rateLimited, 404→modelUnavailable, 400→badRequestError, 5xx→modelUnavailable(ProviderHTTP.overloadedMessage) as ProviderHTTP.statusError does for Anthropic and Gemini, other→invalidResponse.",
+   "key": "func OpenAICompatibleStreamer.statusFailure(_:body:providerID:)",
+   "hash": "d05fde97c60d9e70",
+   "does": "The error a non-2xx OpenAI, Grok or DeepSeek reply becomes: ProviderHTTP.statusFailure (credit failure → .outOfCredit(providerID) first) with an override for HTTP 400 carrying a readable error.message: error.param \"model\" → .modelUnavailable(localized 'Model unavailable: <message>'), any other param → .invalidResponse(message). A 400 without a readable message, and every other status, map through the shared statusError path (envelope message or 300 characters of the body; 5xx the overloaded text).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorBody(_:)",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.isCreditExhausted(status:body:)",
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.parseOpenAIError(_:)",
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.badRequestError(_:bodyText:status:)",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.overloadedMessage(for:)"
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.statusFailure(_:body:provider:override:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.errorParam(in:)",
+    "ext:String(localized:bundle:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+6",
-     "cond": "body UTF-8",
-     "effect": "text; ?? \"\"."
+     "at": "+2",
+     "cond": "status is not 400, or the body has no readable error.message",
+     "effect": "override returns nil (shared mapping)"
     },
     {
-     "at": "+7",
-     "cond": "isCreditExhausted(status, body)",
-     "effect": "throws .outOfCredit(providerID)."
-    },
-    {
-     "at": "+12",
-     "cond": "status 401/403",
-     "effect": "throws .authFailed."
-    },
-    {
-     "at": "+13",
-     "cond": "status 429",
-     "effect": "throws .rateLimited."
-    },
-    {
-     "at": "+14",
-     "cond": "status 404",
-     "effect": "throws .modelUnavailable(parsed message ?? redacted body)."
-    },
-    {
-     "at": "+15",
-     "cond": "status 400",
-     "effect": "throws badRequestError."
-    },
-    {
-     "at": "+16",
-     "cond": "status 5xx",
-     "effect": "throws .modelUnavailable(overloadedMessage(providerID))."
-    },
-    {
-     "at": "+17",
-     "cond": "default",
-     "effect": "throws .invalidResponse(\"HTTP n: message\")."
-    },
-    {
-     "at": "+18",
-     "cond": "parsed message present",
-     "effect": "used; ?? redacted body."
+     "at": "+3",
+     "cond": "error.param == \"model\"",
+     "effect": ".modelUnavailable('Model unavailable: <message>'); otherwise .invalidResponse(message)"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderAccountReply.isCreditExhausted(status:body:)": "132b59eb8e966828",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorBody(_:)": "a687cba664e39621",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.overloadedMessage(for:)": "17c60e6299c39e16",
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)": "2461162d36fc3850",
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.badRequestError(_:bodyText:status:)": "726e000d97320386",
-    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.parseOpenAIError(_:)": "775395aa61634bf0"
-   }
-  },
-  {
-   "key": "func OpenAICompatibleStreamer.badRequestError(_:bodyText:status:)",
-   "hash": "b2b598752880c2b3",
-   "does": "Maps a 400 to modelUnavailable(\"Model unavailable: <msg>\") when error.param == \"model\", else invalidResponse(message); raw body when the envelope could not be parsed.",
-   "entry": null,
-   "calls": [
-    "ext:String(localized:bundle:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "parsed is nil",
-     "effect": "invalidResponse(\"HTTP 400: <body>\")."
-    },
-    {
-     "at": "+8",
-     "cond": "parsed.param == \"model\"",
-     "effect": "modelUnavailable(localized); otherwise invalidResponse(parsed.message)."
-    }
-   ],
-   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "db217136d3ed0694",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.statusFailure(_:body:provider:override:)": "069d43e20707cb97",
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.errorParam(in:)": "8f267c423804a9c7",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
-   "key": "func OpenAICompatibleStreamer.parseOpenAIError(_:)",
-   "hash": "57246912ab5edca4",
-   "does": "Parses the OpenAI-style error envelope into message (redacted), type, param, code; nil when not JSON, no error object, or empty message.",
+   "key": "func OpenAICompatibleStreamer.errorParam(in:)",
+   "hash": "3401324bd29f0e6a",
+   "does": "Returns error.param from an OpenAI-style JSON error envelope, nil when the body is not JSON, has no error object or names no param.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)",
     "ext:JSONSerialization.jsonObject"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "body is JSON with error dict",
-     "effect": "continues; otherwise nil."
-    },
-    {
-     "at": "+4",
-     "cond": "error.message non-empty",
-     "effect": "returns ParsedOpenAIError; otherwise nil."
+     "at": "+2",
+     "cond": "body is not JSON",
+     "effect": "returns nil"
     }
    ],
+   "deps": {}
+  },
+  {
+   "key": "func OpenAICompatibleProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+   "hash": "69475666a76c2d6c",
+   "does": "AIProvider.send for an OpenAI-compatible provider: streams through OpenAICompatibleStreamer.send with the provider's id, its static endpoint and reasoning, and the call's messages, model, context, system prompt, tools and tool rounds.",
+   "entry": "AIProvider.send witness for OpenAIProvider, GrokProvider and DeepSeekProvider: called by the assistant tool loop, summarizer, fact extractor and the 4-argument extension send.",
+   "calls": [
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.send(providerID:endpoint:reasoning:messages:model:contextRendered:systemPrompt:tools:toolRounds:)",
+    "dyn:OpenAICompatibleProvider.endpoint",
+    "dyn:OpenAICompatibleProvider.reasoning"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func redactAPIKeys(_:)": "2461162d36fc3850"
+    "Emuqu/Sources/Assistant/Providers/OpenAICompatibleStreamer.swift::func OpenAICompatibleStreamer.send(providerID:endpoint:reasoning:messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "03a3190c38fce779"
    }
   }
  ],

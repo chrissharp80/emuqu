@@ -9,12 +9,14 @@ import Foundation
 
 /// The write options a given disk format demands.
 ///
-/// An unencrypted body is written with
-/// `.completeFileProtection`, not the usual
-/// `.completeFileProtectionUntilFirstUserAuthentication`. That is the
-/// strictest class iOS offers — the file is unreadable whenever the device
-/// is locked, not merely before first unlock — and it is what stands in for
-/// the application-layer encryption until the repair pass restores it.
+/// An unencrypted body is written with `.completeFileProtectionUnlessOpen`,
+/// not the usual `.completeFileProtectionUntilFirstUserAuthentication`. The
+/// fallback runs while the device is locked, mostly before the first unlock
+/// after a reboot, when the key is unreachable: a file of this class can be
+/// created then (`.completeFileProtection` cannot be written while locked),
+/// and once closed it cannot be opened again until the device is unlocked.
+/// That stands in for the application-layer encryption until the repair pass
+/// restores it.
 func archiveWriteOptions(
     for format: SessionArchive.SessionFileCodec.DiskFormat,
     sessionID: UUID
@@ -25,16 +27,16 @@ func archiveWriteOptions(
         return [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
     case .plaintextPendingEncryption:
         PendingEncryptionLedger.record(sessionID)
-        return [.atomic, .completeFileProtection]
+        return [.atomic, .completeFileProtectionUnlessOpen]
     }
 }
 
 /// Whether `filename` (relative to the archive directory) is a copy of a
 /// session in `pending`: its file `<id>.json`, its Trash file
 /// `Trash/<id>.session`, or a duplicate quarantined as `<id>.json` or
-/// `<id>.<stamp>.json`. Plaintext whose `.completeFileProtection` the launch
-/// protection walk (`SessionArchive.upgradeExistingFileProtection`) must not
-/// lower.
+/// `<id>.<stamp>.json`. Plaintext whose `.completeFileProtectionUnlessOpen`
+/// the launch protection walk (`SessionArchive.upgradeExistingFileProtection`)
+/// must not lower.
 func isPendingPlaintextSessionFile(_ filename: String, pending: Set<UUID>) -> Bool {
     let name = (filename as NSString).lastPathComponent
     guard ["json", "session"].contains((name as NSString).pathExtension),

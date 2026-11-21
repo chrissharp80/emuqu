@@ -2,92 +2,51 @@
 import XCTest
 
 final class ReconciliationManagerTests: XCTestCase {
-    // Stored properties rather than implicitly-unwrapped optionals: XCTest
-    // builds the test class once per test method. `manager` is `lazy` because
-    // it reads `archive`.
-    private var archive = SessionArchive.shared
-    private lazy var manager = ReconciliationManager(archive: archive)
-
-    // MARK: - Helpers
-
-    private func makeSession(id: UUID = UUID()) -> HRVSession {
-        HRVSession(
-            id: id,
-            startDate: Date(),
-            endDate: Date().addingTimeInterval(3600),
-            state: .complete,
-            rrSeries: nil,
-            analysisResult: nil,
-            artifactFlags: nil
-        )
-    }
-
-    // MARK: - Queue for Sync
-
-    func testQueueForSync_addsSessionToPending() throws {
-        let session = makeSession()
-        try manager.queueForSync(session)
-
-        let pending = manager.pending
-        XCTAssertTrue(pending.contains(where: { $0.id == session.id }))
-    }
-
-    func testQueueForSync_duplicateRejection() throws {
-        let session = makeSession()
-        try manager.queueForSync(session)
-
-        XCTAssertThrowsError(try manager.queueForSync(session)) { error in
-            XCTAssertTrue(error is ReconciliationManager.ReconciliationError)
+    /// A folder in the temporary directory standing in for Documents.
+    private func makeDocumentsFolder() throws -> URL {
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ReconciliationDocuments-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        addTeardownBlock {
+            do {
+                try FileManager.default.removeItem(at: folder)
+            } catch {
+                // swallow-ok: the folder is temporary; tearDown removes what it can.
+            }
         }
+        return folder
     }
 
     // MARK: - Session Exists
 
-    func testSessionExists_inPending() throws {
-        let session = makeSession()
-        try manager.queueForSync(session)
-
-        XCTAssertTrue(manager.sessionExists(session.id))
-    }
-
-    func testSessionExists_notQueued() {
+    func testSessionExists_notArchived() {
+        let manager = ReconciliationManager(archive: SessionArchive.shared)
         XCTAssertFalse(manager.sessionExists(UUID()))
     }
 
-    // MARK: - Pending
+    // MARK: - Retired offline queue
 
-    func testPending_returnsOnlyUnsyncedSessions() throws {
-        let session1 = makeSession()
-        let session2 = makeSession()
-        try manager.queueForSync(session1)
-        try manager.queueForSync(session2)
+    /// The offline queue an older build left (`HRVOffline/pending.json`,
+    /// whole sessions in plain JSON) is removed, folder and all; the rest of
+    /// Documents is left alone.
+    func testTheRetiredOfflineQueueIsRemoved() throws {
+        let documents = try makeDocumentsFolder()
+        let queue = documents.appendingPathComponent("HRVOffline", isDirectory: true)
+        try FileManager.default.createDirectory(at: queue, withIntermediateDirectories: true)
+        try Data("[{\"id\":\"x\"}]".utf8).write(to: queue.appendingPathComponent("pending.json"))
+        let neighbour = documents.appendingPathComponent("keep.json")
+        try Data("{}".utf8).write(to: neighbour)
 
-        let pending = manager.pending
-        XCTAssertGreaterThanOrEqual(pending.count, 2)
-        XCTAssertTrue(pending.allSatisfy(\.needsSync))
+        ReconciliationManager.removeRetiredOfflineQueue(in: documents)
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: queue.path), "The retired queue must not stay on disk")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: neighbour.path), "Only the retired queue is removed")
     }
 
-    // MARK: - OfflineSession Properties
-
-    func testOfflineSession_needsSync_trueInitially() {
-        let session = makeSession()
-        let offline = OfflineSession(session: session)
-        XCTAssertTrue(offline.needsSync)
-        XCTAssertEqual(offline.syncAttempts, 0)
-        XCTAssertNil(offline.syncedAt)
-    }
-
-    func testOfflineSession_needsSync_falseAfterThreeAttempts() {
-        let session = makeSession()
-        var offline = OfflineSession(session: session)
-        offline.syncAttempts = 3
-        XCTAssertFalse(offline.needsSync)
-    }
-
-    func testOfflineSession_needsSync_falseWhenSynced() {
-        let session = makeSession()
-        var offline = OfflineSession(session: session)
-        offline.syncedAt = Date()
-        XCTAssertFalse(offline.needsSync)
+    /// With no retired queue there is nothing to remove, and nothing fails.
+    func testNoRetiredOfflineQueueIsANoOp() throws {
+        let documents = try makeDocumentsFolder()
+        ReconciliationManager.removeRetiredOfflineQueue(in: documents)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: documents.path))
     }
 }

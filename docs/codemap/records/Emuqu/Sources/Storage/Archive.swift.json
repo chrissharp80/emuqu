@@ -201,7 +201,7 @@
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMergeGapSeconds": "ec9bf42598061022",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.createArchiveDirectoryIfNeeded()": "144b375cfa033c25",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.loadDeletedIndex()": "ec84bf508ecc3623",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.loadIndex()": "fd14eaccf3a1bc3a",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.loadIndex()": "795e4c1f59058f9c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
@@ -223,7 +223,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.logTombstoneSummary()": "49e66ffa66e3112f",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.reconcileOrphanFiles()": "32d28c5d478d7f5c",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.reconcileOrphanFiles()": "2aed8f2cc7bb077f",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retryFailedIndexLoad()": "eda2111bda9f4a35"
    }
   },
@@ -250,7 +250,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeDeletedIndexThatFailedToLoad()": "69d3c72f9def1bbd",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeIndexThatFailedToLoad()": "5997370a765d1f0e",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeIndexThatFailedToLoad()": "b289f8d08b398093",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
@@ -311,10 +311,11 @@
   },
   {
    "key": "func SessionArchive.reconcileOrphanFiles()",
-   "hash": "a32aab1667e73a6c",
-   "does": "Lists the archive directory (skipping hidden files); snapshots indexed file names and tombstones under the lock; builds entries for decodable non-indexed .json files outside the lock; appends them via adoptOrphans.",
+   "hash": "bf8023cd49687b5a",
+   "does": "Lists the archive directory (skipping hidden files); snapshots indexed file names and the tombstones, together with the sessions deleted forever (ForgottenSessions.ids), under the lock; builds entries for decodable non-indexed .json files of neither outside the lock; appends them via adoptOrphans.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ForgottenSessions.ids",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.orphanEntry(for:indexedFiles:deleted:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.adoptOrphans(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
@@ -322,7 +323,8 @@
    "reads": [
     "file:<archiveDir>/*",
     "mem:SessionArchive.index",
-    "mem:SessionArchive.deletedSessionIds"
+    "mem:SessionArchive.deletedSessionIds",
+    "ud:sessionRecovery.forgottenBackupIds"
    ],
    "writes": [],
    "branches": [
@@ -338,6 +340,7 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+Trash.swift::var ForgottenSessions.ids": "1c0f4f2c06999790",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.adoptOrphans(_:)": "76a07fc4870d2bf3",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.orphanEntry(for:indexedFiles:deleted:)": "6135494bf553a9aa",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
@@ -356,7 +359,7 @@
   },
   {
    "key": "func SessionArchive.orphanEntry(for:indexedFiles:deleted:)",
-   "hash": "660783d0c45ca219",
+   "hash": "ea8cfedf4e1bf792",
    "does": "For one directory file: returns nil unless it is a .json that is not reserved, not indexed and not a tombstoned id; reads bytes, decodes via loadAndDecodeSessionFile (decrypting) inside attempt(); returns SessionArchiveEntry.make with SHA256 of the stored bytes, or nil with a log if unreadable.",
    "entry": null,
    "calls": [
@@ -428,7 +431,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "907008a128361c54",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "2d06ba44e8e8015c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
@@ -690,7 +693,7 @@
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "245124c441f7143c",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)": "703c2a2085c25cdf",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "2bebe4b4224a2d06",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "0b3ffc735a23d053",
     "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.lightweightSessionDecoder": "226f0c3198bc6c6e",
     "Emuqu/Sources/Storage/Archive.swift::var SessionArchive.store": "966c882f9ad11fa3"
    }

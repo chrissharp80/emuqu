@@ -292,10 +292,14 @@ extension XCTestCase {
 extension RRCollector {
     /// A collector whose acceptance service sends nothing to iCloud: the
     /// default one uploads accepted nights and deletes the live backup of a
-    /// rejected one through the host's `CloudKitSyncManager`.
+    /// rejected one through the host's `CloudKitSyncManager`. Its raw backups
+    /// live in a folder of their own, so backups other tests left in the
+    /// shared one never count as this collector's.
     static func withoutCloudAcceptance(polarManager: PolarManager, archive: SessionArchive) -> RRCollector {
         let healthKit = HealthKitManager()
-        let rawBackup = RawRRBackup()
+        let rawBackup = RawRRBackup(
+            directory: FileManager.default.temporaryDirectory.appendingPathComponent("RRBackup-\(UUID().uuidString)", isDirectory: true)
+        )
         let baselineTracker = BaselineTracker()
         let acceptance = SessionAcceptanceService(
             archive: archive, healthKit: healthKit, baselineTracker: baselineTracker, rawBackup: rawBackup,

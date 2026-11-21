@@ -39,9 +39,10 @@ final class SettingsManager {
         /// to persist.
         case fileNotPresent
         /// File exists but couldn't be read because iOS file protection
-        /// was holding it inaccessible (typically: app launched in
-        /// background while device was locked). Saving over this would
-        /// destroy the user's real settings.
+        /// was holding it inaccessible, or the keychain refused the key that
+        /// opens the sealed file (typically: app launched in background
+        /// before the first unlock). Saving over this would destroy the
+        /// user's real settings.
         case blockedByProtection
         /// File exists and was unreadable for a non-protection reason
         /// (corruption, schema mismatch). When its bytes could be read, a
@@ -94,6 +95,10 @@ final class SettingsManager {
     /// test controls otherwise.
     @ObservationIgnored private let readSettingsFile: @Sendable (URL) throws -> Data
 
+    /// Seals the settings file and opens it: the app's key for the app, a
+    /// seal a test controls otherwise.
+    @ObservationIgnored private let seal: JSONFileSeal
+
     /// When a change last re-read a file that could not be read or kept
     /// (nil since the hold began). Changes within `heldChangeRetryInterval`
     /// of it stay held without a read, so a slider drag does not read the
@@ -127,13 +132,17 @@ final class SettingsManager {
         self.init(settingsURL: Self.resolveSettingsURL(fileManager: FileManager.default))
     }
 
-    /// A manager on `settingsURL`, read with `read`. The app has one, `shared`,
-    /// on the resolved settings file; tests build one on a temporary file with
-    /// a reader they control.
-    nonisolated init(settingsURL: URL, read: @escaping @Sendable (URL) throws -> Data = { try Data(contentsOf: $0) }) {
+    /// A manager on `settingsURL`, read with `read` and sealed with `seal`.
+    /// The app has one, `shared`, on the resolved settings file with the
+    /// app's key; tests build one on a temporary file with a reader and a
+    /// seal they control.
+    nonisolated init(
+        settingsURL: URL, read: @escaping @Sendable (URL) throws -> Data = { try Data(contentsOf: $0) }, seal: JSONFileSeal = .app
+    ) {
         self.settingsURL = settingsURL
         readSettingsFile = read
-        let (loaded, outcome) = SettingsManager.load(from: settingsURL, read: read)
+        self.seal = seal
+        let (loaded, outcome) = SettingsManager.load(from: settingsURL, read: read, seal: seal)
         _loadOutcome = outcome
         let initial = loaded ?? UserSettings()
         _settings = initial
@@ -244,11 +253,11 @@ final class SettingsManager {
     ///
     /// A failed read is classified by `outcome(forReadError:)`: only a file
     /// that is gone, or a permanent condition that leaves no bytes to keep,
-    /// lets saves go ahead. Bytes that were read but do not decode are kept
-    /// beside the file first (`preserveUnreadableBytes`), and saves are held
-    /// only while that fails. `read` is a test seam; the app reads the file.
+    /// lets saves go ahead. The bytes read are opened with `seal`
+    /// (`decodeOrPreserve`). `read` and `seal` are test seams; the app reads
+    /// the file and opens it with its key.
     nonisolated static func load(
-        from url: URL, read: @Sendable (URL) throws -> Data = { try Data(contentsOf: $0) }
+        from url: URL, read: @Sendable (URL) throws -> Data = { try Data(contentsOf: $0) }, seal: JSONFileSeal = .app
     ) -> (UserSettings?, LoadOutcome) {
         guard FileManager.default.fileExists(atPath: url.path) else { return (nil, .fileNotPresent) }
         let data: Data
@@ -259,7 +268,7 @@ final class SettingsManager {
             debugLog("[SettingsManager] settings file could not be read (\(failed)): \(nsError)", level: .warning)
             return (nil, failed)
         }
-        return decodeOrPreserve(data, readFrom: url)
+        return decodeOrPreserve(data, readFrom: url, seal: seal)
     }
 
     /// What a failed read of the settings file means for saving:
@@ -277,15 +286,23 @@ final class SettingsManager {
         }
     }
 
-    /// The second half of `load(from:)`: the settings decoded from `data`, or,
-    /// when they do not decode, defaults once `data` is kept beside `url`
-    /// (`.unreadableOther`), or with saves held when that copy fails
+    /// The second half of `load(from:)`: the settings in `data`, opened with
+    /// `seal` (sealed, or plain JSON from a build that did not seal the file)
+    /// and decoded. While the keychain refuses the key the file is held as
+    /// for file protection (`.blockedByProtection`): nothing is copied, the
+    /// in-memory defaults are never saved over it, and it is read again on
+    /// unlock and activation. Bytes that do not open or decode for any other
+    /// reason give defaults once `data` is kept beside `url`
+    /// (`.unreadableOther`), or hold saves when that copy fails
     /// (`.unreadableNotPreserved`).
-    nonisolated private static func decodeOrPreserve(_ data: Data, readFrom url: URL) -> (UserSettings?, LoadOutcome) {
+    nonisolated private static func decodeOrPreserve(
+        _ data: Data, readFrom url: URL, seal: JSONFileSeal
+    ) -> (UserSettings?, LoadOutcome) {
         do {
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            return (try decoder.decode(UserSettings.self, from: data), .loaded)
+            return (try seal.openJSON(UserSettings.self, from: data, with: settingsDecoder()), .loaded)
+        } catch let error where JSONFileSeal.isKeyLocked(error) {
+            debugLog("[SettingsManager] settings file is sealed and the key is locked — saves wait until it opens: \(error)", level: .warning)
+            return (nil, .blockedByProtection)
         } catch {
             debugLog("[SettingsManager] failed to decode settings: \(error) — falling through to defaults", level: .warning)
             return (nil, preserveUnreadableBytes(data, beside: url) ? .unreadableOther : .unreadableNotPreserved)
@@ -359,7 +376,7 @@ final class SettingsManager {
             removeHeldRetryObservers()
             return true
         }
-        let (loaded, outcome) = SettingsManager.load(from: settingsURL, read: readSettingsFile)
+        let (loaded, outcome) = SettingsManager.load(from: settingsURL, read: readSettingsFile, seal: seal)
         loadOutcome = outcome
         guard !savesHeld else { return false }
         removeHeldRetryObservers()
@@ -410,9 +427,7 @@ final class SettingsManager {
             for key in Set(before.keys).union(after.keys) where (before[key] as? NSObject) != (after[key] as? NSObject) {
                 merged[key] = after[key]
             }
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            return try decoder.decode(UserSettings.self, from: try JSONSerialization.data(withJSONObject: merged))
+            return try settingsDecoder().decode(UserSettings.self, from: try JSONSerialization.data(withJSONObject: merged))
         } catch {
             debugLog("[SettingsManager] could not merge settings changed while the file was locked: \(error) — keeping the file's settings", level: .warning)
             return disk
@@ -421,9 +436,7 @@ final class SettingsManager {
 
     /// The settings' top-level JSON fields, encoded as they are saved.
     nonisolated private static func jsonFields(_ settings: UserSettings) throws -> [String: Any] {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        let object = try JSONSerialization.jsonObject(with: try encoder.encode(settings))
+        let object = try JSONSerialization.jsonObject(with: try settingsEncoder().encode(settings))
         guard let fields = object as? [String: Any] else { throw CocoaError(.coderReadCorrupt) }
         return fields
     }
@@ -515,18 +528,31 @@ final class SettingsManager {
 
     /// Writes any pending settings change now, on the caller's thread, and
     /// reports whether the file then holds `expected`. Both sides are compared
-    /// as `load(from:)` reads them, so a field the decoder fills in (the
-    /// schema version) is not a difference. Throws the last write's error, or
-    /// the read or decode error. Delete All My Data checks with it that the
-    /// reset profile reached disk.
+    /// as `load(from:)` reads them (the file opened with `seal`), so a field
+    /// the decoder fills in (the schema version) is not a difference. Throws
+    /// the last write's error, or the read, open or decode error. Delete All
+    /// My Data checks with it that the reset profile reached disk.
     func flushedFileHolds(_ expected: UserSettings) throws -> Bool {
         if let failure = flushPendingWritesSynchronously() { throw failure }
+        let decoder = Self.settingsDecoder()
+        let onDisk = try seal.openJSON(UserSettings.self, from: Data(contentsOf: settingsURL), with: decoder)
+        return try onDisk == decoder.decode(UserSettings.self, from: Self.settingsEncoder().encode(expected))
+    }
+
+    /// The encoder every settings file, cloud copy and comparison uses:
+    /// ISO-8601 dates, pretty-printed with sorted keys.
+    nonisolated static func settingsEncoder() -> JSONEncoder {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return encoder
+    }
+
+    /// The decoder for what `settingsEncoder()` writes: ISO-8601 dates.
+    nonisolated static func settingsDecoder() -> JSONDecoder {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        let onDisk = try decoder.decode(UserSettings.self, from: Data(contentsOf: settingsURL))
-        return try onDisk == decoder.decode(UserSettings.self, from: encoder.encode(expected))
+        return decoder
     }
 
     /// Stash the latest settings snapshot and ensure a single background
@@ -546,12 +572,29 @@ final class SettingsManager {
     /// remain. Only ever runs on `settingsWriteQueue`, so writes can't
     /// interleave and there's no torn file. Returns the error of the last
     /// write it made: nil when that write succeeded or nothing was pending.
+    ///
+    /// A snapshot whose write failed, when it is the last one taken, is put
+    /// back as pending without scheduling a worker: the file on disk is left
+    /// as it was, and the next change or the background/terminate flush
+    /// writes it, unless a newer snapshot has replaced it by then.
     nonisolated private func drainPendingWrites() -> (any Error)? {
         var lastFailure: (any Error)?
+        var unwritten: UserSettings?
         while let snapshot = takePendingWrite() {
             lastFailure = writeSettingsToDisk(snapshot)
+            unwritten = lastFailure == nil ? nil : snapshot
         }
+        if let unwritten { keepForRetry(unwritten) }
         return lastFailure
+    }
+
+    /// Puts `snapshot` back as the pending write unless a newer one is
+    /// already waiting. Leaves `scheduled` alone: the next enqueue starts a
+    /// worker, and a flush drains it on the caller's thread.
+    nonisolated private func keepForRetry(_ snapshot: UserSettings) {
+        writeState.withLock { state in
+            if state.pending == nil { state.pending = snapshot }
+        }
     }
 
     /// Pops the latest pending snapshot, or clears `scheduled` and returns
@@ -567,39 +610,24 @@ final class SettingsManager {
         }
     }
 
-    /// File protection is `.completeUntilFirstUserAuthentication`,
-    /// not `.complete`. The stricter
-    /// `.complete` level makes the file unreadable while the
-    /// device is locked, so when iOS launches the app in
-    /// background (Watch trigger, location event) before the
-    /// user unlocks, `load()` fails and `init` defaults to
-    /// a fresh `UserSettings`. That fresh default then
-    /// overwrites the real file on the next save — the
-    /// "fucked up my settings again" data loss.
+    /// Seals the snapshot with the app's key (`seal`) and writes it
+    /// atomically under `.completeFileProtectionUntilFirstUserAuthentication`:
+    /// readable after the first unlock of each boot and through every
+    /// background launch after it. `.complete` made the file unreadable
+    /// while the device was locked, so a background launch (Watch trigger,
+    /// location event) loaded defaults over the real settings.
     ///
-    /// `.completeUntilFirstUserAuthentication` is iOS's default
-    /// for files written without an explicit class. The file
-    /// is encrypted at rest, accessible after the user unlocks
-    /// the device once per boot, and stays accessible for
-    /// background launches afterwards. Same on-disk encryption,
-    /// dramatically better availability profile.
-    ///
-    /// Returns the error when the encode, write or protection change failed
-    /// (logged here too), nil when the file was written.
+    /// Returns the error when the encode, seal or write failed (logged here
+    /// too), nil when the file was written. A seal that fails (no key
+    /// reachable) writes nothing, so the file on disk keeps the last settings
+    /// that were sealed, and never holds them in the clear.
     nonisolated private func writeSettingsToDisk(_ snapshot: UserSettings) -> (any Error)? {
         do {
-            let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-            let data = try encoder.encode(snapshot)
-            try data.write(to: settingsURL, options: .atomic)
-            try (settingsURL as NSURL).setResourceValue(
-                URLFileProtection.completeUntilFirstUserAuthentication,
-                forKey: .fileProtectionKey
-            )
+            let sealed = try seal.sealJSON(snapshot, with: Self.settingsEncoder())
+            try sealed.write(to: settingsURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
             return nil
         } catch {
-            debugLog("[SettingsManager] Failed to save settings: \(error)", level: .error)
+            debugLog("[SettingsManager] settings not saved — the file on disk is kept and the write is retried: \(error)", level: .error)
             return error
         }
     }
@@ -623,10 +651,7 @@ final class SettingsManager {
     /// how the user gets their real settings back.
     func currentSettingsJSON() -> Data? {
         guard loadOutcome == .loaded || loadOutcome == .fileNotPresent else { return nil }
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        return attempt("settings.encode") { try encoder.encode(settings) }
+        return attempt("settings.encode") { try Self.settingsEncoder().encode(settings) }
     }
 
     /// Replace the in-memory settings + on-disk file with a JSON blob
@@ -634,9 +659,7 @@ final class SettingsManager {
     /// if decode fails so the caller can surface the error.
     @MainActor
     func restoreFromJSON(_ data: Data) throws {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        let restored = try decoder.decode(UserSettings.self, from: data)
+        let restored = try Self.settingsDecoder().decode(UserSettings.self, from: data)
         // Lift any active protection guard — restoring is an explicit
         // user-initiated action that supersedes whatever local state
         // was wedged.

@@ -3,123 +3,27 @@ import XCTest
 
 /// JSON-ordering discipline.
 ///
-/// Anthropic's prompt-caching docs and AWS Bedrock blog both flag a
-/// Swift-specific gotcha: `JSONEncoder` randomizes key order by
-/// default, which silently breaks cache hits across requests. The
-/// research note made this its single highest-leverage cache fix:
-/// `JSONEncoder.OutputFormatting = [.sortedKeys]` is one line per
-/// encoder, and may explain a 30–50% chunk of "imaginary cache hits"
-/// on its own.
-///
-/// The provider request encoders (`AnthropicProvider`,
-/// `OpenAICompatibleStreamer`, `GeminiProvider`) set `.sortedKeys`. The
-/// regression net is the "production request encoders" section below: it
-/// builds requests through `AnthropicProvider.makeRequest` and
-/// `OpenAICompatibleStreamer.requestFor` and fails if either drops
-/// `.sortedKeys`. `GeminiProvider.makeRequest` is private and not covered.
-/// The first three tests only pin the Foundation contract on local types.
+/// `JSONEncoder` gives no key order by default, and the vendors' prompt
+/// caches match on byte-identical prefixes, so an unsorted body silently
+/// misses the cache on every turn. Every provider builds its request through
+/// `ProviderHTTP.streamRequest`, which encodes with `.sortedKeys`. These
+/// tests build requests through each provider's production builder
+/// (`AnthropicProvider.makeRequest`, `GeminiProvider.makeRequest`,
+/// `OpenAICompatibleStreamer.requestFor`) and fail if the body is not sorted.
 final class JSONOrderingTests: XCTestCase {
-
-    /// Test payload that exercises nested keys, arrays, and
-    /// alphabetical-ordering edge cases (z, a, m). We can't import
-    /// the providers' private `RequestBody` types, so this asserts
-    /// the *Foundation* contract: when `.sortedKeys` is set, encode
-    /// is deterministic.
-    private struct Payload: Encodable {
-        let zebra: String
-        let apple: Int
-        let middle: [String]
-        let nested: Nested
-
-        struct Nested: Encodable {
-            let zee: Bool
-            let alpha: Double
-        }
-    }
-
-    func testEncoderWithSortedKeysIsDeterministic() throws {
-        let payload = Payload(
-            zebra: "z",
-            apple: 1,
-            middle: ["c", "b", "a"],
-            nested: .init(zee: true, alpha: 0.5)
-        )
-
+    private var sortedEncoder: JSONEncoder {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
-
-        var encodings: Set<Data> = []
-        for _ in 0 ..< 100 {
-            let data = try encoder.encode(payload)
-            encodings.insert(data)
-        }
-
-        XCTAssertEqual(
-            encodings.count, 1,
-            "JSONEncoder with .sortedKeys must produce byte-for-byte identical output across 100 encodes. " +
-            "If this fails, prompt-cache hit rate is silently broken."
-        )
-    }
-
-    /// The same payload WITHOUT `.sortedKeys` is allowed to vary —
-    /// this test documents the failure mode. We assert it produces
-    /// at least one variant (sometimes the runtime keeps the same
-    /// hash order across all 100 calls; the test allows that), but
-    /// the cache-stability guarantee only holds with `.sortedKeys`
-    /// explicitly set.
-    func testEncoderWithoutSortedKeysMayVary() throws {
-        // Use a payload with enough keys to make hash-table ordering
-        // non-trivial. The Foundation runtime is allowed to keep
-        // arbitrary order; this test only documents that we're
-        // RELYING on .sortedKeys for the determinism guarantee.
-        let payload = Payload(
-            zebra: "z",
-            apple: 1,
-            middle: ["c", "b", "a"],
-            nested: .init(zee: true, alpha: 0.5)
-        )
-
-        let encoder = JSONEncoder()
-        // Deliberately NOT setting .sortedKeys
-        let first = try encoder.encode(payload)
-        let firstString = String(data: first, encoding: .utf8) ?? ""
-        XCTAssertFalse(
-            firstString.isEmpty,
-            "Sanity: encoder produces non-empty output"
-        )
-        // We do NOT assert non-determinism here — the runtime may or
-        // may not keep order stable across calls in the same process.
-        // The contract under test is that `.sortedKeys` makes it
-        // deterministic, not that the absence makes it non-deterministic.
-    }
-
-    /// The Anthropic SDK's own `cache_control` block is one of the
-    /// trickiest places to lose cache stability. This test asserts
-    /// that re-encoding the same `cache_control` payload yields
-    /// identical bytes when `.sortedKeys` is set.
-    func testCacheControlSerializationIsStable() throws {
-        struct CacheControl: Encodable {
-            let type: String
-            let ttl: String?
-        }
-
-        let cc = CacheControl(type: "ephemeral", ttl: "1h")
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys]
-
-        var encodings: Set<Data> = []
-        for _ in 0 ..< 100 {
-            encodings.insert(try encoder.encode(cc))
-        }
-        XCTAssertEqual(encodings.count, 1, "cache_control encoding must be byte-stable")
+        return encoder
     }
 
     // MARK: - The production request encoders
 
     /// The body `AnthropicProvider.makeRequest` sends is exactly the
-    /// `.sortedKeys` encoding of the body it was given. The control shows the
-    /// body is order-sensitive (its declared key order is not sorted), so a
-    /// `makeRequest` without `.sortedKeys` fails the second assertion.
+    /// `.sortedKeys` encoding of the body it was given. A plain `JSONEncoder`
+    /// writes each object's keys in hash order, which changes with the
+    /// process's hash seed, so a `makeRequest` without `.sortedKeys` differs
+    /// from the sorted bytes unless every object happens to come out sorted.
     func testAnthropicRequestBodyIsEncodedWithSortedKeys() throws {
         let body = AnthropicProvider.RequestBody(
             model: "claude-test", max_tokens: 1024,
@@ -129,11 +33,52 @@ final class JSONOrderingTests: XCTestCase {
         )
         let url = try XCTUnwrap(URL(string: "https://example.invalid/v1/messages"))
         let request = try AnthropicProvider.makeRequest(url: url, apiKey: "test-key", body: body)
-        let sorted = JSONEncoder()
-        sorted.outputFormatting = [.sortedKeys]
+        let sorted = sortedEncoder
 
-        XCTAssertNotEqual(try JSONEncoder().encode(body), try sorted.encode(body), "Control: the declared key order is already sorted")
         XCTAssertEqual(request.httpBody, try sorted.encode(body), "makeRequest no longer encodes with .sortedKeys")
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "x-api-key"), "test-key")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "anthropic-version"), "2023-06-01")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Accept"), "text/event-stream")
+    }
+
+    /// `GeminiProvider.makeRequest` sends the `.sortedKeys` encoding of the
+    /// body to the model's streaming endpoint (`streamEndpoint`), with the
+    /// key in its own header and never in the URL. The body carries a tool
+    /// declaration and a function-call round, so it has many objects whose
+    /// hash-ordered keys would almost never all come out sorted by chance.
+    func testGeminiRequestBodyIsEncodedWithSortedKeys() throws {
+        let call = GeminiProvider.RequestBody.FunctionCall(
+            name: "sleep_summary", args: AnyJSON(["night": "last", "detail": true, "limit": 3])
+        )
+        let response = GeminiProvider.RequestBody.FunctionResponse(
+            name: "sleep_summary", response: AnyJSON(["score": 81, "hours": 7.5, "note": "steady"])
+        )
+        let body = GeminiProvider.RequestBody(
+            systemInstruction: .init(parts: [.init(text: "rules")]),
+            contents: [
+                .init(role: "user", parts: [.init(text: "How did I sleep?")]),
+                .init(role: "model", parts: [.init(functionCall: call, thoughtSignature: "sig")]),
+                .init(role: "user", parts: [.init(functionResponse: response)])
+            ],
+            tools: [.init(functionDeclarations: [
+                .init(name: "sleep_summary", description: "Last night's sleep", parameters: nil)
+            ])]
+        )
+        let model = GeminiProvider.models[0]
+        let url = try GeminiProvider.streamEndpoint(for: model)
+        let request = try GeminiProvider.makeRequest(url: url, apiKey: "test-key", body: body)
+        let sorted = sortedEncoder
+
+        XCTAssertEqual(request.httpBody, try sorted.encode(body), "makeRequest no longer encodes with .sortedKeys")
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "x-goog-api-key"), "test-key")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/json")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Accept"), "text/event-stream")
+        let sent = try XCTUnwrap(request.url?.absoluteString)
+        XCTAssertEqual(request.url, url)
+        XCTAssertTrue(sent.contains("models/\(model.apiID):streamGenerateContent?alt=sse"), sent)
+        XCTAssertFalse(sent.contains("test-key"), sent)
     }
 
     /// `OpenAICompatibleStreamer.requestFor` builds the DeepSeek / OpenAI
@@ -158,5 +103,8 @@ final class JSONOrderingTests: XCTestCase {
 
         XCTAssertLessThan(messages, model, "requestFor no longer encodes with .sortedKeys")
         XCTAssertLessThan(stream, streamOptions, "requestFor no longer encodes with .sortedKeys")
+        let request = try OpenAICompatibleStreamer.requestFor(call, apiKey: "test-key")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer test-key")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Accept"), "text/event-stream")
     }
 }

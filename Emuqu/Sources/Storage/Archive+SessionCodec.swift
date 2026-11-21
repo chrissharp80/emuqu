@@ -43,7 +43,8 @@ extension SessionArchive {
         enum DiskFormat: Equatable {
             case encrypted
             /// Encryption was unavailable. Bytes are readable JSON and MUST be
-            /// written with `.completeFileProtection` and registered with
+            /// written with `.completeFileProtectionUnlessOpen`
+            /// (`archiveWriteOptions`) and registered with
             /// `PendingEncryptionLedger`.
             case plaintextPendingEncryption
         }
@@ -106,12 +107,10 @@ extension SessionArchive {
     }
 }
 
-/// Encrypt, or report why not. Never swallows the reason.
-///
-/// The previous form was `try? AppDependencies.current.storage.encryptionManager.encrypt(...)`,
-/// which discarded the error entirely — so a genuine encryption defect
-/// and a locked Keychain were indistinguishable in the logs, and both
-/// looked like "encryption unavailable".
+/// The plaintext sealed with the archive's key, or nil when it cannot be.
+/// An unavailable key returns nil quietly (the caller records the session for
+/// re-encryption, which logs it); a seal that throws with the key present is
+/// logged here with its error, so the two causes stay apart in the logs.
 private func encryptOrReportFailure(_ plaintext: Data) -> Data? {
     let manager = AppDependencies.current.storage.encryptionManager
     guard manager.isAvailable else { return nil }

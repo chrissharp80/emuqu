@@ -183,14 +183,27 @@ extension HealthWriteAndObserve {
         let index: Int
     }
 
+    /// Delete every HRV sample this app exported for a session deleted
+    /// forever. `start...end` is the recording's span; the search reaches 25
+    /// hours past either end, which covers both export paths (the summary is
+    /// dated at the end, the series from an hour before the start). Without
+    /// HealthKit there is nothing to delete. Errors propagate, so the caller
+    /// can say the samples are still in Health.
+    func removeExportedHRV(sessionId: UUID, from start: Date, to end: Date) async throws {
+        guard manager.isHealthKitAvailable else { return }
+        let padding: TimeInterval = 25 * 3600
+        try await deleteOurHRVSamples(sessionId: sessionId, from: start.addingTimeInterval(-padding), to: end.addingTimeInterval(padding))
+    }
+
     /// Delete every HRV sample this app wrote for the session in
     /// `start...end` (`isOurHRVExport`): the summary SDNN, the SDNN series and
     /// the old RMSSD series, among this app's own samples only, so samples
     /// written by Apple Watch or other apps are never touched. Both export
     /// paths call it, so a session re-exported through the other path, or
     /// under a changed end date, does not keep its old SDNN beside the new
-    /// one. Errors propagate: the caller skips the save rather than
-    /// duplicate the night.
+    /// one, and a session deleted forever has them removed
+    /// (`removeExportedHRV`). Errors propagate: the caller skips the save
+    /// rather than duplicate the night.
     private func deleteOurHRVSamples(sessionId: UUID, from start: Date, to end: Date) async throws {
         guard let sdnnType = HKTypes.quantity(.heartRateVariabilitySDNN) else { return }
         let samples = try await ownExternalUUIDSDNNSamples(sdnnType: sdnnType, start: start, end: end)

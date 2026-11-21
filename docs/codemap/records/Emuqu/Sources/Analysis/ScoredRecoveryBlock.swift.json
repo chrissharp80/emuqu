@@ -63,6 +63,23 @@
    }
   },
   {
+   "key": "var ScoredRecoveryBlock.isConsolidatedRecovery",
+   "hash": "1e3286bc8e5521af",
+   "does": "Consolidated recovery: isOrganizedRecovery && hrIsStable (HR CV < unstableCVThreshold, 0.08). The one rule every RecoveryWindow builder stores as isConsolidated.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.hrIsStable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.hrIsStable": "89016c67db4d65a2",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "a94b71838be09fe7"
+   }
+  },
+  {
    "key": "var ScoredRecoveryBlock.optimalAlpha1IsRegulated",
    "hash": "75c3bbf417e69be9",
    "does": "Whether an optimal-α1 window has the regulation that makes it organized: hrIsStable when lfHfRatio is nil (always, from the production selector); lfHfIsOrganized || hrIsStable when an LF/HF is present (tests only).",

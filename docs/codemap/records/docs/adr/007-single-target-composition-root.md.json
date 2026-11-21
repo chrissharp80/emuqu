@@ -1,0 +1,44 @@
+{
+ "file": "docs/adr/007-single-target-composition-root.md",
+ "hash": "e3b0c44298fc1c14",
+ "role": "ADR 007: the iPhone app compiles as one target and module with its layers as directories (the Watch app, unit tests and UI tests are separate targets), and long-lived services are reached through the composition roots AppDependencies and WatchDependencies, with `.shared` read only there as check_no_shared_outside_root.sh enforces.",
+ "types": [],
+ "state": [],
+ "toplevel": "",
+ "units": [
+  {
+   "key": "§ ADR 007 — One app target, one composition root",
+   "hash": "9c073210fd74ed35",
+   "does": "Claims: four native targets (Emuqu, EmuquTests, EmuquUITests, EmuquWatch Watch App); every iPhone source compiles into Emuqu, whose only other modules are the remote packages PolarBleSdk and WhisperKit; EmuquTests uses @testable import Emuqu and compiles WatchMessageDecoding.swift; the Watch target is a synchronised folder with SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor and compiles no iPhone source; packages were not taken because the root names services of nearly every layer and Collection, Storage, Services, Assistant and Views reach other layers' services through it. AppDependencies groups services as app/analysis/assistant/collection/location/providers/services/storage, each accessor returns the override or the shared instance (the two Overpass services from one root-built OverpassClient), resolved on read; current is lock-held, never assigned by the app, swapped and reset() by tests; views read the computed \\.dependencies key; classes take init parameters defaulting to .current; EmuquApp builds its root objects from it; WatchDependencies is the Watch root; check_no_shared_outside_root.sh (make shared-root-guard, make ci, gates.yml, ci.yml) fails on .shared reads outside the two root files, ignoring declarations and system singletons. Verified against project.pbxproj (four PBXNativeTargets, two XCRemoteSwiftPackageReferences, WatchMessageDecoding.swift in the test Sources phase, Watch fileSystemSynchronizedGroups and build settings), AppDependencies.swift and the script's ROOT_FILES.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var DependenciesKey.defaultValue",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
+    "EmuquWatch Watch App/WatchDependencies.swift::var WatchDependencies.sessionManager",
+    "EmuquWatch Watch App/WatchDependencies.swift::var WatchDependencies.strapConnector",
+    "Makefile::target shared-root-guard",
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root",
+    ".github/workflows/gates.yml::step script-gates/Source hygiene guards"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    ".github/workflows/ci.yml::step lint-and-budgets/Singletons read only in the composition root": "f618f94a3a7cb84c",
+    ".github/workflows/gates.yml::step script-gates/Source hygiene guards": "a81cca29350b6c3f",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()": "e39e2f3e3a5e3aca",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var DependenciesKey.defaultValue": "2ac01458964f7b92",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "daa043f0af306c2c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a",
+    "EmuquWatch Watch App/WatchDependencies.swift::var WatchDependencies.sessionManager": "808974657b47ac82",
+    "EmuquWatch Watch App/WatchDependencies.swift::var WatchDependencies.strapConnector": "9fef76c83ae90fb0",
+    "Makefile::target shared-root-guard": "a9263da85d483554"
+   }
+  }
+ ],
+ "deps": {}
+}

@@ -138,12 +138,14 @@ final class SavedRouteStore {
         writer.discard()
     }
 
-    /// Stored in the shared App Group container, alongside the settings file.
-    init() {
-        let appGroupURL = AppConfig.sharedContainerURL().appendingPathComponent("saved_routes.json")
-        Self.migrateLegacyStoreIfNeeded(to: appGroupURL)
-        self.storeURL = appGroupURL
-        self.writer = LatestWinsFileWriter(url: appGroupURL, options: [.atomic], label: "savedRoutes")
+    /// Stored in the shared App Group container, alongside the settings
+    /// file, after copying across a legacy Application Support file.
+    /// `storeURL` lets a test use its own file instead, with no migration.
+    init(storeURL: URL? = nil) {
+        let url = storeURL ?? AppConfig.sharedContainerURL().appendingPathComponent("saved_routes.json")
+        if storeURL == nil { Self.migrateLegacyStoreIfNeeded(to: url) }
+        self.storeURL = url
+        self.writer = LatestWinsFileWriter(url: url, options: [.atomic], label: "savedRoutes")
         load()
         if loadFailed { installProtectedDataObserver() }
     }
@@ -228,13 +230,18 @@ final class SavedRouteStore {
         return true
     }
 
-    /// False, changing nothing, while the library cannot be read
-    /// (`isLibraryReadable`): the delete could not be saved.
+    /// Writes the library without the route at once, after removing the
+    /// set-aside copy of an older undecodable file (which can hold the route
+    /// too). True once that is on disk. False, with `routes` unchanged, while
+    /// the library cannot be read (`isLibraryReadable`) or when the copy's
+    /// removal or the write failed: the route is still stored.
     @discardableResult
     func remove(id: UUID) -> Bool {
         guard isLibraryReadable() else { return false }
-        routes.removeAll { $0.id == id }
-        save()
+        let remaining = routes.filter { $0.id != id }
+        let backup = storeURL.deletingLastPathComponent().appendingPathComponent(Self.undecodableBackupName)
+        guard writer.replaceNow(with: remaining, removing: backup) else { return false }
+        routes = remaining
         return true
     }
 
@@ -329,10 +336,8 @@ final class SavedRouteStore {
     /// The on-disk library, or nothing when the file is absent. A file that is
     /// present but unreadable (iOS file protection while locked) sets
     /// `loadFailed`, which blocks saves so we never clobber a recoverable
-    /// library with an empty one. A file that reads but does not decode
-    /// (corrupt / partially written / newer format) is set aside as
-    /// `undecodableBackupName` and the library starts empty, so new routes
-    /// are kept; if it cannot be set aside, saves stay blocked.
+    /// library with an empty one. The bytes read are opened and decoded by
+    /// `adoptStoredLibrary`.
     private func load() {
         guard FileManager.default.fileExists(atPath: storeURL.path) else {
             loadFailed = false
@@ -346,9 +351,24 @@ final class SavedRouteStore {
             debugLog("[SavedRouteStore] saved_routes.json present but unreadable: \(error.localizedDescription) — blocking saves until it can be read", level: .warning)
             return
         }
+        adoptStoredLibrary(data)
+    }
+
+    /// The second half of `load()`: the routes in `data`, opened with the
+    /// app's key (sealed, or plain JSON from a build that did not seal the
+    /// file) and decoded. While the keychain refuses the key, saves stay
+    /// blocked (`loadFailed`) and the read is retried as for file
+    /// protection. Bytes that do not open or decode for any other reason
+    /// (corrupt / partially written / newer format) are set aside as
+    /// `undecodableBackupName` and the library starts empty, so new routes
+    /// are kept; if they cannot be set aside, saves stay blocked.
+    private func adoptStoredLibrary(_ data: Data) {
         do {
-            routes = try JSONDecoder().decode([SavedRoute].self, from: data)
+            routes = try JSONFileSeal.app.openJSON([SavedRoute].self, from: data, with: JSONDecoder())
             loadFailed = false
+        } catch let error where JSONFileSeal.isKeyLocked(error) {
+            loadFailed = true
+            debugLog("[SavedRouteStore] saved_routes.json is sealed and the key is locked — blocking saves until it opens: \(error)", level: .warning)
         } catch {
             loadFailed = !Self.setAsideUndecodable(storeURL, reason: error)
         }
@@ -385,11 +405,10 @@ final class SavedRouteStore {
 
 // MARK: - LatestWinsFileWriter
 
-/// Writes one JSON file on a private serial queue. A new snapshot replaces
-/// any still waiting, so writes land in the order they were made and a burst
-/// collapses to its last value. Used by the small JSON stores (saved routes,
-/// email contacts) whose saves were once independent detached tasks that
-/// could finish out of order.
+/// Writes one JSON file, sealed with the app's key (`JSONFileSeal.app`), on
+/// a private serial queue. A new snapshot replaces any still waiting, so
+/// writes land in the order they were made and a burst collapses to its last
+/// value. Used by the small JSON stores (saved routes, email contacts).
 final class LatestWinsFileWriter<Value: Encodable & Sendable>: Sendable {
     private let url: URL
     private let options: Data.WritingOptions
@@ -420,9 +439,28 @@ final class LatestWinsFileWriter<Value: Encodable & Sendable>: Sendable {
         queue.async { [self] in removeFile() }
     }
 
+    /// Removes `staleCopy`, then writes `value`, on the writer's queue after
+    /// any write running or queued, and waits for the result. True when the
+    /// copy is gone and `value` is on disk; the snapshot still waiting, older
+    /// than `value`, is then dropped. False when either step failed: the file
+    /// keeps what it held (the copy may already be gone).
+    func replaceNow(with value: Value, removing staleCopy: URL) -> Bool {
+        queue.sync {
+            guard Self.removeIfPresent(staleCopy, label: label), write(value) else { return false }
+            pending.withLock { $0 = nil }
+            return true
+        }
+    }
+
     private func removeFile() {
-        guard FileManager.default.fileExists(atPath: url.path) else { return }
-        attempt("\(label).discard") { try FileManager.default.removeItem(at: url) }
+        Self.removeIfPresent(url, label: label)
+    }
+
+    /// True when nothing is left at `target`.
+    @discardableResult
+    private static func removeIfPresent(_ target: URL, label: String) -> Bool {
+        guard FileManager.default.fileExists(atPath: target.path) else { return true }
+        return attempt("\(label).remove") { try FileManager.default.removeItem(at: target) } != nil
     }
 
     private func drain() {
@@ -430,7 +468,15 @@ final class LatestWinsFileWriter<Value: Encodable & Sendable>: Sendable {
             defer { state = nil }
             return state
         }) else { return }
-        guard let data = attempt("\(label).encode", { try JSONEncoder().encode(value) }) else { return }
-        attempt("\(label).write") { try data.write(to: url, options: options) }
+        write(value)
+    }
+
+    /// Encodes, seals and writes `value`; false (logged) when any step
+    /// failed. A seal with no key reachable writes nothing, so the file keeps
+    /// what it held and is never written in the clear.
+    @discardableResult
+    private func write(_ value: Value) -> Bool {
+        guard let sealed = attempt("\(label).seal", { try JSONFileSeal.app.sealJSON(value, with: JSONEncoder()) }) else { return false }
+        return attempt("\(label).write") { try sealed.write(to: url, options: options) } != nil
     }
 }

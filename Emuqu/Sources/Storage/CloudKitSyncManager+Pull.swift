@@ -104,10 +104,13 @@ extension CloudPullCoordinator {
     ///
     /// A record the listing could not return is not imported this pass, and
     /// the sync ends as an error rather than "Up to date" (`noteListingFailure`).
+    /// The sessions deleted forever (`ForgottenSessions`) are read once per
+    /// pull, not once per record.
     private func processRemoteRecords(
         _ results: [(CKRecord.ID, Result<CKRecord, Error>)]
     ) async -> PullCounts {
         var counts = PullCounts()
+        let forgotten = ForgottenSessions.ids
         for (_, result) in results {
             if Task.isCancelled { break }
             let record: CKRecord
@@ -118,7 +121,7 @@ extension CloudPullCoordinator {
                 noteListingFailure(error)
                 continue
             }
-            let outcome = await processRemoteRecord(record)
+            let outcome = await processRemoteRecord(record, forgotten: forgotten)
             manager.noteSyncProgress() // processed a remote record — sync is advancing
             counts.newSessions += outcome.new
             counts.deleted += outcome.deleted
@@ -195,7 +198,9 @@ extension CloudPullCoordinator {
     }
 
     /// Process a single remote CloudKit record: handle soft-deletes, archive
-    /// new sessions, and replace a held copy only with a newer one.
+    /// new sessions, and replace a held copy only with a newer one. A session
+    /// deleted forever on this device (in `forgotten`) is left alone, whatever
+    /// iCloud holds of it: never imported, refreshed or marked uploaded.
     /// Cheap guards run on the main actor; the expensive asset read + decompress +
     /// JSON decode runs in a detached utility task (see comment at the decode site).
     ///
@@ -204,9 +209,9 @@ extension CloudPullCoordinator {
     /// HK sleep/vitals backfill (synced past sessions arrive with the
     /// HK-derived snapshots stripped per Guideline 5.1.3 and must be
     /// re-derived locally). nil for skips and deletes.
-    func processRemoteRecord(_ record: CKRecord) async -> RecordOutcome {
+    func processRemoteRecord(_ record: CKRecord, forgotten: Set<UUID>) async -> RecordOutcome {
         let sessionIdString = record.recordID.recordName
-        guard let sessionId = UUID(uuidString: sessionIdString) else { return RecordOutcome() }
+        guard let sessionId = UUID(uuidString: sessionIdString), !forgotten.contains(sessionId) else { return RecordOutcome() }
         // Handle soft-deleted records — except one this device restored from
         // the Trash and has not uploaded yet: its upload overrides the
         // tombstone, and deleting it here undid the restore.

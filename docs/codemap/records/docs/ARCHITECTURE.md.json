@@ -1102,8 +1102,8 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Storage & Sync > UI Session Load Contract",
-   "hash": "0d8b9569f340ebd3",
-   "does": "Claims per-screen session loading: MainTabView loads 35 sessions (dashboardSessionLoadLimit) for DashboardV2View only; TrendsV2View loads all overnight analysed sessions; HistoryView uses the full index with pageSize 10; SessionArchive.entries newest-first, HistoryViewModel by displayDate desc, TrendAnalyzer ascending; delete adds to deletedSessionIds, persists, removes from index, deletes file; session.recoveryScore stored 0-10 via toTenScale; runDeferredMigrations runs 7 passes (reencryptPendingSessions, migrateRecoveryScores, migrateEndDates, migrateMetrics, migrateSleepIndexFields, removeDuplicates, relinkSameNightSessions); Archive split into Archive+Migrations, SessionMerger, Archive+Repair. Code matches: MainTabView.swift:710 dashboardSessionLoadLimit = 35; HistoryViewModel pageSize = 10; ArchiveMigrations.runDeferredMigrations lists exactly those 7 calls; ArchiveStore.delete; the archive is additionally split into Archive+IndexIO/Internal/MergeForwarding/MergeTarget/MigrationForwarding/PendingEncryption/SessionCodec/StoreForwarding/Trash files not listed.",
+   "hash": "6a11fadd34a4edf6",
+   "does": "Claims per-screen session loading: MainTabView loads 35 sessions (dashboardSessionLoadLimit) for DashboardV2View only; TrendsV2View loads all overnight analysed sessions; HistoryView uses the full index with pageSize 10; SessionArchive.entries newest-first, HistoryViewModel by displayDate desc, TrendAnalyzer ascending; delete adds to deletedSessionIds, persists, removes from index, deletes file; session.recoveryScore stored 0-10 via toTenScale; runDeferredMigrations runs 9 passes (reencryptPendingSessions, resealPlainIndexIfNeeded, migrateRecoveryScores, migrateEndDates, migrateMetrics, migrateSleepIndexFields, migrateLegacyEliteImportIndex, removeDuplicates, relinkSameNightSessions); Archive split into Archive+Migrations, SessionMerger, Archive+Repair (further Archive+* extension files exist and are not listed).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)",
@@ -1118,7 +1118,7 @@
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "8c51c557b70ca4c0",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.recentSessionsAsync(limit:)": "d0b0b578fa7f7968",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.delete(_:)": "968506fcadf1c0ab",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "485e43dbca59f728"
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "d25458414f1bd37b"
    }
   },
   {
@@ -1448,7 +1448,7 @@
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.clear()",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.archiveBreadcrumbTrailIfNeeded(finished:)",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:sessionId:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.breadcrumbLabel(sport:start:)",
     "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.decimatedBreadcrumbFixes(track:origin:)",
     "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.breadcrumbOrigin()",
@@ -1487,7 +1487,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquApp.handleScenePhaseChange(from:to:)": "0bd03ee22c9bd974",
+    "Emuqu/EmuquApp.swift::func EmuquApp.handleScenePhaseChange(from:to:)": "e10bf95a553aed6e",
     "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.claimSessionAndStartEngine(appendingTo:)": "a70b82a03029f6a0",
     "Emuqu/Sources/Assistant/VoiceConversationController+Pipeline.swift::func VoiceAudioPipeline.configureAudioSessionForConversation()": "be31a18c022fcb04",
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.beginCue()": "c52e7b3762fc7878",
@@ -1498,24 +1498,23 @@
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func CueAudioSessionReleaser.release(_:)": "5638c6846b7c2360",
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func SystemCueAudioSession.claimCuePlayback()": "7ea6a900219fdbcd",
     "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.start()": "dbfc96e8ad39986f",
-    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.decimatedBreadcrumbFixes(track:origin:)": "b7e07fe80e34b03a",
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.decimatedBreadcrumbFixes(track:origin:)": "a9eaaa4d8020d6c7",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.configureManagerForBackgroundTracking()": "c31914253f98cd58",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.locationManager(_:didUpdateLocations:)": "15c98b0acffb59c1",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.startBarometricAltitudeUpdates()": "226d1f481aefa463",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::init WorkoutLocationManager()": "a95fe8eb981617c6",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:)": "1840baeef33d4ac8",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:sessionId:)": "994ce3b33e8f759e",
     "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.breadcrumbLabel(sport:start:)": "5c469d77faf7e3da",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.archiveBreadcrumbTrailIfNeeded(finished:)": "ccfcb77307445b76",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.archiveBreadcrumbTrailIfNeeded(finished:)": "34bd0ca2ce4e37f0",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "bf6480b3ac06b1d3",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.advanceStepIndex(for:)": "b380341ce3776347",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)": "074edeb377d65cad",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)": "2681f2bbcbb3c4af",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.engage(route:destinationLabel:destinationCoord:)": "0e28ca3dd0310c0e",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.hasArrived(at:lastStep:)": "0d408a76713550e0",
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedLocation(maxAgeSec:)": "5a648c91bbefd58c",
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.cachedResolvedAddress(maxAgeSec:)": "5678c689470f1b00",
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.record(_:)": "ce0c435dad46ab7e",
     "Emuqu/Sources/Services/AmbientLocationService.swift::init AmbientLocationService()": "c6caef232eb245cf",
-    "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.applyCurrentClaims()": "b61d53c976aa2141",
     "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.categoryOptions(needsRecord:ducks:)": "ce7b0557535c9a46",
     "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)": "3ff6db18fe48072d",
     "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.hasActiveClaims()": "b8c5445601085093",
@@ -1523,14 +1522,14 @@
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.locationManager(_:didUpdateLocations:)": "c32601556600dbdb",
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::func BreadcrumbRecorder.startStreaming()": "98e3082c384e6bfc",
     "Emuqu/Sources/Services/BreadcrumbRecorder.swift::init BreadcrumbRecorder()": "9667f49c1aef962b",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)": "852043f9a6e193e7",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archiveActive()": "2cfdbfd1c0677841",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.clear()": "20349278ec335013",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)": "ce818f1d27dc80fe",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archiveActive()": "9e7fedc9e9b85273",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.clear()": "136e4673c9e1eea5",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.migrateLegacyTrailIfNeeded(in:to:)": "d8a0fcb4a985a018",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.save(_:)": "59904fb1c4effdec",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.save(_:)": "833a96828255038e",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbStore()": "341c5a17fceeca3f",
     "Emuqu/Sources/Services/DirectionsService.swift::func DirectionsService.breadcrumbOrigin()": "21e2195020282e99",
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.crossStreetCandidates(near:radius:currentRoad:)": "cecc010db04c6342",
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.crossStreetCandidates(near:radius:currentRoad:)": "584da62edc02614e",
     "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.normalizeStreetName(_:)": "0894820a06f56bcc",
     "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.reverseGeocode(_:lookupStartedAt:)": "b1fd322220cbcee8",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.agedOut()": "a1c05eb94c978e34",
@@ -1570,23 +1569,23 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Navigation & Location Subsystems > `BreadcrumbStore`",
-   "hash": "2ee569fd8d3792b4",
+   "hash": "451d7bc876679a0c",
    "does": "Claims BreadcrumbStore keeps active.json and archive.json (newest-first, 50-trail cap), archive/archiveActive/clear, automatic migration from trail.json, and auto-archives GPS workout tracks decimated to 25 m / 30 s from WorkoutRecorder.finalizeSession. Code: archiveRetentionLimit = 50, archive(_:) at BreadcrumbStore.swift:306, archiveActive :239, clear :248, legacy trail.json at :185; the auto-archive call is in WorkoutRecorder+Stop.archiveBreadcrumbTrailIfNeeded (guarded by sport.usesGPS) -> WorkoutAIContextBuilder.archiveWorkoutTrackAsBreadcrumbTrail using WorkoutGeometry.decimatedBreadcrumbFixes.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archiveActive()",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:)",
-    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:)"
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:sessionId:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:sessionId:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:)": "a24b73ca3e60b394",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:)": "1840baeef33d4ac8",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)": "852043f9a6e193e7",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archiveActive()": "2cfdbfd1c0677841"
+    "Emuqu/Sources/Collection/WorkoutRecorder+AIContextForwarding.swift::func WorkoutRecorder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:sessionId:)": "419334f9c5362a27",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Context.swift::func WorkoutAIContextBuilder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:sessionId:)": "994ce3b33e8f759e",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)": "ce818f1d27dc80fe",
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archiveActive()": "9e7fedc9e9b85273"
    }
   },
   {
@@ -1661,17 +1660,50 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Dependency Injection",
-   "hash": "fe6170c0132fb530",
-   "does": "Claims Sources/Protocols holds only HealthKitServiceProtocol (for MockHealthKitService); AppDependencies is the composition root with app/storage/collection/analysis/location/services/providers/assistant groups; RRCollector has a designated DI init, makeDefault() production wiring publishing weak RRCollector.current, and a convenience init(). Code: Protocols dir contains only HealthKitServiceProtocol.swift; AppDependencies.swift:28-35 declares the eight groups; RRCollector.makeDefault (:520), static weak var current (:622), convenience init (:628).",
+   "hash": "1dcc81f30081a27d",
+   "does": "Claims Sources/Protocols holds only HealthKitServiceProtocol (for MockHealthKitService); AppDependencies is the composition root with app/storage/collection/analysis/location/services/providers/assistant groups, each accessor returning the override if set or the production object built on first use; the app never assigns current, tests assign a container and call reset(); views read @Environment(\\.dependencies), classes an init parameter defaulting to .current, static helpers and EmuquApp AppDependencies.current; .shared is read only there and in WatchDependencies, enforced by check_no_shared_outside_root.sh; links ADR 007. RRCollector has a designated DI init, makeDefault() production wiring publishing weak RRCollector.current, and a convenience init(). Code: Protocols dir contains only HealthKitServiceProtocol.swift; AppDependencies.swift declares the eight groups and the override-or-shared accessors; RRCollector.makeDefault, static weak var current, convenience init.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "EmuquWatch Watch App/WatchDependencies.swift::var WatchDependencies.sessionManager",
+    "Makefile::target shared-root-guard"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()": "be1e45efca604118"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()": "be1e45efca604118",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::func AppDependencies.reset()": "e39e2f3e3a5e3aca",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "daa043f0af306c2c",
+    "EmuquWatch Watch App/WatchDependencies.swift::var WatchDependencies.sessionManager": "808974657b47ac82",
+    "Makefile::target shared-root-guard": "a9263da85d483554"
+   }
+  },
+  {
+   "key": "§ Emuqu — Architecture & Algorithms > Dependency Injection > Where network code lives",
+   "hash": "36ab944a0737c50b",
+   "does": "States the layering rule for HTTP: requests are sent only from the AI providers in Assistant/Providers (their own streaming URLSession, AIProvider.streamSession) and from the web-API clients in Services/ (OverpassClient, WeatherService, WebSearchService, TopoElevationService), each of which sends through an injected HTTPTransport (live in the app, a stub in tests); other layers reach a web API only through those clients. Verified: no URLSession data/bytes call outside Services/ and Assistant/Providers.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/HTTPTransport.swift::var HTTPTransport.live",
+    "Emuqu/Sources/Services/OverpassClient.swift::init OverpassClient(minRequestGap:transport:)",
+    "Emuqu/Sources/Services/WeatherService.swift::init WeatherService(transport:)",
+    "Emuqu/Sources/Services/WebSearchService.swift::init WebSearchService(transport:)",
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:transport:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/HTTPTransport.swift::var HTTPTransport.live": "7990219adda8679a",
+    "Emuqu/Sources/Services/OverpassClient.swift::init OverpassClient(minRequestGap:transport:)": "fa9202dd1d9f813f",
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:transport:)": "863a874d96dcc48f",
+    "Emuqu/Sources/Services/WeatherService.swift::init WeatherService(transport:)": "c884adba64b96fcc",
+    "Emuqu/Sources/Services/WebSearchService.swift::init WebSearchService(transport:)": "aba1053021c65854"
    }
   },
   {
@@ -1818,13 +1850,13 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Fitness Tab — Workout Subsystem > Subsystems",
-   "hash": "ad27847e25b74303",
-   "does": "Says per-subsystem behaviour: LiveDFAAnalyzer 2-min window every 20 s with a +/-20% Kubios-style filter (cleanRRForDFA); WorkoutAlpha1Reanalyzer replays the pipeline; TopoElevationService NED 10 m then SRTM 30 m with a 15 m climb threshold; HRRCaptureService 120 s capture with strap/Watch/HealthKit tiers, strap streaming kept alive through the capture window so Tier 1 has strap data; LiveWorkoutBroker treats snapshots >12 s as nil; RouteLibrary.findMatch after ~500 m, both directions, <=30 m mean distance, routes in App Group saved_routes.json with legacy migration; WeatherService MET Norway with >=10 min between requests, 30-min TTL, 5 km refetch; RoadGeocodingService 15 m/60 s, 8 failures/30 s, 600 ms per-climb pacing; Concept2Manager PM5 0x0031/0x0032/0x0036 with power outside 1-1500 W dropped; FootPodManager RSC 0x1814 plus FTMS 0x1826/0x2AD2; ZwiftPeripheralBroadcaster 0x180D/0x1818 gated by enableZwiftBroadcast; WorkoutThreshold debounce 30 s / cooldown 120 s with Bool? evaluate; WorkoutPDFReport maxPDFPoints 250. Code: LiveDFAAnalyzer init(windowSec: 120, cadenceSec: 20) and ectopicRatio 0.20; HRRCaptureService captureWindowSec 120; LiveWorkoutBroker.staleAfterSec 12; RouteLibrary detectionTriggerMeters 500 / matchToleranceMeters 30; WeatherService cacheTTL 30 min, minimumRequestInterval 10 min, 5_000 m; SavedRoute climb geocoding sleeps 600_000_000 ns; Concept2Manager.plausibleStrokePowerWatts 1...1_500; FootPodManager 1814/1826/2AD2; Zwift UUIDs and enableZwiftBroadcast default false; WorkoutThreshold defaults 30/120.",
+   "hash": "10d0c57584eadaf9",
+   "does": "Says per-subsystem behaviour: LiveDFAAnalyzer 2-min window every 20 s with a +/-20% Kubios-style filter (cleanRRForDFA); WorkoutAlpha1Reanalyzer replays the pipeline; TopoElevationService (Services/, through the HTTPTransport it is given) NED 10 m then SRTM 30 m with a 15 m climb threshold; WebSearchService not @MainActor, its request awaited through its HTTPTransport; HRRCaptureService 120 s capture with strap/Watch/HealthKit tiers, strap streaming kept alive through the capture window so Tier 1 has strap data; LiveWorkoutBroker treats snapshots >12 s as nil; RouteLibrary.findMatch after ~500 m, both directions, <=30 m mean distance, routes in App Group saved_routes.json with legacy migration; WeatherService MET Norway with >=10 min between requests, 30-min TTL, 5 km refetch; RoadGeocodingService 15 m/60 s, 8 failures/30 s, 600 ms per-climb pacing; Concept2Manager PM5 0x0031/0x0032/0x0036 with power outside 1-1500 W dropped; FootPodManager RSC 0x1814 plus FTMS 0x1826/0x2AD2; ZwiftPeripheralBroadcaster 0x180D/0x1818 gated by enableZwiftBroadcast; WorkoutThreshold debounce 30 s / cooldown 120 s with Bool? evaluate; WorkoutPDFReport maxPDFPoints 250. Code: LiveDFAAnalyzer init(windowSec: 120, cadenceSec: 20) and ectopicRatio 0.20; HRRCaptureService captureWindowSec 120; LiveWorkoutBroker.staleAfterSec 12; RouteLibrary detectionTriggerMeters 500 / matchToleranceMeters 30; WeatherService cacheTTL 30 min, minimumRequestInterval 10 min, 5_000 m; SavedRoute climb geocoding sleeps 600_000_000 ns; Concept2Manager.plausibleStrokePowerWatts 1...1_500; FootPodManager 1814/1826/2AD2; Zwift UUIDs and enableZwiftBroadcast default false; WorkoutThreshold defaults 30/120.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)",
     "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)",
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:transport:)",
     "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)",
     "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.update(heartRate:powerWatts:)",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.evaluate(hrBPM:hrZone:powerWatts:ftpWatts:paceSecPerKm:alpha1:cadenceSPM:distanceMeters:elapsedSec:elevationGainMeters:gradePercent:)",
@@ -1837,11 +1869,11 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)": "5656cbdeb6baee1a",
     "Emuqu/Sources/Analysis/RouteLibrary.swift::func RouteLibrary.findMatch(currentTrack:sport:store:)": "ef22a598a8881280",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)": "2662dacd6f0a9521",
     "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.reanalyze(session:windowSec:cadenceSec:minBeatsForFit:)": "3446776e2575bc4f",
     "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.update(heartRate:powerWatts:)": "88d1cd9b077c9eb7",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::func WorkoutThreshold.evaluate(hrBPM:hrZone:powerWatts:ftpWatts:paceSecPerKm:alpha1:cadenceSPM:distanceMeters:elapsedSec:elevationGainMeters:gradePercent:)": "e26f6460819ce7f2",
-    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.performLookup(at:enrichCrossStreet:)": "f1ca30241f252cbe"
+    "Emuqu/Sources/Services/RoadGeocodingService+Lookup.swift::func RoadGeocodingService.performLookup(at:enrichCrossStreet:)": "f1ca30241f252cbe",
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:transport:)": "863a874d96dcc48f"
    }
   },
   {
@@ -1927,17 +1959,17 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Fitness Tab — Workout Subsystem > Elevation: barometric signal processing for the headline total > Retroactive (sessions without barometric samples)",
-   "hash": "6f3f424d53ffd927",
+   "hash": "dd9a901606a5a14d",
    "does": "Says sessions that carry no barometric samples fall back to TopoElevationService DEM lookup (OpenTopoData NED 10 m for US / SRTM 30 m elsewhere) with a 15 m sustained-climb threshold. Code: TopoElevationService.elevations(sustainedClimbThreshold: 15.0).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)"
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:transport:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)": "2662dacd6f0a9521"
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:transport:)": "863a874d96dcc48f"
    }
   },
   {

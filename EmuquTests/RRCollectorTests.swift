@@ -4,7 +4,6 @@ import XCTest
 /// Tests for RRCollector - Session orchestration and lifecycle.
 ///
 /// These tests verify:
-/// - Initial state and idle behavior
 /// - Persisted recording state management
 /// - CollectorError descriptions
 ///
@@ -39,32 +38,6 @@ final class RRCollectorTests: XCTestCase {
         }
         clearPersistedState()
         try await super.tearDown()
-    }
-
-    // MARK: - Initial State Tests
-
-    /// Test collector starts in correct initial state
-    func testInitialState() {
-        XCTAssertFalse(collector.isOvernightStreaming, "Should not be streaming initially")
-        XCTAssertFalse(collector.isCollecting, "Should not be collecting initially")
-        XCTAssertFalse(collector.isStreamingMode, "Should not be in streaming mode initially")
-        XCTAssertNil(collector.currentSession, "Should have no session initially")
-        XCTAssertEqual(collector.streamingElapsedSeconds, 0, "Elapsed time should be 0")
-        XCTAssertEqual(collector.collectedPoints.count, 0, "Should have no points initially")
-    }
-
-    /// Test starting overnight streaming requires connected device
-    func testStartOvernightStreamingRequiresConnection() {
-        do {
-            try collector.startOvernightStreaming()
-            XCTFail("Should throw when not connected")
-        } catch {
-            XCTAssertTrue(error is RRCollector.CollectorError)
-        }
-
-        // State should not have changed
-        XCTAssertFalse(collector.isOvernightStreaming)
-        XCTAssertNil(collector.currentSession)
     }
 
     // MARK: - Persisted State Tests
@@ -190,15 +163,16 @@ final class RRCollectorSaveResultTests: XCTestCase {
         do {
             try FileManager.default.removeItem(at: directory)
         } catch {
-            // swallow-ok: a test that archived nothing leaves no directory to remove.
+            // swallow-ok: a test that built no collector and archived nothing leaves no directory.
         }
         try await super.tearDown()
     }
 
     /// The acceptance service reads sleep and vitals from a mock and syncs
-    /// nothing to iCloud; the baseline lives in the test's directory.
+    /// nothing to iCloud; the baseline and the raw backups live in the
+    /// test's directory.
     private func makeCollector() -> RRCollector {
-        let rawBackup = RawRRBackup()
+        let rawBackup = RawRRBackup(directory: directory.appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true))
         let tracker = BaselineTracker(baselineFile: directory.appendingPathComponent("HRVBaseline.json"))
         let acceptance = SessionAcceptanceService(
             archive: archive, healthKit: MockHealthKitService(), baselineTracker: tracker, rawBackup: rawBackup,

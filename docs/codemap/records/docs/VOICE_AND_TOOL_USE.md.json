@@ -192,19 +192,21 @@
   },
   {
    "key": "§ Voice Conversation & Tool Use > Adaptive routing (Quick / Auto / Deep / Manual) > Deterministic intent shortcut",
-   "hash": "23d756e0c294ff04",
-   "does": "Claims DeterministicIntent.tryMatch runs before any LLM call with a 14-pattern catalog (lists the ids), first match wins, no confidence gate, falling through when data is missing. Verified 14 ids at DeterministicIntent.swift:113-384 and tryMatch (410-421) called from AssistantViewModel.swift:458.",
+   "hash": "bedafd82d9754d52",
+   "does": "Claims AssistantViewModel.send checks DeterministicIntent.tryMatch before a voice turn goes to a model (not while a reply streams; typed turns skip it), with a 14-pattern catalog (lists the ids), first match wins, no confidence gate, falling through when data is missing; DeterministicIntentTests are example-based.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.normalize(_:)"
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.normalize(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.normalize(_:)": "e621833a515b3262",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "c2aeaf0df6675cea"
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "775d621e9e4bc2e9",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "72eb08e01b5dcafe"
    }
   },
   {
@@ -370,7 +372,7 @@
     "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.readTools1()": "6586f8878652b2d9",
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()": "6ca770cebbe02fbd",
     "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.authorityDomains(for:)": "2d1c9c7f522800b8",
-    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.search(query:intent:maxResults:)": "479a60cbe65de369"
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.search(query:intent:maxResults:)": "5572f55a4dab420a"
    }
   },
   {

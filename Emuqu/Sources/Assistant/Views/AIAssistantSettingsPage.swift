@@ -10,6 +10,8 @@ struct AIAssistantSettingsPage: View {
     @State var refreshToken = UUID()
     @State var newFactText: String = ""
     @State var showClearFactsConfirm = false
+    /// Set when Forget, or deleting a fact, could not erase what is stored.
+    @State var factChangeFailed = false
     @State var tavilyKeyDraft: String = ""
     @State var tavilyKeyShown: Bool = false
     @State var tavilyKeySaveFailed = false
@@ -19,11 +21,19 @@ struct AIAssistantSettingsPage: View {
             .navigationTitle(String(localized: "Flo", bundle: LanguageManager.appBundle))
             .navigationBarTitleDisplayMode(.inline)
             .alert(String(localized: "Forget everything?", bundle: LanguageManager.appBundle), isPresented: $showClearFactsConfirm) {
-                Button(String(localized: "Forget", bundle: LanguageManager.appBundle), role: .destructive) { facts.clear() }
+                Button(String(localized: "Forget", bundle: LanguageManager.appBundle), role: .destructive) { forgetEverything() }
                 Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
             } message: {
                 Text(String(localized: "The AI will lose all the cross-session notes you've added. Your chat history and recovery data are not affected.", bundle: LanguageManager.appBundle))
             }
+            .alert(String(localized: "Your change couldn't be saved. Try again.", bundle: LanguageManager.appBundle), isPresented: $factChangeFailed) {
+                Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
+            }
+    }
+
+    /// Erases every fact and set-aside copy; says so when something is left.
+    func forgetEverything() {
+        factChangeFailed = !facts.clear()
     }
 
     // MARK: - Per-provider feature-flag toggles

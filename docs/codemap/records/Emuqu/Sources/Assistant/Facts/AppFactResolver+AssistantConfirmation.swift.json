@@ -71,15 +71,17 @@
   },
   {
    "key": "func AssistantMemoryNamespace.clearAllMemory(store:context:)",
-   "hash": "0a67420e4f49f5db",
-   "does": "With no facts returns {cleared:false,count_before:0,note}. Otherwise gates on \"assistant.memory.clear\"/\"all\" with the question \"Delete all N saved memory facts?\"; once confirmed calls store.clearKeepingBackup() and returns {cleared:true,count_before,undo}.",
+   "hash": "6d356a496388ee55",
+   "does": "When store.hasAnythingToForget is false (no facts and no set-aside copy) returns {cleared:false,count_before:0,note} without asking. Otherwise gates on \"assistant.memory.clear\"/\"all\" with the question \"Delete all N saved memory facts?\" (or, with no facts but a set-aside copy, \"Delete the unreadable copy of your saved memory?\"); once confirmed calls store.clearKeepingBackup(): nil returns {cleared:false,count_before:N,note} saying the facts are all still stored; a count returns {cleared:true,count_before,undo}.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.hasAnythingToForget",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gate(action:target:question:)",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clearKeepingBackup()"
    ],
    "reads": [
     "mem:UserFactsStore.facts",
+    "mem:UserFactsStore.setAsideCopiesRemain",
     "mem:AssistantActionConfirmations.pending"
    ],
    "writes": [
@@ -91,24 +93,35 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "store has no facts",
+     "cond": "nothing to forget",
      "effect": "returns cleared:false without asking"
     },
     {
-     "at": "+6",
+     "at": "+5",
+     "cond": "count > 0",
+     "effect": "question names the N facts; else asks about the unreadable copy"
+    },
+    {
+     "at": "+8",
      "cond": "gate returned a result (not yet confirmed)",
-     "effect": "returns it, nothing erased; else clears with backup"
+     "effect": "returns it, nothing erased"
+    },
+    {
+     "at": "+9",
+     "cond": "clearKeepingBackup() returned nil (erase failed)",
+     "effect": "returns cleared:false with a try-again note; else cleared:true with the erased count"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clearKeepingBackup()": "d8850c6e9b7dbc9d",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clearKeepingBackup()": "0d56d2132b416b5d",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.hasAnythingToForget": "f2c09810ce6a5ae5",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gate(action:target:question:)": "897cf5f4f388f1f2"
    }
   },
   {
    "key": "func AssistantMemoryNamespace.removeMemoryFact(id:store:context:)",
-   "hash": "c9d2b377f6b9e742",
-   "does": "Finds the fact by id (missing notRecorded when absent), gates on \"assistant.memory.remove\"/id with the question naming the fact text; once confirmed calls store.remove(id) and returns {removed:true,id,text}.",
+   "hash": "3af6fc69364337d3",
+   "does": "Finds the fact by id (missing notRecorded when absent), gates on \"assistant.memory.remove\"/id with the question naming the fact text; once confirmed calls store.remove(id): false returns {removed:false,id,note} saying the fact is still stored; true returns {removed:true,id,text}.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gate(action:target:question:)",
@@ -132,11 +145,16 @@
     {
      "at": "+5",
      "cond": "gate returned a result (not yet confirmed)",
-     "effect": "returns it, nothing removed; else removes"
+     "effect": "returns it, nothing removed"
+    },
+    {
+     "at": "+6",
+     "cond": "store.remove(id) returned false",
+     "effect": "returns removed:false with a try-again note; else removed:true"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)": "5f671f580b979f5b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)": "959a11cea7fa2e44",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gate(action:target:question:)": "897cf5f4f388f1f2"
    }
   },

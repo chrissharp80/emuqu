@@ -347,11 +347,12 @@ extension WindowSelector {
         return sortedOrganized
     }
 
-    /// Consolidated = organized AND HR CV under the unstable threshold. Every
-    /// candidate already survived the spike filter; without a per-window
-    /// LF/HF (production) an organized block is always HR-stable too.
+    /// Consolidated = `ScoredRecoveryBlock.isConsolidatedRecovery` (organized
+    /// AND HR CV under the unstable threshold). Every candidate already
+    /// survived the spike filter; without a per-window LF/HF (production) an
+    /// organized block is always HR-stable too.
     private func recoveryWindow(from finalBlock: ScoredRecoveryBlock) -> RecoveryWindow {
-        let isConsolidated = finalBlock.hrCV < RecoveryWindow.unstableCVThreshold
+        let isConsolidated = finalBlock.isConsolidatedRecovery
         logSelectedWindow(
             finalBlock: finalBlock,
             positionPercent: Int(finalBlock.relativePosition * 100),
@@ -640,7 +641,6 @@ extension WindowSelector {
 
     func buildPeakRecoveryWindow(finalBlock: ScoredRecoveryBlock, metric: OptimizationMetric) -> RecoveryWindow {
         let isOrganized = finalBlock.isOrganizedRecovery
-        let isConsolidated = isOrganized && finalBlock.hrCV < RecoveryWindow.unstableCVThreshold
         return RecoveryWindow(
             startIndex: finalBlock.startIndex, endIndex: finalBlock.endIndex,
             startMs: finalBlock.startMs, endMs: finalBlock.endMs,
@@ -651,7 +651,7 @@ extension WindowSelector {
             selectionReason: peakSelectionReason(finalBlock: finalBlock, metric: metric),
             relativePosition: finalBlock.relativePosition,
             recoveryScore: finalBlock.recoveryScore(stabilityWeight: config.stabilityWeight),
-            isConsolidated: isConsolidated, dfaAlpha1: finalBlock.dfaAlpha1,
+            isConsolidated: finalBlock.isConsolidatedRecovery, dfaAlpha1: finalBlock.dfaAlpha1,
             lfHfRatio: finalBlock.lfHfRatio, isOrganizedRecovery: isOrganized,
             windowClassification: finalBlock.classification
         )
@@ -772,8 +772,6 @@ extension WindowSelector {
 
     private func manualRecoveryWindow(from block: ScoredRecoveryBlock) -> RecoveryWindow {
         let isOrganized = block.isOrganizedRecovery
-        // Manual selections use organization status for consolidation
-        let isConsolidated = isOrganized && block.hrCV < RecoveryWindow.unstableCVThreshold
         return RecoveryWindow(
             startIndex: block.startIndex, endIndex: block.endIndex,
             startMs: block.startMs, endMs: block.endMs,
@@ -784,7 +782,7 @@ extension WindowSelector {
             selectionReason: manualSelectionReason(for: block),
             relativePosition: block.relativePosition,
             recoveryScore: block.recoveryScore(stabilityWeight: config.stabilityWeight),
-            isConsolidated: isConsolidated,
+            isConsolidated: block.isConsolidatedRecovery,
             dfaAlpha1: block.dfaAlpha1, lfHfRatio: block.lfHfRatio,
             isOrganizedRecovery: isOrganized, windowClassification: block.classification
         )

@@ -49,8 +49,9 @@ final class WatchStrapConnector: NSObject, ObservableObject {
     static let shared = WatchStrapConnector()
 
     /// The session manager that receives direct-strap heart rate. Set once
-    /// by `WatchApp.init()`, the Watch target's composition root, before any
-    /// view exists; the connector does not reach for a singleton itself.
+    /// by `WatchApp.init()`, from the Watch target's composition root
+    /// (`WatchDependencies`), before any view exists; the connector does not
+    /// reach for a singleton itself.
     private weak var sessionManager: WatchSessionManager?
 
     // MARK: - Published UI state

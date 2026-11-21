@@ -392,8 +392,10 @@ extension EmuquApp {
     /// periodic — they self-terminate via UserDefaults flag). The one-shot
     /// session-data repairs that follow are each gated by a UserDefaults flag
     /// after a successful run. The archive job also applies the 90-day Trash
-    /// retention: each expired deleted session is permanently deleted (the
-    /// trashed file, the raw backup here and in iCloud, the deletion mark).
+    /// retention: each expired deleted session is permanently deleted
+    /// (`SessionRecoveryCoordinator.permanentlyDelete`: its breadcrumb route,
+    /// trashed file, raw backup here and in iCloud, and its HRV in Apple
+    /// Health; the deletion mark once iCloud has confirmed it).
     private func scheduleMigrationJobs(lowPower: Bool) {
         // Sendable locals for the detached launch jobs (avoid capturing the
         // non-Sendable App `self`).
@@ -404,9 +406,7 @@ extension EmuquApp {
             NSLog("[App][bg] archive migrations — start")
             archiveRef.upgradeExistingFileProtection()
             archiveRef.runDeferredMigrations()
-            for id in archiveRef.expiredDeletionIds() {
-                await collectorJob.permanentlyDelete(id)
-            }
+            await collectorJob.permanentlyDelete(archiveRef.expiredDeletionIds())
             NSLog("[App][bg] archive migrations — done")
         }
         coord.run(phase: .housekeeping, priority: .background, skipInLowPower: false, lowPower: lowPower) {

@@ -56,7 +56,15 @@ final class SessionAcceptanceService {
     /// and `forOvernightSessionSeconds`.
     struct HRVQualityDecision {
         let dataQuality: HRVDataQuality
-        let useBaselineHRV: Bool
+
+        /// Whether the score substitutes the baseline for this recording's
+        /// HRV: exactly when the quality keeps the reading out of HRV
+        /// aggregates (`.insufficient`, `.preSleep`). The re-score paths
+        /// derive the same flag from the stored quality through
+        /// `HRVSession.isReliableForHRVAggregates`, so both read one rule.
+        var useBaselineHRV: Bool {
+            !HRVDataQuality.allowsHRVAggregates(dataQuality)
+        }
     }
 
     static func classifyHRVQuality(
@@ -74,18 +82,18 @@ final class SessionAcceptanceService {
         }
         guard overlapsSleep(sleepData, recordingStart: recordingStart, recordingEnd: recordingEnd) else {
             debugLog("[SessionAcceptanceService] HRV recording doesn't overlap sleep — using baseline HRV")
-            return HRVQualityDecision(dataQuality: .preSleep, useBaselineHRV: true)
+            return HRVQualityDecision(dataQuality: .preSleep)
         }
         let longEnough = sessionDuration >= HRVConstants.MinimumDuration.forOvernightSessionSeconds
         guard rmssd >= baselineRmssd || longEnough else {
             // RMSSD and baseline are PHI and debugLog is user-exportable.
             debugLog("[SessionAcceptanceService] Short session (\(Int(sessionDuration))s) with RMSSD below baseline — using baseline HRV")
-            return HRVQualityDecision(dataQuality: .insufficient, useBaselineHRV: true)
+            return HRVQualityDecision(dataQuality: .insufficient)
         }
         if !longEnough {
             debugLog("[SessionAcceptanceService] Short session (\(Int(sessionDuration))s) but RMSSD at or above baseline — trusting it")
         }
-        return HRVQualityDecision(dataQuality: .good, useBaselineHRV: false)
+        return HRVQualityDecision(dataQuality: .good)
     }
 
     /// No sleep data means we cannot determine overlap — trust the HRV as-is.
@@ -136,7 +144,7 @@ final class SessionAcceptanceService {
         } else {
             debugLog("[SessionAcceptanceService] No organized recovery in \(Int(sessionDuration / 60))min session with RMSSD below baseline — didn't reach recovery zone, using baseline HRV")
         }
-        return HRVQualityDecision(dataQuality: .insufficient, useBaselineHRV: true)
+        return HRVQualityDecision(dataQuality: .insufficient)
     }
 
     /// The training context to freeze alongside the score.

@@ -100,10 +100,10 @@
    }
   },
   {
-   "key": "init SavedRouteStore()",
-   "hash": "14c1670fea0be722",
-   "does": "Migrates the legacy Application Support file into the App Group if needed, sets up the writer, loads the library, and installs an unlock observer when the file could not be read (an undecodable file is set aside by load and does not block).",
-   "entry": "Lazy static SavedRouteStore.shared initialisation on first access.",
+   "key": "init SavedRouteStore(storeURL:)",
+   "hash": "86f51cae4036475d",
+   "does": "Uses storeURL when given (tests; no migration), otherwise the App Group saved_routes.json after migrating the legacy Application Support file if needed; sets up the writer, loads the library, and installs an unlock observer when the file could not be read (an undecodable file is set aside by load and does not block).",
+   "entry": "Lazy static SavedRouteStore.shared initialisation on first access; XCTest (StoredItemDeleteTests) with its own file.",
    "calls": [
     "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.migrateLegacyStoreIfNeeded(to:)",
@@ -117,6 +117,11 @@
    "writes": [],
    "branches": [
     {
+     "at": "+2",
+     "cond": "storeURL == nil",
+     "effect": "migrate the legacy file into the App Group"
+    },
+    {
      "at": "+6",
      "cond": "loadFailed after load",
      "effect": "install protected-data observer to retry; otherwise none"
@@ -124,7 +129,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.installProtectedDataObserver()": "39f32751713cd669",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.load()": "64cb681d122cb854",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.load()": "728fd1ae892e8277",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.migrateLegacyStoreIfNeeded(to:)": "5af40efa317de231",
     "Emuqu/Sources/Models/SavedRoute.swift::init LatestWinsFileWriter(url:options:label:)": "ff6d7d9df5fa4798",
     "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()": "cf6b353e36f53586"
@@ -237,7 +242,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.load()": "64cb681d122cb854",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.load()": "728fd1ae892e8277",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d"
    }
   },
@@ -330,28 +335,37 @@
   },
   {
    "key": "func SavedRouteStore.remove(id:)",
-   "hash": "921ebf48be818c33",
-   "does": "Returns false and changes nothing while the library cannot be read (isLibraryReadable, which retries the read); otherwise removes all routes with `id`, saves (even when nothing matched) and returns true.",
+   "hash": "264236727eacba6d",
+   "does": "Returns false and changes nothing while the library cannot be read (isLibraryReadable, which retries the read). Otherwise writes the library without the route at once through writer.replaceNow, which first removes the saved_routes.undecodable.json set-aside copy; on success sets routes and returns true, on failure leaves routes unchanged and returns false (the route is still stored). Discardable result.",
    "entry": "Called from SavedRoutesPage.swipeActions and SettingsView+Pages (both ignore the result).",
    "calls": [
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.isLibraryReadable()",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.replaceNow(with:removing:)"
    ],
-   "reads": [],
-   "writes": [
+   "reads": [
     "mem:SavedRouteStore.routes"
+   ],
+   "writes": [
+    "mem:SavedRouteStore.routes",
+    "file:<AppGroup>/saved_routes.json",
+    "file:<AppGroup>/saved_routes.undecodable.json (removed)"
    ],
    "branches": [
     {
-     "at": "+3",
+     "at": "+2",
      "cond": "library unreadable",
      "effect": "return false, nothing changed"
+    },
+    {
+     "at": "+5",
+     "cond": "replaceNow failed",
+     "effect": "return false, routes unchanged"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.replaceNow(with:removing:)": "46130e4c9e265b47",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.isLibraryReadable()": "67d78c19651e692b",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.save()": "81e0655a6ab22a9c"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d"
    }
   },
   {
@@ -525,17 +539,17 @@
   },
   {
    "key": "func SavedRouteStore.load()",
-   "hash": "7bb07e7631c5e3f2",
-   "does": "Loads saved_routes.json: absent file clears loadFailed; a read error sets loadFailed (logged, routes kept) so saves are blocked; an undecodable file is set aside as saved_routes.undecodable.json and loadFailed cleared (blocked only if the copy fails); success replaces routes.",
+   "hash": "26026776707c0e87",
+   "does": "Loads saved_routes.json: absent file clears loadFailed; a read error sets loadFailed (logged, routes kept) so saves are blocked; bytes read go to adoptStoredLibrary (opened with the app's key and decoded; key locked → saves blocked; bytes that do not open or decode set aside as saved_routes.undecodable.json, blocked only if the copy fails; success replaces routes).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.setAsideUndecodable(_:reason:)",
-    "ext:Data(contentsOf:)",
-    "ext:JSONDecoder.decode"
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.adoptStoredLibrary(_:)",
+    "ext:Data(contentsOf:)"
    ],
    "reads": [
-    "file:<AppGroup>/saved_routes.json"
+    "file:<AppGroup>/saved_routes.json",
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
    ],
    "writes": [
     "mem:SavedRouteStore.routes",
@@ -552,16 +566,49 @@
      "at": "+8",
      "cond": "read throws",
      "effect": "loadFailed=true, warning logged, return"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.adoptStoredLibrary(_:)": "89ea1f791e80d622",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func SavedRouteStore.adoptStoredLibrary(_:)",
+   "hash": "de87dbf5ea742d0c",
+   "does": "Opens the bytes with the app's key (JSONFileSeal.app: sealed bytes decrypted, plain JSON from builds that did not seal the file passed through) and decodes [SavedRoute] into routes, clearing loadFailed. When the keychain refuses the key: loadFailed=true (saves blocked; retried on protectedDataDidBecomeAvailable and before a change), logged. Any other open or decode error: the file is set aside as saved_routes.undecodable.json; loadFailed = whether that copy failed.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.isKeyLocked(_:)",
+    "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.setAsideUndecodable(_:reason:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+   ],
+   "writes": [
+    "mem:SavedRouteStore.routes",
+    "mem:SavedRouteStore.loadFailed",
+    "file:<AppGroup>/saved_routes.undecodable.json"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "open throws with the key locked",
+     "effect": "loadFailed=true, warning logged; nothing set aside"
     },
     {
-     "at": "+16",
-     "cond": "decode throws",
-     "effect": "loadFailed = copy aside failed; otherwise (decoded) routes replaced, loadFailed=false"
+     "at": "+7",
+     "cond": "open or decode throws otherwise",
+     "effect": "loadFailed = the copy aside failed"
     }
    ],
    "deps": {
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.routes(for:)": "c48e9eb838d4c96d",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.setAsideUndecodable(_:reason:)": "8666c407bee1cce0",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.isKeyLocked(_:)": "7c29c0d5a06f281b",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)": "31bc2aea46cfe8ad",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -653,7 +700,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.drain()": "a88a3306043be50f"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.drain()": "2cece9b002341176"
    }
   },
   {
@@ -670,27 +717,75 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.removeFile()": "fb714bc785f8eb14"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.removeFile()": "dd0d470c3049071b"
+   }
+  },
+  {
+   "key": "func LatestWinsFileWriter.replaceNow(with:removing:)",
+   "hash": "dd2b0a451c23ebce",
+   "does": "Synchronously on the writer's serial queue (after any write running or queued): removes staleCopy, then writes value (write(_:)); when both succeed drops the pending snapshot (older than value) and returns true; otherwise returns false, the pending snapshot left as it was.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.removeIfPresent(_:label:)",
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.write(_:)",
+    "ext:DispatchQueue.sync"
+   ],
+   "reads": [
+    "mem:LatestWinsFileWriter.pending"
+   ],
+   "writes": [
+    "file:<label file>",
+    "file:<set-aside copy> (removed)",
+    "mem:LatestWinsFileWriter.pending"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "copy removal or write failed",
+     "effect": "return false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.removeIfPresent(_:label:)": "51a9bcf71432dac3",
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.write(_:)": "c2753dbc9732a261"
    }
   },
   {
    "key": "func LatestWinsFileWriter.removeFile()",
-   "hash": "96edc4a180683615",
-   "does": "Deletes the writer's file when it exists; a failure is logged via attempt.",
+   "hash": "cac1b4ce102669a9",
+   "does": "Deletes the writer's file when it exists (removeIfPresent); a failure is logged.",
    "entry": "Runs on the writer's serial DispatchQueue, queued by discard().",
    "calls": [
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "ext:FileManager.removeItem"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.removeIfPresent(_:label:)"
    ],
    "reads": [],
    "writes": [
     "file:<label file>"
    ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.removeIfPresent(_:label:)": "51a9bcf71432dac3"
+   }
+  },
+  {
+   "key": "func LatestWinsFileWriter.removeIfPresent(_:label:)",
+   "hash": "28ee8d608ae4abfd",
+   "does": "Removes target when it exists; true when nothing is left there, false when removal failed (logged via attempt). Discardable result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.removeItem",
+    "ext:FileManager.fileExists"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<target> (removed)"
+   ],
    "branches": [
     {
-     "at": "+1",
+     "at": "+2",
      "cond": "file absent",
-     "effect": "return"
+     "effect": "return true"
     }
    ],
    "deps": {
@@ -699,15 +794,17 @@
   },
   {
    "key": "func LatestWinsFileWriter.drain()",
-   "hash": "8efa7a57d8e9217b",
-   "does": "Takes and clears the pending snapshot; if present, JSON-encodes and writes it with the configured options; errors logged via attempt.",
+   "hash": "bf388acb40824aeb",
+   "does": "Takes and clears the pending snapshot; if present, writes it through write(_:) (sealed); a failure is logged only.",
    "entry": "Runs on the private serial DispatchQueue from enqueue.",
    "calls": [
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "ext:Data.write"
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.write(_:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:LatestWinsFileWriter.pending"
+   ],
    "writes": [
+    "mem:LatestWinsFileWriter.pending",
     "file:<label file>"
    ],
    "branches": [
@@ -715,14 +812,37 @@
      "at": "+1",
      "cond": "a snapshot is pending",
      "effect": "write it; otherwise return (coalesced)"
-    },
-    {
-     "at": "+5",
-     "cond": "encode succeeded",
-     "effect": "write; otherwise return with error logged only"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Models/SavedRoute.swift::func LatestWinsFileWriter.write(_:)": "c2753dbc9732a261"
+   }
+  },
+  {
+   "key": "func LatestWinsFileWriter.write(_:)",
+   "hash": "66564249b83fa0de",
+   "does": "Encodes value as JSON and seals it with the app's key (JSONFileSeal.app.sealJSON), then writes it with the configured options. True on success; false (logged via attempt) when sealing or writing failed, leaving the file as it was. Discardable result.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)",
+    "ext:Data.write"
+   ],
+   "reads": [
+    "kc:session-encryption-key"
+   ],
+   "writes": [
+    "file:<label file>"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "seal fails",
+     "effect": "return false, nothing written"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)": "506794a8a13263fb",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   }

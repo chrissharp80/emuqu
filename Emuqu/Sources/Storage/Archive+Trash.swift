@@ -108,21 +108,30 @@ extension ArchiveStore {
         }
     }
 
-    /// Removes the Trash file and, for a deleted session, the `<id>.json` a
-    /// failed delete left in the archive folder (`removeLeftover`). All under
-    /// `archiveLock`, so a write of the session between the index check and a
-    /// removal cannot have its file deleted. A session then not in the index
-    /// whose file this removed, or which is tombstoned, and which has no
-    /// quarantined copy, leaves the re-encryption queue; an id with neither a
-    /// copy nor a tombstone stays queued (it may be another archive's).
-    func discardTrashed(_ id: UUID) {
+    /// Removes, under `archiveLock`, the `<id>.json` a failed delete left in
+    /// the archive folder (`removeLeftover`) and then the Trash file, so a
+    /// write of the session between the index check and a removal cannot have
+    /// its file deleted. The leftover goes first: when either removal fails,
+    /// the Trash file is still there and the session stays listed in the
+    /// Trash. A session the index lists keeps its file; only its Trash file
+    /// goes. A session not in the index whose Trash file this removed, or
+    /// which is tombstoned, and which has no quarantined copy, leaves the
+    /// re-encryption queue; an id with neither a copy nor a tombstone stays
+    /// queued (it may be another archive's).
+    ///
+    /// True when neither file is left. False when one could not be removed
+    /// (logged), or the leftover is kept because it may be a live file.
+    @discardableResult
+    func discardTrashed(_ id: UUID) -> Bool {
         archive.archiveLock.lock()
         defer { archive.archiveLock.unlock() }
-        let hadTrashFile = archive.fileManager.fileExists(atPath: trashURL(for: id).path)
-        guard removeQuietly(trashURL(for: id), id: id), entryById(id) == nil else { return }
+        let trashFile = trashURL(for: id)
+        guard entryById(id) == nil else { return removeQuietly(trashFile, id: id) }
+        let hadTrashFile = archive.fileManager.fileExists(atPath: trashFile.path)
         let tombstoned = archive.deletedSessionIds.contains(id)
-        guard removeLeftover(of: id, tombstoned: tombstoned) else { return }
+        guard removeLeftover(of: id, tombstoned: tombstoned), removeQuietly(trashFile, id: id) else { return false }
         if hadTrashFile || tombstoned, parkedCopies(of: id)?.isEmpty == true { PendingEncryptionLedger.clear(id) }
+        return true
     }
 
     /// The `<id>.json` a failed delete left in the archive folder, removed
@@ -137,7 +146,6 @@ extension ArchiveStore {
     }
 
     /// Removes `url` if it is there; false (logged) when the removal failed.
-    @discardableResult
     private func removeQuietly(_ url: URL, id: UUID) -> Bool {
         guard archive.fileManager.fileExists(atPath: url.path) else { return true }
         do {
@@ -147,5 +155,27 @@ extension ArchiveStore {
             debugLog("[Archive] ⚠️ Could not remove \(url.lastPathComponent) of deleted session \(id.uuidString.prefix(8)): \(error)", level: .warning)
             return false
         }
+    }
+}
+
+/// Sessions the user deleted forever on this device. Neither pull brings
+/// back a copy iCloud still holds of one (a session record or a live backup),
+/// and the orphan scan does not adopt a file of one. Kept in `UserDefaults`,
+/// the most recent `limit` ids. An id that drops off the end is still covered
+/// by its iCloud tombstone: a deletion mark is forgotten only once iCloud has
+/// confirmed it (`CloudDeletionCoordinator.tombstoneIsSettled`).
+enum ForgottenSessions {
+    static let defaultsKey = "sessionRecovery.forgottenBackupIds"
+    private static let limit = 500
+
+    static var ids: Set<UUID> {
+        Set((UserDefaults.standard.stringArray(forKey: defaultsKey) ?? []).compactMap(UUID.init(uuidString:)))
+    }
+
+    /// Adds `id` as the most recent, dropping the oldest beyond `limit`.
+    static func remember(_ id: UUID) {
+        let defaults = UserDefaults.standard
+        let kept = (defaults.stringArray(forKey: defaultsKey) ?? []).filter { $0 != id.uuidString }
+        defaults.set(Array((kept + [id.uuidString]).suffix(limit)), forKey: defaultsKey)
     }
 }

@@ -8,8 +8,8 @@
  "units": [
   {
    "key": "func archiveWriteOptions(for:sessionID:)",
-   "hash": "4f6effac0eb0f9ec",
-   "does": "Returns write options for a disk format and, as a side effect, clears (encrypted) or records (plaintext) the session id in PendingEncryptionLedger: encrypted → [.atomic, .completeFileProtectionUntilFirstUserAuthentication]; plaintext → [.atomic, .completeFileProtection]. Every archive writer calls it through writeArchiveBytes, which puts the ledger entry back when the write then throws.",
+   "hash": "70861bcb0b82c821",
+   "does": "Returns write options for a disk format and, as a side effect, clears (encrypted) or records (plaintext) the session id in PendingEncryptionLedger: encrypted → [.atomic, .completeFileProtectionUntilFirstUserAuthentication]; plaintext → [.atomic, .completeFileProtectionUnlessOpen], a class a file can be created in while the device is locked and that cannot be reopened until it is unlocked. Every archive writer calls it through writeArchiveBytes, which puts the ledger entry back when the write then throws.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)",
@@ -28,7 +28,7 @@
     {
      "at": "+8",
      "cond": "case .plaintextPendingEncryption",
-     "effect": "record ledger entry, return completeFileProtection options"
+     "effect": "record ledger entry, return completeFileProtectionUnlessOpen options"
     }
    ],
    "deps": {
@@ -39,7 +39,7 @@
   {
    "key": "func isPendingPlaintextSessionFile(_:pending:)",
    "hash": "9eebba2d4dac9853",
-   "does": "True when the last path component of filename has the extension json or session and starts with a UUID that is in pending: a copy of a session written in plaintext (its <id>.json, its Trash/<id>.session, or a duplicate quarantined as <id>.json or <id>.<stamp>.json) whose .completeFileProtection the launch protection walk must not lower.",
+   "does": "True when the last path component of filename has the extension json or session and starts with a UUID that is in pending: a copy of a session written in plaintext (its <id>.json, its Trash/<id>.session, or a duplicate quarantined as <id>.json or <id>.<stamp>.json) whose .completeFileProtectionUnlessOpen the launch protection walk must not lower.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -85,7 +85,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "e97adee60a9352fe",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "d11072f0ae247cd7",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "d45edfb391017e71",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "e211f6c61a83cb74",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending": "3a3880893754edfe"
@@ -323,7 +323,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)": "d617abae8ea527b1",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "2bebe4b4224a2d06",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "0b3ffc735a23d053",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",

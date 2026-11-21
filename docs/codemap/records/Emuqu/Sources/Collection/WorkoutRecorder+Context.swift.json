@@ -706,9 +706,9 @@
    }
   },
   {
-   "key": "func WorkoutAIContextBuilder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:)",
-   "hash": "f89ff9f2699fa19c",
-   "does": "Archives a finished workout track as a BreadcrumbTrail: origin = first fix, later fixes decimated (25 m / 30 s), skipped when fewer than 2 fixes, labelled \"<sport> on <date>\", written via BreadcrumbStore.archive (async JSON file write) and logged.",
+   "key": "func WorkoutAIContextBuilder.archiveWorkoutTrackAsBreadcrumbTrail(track:sport:start:sessionId:)",
+   "hash": "4f8a0c1cc06a94e5",
+   "does": "Archives a finished workout track as a BreadcrumbTrail: origin = first fix, later fixes decimated (25 m / 30 s), skipped when fewer than 2 fixes, labelled \"<sport> on <date>\", marked isWorkoutTrack (the archive cap evicts these first) and carrying the workout's sessionId (so deleting the workout forever removes it), written via BreadcrumbStore.archive (async JSON file write) and logged.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbFix(from:)",
@@ -723,17 +723,17 @@
    ],
    "branches": [
     {
-     "at": "+5",
+     "at": "+6",
      "cond": "track empty",
      "effect": "returns"
     },
     {
-     "at": "+10",
+     "at": "+11",
      "cond": "fewer than 2 fixes after decimation",
      "effect": "returns without archiving"
     },
     {
-     "at": "+19",
+     "at": "+18",
      "cond": "label nil",
      "effect": "?? \"\" in log"
     }

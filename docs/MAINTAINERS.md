@@ -534,15 +534,17 @@ to the deep-flow doc ([`FLOWCHART.md`](FLOWCHART.md)) for the exhaustive version
 
 ### 7.1 App launch & navigation
 
-1. `EmuquApp` (`Emuqu/EmuquApp.swift`, started by `@main enum EmuquMain`) creates the shared
+1. `EmuquApp` (`Emuqu/EmuquApp.swift`, started by `@main enum EmuquMain`) holds the shared
    observable graph as `@State` objects and injects it via `.environment`: `collector`
    (`RRCollector.makeDefault()`) + its five sub-objects, `syncManager`,
    `settingsManager`, `storeKitManager`, `languageManager`, `voiceChat`,
-   `watchBridge`, `emailBridge`.
+   `watchBridge`, `emailBridge`. Every one but `collector` is taken from the
+   composition root, `AppDependencies.current`; each is built through
+   `launchStep`, which logs and signposts its construction.
 2. **Singleton inits stay lightweight**; heavy hardware/network setup is deferred
    to `boot()` methods fired after first paint via `runDeferredBoot()`
-   (`Emuqu/Sources/Services/AppLaunchTasks.swift`). An 8 s safety timeout force-clears the splash if a
-   background init hangs.
+   (`Emuqu/Sources/Services/AppLaunchTasks.swift`). There is no launch-hang timeout:
+   `MainTabView` renders from the first frame.
 3. `MainTabView` always renders; **launch gating** is a `LaunchModal` enum
    (`EmuquApp.swift`) presented over it via `.fullScreenCover(item:)`. Order
    in `loadDataAndContinue()` (`Emuqu/Sources/Services/AppLaunchTasks.swift`): disclaimer not accepted →
@@ -628,9 +630,10 @@ Full version: [`FLO_ARCHITECTURE.md` §3](FLO_ARCHITECTURE.md) and
 
 1. **Input** — chip/type/dictate → `AssistantViewModel.send(text:fromVoice:)`.
    On first send of a session, Apple Foundation model is prewarmed.
-2. **Deterministic shortcut** — `DeterministicIntent.tryMatch` catches the
-   ~15 highest-frequency factual queries with a fact-catalog read + template,
-   **zero tokens**, before any LLM call.
+2. **Deterministic shortcut** — for a voice turn while no reply is streaming,
+   `DeterministicIntent.tryMatch` catches the 14 highest-frequency factual
+   queries with a fact-catalog read + template, **zero tokens**, before the
+   consent check and any LLM call.
 3. **Route** — `dispatch()` calls `resolveProviderForThisTurn()`
    (`AssistantViewModel+Routing.swift`, pure core in `TurnRouter`). The
    `RoutingMode` acts only while Apple Intelligence is the selected model; with
@@ -1284,9 +1287,10 @@ lists them all as possible callers, and only certain edges trigger re-checks.
   with Xcode 26.6 selected (`xcode-select -s /Applications/Xcode_26.6.app`). Jobs 3, 4 and 5 skip at the `gates` scope.
   - **Job 1 `lint-and-budgets`** — SwiftLint (0 errors, warnings under budget),
     tech-debt budgets, budget monotonicity, copy-perimeter, Info.plist drift,
-    Sendable guard, SBOM drift, log redaction, localization coverage,
-    localization bundle reachability, localization resolution, UI-test
-    fresh-install reset, skip budget, fixed-font budget, orphan-Swift guard.
+    Sendable guard, SBOM drift, pinned package versions, log redaction,
+    localization coverage, localization bundle reachability, localization
+    resolution, UI-test fresh-install reset, skip budget, fixed-font budget,
+    orphan-Swift guard.
   - **Job 2 `strict-concurrency`** — proves every build configuration is in
     Swift 6 language mode with `SWIFT_STRICT_CONCURRENCY = complete` and that
     warnings are errors. The compiler is the gate; this job only makes sure
@@ -1400,7 +1404,7 @@ migrate a type to `@Observable`, lower the matching budget in the same change.
 
 ### Tests
 
-- **`EmuquTests/`** (~256 files): deep unit coverage of analysis/scoring/sleep/
+- **`EmuquTests/`** (~267 files): deep unit coverage of analysis/scoring/sleep/
   AI-routing/collector-state/persistence/sync. Shared `EmuquTests/Helpers/TestHelpers.swift`
   + `Mocks/` (MockHealthKitService). Includes `WatchMessageDecodingTests`,
   which covers the phone → Watch `WCSession` contract via
@@ -1414,7 +1418,7 @@ migrate a type to `@Observable`, lower the matching budget in the same change.
 - **`Emuqu.xctestplan`**: single config, coverage on, **random execution order**.
 
 Notable AI-quality gates: `CapabilityClassifierTests` (routing precision),
-`DeterministicIntentTests` (95 % precision contract), `MedicalQueryGuardTests`,
+`DeterministicIntentTests` (example utterances that must and must not match, run through `DeterministicIntent.matchedPattern`), `MedicalQueryGuardTests`,
 `FactCatalogValidationTests`.
 
 ---

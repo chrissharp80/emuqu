@@ -98,6 +98,7 @@ final class RRCollectorStateMachineTests: XCTestCase {
         XCTAssertFalse(collector.isStreamingMode, "Should not be in streaming mode initially")
         XCTAssertFalse(collector.isCollecting, "Should not be collecting initially")
         XCTAssertFalse(collector.needsAcceptance, "Should not need acceptance initially")
+        XCTAssertEqual(collector.collectedPoints.count, 0, "Should have no points initially")
     }
 
     // MARK: - Invalid State Transition Tests
@@ -155,6 +156,8 @@ final class RRCollectorStateMachineTests: XCTestCase {
                 "Should throw CollectorError, got: \(error)"
             )
         }
+        XCTAssertFalse(collector.isOvernightStreaming, "A refused start must not change state")
+        XCTAssertNil(collector.currentSession, "A refused start must not create a session")
     }
 
     /// Test state remains idle after all failed transitions

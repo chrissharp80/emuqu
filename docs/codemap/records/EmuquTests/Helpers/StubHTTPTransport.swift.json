@@ -1,0 +1,65 @@
+{
+ "file": "EmuquTests/Helpers/StubHTTPTransport.swift",
+ "hash": "918f3a906a45109f",
+ "role": "Test helper shared by the web-API client tests: an actor that answers every request with one canned status, body and headers and records the requests it was sent, exposing itself as an HTTPTransport.",
+ "types": [
+  "StubHTTPTransport: actor — canned-reply HTTP transport that records requests"
+ ],
+ "state": [
+  "mem:StubHTTPTransport.status/body/headers (the canned reply)",
+  "mem:StubHTTPTransport.requests (every request sent, in order)"
+ ],
+ "toplevel": "",
+ "units": [
+  {
+   "key": "init StubHTTPTransport(status:body:headers:)",
+   "hash": "a7b0d804c5115a11",
+   "does": "Stores the canned reply: status (default 200), body and headers (default none).",
+   "entry": "Called by OverpassClientTests, MetNorwayForecastTests, TopoElevationServiceTests and WebSearchServiceTests.",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:StubHTTPTransport.status/body/headers"
+   ],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "var StubHTTPTransport.transport",
+   "hash": "436415e618daa32c",
+   "does": "Returns an HTTPTransport whose send hops onto the actor and calls respond(to:).",
+   "entry": "Read by the tests that construct a client under test.",
+   "calls": [
+    "EmuquTests/Helpers/StubHTTPTransport.swift::func StubHTTPTransport.respond(to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/Helpers/StubHTTPTransport.swift::func StubHTTPTransport.respond(to:)": "9999d0e99b603476"
+   }
+  },
+  {
+   "key": "func StubHTTPTransport.respond(to:)",
+   "hash": "b1a2067b4082aa19",
+   "does": "Appends the request to `requests`, then returns (body, HTTPURLResponse for the request's URL with the canned status and headers); throws URLError(.badURL) when the request has no URL or the response cannot be built.",
+   "entry": "Called by the send closure of `transport` when the client under test sends.",
+   "calls": [],
+   "reads": [
+    "mem:StubHTTPTransport.status/body/headers"
+   ],
+   "writes": [
+    "mem:StubHTTPTransport.requests"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "request.url and HTTPURLResponse both non-nil",
+     "effect": "return the canned reply; otherwise throw URLError(.badURL)"
+    }
+   ],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

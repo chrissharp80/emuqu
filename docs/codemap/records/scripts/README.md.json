@@ -52,7 +52,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/run_tests_with_coverage.sh::fn run_tests": "a81fa800842b2ce2",
+    "scripts/run_tests_with_coverage.sh::fn run_tests": "c53fe7cc88c339f7",
     "scripts/run_tests_with_coverage.sh::fn unexplained_failures": "46e35b1371f1d063"
    }
   },
@@ -174,8 +174,25 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Makefile::target ci": "314d826a23831255",
+    "Makefile::target ci": "60ad2e16c12b11bb",
     "Makefile::target thread-sanitizer": "adfca9b867c6ab56"
+   }
+  },
+  {
+   "key": "§ Scripts > Quality / CI scripts > `check_xcodebuild_pinned.sh`",
+   "hash": "efcf553c9b9999e6",
+   "does": "Claims check_xcodebuild_pinned.sh fails when an xcodebuild invocation in the Makefile, a workflow, a script or a git hook that builds, tests, archives or lists destinations lacks -onlyUsePackageVersionsFromResolvedFile; the flag is defined once as XCODEBUILD_PINNED in scripts/lib/xcodebuild.sh, sourced by scripts, included by the Makefile and passed literally by inline workflow steps; a variable used without its include or source fails; -version and -exportArchive are exempt. The script does all of this.",
+   "entry": null,
+   "calls": [
+    "Makefile::target xcodebuild-pinned-guard",
+    "ext:script scripts/check_xcodebuild_pinned.sh",
+    "ext:script scripts/lib/xcodebuild.sh"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Makefile::target xcodebuild-pinned-guard": "81ad11c30f1d053a"
    }
   },
   {

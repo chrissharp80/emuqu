@@ -70,10 +70,7 @@ final class AppleToolRankingTests: XCTestCase {
 
     /// The cost Apple charges a tool, as `AppleFoundationProvider` counts it.
     private func appleCost(_ spec: ToolSpec) -> Int {
-        #if canImport(FoundationModels)
-            if #available(iOS 26, *) { return AppleToolCatalog.estimatedTokens(for: spec) }
-        #endif
-        return AppleContextCompactor.estimateTokens(spec.name + spec.description) + 10
+        AppleToolCatalog.estimatedTokens(for: spec)
     }
 
     /// The schema arrives in name order, and the window holds only its first

@@ -27,7 +27,7 @@ final class OverpassClientTests: XCTestCase {
     /// once instead of failing for minutes without trying.
     func testTransportErrorTriesNextHostAndAllowsImmediateRetry() async {
         let stub = StubOverpass([.offline, .offline])
-        let client = OverpassClient(minRequestGap: 0) { try await stub.respond(to: $0) }
+        let client = OverpassClient(minRequestGap: 0, transport: HTTPTransport { try await stub.respond(to: $0) })
         let first = await postOutcome(client)
         guard case .failure(.unreachable) = first else { return XCTFail("Expected unreachable, got \(first)") }
         let second = await postOutcome(client)
@@ -38,7 +38,7 @@ final class OverpassClientTests: XCTestCase {
 
     func testBusyHostIsSkippedWhileItCoolsDown() async {
         let stub = StubOverpass([.status(429)])
-        let client = OverpassClient(minRequestGap: 0) { try await stub.respond(to: $0) }
+        let client = OverpassClient(minRequestGap: 0, transport: HTTPTransport { try await stub.respond(to: $0) })
         let first = await postOutcome(client)
         let second = await postOutcome(client, query: "other")
         XCTAssertNotNil(first.data)
@@ -49,7 +49,7 @@ final class OverpassClientTests: XCTestCase {
 
     func testNothingIsSentWhileEveryHostRefuses() async {
         let stub = StubOverpass([.status(403), .status(403)])
-        let client = OverpassClient(minRequestGap: 0) { try await stub.respond(to: $0) }
+        let client = OverpassClient(minRequestGap: 0, transport: HTTPTransport { try await stub.respond(to: $0) })
         let first = await postOutcome(client)
         let second = await postOutcome(client)
         XCTAssertEqual(first.failure, .refused(403))
@@ -62,7 +62,7 @@ final class OverpassClientTests: XCTestCase {
     /// still go out one at a time.
     func testConcurrentCallersNeverOverlapRequests() async {
         let stub = StubOverpass([], delayNanoseconds: 30_000_000)
-        let client = OverpassClient(minRequestGap: 0) { try await stub.respond(to: $0) }
+        let client = OverpassClient(minRequestGap: 0, transport: HTTPTransport { try await stub.respond(to: $0) })
         await withTaskGroup(of: Void.self) { group in
             for index in 0 ..< 4 {
                 group.addTask { _ = await postOutcome(client, query: "q\(index)") }
@@ -79,6 +79,23 @@ final class OverpassClientTests: XCTestCase {
         let roadClient = await location.roadGraphService.overpass
         let trailClient = location.trailDiscoveryService.overpass
         XCTAssertTrue(roadClient === trailClient)
+    }
+
+    /// The query goes through the injected transport to the first host as a
+    /// form POST, and a 2xx reply comes back as the body.
+    func testPostSendsTheQueryThroughTheTransportAndReturnsTheReply() async throws {
+        let reply = Data(#"{"elements": []}"#.utf8)
+        let stub = StubHTTPTransport(body: reply)
+        let client = OverpassClient(minRequestGap: 0, transport: stub.transport)
+        let data = try await client.post(query: "way(1);out;", timeout: 5)
+        let sent = await stub.requests
+        let request = try XCTUnwrap(sent.first)
+        let body = try XCTUnwrap(String(bytes: try XCTUnwrap(request.httpBody), encoding: .utf8))
+        XCTAssertEqual(sent.count, 1)
+        XCTAssertEqual(request.url, OverpassClient.endpoints.first)
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(String(body.dropFirst(5)).removingPercentEncoding, "way(1);out;")
+        XCTAssertEqual(data, reply)
     }
 
     func testUserAgentNamesAppVersionAndContact() {

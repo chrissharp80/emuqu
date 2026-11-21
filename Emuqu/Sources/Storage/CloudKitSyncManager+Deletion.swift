@@ -140,17 +140,20 @@ extension CloudDeletionCoordinator {
 // MARK: - Session tombstones
 
 extension CloudDeletionCoordinator {
+    /// Write this device's deletion of the session to iCloud
+    /// (`flagRecordDeleted`) and, once it is there, record it as confirmed
+    /// (`noteDeletionConfirmed`). A restore made on another device since is
+    /// adopted instead (`yieldToRestore`). A failure is logged and left for
+    /// the next full sync (`reconcileLocalDeletions`).
     func performUploadDeletion(sessionId: UUID) async {
         guard !manager.schemaUnavailable else { return }
         do {
             try await manager.ensureZoneExists()
             guard try await flagRecordDeleted(sessionId) else {
-                manager.trashRestore.adoptFromAnotherDevice(sessionId)
+                yieldToRestore(sessionId)
                 return
             }
-            Self.noteTombstoneConfirmed(sessionId)
-            manager.state.markDeleted(sessionId)
-            manager.state.saveSyncState()
+            noteDeletionConfirmed(sessionId)
         } catch {
             if CloudKitSyncManager.isPermanentSchemaError(error) {
                 manager.flagSchemaUnavailable(reason: error.localizedDescription)
@@ -158,6 +161,42 @@ extension CloudDeletionCoordinator {
             }
             debugLog("[CloudKit] Delete sync failed for \(sessionId.uuidString.prefix(8)): \(error.localizedDescription)")
         }
+    }
+
+    /// Another device restored the session after this one deleted it: the
+    /// restore wins (`TrashRestoreCoordinator.adoptFromAnotherDevice`), unless
+    /// the session was deleted forever here (`ForgottenSessions`). Then its
+    /// deletion mark stays, unconfirmed, and the pull leaves the restored copy
+    /// in iCloud alone rather than import it.
+    private func yieldToRestore(_ sessionId: UUID) {
+        guard !ForgottenSessions.ids.contains(sessionId) else { return }
+        manager.trashRestore.adoptFromAnotherDevice(sessionId)
+    }
+
+    /// iCloud holds the deletion: it is recorded as confirmed, and the sync
+    /// state forgets the session. A session deleted forever here then drops
+    /// its deletion mark (`SessionArchive.forgetDeletedSession`), which no
+    /// longer needs re-sending.
+    private func noteDeletionConfirmed(_ sessionId: UUID) {
+        Self.noteTombstoneConfirmed(sessionId)
+        manager.state.markDeleted(sessionId)
+        manager.state.saveSyncState()
+        guard ForgottenSessions.ids.contains(sessionId) else { return }
+        do {
+            try manager.archive.forgetDeletedSession(sessionId)
+        } catch {
+            debugLog("[CloudKit] Could not drop the deletion mark of \(sessionId.uuidString.prefix(8)): \(error)", level: .warning)
+        }
+    }
+
+    /// Whether the deletion mark of a session deleted forever may be dropped:
+    /// iCloud has confirmed the deletion (`confirmedTombstonesKey`), or this
+    /// device has never synced (no sync completed, no zone created), so
+    /// iCloud never received the session from here. Until then the mark
+    /// stays, and the full sync keeps sending the deletion.
+    func tombstoneIsSettled(_ sessionId: UUID) -> Bool {
+        let confirmed = UserDefaults.standard.dictionary(forKey: Self.confirmedTombstonesKey)?[sessionId.uuidString] != nil
+        return confirmed || (manager.lastSyncDate == nil && !manager.zoneCreated)
     }
 
     /// Set `isDeleted` on the remote record, creating a tombstone record when
@@ -218,8 +257,14 @@ extension CloudDeletionCoordinator {
     /// Lock-safe copy via `deletedIds` — the raw `deletedSessionIds` set
     /// is mutated under `archiveLock` (delete / restore / tombstone
     /// paths); reading it unlocked would race those writers.
+    ///
+    /// First, the iCloud live backups of deleted sessions, and of sessions
+    /// deleted forever, whose delete failed are deleted again
+    /// (`CloudKitLiveBackupManager.retryAwaitingDeletion`).
     func reconcileLocalDeletions() async {
-        let due = Self.tombstonesDue(among: manager.archive.deletedIds)
+        let deleted = manager.archive.deletedIds
+        await manager.liveBackup.retryAwaitingDeletion(among: deleted.union(ForgottenSessions.ids))
+        let due = Self.tombstonesDue(among: deleted)
         guard !due.isEmpty else { return }
         debugLog("[CloudKit] Reconciling \(due.count) local deletions to iCloud")
         await withTaskGroup(of: Void.self) { group in

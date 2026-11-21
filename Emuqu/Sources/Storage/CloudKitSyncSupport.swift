@@ -298,7 +298,7 @@ final class CloudKitSettingsSync {
             return .unavailable(String(localized: "Your settings haven't finished loading yet", bundle: LanguageManager.appBundle))
         }
         do {
-            return .ready(try CloudSettingsRecord.encryptedSettingsPayload(CloudSettingsRecord.uploadable(json)))
+            return .ready(try CloudPayloadCodec.sealForUpload(CloudSettingsRecord.uploadable(json)))
         } catch {
             debugLog("[CloudKitSettings] push skipped — settings could not be encrypted: \(error.localizedDescription)", level: .warning)
             status = .error(error.localizedDescription)
@@ -352,7 +352,7 @@ final class CloudKitSettingsSync {
         do {
             let record = try await privateDB.record(for: CKRecord.ID(recordName: recordName, zoneID: zoneID))
             let json = try CloudSettingsRecord.settingsJSON(from: record)
-            let sealed = try CloudSettingsRecord.encryptedSettingsPayload(CloudSettingsRecord.scrubbed(json, markedBy: local))
+            let sealed = try CloudPayloadCodec.sealForUpload(CloudSettingsRecord.scrubbed(json, markedBy: local))
             CloudSettingsRecord.write(sealed, to: record, modifiedAt: (record[CloudSettingsRecord.modifiedAtField] as? Date) ?? Date())
             try await privateDB.save(record)
             defaults.set(true, forKey: Self.scrubbedKey)
@@ -470,17 +470,6 @@ enum CloudSettingsRecord {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return decoder
-    }
-
-    /// Seal the settings JSON for upload.
-    ///
-    /// Throws when no cloud key is available rather than falling back to
-    /// plaintext — the same fail-closed rule as the session payloads. A
-    /// skipped settings backup is retried on the next change; an uploaded
-    /// plaintext one cannot be recalled.
-    static func encryptedSettingsPayload(_ json: Data) throws -> Data {
-        guard CloudPayloadCodec.hasUsableKey else { throw CloudSyncError.encryptionUnavailable }
-        return try CloudPayloadCodec.encode(json)
     }
 
     /// Put a sealed payload on the record and remove what older builds wrote

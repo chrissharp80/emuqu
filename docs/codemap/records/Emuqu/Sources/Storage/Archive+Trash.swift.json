@@ -1,14 +1,16 @@
 {
  "file": "Emuqu/Sources/Storage/Archive+Trash.swift",
- "hash": "90c5fb6319f56502",
- "role": "Trash for deleted sessions: delete moves the session file to Trash/<uuid>.session (throwing, file left in place, when it cannot); restore reads it back; files expire after keepDays (90). Also names the quarantine folder and lists a session's copies held outside the index (Trash and quarantine) for the re-encryption pass.",
+ "hash": "3835923c6dac0daf",
+ "role": "Trash for deleted sessions: delete moves the session file to Trash/<uuid>.session (throwing, file left in place, when it cannot); restore reads it back; files expire after keepDays (90); discard reports whether anything is left. Also names the quarantine folder, lists a session's copies held outside the index (Trash and quarantine) for the re-encryption pass, and keeps the list of sessions deleted forever (ForgottenSessions) that the pulls and the orphan scan skip.",
  "types": [
-  "ArchiveStore: extension — trash and quarantine directories, parked copies, move, read, list, expire, discard"
+  "ArchiveStore: extension — trash and quarantine directories, parked copies, move, read, list, expire, discard",
+  "ForgottenSessions: enum — the ids of sessions deleted forever on this device, in UserDefaults"
  ],
  "state": [
   "file:<archiveDirectory>/Trash/ (directory)",
   "file:<archiveDirectory>/Trash/<uuid>.session",
-  "file:<archiveDirectory>/QuarantinedDuplicates/ (directory)"
+  "file:<archiveDirectory>/QuarantinedDuplicates/ (directory)",
+  "ud:sessionRecovery.forgottenBackupIds (ForgottenSessions, most recent 500)"
  ],
  "toplevel": "",
  "units": [
@@ -160,7 +162,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "2bebe4b4224a2d06",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "0b3ffc735a23d053",
     "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)": "0a1a12556160d38a",
     "Emuqu/Sources/Storage/Archive.swift::let SessionArchive.sessionDecoder": "ca0eef42258b468f",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
@@ -256,14 +258,14 @@
   },
   {
    "key": "func ArchiveStore.discardTrashed(_:)",
-   "hash": "4da97a63efb0b30b",
-   "does": "Under archiveLock throughout (so a write of the session between the index check and a removal cannot lose its file): removes the Trash file (failure logged: stop). For a session still in the index, nothing more. Otherwise removes the <id>.json a failed delete left in the archive folder through removeLeftover (only for a tombstoned id with a complete index; a kept leftover stops here). Then, when it removed a Trash file or the id is tombstoned, and the session has no quarantined copy (parkedCopies empty, not nil), clears its session entry from PendingEncryptionLedger; an id with neither a copy nor a tombstone stays queued.",
+   "hash": "5d4a79facdcf71f0",
+   "does": "Under archiveLock throughout (so a write of the session between the index check and a removal cannot lose its file). For a session the index lists, removes only its Trash file and returns whether that worked. Otherwise removes the <id>.json a failed delete left in the archive folder (removeLeftover: only for a tombstoned id with a complete index) and then the Trash file, the leftover first so a failure leaves the Trash file and the Trash listing in place. When both are gone and it had a Trash file or the id is tombstoned, and the session has no quarantined copy (parkedCopies empty, not nil), clears its session entry from PendingEncryptionLedger. Returns true when neither file is left, false when a removal failed (logged) or the leftover was kept.",
    "entry": null,
    "calls": [
     "ext:NSLock",
     "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.trashURL(for:)",
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.removeQuietly(_:id:)",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.removeQuietly(_:id:)",
     "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.removeLeftover(of:tombstoned:)",
     "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.parkedCopies(of:)",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)"
@@ -283,19 +285,19 @@
    ],
    "branches": [
     {
-     "at": "+4",
-     "cond": "Trash removal failed, or the session is indexed",
-     "effect": "return"
+     "at": "+5",
+     "cond": "the session is in the index",
+     "effect": "remove only its Trash file; return whether that worked"
     },
     {
-     "at": "+6",
-     "cond": "a leftover file is kept",
-     "effect": "return; ledger untouched"
+     "at": "+8",
+     "cond": "a leftover was kept, or a removal failed",
+     "effect": "return false; Trash file (if the leftover stopped it) and ledger untouched"
     },
     {
-     "at": "+7",
+     "at": "+9",
      "cond": "removed a Trash file or tombstoned, and no quarantined copy",
-     "effect": "clear the ledger entry"
+     "effect": "clear the ledger entry; return true"
     }
    ],
    "deps": {
@@ -346,7 +348,7 @@
   },
   {
    "key": "func ArchiveStore.removeQuietly(_:id:)",
-   "hash": "7b63e2358098f12c",
+   "hash": "3c3cfd85e064fac3",
    "does": "Removes the file at url when it exists; true when it is gone afterwards, false (logged at .warning) when the removal threw.",
    "entry": null,
    "calls": [
@@ -373,6 +375,39 @@
    "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
+  },
+  {
+   "key": "var ForgottenSessions.ids",
+   "hash": "04ca3fb50568659d",
+   "does": "The ids in UserDefaults 'sessionRecovery.forgottenBackupIds' (sessions deleted forever on this device) that parse as UUIDs; empty when none are stored.",
+   "entry": null,
+   "calls": [
+    "ext:UserDefaults.stringArray"
+   ],
+   "reads": [
+    "ud:sessionRecovery.forgottenBackupIds"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func ForgottenSessions.remember(_:)",
+   "hash": "b981b11fe8e96eae",
+   "does": "Moves or adds the id to the end of 'sessionRecovery.forgottenBackupIds' (most recent last) and keeps only the last 500.",
+   "entry": null,
+   "calls": [
+    "ext:UserDefaults.stringArray",
+    "ext:UserDefaults.set"
+   ],
+   "reads": [
+    "ud:sessionRecovery.forgottenBackupIds"
+   ],
+   "writes": [
+    "ud:sessionRecovery.forgottenBackupIds"
+   ],
+   "branches": [],
+   "deps": {}
   }
  ],
  "deps": {}

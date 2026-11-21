@@ -107,6 +107,92 @@ final class ProviderStreamTests: XCTestCase {
     }
 }
 
+/// The error a non-2xx reply becomes, through each provider's production
+/// mapping (`statusFailure`), which all run the shared
+/// `ProviderHTTP.statusFailure`.
+final class ProviderStatusFailureTests: XCTestCase {
+    /// A body with no readable `error.message` reaches the chat as at most
+    /// `ProviderHTTP.errorExcerptLength` characters, for every provider.
+    func testRawBodyIsCappedForEveryProvider() {
+        let body = Data(String(repeating: "x", count: 4000).utf8)
+        let excerpt = String(repeating: "x", count: ProviderHTTP.errorExcerptLength)
+        let failures = [
+            AnthropicProvider.statusFailure(418, body: body),
+            GeminiProvider.statusFailure(418, body: body),
+            OpenAICompatibleStreamer.statusFailure(418, body: body, providerID: .openai)
+        ]
+        for failure in failures {
+            guard case let .invalidResponse(message) = failure else { return XCTFail("418 mapped to \(failure)") }
+            XCTAssertEqual(message, "HTTP 418: \(excerpt)")
+        }
+        let notFound = OpenAICompatibleStreamer.statusFailure(404, body: body, providerID: .deepseek)
+        guard case let .modelUnavailable(notFoundText) = notFound else { return XCTFail("404 mapped to \(notFound)") }
+        XCTAssertEqual(notFoundText, excerpt)
+    }
+
+    /// An OpenAI-style 400 whose `param` is "model" means the model is
+    /// missing or closed to this key; any other 400 shows the vendor's
+    /// sentence, not the JSON around it.
+    func testOpenAIBadRequestReadsTheEnvelope() {
+        let model = OpenAICompatibleStreamer.statusFailure(
+            400, body: Data(#"{"error":{"message":"The model `gpt-x` does not exist","param":"model"}}"#.utf8),
+            providerID: .openai
+        )
+        guard case let .modelUnavailable(text) = model else { return XCTFail("model 400 mapped to \(model)") }
+        XCTAssertTrue(text.contains("The model `gpt-x` does not exist"), text)
+
+        let other = OpenAICompatibleStreamer.statusFailure(
+            400, body: Data(#"{"error":{"message":"max_tokens is too large","param":"max_tokens"}}"#.utf8),
+            providerID: .grok
+        )
+        guard case let .invalidResponse(otherText) = other else { return XCTFail("other 400 mapped to \(other)") }
+        XCTAssertEqual(otherText, "max_tokens is too large")
+    }
+
+    /// Gemini answers a bad key with 400 `API_KEY_INVALID`, which is an
+    /// auth failure; another 400 is not.
+    func testGeminiInvalidKeyIsAnAuthFailure() {
+        let badKey = GeminiProvider.statusFailure(
+            400, body: Data(#"{"error":{"code":400,"message":"API key not valid.","status":"INVALID_ARGUMENT","details":[{"reason":"API_KEY_INVALID"}]}}"#.utf8)
+        )
+        guard case .authFailed = badKey else { return XCTFail("API_KEY_INVALID mapped to \(badKey)") }
+        let other = GeminiProvider.statusFailure(400, body: Data(#"{"error":{"message":"Invalid JSON payload"}}"#.utf8))
+        guard case let .invalidResponse(text) = other else { return XCTFail("other 400 mapped to \(other)") }
+        XCTAssertEqual(text, "HTTP 400: Invalid JSON payload")
+    }
+
+    /// An account with no credit is `.outOfCredit` for its own provider,
+    /// whatever status the vendor sends it with, ahead of the rate-limit and
+    /// auth mappings.
+    func testCreditExhaustionWinsOverTheStatus() {
+        let openAI = OpenAICompatibleStreamer.statusFailure(
+            429, body: Data(#"{"error":{"message":"You exceeded your current quota","code":"insufficient_quota"}}"#.utf8),
+            providerID: .openai
+        )
+        guard case .outOfCredit(.openai) = openAI else { return XCTFail("insufficient_quota mapped to \(openAI)") }
+        let anthropic = AnthropicProvider.statusFailure(
+            400, body: Data(#"{"error":{"message":"Your credit balance is too low to access the Anthropic API."}}"#.utf8)
+        )
+        guard case .outOfCredit(.anthropic) = anthropic else { return XCTFail("credit balance mapped to \(anthropic)") }
+        let gemini = GeminiProvider.statusFailure(402, body: Data())
+        guard case .outOfCredit(.gemini) = gemini else { return XCTFail("402 mapped to \(gemini)") }
+    }
+
+    /// The plain statuses map the same way for every provider.
+    func testSharedStatusesMapAlike() {
+        let body = Data(#"{"error":{"message":"nope"}}"#.utf8)
+        for failure in [
+            AnthropicProvider.statusFailure(401, body: body),
+            GeminiProvider.statusFailure(403, body: body),
+            OpenAICompatibleStreamer.statusFailure(401, body: body, providerID: .deepseek)
+        ] {
+            guard case .authFailed = failure else { return XCTFail("auth status mapped to \(failure)") }
+        }
+        guard case .rateLimited = GeminiProvider.statusFailure(429, body: body) else { return XCTFail("429") }
+        guard case .modelUnavailable = AnthropicProvider.statusFailure(529, body: body) else { return XCTFail("529") }
+    }
+}
+
 /// The reasoning fields each OpenAI-compatible provider sends. Flo's tool
 /// rounds carry only calls and results, so a model whose API needs its
 /// reasoning echoed between rounds must run with reasoning off.

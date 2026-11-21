@@ -18,12 +18,6 @@ final class TurnRouterTests: XCTestCase {
 
     // MARK: - Fixtures
 
-    /// Mirrors ProviderRegistry.allProviders enumeration order — the
-    /// "first consented cloud" branches are order-sensitive.
-    private let registryOrder: [ProviderID] = [
-        .apple, .anthropic, .openai, .gemini, .grok, .deepseek
-    ]
-
     private func model(_ provider: ProviderID, _ apiID: String) -> ModelOption {
         ModelOption(
             providerID: provider,
@@ -82,7 +76,7 @@ final class TurnRouterTests: XCTestCase {
             selectedProviderIsAvailable: selectedAvailable,
             selectedModel: selectedModel,
             isVoiceTurn: voice,
-            providerOrder: registryOrder,
+            providerOrder: ProviderRegistry.providerOrder,
             providers: providers,
             tierStage: tierStage
         )

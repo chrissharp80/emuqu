@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Views/TrashView.swift",
- "hash": "89297b7cb937d078",
- "role": "Settings > iCloud & Data > Trash screen: lists intentionally deleted sessions (from RRCollector.checkForDeletedSessions), lets the user restore one or permanently delete one/all, with confirmation dialogs and a transient status banner.",
+ "hash": "a970d04f8c8d677f",
+ "role": "Settings > iCloud & Data > Trash screen: lists intentionally deleted sessions (from RRCollector.checkForDeletedSessions), lets the user restore one or permanently delete one/all, with confirmation dialogs, a transient success banner, and a failure line that says how many sessions could not be removed and whether HRV samples stayed in Apple Health.",
  "types": [
   "TrashView: struct — SwiftUI View for the trash bin",
   "SingleDeleteConfirmation: struct (private ViewModifier) — confirmation dialog gating a single permanent delete"
@@ -9,6 +9,7 @@
  "state": [
   "mem:TrashView.deletedSessions (@State [(id,date,beatCount)])",
   "mem:TrashView.isRestoring (@State Bool)",
+  "mem:TrashView.isDeleting (@State Bool)",
   "mem:TrashView.restoringId (@State UUID?)",
   "mem:TrashView.showingClearAllConfirmation (@State Bool)",
   "mem:TrashView.statusMessage (@State String?)",
@@ -41,7 +42,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/Theme.swift::func View.zenFormBackground()": "5af2c037e112ed05",
     "Emuqu/Sources/Views/TrashView.swift::func TrashView.loadDeletedSessions()": "cf124b5a67fb8b9c",
-    "Emuqu/Sources/Views/TrashView.swift::func TrashView.permanentlyDelete(_:)": "2087b828079ff5cc",
+    "Emuqu/Sources/Views/TrashView.swift::func TrashView.permanentlyDelete(_:)": "640f13d64283f698",
     "Emuqu/Sources/Views/TrashView.swift::var TrashView.clearAllActions": "d630f7ba41a31209",
     "Emuqu/Sources/Views/TrashView.swift::var TrashView.clearAllMessage": "d5e154a9c0781822",
     "Emuqu/Sources/Views/TrashView.swift::var TrashView.emptyTrashSection": "6b231107cb99b2c1",
@@ -61,7 +62,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/TrashView.swift::func TrashView.permanentlyDeleteAll()": "099f61ab976d6a15"
+    "Emuqu/Sources/Views/TrashView.swift::func TrashView.permanentlyDeleteAll()": "87702efc34b8f2e1"
    }
   },
   {
@@ -101,8 +102,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/TrashView.swift::var TrashView.clearAllSection": "386841c6437da261",
-    "Emuqu/Sources/Views/TrashView.swift::var TrashView.deletedSessionsSection": "e5856e5c29fe2d44",
+    "Emuqu/Sources/Views/TrashView.swift::var TrashView.clearAllSection": "6c4a9a0a10034234",
+    "Emuqu/Sources/Views/TrashView.swift::var TrashView.deletedSessionsSection": "fc58675929652c3e",
     "Emuqu/Sources/Views/TrashView.swift::var TrashView.trashIsEmptySection": "adae01d48ca97977"
    }
   },
@@ -121,19 +122,20 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/TrashView.swift::func TrashView.deletedSessionRow(_:)": "8cfdbd5e94b8d86d"
+    "Emuqu/Sources/Views/TrashView.swift::func TrashView.deletedSessionRow(_:)": "686a6bfc07070413"
    }
   },
   {
    "key": "var TrashView.clearAllSection",
-   "hash": "7caf9a3c96f1d05f",
-   "does": "Section with a destructive full-width button (bodyLabel) that sets showingClearAllConfirmation = true to present the delete-all dialog. The button is disabled while a restore is in flight.",
+   "hash": "eff3da5966fe4d09",
+   "does": "Section with a destructive full-width button (bodyLabel) that sets showingClearAllConfirmation = true to present the delete-all dialog. The button is disabled while a restore or a permanent delete is in flight.",
    "entry": "Composed into body; button tapped by user.",
    "calls": [
     "Emuqu/Sources/Views/TrashView.swift::var TrashView.bodyLabel"
    ],
    "reads": [
-    "mem:TrashView.isRestoring"
+    "mem:TrashView.isRestoring",
+    "mem:TrashView.isDeleting"
    ],
    "writes": [
     "mem:TrashView.showingClearAllConfirmation"
@@ -141,8 +143,8 @@
    "branches": [
     {
      "at": "+7",
-     "cond": "isRestoring",
-     "effect": "true: the Delete All button is disabled until the restore finishes"
+     "cond": "isRestoring or isDeleting",
+     "effect": "true: the Delete All button is disabled until it finishes"
     }
    ],
    "deps": {
@@ -203,8 +205,8 @@
   },
   {
    "key": "func TrashView.deletedSessionRow(_:)",
-   "hash": "3588925de024de61",
-   "does": "Row for one deleted session: formatted date, beat count caption, and either a spinner (while that row is being restored) or the restore/delete buttons, which are disabled while any restore is in flight.",
+   "hash": "5cdfca68f8492e25",
+   "does": "Row for one deleted session: formatted date, beat count caption, and either a spinner (while that row is being restored) or the restore/delete buttons, which are disabled while any restore or permanent delete is in flight.",
    "entry": "Called from ForEach in deletedSessionsSection.",
    "calls": [
     "Emuqu/Sources/Views/TrashView.swift::func TrashView.formatDate(_:)",
@@ -212,14 +214,15 @@
    ],
    "reads": [
     "mem:TrashView.isRestoring",
-    "mem:TrashView.restoringId"
+    "mem:TrashView.restoringId",
+    "mem:TrashView.isDeleting"
    ],
    "writes": [],
    "branches": [
     {
      "at": "+11",
      "cond": "isRestoring and restoringId equals this session's id",
-     "effect": "true: shows ProgressView in place of buttons; false: shows trashRowActions, disabled while isRestoring so no second restore or delete starts during one"
+     "effect": "true: shows ProgressView in place of buttons; false: shows trashRowActions, disabled while isRestoring or isDeleting so no second action starts during one"
     }
    ],
    "deps": {
@@ -246,7 +249,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/TrashView.swift::func TrashView.restoreSession(_:)": "8e623848135892b5",
+    "Emuqu/Sources/Views/TrashView.swift::func TrashView.restoreSession(_:)": "a966246db76ffb58",
     "Emuqu/Sources/Views/TrashView.swift::func TrashView.trashRowButton(glyph:tint:label:hint:action:)": "0e8f1e90cdfc2e11"
    }
   },
@@ -382,58 +385,146 @@
   },
   {
    "key": "func TrashView.permanentlyDelete(_:)",
-   "hash": "ab9616b04da2f95b",
-   "does": "Permanently deletes one session via RRCollector.permanentlyDelete (remove trash file, discard raw backup, delete iCloud live backup, forget deleted id) then reloads the list.",
+   "hash": "7ea9d61b11da657a",
+   "does": "Permanently deletes one session through deletePermanently with no success message (a failure is reported).",
    "entry": "Passed as onDelete to SingleDeleteConfirmation; runs on confirm.",
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.permanentlyDelete(_:)",
-    "Emuqu/Sources/Views/TrashView.swift::func TrashView.loadDeletedSessions()"
+    "Emuqu/Sources/Views/TrashView.swift::func TrashView.deletePermanently(_:successMessage:)"
    ],
    "reads": [],
    "writes": [
     "file:Archive/Trash/<id>.session",
     "file:raw RR backup",
+    "file:Breadcrumbs/archive.json",
     "ck:live backup",
+    "hk:heartRateVariabilitySDNN",
     "archive:deletedIds",
-    "ud:archive.deletionTimes"
+    "ud:archive.deletionTimes",
+    "ud:sessionRecovery.forgottenBackupIds"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.permanentlyDelete(_:)": "cfdf4822119cb6a4",
-    "Emuqu/Sources/Views/TrashView.swift::func TrashView.loadDeletedSessions()": "cf124b5a67fb8b9c"
+    "Emuqu/Sources/Views/TrashView.swift::func TrashView.deletePermanently(_:successMessage:)": "0bec6aa281036ef4"
    }
   },
   {
    "key": "func TrashView.permanentlyDeleteAll()",
-   "hash": "601115d7ae8526c7",
-   "does": "Permanently deletes every listed session through RRCollector.permanentlyDelete, reloads, and shows 'All deleted sessions permanently removed' as a transient banner (showTransientStatus).",
+   "hash": "28a6605a0cf4d787",
+   "does": "Permanently deletes every listed session through deletePermanently, with 'All deleted sessions permanently removed' as the message shown when nothing failed.",
    "entry": "Delete All confirmation button.",
+   "calls": [
+    "Emuqu/Sources/Views/TrashView.swift::func TrashView.deletePermanently(_:successMessage:)"
+   ],
+   "reads": [
+    "mem:TrashView.deletedSessions"
+   ],
+   "writes": [
+    "file:Archive/Trash/<id>.session",
+    "file:raw RR backup",
+    "file:Breadcrumbs/archive.json",
+    "ck:live backup",
+    "hk:heartRateVariabilitySDNN",
+    "archive:deletedIds",
+    "ud:archive.deletionTimes",
+    "ud:sessionRecovery.forgottenBackupIds"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/TrashView.swift::func TrashView.deletePermanently(_:successMessage:)": "0bec6aa281036ef4"
+   }
+  },
+  {
+   "key": "func TrashView.deletePermanently(_:successMessage:)",
+   "hash": "483041f38485a66c",
+   "does": "Sets isDeleting, then in a main-actor Task awaits RRCollector.permanentlyDelete(ids) (local files, breadcrumb route, raw backup, iCloud live backup, Apple Health HRV), clears isDeleting, reloads the list (sessions not removed stay listed) and reports the outcome.",
+   "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.permanentlyDelete(_:)",
     "Emuqu/Sources/Views/TrashView.swift::func TrashView.loadDeletedSessions()",
-    "Emuqu/Sources/Views/TrashView.swift::func TrashView.showTransientStatus(_:)"
+    "Emuqu/Sources/Views/TrashView.swift::func TrashView.report(_:successMessage:)"
    ],
    "reads": [],
    "writes": [
     "file:Archive/Trash/<id>.session",
     "file:raw RR backup",
+    "file:Breadcrumbs/archive.json",
     "ck:live backup",
+    "hk:heartRateVariabilitySDNN",
     "archive:deletedIds",
     "ud:archive.deletionTimes",
+    "ud:sessionRecovery.forgottenBackupIds",
+    "mem:TrashView.isDeleting",
+    "mem:TrashView.deletedSessions",
+    "mem:TrashView.statusMessage"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.permanentlyDelete(_:)": "cfdf4822119cb6a4",
+    "Emuqu/Sources/Views/TrashView.swift::func TrashView.loadDeletedSessions()": "cf124b5a67fb8b9c",
+    "Emuqu/Sources/Views/TrashView.swift::func TrashView.report(_:successMessage:)": "1c5f1aeb6c12d9e2"
+   }
+  },
+  {
+   "key": "func TrashView.report(_:successMessage:)",
+   "hash": "a0b987f560fee82e",
+   "does": "With a failure (failureMessage non-nil) sets statusMessage to it, where it stays until the next action. Otherwise clears statusMessage (an earlier failure no longer applies) and, when there is a successMessage, shows it as a three-second banner (showTransientStatus).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Views/TrashView.swift::func TrashView.failureMessage(for:)",
+    "Emuqu/Sources/Views/TrashView.swift::func TrashView.showTransientStatus(_:)"
+   ],
+   "reads": [],
+   "writes": [
     "mem:TrashView.statusMessage"
    ],
    "branches": [
     {
      "at": "+1",
-     "cond": "for each session in deletedSessions",
-     "effect": "calls permanentlyDelete per id; empty list does nothing; per-id failures are only debug-logged inside the service so the success banner shows regardless"
+     "cond": "something was not removed",
+     "effect": "show the failure and return"
+    },
+    {
+     "at": "+6",
+     "cond": "a success message was given",
+     "effect": "show it for three seconds"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.permanentlyDelete(_:)": "cfdf4822119cb6a4",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/TrashView.swift::func TrashView.loadDeletedSessions()": "cf124b5a67fb8b9c",
+    "Emuqu/Sources/Views/TrashView.swift::func TrashView.failureMessage(for:)": "08699e5a657ecc94",
     "Emuqu/Sources/Views/TrashView.swift::func TrashView.showTransientStatus(_:)": "a7fd7de7f374941c"
+   }
+  },
+  {
+   "key": "func TrashView.failureMessage(for:)",
+   "hash": "ae4e3814222f1c0e",
+   "does": "Builds the failure text from a TrashDeletionOutcome: a plural line '%lld sessions could not be removed. Try again.' when kept > 0, and a line that some HRV samples could not be deleted from Apple Health, with where to remove them in the Health app, when healthSamplesKept > 0; joined by a newline. Nil when both are zero.",
+   "entry": null,
+   "calls": [
+    "ext:String(localized:bundle:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "sessions stayed in the Trash",
+     "effect": "add the count line"
+    },
+    {
+     "at": "+5",
+     "cond": "Health samples stayed",
+     "effect": "add the Health line"
+    },
+    {
+     "at": "+8",
+     "cond": "no line",
+     "effect": "nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {

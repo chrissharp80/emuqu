@@ -417,8 +417,7 @@ enum DataPurgeService {
     ///   * `user_settings.json`  — age, body weight, resting HR, max HR, LTHR,
     ///                             FTP, sleep schedule
     ///   * `Assistant/artifacts.json`, `UIStateCache.json`,
-    ///     `TrainingMetricsCache.json`, `beat_consistency_priors.json`,
-    ///     `HRVOffline/pending.json`
+    ///     `TrainingMetricsCache.json`, `beat_consistency_priors.json`
     ///
     /// Tests that assert on `Report` fields cannot see a store absent from
     /// the `Report` either.

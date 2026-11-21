@@ -80,8 +80,25 @@ extension SessionRecoveryCoordinator {
         return session
     }
 
-    func permanentlyDelete(_ sessionId: UUID) {
-        recoveryService.permanentlyDelete(sessionId)
+    /// Deletes sessions from the Trash for good, and the HRV samples each
+    /// exported to Apple Health
+    /// (`SessionRecoveryService.permanentlyDelete(_:removeHealthSamples:)`).
+    @discardableResult
+    func permanentlyDelete(_ ids: [UUID]) async -> TrashDeletionOutcome {
+        await recoveryService.permanentlyDelete(ids) { id, span in
+            await removeExportedHRV(of: id, over: span)
+        }
+    }
+
+    /// False (logged) when HealthKit could not delete them.
+    private func removeExportedHRV(of id: UUID, over span: ClosedRange<Date>) async -> Bool {
+        do {
+            try await collector.healthKit.writes.removeExportedHRV(sessionId: id, from: span.lowerBound, to: span.upperBound)
+            return true
+        } catch {
+            debugLog("[Recovery] HRV samples of \(id.uuidString.prefix(8)) could not be deleted from Apple Health: \(error)", level: .error)
+            return false
+        }
     }
 
     func deleteLostSessions(_ sessionIds: [UUID]) {

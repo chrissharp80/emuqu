@@ -1,10 +1,10 @@
 {
  "file": "Emuqu/Sources/Services/SessionAcceptanceService.swift",
- "hash": "f99b948ecbfbba46",
+ "hash": "bc0a831f1da6b315",
  "role": "@MainActor service doing the heavy work of accepting a morning session (freeze score with fresh sleep/vitals/training, archive, baseline update, raw-backup mark, HealthKit export, CloudKit upload + live-backup delete), re-scoring already archived sessions (re-uploaded), rejecting sessions, and the shared HRV quality classifier with the one insufficient-data rule (isInsufficientData).",
  "types": [
   "SessionAcceptanceService: class — acceptance/rejection/rescore service built by RRCollector.makeAcceptanceService (RRCollector.swift:745)",
-  "SessionAcceptanceService.HRVQualityDecision: struct — dataQuality + useBaselineHRV",
+  "SessionAcceptanceService.HRVQualityDecision: struct — dataQuality, with useBaselineHRV derived from it",
   "SessionAcceptanceService.SleepAndVitals: struct (private, Sendable) — timeout race payload",
   "SessionAcceptanceService.AcceptanceInputs: struct — frozen scoring config, training, baseline, typical sleep hours, sleep schedule"
  ],
@@ -26,8 +26,23 @@
    "deps": {}
   },
   {
+   "key": "var SessionAcceptanceService.HRVQualityDecision.useBaselineHRV",
+   "hash": "40fd50b62b04525f",
+   "does": "Whether scoring substitutes the baseline for this recording's HRV: !HRVDataQuality.allowsHRVAggregates(dataQuality), so true for .insufficient and .preSleep, false for .good. The same rule the re-score paths read through HRVSession.isReliableForHRVAggregates.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVDataQuality.allowsHRVAggregates(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVDataQuality.allowsHRVAggregates(_:)": "e3b8279aa42f24f4"
+   }
+  },
+  {
    "key": "func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)",
-   "hash": "5f4a8c1fa641dbe9",
+   "hash": "68f14aa93e35f139",
    "does": "Static: classifies a recording's HRV: .insufficient (+useBaselineHRV) when RMSSD < baseline and the analysed span (window, or the session without one) is <5 min or a <3 h session lacks organized recovery (rule 1, isInsufficientData); .preSleep (+baseline) when sleep data exists and doesn't overlap the recording; .insufficient when RMSSD < baseline and session <3 h; else .good. Used by acceptance, ReanalysisService.reclassifyHRVQuality (reanalysis, manual window, sleep edits, retro-apply) and SampleDataLibrary.finalize.",
    "entry": null,
    "calls": [
@@ -130,7 +145,7 @@
   },
   {
    "key": "func SessionAcceptanceService.insufficientDataDecision(result:rmssd:baselineRmssd:sessionDuration:)",
-   "hash": "df93b3083d7ad07a",
+   "hash": "ec952b857a2e4233",
    "does": "Static: rule 1 as a decision: when rmssd < baseline and isInsufficientData holds, logs the reason (window too short, else no organized recovery) and returns .insufficient/useBaselineHRV; nil otherwise.",
    "entry": null,
    "calls": [
@@ -318,7 +333,8 @@
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyHRVQuality(to:result:baselineStats:)": "41d27b90cf0776c8",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.resolveTrainingContext(given:scoringConfig:sessionEnd:)": "0d1d589f4976c739",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "9c1c51ce35bf3a6b",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.snapshotHealthData(on:sessionEnd:sleepSchedule:)": "910300a1dbd65504",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.snapshotHealthData(on:sessionEnd:sleepSchedule:)": "93fe0d90c08bfc13",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::var SessionAcceptanceService.HRVQualityDecision.useBaselineHRV": "5d217a370828f355",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.scoringConfig": "8d54c092a68c1d94"
    }
   },
@@ -341,7 +357,8 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "40a5b51bfde62536"
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.classifyHRVQuality(result:sleepData:baselineStats:recordingStart:recordingEnd:)": "40a5b51bfde62536",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::var SessionAcceptanceService.HRVQualityDecision.useBaselineHRV": "5d217a370828f355"
    }
   },
   {
@@ -420,11 +437,13 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "ca2be1737136e0d8",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "eb3b9be07070a091",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.ansBalance(of:)": "d66078425cbb7066",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.scoringConfig": "8d54c092a68c1d94"
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::var SessionAcceptanceService.HRVQualityDecision.useBaselineHRV": "5d217a370828f355",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.scoringConfig": "8d54c092a68c1d94",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.nonlinear(_:flagged:)": "74b253b4ff4a78e2"
    }
   },
   {
@@ -554,9 +573,10 @@
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.applyFrozenScore(_:to:training:)": "542e749e4faa8030",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.exportToHealthIfEnabled(_:enabled:)": "d4155fc0c857d10d",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.reArchive(_:)": "66f998ba558e92c1",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.refreshHealthSnapshots(on:result:sleepSchedule:)": "231278fbc78cc5ae",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.refreshHealthSnapshots(on:result:sleepSchedule:)": "97bf9f616f31f0c5",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.refreshedUseBaselineHRV(on:result:baselineStats:)": "2927c1a1fb36d874",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "9c1c51ce35bf3a6b",
+    "Emuqu/Sources/Services/SessionAcceptanceService.swift::var SessionAcceptanceService.HRVQualityDecision.useBaselineHRV": "5d217a370828f355",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },

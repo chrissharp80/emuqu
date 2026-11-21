@@ -688,7 +688,7 @@ Each layer re-sorts only because its consumer requires a different order. Do not
 
 **Recovery Score**: `session.recoveryScore` stores the composite recovery score on a 0-10 scale — the 0-100 composite divided by 10 (`RecoveryScoreCalculator.toTenScale`). Every screen multiplies it back by 10 and shows it as 0-100; only the HRV-only fallback (`ANSMetrics.readinessScore`, used before the composite is computed) is natively 1-10. In the current scoring (`ScoringVersion.current` = `v3.2.oct2026`) it's HRV + Sleep + Vitals when all three are available, falling through to HRV + Sleep or HRV only when inputs are missing. Each `ScoreBreakdown` is stamped with the version that produced it (`scoringVersion`); scores stored before the stamp existed decode as `unversioned`. Older sessions may have been computed under v1 (HRV + Sleep + Training); `ScoreArchitectureChangeSheet` only discloses the change, and re-running `reanalyzeAllSessions` from Settings recomputes history if the user wants it. `ANSMetrics.readinessScore` remains available in `analysisResult` as the HRV-only readiness component. The window selector's `RecoveryWindow.recoveryScore` (RMSSD × stability) is for ranking only, not persisted.
 
-**Deferred Migrations**: `runDeferredMigrations()` runs 7 one-time passes on a background thread at launch: `reencryptPendingSessions`, `migrateRecoveryScores`, `migrateEndDates`, `migrateMetrics` (backfills meanHR/stressIndex), `migrateSleepIndexFields` (backfills `sleepEnd` / `sleepSegmentCount`), `removeDuplicates`, and `relinkSameNightSessions`. Each is a no-op if already complete.
+**Deferred Migrations**: `runDeferredMigrations()` runs 9 passes on a background thread at launch: `reencryptPendingSessions` and `resealPlainIndexIfNeeded` (re-encrypt session files and the index written plain while the key was unavailable), `migrateRecoveryScores`, `migrateEndDates`, `migrateMetrics` (backfills meanHR/stressIndex), `migrateSleepIndexFields` (backfills `sleepEnd` / `sleepSegmentCount`), `migrateLegacyEliteImportIndex`, `removeDuplicates`, and `relinkSameNightSessions`. Each is a no-op if already complete.
 
 **File Organization**: `Archive` is split into extensions — `Archive+Migrations.swift` (deferred migrations), `SessionMerger.swift` (session merging logic), and `Archive+Repair.swift` (integrity repair utilities).
 
@@ -965,7 +965,10 @@ sleep-prompt). One-shot migration from the v1 single-file layout
 (when sport.usesGPS) calls `archiveWorkoutTrackAsBreadcrumbTrail`
 which decimates the workout's track to 25 m / 30 s (matches the live
 recorder's resolution) and appends it to the archive labelled "Run on
-Apr 29, 8:13 AM". The AI's `breadcrumb.recent` lists these, so it can
+Apr 29, 8:13 AM", marked as a workout track with the workout's session
+id. Deleting that workout forever from the Trash removes it
+(`removeTrails(ofSession:)`); tracks filed before trails carried a
+session id stay. The AI's `breadcrumb.recent` lists these, so it can
 tell the user where any recent workout started (where they parked)
 without their having engaged Get Me Back. `directions.routeTo origin`
 routes only to the ACTIVE trail's start, never an archived one.
@@ -1065,7 +1068,23 @@ into them, so they would have been indirection with no consumer.
 
 `AppDependencies` (`Emuqu/Sources/Utilities/AppDependencies.swift`) is the composition root, reached
 as `AppDependencies.current.{app,storage,collection,analysis,location,services,providers,assistant}`.
-It holds the concrete production objects; the app builds one and hands out sub-groups.
+Each accessor returns the substitute on the container's `overrides`, if one is set, and otherwise
+the production object, built on first use. The app never assigns `current`; a test assigns a
+container with substitutes and calls `AppDependencies.reset()` afterwards. Views read it through
+`@Environment(\.dependencies)`, classes through an `init` parameter defaulting to `.current`, and
+static helpers and `EmuquApp` through `AppDependencies.current`. `.shared` is read only in this
+file and in the Watch target's root, `WatchDependencies`, which
+`scripts/check_no_shared_outside_root.sh` enforces. The reasoning, and why the app is one target,
+is [ADR 007](adr/007-single-target-composition-root.md).
+
+### Where network code lives
+
+HTTP requests are sent from two places only. The AI providers in `Assistant/Providers/` stream
+through their own `URLSession`. Every other web API (Overpass, MET Norway, Tavily, OpenTopoData)
+has its client in `Services/`, and each client sends through an `HTTPTransport`
+(`Emuqu/Sources/Services/HTTPTransport.swift`) it is given: `HTTPTransport.live` in the app, a stub in tests, so
+a test drives the client's real request building and reply parsing without the network. Code in
+the other layers reaches a web API only through one of those clients.
 
 `RRCollector` additionally exposes a designated initializer taking all of its dependencies as
 parameters (`BackgroundAudioManager`, `SettingsManager`, `SessionArchive`, plus the
@@ -1278,8 +1297,9 @@ Post-summary and the epic α1 report live in
   cadence) using the current artifact filter against a session's
   stored RR data, replacing contaminated α1 values. One-tap action
   in the summary sheet; runs on a background Task.
-- **TopoElevationService** — real terrain elevation via DEM lookup
-  for sessions without barometer data. OpenTopoData USGS NED 10 m
+- **TopoElevationService** (`Services/`) — real terrain elevation via DEM lookup
+  for sessions without barometer data, sent through the `HTTPTransport`
+  it is given. OpenTopoData USGS NED 10 m
   for US coordinates, then SRTM 30 m, and nothing else. Applies a 15 m
   sustained-climb threshold for GPS-only sessions — calibrated against
   barometric ground truth, where 10 m overcounted by ~25 %.
@@ -1354,7 +1374,7 @@ Post-summary and the epic α1 report live in
   (research authorities, manufacturer docs, always-excluded farms).
   Same MainActor-deadlock-avoidance pattern (NOT @MainActor) — the
   resolver bridges sync→async via Task.detached + DispatchSemaphore
-  so the URLSession await runs off-MainActor and can't deadlock the
+  so the request's await (through its `HTTPTransport`) runs off-MainActor and can't deadlock the
   view-model loop. System-prompt overlay enforces "never synthesise
   medical-protocol recommendations from search content; always cite
   source URLs in Markdown."
@@ -1503,7 +1523,7 @@ process that signal correctly.
 #### Retroactive (sessions without barometric samples)
 
 Sessions that carry no barometric samples have nothing to post-process. They fall back to
-[`TopoElevationService`](../Emuqu/Sources/Analysis/TopoElevationService.swift)
+[`TopoElevationService`](../Emuqu/Sources/Services/TopoElevationService.swift)
 — DEM lookup via OpenTopoData (USGS NED 10 m for US, SRTM 30 m
 elsewhere). Applies a 15 m sustained-climb threshold empirically
 calibrated against barometric ground truth in rolling neighbourhood

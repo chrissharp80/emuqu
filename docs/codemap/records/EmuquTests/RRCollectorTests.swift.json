@@ -1,7 +1,7 @@
 {
  "file": "EmuquTests/RRCollectorTests.swift",
  "hash": "0486e2084173cb06",
- "role": "XCTest suites for RRCollector idle state, overnight-streaming connection guard, legacy persisted-recording-state read/clear/recovery, CollectorError descriptions, and (RRCollectorSaveResultTests) the save results the screens act on: the re-score's re-archive and the segment unlink.",
+ "role": "XCTest suites for RRCollector legacy persisted-recording-state read/clear/recovery, CollectorError descriptions, and (RRCollectorSaveResultTests) the save results the screens act on: the re-score's re-archive and the segment unlink.",
  "types": [
   "RRCollectorTests: class — @MainActor XCTestCase for RRCollector lifecycle basics",
   "extension RRCollectorTests — CollectorError description test",
@@ -97,64 +97,6 @@
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ac5fb66c0359130b",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)": "3fb4dcfa622ba34b",
     "EmuquTests/RRCollectorTests.swift::func RRCollectorTests.clearPersistedState()": "4c04b7cc04cb2665"
-   }
-  },
-  {
-   "key": "func RRCollectorTests.testInitialState()",
-   "hash": "ea34f5416ade96aa",
-   "does": "Asserts a fresh collector is not overnight streaming, collecting or in streaming mode, has nil session, zero elapsed seconds and zero points.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.collectedPoints": "afead9ad3142686a",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "f52c78dcfaca1b83",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isStreamingMode": "66ead1532c972b74",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "0859f035285ce410",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()": "b82f95f14f120618",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "4d6afc6970c97bb2",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "4ba35bfe1dd469ec",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ac5fb66c0359130b"
-   }
-  },
-  {
-   "key": "func RRCollectorTests.testStartOvernightStreamingRequiresConnection()",
-   "hash": "1fee74dca79cf94e",
-   "does": "Asserts startOvernightStreaming() throws CollectorError while disconnected and leaves isOvernightStreaming false and currentSession nil.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.startOvernightStreaming(sessionType:useDeviceInternalBackup:)",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.startOvernightStreaming(sessionType:useDeviceInternalBackup:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "catch error",
-     "effect": "asserts CollectorError; no throw → XCTFail"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.startOvernightStreaming(sessionType:useDeviceInternalBackup:)": "6d4649c1577db78b",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.startOvernightStreaming(sessionType:useDeviceInternalBackup:)": "e9c4df85c5c05b87",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.wireCollaborators()": "b82f95f14f120618",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector()": "4d6afc6970c97bb2",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "4ba35bfe1dd469ec",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ac5fb66c0359130b"
    }
   },
   {
@@ -311,11 +253,11 @@
   },
   {
    "key": "func RRCollectorSaveResultTests.makeCollector()",
-   "hash": "515eed730843b401",
-   "does": "Builds an RRCollector over the test's archive, a RawRRBackup, a BaselineTracker on the test's own HRVBaseline.json, and a SessionAcceptanceService reading a MockHealthKitService with no-op iCloud sync and delete.",
+   "hash": "409e4805bf92b3ec",
+   "does": "Builds an RRCollector over the test's archive, a RawRRBackup in the test directory's RRBackup subfolder, a BaselineTracker on the test's own HRVBaseline.json, and a SessionAcceptanceService reading a MockHealthKitService with no-op iCloud sync and delete.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::init SessionAcceptanceService(archive:healthKit:baselineTracker:rawBackup:onCloudSync:onCloudDelete:)",
     "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()",
@@ -328,12 +270,12 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)": "2c3a0db2a9868855",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)": "a41f1bac098eee8d",
     "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:)": "75377b33a56513c7",
     "Emuqu/Sources/Collection/PolarManager.swift::init PolarManager()": "57c2d4d8f08d48f5",
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:)": "ac5fb66c0359130b",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::init SessionAcceptanceService(archive:healthKit:baselineTracker:rawBackup:onCloudSync:onCloudDelete:)": "955073b942718ab5",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "28134c325b02f133"
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)": "ee0a6c3ab9df8456"
    }
   },
   {

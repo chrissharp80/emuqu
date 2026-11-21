@@ -102,8 +102,11 @@ if [[ -n "$hits" ]]; then
 fi
 
 # Every function that builds bytes for a CKAsset or the settings record must
-# encrypt them.
-for fn in compressedPayload compressedPoints encryptedSettingsPayload; do
+# seal them with `CloudPayloadCodec.sealForUpload`: the shared envelope with a
+# SYNCHRONIZABLE key, so a replacement device can read the backup. A writer
+# that encrypts with the device-only archive key would pass an "it encrypts"
+# check and still produce backups no other device can open.
+for fn in compressedPayload compressedPoints sealedLocalSettings scrubStoredRecord; do
     file="$(grep -rlnE "func $fn\b" Emuqu/Sources/Storage 2>/dev/null | head -1)"
     # A writer that was renamed or moved is not a writer that passed: say so.
     if [[ -z "$file" ]]; then
@@ -111,31 +114,28 @@ for fn in compressedPayload compressedPoints encryptedSettingsPayload; do
         exit 2
     fi
     body="$(awk "/func $fn/,/^    \}/" "$file")"
-    # The encryption may be inline or one call away in a helper, so accept
-    # either — but the function must name something that encrypts, and the file
-    # must fail closed. Following a single level of indirection keeps the check
-    # honest without pretending to be a call-graph analysis.
-    # Matched on the PROPERTY, not a spelling. The manager may be named
-    # directly or bound to a local first, and a gate that only recognises
-    # `EncryptionManager.shared.encrypt` goes red when someone dedups the
-    # singleton reference — which is a correct change failing a check that
-    # claimed to be about encryption. Asking "does it encrypt" and "does it
-    # consult availability" survives that.
-    # Both paths must go through `CloudPayloadCodec` — the shared envelope with
-    # a SYNCHRONIZABLE key. Checking only "does it encrypt" passes a writer
-    # that seals backups with the device-only archive key, which no
-    # replacement device can read, and a live-backup writer whose reader never
-    # decrypts at all. Naming the codec is what makes the two directions
-    # agree.
-    if ! grep -qE "CloudPayloadCodec\.encode|[a-z]ncryptedFor[A-Za-z]*\(" <<<"$body"; then
-        echo "ERROR: ${file#Emuqu/Sources/Storage/}: $fn does not encode through CloudPayloadCodec" >&2
-        bad=$((bad + 1))
-    fi
-    if ! grep -qE "CloudPayloadCodec\.hasUsableKey" "$file"; then
-        echo "ERROR: ${file#Emuqu/Sources/Storage/}: no fail-closed guard on cloud-key availability" >&2
+    if ! grep -qF "CloudPayloadCodec.sealForUpload(" <<<"$body"; then
+        echo "ERROR: ${file#Emuqu/Sources/Storage/}: $fn does not seal through CloudPayloadCodec.sealForUpload" >&2
         bad=$((bad + 1))
     fi
 done
+
+# The seal fails closed: with no cloud key it throws encryptionUnavailable and
+# never hands back the payload unsealed.
+codec="Emuqu/Sources/Storage/CloudPayloadCodec.swift"
+seal_body="$(awk '/func sealForUpload/,/^    \}/' "$codec")"
+if [[ -z "$seal_body" ]]; then
+    echo "check_no_health_data_in_cloudkit: sealForUpload not found in $codec — re-point this gate at it." >&2
+    exit 2
+fi
+if ! grep -qF "throw CloudSyncError.encryptionUnavailable" <<<"$seal_body"; then
+    echo "ERROR: CloudPayloadCodec.swift: sealForUpload does not fail closed when the key is unavailable" >&2
+    bad=$((bad + 1))
+fi
+if grep -qE "return[[:space:]]+payload\b" <<<"$seal_body"; then
+    echo "ERROR: CloudPayloadCodec.swift: sealForUpload can return the payload unsealed" >&2
+    bad=$((bad + 1))
+fi
 
 
 # Every writer has a reader. An encrypted writer paired with a reader that

@@ -10,8 +10,9 @@ import XCTest
 /// judge whether the app is trustworthy.
 final class RecoveryScoreVitalsFallbackTests: XCTestCase {
 
-    private let popMin = ScoringWeights.Vitals.respiratoryRatePopulationMinBPM // 12
-    private let popMax = ScoringWeights.Vitals.respiratoryRatePopulationMaxBPM // 18
+    /// The documented population window, 12–18 br/min (whitepaper 01).
+    private let popMin = 12.0
+    private let popMax = 18.0
 
     // MARK: - respiratoryPopulationScore(rate:)
 
@@ -22,9 +23,9 @@ final class RecoveryScoreVitalsFallbackTests: XCTestCase {
     }
 
     func testRateAboveWindowScoresGradedPenalty() {
-        // 2 br/min above popMax at 15 pts/br/min → 100 - 30 = 70.
-        let expected = 100 - 2 * ScoringWeights.Vitals.respiratoryRatePenaltyPerBreath
-        XCTAssertEqual(RecoveryScoreCalculator.respiratoryPopulationScore(rate: popMax + 2), expected, accuracy: 0.0001)
+        // The documented penalty is 15 points per br/min above the band
+        // (whitepaper 01, constants table): 2 br/min above popMax → 100 − 30 = 70.
+        XCTAssertEqual(RecoveryScoreCalculator.respiratoryPopulationScore(rate: popMax + 2), 70, accuracy: 0.0001)
     }
 
     func testRateFarAboveWindowFloorsAtZero() {
@@ -32,11 +33,8 @@ final class RecoveryScoreVitalsFallbackTests: XCTestCase {
     }
 
     func testRateBelowWindowScoresBelowPopulationConstant() {
-        XCTAssertEqual(
-            RecoveryScoreCalculator.respiratoryPopulationScore(rate: popMin - 3),
-            ScoringWeights.Vitals.respiratoryRateBelowPopulationScore,
-            accuracy: 0.0001
-        )
+        // Below the window the documented score is a flat 90 (whitepaper 01).
+        XCTAssertEqual(RecoveryScoreCalculator.respiratoryPopulationScore(rate: popMin - 3), 90, accuracy: 0.0001)
     }
 
     // MARK: - calculateVitalsScore takes the fallback when rate present, baseline absent

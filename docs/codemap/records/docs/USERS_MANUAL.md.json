@@ -724,7 +724,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "fe140477d3574bdf",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "c2aeaf0df6675cea",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "775d621e9e4bc2e9",
     "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.recordTier3UsageAndCheck()": "547bcb9efd8f00ad",
     "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.stickyTier(proposed:requirement:session:)": "c74b7f5f64f2ae07",
     "Emuqu/Sources/Assistant/Facts/TierProviderMapper.swift::func TierProviderMapper.autoMapping(_:)": "82a3cd48321f650a",
@@ -776,7 +776,7 @@
   {
    "key": "§ Emuqu User Manual > Flo Tab (the AI Assistant) > Choosing a Provider",
    "hash": "05d2475a58c8c3ac",
-   "does": "Claims a model picker listing Apple Intelligence (iOS 26+), Claude Haiku 4.5/Sonnet 4.6/Opus 4.7, ChatGPT GPT-6 Luna/GPT-5.4 mini/GPT-5.4, Gemini 3.5 Flash-Lite/3.8 Flash/3.1 Pro Preview, Grok 4.3/4.7, DeepSeek Flash/V4 Pro; Set up Flo screen when nothing can answer; keys in device-only Keychain. Verified display names in Providers/*.swift and APIKeyStore ThisDeviceOnly accessibility.",
+   "does": "Claims a model picker listing Apple Intelligence (iOS 26+), Claude Haiku 4.5/Sonnet 4.6/Opus 4.7, ChatGPT GPT-6 Luna/GPT-5.4 mini/GPT-5.4, Gemini 3.5 Flash-Lite/3.8 Flash/3.1 Pro Preview, Grok 4.3/4.7, DeepSeek Flash/V4 Pro; Set up Flo screen when nothing can answer; keys in device-only Keychain. Display names come from each provider's static models (KeyedCloudProvider.availableModels); APIKeyStore stores keys ThisDeviceOnly.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/CoachHomeV2View.swift::var CoachHomeV2View.modelBadge",
@@ -786,11 +786,7 @@
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func FloInputMode.resolve(activeProviderAvailable:appleSelected:)",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var FloSetupCard.body",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var FloSetupCard.addKeyButton",
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.availableModels",
-    "Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::var OpenAIProvider.availableModels",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.availableModels",
-    "Emuqu/Sources/Assistant/Providers/GrokProvider.swift::var GrokProvider.availableModels",
-    "Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.availableModels",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var KeyedCloudProvider.availableModels",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.availableModels",
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)"
    ],
@@ -798,14 +794,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "b26556448903f9ff",
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.availableModels": "8a36d49f972a68e9",
+    "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "08324bd52931b06a",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var KeyedCloudProvider.availableModels": "d826a77b6192f465",
     "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::var AppleFoundationProvider.availableModels": "b0801f20c967c762",
-    "Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.availableModels": "aed1676d66412e3b",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.availableModels": "2398de07ea647db2",
-    "Emuqu/Sources/Assistant/Providers/GrokProvider.swift::var GrokProvider.availableModels": "c4ebab940774ba77",
-    "Emuqu/Sources/Assistant/Providers/OpenAIProvider.swift::var OpenAIProvider.availableModels": "ca2d48437b4a16a5",
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::var ProviderRegistry.anyProviderAvailable": "28ca49f2f864693f",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func FloInputMode.resolve(activeProviderAvailable:appleSelected:)": "2554dc79988e33a6",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var FloSetupCard.addKeyButton": "3523eb379901ebf8",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var FloSetupCard.body": "ee254cd4eb5e4a93",
@@ -1108,7 +1099,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.authorityDomains(for:)": "2d1c9c7f522800b8",
-    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.search(query:intent:maxResults:)": "479a60cbe65de369"
+    "Emuqu/Sources/Services/WebSearchService.swift::func WebSearchService.search(query:intent:maxResults:)": "5572f55a4dab420a"
    }
   },
   {
@@ -1136,9 +1127,9 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "ad454a3decd772f0",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()": "7764742cd137f40f",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clear()": "276f25ef2ddab82c",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.dedupedAndCapped(_:)": "0b6afa31e8c38ae8",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)": "5f671f580b979f5b",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.remove(_:)": "959a11cea7fa2e44",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.storageDirectory(_:)": "aaa5486a3ea2df6a",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.systemPromptBlock()": "4323ea47776c5cdb",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::var UserFactsStore.autoExtractEnabled": "dd33e78cb9e18d0d",
@@ -1146,7 +1137,7 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.extractFactsInBackground(from:completed:)": "8729adde218fa242",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.remember(_:)": "a6c7e14e322e7ec3",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.autoRememberToggle": "2f86e0be41e89571",
-    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.forgetEverythingButton": "315e1c30fb682e9b",
+    "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.forgetEverythingButton": "dd29be2c6377092b",
     "Emuqu/Sources/Assistant/Views/AIAssistantSettingsPage+Sections.swift::var AIAssistantSettingsPage.rememberedFactRows": "f1e32c8b680df22c"
    }
   },
@@ -1223,7 +1214,7 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.unsummarizedTurns(in:)": "bbfdd1346697c650",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.updateSummaryWith(droppedTurns:provider:model:contextRendered:)": "51214a0678d1ddc5",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.assembleContextAndTools(provider:model:)": "f70445efa100496a",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.clearConversation()": "56444bccdceaf3c4",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.clearConversation()": "af95a41f7463b816",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.clearConversationButton": "c4e35ce4379a14fe"
    }
   },
@@ -1261,9 +1252,7 @@
    "does": "Claims known limitations: Apple safety refusals, cold start, 4K window, no monthly/yearly aggregation tools, fabrication risk, unpinned non-Claude model IDs, single thread, citation picks latest session of a day, voice MVP.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.availableModels",
-    "Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.availableModels",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.availableModels",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var KeyedCloudProvider.availableModels",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)",
     "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.dayMap(_:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.checkForBargeIn()"
@@ -1273,9 +1262,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/AssistantCitationResolver.swift::func AssistantCitationResolver.dayMap(_:)": "fd5682bcc90cec70",
-    "Emuqu/Sources/Assistant/Providers/AnthropicProvider.swift::var AnthropicProvider.availableModels": "8a36d49f972a68e9",
-    "Emuqu/Sources/Assistant/Providers/DeepSeekProvider.swift::var DeepSeekProvider.availableModels": "aed1676d66412e3b",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::var GeminiProvider.availableModels": "2398de07ea647db2",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var KeyedCloudProvider.availableModels": "d826a77b6192f465",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)": "e3b46c70fc101f71",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.checkForBargeIn()": "22f098e4cff3f543"
    }
@@ -2358,19 +2345,19 @@
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.oneHourAtLTHRTRIMP(lthr:maxHR:restHR:sex:)",
     "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.alpha1LT1EstimateCard",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)"
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:transport:)",
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)": "2662dacd6f0a9521",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)": "875e6e16f35e2d1b",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "3adb0e0ea37e3f5f",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.banisterTRIMP(hrs:maxHR:restHR:sex:)": "f33747d3f9768073",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)": "dbca3958b68fa5b2",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.oneHourAtLTHRTRIMP(lthr:maxHR:restHR:sex:)": "5b6b9f623393607d",
-    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.alpha1LT1EstimateCard": "a1a164fc69226783"
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:transport:)": "863a874d96dcc48f",
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)": "8f806b16e9575529",
+    "Emuqu/Sources/Views/ThresholdCards+Cards.swift::var ThresholdCards.alpha1LT1EstimateCard": "025fb4e741cb7fad"
    }
   },
   {
@@ -2381,17 +2368,16 @@
    "calls": [
     "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)",
     "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.movingAverage(_:window:)",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)"
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:transport:)",
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.movingAverage(_:window:)": "a43f2e4739ab3bd5",
-    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:)": "2662dacd6f0a9521",
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)": "875e6e16f35e2d1b"
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "ad1f23d4e060bae9",
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.elevations(for:maxSamples:sustainedClimbThreshold:transport:)": "863a874d96dcc48f",
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.sustainedClimb(in:threshold:)": "8f806b16e9575529"
    }
   },
   {
@@ -2939,17 +2925,21 @@
   },
   {
    "key": "§ Emuqu User Manual > Trash View > With Deleted Sessions",
-   "hash": "796aae2afab07f0f",
-   "does": "Claims trash rows with restore (re-analyzes) and permanent delete, 90-day footer, Permanently Delete All with confirmation.",
+   "hash": "2164f05138a3876a",
+   "does": "Claims trash rows with restore (re-analyzes) and permanent delete, which removes the session's file, raw backup, iCloud copy, the route a workout filed in the trail history and the HRV samples it wrote to Apple Health; a session that cannot be removed stays and the screen says how many, HRV samples that cannot be deleted are reported with where to remove them in the Health app, and the message stays until the next action; 90-day footer, Permanently Delete All with confirmation.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)"
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:)",
+    "Emuqu/Sources/Views/TrashView.swift::func TrashView.failureMessage(for:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)": "834af333d59ad9d7"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:)": "8fba1c517d94a264",
+    "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.expiredDeletionIds(keepDays:)": "834af333d59ad9d7",
+    "Emuqu/Sources/Views/TrashView.swift::func TrashView.failureMessage(for:)": "08699e5a657ecc94"
    }
   },
   {
@@ -3257,19 +3247,23 @@
   },
   {
    "key": "§ Emuqu User Manual > Privacy & Data",
-   "hash": "fff6a40b71c3e8a1",
-   "does": "Claims no server/account; data in app container and App Group; keychain items survive app deletion (API keys removable via Delete All My Data); iCloud sync off by default and encrypted, Health readings never uploaded; cloud AI only with key + consent, receiving chat, tool results, memory facts and a live-state block; Tavily, MET Norway (~1 km), OpenTopoData (<= 100 points, ~11 m), Overpass (100 m / 250 m), Apple, Hugging Face.",
+   "hash": "0b28640a8d13af61",
+   "does": "Claims no server/account; data in app container and App Group; recordings, raw backups, workout routes, settings, saved routes, contacts, trails and Flo's chat and memory sealed with a device-keychain key on top of file protection; keychain items survive app deletion (API keys removable via Delete All My Data); iCloud sync off by default and encrypted, Health readings never uploaded; cloud AI only with key + consent, receiving chat, tool results, memory facts and a live-state block; Tavily, MET Norway (~1 km), OpenTopoData (<= 100 points, ~11 m), Overpass (100 m / 250 m), Apple, Hugging Face.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.fetchFromOpenTopoData(coords:dataset:)",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)"
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.fetchFromOpenTopoData(coords:dataset:transport:)",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TopoElevationService.swift::func TopoElevationService.fetchFromOpenTopoData(coords:dataset:)": "61414783ab60ef32",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)": "8c5da6b396d13175"
+    "Emuqu/Sources/Services/TopoElevationService.swift::func TopoElevationService.fetchFromOpenTopoData(coords:dataset:transport:)": "5578484203f68cc5",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)": "8c5da6b396d13175",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)": "506794a8a13263fb"
    }
   }
  ],

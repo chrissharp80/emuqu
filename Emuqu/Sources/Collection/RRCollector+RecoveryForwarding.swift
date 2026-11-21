@@ -40,8 +40,9 @@ extension RRCollector {
         return await recovery.restoreFromTrash(sessionId)
     }
 
-    func permanentlyDelete(_ sessionId: UUID) {
-        recovery.permanentlyDelete(sessionId)
+    @discardableResult
+    func permanentlyDelete(_ ids: [UUID]) async -> TrashDeletionOutcome {
+        await recovery.permanentlyDelete(ids)
     }
 
     func deleteLostSessions(_ sessionIds: [UUID]) {

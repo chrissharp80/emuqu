@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Utilities/DebugLog.swift",
- "hash": "22fe7b0f90a31f01",
+ "hash": "bd3eebd37650c38e",
  "role": "App-wide logger: debugLog() buffers every line into an observable in-memory ring buffer and 'Recent Problems' error catalog, and (always in DEBUG, opt-in in Release) flushes PHI-scrubbed lines to debug_log.txt in the App Group container (via AppConfig.sharedContainerURL); exports the file, or the scrubbed in-memory buffer when Persistent Logging is off; also owns the PHI scrubber/regex cache, log export and the debugLogExternal/correlation helpers.",
  "types": [
   "DebugLogger: class (@Observable, @MainActor) — logger singleton, ring buffer, disk flush, export",
@@ -20,7 +20,7 @@
   "notif:DebugLogger.significantLogPosted ('DebugLogger.SignificantLog')",
   "static maxFileSize=2MB, maxMemoryEntries=5000, flushInterval=5s",
   "static lineDateStyle (yyyy-MM-dd HH:mm:ss.SSS local)",
-  "static metricPattern/unitPattern/separatorPattern (PHI regex sources)",
+  "static metricPattern/unitPattern/separatorPattern (PHI regex sources) and the internal composed metricValuePattern / valueChainPattern built from them",
   "mem:DebugLogger.compiledPatterns (regex cache)",
   "DispatchQueue 'com.hrv.debuglogger'",
   "Timer flushTimer (5 s repeating)"
@@ -451,7 +451,7 @@
    "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.append(_:)": "60378d267219a467",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.createLogFile(with:)": "e0c6c5d3839f98b8",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "d2ebc3c09c6c5f31"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "68f645e05bacaaed"
    }
   },
   {
@@ -516,8 +516,8 @@
   },
   {
    "key": "func DebugLogger.scrubPHI(_:)",
-   "hash": "467bd4d138624432",
-   "does": "Redacts health values from one log line: '<metric><sep><number><unit>' → '<metric><sep><redacted><unit>' (metrics include any word ending in 'score', e.g. score=, frozenScore=), then chained numbers after a redaction, then lat/lon coordinates.",
+   "hash": "c29b1b928cc00ea8",
+   "does": "Redacts health values from one log line: '<metric><sep><number>[<unit>]' → '<metric><sep><redacted>' (the number and any unit after it are dropped; metrics include any word ending in 'score', e.g. score=, frozenScore=), then numbers chained to a redaction by an arrow, comparator, 'to', 'vs', comma or slash (with their unit), then lat/lon coordinate values.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.replacing(_:_:with:)",
@@ -533,7 +533,7 @@
   },
   {
    "key": "func DebugLogger.redactValueChains(in:)",
-   "hash": "4cc8621c99ae530e",
+   "hash": "559c96bd3c19816e",
    "does": "Repeatedly (up to 8 passes, until stable) redacts numbers chained to an existing <redacted> by an arrow/comparator/'to'/'vs'/','/'/'.",
    "entry": null,
    "calls": [
@@ -743,12 +743,13 @@
   },
   {
    "key": "func DebugLogger.clear()",
-   "hash": "bdb80aca3813b5e5",
-   "does": "Empties ring buffer (entries and exportBuffer), error catalog, pending lines and pending entries, and asynchronously deletes debug_log.txt on the logger queue (NSLog on failure).",
-   "entry": "Settings clear-log buttons (SettingsSubviews.swift:17, SettingsPages+DiagnosticActions.swift:287) and DataPurgeService.purgeDebugLog (DataPurgeService.swift:615)",
+   "hash": "50ccfbe80b4fcb3e",
+   "does": "Empties ring buffer (entries and exportBuffer), error catalog, pending lines and pending entries, then removes debug_log.txt synchronously on the logger queue (after any flush running) via removeLogFile. Returns true when no log file is left (discardable).",
+   "entry": "Settings clear-log buttons (DebugLogView.body alert, TroubleshootingPage.clearAllLogs) and DataPurgeService.purgeDebugLog",
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.mutateRingBuffer(_:)",
-    "ext:FileManager.removeItem"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.removeLogFile(at:)",
+    "ext:DispatchQueue.sync"
    ],
    "reads": [],
    "writes": [
@@ -759,16 +760,39 @@
     "mem:DebugLogger.pendingEntries",
     "file:debug_log.txt"
    ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.mutateRingBuffer(_:)": "51bc8d5576f278e9",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.removeLogFile(at:)": "26fc1a48b857e935"
+   }
+  },
+  {
+   "key": "func DebugLogger.removeLogFile(at:)",
+   "hash": "5f6fa406008089a3",
+   "does": "Removes the log file: true when it is absent or removed; false with an NSLog line (not debugLog, which would write to the file being removed) when removal throws.",
+   "entry": null,
+   "calls": [
+    "ext:FileManager.removeItem",
+    "ext:FileManager.fileExists",
+    "ext:NSLog"
+   ],
+   "reads": [],
+   "writes": [
+    "file:debug_log.txt"
+   ],
    "branches": [
     {
-     "at": "+8",
-     "cond": "removeItem throws (incl. file already gone)",
-     "effect": "NSLog"
+     "at": "+1",
+     "cond": "file absent",
+     "effect": "return true"
+    },
+    {
+     "at": "+5",
+     "cond": "removeItem throws",
+     "effect": "NSLog, return false"
     }
    ],
-   "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.mutateRingBuffer(_:)": "51bc8d5576f278e9"
-   }
+   "deps": {}
   },
   {
    "key": "func DebugLogger.clearErrorCatalog()",
@@ -848,7 +872,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportHeader(entryCount:source:)": "b81a9a65a3251d3d",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "d2ebc3c09c6c5f31",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "68f645e05bacaaed",
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },
@@ -890,7 +914,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "d2ebc3c09c6c5f31",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "68f645e05bacaaed",
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
     "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.model": "76f45a25c424e560",
     "Emuqu/Sources/Utilities/DeviceInfo.swift::var DeviceInfo.systemVersion": "39e90677709e32e9"

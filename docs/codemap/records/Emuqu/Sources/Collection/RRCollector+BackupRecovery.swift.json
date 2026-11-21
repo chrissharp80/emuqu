@@ -38,7 +38,7 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.liveRecordingIds()": "d4467e313fc499df",
     "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.recoveryService": "75439d381f39246d",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.checkForLostSessions(excluding:)": "f25ebc99c6fcacb7"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.checkForLostSessions(excluding:)": "58fe5b272d72dbdf"
    }
   },
   {
@@ -101,7 +101,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.recoveryService": "75439d381f39246d",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.pullCloudBackupsToLocal()": "e66ad2ed5d26eb7f"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.pullCloudBackupsToLocal()": "386d47a63ff9c2f9"
    }
   },
   {
@@ -165,8 +165,8 @@
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.recoverFromBackup(_:)": "54130e41d03b43c1",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.restoreKeptSession(_:)": "8be43fb935c61460",
     "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.recoveryService": "75439d381f39246d",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.restoreFromTrash(_:)": "1d170a0749aa27cf",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.restoreFromTrashFailed(_:)": "7698a37b7b4f8366",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.restoreFromTrash(_:)": "6ee46b0a633fd9e2",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.restoreFromTrashFailed(_:)": "000b861781f143c5",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.deletedIds": "7177e9e74ed5798e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -211,7 +211,7 @@
    "deps": {
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "dd1d381f6262b4a9",
     "Emuqu/Sources/Collection/RRCollector+MorningForwarding.swift::func RRCollector.supersedeSameNightSession(newSession:)": "72df87bd6688ffed",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "f7997155f08460b2",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.discardTrashed(_:)": "f558ffc445c3ff7c",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.trashedSession(_:)": "ea6c25378b23ce0c",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.forceReuploadSession(_:)": "28d40115a90d94c4",
@@ -221,23 +221,57 @@
   },
   {
    "key": "func SessionRecoveryCoordinator.permanentlyDelete(_:)",
-   "hash": "86bd0c707b5cfeca",
-   "does": "Pass-through to SessionRecoveryService.permanentlyDelete: drop trash copy, raw backup, iCloud live backup and the deleted-id record.",
+   "hash": "9b625ceb8d360ae7",
+   "does": "Deletes the sessions from the Trash for good through SessionRecoveryService.permanentlyDelete(_:removeHealthSamples:), handing it removeExportedHRV to delete each removed session's HRV in Apple Health; returns the TrashDeletionOutcome (discardable).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:)"
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.recoveryService",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:removeHealthSamples:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.removeExportedHRV(of:over:)"
    ],
    "reads": [],
    "writes": [
-    "archive:trash",
-    "file:RawRRBackup",
-    "ck:live backup",
-    "archive:deletedIds"
+    "archive:trash file",
+    "file:raw RR backups",
+    "file:Breadcrumbs/archive.json",
+    "ud:sessionRecovery.forgottenBackupIds",
+    "ck:live backup delete",
+    "archive:deletedIds",
+    "hk:heartRateVariabilitySDNN"
    ],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.removeExportedHRV(of:over:)": "c82b13a8fd66635e",
     "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.recoveryService": "75439d381f39246d",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:)": "61520cb74cf5575e"
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:removeHealthSamples:)": "ad8d9f5fcf49819c"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.removeExportedHRV(of:over:)",
+   "hash": "5570b78bec88b4eb",
+   "does": "Deletes the HRV samples the session exported to Apple Health over its span (HealthWriteAndObserve.removeExportedHRV through collector.healthKit.writes); true when that worked, false with the error logged at .error.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes",
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.removeExportedHRV(sessionId:from:to:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [
+    "hk:heartRateVariabilitySDNN"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "HealthKit threw",
+     "effect": "log at .error, false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+HRV.swift::func HealthWriteAndObserve.removeExportedHRV(sessionId:from:to:)": "831ff394cded5750",
+    "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.writes": "936b8a496469997e",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5"
    }
   },
   {

@@ -119,8 +119,8 @@
   },
   {
    "key": "func VitalsScoringTests.testOneStandardDeviationAboveBaselineCostsTheDocumentedPenalty()",
-   "hash": "bc92e2ba2f2ef291",
-   "does": "Asserts resting HR 61 (+1 SD) scores 100 - rhrPenaltyPerSD (90).",
+   "hash": "f5f396cd3f2ddbc2",
+   "does": "Asserts resting HR 61 (+1 SD) scores the documented 90 (100 − 10 per SD).",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)",
@@ -133,7 +133,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "0d8a08e676f447a9",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "34df3121aac914dd",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)": "0f8493f865e4cb0e",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.restingHRSubScore(vitals:baselineStats:)": "ddd2a621b8074af5",
     "EmuquTests/VitalsScoringTests.swift::func VitalsScoringTests.score(_:)": "7fcce92d6eb79b25",
@@ -212,8 +212,8 @@
   },
   {
    "key": "func VitalsScoringTests.testTemperatureWithinTheNormalBandScoresFull()",
-   "hash": "b957a129f609c060",
-   "does": "Asserts temperature deviations 0.0, 0.1 and the 0.3 normal edge each score 100.",
+   "hash": "88a64e7ef6ee360a",
+   "does": "Asserts temperature deviations 0.0, 0.1 and the documented 0.3 normal edge each score 100.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)",
@@ -231,7 +231,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "0d8a08e676f447a9",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "34df3121aac914dd",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)": "0f8493f865e4cb0e",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureSubScore(_:)": "125b234f3cb02e11",
     "EmuquTests/VitalsScoringTests.swift::func VitalsScoringTests.score(_:)": "7fcce92d6eb79b25",
@@ -240,8 +240,8 @@
   },
   {
    "key": "func VitalsScoringTests.testTemperatureBandsStepDownAtTheirDocumentedEdges()",
-   "hash": "ea67e603b93ca472",
-   "does": "Asserts band edges: 0.4 and 0.5 → mild (75), 0.8 and 1.0 → moderate (50), 1.5 → severe (25).",
+   "hash": "e3fbe771d8c72bd9",
+   "does": "Asserts the documented bands as literals: 0.4 and 0.5 → 75, 0.8 and 1.0 → 50, 1.5 → 25.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/VitalsScoringTests.swift::func VitalsScoringTests.score(_:)",
@@ -252,7 +252,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "0d8a08e676f447a9",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "34df3121aac914dd",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureSubScore(_:)": "125b234f3cb02e11",
     "EmuquTests/VitalsScoringTests.swift::func VitalsScoringTests.score(_:)": "7fcce92d6eb79b25"
    }
@@ -330,8 +330,8 @@
   },
   {
    "key": "func VitalsScoringTests.testTheFactorIsTheMeanOfTheAvailableSubScores()",
-   "hash": "33931160bcd02002",
-   "does": "Asserts RHR +1 SD (90), RR 15 in population window (100) and temperature 1.5 (25) average to their plain mean.",
+   "hash": "6e4efb0d936c3354",
+   "does": "Asserts RHR +1 SD (90), RR 15 in population window (100) and temperature 1.5 (25) average to 215/3.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)",
@@ -346,7 +346,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "0d8a08e676f447a9",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "34df3121aac914dd",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratoryPopulationScore(rate:)": "6f5a48790a29fd6d",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)": "0f8493f865e4cb0e",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.restingHRSubScore(vitals:baselineStats:)": "ddd2a621b8074af5",
@@ -358,8 +358,8 @@
   },
   {
    "key": "func VitalsScoringTests.testAMissingInputIsExcludedRatherThanCountedAsZero()",
-   "hash": "8487326bf36e494d",
-   "does": "Asserts a temperature-only payload with baseline stats scores exactly temperatureScoreSevere (missing inputs excluded).",
+   "hash": "03dc1b894c3f9ec0",
+   "does": "Asserts a temperature-only payload with baseline stats scores exactly the documented severe-band 25 (missing inputs excluded).",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)",
@@ -373,7 +373,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "0d8a08e676f447a9",
+    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "34df3121aac914dd",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)": "0f8493f865e4cb0e",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.restingHRSubScore(vitals:baselineStats:)": "ddd2a621b8074af5",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureSubScore(_:)": "125b234f3cb02e11",
@@ -383,8 +383,8 @@
   },
   {
    "key": "func VitalsScoringTests.testLowBloodOxygenAppliesTheDocumentedPenalty()",
-   "hash": "4c4c17042e22f4fb",
-   "does": "Asserts SpO2 92 subtracts spo2Penalty (10) from 80.",
+   "hash": "1961a90a38d514f1",
+   "does": "Asserts SpO2 92 takes the documented 10-point penalty off 80, giving 70.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.applyVitalsOverrides(score:vitals:)",
@@ -396,7 +396,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.applyVitalsOverrides(score:vitals:)": "bee8a87cab5f89b4",
-    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isSpO2Concerning": "49a3d7fabe5624e5",
+    "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isSpO2Concerning": "48ae2f1291e92d8b",
     "EmuquTests/VitalsScoringTests.swift::func VitalsScoringTests.vitals(respiratoryRate:respiratoryRateBaseline:oxygenSaturation:wristTemperature:restingHeartRate:)": "5acbdb76cd8e956c"
    }
   },

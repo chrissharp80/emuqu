@@ -1,16 +1,16 @@
 {
  "file": "Tools/validation/test_ports.py",
- "hash": "81b74eb348827096",
- "role": "Re-runs Emuqu unit-test expectations (EmuquTests @ e028039: DFAAnalysisTests, DFAReferenceValidationTests, FrequencyDomainTests, HRVSleepStageClassifierTests, ArtifactDetectionTests, LiveDFAAnalyzerTests, TimeDomainTests, HRVReferenceValidationTests) against the Python ports; each @case registers a runner that records PASS/FAIL; exits 1 on any failure. Output is committed as test_ports_output.txt (121/121; the seven HRVSleepStageClassifierTests gap cases are appended after the other suites so earlier case numbers are unchanged).",
+ "hash": "4d7136f4d8558d86",
+ "role": "Re-runs Emuqu unit-test expectations (EmuquTests @ e028039: DFAAnalysisTests, DFAReferenceValidationTests, FrequencyDomainTests, HRVSleepStageClassifierTests, ArtifactDetectionTests, LiveDFAAnalyzerTests, TimeDomainTests, HRVReferenceValidationTests) against the Python ports; each @case registers a runner that records PASS/FAIL; exits 1 on any failure. Output is committed as test_ports_output.txt (119/119; the seven HRVSleepStageClassifierTests gap cases are appended after the other suites so earlier case numbers are unchanged).",
  "types": [],
  "state": [
   "RESULTS list of (suite, name, ok, detail) (line 21)",
   "CASES list of registered runners (line 38)",
-  "_REF / _NIGHT / _FIX memo caches (lines 204, 453, 953)",
+  "_REF / _NIGHT / _FIX memo caches (lines 204, 453, 940)",
   "N_REF = 4096 (line 160)",
   "git object e028039:EmuquTests/HRVReferenceFixtures.swift (read via `git show`)"
  ],
- "toplevel": "Imports the six port modules and swift_rng; module-level @case decorators register 114 runners in CASES; the __main__ block (lines 1040-1048) runs every case, prints PASS/FAIL lines and 'N/M cases matched', exits 1 if any failed. Not referenced by any .github workflow, so port drift from Swift is only caught when someone reruns it by hand.",
+ "toplevel": "Imports the six port modules and swift_rng; module-level @case decorators register 119 runners in CASES; the __main__ block (lines 1114-1122) runs every case, prints PASS/FAIL lines and 'N/M cases matched', exits 1 if any failed. Not referenced by any .github workflow, so port drift from Swift is only caught when someone reruns it by hand.",
  "units": [
   {
    "key": "def case",
@@ -95,7 +95,7 @@
    "deps": {
     "Tools/validation/swift_rng.py::def SplitMix64.__init__": "582b7331f8c1f0eb",
     "Tools/validation/swift_rng.py::def SplitMix64.double_closed": "a6db82cd4872df85",
-    "Tools/validation/test_ports.py::def _ #114": "246cf1461d868d5c"
+    "Tools/validation/test_ports.py::def _ #119": "1a96139212595b50"
    }
   },
   {
@@ -462,7 +462,7 @@
    "deps": {
     "Tools/validation/swift_rng.py::def SplitMix64.__init__": "582b7331f8c1f0eb",
     "Tools/validation/swift_rng.py::def SplitMix64.double_closed": "a6db82cd4872df85",
-    "Tools/validation/test_ports.py::def _ #114": "246cf1461d868d5c"
+    "Tools/validation/test_ports.py::def _ #119": "1a96139212595b50"
    }
   },
   {
@@ -2090,25 +2090,6 @@
   },
   {
    "key": "def _ #98",
-   "hash": "9a1367853efe8ba3",
-   "does": "Mirrors TimeDomainTests.testRMSSDAccuracy: passes iff `approx(m[\"rmssd\"], math.sqrt(11200 / 9), 0.01)`; setup: p = series([800, 820, 790, 830, 780] * 2) | m = td.compute_time_domain(p, [False] * 10, 0, 10) (lines 869-871).",
-   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
-   "calls": [
-    "Tools/validation/port_time_domain.py::def compute_time_domain",
-    "Tools/validation/test_ports.py::def series",
-    "Tools/validation/test_ports.py::def approx"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Tools/validation/port_time_domain.py::def compute_time_domain": "f92dbbe8ceca887a",
-    "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
-    "Tools/validation/test_ports.py::def series": "ae8c5fc7bd970c38"
-   }
-  },
-  {
-   "key": "def _ #99",
    "hash": "f6f0de02d6e74419",
    "does": "Mirrors TimeDomainTests.testRMSSDParityExact: passes iff `approx(m[\"rmssd\"], 35.276684147527874, 1e-6)`; setup: p = series([800, 820, 790, 830, 780] * 2) | m = td.compute_time_domain(p, [False] * 10, 0, 10) (lines 876-878).",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
@@ -2127,7 +2108,7 @@
    }
   },
   {
-   "key": "def _ #100",
+   "key": "def _ #99",
    "hash": "d70e032e9e4e4e5e",
    "does": "Mirrors TimeDomainTests.testSDNNParityExact: passes iff `approx(m[\"sdnn\"], 74.53559924999298, 1e-6)`; setup: p = series([800, 900, 700, 850, 750] * 2) | m = td.compute_time_domain(p, [False] * 10, 0, 10) (lines 883-885).",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
@@ -2146,7 +2127,7 @@
    }
   },
   {
-   "key": "def _ #101",
+   "key": "def _ #100",
    "hash": "c2d2c381cf5e28b4",
    "does": "Mirrors TimeDomainTests.testArtifactExclusion (meanRR): passes iff `approx(m[\"meanRR\"], 800, 1)`; setup: rr = [800, 810, 400, 790, 800, 805, 795, 800, 810, 790, 800] | fl = [False] * 11 | fl[2] = True | m = td.compute_time_domain(series(rr), fl, 0, 11) (lines 890-894).",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
@@ -2165,7 +2146,7 @@
    }
   },
   {
-   "key": "def _ #102",
+   "key": "def _ #101",
    "hash": "aa59a48f46ea313f",
    "does": "Mirrors TimeDomainTests.testRMSSDDoesNotBridgeARemovedBeat: passes iff `approx(m[\"rmssd\"], 10, 1e-9)`; setup: rr = [(800 if i < 7 else 900) + (0 if i % 2 == 0 else 10) for i in range(14)] | fl = [False] * 14 | fl[6] = True | m = td.compute_time_domain(series(rr), fl, 0, 14) (lines 899-903).",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
@@ -2184,7 +2165,7 @@
    }
   },
   {
-   "key": "def _ #103",
+   "key": "def _ #102",
    "hash": "73c272e06907b58e",
    "does": "Mirrors TimeDomainTests.testInsufficientData: passes iff `td.compute_time_domain(series([800, 810]), [False] * 2, 0, 2) is None` (lines 908-908).",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
@@ -2201,7 +2182,7 @@
    }
   },
   {
-   "key": "def _ #104",
+   "key": "def _ #103",
    "hash": "bf94a9792e4a01bf",
    "does": "Mirrors TimeDomainTests.testWindowBounds: passes iff `td.compute_time_domain(p, [False] * 20, 5, 15) is not None`; setup: p = [(i * 800, 800 + (20 if i % 2 == 0 else -20)) for i in range(20)] (lines 913-914).",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
@@ -2216,7 +2197,7 @@
    }
   },
   {
-   "key": "def _ #105",
+   "key": "def _ #104",
    "hash": "766a6c902747a6f0",
    "does": "Mirrors TimeDomainTests.testNoSuccessiveDifferenceAcrossARecordingBreak: passes iff `approx(m[\"rmssd\"], 20, 1e-9) and br == [16]`; setup: rr = [800 if i % 2 == 0 else 820 for i in range(16)] + [900 if i % 2 == 0 else 920 for i in range(16)] | p = series(rr, gaps={16: 10000}) | m = td.compute_time_domain(p, [False] * 32, 0, 32) | br = [i for i in range(1, 32) if td.is_recording_break(p[i - 1], p[i])] (lines 919-923).",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
@@ -2237,7 +2218,7 @@
    }
   },
   {
-   "key": "def _ #106",
+   "key": "def _ #105",
    "hash": "e780ee759540b73f",
    "does": "Mirrors TimeDomainTests.testPNN50: passes iff `approx(m[\"pnn50\"], 60.0, 0.1)`; setup: rr = [800, 860, 840, 895, 865, 935, 900, 820, 880, 830, 890] | m = td.compute_time_domain(series(rr), [False] * 11, 0, 11) (lines 928-930).",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
@@ -2252,23 +2233,6 @@
    "deps": {
     "Tools/validation/port_time_domain.py::def compute_time_domain": "f92dbbe8ceca887a",
     "Tools/validation/test_ports.py::def approx": "790d82d1062eb8d3",
-    "Tools/validation/test_ports.py::def series": "ae8c5fc7bd970c38"
-   }
-  },
-  {
-   "key": "def _ #107",
-   "hash": "0c5987d2979a6fb0",
-   "does": "Mirrors TimeDomainTests.testSDNN: passes iff `70 < m[\"sdnn\"] < 90`; setup: m = td.compute_time_domain(series([800, 900, 700, 850, 750] * 2), [False] * 10, 0, 10) (lines 935-936).",
-   "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
-   "calls": [
-    "Tools/validation/port_time_domain.py::def compute_time_domain",
-    "Tools/validation/test_ports.py::def series"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Tools/validation/port_time_domain.py::def compute_time_domain": "f92dbbe8ceca887a",
     "Tools/validation/test_ports.py::def series": "ae8c5fc7bd970c38"
    }
   },
@@ -2337,7 +2301,7 @@
    "deps": {}
   },
   {
-   "key": "def _ #108",
+   "key": "def _ #106",
    "hash": "e3847e8c744f1ce4",
    "does": "Mirrors HRVReferenceValidationTests.testFixtureCorpusIsPresentAndPlausible: passes iff `len(r) == 20 and sum(len(x[\"rrMs\"]) for x in r) == 6000`; setup: r = fix() (lines 972-973).",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
@@ -2354,7 +2318,7 @@
    }
   },
   {
-   "key": "def _ #109",
+   "key": "def _ #107",
    "hash": "d85b8a73af06bcf0",
    "does": "Mirrors HRVReferenceValidationTests.testMeanRRAndSDNNMatchTheReferenceOnEveryRecord: passes iff `worst <= 1e-6`; setup: worst = 0.0 | for r in fix(): | m = _an(r) | worst = max(worst, abs(m[\"meanRR\"] - r[\"expected\"][\"meanRR\"]), abs(m[\"sdnn\"] - r[\"expected\"][\"sdnn\"])) (lines 978-982).",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
@@ -2375,7 +2339,7 @@
    }
   },
   {
-   "key": "def _ #110",
+   "key": "def _ #108",
    "hash": "51b12902ac3fe6a1",
    "does": "Mirrors HRVReferenceValidationTests.testUnfilteredRMSSDMatchesTheReferenceOnEveryRecord: passes iff `worst <= 1e-6`; setup: worst = max(abs(_raw_rmssd(r[\"rrMs\"]) - r[\"expected\"][\"rmssdUnfiltered\"]) for r in fix()) (lines 987-988).",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
@@ -2394,7 +2358,7 @@
    }
   },
   {
-   "key": "def _ #111",
+   "key": "def _ #109",
    "hash": "6584f1c7ac6707a4",
    "does": "Mirrors HRVReferenceValidationTests.testPipelineRMSSDIsNeverLargerThanTheUnfilteredValue: passes iff `ok and narrowed > 0 where ok &= m <= raw + 1e-6`; setup: narrowed, ok = 0, True | for r in fix(): | m = _an(r)[\"rmssd\"] | raw = _raw_rmssd(r[\"rrMs\"]) | ok &= m <= raw + 1e-6 | narrowed += m < raw - 1e-6 (lines 993-999).",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
@@ -2417,7 +2381,7 @@
    }
   },
   {
-   "key": "def _ #112",
+   "key": "def _ #110",
    "hash": "9699b7852ea74f49",
    "does": "Mirrors HRVReferenceValidationTests.(comment value) nsr005 '16.03 against 28.98' -- stale: from the pre-5c4a23d collapsed-array rule: passes iff `ok where ok = round(_raw_rmssd(r[\"rrMs\"]), 2) == 28.98 and round(collapsed, 2) == 16.03`; setup: r = [x for x in fix() if x[\"record\"] == \"nsr005\"][0] | rr = [float(v) for v in r[\"rrMs\"]] | keep = td.ectopic_keep_mask(rr) | c = [v for v, k in zip(rr, keep) if k] | collapsed = math.sqrt(sum((c[i] - c[i - 1]) ** 2 for i in range(1, len(c))) / (len(c) - 1)) | cur = _an(r)[\"rmssd\"] | ok = round(_raw_rmssd(r[\"rrMs\"]), 2) == 28.98 and round(collapsed, 2) == 16.03 (lines 1004-1015).",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
@@ -2442,7 +2406,7 @@
    }
   },
   {
-   "key": "def _ #113",
+   "key": "def _ #111",
    "hash": "5431b25336a27fde",
    "does": "Mirrors HRVReferenceValidationTests.testPNN50MatchesTheReferenceWhereNoBeatIsFiltered: passes iff `ok and compared > 0 where ok &= abs(_an(r)[\"pnn50\"] - r[\"expected\"][\"pnn50Unfiltered\"]) <= 1e-5`; setup: compared, ok = 0, True | for r in fix(): | rr = [float(v) for v in r[\"rrMs\"]] | if not all(td.ectopic_keep_mask(rr)): | continue | ok &= abs(_an(r)[\"pnn50\"] - r[\"expected\"][\"pnn50Unfiltered\"]) <= 1e-5 | compared += 1 (lines 1020-1027).",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
@@ -2465,7 +2429,7 @@
    }
   },
   {
-   "key": "def _ #114",
+   "key": "def _ #112",
    "hash": "699ac3fcae2f132f",
    "does": "Mirrors HRVReferenceValidationTests.testVariabilityIsInvariantUnderAConstantShift: for the first 5 fixture records, shifts every RR by +100 ms, recomputes computeTimeDomain over all 300 beats ([False]*300 and range 0..300 are hard-coded; every fixture record has 300 intervals, 6000/20) and fails with the record id if meanRR does not rise by exactly 100 (1e-9) or SDNN changes by more than 1e-9; otherwise passes (lines 1032-1037).",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
@@ -2529,7 +2493,7 @@
    }
   },
   {
-   "key": "def _ #115",
+   "key": "def _ #113",
    "hash": "2dced10ce4f89e3b",
    "does": "Mirrors testAnArtifactGapDoesNotProduceASuccessiveDifference: 10x1000, 250, 10x1100 -> window rmssd 0 (1e-9).",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
@@ -2547,7 +2511,7 @@
    }
   },
   {
-   "key": "def _ #116",
+   "key": "def _ #114",
    "hash": "d3d218cf0a994d43",
    "does": "Mirrors testARecordingBreakDoesNotProduceASuccessiveDifference: 10x1000 then 10x1100 from 70000 ms -> rmssd 0 (1e-9).",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
@@ -2565,7 +2529,7 @@
    }
   },
   {
-   "key": "def _ #117",
+   "key": "def _ #115",
    "hash": "ea328a857964ac12",
    "does": "Mirrors testWindowVariabilitySkipsPairsThatAreNotAdjacent: window_variability with follows false at 2 -> rmssd 0; all false -> rmssd 0, sdnn 100.",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
@@ -2581,7 +2545,7 @@
    }
   },
   {
-   "key": "def _ #118",
+   "key": "def _ #116",
    "hash": "90389118d7052847",
    "does": "Mirrors testAlpha1AndSpectrumDoNotSpanARecordingBreak: 150 + 90 varied beats with a 30 s break; alpha1 equals DFA of the first run (1e-12), differs from the joined DFA (> 1e-9), LF/HF equals compute_from_clean_pairs of the first run on the beat-sum clock (1e-12).",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
@@ -2605,7 +2569,7 @@
    }
   },
   {
-   "key": "def _ #119",
+   "key": "def _ #117",
    "hash": "54d057ecdee27826",
    "does": "Mirrors testAlpha1InterpolatesAnArtifactRatherThanJoiningItsNeighbours: beat 100 of 200 set to 150 ms; alpha1 equals DFA with it replaced by the mean of its neighbours (1e-12).",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
@@ -2627,7 +2591,7 @@
    }
   },
   {
-   "key": "def _ #120",
+   "key": "def _ #118",
    "hash": "e6caf72919bb5563",
    "does": "Mirrors testAlpha1IsWithheldWhenTooMuchOfTheStretchIsInterpolated: every tenth of 200 beats invalid -> alpha1 None.",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",
@@ -2646,7 +2610,7 @@
    }
   },
   {
-   "key": "def _ #121",
+   "key": "def _ #119",
    "hash": "70d2f1e3747cfa5e",
    "does": "Mirrors testGapFreeAlpha1IsDFAOverEveryBeat: 200 clean varied beats -> alpha1 equals DFA over all (1e-12).",
    "entry": "Registered by @case; run by the __main__ loop via run() (test_ports.py:26).",

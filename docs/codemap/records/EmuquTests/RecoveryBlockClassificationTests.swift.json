@@ -1,7 +1,7 @@
 {
  "file": "EmuquTests/RecoveryBlockClassificationTests.swift",
  "hash": "e5810f88c6fbd548",
- "role": "XCTest suite pinning ScoredRecoveryBlock.classification (60-beat floor, three-tier DFA α1, HR-stability fallback) and isOrganizedRecovery, the selector's consolidation composition, and WindowClassification.shortLabel/raw-value round trip.",
+ "role": "XCTest suite pinning ScoredRecoveryBlock.classification (60-beat floor, three-tier DFA α1, HR-stability fallback), isOrganizedRecovery and isConsolidatedRecovery, and WindowClassification.shortLabel/raw-value round trip.",
  "types": [
   "RecoveryBlockClassificationTests: class — XCTestCase for ScoredRecoveryBlock window classification"
  ],
@@ -18,21 +18,6 @@
    "writes": [],
    "branches": [],
    "deps": {}
-  },
-  {
-   "key": "func RecoveryBlockClassificationTests.isConsolidated(_:)",
-   "hash": "6733cd37a0544c43",
-   "does": "Test helper: reproduces the selector's consolidation rule: isOrganizedRecovery AND hrCV < unstableCVThreshold.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "a94b71838be09fe7"
-   }
   },
   {
    "key": "func RecoveryBlockClassificationTests.testOptimalAlpha1ProducesOrganizedRecovery()",
@@ -228,12 +213,12 @@
   },
   {
    "key": "func RecoveryBlockClassificationTests.testConsolidationRequiresOrganizedAndStableHR()",
-   "hash": "54c372e7e42bc948",
-   "does": "Asserts consolidation is true at hrCV 0.05 and false at 0.12 (with the default nil LF/HF, the 0.12 block is not organized at all).",
+   "hash": "1a0b9303f249b3c7",
+   "does": "Asserts ScoredRecoveryBlock.isConsolidatedRecovery is true at hrCV 0.05 and false at 0.12 (with nil LF/HF, not organized), false for a block organized through LF/HF 0.5 with hrCV 0.12, and false for an α1 1.3 (unorganized) block with hrCV 0.05.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)",
     "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.block(cleanBeatCount:dfaAlpha1:lfHfRatio:hrCV:)",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isConsolidatedRecovery",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.lfHfIsOrganized",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.hrIsStable",
@@ -246,11 +231,11 @@
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.classification": "dbe9cfd1ddb15f2e",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.hrIsStable": "89016c67db4d65a2",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isConsolidatedRecovery": "39c3c5939f197eee",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "a94b71838be09fe7",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.lfHfIsOrganized": "74862f82b34cebc8",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.optimalAlpha1IsRegulated": "5dc127c0b719b936",
-    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.block(cleanBeatCount:dfaAlpha1:lfHfRatio:hrCV:)": "62bc833dfc6c1edc",
-    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "9fdc7dd4a10137ff"
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.block(cleanBeatCount:dfaAlpha1:lfHfRatio:hrCV:)": "62bc833dfc6c1edc"
    }
   },
   {
@@ -272,12 +257,12 @@
   },
   {
    "key": "func RecoveryBlockClassificationTests.testCVAtExactThresholdIsNotConsolidated()",
-   "hash": "9c3c941ee27c23d0",
-   "does": "Asserts hrCV exactly 0.08 is not consolidated (strict <).",
+   "hash": "f1369f9c8b6c42d3",
+   "does": "Asserts ScoredRecoveryBlock.isConsolidatedRecovery is false at hrCV exactly 0.08 (strict <).",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)",
     "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.block(cleanBeatCount:dfaAlpha1:lfHfRatio:hrCV:)",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isConsolidatedRecovery",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.lfHfIsOrganized",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.hrIsStable",
@@ -290,11 +275,11 @@
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.classification": "dbe9cfd1ddb15f2e",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.hrIsStable": "89016c67db4d65a2",
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isConsolidatedRecovery": "39c3c5939f197eee",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "a94b71838be09fe7",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.lfHfIsOrganized": "74862f82b34cebc8",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.optimalAlpha1IsRegulated": "5dc127c0b719b936",
-    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.block(cleanBeatCount:dfaAlpha1:lfHfRatio:hrCV:)": "62bc833dfc6c1edc",
-    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "9fdc7dd4a10137ff"
+    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.block(cleanBeatCount:dfaAlpha1:lfHfRatio:hrCV:)": "62bc833dfc6c1edc"
    }
   },
   {

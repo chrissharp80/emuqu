@@ -410,7 +410,7 @@
    "calls": [
     "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)",
     "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager()",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:seal:)",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday",
     "Emuqu/Sources/Models/RRModels.swift::var RRPoint.isPhysiologicallyValid",
     "Emuqu/Sources/Models/Sport.swift::var Sport.displayName",
@@ -426,32 +426,30 @@
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)",
     "Makefile::target doc-counts-guard",
     ".github/workflows/ci.yml::step lint-and-budgets/Documented file counts match the tree",
-    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:)"
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:seal:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/Documented file counts match the tree": "42e852ed3bb188e8",
-    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightScore(inEntries:calendar:)": "d7dab2b30d219444",
-    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "0bf53983048f5b4b",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.latestOvernightScore(inEntries:calendar:)": "ba95a5cd73a92909",
+    "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "bf5d46125beaa0ed",
     "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)": "a3b9630f2b36647a",
     "Emuqu/Sources/Models/IntervalPlan.swift::var IntervalStep.displayLabel": "9d01c7943a101868",
-    "Emuqu/Sources/Models/MorningFeelingTag.swift::var MorningFeelingTag.label": "78c1b4a7674a08e9",
     "Emuqu/Sources/Models/RRModels.swift::var RRPoint.isPhysiologicallyValid": "0d121ed7a4c16aee",
-    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)": "5bd959aa42155c68",
+    "Emuqu/Sources/Models/Route.swift::func Route.fromGPX(name:track:)": "e226df4b619cd0ca",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRoute.toRoute()": "f9797bf1cd911e58",
     "Emuqu/Sources/Models/ScoreVerdict.swift::var ScoreVerdict.word": "7113ebad78dd0cba",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:)": "2a91fee44fa9570a",
-    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager()": "76c18b30c707c395",
+    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:seal:)": "89d436bdca3f9309",
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager()": "daadcd0f53a009c3",
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:seal:)": "ede9ffb941ebbf43",
+    "Emuqu/Sources/Models/Sport.swift::var Sport.displayName": "e04a40813a53feb6",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.birthday": "303c0ceaa1afbf51",
     "Emuqu/Sources/Models/WorkoutAnalysisSnapshot.swift::var WorkoutAnalysisSnapshot.needsRebuild": "ef26992659ba790b",
-    "Emuqu/Sources/Models/Sport.swift::var Sport.displayName": "e04a40813a53feb6",
     "Emuqu/Sources/Models/WorkoutThreshold.swift::init WorkoutThreshold(id:metric:condition:value:debounceSec:cooldownSec:userCue:naturalLanguageText:)": "6f839942402cc192",
-    "Makefile::target doc-counts-guard": "81cc0795ce562bec",
-    "Emuqu/Sources/Models/SettingsManager.swift::func SettingsManager.load(from:read:)": "337f4aa734a10f94",
-    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:)": "82228c7d635edc98"
+    "Makefile::target doc-counts-guard": "81cc0795ce562bec"
    }
   },
   {
@@ -576,11 +574,11 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 7. End-to-end flows > 7.1 App launch & navigation",
-   "hash": "e0b50e1b3634854e",
-   "does": "Claims launch: EmuquApp creates collector (RRCollector.makeDefault) + five sub-objects, syncManager, settingsManager, storeKitManager, languageManager, voiceChat, watchBridge, emailBridge as @State and injects them via .environment; heavy setup deferred to boot() via runDeferredBoot(); 8 s safety timeout; launch gating via LaunchModal presented with fullScreenCover in loadDataAndContinue() in order disclaimer → onboarding → paywall → trial reminder → score-architecture change → else interrupted-session check; per-tab NavigationStack reset by MainTabView.resetPath(from:to:). Verified: runDeferredBoot boots watchBridge/collector/syncManager/storeKitManager/voiceChat (AppLaunchTasks.swift:141-149); 8_000_000_000 ns timer (AppLaunchTasks.swift:183); environment injection EmuquApp.swift:310-321,333.",
+   "hash": "efa27783e447c057",
+   "does": "Claims launch: EmuquApp holds collector (RRCollector.makeDefault) + five sub-objects, syncManager, settingsManager, storeKitManager, languageManager, voiceChat, watchBridge, emailBridge as @State, all but collector taken from AppDependencies.current and each built through launchStep (log + signpost), and injects them via .environment; heavy setup deferred to boot() via runDeferredBoot(); no launch-hang timeout; launch gating via LaunchModal presented with fullScreenCover in loadDataAndContinue() in order disclaimer → onboarding → paywall → trial reminder → score-architecture change → else interrupted-session check; per-tab NavigationStack reset by MainTabView.resetPath(from:to:).",
    "entry": null,
    "calls": [
-    "Emuqu/EmuquApp.swift::func EmuquApp.makeLoggedDefault()",
+    "Emuqu/EmuquApp.swift::func EmuquApp.launchStep(_:_:build:)",
     "Emuqu/EmuquApp.swift::func EmuquApp.environmentInjected(_:)",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runDeferredBoot()",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runLaunchTask()",
@@ -596,15 +594,15 @@
    "branches": [],
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquApp.environmentInjected(_:)": "8141492ee87c39ad",
-    "Emuqu/EmuquApp.swift::func EmuquApp.makeLoggedDefault()": "73a45b2a3444bd57",
+    "Emuqu/EmuquApp.swift::func EmuquApp.launchStep(_:_:build:)": "c2c69deb9592fe7b",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()": "be1e45efca604118",
     "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.checkForInterruptedSession()": "28d6b02ac98ff198",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.loadDataAndContinue()": "03c448aed5e540d8",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.paywallModal()": "63a78b8bf3186b01",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.presentLaunchModal()": "f00256b018d4aad6",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runDeferredBoot()": "24bb139a2c4ecb6c",
-    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runLaunchTask()": "04785eeb1b5bb490",
-    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.resetPath(from:to:)": "20e81f84a21f920a"
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runLaunchTask()": "e6acb9353a76f87b",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.resetPath(from:to:)": "f7e631498f909e01"
    }
   },
   {
@@ -687,8 +685,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 7. End-to-end flows > 7.4 An AI turn (Flo)",
-   "hash": "82416ab88f8db1e9",
-   "does": "Claims an AI turn: AssistantViewModel.send → DeterministicIntent.tryMatch zero-token shortcut → dispatch → resolveProviderForThisTurn (pure core TurnRouter) with RoutingMode active only while Apple is selected; Auto → CapabilityClassifier → SmartProviderRouter tier; TierProviderMapper mid tier Grok then DeepSeek else Apple (TierProviderMapper.swift:168); 50/day cap on deep turns (dailyTier3Cap = 50, SmartProviderRouter.swift:48); runToolUseLoop with CompactToolRouter.resolveTool and maxToolCallsPerTurn = 8 (AssistantViewModel+Tools.swift:30); Apple path compacts at 70% of 4096 (AppleContextCompactor.swift:43,48), SessionCache rotates after 20 turns (maxTurnsPerSession = 20), 512-token replies (responseReserve = 512). The '~15 deterministic queries' and prewarm-on-first-send claims were not traced.",
+   "hash": "c346c70d74e2a39b",
+   "does": "Claims an AI turn: AssistantViewModel.send → for a voice turn with no reply streaming, the DeterministicIntent.tryMatch zero-token shortcut over 14 patterns before the consent check → dispatch → resolveProviderForThisTurn (pure core TurnRouter) with RoutingMode active only while Apple is selected; Auto → CapabilityClassifier → SmartProviderRouter tier; TierProviderMapper mid tier Grok then DeepSeek else Apple; 50/day cap on deep turns (dailyTier3Cap = 50); runToolUseLoop with CompactToolRouter.resolveTool and maxToolCallsPerTurn = 8; Apple path compacts at 70% of 4096, SessionCache rotates after 20 turns (maxTurnsPerSession = 20), 512-token replies (responseReserve = 512); Apple model prewarmed on the first send.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)",
@@ -709,18 +707,18 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)": "c3f0201319859f72",
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "fa79c3bca0f486d3",
-    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "c2aeaf0df6675cea",
-    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.route(message:in:)": "f27518b86dbe85fa",
-    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "7497b854ecdea890",
-    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)": "b3177fa1422e580b",
+    "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)": "dd6ae7872b57f262",
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "fe140477d3574bdf",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "d3863d8890919dcd",
+    "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "775d621e9e4bc2e9",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.route(message:in:)": "8d58df70465717c5",
+    "Emuqu/Sources/Assistant/Providers/AppleFoundationProvider.swift::func AppleFoundationProvider.send(messages:model:contextRendered:systemPrompt:tools:toolRounds:)": "1ccac547ae32c782",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)": "7bb03bb593437ace",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()": "9ae5cc4573f169ef",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.resolveProviderForThisTurn()": "23ca3517bef7efb1",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+RoutingForwarding.swift::func AssistantViewModel.dispatch()": "c316282a0afd93c3",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)": "466acc0532c80c31",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "9b3d0ecd257813a4",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "72eb08e01b5dcafe",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.route(inputs:)": "761ffa3869eeccd8"
    }
   },
@@ -1113,7 +1111,7 @@
    "branches": [],
    "deps": {
     "Makefile::target budget-monotonicity": "f2990c87cb8c36d4",
-    "Makefile::target ci": "314d826a23831255",
+    "Makefile::target ci": "60ad2e16c12b11bb",
     "Makefile::target ci-local": "e2b0391dda4db254",
     "Makefile::target ci-local-unit": "8e51d93d38811f72",
     "Makefile::target codemap-guard": "31a759d3fd34483c",
@@ -1127,7 +1125,7 @@
     "Makefile::target localization-resolution-guard": "2767f94176460d10",
     "Makefile::target setup-hooks": "4bd20d645743a401",
     "Makefile::target skip-budget": "7ba8b35e95605b09",
-    "Makefile::target test": "831d3d00f8c205c2",
+    "Makefile::target test": "656a3859b904cacc",
     "Makefile::target test-coverage": "2f52b6f381055f27",
     "Makefile::target uitest-reset-guard": "368e1ce40cd6fbc2",
     "scripts/evidence_report.sh::fn budget": "a927bad97b8838e4",
@@ -1169,8 +1167,8 @@
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "b220bed7db5626a6",
     "scripts/verify_gates_fail.sh::fn check": "628cb3d9d277ffae",
-    "scripts/verify_tests_fail.sh::fn mutate": "e9b411096264e708",
-    "scripts/verify_tests_fail.sh::fn run_suite": "4e58c5ad77935ddb"
+    "scripts/verify_tests_fail.sh::fn mutate": "b17da90a86fc42d2",
+    "scripts/verify_tests_fail.sh::fn run_suite": "b8cb90b1e21631f2"
    }
   },
   {
@@ -1223,8 +1221,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 10. Build, test, CI & tooling > CI/CD (`.github/workflows/`)",
-   "hash": "2165b6b686b31c38",
-   "does": "Claims ci.yml runs on every pull request and push to main (scope unit), workflow_dispatch (gates/unit/full) and workflow_call from testflight.yml (scope full) on macos-26 with Xcode 26.6; job 1 lint-and-budgets, job 2 strict-concurrency on ubuntu, job 3 thread-sanitizer, job 4 release-build (make release-build, in parallel with the tests) and job 5 tests (coverage floors at full, unit target with the Views floor at unit), each of jobs 3-5 ending with a step that writes its result to the run summary and skipped at the gates scope; gates.yml on push to main, pull_request and dispatch on ubuntu, including the code-map check, plus the code-map impact report in the job summary on pull requests; main requires the gates.yml job (Script gates (no Xcode)) to pass before anything merges and the ci.yml jobs are advisory; security.yml, performance.yml, testflight.yml workflow_dispatch only, the testflight deploy job running in the testflight environment that holds the signing secrets, accepts only main and waits for the owner's approval.",
+   "hash": "930c12ceefad4192",
+   "does": "Claims ci.yml runs on every pull request and push to main (scope unit), workflow_dispatch (gates/unit/full) and workflow_call from testflight.yml (scope full) on macos-26 with Xcode 26.6; job 1 lint-and-budgets (its listed gates include pinned package versions), job 2 strict-concurrency on ubuntu, job 3 thread-sanitizer, job 4 release-build (make release-build, in parallel with the tests) and job 5 tests (coverage floors at full, unit target with the Views floor at unit), each of jobs 3-5 ending with a step that writes its result to the run summary and skipped at the gates scope; gates.yml on push to main, pull_request and dispatch on ubuntu, including the code-map check, plus the code-map impact report in the job summary on pull requests; main requires the gates.yml job (Script gates (no Xcode)) to pass before anything merges and the ci.yml jobs are advisory; security.yml, performance.yml, testflight.yml workflow_dispatch only, the testflight deploy job running in the testflight environment that holds the signing secrets, accepts only main and waits for the owner's approval.",
    "entry": null,
    "calls": [
     ".github/workflows/ci.yml::job lint-and-budgets",
@@ -1245,7 +1243,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    ".github/workflows/ci.yml::job lint-and-budgets": "c16025f9ed6e67fc",
+    ".github/workflows/ci.yml::job lint-and-budgets": "b37673427f6cec36",
     ".github/workflows/ci.yml::job release-build": "5662b1002f46c0a7",
     ".github/workflows/ci.yml::job strict-concurrency": "e22d86248e23e3e9",
     ".github/workflows/ci.yml::job tests": "15418dc83f03597a",
@@ -1338,8 +1336,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 10. Build, test, CI & tooling > Tests",
-   "hash": "e36af1de79a4118f",
-   "does": "Claims EmuquTests (~256) with Helpers/TestHelpers.swift and Mocks/MockHealthKitService.swift (both exist), WatchMessageDecodingTests; EmuquUITests (~18) suites; Emuqu.xctestplan single config, coverage on, random order (verified testExecutionOrdering random, xctestplan defaultOptions); AI-quality suites CapabilityClassifierTests, DeterministicIntentTests, MedicalQueryGuardTests, FactCatalogValidationTests exist.",
+   "hash": "175ed9fbd105949f",
+   "does": "Claims EmuquTests (~267 files) with Helpers/TestHelpers.swift and Mocks/MockHealthKitService.swift, WatchMessageDecodingTests; EmuquUITests (~18) suites; Emuqu.xctestplan single config, coverage on, random order; AI-quality suites CapabilityClassifierTests, DeterministicIntentTests (example utterances that must and must not match, through DeterministicIntent.matchedPattern), MedicalQueryGuardTests, FactCatalogValidationTests.",
    "entry": null,
    "calls": [
     "EmuquTests/Helpers/TestHelpers.swift::func createRealisticPoints(count:meanRR:startMs:)",
@@ -1362,17 +1360,16 @@
    "deps": {
     ".github/workflows/ci.yml::step tests/Run tests with coverage": "cb5ae02e2af749f1",
     "EmuquTests/CapabilityClassifierTests.swift::func CapabilityClassifierTests.testRecoveryScoreLookupIsQuick()": "f278ac6b170fec7f",
-    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "79db7f2e776f0c4a",
+    "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.anyPatternMatches(_:)": "7e77daaa55b5b288",
     "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.testMedicalSpeculationDoesNotMatch()": "10a98d8892c064d3",
     "EmuquTests/DeterministicIntentTests.swift::func DeterministicIntentTests.testRecoveryScoreVariantsMatch()": "30b31c649594d9fd",
     "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.testNoDuplicateToolNames()": "9bc8de0c00941f67",
     "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.testSchemaSerializationIsDeterministic()": "5eaf86432b2cc373",
     "EmuquTests/Helpers/TestHelpers.swift::func createRealisticPoints(count:meanRR:startMs:)": "7261446ec33c34b2",
     "EmuquTests/MedicalQueryGuardTests.swift::func MedicalQueryGuardTests.testAFibLiteralFormsAreRefused()": "d7d4a2e2f5812e93",
-    "EmuquTests/Mocks/MockHealthKitService.swift::func MockHealthKitService.fetchLastNightSleep(relativeTo:)": "cde121733cb0e742",
     "EmuquTests/WatchMessageDecodingTests.swift::func WatchMessageDecodingTests.testDecodeReadsEveryKnownField()": "c6cfbc9e0e34e67e",
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.decode(_:)": "e64fc94122229d59",
-    "scripts/run_tests_with_coverage.sh::fn run_tests": "a81fa800842b2ce2"
+    "scripts/run_tests_with_coverage.sh::fn run_tests": "c53fe7cc88c339f7"
    }
   },
   {

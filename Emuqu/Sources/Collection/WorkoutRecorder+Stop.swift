@@ -217,7 +217,8 @@ extension WorkoutRecorder {
             archiveWorkoutTrackAsBreadcrumbTrail(
                 track: location.track,
                 sport: sport,
-                start: finished.startDate
+                start: finished.startDate,
+                sessionId: finished.id
             )
         }
     }

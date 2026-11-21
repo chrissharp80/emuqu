@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/EmuquApp.swift",
- "hash": "bdb875e0b0211f23",
- "role": "The SwiftUI App declaration: builds the root singletons (collector, sync, settings, StoreKit, language, voice chat, Watch bridge) as @State, assembles the root view (MainTabView + environment + launch modals + scene-phase handlers + interrupted-session alerts + launch tasks), wires Watch->phone control closures, and holds the @main entry EmuquMain.",
+ "hash": "efe0ee3200daba45",
+ "role": "The SwiftUI App declaration: takes the root services (sync, settings, StoreKit, language, voice chat, Watch bridge, email bridge) from AppDependencies.current and builds the collector as @State, assembles the root view (MainTabView + environment + launch modals + scene-phase handlers + interrupted-session alerts + launch tasks), wires Watch->phone control closures, and holds the @main entry EmuquMain.",
  "types": [
   "LaunchModal: enum — which full-screen launch cover is up (disclaimer/onboarding/paywall/trialReminder/scoreArchitectureChange)",
   "InterruptedSessionInfo: struct — a recording found persisted at launch; isResumable gates the resume alert",
@@ -11,13 +11,13 @@
  "state": [
   "mem:coldStartLog (file-private OSLog subsystem com.chrissharp.flowrecovery category ColdStart)",
   "mem:EmuquApp.collector (@State RRCollector.makeDefault())",
-  "mem:EmuquApp.syncManager (@State CloudKitSyncManager.shared)",
-  "mem:EmuquApp.settingsManager (@State SettingsManager.shared)",
-  "mem:EmuquApp.storeKitManager (@State StoreKitManager.shared)",
-  "mem:EmuquApp.languageManager (@State LanguageManager.shared)",
-  "mem:EmuquApp.voiceChat (@State VoiceConversationController.shared)",
-  "mem:EmuquApp.watchBridge (@State WatchConnectivityBridge.shared)",
-  "mem:EmuquApp.emailBridge (@State private AssistantEmailBridge.shared)",
+  "mem:EmuquApp.syncManager (@State AppDependencies.current.storage.cloudKitSyncManager)",
+  "mem:EmuquApp.settingsManager (@State AppDependencies.current.app.settingsManager)",
+  "mem:EmuquApp.storeKitManager (@State AppDependencies.current.services.storeKitManager)",
+  "mem:EmuquApp.languageManager (@State AppDependencies.current.services.languageManager)",
+  "mem:EmuquApp.voiceChat (@State AppDependencies.current.assistant.voiceConversationController)",
+  "mem:EmuquApp.watchBridge (@State AppDependencies.current.services.watchConnectivityBridge)",
+  "mem:EmuquApp.emailBridge (@State private AppDependencies.current.assistant.assistantEmailBridge)",
   "mem:EmuquApp.isLoading (@State, true at start)",
   "mem:EmuquApp.activeModal (@State LaunchModal?)",
   "mem:EmuquApp.requestedTab (@State MainTabView.Tab?)",
@@ -25,7 +25,7 @@
   "mem:EmuquApp.interruptedSessionAlert (@State InterruptedSessionInfo?)",
   "mem:EmuquApp.recoveryResultMessage (@State String?)"
  ],
- "toplevel": "Stored-property initializers of EmuquApp call the seven makeX() factories (EmuquApp.swift:86-99), so every root singleton is built when EmuquApp.main() instantiates the App struct, after EmuquMain.main() has run the UI-test wipe and diagnostics install. emailBridge reads AssistantEmailBridge.shared directly (106). LaunchModal conforms to Identifiable for fullScreenCover(item:). Only the @State factories, emailBridge and installDiagnostics read `.shared` singletons directly (the file is whitelisted as composition root by scripts/check_no_shared_outside_root.sh); the scene-phase, launch and Watch handlers reach ambient location, power policy, morning scheduler, keyboard dismissal, recorder box and settings sync through AppDependencies.current, as the AppLaunchTasks/AppLaunchRecovery extensions do, so a test override reaches both. LaunchModal has no associated values, so it is Equatable and drives .onChange(of: activeModal).",
+ "toplevel": "Stored-property initializers of EmuquApp pass each root object through launchStep (a ColdStart signpost plus NSLog/debugLog start and done lines): the collector from RRCollector.makeDefault(), the other six from AppDependencies.current accessors (storage.cloudKitSyncManager, app.settingsManager, services.storeKitManager, services.languageManager, assistant.voiceConversationController, services.watchConnectivityBridge). emailBridge reads AppDependencies.current.assistant.assistantEmailBridge directly. All of them run when EmuquApp.main() instantiates the App struct, after EmuquMain.main() has run the UI-test wipe and diagnostics install; AppDependencies.current is a lock-held container that exists from first access and that the app never reassigns, so a test that installs its own container before building EmuquApp has its substitutes used. The file reads no `.shared` singleton (scripts/check_no_shared_outside_root.sh does not list it as a root). LaunchModal conforms to Identifiable for fullScreenCover(item:) and, having no associated values, is Equatable and drives .onChange(of: activeModal).",
  "units": [
   {
    "key": "func signpostStart(_: StaticString)",
@@ -138,162 +138,19 @@
    "deps": {}
   },
   {
-   "key": "func EmuquApp.makeLoggedDefault()",
-   "hash": "a1514f039d183742",
-   "does": "Stored-property factory for @State collector: wraps RRCollector.makeDefault() in a ColdStart signpost and NSLog/debugLog start+done lines. makeDefault builds a NEW RRCollector via the private init(defaultsFromShared:) (not a singleton) and registers it as RRCollector.current (RRCollector.swift:520-533).",
-   "entry": "Called by the EmuquApp stored-property initializer @State var collector (EmuquApp.swift:86-99) when EmuquApp.main() constructs the App.",
+   "key": "func EmuquApp.launchStep(_:_:build:)",
+   "hash": "5308c7c9511356bd",
+   "does": "Generic builder for each root @State object: begins a ColdStart signpost named `signpost`, logs '@State <name> — start' via NSLog and debugLog, calls `build`, logs the done lines, ends the signpost and returns what build returned.",
+   "entry": "Called by the EmuquApp stored-property initializers of collector, syncManager, settingsManager, storeKitManager, languageManager, voiceChat and watchBridge when EmuquApp.main() constructs the App.",
    "calls": [
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()",
     "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)",
     "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "ext:NSLog",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)"
+    "closure:build (RRCollector.makeDefault() or an AppDependencies.current accessor)"
    ],
    "reads": [],
-   "writes": [
-    "mem:RRCollector.current (set by makeDefault, RRCollector.swift:532)"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "fa4b89dd27ebd952",
-    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "543175552a9fbfa0",
-    "Emuqu/EmuquApp.swift::var LaunchModal.id": "b132737ea832be30",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()": "be1e45efca604118",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(defaultsFromShared:)": "4ba35bfe1dd469ec",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
-   }
-  },
-  {
-   "key": "func EmuquApp.makeSyncManager()",
-   "hash": "1555928c7ecfa165",
-   "does": "Stored-property factory for @State syncManager: wraps CloudKitSyncManager.shared in a ColdStart signpost and NSLog/debugLog start+done lines, returns the instance (first access builds the singleton).",
-   "entry": "Called by the EmuquApp stored-property initializer @State var syncManager (EmuquApp.swift:86-99) when EmuquApp.main() constructs the App.",
-   "calls": [
-    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)",
-    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:NSLog"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:CloudKitSyncManager singleton (constructed on first access)"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "fa4b89dd27ebd952",
-    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "543175552a9fbfa0",
-    "Emuqu/EmuquApp.swift::var LaunchModal.id": "b132737ea832be30",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
-   }
-  },
-  {
-   "key": "func EmuquApp.makeSettingsManager()",
-   "hash": "275f892c06a91a76",
-   "does": "Stored-property factory for @State settingsManager: wraps SettingsManager.shared in a ColdStart signpost and NSLog/debugLog start+done lines, returns the instance (first access builds the singleton).",
-   "entry": "Called by the EmuquApp stored-property initializer @State var settingsManager (EmuquApp.swift:86-99) when EmuquApp.main() constructs the App.",
-   "calls": [
-    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)",
-    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:NSLog"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:SettingsManager singleton (constructed on first access)"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "fa4b89dd27ebd952",
-    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "543175552a9fbfa0",
-    "Emuqu/EmuquApp.swift::var LaunchModal.id": "b132737ea832be30",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
-   }
-  },
-  {
-   "key": "func EmuquApp.makeStoreKitManager()",
-   "hash": "109eebfe09fd341e",
-   "does": "Stored-property factory for @State storeKitManager: wraps StoreKitManager.shared in a ColdStart signpost and NSLog/debugLog start+done lines, returns the instance (first access builds the singleton).",
-   "entry": "Called by the EmuquApp stored-property initializer @State var storeKitManager (EmuquApp.swift:86-99) when EmuquApp.main() constructs the App.",
-   "calls": [
-    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)",
-    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:NSLog"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:StoreKitManager singleton (constructed on first access)"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "fa4b89dd27ebd952",
-    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "543175552a9fbfa0",
-    "Emuqu/EmuquApp.swift::var LaunchModal.id": "b132737ea832be30",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
-   }
-  },
-  {
-   "key": "func EmuquApp.makeLanguageManager()",
-   "hash": "7d8046c4cae79e74",
-   "does": "Stored-property factory for @State languageManager: wraps LanguageManager.shared in a ColdStart signpost and NSLog/debugLog start+done lines, returns the instance (first access builds the singleton).",
-   "entry": "Called by the EmuquApp stored-property initializer @State var languageManager (EmuquApp.swift:86-99) when EmuquApp.main() constructs the App.",
-   "calls": [
-    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)",
-    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:NSLog"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:LanguageManager singleton (constructed on first access)"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "fa4b89dd27ebd952",
-    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "543175552a9fbfa0",
-    "Emuqu/EmuquApp.swift::var LaunchModal.id": "b132737ea832be30",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
-   }
-  },
-  {
-   "key": "func EmuquApp.makeVoiceChat()",
-   "hash": "42dd3a0dfe705888",
-   "does": "Stored-property factory for @State voiceChat: wraps VoiceConversationController.shared in a ColdStart signpost and NSLog/debugLog start+done lines, returns the instance (first access builds the singleton).",
-   "entry": "Called by the EmuquApp stored-property initializer @State var voiceChat (EmuquApp.swift:86-99) when EmuquApp.main() constructs the App.",
-   "calls": [
-    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)",
-    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:NSLog"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:VoiceConversationController singleton (constructed on first access)"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "fa4b89dd27ebd952",
-    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)": "543175552a9fbfa0",
-    "Emuqu/EmuquApp.swift::var LaunchModal.id": "b132737ea832be30",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
-   }
-  },
-  {
-   "key": "func EmuquApp.makeWatchBridge()",
-   "hash": "29043c161050e182",
-   "does": "Stored-property factory for @State watchBridge: wraps WatchConnectivityBridge.shared in a ColdStart signpost and NSLog/debugLog start+done lines, returns the instance (first access builds the singleton).",
-   "entry": "Called by the EmuquApp stored-property initializer @State var watchBridge (EmuquApp.swift:86-99) when EmuquApp.main() constructs the App.",
-   "calls": [
-    "Emuqu/EmuquApp.swift::func signpostStart(_: StaticString)",
-    "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:NSLog"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:WatchConnectivityBridge singleton (constructed on first access)"
-   ],
+   "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/EmuquApp.swift::func signpostEnd(_: StaticString, _: OSSignpostID)": "fa4b89dd27ebd952",
@@ -322,22 +179,28 @@
   },
   {
    "key": "func EmuquApp.installDiagnostics()",
-   "hash": "f7abf9fb303ecad6",
-   "does": "Installs CrashLogManager and SystemDiagnosticsManager (MetricKit, memory/thermal sampling) handlers.",
+   "hash": "463ae52f0f4f231a",
+   "does": "Installs the crash-log and system-diagnostics (MetricKit, memory/thermal sampling) handlers on AppDependencies.current.app.crashLogManager and .systemDiagnosticsManager.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.systemDiagnosticsManager",
     "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.install()",
     "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.install()"
    ],
    "reads": [],
    "writes": [
-    "mem:CrashLogManager.shared",
-    "mem:SystemDiagnosticsManager.shared"
+    "mem:CrashLogManager (AppDependencies.current.app.crashLogManager)",
+    "mem:SystemDiagnosticsManager (AppDependencies.current.app.systemDiagnosticsManager)"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.install()": "245cc724df0e73b3",
-    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.install()": "5d93902873652d8a"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager": "d874529ff05bd756",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.systemDiagnosticsManager": "aa3e8d73f2d5e3c9",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.install()": "2127e0caf3e8f652",
+    "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.install()": "4023e8c2ad706c16"
    }
   },
   {
@@ -1228,11 +1091,11 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquApp.observeTrialPaywallRequests()": "463f30b42cdfd21a",
+    "Emuqu/EmuquApp.swift::func EmuquApp.observeTrialPaywallRequests()": "fff99e4d017939c9",
     "Emuqu/EmuquApp.swift::func EmuquApp.runPostFirstFrameSetup()": "7493fb8682d171fb",
     "Emuqu/EmuquApp.swift::func EmuquApp.runWatchAndSyncWiring()": "f2d208596087257c",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.rescheduleMorningPushOnSettingsChange()": "c8fe4f4aef93f645",
-    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runLaunchTask()": "04785eeb1b5bb490"
+    "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runLaunchTask()": "e6acb9353a76f87b"
    }
   },
   {
@@ -1252,7 +1115,7 @@
    "branches": [],
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquApp.bootArchiveOffMain()": "e9a224ef3879ca6a",
-    "Emuqu/EmuquApp.swift::func EmuquApp.installGlobalKeyboardDismissal()": "f50de22bde9831e5",
+    "Emuqu/EmuquApp.swift::func EmuquApp.installGlobalKeyboardDismissal()": "411537befde24867",
     "Emuqu/EmuquApp.swift::func EmuquApp.prewarmSpeechVoices()": "04ae801d189cdf70",
     "Emuqu/EmuquApp.swift::func EmuquApp.wireWatchBridgeCallbacks()": "31177221f2f0ad12",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runDeferredBoot()": "24bb139a2c4ecb6c"
@@ -1260,10 +1123,11 @@
   },
   {
    "key": "func EmuquApp.installGlobalKeyboardDismissal()",
-   "hash": "7d277e281cf76a62",
-   "does": "Main-actor Task: sleeps 600 ms (cancellation error ignored), then on AppDependencies.current.app.globalKeyboardDismissal installs the window-level tap recognizer and prewarms the keyboard.",
+   "hash": "f4128a8bf5bdbaad",
+   "does": "Main-actor Task: waits 600 ms with sleepQuietly (a cancellation is logged and the task continues), then on AppDependencies.current.app.globalKeyboardDismissal installs the window-level tap recognizer and prewarms the keyboard.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.globalKeyboardDismissal",
     "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.install()",
     "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.prewarmKeyboard()"
@@ -1276,10 +1140,10 @@
    "deps": {
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.globalKeyboardDismissal": "f69ecc62d8f3f0be",
-    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.install()": "382790801bb249ba",
-    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.prewarmKeyboard()": "a36159df382a7f4f",
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.globalKeyboardDismissal": "1613e97e03459705",
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4",
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.install()": "1fc7b317584f17cb",
+    "Emuqu/Sources/Utilities/GlobalKeyboardDismissal.swift::func GlobalKeyboardDismissal.prewarmKeyboard()": "bf7d02def0b627fd"
    }
   },
   {
@@ -1522,10 +1386,12 @@
   },
   {
    "key": "func EmuquApp.observeTrialPaywallRequests()",
-   "hash": "15ceb8bedbee9f8a",
-   "does": "Async loop over .showPaywallFromTrial notifications: after each, sleeps 400 ms then sets activeModal = .paywall.",
+   "hash": "aacf459dea9cea27",
+   "does": "Async loop over .showPaywallFromTrial notifications: after each, waits 400 ms with sleepQuietly (a cancellation is logged, not thrown) then sets activeModal = .paywall.",
    "entry": "Root .task (EmuquApp.swift:642); notifications posted by TrialReminderView.swift:95.",
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)"
+   ],
    "reads": [
     "notif:showPaywallFromTrial"
    ],
@@ -1540,7 +1406,7 @@
     }
    ],
    "deps": {
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4"
    }
   },
   {
@@ -1558,7 +1424,7 @@
    "branches": [],
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquApp.prebindWorkoutRecorder()": "c5b6ccb5a8b147c8",
-    "Emuqu/EmuquApp.swift::func EmuquApp.pushSettingsToCloudAfterLaunch()": "3ab4ed4b2f7141e7",
+    "Emuqu/EmuquApp.swift::func EmuquApp.pushSettingsToCloudAfterLaunch()": "7ef42c3c3c8a7e8e",
     "Emuqu/Sources/Services/AppLaunchTasks.swift::func EmuquApp.runAppLevelWatchWorkoutListeners()": "c4e0db1554c4ba0b"
    }
   },
@@ -1585,10 +1451,11 @@
   },
   {
    "key": "func EmuquApp.pushSettingsToCloudAfterLaunch()",
-   "hash": "f06e4495551ef4bd",
-   "does": "Main-actor Task: sleeps 5 s (errors ignored) then AppDependencies.current.storage.cloudKitSettingsSync.pushImmediately() (which itself refuses before onboarding or with sync off).",
+   "hash": "115197c2367a5a8b",
+   "does": "Main-actor Task: waits 5 s with sleepQuietly (a cancellation is logged and the push still runs) then AppDependencies.current.storage.cloudKitSettingsSync.pushImmediately() (which itself refuses before onboarding or with sync off).",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSettingsSync",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushImmediately()"
    ],
@@ -1598,11 +1465,11 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushImmediately()": "271ed9eedddd24d7",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudKitSettingsSync.pushImmediately()": "70566b91d9567417",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "ee348e28280784b2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.cloudKitSettingsSync": "ea626da789f00ac9",
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
+    "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4"
    }
   },
   {
@@ -1619,7 +1486,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquApp.installDiagnostics()": "08fdee7dbd6f8c45",
+    "Emuqu/EmuquApp.swift::func EmuquApp.installDiagnostics()": "8525fa40b74c6eaf",
     "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "27176c4bfdf71136"
    }
   }

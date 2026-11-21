@@ -12,12 +12,11 @@ import os
 // delegate callbacks are `nonisolated`: they decode on WatchConnectivity's
 // queue and hop to the main actor with only the decoded values.
 final class WatchSessionManager: NSObject, ObservableObject {
-    /// Process-wide instance used by background helpers
-    /// (`WatchStrapConnector` for direct-BLE samples) that need to push
-    /// data into the same view-model the SwiftUI `@StateObject` is
-    /// observing. SwiftUI tree-roots only ever construct one
-    /// `WatchSessionManager` so this is the same object the @StateObject
-    /// path holds.
+    /// Process-wide instance, read only by the Watch target's composition
+    /// root (`WatchDependencies`). `WatchApp` holds it as a `@StateObject`
+    /// and hands it to background helpers (`WatchStrapConnector` for
+    /// direct-BLE samples), so they push data into the same view-model the
+    /// view tree observes.
     static let shared = WatchSessionManager()
     // MARK: Live metrics (pushed from phone)
 
