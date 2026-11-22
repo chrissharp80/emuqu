@@ -250,6 +250,20 @@ final class BaselineTrackerTests: XCTestCase {
                                     "SD must never fall below the floor (division-by-zero guard)")
     }
 
+    /// Before, the resting-HR SD had no small-sample widening: three nights
+    /// half a beat apart gave an SD of 0.5 bpm, and a 2 bpm rise read as a
+    /// four-SD elevation. It is widened by √(7/n) like the ln(RMSSD) SD.
+    func testTheRestingHRSDIsWidenedWhileTheBaselineIsShort() throws {
+        let tracker = makeTracker()
+        let hrs = [58.0, 58.5, 59.0]
+        let sessions = hrs.enumerated().map { producerMockSession(daysAgo: $0.offset, rmssd: 50, meanHR: $0.element) }
+        tracker.rebuildFromSessions(sessions, sleepSchedule: producerSchedule)
+
+        let stats = try XCTUnwrap(tracker.recoveryBaselineStats)
+        XCTAssertEqual(stats.meanHRSD, hrs.sampleSD * sqrt(7.0 / 3.0), accuracy: 1e-9)
+        XCTAssertEqual(BaselineTracker.smallSampleWidening(count: 7), 1)
+    }
+
     func testBelowMinimumDays_ReturnsNil() {
         let values = Array(repeating: 45.0, count: BaselineTracker.RecoveryBaselineStats.minimumDays - 1)
         let tracker = seededTracker(rmssdValues: values)
@@ -273,6 +287,83 @@ final class BaselineTrackerTests: XCTestCase {
     private func at(_ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
         let base = Calendar.current.date(from: DateComponents(year: 2026, month: 6, day: day, hour: hour, minute: minute))
         return base ?? Date()
+    }
+
+    /// Keeps the JSON as it is, so these trackers need no key.
+    private static let plainSeal = JSONFileSeal(seal: { $0 }, open: { $0 })
+
+    /// A tracker on its own temporary file with the pass-through seal.
+    private func makePlainTracker(onBaselineUpdated: BaselineTracker.BaselineUpdater? = nil) -> BaselineTracker {
+        let file = FileManager.default.temporaryDirectory
+            .appendingPathComponent("HRVBaseline-\(UUID().uuidString).json")
+        trackerFiles.append(file)
+        return BaselineTracker(baselineFile: file, seal: Self.plainSeal, onBaselineUpdated: onBaselineUpdated)
+    }
+
+    /// The same session with a new analysis, as a re-analysis or a manual
+    /// re-window writes it.
+    private func reanalysed(_ session: HRVSession, rmssd: Double, quality: HRVDataQuality? = nil) -> HRVSession {
+        var copy = session
+        copy.analysisResult = producerMockSession(daysAgo: 0, rmssd: rmssd).analysisResult
+        copy.hrvDataQuality = quality
+        return copy
+    }
+
+    /// Before, a re-analysed night had to beat its own earlier reading to
+    /// replace it, so a lower RMSSD from the new analysis was turned away and
+    /// the stale value stayed in the 60-night baseline.
+    func testAReanalysedSessionReplacesItsOwnReading() throws {
+        let tracker = makePlainTracker()
+        let night = timedSession(start: at(1, 23), hours: 8, rmssd: 50)
+        tracker.update(with: night, sleepSchedule: producerSchedule)
+        tracker.update(with: reanalysed(night, rmssd: 30), sleepSchedule: producerSchedule)
+
+        XCTAssertEqual(tracker.daysCollected, 1)
+        XCTAssertEqual(try XCTUnwrap(tracker.baseline).rmssd, 30, accuracy: 1e-9)
+    }
+
+    /// Before, a re-analysis that made the night unreliable was rejected by
+    /// the gates and its earlier reading stayed. It now leaves the baseline.
+    func testAReanalysisTheGatesTurnAwayRemovesTheSessionsReading() {
+        let tracker = makePlainTracker()
+        let night = timedSession(start: at(1, 23), hours: 8, rmssd: 50)
+        tracker.update(with: night, sleepSchedule: producerSchedule)
+        tracker.update(with: reanalysed(night, rmssd: 50, quality: .preSleep), sleepSchedule: producerSchedule)
+
+        XCTAssertEqual(tracker.daysCollected, 0)
+    }
+
+    /// Another session of the same night is still a rival and has to earn
+    /// the slot: a worse reading from it leaves the stored one in place.
+    func testAnotherSessionOfTheNightMustStillEarnTheSlot() throws {
+        let tracker = makePlainTracker()
+        tracker.update(with: timedSession(start: at(1, 23), hours: 7, rmssd: 50), sleepSchedule: producerSchedule)
+        tracker.update(with: timedSession(start: at(2, 2, 30), hours: 4, rmssd: 30), sleepSchedule: producerSchedule)
+
+        XCTAssertEqual(tracker.daysCollected, 1)
+        XCTAssertEqual(try XCTUnwrap(tracker.baseline).rmssd, 50, accuracy: 1e-9)
+    }
+
+    /// Before, the callback ran with the tracker's lock held, so anything it
+    /// waited on that read the tracker from another thread deadlocked.
+    func testTheCallbackRunsWithTheLockReleased() {
+        var tracker: BaselineTracker?
+        var readFromAnotherThread = false
+        tracker = makePlainTracker { _, _ in
+            guard let tracker else { return }
+            let done = DispatchSemaphore(value: 0)
+            DispatchQueue.global().async {
+                _ = tracker.baseline
+                done.signal()
+            }
+            readFromAnotherThread = done.wait(timeout: .now() + 2) == .success
+        }
+        for day in 1 ... 3 {
+            tracker?.update(with: timedSession(start: at(day, 23), hours: 8, rmssd: 50), sleepSchedule: producerSchedule)
+        }
+        tracker = nil
+
+        XCTAssertTrue(readFromAnotherThread, "The callback ran while the tracker's lock was held")
     }
 
     /// A long, clean quick reading stays out of the baseline even though it has

@@ -244,8 +244,8 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Analysis Algorithms",
-   "hash": "35c5843788fbf579",
-   "does": "Says RecoveryScoreCalculator keeps the composite entry points and display helpers with +Composite/+Tiers/+Training extensions; ScoringVersion.current = v3.2.oct2026; training load is not a composite tier; ReadinessScoring, VitalsScoring and ScoreDetailBuilder are their own types to keep RecoveryScoreCalculator under the 1500-line limit, each with a forwarding extension (+ReadinessForwarding, +VitalsForwarding, +DetailForwarding) so call sites use the RecoveryScoreCalculator API; WindowSelection split into +Scoring (findBestWindow, selectWindowByMethod, analyzeAtPosition), +Evaluation and +Filters. Code: ScoringVersion.swift current = \"v3.2.oct2026\"; all named files exist; the three functions are in WindowSelection+Scoring.swift.",
+   "hash": "677dd57f5e5e2364",
+   "does": "Says RecoveryScoreCalculator keeps the composite entry points and display helpers with +Composite/+Tiers/+Training extensions; ScoringVersion.current = v3.3.nov2026; training load is not a composite tier; ReadinessScoring, VitalsScoring and ScoreDetailBuilder are their own types to keep RecoveryScoreCalculator under the 1500-line limit, each with a forwarding extension (+ReadinessForwarding, +VitalsForwarding, +DetailForwarding) so call sites use the RecoveryScoreCalculator API; WindowSelection split into +Scoring (findBestWindow, selectWindowByMethod, analyzeAtPosition), +Evaluation and +Filters. Code: ScoringVersion.swift current = \"v3.3.nov2026\"; all named files exist; the three functions are in WindowSelection+Scoring.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)",
@@ -494,7 +494,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "741bb32eafe0edde",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.update(with:sleepSchedule:)": "a468796746c73ee7",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.analyzeAtPosition(in:flags:targetMs:)": "a170d03f904e6c74",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByRMSSD(_:)": "605b5a5dd0a43041",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.rankByTier1Score(_:baseline:)": "1dbb8825dde76a2d",
@@ -502,7 +502,7 @@
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyManualAnalysis(_:result:)": "a33c0cff3e7e52a8",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.persistManualAnalysis(_:originalId:)": "bdc717097a3064f3",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.preserveAutoWindow(of:on:)": "ae1fcad17693ae74",
-    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.rescoreReportAt(_:targetMs:)": "73bdab59c3608238"
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.rescoreReportAt(_:targetMs:)": "eba3b049ab3f8108"
    }
   },
   {
@@ -614,8 +614,8 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Recovery Score Calculation > Tier 1 — HRV Only (cold start, no sleep, no vitals)",
-   "hash": "f6ac5fe107f2185b",
-   "does": "Claims Tier 1: z of ln(RMSSD) vs 60-night baseline mapped by scoringParametersV2 bands (-3->5, -1.5->25, -0.75->64, -0.5..+0.5->72, +1.5->90); adjustments RHR clamp(zHR*-5,+/-10), DFA +5/-5(>1.2)/-3(<0.6), CV <2% -5 / >12% -3, ANS <-1.5 -6, <-0.5 -3, >=+1.5 +2, staleness >=7 days -5 growing 5/week capped 20; missing-sleep -10 when penalizeMissingSleep; fallback to readiness*10 then absolute RMSSD bands (60/45/30/20 -> 85/70/55/40/25, 50 with no HRV); window ranking excludes the ANS term. Code matches: zToRecoveryScore bands, RecoveryScoreConstants.HRVAdjustments, BaselineStaleness (staleAfterDays 7, penaltyPerWeek 5 * (1 + fractional weeks), maxPenalty 20), AbsoluteRMSSDFallback, missingSleepPenaltyApplies (tier 1 && enableSleepIntegration && penalizeMissingSleep && no sleep), rankByTier1Score passes no ansBalance.",
+   "hash": "2ac346c5f9a9befe",
+   "does": "Claims Tier 1: z of ln(RMSSD) vs 60-night baseline mapped by scoringParametersV2 bands (-3->5, -1.5->25, -0.75->64, -0.5..+0.5->72, +1.5->90); adjustments RHR clamp(zHR*-5,+/-10), DFA +5/-5(>1.2)/-3(<0.6), CV <2% -5 / >12% -3, ANS <-1.5 -6, <-0.5 -3, >=+1.5 +2, staleness >=7 days -5 growing 5/week capped 20; missing-sleep -10 when penalizeMissingSleep; without a baseline the absolute RMSSD bands (60/45/30/20 -> 85/70/55/40/25), and with no usable RMSSD readiness*10 else 50; window ranking excludes the ANS term. Code matches: zToRecoveryScore bands, RecoveryScoreConstants.HRVAdjustments, BaselineStaleness (staleAfterDays 7, penaltyPerWeek 5 * (1 + fractional weeks), maxPenalty 20), AbsoluteRMSSDFallback, missingSleepPenaltyApplies (tier 1 && enableSleepIntegration && penalizeMissingSleep && no sleep), rankByTier1Score passes no ansBalance.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)",
@@ -637,12 +637,11 @@
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.absoluteRMSSDScore(_:)": "0f962dbde1e887ac",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.ansBalanceAdjustment(_:)": "6bb7dd4dfee2a639",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)": "01ab74499441f595",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "e7951116886bd63e",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)": "a58186e30ed60f27",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)": "1677a6c322363f55",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)": "d68d0b1671fb7b94",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.stalenessPenalty(stats:referenceDate:)": "429f3bcd1feba0ed",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.baselineNormalisedScore(rmssd:meanHR:dfaAlpha1:stats:ansBalance:referenceDate:)": "b536be8bd8b90fe8",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "ab549fa73d7d0103",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.cvAdjustment(_:)": "a898d83cb5d82909",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.dfaAlpha1Adjustment(_:)": "9155c5e12d684ece",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.rhrAdjustment(meanHR:stats:)": "e34789c72a9a2ca8",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.composeFinalScore(weightedSum:vitals:missingSleep:)": "faf72d5927f25302",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.missingSleepPenaltyApplies(_:tier:config:)": "c11e75f042d0c4e5",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)": "2faffce2ec1bb292",
@@ -1047,8 +1046,8 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Baseline & Trends > 60-Night Recovery Baseline",
-   "hash": "518bba421a770665",
-   "does": "Claims recovery baseline lnRmssdMean/SD over historicalData.suffix(60) (night count), 7-day CV, HR mean/SD, minimum 3 nights, SD widened below 7 nights (~1.53x at 3), and scoring uses recoveryBaselineStats(excludingNightOf:sleepSchedule:) restricted to earlier night keys while the plain property is for display. Code matches BaselineTracker.stats (suffix(60), minimumDays 3), widenedLnSD (confidenceFloor 7), sevenDayCV (needs >=7 points), recoveryBaselineStats(excludingNightOf:) filter nightKey < night.",
+   "hash": "58dc8cb3857280aa",
+   "does": "Claims recovery baseline lnRmssdMean/SD over historicalData.suffix(60) (night count), 7-day CV, HR mean/SD, minimum 3 nights, both the ln(RMSSD) and resting-HR SDs widened by sqrt(7/n) below 7 nights (~1.53x at 3), and scoring uses recoveryBaselineStats(excludingNightOf:sleepSchedule:) restricted to earlier night keys while the plain property is for display. Code matches BaselineTracker.stats (suffix(60), minimumDays 3), widenedLnSD and baselineStats (smallSampleWidening, confidenceFloor 7), sevenDayCV (needs >=7 points), recoveryBaselineStats(excludingNightOf:) filter nightKey < night.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats",
@@ -1062,11 +1061,11 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineStats(recentData:lnValues:)": "3964270adfea6cdb",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineStats(recentData:lnValues:)": "9dd61611b15fc6b8",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recoveryBaselineStats(excludingNightOf:sleepSchedule:)": "5502e8cc0b7a6e8b",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.sevenDayCV(_:)": "580a62e24720e370",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.stats(from:)": "36042c28cf8528af",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)": "dcb3e6827e60897b",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.sevenDayCV(_:)": "4afe45a9b03ce042",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.stats(from:)": "deb8f351263f64fc",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)": "68018b99bc21f716",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.recoveryBaselineStats": "c1bc954c0a47797e"
    }
   },
@@ -1102,7 +1101,7 @@
   },
   {
    "key": "§ Emuqu — Architecture & Algorithms > Storage & Sync > UI Session Load Contract",
-   "hash": "6a11fadd34a4edf6",
+   "hash": "a1a5a09dc1068efb",
    "does": "Claims per-screen session loading: MainTabView loads 35 sessions (dashboardSessionLoadLimit) for DashboardV2View only; TrendsV2View loads all overnight analysed sessions; HistoryView uses the full index with pageSize 10; SessionArchive.entries newest-first, HistoryViewModel by displayDate desc, TrendAnalyzer ascending; delete adds to deletedSessionIds, persists, removes from index, deletes file; session.recoveryScore stored 0-10 via toTenScale; runDeferredMigrations runs 9 passes (reencryptPendingSessions, resealPlainIndexIfNeeded, migrateRecoveryScores, migrateEndDates, migrateMetrics, migrateSleepIndexFields, migrateLegacyEliteImportIndex, removeDuplicates, relinkSameNightSessions); Archive split into Archive+Migrations, SessionMerger, Archive+Repair (further Archive+* extension files exist and are not listed).",
    "entry": null,
    "calls": [

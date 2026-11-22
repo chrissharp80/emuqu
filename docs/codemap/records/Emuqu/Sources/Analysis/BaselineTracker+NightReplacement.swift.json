@@ -1,20 +1,21 @@
 {
  "file": "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift",
  "hash": "7529a654ee0512fe",
- "role": "Extension of BaselineTracker holding the one-reading-per-night rule: mergeIntoNight places a data point in its night's slot (SleepSchedule.nightKey), replacing the stored reading only when the morning-reading rule or the window-quality rules (consolidation, organized recovery, artifact and HR-stability gates, a >5% score improvement) say the newcomer is better.",
+ "role": "Extension of BaselineTracker holding the one-reading-per-night rule: mergeIntoNight places a data point in its night's slot (SleepSchedule.nightKey); a newer reading of the session already in the slot replaces it outright, and a rival replaces the stored reading only when the morning-reading rule or the window-quality rules (consolidation, organized recovery, artifact and HR-stability gates, a >5% score improvement) say the newcomer is better.",
  "types": [
-  "BaselineTracker: extension — static mergeIntoNight (internal) and the private static replacement rules shouldReplace, newWindowIsObjectivelyBetter, consolidationVerdict, organizedRecoveryVerdict, passesQualityGates, hrStabilityAcceptable, isMeaningfullyBetterScore"
+  "BaselineTracker: extension — static mergeIntoNight (internal) and the private static rules isSameSession, shouldReplace, newWindowIsObjectivelyBetter, consolidationVerdict, organizedRecoveryVerdict, passesQualityGates, hrStabilityAcceptable, isMeaningfullyBetterScore"
  ],
  "state": [],
  "toplevel": "Imports Foundation. No code outside the units.",
  "units": [
   {
    "key": "func BaselineTracker.mergeIntoNight(_:into:sleepSchedule:)",
-   "hash": "3e39a86cb70370a1",
-   "does": "Static over the `nights` array it is given (historicalData for the stored baseline, a local array for baselineRMSSDs): finds an existing point with the same SleepSchedule.nightKey; appends when none, otherwise replaces it only if shouldReplace says so.",
+   "hash": "5e5af98881532a02",
+   "does": "Static over the `nights` array it is given (historicalData for the stored baseline, a local array for baselineRMSSDs): finds an existing point with the same SleepSchedule.nightKey; appends when none, otherwise replaces it when the new point is a reading of the same session (isSameSession) or shouldReplace says so.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)",
+    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.isSameSession(_:_:)",
     "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.shouldReplace(_:with:sleepSchedule:)"
    ],
    "reads": [],
@@ -30,14 +31,34 @@
     },
     {
      "at": "+10",
-     "cond": "shouldReplace true",
-     "effect": "overwrites the existing slot; false → new point discarded"
+     "cond": "same session, or shouldReplace true",
+     "effect": "overwrites the existing slot; else new point discarded"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.isSameSession(_:_:)": "124c4e1c58a5c2de",
     "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.shouldReplace(_:with:sleepSchedule:)": "bab797f16da542a3",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)": "82a594cdf1ca5074",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)": "5c76ff328035b9da",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)": "b6c50fe75996849a"
+   }
+  },
+  {
+   "key": "func BaselineTracker.isSameSession(_:_:)",
+   "hash": "51900fce46570b11",
+   "does": "Whether two points are readings of one session: equal session ids when both carry one, else equal start dates (a point saved before ids were recorded).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "either point has no sessionId",
+     "effect": "compares dates; else ids"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
    }
   },
   {
@@ -70,7 +91,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.newWindowIsObjectivelyBetter(new:existing:)": "c27eba48306762d4",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)": "82a594cdf1ca5074",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)": "5c76ff328035b9da",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.isMorningReading(endDate:)": "d49b78447c38b0d1"
    }
   },

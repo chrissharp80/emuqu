@@ -990,7 +990,7 @@ enum RecoveryScoreCalculator {
         let factors: [ScoreFactor]    // Labels: "HRV", "Sleep", "Vitals"
         let penalties: [String]       // Only SpO2 (-10 if <95%); RR and temperature
                                       // feed the Vitals sub-score instead.
-        var scoringVersion: String    // ScoringVersion.current ("v3.2.oct2026") when built;
+        var scoringVersion: String    // ScoringVersion.current ("v3.3.nov2026") when built;
                                       // "unversioned" when decoded from an older record
         var message: String { get }   // Computed: factor-aware coaching advice
     }
