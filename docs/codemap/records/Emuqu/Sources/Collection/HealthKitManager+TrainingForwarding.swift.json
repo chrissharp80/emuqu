@@ -107,6 +107,25 @@
    }
   },
   {
+   "key": "func HealthKitManager.fetchWorkoutsExtendedIfAnswered(days:relativeTo:)",
+   "hash": "0bdf1d5558268daa",
+   "does": "Forwards fetchWorkoutsExtendedIfAnswered(days:relativeTo:) to TrainingHealthQueries: the workouts, or nil when HealthKit did not answer. Called by TrainingMetricsCache.recompute.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchWorkoutsExtendedIfAnswered(days:relativeTo:)"
+   ],
+   "reads": [
+    "hk:workoutType"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::var HealthKitManager.training": "ec4cf9ffd067edc5",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchWorkoutsExtendedIfAnswered(days:relativeTo:)": "d4f02bd1380c44db"
+   }
+  },
+  {
    "key": "func HealthKitManager.trainingHeartRateAnchors()",
    "hash": "e7117fa38298938f",
    "does": "Forwards trainingHeartRateAnchors() to TrainingHealthQueries (Apple resting HR else setting; user max HR); called by TrainingMetricsCache.swift:374.",

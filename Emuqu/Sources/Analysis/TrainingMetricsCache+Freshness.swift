@@ -49,9 +49,11 @@ extension TrainingMetricsCache {
     /// Whether a refresh must recompute.
     ///
     /// - No result yet, or `invalidate()` cleared `lastUpdated`: yes.
-    /// - The load settings changed: yes, at once.
-    /// - The archived workouts or the day changed: yes, once the burst
-    ///   throttle has passed.
+    /// - The load settings or the day changed: yes, at once. A new day
+    ///   needs a new EWMA step, so a result computed shortly before midnight
+    ///   is not today's load however young it is.
+    /// - The archived workouts changed: yes, once the burst throttle has
+    ///   passed.
     /// - Nothing observable changed: only once the result is older than
     ///   `unchangedMaxAgeSec`, so other apps' workouts and Apple's resting
     ///   HR are picked up within half an hour.
@@ -60,10 +62,11 @@ extension TrainingMetricsCache {
         hasResult: Bool,
         observedChange: Bool,
         settingsChanged: Bool,
+        dayChanged: Bool = false,
         reference: Date
     ) -> Bool {
         guard let lastUpdated, hasResult else { return true }
-        if settingsChanged { return true }
+        if settingsChanged || dayChanged { return true }
         let age = reference.timeIntervalSince(lastUpdated)
         return age > (observedChange ? burstThrottleSec : unchangedMaxAgeSec)
     }

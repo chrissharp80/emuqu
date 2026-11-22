@@ -272,18 +272,41 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchWorkouts(days:relativeTo:)": "585162286392b25c"
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchWorkouts(days:relativeTo:)": "6d5bcb12a8d1a8f5"
    }
   },
   {
    "key": "func TrainingHealthQueries.fetchWorkouts(days:relativeTo:)",
-   "hash": "eaad4da1b087d7b8",
-   "does": "Bounded HKSampleQuery for workouts starting from start-of-day minus `days` to referenceDate (strict start), newest first, mapped to deduplicated summaries; [] on any failure/timeout.",
+   "hash": "7ffe0b10d385e4dc",
+   "does": "Workouts starting from start-of-day minus `days` to referenceDate (queryWorkouts), with a failed or timed-out query read as [].",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.queryWorkouts(days:relativeTo:)"
+   ],
+   "reads": [
+    "hk:HKWorkoutType"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "queryWorkouts nil (failed or timed out)",
+     "effect": "[]"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.queryWorkouts(days:relativeTo:)": "4577753e9656c82e"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.queryWorkouts(days:relativeTo:)",
+   "hash": "65849d26bebffbfc",
+   "does": "Bounded HKSampleQuery for workouts starting from start-of-day minus `days` to referenceDate (strict start), newest first, mapped to deduplicated summaries. Nil when the query returned an error (logged as a warning) or did not answer within backgroundAggregateQueryTimeoutSec; [] when HealthKit is unavailable on the device or the date arithmetic fails.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)",
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.workoutSummaries(_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.workoutSummaries(_:unlessFailed:)",
     "ext:HKSampleQuery"
    ],
    "reads": [
@@ -302,17 +325,44 @@
      "effect": "[]"
     },
     {
+     "at": "+14",
+     "cond": "the query returned an error",
+     "effect": "logged as a warning (workoutSummaries(_:unlessFailed:)); resolves nil"
+    },
+    {
      "at": "+7",
-     "cond": "query timed out (nil)",
-     "effect": "[]"
+     "cond": "query timed out",
+     "effect": "nil"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::func HealthKitManager.runBoundedQuery(timeout:makeQuery:)": "7229bd19595282d2",
     "Emuqu/Sources/Collection/HealthKitManager+HeartRateForwarding.swift::var HealthKitManager.backgroundAggregateQueryTimeoutSec": "2f3f27aa0cd39f4d",
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7d45a9a4a2660610",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.workoutSummaries(_:unlessFailed:)": "bb297d64cf17ef12"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.workoutSummaries(_:unlessFailed:)",
+   "hash": "47d3fb331c1966b9",
+   "does": "The workout query's summaries (workoutSummaries) when it returned no error; with an error, logs it as a warning and returns nil.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.workoutSummaries(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "error nil",
+     "effect": "summaries; else logged, nil"
+    }
+   ],
+   "deps": {
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.workoutSummaries(_:)": "b597938e199e4b3c",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -709,7 +759,24 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchWorkouts(days:relativeTo:)": "585162286392b25c"
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.fetchWorkouts(days:relativeTo:)": "6d5bcb12a8d1a8f5"
+   }
+  },
+  {
+   "key": "func TrainingHealthQueries.fetchWorkoutsExtendedIfAnswered(days:relativeTo:)",
+   "hash": "deacd916682b8002",
+   "does": "Workouts of the last `days` days (queryWorkouts): nil when HealthKit did not answer (error or timeout), so a caller that publishes the result can tell a failed query from a period with no workouts.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.queryWorkouts(days:relativeTo:)"
+   ],
+   "reads": [
+    "hk:HKWorkoutType"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.queryWorkouts(days:relativeTo:)": "4577753e9656c82e"
    }
   },
   {
