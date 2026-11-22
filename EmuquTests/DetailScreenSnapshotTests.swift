@@ -115,7 +115,7 @@ final class DetailScreenRuleTests: XCTestCase {
             RRPoint(t_ms: 3_600_000, rr_ms: 1000, wallClockMs: 3_660_000)
         ]
         let series = RRSeries(points: points, sessionId: UUID(), startDate: start)
-        let clock = OvernightChartsView.RecordingClock(series: series, sessionStart: start)
+        let clock = OvernightRecordingClock(series: series, sessionStart: start)
 
         XCTAssertEqual(clock.startMs, 0)
         XCTAssertEqual(clock.endMs, 3_661_000, "the last beat ends at 3,661 s on the session clock")
@@ -128,9 +128,9 @@ final class DetailScreenRuleTests: XCTestCase {
     func testAStrapRecordingIsAlreadyOnTheSessionClock() {
         let start = Date(timeIntervalSince1970: 1_700_000_000)
         let series = RRSeries(points: [RRPoint(t_ms: 0, rr_ms: 900), RRPoint(t_ms: 900, rr_ms: 900)], sessionId: UUID(), startDate: start)
-        let clock = OvernightChartsView.RecordingClock(series: series, sessionStart: start)
+        let clock = OvernightRecordingClock(series: series, sessionStart: start)
 
-        XCTAssertEqual(clock, OvernightChartsView.RecordingClock(startMs: 0, endMs: 1_800, startDriftMs: 0, endDriftMs: 0))
+        XCTAssertEqual(clock, OvernightRecordingClock(startMs: 0, endMs: 1_800, startDriftMs: 0, endDriftMs: 0))
         XCTAssertEqual(clock.onBeatClock(5_000), 5_000)
     }
 }

@@ -136,6 +136,45 @@ enum OvernightChartDrawing {
     }
 }
 
+/// The recording's span on the session clock (ms after the session start,
+/// the clock HealthKit dates are on) and the drift (`t_ms` minus session
+/// clock) of its first and last beat, for placing HealthKit gap-fill on the
+/// beats' axis. A beat without a wall-clock stamp has no drift: its `t_ms`
+/// already is the session clock. No beats: an empty span at 0 with no drift.
+/// Outside the generic chart view so it can be named without its content type.
+struct OvernightRecordingClock: Equatable {
+    let startMs: Int64
+    let endMs: Int64
+    let startDriftMs: Int64
+    let endDriftMs: Int64
+
+    init(series: RRSeries?, sessionStart: Date) {
+        guard let series, let first = series.points.first, let last = series.points.last else {
+            self.init(startMs: 0, endMs: 0, startDriftMs: 0, endDriftMs: 0)
+            return
+        }
+        let shiftMs = MillisecondOffset.between(series.startDate, and: sessionStart, fallback: 0)
+        let startDrift = first.wallClockMs.map { first.t_ms - ($0 + shiftMs) } ?? 0
+        let endDrift = last.wallClockMs.map { last.t_ms - ($0 + shiftMs) } ?? 0
+        self.init(startMs: first.t_ms - startDrift, endMs: last.endMs - endDrift, startDriftMs: startDrift, endDriftMs: endDrift)
+    }
+
+    init(startMs: Int64, endMs: Int64, startDriftMs: Int64, endDriftMs: Int64) {
+        self.startMs = startMs
+        self.endMs = endMs
+        self.startDriftMs = startDriftMs
+        self.endDriftMs = endDriftMs
+    }
+
+    /// A session-clock offset outside the recording, on the beats' axis:
+    /// before it takes the first beat's drift, after it the last's — the
+    /// rule `OvernightChartsView.tMs(forSessionOffset:series:sessionStart:)`
+    /// applies past either end.
+    func onBeatClock(_ sessionMs: Int64) -> Int64 {
+        sessionMs + (sessionMs < startMs ? startDriftMs : endDriftMs)
+    }
+}
+
 /// Overnight visualization showing full-night HR and HRV with nadir marked
 /// Welltory-style overnight graphs
 struct OvernightChartsView<InterChartContent: View>: View {
@@ -254,13 +293,13 @@ struct OvernightChartsView<InterChartContent: View>: View {
     /// HealthKit dates are on the session clock, the beats on their `t_ms`
     /// axis, which a streamed night's Bluetooth drops pull behind it. The
     /// uncovered windows are found on the session clock and each sample is
-    /// then moved onto the beats' axis (`RecordingClock`).
+    /// then moved onto the beats' axis (`OvernightRecordingClock`).
     private func withHealthKitGapFill(_ input: OvernightStats) async -> OvernightStats {
         var stats = input
         guard needsGapFill(stats) else { return stats }
         guard let hkSleep = healthKitSleep else { return stats }
         debugLog("[ChartGate] gate PASSED — fetching HK HR for \(hkSleep.effectiveSegments.count) segments")
-        let clock = Self.RecordingClock(series: session.rrSeries, sessionStart: session.startDate)
+        let clock = OvernightRecordingClock(series: session.rrSeries, sessionStart: session.startDate)
         let hkHR = await fetchHealthKitHRForUncoveredSegments(
             segments: hkSleep.effectiveSegments,
             recordingStartMs: clock.startMs,
@@ -269,44 +308,6 @@ struct OvernightChartsView<InterChartContent: View>: View {
         debugLog("[ChartGate] fetch returned \(hkHR.count) HK HR samples")
         stats = Self.extendedStats(stats, hkHR: hkHR, hkSleep: hkSleep, session: session)
         return stats
-    }
-
-    /// The recording's span on the session clock (ms after the session
-    /// start, the clock HealthKit dates are on) and the drift (`t_ms` minus
-    /// session clock) of its first and last beat. A beat without a
-    /// wall-clock stamp has no drift: its `t_ms` already is the session clock.
-    /// No beats: an empty span at 0 with no drift.
-    struct RecordingClock: Equatable {
-        let startMs: Int64
-        let endMs: Int64
-        let startDriftMs: Int64
-        let endDriftMs: Int64
-
-        init(series: RRSeries?, sessionStart: Date) {
-            guard let series, let first = series.points.first, let last = series.points.last else {
-                self.init(startMs: 0, endMs: 0, startDriftMs: 0, endDriftMs: 0)
-                return
-            }
-            let shiftMs = MillisecondOffset.between(series.startDate, and: sessionStart, fallback: 0)
-            let startDrift = first.wallClockMs.map { first.t_ms - ($0 + shiftMs) } ?? 0
-            let endDrift = last.wallClockMs.map { last.t_ms - ($0 + shiftMs) } ?? 0
-            self.init(startMs: first.t_ms - startDrift, endMs: last.endMs - endDrift, startDriftMs: startDrift, endDriftMs: endDrift)
-        }
-
-        init(startMs: Int64, endMs: Int64, startDriftMs: Int64, endDriftMs: Int64) {
-            self.startMs = startMs
-            self.endMs = endMs
-            self.startDriftMs = startDriftMs
-            self.endDriftMs = endDriftMs
-        }
-
-        /// A session-clock offset outside the recording, on the beats' axis:
-        /// before it takes the first beat's drift, after it the last's — the
-        /// rule `tMs(forSessionOffset:series:sessionStart:)` applies past
-        /// either end.
-        func onBeatClock(_ sessionMs: Int64) -> Int64 {
-            sessionMs + (sessionMs < startMs ? startDriftMs : endDriftMs)
-        }
     }
 
     /// True when the recording does not cover the whole sleep, so HealthKit HR
