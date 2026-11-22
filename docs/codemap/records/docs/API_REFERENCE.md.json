@@ -698,8 +698,8 @@
   },
   {
    "key": "§ Emuqu — API Reference > Analysis Pipeline > RecoveryScoreCalculator",
-   "hash": "bf87292f80839fdd",
-   "does": "RecoveryScoreCalculator: composite is HRV+Sleep+Vitals 60/25/15 (training load not in the composite; trainingMetrics/trainingContext stay on the API for caller stability but are not consumed by the score); Comeback mode 80/20/0; ScoringConfiguration with init(from:) and memberwise init; ScoreBreakdown (0-100 composite, tier 1/2/3, factors HRV/Sleep/Vitals, penalties only SpO2 -10 if <95% with RR and temperature feeding the Vitals sub-score, scoringVersion v3.2.oct2026 or 'unversioned' when decoded); ScoreFactor; ScoringParameters V1/V2, default V2; ScoreInputs; two calculateWithBreakdown overloads (TrainingContext overload: useBaselineHRV substitutes baseline, perceivedReadiness 0-1 clamped blended 30% with 70% baseline HRV factor); calculateVitalsScore (0-100 Vitals sub-score at 15% weight, nil without vitals so the caller falls back to Tier 2); zToRecoveryScore; calculateTier1; calculateSleepScore; fosterMonotonyStrain; zToPercentileScore. Weights in Constants.swift ScoringWeights; version in ScoringVersion.swift; unused params and perceived blend in RecoveryScoreCalculator.swift.",
+   "hash": "2db4e853619a2d92",
+   "does": "RecoveryScoreCalculator: composite is HRV+Sleep+Vitals 60/25/15 (training load not in the composite; trainingMetrics/trainingContext stay on the API for caller stability but are not consumed by the score); Comeback mode 80/20/0; ScoringConfiguration with init(from:) and memberwise init; ScoreBreakdown (0-100 composite, tier 1/2/3, factors HRV/Sleep/Vitals, penalties only SpO2 -10 if <95% with RR and temperature feeding the Vitals sub-score, scoringVersion v3.3.nov2026 or 'unversioned' when decoded); ScoreFactor; ScoringParameters V1/V2, default V2; ScoreInputs; two calculateWithBreakdown overloads (TrainingContext overload: useBaselineHRV substitutes baseline, perceivedReadiness 0-1 clamped blended 30% with 70% baseline HRV factor); calculateVitalsScore (0-100 Vitals sub-score at 15% weight, nil without vitals so the caller falls back to Tier 2); zToRecoveryScore; calculateTier1; calculateSleepScore; fosterMonotonyStrain; zToPercentileScore. Weights in Constants.swift ScoringWeights; version in ScoringVersion.swift; unused params and perceived blend in RecoveryScoreCalculator.swift.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)",
@@ -724,7 +724,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateSleepScore(sleepData:typicalSleepHours:userAge:)": "df732f4d66d187be",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "e7951116886bd63e",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Tiers.swift::func RecoveryScoreCalculator.calculateTier1(rmssd:meanHR:dfaAlpha1:baselineStats:readiness:ansBalance:referenceDate:)": "ab549fa73d7d0103",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "e21365c728439fb3",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+VitalsForwarding.swift::func RecoveryScoreCalculator.calculateVitalsScore(vitals:baselineStats:)": "45d5f1c6d9b0c98c",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.blendingPerceivedReadiness(_:vitals:missingSleep:into:)": "e3d0790eb1157e25",

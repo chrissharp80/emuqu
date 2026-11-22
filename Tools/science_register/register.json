@@ -19,7 +19,7 @@
     "_note": "Score-adjusting names that are deliberately NOT register entries. Each needs a reason; the gate fails on a discovered symbol that is neither claimed nor listed here.",
     "displayPenalty": "Translates a stored penalty line into the app language for display (ScoreBreakdownCopy). It reads text only and adjusts no score."
   },
-  "scoring_version": "v3.2.oct2026",
+  "scoring_version": "v3.3.nov2026",
   "entries": [
     {
       "id": "hrv-time-domain-arithmetic",
@@ -149,9 +149,10 @@
       "affects": [
         "recovery score 0-100"
       ],
-      "evidence": "Which signals belong is research-informed (Plews, Buchheit, Doherty/Altini 2025). The split, bands and tier rules are calibrated. Doherty/Altini reviewed 14 composite scores across 10 manufacturers and found none independently validated.",
+      "evidence": "Which signals belong is research-informed (Plews, Buchheit, Doherty/Altini 2025). The split, bands and tier rules are calibrated. The resting-HR adjustment divides by the baseline's resting-HR SD widened by the square root of 7/n below seven nights, the same small-sample widening as the ln(RMSSD) SD, so three similar nights cannot turn a 2 bpm rise into a full deduction. Doherty/Altini reviewed 14 composite scores across 10 manufacturers and found none independently validated.",
       "tests": [
-        "EmuquTests/RecoveryScoreCalculatorTests.swift"
+        "EmuquTests/RecoveryScoreCalculatorTests.swift",
+        "EmuquTests/BaselineTrackerTests.swift"
       ],
       "allowed_language": "Research-informed, calibrated. Never evidence-based or validated."
     },
@@ -267,11 +268,12 @@
       "id": "rmssd-absolute-fallback-bands",
       "status": "awaiting-validation",
       "affects": [
-        "HRV sub-score when no personal baseline exists yet"
+        "HRV sub-score of every reading scored before a personal baseline exists (the first nights)"
       ],
-      "evidence": "Product rule, not literature. With no baseline the HRV sub-score is read off fixed RMSSD bands (60/45/30/20 ms mapping to 85/70/55/40, 25 below, 50 when no HRV at all). The bands sit inside the healthy-adult RMSSD range reported across cohorts but no study defines these cut points or scores; they exist so the first week is not blank.",
+      "evidence": "Product rule, not literature. With no baseline (fewer than three admitted nights) the HRV sub-score of a reading is read off fixed RMSSD bands (60/45/30/20 ms mapping to 85/70/55/40, 25 below). A night with no usable RMSSD scores 50, or the analysis's 1-10 readiness score times ten when it produced one. Before v3.3 the readiness score, which every analysis carries, stood in ahead of the bands, so the bands never ran; they now score every reading of the first nights. The bands sit inside the healthy-adult RMSSD range reported across cohorts but no study defines these cut points or scores; they exist so the first week is not blank.",
       "tests": [
-        "EmuquTests/RecoveryScoreCalculatorTests.swift"
+        "EmuquTests/RecoveryScoreCalculatorTests.swift",
+        "EmuquTests/ScoringCharacterizationTests.swift"
       ],
       "symbols": [],
       "allowed_language": "Provisional, until your baseline forms. Never a population norm or a diagnosis."

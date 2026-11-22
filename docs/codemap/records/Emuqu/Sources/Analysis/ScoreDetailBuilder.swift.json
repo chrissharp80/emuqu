@@ -207,8 +207,8 @@
   },
   {
    "key": "func ScoreDetailBuilder.describeHRV(rmssd:baselineStats:meanHR:dfaAlpha1:hrvReadiness:ansBalance:referenceDate:)",
-   "hash": "dd163b435d2b8e07",
-   "does": "HRV detail. Without a usable rmssd: a note from missingReadingNote (whether a baseline exists, and whether the readiness score stood in). With rmssd but no baseline: 'No baseline yet' (or '(using readiness score)'). Otherwise z, rounded base score from zToRecoveryScore and the rounded adjustments (RHR, DFA, CV, ANS, staleness — each read from the Tier-1 adjustment functions) as sentence + facts; base + parts land within a point or two of the factor, not exactly (separate rounding, and the factor is clamped 0-100).",
+   "hash": "3e7f1cc353fa2aeb",
+   "does": "HRV detail. Without a usable rmssd: a note from missingReadingNote (whether a baseline exists, and whether the readiness score stood in). With rmssd but no baseline: the 'No baseline yet' note (the reading is scored on the absolute RMSSD bands). Otherwise z, rounded base score from zToRecoveryScore and the rounded adjustments (RHR, DFA, CV, ANS, staleness — each read from the Tier-1 adjustment functions) as sentence + facts; base + parts land within a point or two of the factor, not exactly (separate rounding, and the factor is clamped 0-100).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.zToRecoveryScore(_:parameters:)",
@@ -234,7 +234,7 @@
     {
      "at": "+12",
      "cond": "baselineStats nil",
-     "effect": "returns 'No baseline yet' note, with '(using readiness score)' when hrvReadiness != nil"
+     "effect": "returns the 'No baseline yet' note"
     }
    ],
    "deps": {

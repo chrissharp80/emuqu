@@ -160,7 +160,7 @@ the right rule when summing over an interval.
 
 ## Analysis Algorithms
 
-**File Organization**: `RecoveryScoreCalculator` keeps the composite entry points and the display helpers, with `+Composite`, `+Tiers` and `+Training` (training-load sub-score feeding the *parallel* training-readiness path — in the current scoring, `ScoringVersion.current` = `v3.2.oct2026`, training load is **not** a composite tier). Three pieces live in their own types to keep it under the 1500-line limit: `ReadinessScoring` (training readiness), `VitalsScoring` (Tier 3 vitals sub-score + post-composite overrides) and `ScoreDetailBuilder` (tier composition and the detail sentences). Each has a forwarding extension on `RecoveryScoreCalculator` (`+ReadinessForwarding`, `+VitalsForwarding`, `+DetailForwarding`), so call sites use the `RecoveryScoreCalculator` API. `WindowSelection` is split into `+Scoring` (`findBestWindow`, `selectWindowByMethod`, `analyzeAtPosition`), `+Evaluation` (window scoring and classification) and `+Filters` (spike filtering and artifact thresholds).
+**File Organization**: `RecoveryScoreCalculator` keeps the composite entry points and the display helpers, with `+Composite`, `+Tiers` and `+Training` (training-load sub-score feeding the *parallel* training-readiness path — in the current scoring, `ScoringVersion.current` = `v3.3.nov2026`, training load is **not** a composite tier). Three pieces live in their own types to keep it under the 1500-line limit: `ReadinessScoring` (training readiness), `VitalsScoring` (Tier 3 vitals sub-score + post-composite overrides) and `ScoreDetailBuilder` (tier composition and the detail sentences). Each has a forwarding extension on `RecoveryScoreCalculator` (`+ReadinessForwarding`, `+VitalsForwarding`, `+DetailForwarding`), so call sites use the `RecoveryScoreCalculator` API. `WindowSelection` is split into `+Scoring` (`findBestWindow`, `selectWindowByMethod`, `analyzeAtPosition`), `+Evaluation` (window scoring and classification) and `+Filters` (spike filtering and artifact thresholds).
 
 ### Artifact Detection
 
@@ -364,9 +364,10 @@ loses `missingSleepPenalty` (10) after the factor sum, alongside the SpO2 penalt
 `ScoreBreakdown.penalties` as "No sleep data (−10)". The perceived-readiness blend recomposes through
 the same `composeFinalScore`, so it keeps both penalties.
 
-Falls back to the raw ANS readiness score (1-10 → 10-100) when the recovery baseline (last 60 stored nights) has fewer
-than 3 days of data (`RecoveryBaselineStats.minimumDays`), and below that to absolute RMSSD bands (≥60 → 85, ≥45 → 70, ≥30 → 55,
-≥20 → 40, else 25; 50 when there is no HRV at all).
+When the recovery baseline (last 60 stored nights) has fewer than 3 days of data
+(`RecoveryBaselineStats.minimumDays`), a reading is scored on absolute RMSSD bands (≥60 → 85, ≥45 → 70, ≥30 → 55,
+≥20 → 40, else 25), provisionally until the baseline forms (science register: `rmssd-absolute-fallback-bands`). A night
+with no usable RMSSD scores the raw ANS readiness score (1-10 → 10-100) when the analysis produced one, else 50.
 
 The ANS-balance term is the one the window-ranking trace calls out as excluded — `WindowSelector`
 ranks candidate windows on the other four, so a window's rank score and the session's final
@@ -640,7 +641,7 @@ Separate from the 7-day baseline, used for z-score normalization:
   60 calendar days)
 - `lnRmssdCV7Day` — 7-day coefficient of variation (overreaching signal)
 - `meanHRBaseline`, `meanHRSD`
-- Minimum 3 days for a z-score (`RecoveryBaselineStats.minimumDays`); below 7 days the SD is widened (≈1.53× at 3 days) so early scores stay near the middle
+- Minimum 3 days for a z-score (`RecoveryBaselineStats.minimumDays`); below 7 days both the ln(RMSSD) SD and the resting-HR SD are widened by √(7/n) (≈1.53× at 3 days, `BaselineTracker.smallSampleWidening`) so early scores stay near the middle
 - A night is scored against the nights before it, never itself or later nights (Kiviniemi 2007, Plews 2013: the reference is built from earlier days): scoring paths use `recoveryBaselineStats(excludingNightOf:sleepSchedule:)`, which keeps only slots whose night key is earlier than the scored night's. The plain `recoveryBaselineStats` (every night) is for display
 
 ---
@@ -686,7 +687,7 @@ Each layer re-sorts only because its consumer requires a different order. Do not
 
 **Delete Safety**: `deletedSessionIds` prevents CloudKit sync from re-creating deleted sessions. `delete()` atomically: (1) adds to `deletedSessionIds` and persists, (2) removes from active index, (3) deletes file.
 
-**Recovery Score**: `session.recoveryScore` stores the composite recovery score on a 0-10 scale — the 0-100 composite divided by 10 (`RecoveryScoreCalculator.toTenScale`). Every screen multiplies it back by 10 and shows it as 0-100; only the HRV-only fallback (`ANSMetrics.readinessScore`, used before the composite is computed) is natively 1-10. In the current scoring (`ScoringVersion.current` = `v3.2.oct2026`) it's HRV + Sleep + Vitals when all three are available, falling through to HRV + Sleep or HRV only when inputs are missing. Each `ScoreBreakdown` is stamped with the version that produced it (`scoringVersion`); scores stored before the stamp existed decode as `unversioned`. Older sessions may have been computed under v1 (HRV + Sleep + Training); `ScoreArchitectureChangeSheet` only discloses the change, and re-running `reanalyzeAllSessions` from Settings recomputes history if the user wants it. `ANSMetrics.readinessScore` remains available in `analysisResult` as the HRV-only readiness component. The window selector's `RecoveryWindow.recoveryScore` (RMSSD × stability) is for ranking only, not persisted.
+**Recovery Score**: `session.recoveryScore` stores the composite recovery score on a 0-10 scale — the 0-100 composite divided by 10 (`RecoveryScoreCalculator.toTenScale`). Every screen multiplies it back by 10 and shows it as 0-100; only the HRV-only fallback (`ANSMetrics.readinessScore`, used before the composite is computed) is natively 1-10. In the current scoring (`ScoringVersion.current` = `v3.3.nov2026`) it's HRV + Sleep + Vitals when all three are available, falling through to HRV + Sleep or HRV only when inputs are missing. Each `ScoreBreakdown` is stamped with the version that produced it (`scoringVersion`); scores stored before the stamp existed decode as `unversioned`. Older sessions may have been computed under v1 (HRV + Sleep + Training); `ScoreArchitectureChangeSheet` only discloses the change, and re-running `reanalyzeAllSessions` from Settings recomputes history if the user wants it. `ANSMetrics.readinessScore` remains available in `analysisResult` as the HRV-only readiness component. The window selector's `RecoveryWindow.recoveryScore` (RMSSD × stability) is for ranking only, not persisted.
 
 **Deferred Migrations**: `runDeferredMigrations()` runs 9 passes on a background thread at launch: `reencryptPendingSessions` and `resealPlainIndexIfNeeded` (re-encrypt session files and the index written plain while the key was unavailable), `migrateRecoveryScores`, `migrateEndDates`, `migrateMetrics` (backfills meanHR/stressIndex), `migrateSleepIndexFields` (backfills `sleepEnd` / `sleepSegmentCount`), `migrateLegacyEliteImportIndex`, `removeDuplicates`, and `relinkSameNightSessions`. Each is a no-op if already complete.
 

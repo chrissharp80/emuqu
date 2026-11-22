@@ -1,13 +1,13 @@
 {
  "file": "Emuqu/Sources/Analysis/BaselineTracker.swift",
- "hash": "810588099bcc3656",
+ "hash": "62b19eb3a8932681",
  "role": "Per-user overnight HRV baseline: keeps one data point per night (max 90) persisted to HRVBaseline.json sealed with the app's key (JSONFileSeal), derives a display baseline over the 7 most recent stored nights (geometric-mean RMSSD etc.) and ln(RMSSD) z-score stats over the last 60 stored nights for recovery scoring, gating which sessions may enter. Also exposes the baseline's night selection as static functions (isBaselineCandidate, baselineRMSSDs) so the daily report's baseline counts exactly the nights the score counts.",
  "types": [
   "BaselineTracker: class (@unchecked Sendable, NSRecursiveLock-protected) — baseline store and statistics; the one-per-night merge and its replacement rules are in BaselineTracker+NightReplacement.swift",
   "BaselineTracker.Baseline: struct Codable — display baseline snapshot over the 7 most recent stored nights (minimumSamples=3)",
   "BaselineTracker.BaselineDeviation: struct Codable — per-metric % deviation of a session vs baseline",
   "BaselineTracker.RecoveryBaselineStats: struct — ln(RMSSD) mean/SD/7-night CV + HR mean/SD for z-scores (minimumDays=3)",
-  "BaselineTracker.BaselineDataPoint: struct Codable (internal so BaselineTracker+NightReplacement.swift can name it) — one stored night incl. window-quality fields for replacement",
+  "BaselineTracker.BaselineDataPoint: struct Codable (internal so BaselineTracker+NightReplacement.swift can name it) — one stored night incl. the session id it came from (nil on points saved before) and window-quality fields for replacement",
   "BaselineTracker.StoredData: private struct Codable — on-disk wrapper {baseline, historicalData}",
   "BaselineTracker.SaveHold: private enum — fileNotRead | unreadableNotSetAside: why save() must not write over baselineFile"
  ],
@@ -28,9 +28,10 @@
   "mem:BaselineTracker.unlockObservers (NotificationTokens: protectedDataDidBecomeAvailable + didBecomeActive + didEnterBackground, installed once (observingUnlock) when the file could not be read at load or a save could not be written; removed in deinit)",
   "mem:BaselineTracker.seal (let JSONFileSeal: seals and opens baselineFile; .app for the app, a test seal otherwise)",
   "mem:BaselineTracker.unsavedChanges (private var Bool: the last save failed (no key reachable to seal, or the write), so the file holds the previous save; the unlock observers save again)",
-  "mem:BaselineTracker.observingUnlock (private var Bool: the unlock observers are installed)"
+  "mem:BaselineTracker.observingUnlock (private var Bool: the unlock observers are installed)",
+  "mem:BaselineTracker.changedSinceNotify (private var Bool, under lock: a change was committed and the callback has not run for it yet; notifyIfChanged runs it after the lock is released)"
  ],
- "toplevel": "Stored-property initializers: fileManager = FileManager.default, lock = NSRecursiveLock(), historicalData = [], saveHold/undecodableBytes/lastSleepSchedule = nil, unsavedChanges = false, observingUnlock = false, unlockObservers = NotificationTokens(). Class is @unchecked Sendable relying on manual lock discipline. Static constants baselineWindowDays=7, maxHistoricalPoints=90, recoveryWindowNights=60. Imports UIKit for the unlock notifications.",
+ "toplevel": "Stored-property initializers: fileManager = FileManager.default, lock = NSRecursiveLock(), historicalData = [], saveHold/undecodableBytes/lastSleepSchedule = nil, unsavedChanges = false, observingUnlock = false, changedSinceNotify = false, unlockObservers = NotificationTokens(). Class is @unchecked Sendable relying on manual lock discipline. Static constants baselineWindowDays=7, maxHistoricalPoints=90, recoveryWindowNights=60. Imports UIKit for the unlock notifications.",
  "units": [
   {
    "key": "init BaselineTracker(onBaselineUpdated:)",
@@ -77,19 +78,19 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:seal:onBaselineUpdated:)": "c37ff5f26126e8b4"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:seal:onBaselineUpdated:)": "74543647d6ceb0ab"
    }
   },
   {
    "key": "init BaselineTracker(baselineFile:seal:onBaselineUpdated:)",
-   "hash": "984bb0c9a533e5ac",
-   "does": "Stores the callback, baselineFile and seal, loads stored data (opened with the seal), installs the unlock observers when the file could not be read or its key was locked (hold .fileNotRead), recomputes the display baseline from the stored nights (not trusting the saved one), pushes it to the callback when it has >= 3 nights, and logs counts.",
+   "hash": "1cc472d84a6d5632",
+   "does": "Stores the callback, baselineFile and seal, loads stored data (opened with the seal), installs the unlock observers when the file could not be read or its key was locked (hold .fileNotRead), recomputes the display baseline from the stored nights (not trusting the saved one), hands it to the callback when it has >= 3 nights (notify), and logs counts.",
    "entry": "Called by init(baselineFile:onBaselineUpdated:) with the app's seal; tests pass a seal they control.",
    "calls": [
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.load()",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.observeUnlock()",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recalculateBaseline()",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.notifyBaselineChanged()",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.notify(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
@@ -116,7 +117,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.load()": "2815575197ca88c1",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.notifyBaselineChanged()": "d9460af4bcb9f8a8",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.notify(_:)": "61bd4bd58e526967",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.observeUnlock()": "190559362d402d4b",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recalculateBaseline()": "e3832f816a21e0ba",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
@@ -230,7 +231,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineStats(recentData:lnValues:)": "3964270adfea6cdb",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.baselineStats(recentData:lnValues:)": "9dd61611b15fc6b8",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.lnRmssdValues(_:)": "0a86767f4bf9c1b6"
    }
   },
@@ -253,45 +254,60 @@
   },
   {
    "key": "func BaselineTracker.baselineStats(recentData:lnValues:)",
-   "hash": "9f27ec818ced8a95",
-   "does": "Builds RecoveryBaselineStats: ln-mean, SD = max(widenedLnSD, 0.10 floor), 7-night CV, HR mean and SD floored at 0.5, daysInWindow = count of ln values, lastDataPointDate = last point date.",
+   "hash": "ce5b41c9fd178840",
+   "does": "Builds RecoveryBaselineStats: ln-mean, SD = max(widenedLnSD, 0.10 floor), 7-night CV, HR mean, and HR SD = max(sample SD x smallSampleWidening(count of nights), 0.5 floor), daysInWindow = count of ln values, lastDataPointDate = last point date.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Statistics.swift::var [Double].mean",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.sevenDayCV(_:)",
-    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].sampleSD"
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].sampleSD",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.smallSampleWidening(count:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.sevenDayCV(_:)": "4afe45a9b03ce042",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)": "dcb3e6827e60897b",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.smallSampleWidening(count:)": "b7dbe32ef69dba20",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.widenedLnSD(_:)": "68018b99bc21f716",
     "Emuqu/Sources/Utilities/Statistics.swift::var [Double].mean": "5e55c4e4aeacdeb6",
     "Emuqu/Sources/Utilities/Statistics.swift::var [Double].sampleSD": "03349b986abb84fb"
    }
   },
   {
    "key": "func BaselineTracker.widenedLnSD(_:)",
-   "hash": "ef934e0b8af33648",
-   "does": "Sample SD of ln values multiplied by sqrt(7/n) when n < 7 (1.0 at n >= 7), widening small-sample SD; shared by DailyLoopAnalysis and TrendAnalysis+Verdict.",
+   "hash": "3cfa2656f6324e8f",
+   "does": "Sample SD of ln values multiplied by smallSampleWidening(count) (sqrt(7/n) when n < 7, 1.0 at n >= 7); shared by DailyLoopAnalysis and TrendAnalysis+Verdict.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].sampleSD"
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].sampleSD",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.smallSampleWidening(count:)"
    ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.smallSampleWidening(count:)": "b7dbe32ef69dba20",
+    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].sampleSD": "03349b986abb84fb"
+   }
+  },
+  {
+   "key": "func BaselineTracker.smallSampleWidening(count:)",
+   "hash": "d2d9337088c856ea",
+   "does": "The small-sample widening factor for a baseline SD over `count` nights: 1.0 at count >= 7 (baselineWindowDays), else sqrt(7/count) (about 1.53 at 3). Used for the ln(RMSSD) SD and the resting-HR SD. Count 0 gives infinity; no caller passes 0 (stats(from:) and DailyLoopAnalysis guard >= 3, TrendAnalysis passes >= 2).",
+   "entry": null,
+   "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "lnValues.count >= 7",
-     "effect": "widening = 1.0; else sqrt(7/count) (≈1.53 at 3). Count 0 would give sqrt(7/0)=inf × 0 = NaN, but no caller passes 0: stats(from:) and DailyLoopAnalysis guard >= 3 (DailyLoopAnalysis.swift:225), TrendAnalysis passes its earlier group which is >= 2 (TrendAnalysis+Verdict.swift:52,114)"
+     "cond": "count >= 7",
+     "effect": "1.0; else sqrt(7/count)"
     }
    ],
-   "deps": {
-    "Emuqu/Sources/Utilities/Statistics.swift::var [Double].sampleSD": "03349b986abb84fb"
-   }
+   "deps": {}
   },
   {
    "key": "func BaselineTracker.sevenDayCV(_:)",
@@ -323,11 +339,12 @@
   },
   {
    "key": "func BaselineTracker.rebuildFromSessions(_:sleepSchedule:)",
-   "hash": "f9a21eb939b47c24",
-   "does": "Filters sessions to complete overnight analysed HRV-reliable ones and sorts oldest-first; then, under one hold of the lock, first records the sleep schedule (lastSleepSchedule) and re-reads a file that could not be read at load (reloadAfterUnlock, merging the nights held in memory onto it), merges each session through merge(_:sleepSchedule:) and, if any was admitted, commits once (sort, trim, recalculate, notify, one file write unless saves are held); logs counts inside the lock.",
+   "hash": "6202d80b71b7e62f",
+   "does": "Filters sessions to complete overnight analysed HRV-reliable ones and sorts oldest-first; then, under one hold of the lock, first records the sleep schedule (lastSleepSchedule) and re-reads a file that could not be read at load (reloadAfterUnlock, merging the nights held in memory onto it), merges each session through merge(_:sleepSchedule:) (a session already stored replaces its own reading) and, if any changed the nights, commits once (sort, trim, recalculate, one file write unless saves are held); logs counts inside the lock. After the lock is released the callback runs for a committed change (notifyIfChanged).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isRebuildCandidate(_:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.notifyIfChanged()",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reloadAfterUnlock()",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.commitChanges()",
@@ -350,30 +367,31 @@
      "effect": "logs and returns without touching state"
     },
     {
-     "at": "+14",
+     "at": "+15",
      "cond": "saveHold == .fileNotRead (inside reloadAfterUnlock)",
      "effect": "file re-read; when readable the held nights are merged onto it and committed"
     },
     {
-     "at": "+14",
+     "at": "+16",
      "cond": "for each valid session",
-     "effect": "merge (gate + night slot)"
+     "effect": "merge (own reading dropped, gate, night slot)"
     },
     {
-     "at": "+15",
-     "cond": "at least one session admitted",
+     "at": "+17",
+     "cond": "at least one merge changed the nights",
      "effect": "commitChanges(); else nothing written"
     },
     {
-     "at": "+16",
+     "at": "+18",
      "cond": "currentBaseline != nil (ternary in log)",
      "effect": "log text only"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.commitChanges()": "f4e127028238994c",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.commitChanges()": "b70b1d7413e6a40c",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isRebuildCandidate(_:)": "fc4908668d6dc055",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "d0f243083a25b1ed",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "1dd3dd91a24f0a38",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.notifyIfChanged()": "997017d04acf48f2",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reloadAfterUnlock()": "f1a0878e7ce7f75a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -455,8 +473,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.mergeIntoNight(_:into:sleepSchedule:)": "65301be0ab94c4bf",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)": "82a594cdf1ca5074",
+    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.mergeIntoNight(_:into:sleepSchedule:)": "34d3a81943a52999",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)": "5c76ff328035b9da",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isBaselineCandidate(_:)": "976073a3b4a70758",
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.nightKey(for:)": "b6c50fe75996849a"
    }
@@ -513,10 +531,11 @@
   },
   {
    "key": "func BaselineTracker.update(with:sleepSchedule:)",
-   "hash": "64cff7ffd537efef",
-   "does": "Under the lock: records the sleep schedule (lastSleepSchedule) and re-reads a file that could not be read at load (reloadAfterUnlock), then merge(_:sleepSchedule:) (gate + night slot); when admitted, commitChanges() (sort, trim to 90, recalculate, notify, save unless saves are held).",
+   "hash": "a5bb4970b6c4b1df",
+   "does": "Under the lock: records the sleep schedule (lastSleepSchedule) and re-reads a file that could not be read at load (reloadAfterUnlock), then merge(_:sleepSchedule:) (drops the session's own earlier reading, then gate + night slot); when that changed the nights, commitChanges() (sort, trim to 90, recalculate, save unless saves are held). Once the lock is released, notifyIfChanged runs the callback for a committed change, so a re-analysed or re-windowed session replaces its own night, and one the gates now reject leaves the baseline.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.notifyIfChanged()",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reloadAfterUnlock()",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.commitChanges()"
@@ -530,34 +549,39 @@
     "mem:BaselineTracker.historicalData",
     "mem:BaselineTracker.currentBaseline",
     "mem:BaselineTracker.saveHold",
+    "mem:BaselineTracker.changedSinceNotify",
     "file:<AppGroup or Documents>/HRVBaseline.json",
-    "mem:BaselineTracker.lastSleepSchedule"
+    "mem:BaselineTracker.lastSleepSchedule",
+    "mem:SettingsManager.settings.baselineRMSSD/baselineHR (via callback)"
    ],
    "branches": [
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "saveHold == .fileNotRead (inside reloadAfterUnlock)",
      "effect": "file re-read; when readable the held nights are merged onto it and committed"
     },
     {
-     "at": "+4",
-     "cond": "merge returns false (no analysisResult or not admitted)",
+     "at": "+6",
+     "cond": "merge returns false (nothing removed and nothing admitted)",
      "effect": "returns with no change"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.commitChanges()": "f4e127028238994c",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "d0f243083a25b1ed",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.commitChanges()": "b70b1d7413e6a40c",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.merge(_:sleepSchedule:)": "1dd3dd91a24f0a38",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.notifyIfChanged()": "997017d04acf48f2",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reloadAfterUnlock()": "f1a0878e7ce7f75a"
    }
   },
   {
    "key": "func BaselineTracker.merge(_:sleepSchedule:)",
-   "hash": "4d0fab6f83949339",
-   "does": "When the session has an analysisResult and passes admitsToBaseline, merges its data point into its night slot of historicalData (static mergeIntoNight) and returns true; else false. Caller holds the lock.",
+   "hash": "69fa0acedd87a3af",
+   "does": "Removes every stored reading of this session (isReading: same session id, or same start for a point saved without an id). When the session has an analysisResult and passes admitsToBaseline, merges its data point into its night slot (static mergeIntoNight) and returns true; otherwise returns whether a reading was removed, logging the removal. Caller holds the lock.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isReading(_:of:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.admitsToBaseline(_:result:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)",
     "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.mergeIntoNight(_:into:sleepSchedule:)"
    ],
@@ -569,25 +593,45 @@
    ],
    "branches": [
     {
-     "at": "+1",
+     "at": "+4",
      "cond": "no analysisResult or admitsToBaseline false",
-     "effect": "returns false"
+     "effect": "returns whether the session's own reading was removed (logged when it was)"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.mergeIntoNight(_:into:sleepSchedule:)": "65301be0ab94c4bf",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.admitsToBaseline(_:result:)": "836597a99ab2f10d",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)": "82a594cdf1ca5074"
+    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.mergeIntoNight(_:into:sleepSchedule:)": "34d3a81943a52999",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.admitsToBaseline(_:result:)": "25e71da29d9fb02c",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.dataPoint(session:result:)": "5c76ff328035b9da",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.isReading(_:of:)": "f69c509000062799",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func BaselineTracker.isReading(_:of:)",
+   "hash": "fcabd38405d27bb1",
+   "does": "Whether a stored point is a reading of `session`: its sessionId equals the session's id, or, for a point saved before ids were recorded (nil), its date equals the session's start.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "point has no sessionId",
+     "effect": "compares dates; else ids"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
    }
   },
   {
    "key": "func BaselineTracker.commitChanges()",
-   "hash": "2c70be0944576df5",
-   "does": "Sorts historicalData by date, keeps the newest 90 points, recalculates the display baseline, notifies the callback and saves to disk. Caller holds the lock.",
+   "hash": "ffd3af9d5924b3b9",
+   "does": "Sorts historicalData by date, keeps the newest 90 points, recalculates the display baseline, marks the change for the callback (changedSinceNotify; notifyIfChanged runs it after the lock is released) and saves to disk. Caller holds the lock.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recalculateBaseline()",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.notifyBaselineChanged()",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.save()"
    ],
    "reads": [
@@ -596,6 +640,7 @@
    "writes": [
     "mem:BaselineTracker.historicalData",
     "mem:BaselineTracker.currentBaseline",
+    "mem:BaselineTracker.changedSinceNotify",
     "file:<baselineFile>"
    ],
    "branches": [
@@ -606,7 +651,6 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.notifyBaselineChanged()": "d9460af4bcb9f8a8",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.recalculateBaseline()": "e3832f816a21e0ba",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.save()": "fd337e9ec6e38c89"
    }
@@ -661,8 +705,8 @@
   },
   {
    "key": "func BaselineTracker.dataPoint(session:result:)",
-   "hash": "e572845a4de192bd",
-   "does": "Builds a BaselineDataPoint from the session (start/end dates) and analysis result (time-domain, frequency-domain, DFA, ANS metrics, window quality fields).",
+   "hash": "3d121b0d7e1cb1cb",
+   "does": "Builds a BaselineDataPoint from the session (start/end dates and id) and analysis result (time-domain, frequency-domain, DFA, ANS metrics, window quality fields).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -673,33 +717,59 @@
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::var ScoredRecoveryBlock.isOrganizedRecovery": "a94b71838be09fe7",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423",
-    "EmuquTests/RecoveryBlockClassificationTests.swift::func RecoveryBlockClassificationTests.isConsolidated(_:)": "9fdc7dd4a10137ff"
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.nonlinear(_:flagged:)": "74b253b4ff4a78e2"
    }
   },
   {
-   "key": "func BaselineTracker.notifyBaselineChanged()",
-   "hash": "79affd9e04edd884",
-   "does": "Calls onBaselineUpdated(rmssd, meanHR) when currentBaseline has >= 3 samples.",
+   "key": "func BaselineTracker.notifyIfChanged()",
+   "hash": "f67dd5837f90875b",
+   "does": "Under the lock, reads and clears changedSinceNotify and takes the current baseline; after releasing the lock, hands that baseline to notify when a change had been committed. Keeps the callback (which syncs the settings) from ever running under the tracker's lock. Caller must not hold the lock.",
    "entry": null,
    "calls": [
-    "closure:onBaselineUpdated → Emuqu/Sources/Models/SettingsManager.swift:381 (set by RRCollector.swift:647; nil in tests/default init)"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.notify(_:)"
    ],
    "reads": [
+    "mem:BaselineTracker.changedSinceNotify",
     "mem:BaselineTracker.currentBaseline"
    ],
+   "writes": [
+    "mem:BaselineTracker.changedSinceNotify",
+    "mem:SettingsManager.settings.baselineRMSSD/baselineHR (via callback)"
+   ],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "no change committed since the last call",
+     "effect": "returns without calling back"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.notify(_:)": "61bd4bd58e526967",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.baseline": "de5a96986bf66c67"
+   }
+  },
+  {
+   "key": "func BaselineTracker.notify(_:)",
+   "hash": "4d5afe0eb899664f",
+   "does": "Calls the injected onBaselineUpdated callback with the baseline's RMSSD and mean HR when the baseline exists and has at least 3 nights.",
+   "entry": null,
+   "calls": [
+    "closure:BaselineTracker.onBaselineUpdated"
+   ],
+   "reads": [],
    "writes": [
     "mem:SettingsManager.settings.baselineRMSSD/baselineHR (via callback)"
    ],
    "branches": [
     {
      "at": "+1",
-     "cond": "no baseline or sampleCount < 3",
-     "effect": "returns without calling; the settings copy keeps its previous values"
+     "cond": "no baseline or fewer than 3 nights",
+     "effect": "returns without calling back"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.baseline": "de5a96986bf66c67",
-    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "4f00a2cb9ab6b0f5"
+    "Emuqu/Sources/Collection/HealthKitManager.swift::func HealthKitManager.sampleCount(for:from:to:)": "45d5fec7bbf69622"
    }
   },
   {
@@ -1126,15 +1196,16 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.retryAfterUnlock()": "e9307c122df33af2"
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.retryAfterUnlock()": "d900f9ae51988b2b"
    }
   },
   {
    "key": "func BaselineTracker.retryAfterUnlock()",
-   "hash": "802a0104f76d25f4",
-   "does": "Takes the lock, runs reloadAfterUnlock (a no-op once the .fileNotRead hold is gone), then saves again when the last save failed (unsavedChanges).",
+   "hash": "808227b0286a17ae",
+   "does": "Takes the lock, runs reloadAfterUnlock (a no-op once the .fileNotRead hold is gone), then saves again when the last save failed (unsavedChanges); a merge the reload committed reaches the callback once the lock is released (notifyIfChanged).",
    "entry": "protectedDataDidBecomeAvailable / didBecomeActive / didEnterBackground observers installed by observeUnlock",
    "calls": [
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.notifyIfChanged()",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reloadAfterUnlock()",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.save()"
    ],
@@ -1144,12 +1215,13 @@
    "writes": [],
    "branches": [
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "unsavedChanges",
      "effect": "save()"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.notifyIfChanged()": "997017d04acf48f2",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.reloadAfterUnlock()": "f1a0878e7ce7f75a",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.save()": "fd337e9ec6e38c89"
    }
@@ -1201,8 +1273,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.mergeIntoNight(_:into:sleepSchedule:)": "65301be0ab94c4bf",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.commitChanges()": "f4e127028238994c",
+    "Emuqu/Sources/Analysis/BaselineTracker+NightReplacement.swift::func BaselineTracker.mergeIntoNight(_:into:sleepSchedule:)": "34d3a81943a52999",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.commitChanges()": "b70b1d7413e6a40c",
     "Emuqu/Sources/Analysis/BaselineTracker.swift::func BaselineTracker.readFile()": "7e42c3382bf11047",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }

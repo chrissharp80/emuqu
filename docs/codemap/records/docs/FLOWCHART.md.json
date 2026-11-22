@@ -291,7 +291,7 @@
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 5. processOvernightData() — The Main Pipeline",
-   "hash": "7d557d4c924dc8a6",
+   "hash": "28e6ac0a3469e28a",
    "does": "Claims the morning pipeline: backup, build series, same-night merge only for overnights with sessionMergeMode != .off, skipping already-linked sessions and keeping only segments within the merge gap of the base chain (segmentsWithinGap; Default 4.5 h or Custom), artifact detection, verification, HealthKit sleep (cache-first via SleepDataCache, 14 entries, ±1 day, else bounded poll 15×2 s), sleep-stage classification, training load, window selection with Tier-1 ranking and wall-clock→t_ms translation, organized zones, HRV analysis, final session, recovery score, supersede same-night, archive. Code: RRCollector wrapper fetches training load first, then MorningProcessingService.run does backup → buildMergedSeries → artifacts/verify → sleep poll → window → analysis → vitals snapshot → insufficient-data gate → score → supersede; the wrapper archives via archiveForReview.",
    "entry": null,
    "calls": [
@@ -335,9 +335,9 @@
    }
   },
   {
-   "key": "§ Emuqu — Complete Data Flow Reference > 6. Recovery Score Calculation (scoring version v3.2.oct2026)",
-   "hash": "86f7e9c7fbffc661",
-   "does": "no behavioural claim: section header naming scoring version v3.2.oct2026 (matches ScoringVersion.current).",
+   "key": "§ Emuqu — Complete Data Flow Reference > 6. Recovery Score Calculation (scoring version v3.3.nov2026)",
+   "hash": "3a40fdecc1049b90",
+   "does": "no behavioural claim: section header naming scoring version v3.3.nov2026 (matches ScoringVersion.current).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -346,7 +346,7 @@
    "deps": {}
   },
   {
-   "key": "§ Emuqu — Complete Data Flow Reference > 6. Recovery Score Calculation (scoring version v3.2.oct2026) > RecoveryScoreCalculator (RecoveryScoreCalculator.swift)",
+   "key": "§ Emuqu — Complete Data Flow Reference > 6. Recovery Score Calculation (scoring version v3.3.nov2026) > RecoveryScoreCalculator (RecoveryScoreCalculator.swift)",
    "hash": "6e16bd2967380934",
    "does": "Claims the score is HRV+Sleep+Vitals with training load excluded; Tier 1 SWC band (z=-3→5, -1.5→25, -0.75→64, -0.5…+0.5→72, +1.5→90) plus DFA/RHR/CV/ANS adjustments and staleness penalty; Tier 2 sleep sub-weights 35/25/25/15, HRV 70/Sleep 30, dampened to 85/15 when z<-1 and sleep<50; Tier 3 60/25/15 with vitals mean of RHR (-10/SD), RR (-15/br/min beyond ±1, population 12-18 fallback, below 12 → 90), temp (≤0.3→100, ≤0.5→75, ≤1.0→50, >1.0→25, positive only); Respiratory/WristTemperature baseline caches with 30-day TTL; Comeback 80/20/0; SpO2 <95 % → −10. All numbers match ScoringWeights, scoringParametersV2 and ScoreDetailBuilder.buildTier2.",
    "entry": null,
@@ -369,7 +369,7 @@
    }
   },
   {
-   "key": "§ Emuqu — Complete Data Flow Reference > 6. Recovery Score Calculation (scoring version v3.2.oct2026) > Training Load (Load & Trajectory surface — does NOT feed the recovery score)",
+   "key": "§ Emuqu — Complete Data Flow Reference > 6. Recovery Score Calculation (scoring version v3.3.nov2026) > Training Load (Load & Trajectory surface — does NOT feed the recovery score)",
    "hash": "bc9247173ba1e7eb",
    "does": "Claims training load (Banister TRIMP, ATL 7 d / CTL 42 d / TSB, ACWR labels, Foster monotony banner when monotony > 2.0 AND strain > 200) is shown on Load & Trajectory / Training Detail and frozen into analysisResult.trainingContext, not the score.",
    "entry": null,
@@ -642,7 +642,7 @@
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 12. Key Files Reference",
-   "hash": "9933dcabcfa31718",
+   "hash": "8a512a6f2ccb6067",
    "does": "Key-files table mapping pipeline responsibilities to files. All listed files exist, but several mappings are stale: gatherOvernightData is in RRCollector+OvernightGather.swift (not +OvernightStreaming), RRPoint creation is in PolarManager+Streaming.swift, and the HRVSession struct is declared in SessionMetadata.swift (HRVSession.swift holds decoding support).",
    "entry": null,
    "calls": [
