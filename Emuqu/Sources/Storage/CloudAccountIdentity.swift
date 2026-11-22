@@ -22,7 +22,13 @@ import os
 /// signed-in account on the first successful check of a launch in which the
 /// account status has not changed (`verdict`): that is the account they have
 /// been syncing with, unless the Apple ID was switched while an older build
-/// was installed, which nothing on the device can show afterwards.
+/// was installed, which nothing on the device can show afterwards. When the
+/// status did change first (a reconnect, a launch offline, or a switch), the
+/// check looks up a few of the sessions this device uploaded in the
+/// signed-in account's iCloud before deciding: that lookup by record id is
+/// the one read made before the account is confirmed, and it writes nothing.
+/// With iCloud Sync off and nothing of an account's on the device, no
+/// account is recorded until the user turns sync on.
 enum CloudAccountIdentity {
     /// The recorded account's `userRecordID().recordName`.
     static let recordedKey = "cloudkit.accountIdentity"
@@ -30,15 +36,45 @@ enum CloudAccountIdentity {
     /// sync is enabled again for an account.
     static let stopReasonKey = "cloudkit.syncStoppedReason"
 
-    /// What this launch knows about the signed-in account.
-    private struct LaunchState {
+    /// What this launch knows about the signed-in account. A value, so its
+    /// rules can be exercised on a copy of their own; the process keeps one
+    /// in `launch`.
+    struct LaunchState {
         /// The account this launch checked and found to be the recorded one.
-        var confirmed: String?
+        private(set) var confirmed: String?
         /// A `.CKAccountChanged` arrived during this launch.
-        var accountChanged = false
+        private(set) var accountChanged = false
         /// Advanced by every account change, so a check that started before
         /// one does not confirm the account it fetched.
-        var generation = 0
+        private(set) var generation = 0
+
+        /// Whether `recorded` is the account this launch confirmed.
+        func isConfirmed(recorded: String?) -> Bool {
+            guard let recorded else { return false }
+            return confirmed == recorded
+        }
+
+        /// An account change: nothing is confirmed, and checks begun before
+        /// it confirm nothing.
+        mutating func noteAccountChanged() {
+            confirmed = nil
+            accountChanged = true
+            generation += 1
+        }
+
+        /// Drop the confirmation; checks begun before it confirm nothing.
+        mutating func revokeConfirmation() {
+            confirmed = nil
+            generation += 1
+        }
+
+        /// Confirm `name`, fetched in check `check`. False, with nothing
+        /// confirmed, when the generation moved on since that check began.
+        mutating func confirm(_ name: String, generation check: Int) -> Bool {
+            guard generation == check else { return false }
+            confirmed = name
+            return true
+        }
     }
 
     private static let launch = OSAllocatedUnfairLock(initialState: LaunchState())
@@ -52,8 +88,8 @@ enum CloudAccountIdentity {
     /// recorded one. Every upload, deletion, pull and cloud-key creation waits
     /// for this.
     static var isConfirmed: Bool {
-        guard let recorded = recordedAccount else { return false }
-        return launch.withLock { $0.confirmed } == recorded
+        let recorded = recordedAccount
+        return launch.withLock { $0.isConfirmed(recorded: recorded) }
     }
 
     /// The current check generation (see `LaunchState.generation`).
@@ -69,43 +105,27 @@ enum CloudAccountIdentity {
     /// A `.CKAccountChanged` arrived: the account is unconfirmed until it is
     /// checked again.
     static func noteAccountChanged() {
-        launch.withLock { state in
-            state.confirmed = nil
-            state.accountChanged = true
-            state.generation += 1
-        }
+        launch.withLock { $0.noteAccountChanged() }
     }
 
     /// Drop this launch's confirmation, so the next check fetches the account
     /// again.
     static func revokeConfirmation() {
-        launch.withLock { state in
-            state.confirmed = nil
-            state.generation += 1
-        }
+        launch.withLock { $0.revokeConfirmation() }
     }
 
     /// The signed-in account `name`, fetched in check `generation`, is the
     /// recorded one. False, with nothing confirmed, when the account changed
     /// since that check began.
     static func confirm(_ name: String, generation: Int) -> Bool {
-        launch.withLock { state -> Bool in
-            guard state.generation == generation else { return false }
-            state.confirmed = name
-            return true
-        }
+        launch.withLock { $0.confirm(name, generation: generation) }
     }
 
     /// Record `name` as the account sync is enabled for, and confirm it. A
     /// stop notice from an earlier account ends here. False, with nothing
     /// recorded, when the account changed since check `generation` began.
     static func adopt(_ name: String, generation: Int) -> Bool {
-        let adopted = launch.withLock { state -> Bool in
-            guard state.generation == generation else { return false }
-            state.confirmed = name
-            return true
-        }
-        guard adopted else { return false }
+        guard launch.withLock({ $0.confirm(name, generation: generation) }) else { return false }
         UserDefaults.standard.set(name, forKey: recordedKey)
         UserDefaults.standard.removeObject(forKey: stopReasonKey)
         return true
@@ -124,28 +144,35 @@ enum CloudAccountIdentity {
         case sameAccount
         /// Nothing is recorded, and this is the account to record.
         case adopt
-        /// It is not the recorded account, or nothing is recorded and the
-        /// bookkeeping cannot be attributed to it.
+        /// It is not the recorded account.
         case differentAccount
-        /// Nothing is recorded because the app turned sync off, and sync is
-        /// still off: nothing may be read or written until the user opts in.
+        /// Nothing is recorded, the account status changed during this launch,
+        /// and bookkeeping from an earlier account remains: whether it is this
+        /// account's is looked up in its iCloud before anything else is done
+        /// (`CloudAccountGuard.confirmAccount`).
+        case attributeBookkeeping
+        /// Nothing is recorded and sync is off, and either the app turned it
+        /// off or nothing on this device belongs to any account: nothing may
+        /// be read or written, and nothing is recorded, until the user opts in.
         case awaitingOptIn
     }
 
     /// The decision for the signed-in account `current`.
     ///
-    /// With no account recorded, the signed-in one is adopted unless the app
-    /// stopped sync and the user has not turned it on again, or the account
-    /// status changed during this launch while bookkeeping from an earlier
-    /// account remains: that bookkeeping may describe another Apple ID, so the
-    /// safe reading is a different account.
+    /// With no account recorded: while sync is off, nothing is adopted when
+    /// the app stopped sync or there is no bookkeeping to keep in step (the
+    /// account is recorded when the user turns sync on). Otherwise the
+    /// signed-in account is adopted, unless the account status changed during
+    /// this launch while bookkeeping remains: that bookkeeping may describe
+    /// another Apple ID, so it is attributed by looking it up first. The
+    /// upload queue is not bookkeeping (`CloudKitSyncManager.hasAccountBookkeeping`).
     static func verdict(
         recorded: String?, current: String, syncEnabled: Bool, stoppedByApp: Bool,
         accountChangedThisLaunch: Bool, hasBookkeeping: Bool
     ) -> Verdict {
         if let recorded { return recorded == current ? .sameAccount : .differentAccount }
-        if stoppedByApp, !syncEnabled { return .awaitingOptIn }
-        if accountChangedThisLaunch, hasBookkeeping { return .differentAccount }
+        if !syncEnabled, stoppedByApp || !hasBookkeeping { return .awaitingOptIn }
+        if accountChangedThisLaunch, hasBookkeeping { return .attributeBookkeeping }
         return .adopt
     }
 
@@ -202,11 +229,16 @@ struct CloudAccountGuard {
         /// Nothing may be read or written: sync was stopped, now or earlier,
         /// and waits for the user to turn it on.
         case stopped
+        /// The signed-in account is not the one this device's bookkeeping
+        /// belongs to: the check reset that bookkeeping (`stopSync`), and
+        /// nothing may be read or written.
+        case differentAccount
     }
 
     /// Confirm the signed-in account, fetching it unless this launch already
     /// did. A different account stops sync (`stopSync(.differentAccount)`).
-    /// The verdict is `CloudAccountIdentity.verdict`'s.
+    /// The verdict is `CloudAccountIdentity.verdict`'s; bookkeeping it cannot
+    /// attribute is looked up in iCloud (`lookUpBookkeeping`).
     func confirmAccount() async -> Check {
         if CloudAccountIdentity.isConfirmed { return .confirmed }
         let generation = CloudAccountIdentity.checkGeneration
@@ -219,7 +251,7 @@ struct CloudAccountGuard {
         }
         // An account change while the fetch ran makes `current` stale: the
         // check starts over against the new account.
-        guard let check = apply(verdict(for: current), to: current, generation: generation) else {
+        guard let check = await apply(verdict(for: current), to: current, generation: generation) else {
             return await confirmAccount()
         }
         return check
@@ -237,9 +269,13 @@ struct CloudAccountGuard {
     }
 
     /// Act on `verdict` for the account `current`, fetched in check
-    /// `generation`: confirm it, record it, or stop sync. Nil when the account
-    /// changed since that check began, and nothing was confirmed or recorded.
-    private func apply(_ verdict: CloudAccountIdentity.Verdict, to current: String, generation: Int) -> Check? {
+    /// `generation`: confirm it, record it, or stop sync. Bookkeeping to
+    /// attribute is looked up first: found in this account, it is adopted;
+    /// absent, the account is a different one; when iCloud cannot be asked,
+    /// nothing is decided and the reason is returned. Nil when the account
+    /// changed since that check began, and nothing was confirmed, recorded or
+    /// stopped.
+    private func apply(_ verdict: CloudAccountIdentity.Verdict, to current: String, generation: Int) async -> Check? {
         switch verdict {
         case .sameAccount:
             return CloudAccountIdentity.confirm(current, generation: generation) ? .confirmed : nil
@@ -247,12 +283,87 @@ struct CloudAccountGuard {
             guard CloudAccountIdentity.adopt(current, generation: generation) else { return nil }
             debugLog("[CloudKit] Recorded the iCloud account this device syncs with", level: .info)
             return .confirmed
+        case .attributeBookkeeping:
+            return await applyAttribution(to: current, generation: generation)
         case .awaitingOptIn:
             return .stopped
         case .differentAccount:
+            guard CloudAccountIdentity.checkGeneration == generation else { return nil }
             stopSync(.differentAccount)
-            return .stopped
+            return .differentAccount
         }
+    }
+
+    /// The bookkeeping looked up in iCloud (`lookUpBookkeeping`): found, the
+    /// account is adopted; absent, it is a different one; when iCloud cannot
+    /// be asked, nothing is decided and the reason is returned.
+    private func applyAttribution(to current: String, generation: Int) async -> Check? {
+        switch await lookUpBookkeeping() {
+        case .found:
+            return await apply(.adopt, to: current, generation: generation)
+        case .absent:
+            return await apply(.differentAccount, to: current, generation: generation)
+        case let .unknown(message):
+            return .unavailable(message)
+        }
+    }
+
+    /// What the lookup of this device's bookkeeping in the signed-in
+    /// account's iCloud found.
+    private enum Attribution {
+        /// A session this device uploaded is there: it is the account.
+        case found
+        /// None of them is, or this device uploaded none to look up.
+        case absent
+        /// iCloud could not be asked; the message says why.
+        case unknown(String)
+    }
+
+    /// How many uploaded sessions the lookup asks for. One found is enough:
+    /// the record names are this device's session ids, which no other Apple
+    /// ID's iCloud holds.
+    private static let attributionSampleSize = 5
+
+    /// Look up a few sessions this device uploaded (`uploadedSessionIds`) by
+    /// record id in the signed-in account's session zone, reading only their
+    /// deletion flag and writing nothing. A record found, tombstones
+    /// included, shows the bookkeeping is this account's. All of them missing,
+    /// or the zone missing, shows it is not. With nothing uploaded there is
+    /// nothing that could show it, and the bookkeeping counts as another
+    /// account's: a zone of the same name exists in every account that has
+    /// used the app.
+    private func lookUpBookkeeping() async -> Attribution {
+        let ids = manager.state.uploadedSessionIds.prefix(Self.attributionSampleSize)
+        guard !ids.isEmpty else { return .absent }
+        let recordIDs = ids.map { CKRecord.ID(recordName: $0.uuidString, zoneID: manager.zoneID) }
+        do {
+            let fetched = try await manager.privateDB.records(for: recordIDs, desiredKeys: ["isDeleted"])
+            return attribution(of: Array(fetched.values))
+        } catch let error as CKError where CloudHealthScrubCoordinator.meansNoRecord(error) {
+            return .absent
+        } catch {
+            debugLog("[CloudKit] Could not look up this device's sessions in the signed-in iCloud account: \(error.localizedDescription)", level: .warning)
+            return .unknown(manager.cloudKitErrorMessage(error))
+        }
+    }
+
+    /// What the fetched records show: any record returned is found; a missing
+    /// record (or zone) is skipped; any other failure leaves the answer
+    /// unknown unless a record is found.
+    private func attribution(of results: [Result<CKRecord, Error>]) -> Attribution {
+        var answer = Attribution.absent
+        for result in results {
+            guard case let .failure(error) = result else { return .found }
+            guard !Self.meansMissing(error) else { continue }
+            answer = .unknown(manager.cloudKitErrorMessage(error))
+        }
+        return answer
+    }
+
+    /// Whether `error` says the record, or its zone, is not in iCloud.
+    private static func meansMissing(_ error: Error) -> Bool {
+        guard let ckError = error as? CKError else { return false }
+        return CloudHealthScrubCoordinator.meansNoRecord(ckError)
     }
 
     /// Why a full sync ends before its first phase.
@@ -276,7 +387,7 @@ struct CloudAccountGuard {
             return
         case let .unavailable(message):
             throw Halt.unavailable(message)
-        case .stopped:
+        case .stopped, .differentAccount:
             throw Halt.stopped
         }
     }
@@ -295,7 +406,7 @@ struct CloudAccountGuard {
         case .confirmed:
             stopSync(.iCloudDataDeleted)
             return nil
-        case .stopped:
+        case .stopped, .differentAccount:
             return nil
         case let .unavailable(message):
             return message
@@ -307,13 +418,19 @@ struct CloudAccountGuard {
     /// tombstones, the scrub list) and the recorded account forgotten; no
     /// session, setting or backup on this device is touched. The user opts in
     /// again through the iCloud Sync switch, which records the account then.
+    ///
+    /// With sync already off (the check ran for the sync-off scrub or an
+    /// account change), only the bookkeeping is reset: no stop reason is kept
+    /// or shown, since the app did not turn anything off.
     func stopSync(_ reason: CloudAccountIdentity.StopReason) {
-        debugLog("[CloudKit] Stopping iCloud sync (\(reason.rawValue)) — local data kept, bookkeeping reset", level: .warning)
+        let wasOn = manager.settingsManager.settings.iCloudSyncEnabled
+        debugLog("[CloudKit] Stopping iCloud sync (\(reason.rawValue), sync \(wasOn ? "on" : "already off")) — local data kept, bookkeeping reset", level: .warning)
         CloudAccountIdentity.forget()
-        CloudAccountIdentity.noteStopped(reason)
         manager.resetLocalSyncState()
         manager.deletion.forgetConfirmedTombstones()
         manager.healthScrub.clear()
+        guard wasOn else { return }
+        CloudAccountIdentity.noteStopped(reason)
         manager.settingsManager.settings.iCloudSyncEnabled = false
         manager.showSyncStopped(reason.message)
     }

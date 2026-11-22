@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift",
- "hash": "69237042044fa243",
+ "hash": "a3ffa7840b466f59",
  "role": "Last-writer-wins rules for sessions held on several devices: whole-second modifiedAt stamp comparison, with same-second copies told apart by the server record's change tag this device remembers (onTie); stamping records/edits, merging a newer iCloud copy over the local one, plus CloudPullCoordinator's refresh-if-newer path.",
  "types": [
   "CloudKitSessionFreshness: enum — namespace for freshness rules",
@@ -12,9 +12,11 @@
   "ck:HRVSession.modifiedAt (plain date field, modifiedAtField)",
   "ck:CKRecord.recordChangeTag (server version, system field)",
   "mem:CloudKitSyncState.recordVersions (version each local copy matches)",
-  "mem:CloudKitSessionFreshness.fieldRejected (OSAllocatedUnfairLock<Bool>, per launch)"
+  "mem:CloudKitSessionFreshness.fieldRejected (OSAllocatedUnfairLock<Bool>, per launch)",
+  "ud:cloudkit.latestSeenEditStamp (latestSeenKey: the latest edit stamp seen on an iCloud copy)",
+  "mem:CloudKitSessionFreshness.seenLock (OSAllocatedUnfairLock serializing noteSeen)"
  ],
- "toplevel": "static let modifiedAtField = \"modifiedAt\"; private static let fieldRejected = OSAllocatedUnfairLock(initialState: false).",
+ "toplevel": "static let modifiedAtField = \"modifiedAt\"; private static let fieldRejected = OSAllocatedUnfairLock(initialState: false); private static let latestSeenKey = \"cloudkit.latestSeenEditStamp\"; private static let seenLock = OSAllocatedUnfairLock().",
  "units": [
   {
    "key": "func CloudKitSessionFreshness.decide(localModifiedAt:remoteModifiedAt:onTie:)",
@@ -76,18 +78,78 @@
    "deps": {}
   },
   {
-   "key": "func CloudKitSessionFreshness.stamp(at:)",
-   "hash": "d3167d98b265731e",
-   "does": "Returns `now` truncated down to whole seconds.",
+   "key": "func CloudKitSessionFreshness.stamp(at:after:)",
+   "hash": "4d734dca61ced97a",
+   "does": "Returns now truncated down to whole seconds, or one second after seen (truncated) when that is later. seen defaults to latestSeenStamp, the latest edit stamp this device has seen on an iCloud copy, so an edit made after seeing another device's edit is stamped after it whatever the two clocks say.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::var CloudKitSessionFreshness.latestSeenStamp"
    ],
-   "reads": [],
+   "reads": [
+    "ud:cloudkit.latestSeenEditStamp (default argument)"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no stamp seen",
+     "effect": "the clock's whole second"
+    },
+    {
+     "at": "+3",
+     "cond": "a stamp seen",
+     "effect": "max(clock second, seen second + 1)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)": "a46a38707c7acf3f",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::var CloudKitSessionFreshness.latestSeenStamp": "8c7d50cfb6c2ad01"
+   }
+  },
+  {
+   "key": "var CloudKitSessionFreshness.latestSeenStamp",
+   "hash": "ae623237afcdb9a7",
+   "does": "The Date stored under cloudkit.latestSeenEditStamp, or nil.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:cloudkit.latestSeenEditStamp"
+   ],
    "writes": [],
    "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudKitSessionFreshness.noteSeen(_:)",
+   "hash": "5b789f3102af02a7",
+   "does": "Under seenLock, stores stamp as cloudkit.latestSeenEditStamp when it is later than the stamp kept (or none is kept); nil or an earlier stamp changes nothing.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::var CloudKitSessionFreshness.latestSeenStamp",
+    "ext:OSAllocatedUnfairLock.withLock"
+   ],
+   "reads": [
+    "ud:cloudkit.latestSeenEditStamp"
+   ],
+   "writes": [
+    "ud:cloudkit.latestSeenEditStamp"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "nil",
+     "effect": "returns"
+    },
+    {
+     "at": "+3",
+     "cond": "kept stamp is as late or later",
+     "effect": "nothing written"
+    }
+   ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.wholeSeconds(_:)": "a46a38707c7acf3f"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:after:)": "d14e6c55f8aaa87a",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::var CloudKitSessionFreshness.latestSeenStamp": "8c7d50cfb6c2ad01"
    }
   },
   {
@@ -149,17 +211,17 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stampEditNow(of:in:)": "7e978239e9dc1a71"
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stampEditNow(of:in:)": "3656a60b9462114b"
    }
   },
   {
    "key": "func CloudKitSessionFreshness.stampEditNow(of:in:)",
    "hash": "50777594dfeae31c",
-   "does": "archive.update(id, requestingReupload: false) setting modifiedAt = stamp(); logs a warning on failure.",
+   "does": "archive.update(id, requestingReupload: false) setting modifiedAt = stamp() (after any stamp seen on iCloud); logs a warning on failure.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:after:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
@@ -180,7 +242,7 @@
    "deps": {
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
-    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:)": "4c10324f8b76c2f3",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:after:)": "d14e6c55f8aaa87a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -301,7 +363,7 @@
    "does": "Builds the merged session from the newer remote copy: restores local HealthKit-only fields; keeps local sleep entirely when the remote has no sleep window, or keeps local sleepSnapshot when windows match; keeps local auto-window result when remote was user-adjusted without one; keeps local HealthKit export stamp when remote has none.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.keepSleep(of:in:)",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.sameSleepWindow(_:_:)"
    ],
@@ -338,7 +400,7 @@
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.keepSleep(of:in:)": "30f7b6d7d07998e3",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.sameSleepWindow(_:_:)": "d2c290b367afce2c",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)": "62f5272a5d47ff5a"
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.restoringLocalOnlyFields(into:from:)": "62f5272a5d47ff5a"
    }
   },
   {
@@ -506,7 +568,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed": "be903b8b907a5e7c",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed": "80bbf49d58eb35ac",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.onTie(serverVersion:heldVersion:)": "3d64beac434cba6a",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.replaceIfStillNewer(_:with:onTie:in:)": "342bb73a36f43561",

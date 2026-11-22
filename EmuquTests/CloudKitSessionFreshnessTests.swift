@@ -87,8 +87,23 @@ final class CloudKitSessionFreshnessTests: XCTestCase {
     }
 
     func testStampIsWholeSeconds() {
-        let stamp = CloudKitSessionFreshness.stamp(at: earlier.addingTimeInterval(0.9))
+        let stamp = CloudKitSessionFreshness.stamp(at: earlier.addingTimeInterval(0.9), after: nil)
         XCTAssertEqual(stamp, earlier)
+    }
+
+    /// An edit made after this device saw a later stamp from another device's
+    /// clock is stamped after it, so it wins; a stamp seen earlier than the
+    /// clock changes nothing.
+    func testAnEditAfterSeeingAnotherDevicesStampIsStampedAfterIt() {
+        let otherClock = earlier.addingTimeInterval(3_600.4)
+        XCTAssertEqual(CloudKitSessionFreshness.stamp(at: earlier, after: otherClock), earlier.addingTimeInterval(3_601))
+        XCTAssertEqual(
+            CloudKitSessionFreshness.decide(
+                localModifiedAt: CloudKitSessionFreshness.stamp(at: earlier, after: otherClock), remoteModifiedAt: otherClock
+            ),
+            .keepLocal
+        )
+        XCTAssertEqual(CloudKitSessionFreshness.stamp(at: otherClock, after: earlier), earlier.addingTimeInterval(3_600))
     }
 
     // MARK: - Upload
@@ -366,11 +381,11 @@ final class CloudKitSessionFreshnessTests: XCTestCase {
         var local = makeSession()
         let beats = (0 ..< 200).map { RRPoint(t_ms: Int64($0) * 1000, rr_ms: $0 % 2 == 0 ? 990 : 1010) }
         local.rrSeries = RRSeries(points: beats, sessionId: local.id, startDate: local.startDate)
-        local.modifiedAt = CloudKitSessionFreshness.stamp(at: Date().addingTimeInterval(-3600))
+        local.modifiedAt = CloudKitSessionFreshness.stamp(at: Date().addingTimeInterval(-3600), after: nil)
         _ = try archive.archive(local, skipSameNightMerge: true)
         var remote = local
         remote.notes = "from iCloud"
-        remote.modifiedAt = CloudKitSessionFreshness.stamp(at: Date().addingTimeInterval(-1800))
+        remote.modifiedAt = CloudKitSessionFreshness.stamp(at: Date().addingTimeInterval(-1800), after: nil)
         return (local, remote)
     }
 

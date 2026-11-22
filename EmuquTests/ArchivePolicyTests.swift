@@ -430,4 +430,14 @@ final class ArchivePolicyTests: XCTestCase {
         XCTAssertEqual(ArchiveMigrations.mergedNotes("mine", nil), "mine")
         XCTAssertEqual(ArchiveMigrations.mergedNotes("mine", ""), "mine")
     }
+
+    /// A copy whose file could not be moved is carried again on the next
+    /// pass: notes the keeper already holds as whole paragraphs are not
+    /// appended again, while text that only appears inside a paragraph is.
+    func testNotesAlreadyCarriedAreNotAppendedAgain() {
+        XCTAssertEqual(ArchiveMigrations.mergedNotes("A\n\nB", "B"), "A\n\nB")
+        XCTAssertEqual(ArchiveMigrations.mergedNotes("B\n\nA", "B"), "B\n\nA")
+        XCTAssertEqual(ArchiveMigrations.mergedNotes("A\n\nB\n\nC", "B\n\nC"), "A\n\nB\n\nC")
+        XCTAssertEqual(ArchiveMigrations.mergedNotes("AB", "B"), "AB\n\nB")
+    }
 }
