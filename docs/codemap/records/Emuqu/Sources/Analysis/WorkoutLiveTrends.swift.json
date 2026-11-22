@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift",
- "hash": "9b53a19f03820aa1",
- "role": "Stateless math for live/historical workout analytics: mid-workout trend metrics (reverse split, HR drift, decoupling, HR slope, cadence drift, grade-adjusted pace, time-to-fade), live time-in-zone, Riegel race predictions, Daniels-style pace zones, Banister load projection/recovery time, and cross-workout history baselines.",
+ "hash": "3c043f1b04923f88",
+ "role": "Stateless math for live/historical workout analytics: mid-workout trend metrics (reverse split, HR drift, decoupling, HR slope, cadence drift, grade-adjusted pace, time-to-fade), live time-in-zone, Riegel race predictions, Daniels-style pace zones, Banister load projection/recovery time, and cross-workout history baselines; plus the live tally (WorkoutLiveTrends.Tally) that keeps the trend, split, chunk and zone figures of the recorder's growing sample buffer as running sums and folds, so a tick reads them without scanning the buffer.",
  "types": [
   "WorkoutLiveTrends: enum — namespace of trend functions over [WorkoutSample]",
   "WorkoutZoneBreakdown: struct — seconds per HR zone (50/60/70/80/90 % of max) + dominant zone",
@@ -11,7 +11,11 @@
   "RecoveryTimeEstimate: enum — hours until TSB>=0 at rest",
   "TrainingLoadProjection: enum — forward ATL/CTL/TSB projection using TrainingLoadSeries.Point.stepped",
   "TrainingLoadProjection.Day: struct — projected day",
-  "WorkoutHistoryBaselines: struct — sport-matched averages of pace/HR/alpha1 across recent archived workouts"
+  "WorkoutHistoryBaselines: struct — sport-matched averages of pace/HR/alpha1 across recent archived workouts",
+  "WorkoutLiveTrends.SplitFold: struct (fileprivate) — kilometreSplits one sample at a time",
+  "WorkoutLiveTrends.RunningSum: struct (fileprivate) — prefix sums and counts of one optional value; mean over a run of positions",
+  "WorkoutLiveTrends.Tally: struct — the live trends of a growing sample buffer, synced by appending its new tail or starting over",
+  "WorkoutZoneBreakdown.Fold: struct — compute one sample at a time for one max HR"
  ],
  "state": [
   "mem:WorkoutLiveTrends.halfMetricsMinSeconds=600 (const)",
@@ -21,7 +25,7 @@
   "mem:RaceTimePrediction.minimumBasisMeters=3000, recentWindowDays=90, comparableDistanceTolerance=0.20, exponent=1.06 (consts)",
   "mem:WorkoutHistoryBaselines.empty (const, sport .run)"
  ],
- "toplevel": "Only static constants listed in state; Equatable/Sendable conformances synthesized. No global code.",
+ "toplevel": "Only static constants listed in state, and the fileprivate typealias WorkoutLiveTrends.Split (raw pace, grade, km); Equatable/Sendable conformances synthesized. No global code.",
  "units": [
   {
    "key": "func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)",
@@ -215,28 +219,43 @@
   },
   {
    "key": "func WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)",
-   "hash": "3ae5139d24fadbf1",
+   "hash": "60d65ed1eab4eb21",
    "does": "Takes the last 3 completed 1 km splits (most recent first) and returns each split's grade-adjusted pace.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentGradeAdjustedPaces(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "0e13d135c0aba07e",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentGradeAdjustedPaces(of:)": "7db1d6eba6f4eb38"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrends.recentGradeAdjustedPaces(of:)",
+   "hash": "ad6df5041110a4a5",
+   "does": "The last up-to-3 of the given splits, most recent first, each with its grade-adjusted pace (a split whose pace does not adjust is left out).",
+   "entry": null,
+   "calls": [
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "15816ca3eb61e8a1",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.kilometreSplits(_:)": "0e13d135c0aba07e"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace:gradePercent:)": "15816ca3eb61e8a1"
    }
   },
   {
    "key": "func WorkoutLiveTrends.kilometreSplits(_:)",
-   "hash": "49e076272155ea61",
+   "hash": "7fdc4e9c8107faf4",
    "does": "Walks samples and emits a split every time cumulative distance advances >= 1000 m from the split start: raw pace = elapsed sec / km; grade = rise over run from the split's start altitude to the last known altitude (carried forward), where the run is measured from the sample that supplied the start altitude (altDist) — the split start, or, when that had no altitude yet, the first later sample that has one.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.splitGrade(from:to:run:)"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.SplitFold.add(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -268,6 +287,44 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.SplitFold.add(_:)": "8126ac65d6f0d86b"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrends.SplitFold.add(_:)",
+   "hash": "ac0dce4ebcfbd88a",
+   "does": "Takes one sample into the kilometreSplits fold: a sample without distance is skipped; its altitude, or the last known one, is carried forward; the split start takes the first known altitude and the distance where it became known (altDist); once the run since the split start reaches 1000 m, appends the split (raw pace = elapsed sec / km, grade over d - altDist via splitGrade) and starts the next split at this sample.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.splitGrade(from:to:run:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SplitFold.splits/start/lastAlt"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "sample has no distanceMeters",
+     "effect": "returns, nothing changed"
+    },
+    {
+     "at": "+2",
+     "cond": "altitudeMeters ?? lastAlt",
+     "effect": "nil altitude carries the previous known altitude forward"
+    },
+    {
+     "at": "+3",
+     "cond": "split start altitude still nil and an altitude is now known",
+     "effect": "sets start altitude and altDist"
+    },
+    {
+     "at": "+8",
+     "cond": "run since split start < 1000 m",
+     "effect": "returns; else appends the split and resets the start"
+    }
+   ],
+   "deps": {
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.splitGrade(from:to:run:)": "8da4adf2edd59f8c"
    }
   },
@@ -296,7 +353,7 @@
   },
   {
    "key": "func WorkoutLiveTrends.splitGrade(from:to:run:)",
-   "hash": "dbcd5a51106ffb3b",
+   "hash": "5f4e01d0f492f87b",
    "does": "Rise over run in percent between two altitudes.",
    "entry": null,
    "calls": [],
@@ -313,35 +370,50 @@
   },
   {
    "key": "func WorkoutLiveTrends.projectedMinutesUntilFade(samples:currentDriftPercent:)",
-   "hash": "cca6d18e9ae60e50",
-   "does": "Linear extrapolation of HR drift to the 10 % threshold: drift rate = drift / (0.75*elapsed min); returns minutes remaining clamped to 1..180, 0 when already >= 10 %.",
+   "hash": "036d9c237bb329e3",
+   "does": "projectedMinutesUntilFade(lastOffset:currentDriftPercent:) with the last sample's offset (nil for no samples).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.projectedMinutesUntilFade(lastOffset:currentDriftPercent:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.projectedMinutesUntilFade(lastOffset:currentDriftPercent:)": "5c9e0c69d989aa90"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrends.projectedMinutesUntilFade(lastOffset:currentDriftPercent:)",
+   "hash": "b89fdfcae0544129",
+   "does": "Linear extrapolation of HR drift to the 10 % threshold: drift rate = drift / (0.75*elapsed min, elapsed from lastOffset); returns minutes remaining clamped to 1..180, 0 when already >= 10 %.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+4",
+     "at": "+1",
      "cond": "drift nil or <= 1 %",
      "effect": "return nil"
     },
     {
-     "at": "+5",
-     "cond": "no samples or elapsed < 840 s",
+     "at": "+2",
+     "cond": "no offset or elapsed < 840 s",
      "effect": "return nil"
     },
     {
-     "at": "+11",
+     "at": "+8",
      "cond": "drift span <= 0",
-     "effect": "return nil (unreachable after 228)"
+     "effect": "return nil (unreachable after the elapsed guard)"
     },
     {
-     "at": "+13",
+     "at": "+10",
      "cond": "drift rate <= 0.05 %/min",
      "effect": "return nil (no trend)"
     },
     {
-     "at": "+15",
+     "at": "+12",
      "cond": "remaining drift <= 0 (drift >= 10 %)",
      "effect": "return 0; else clamp(remaining/rate,1,180)"
     }
@@ -349,14 +421,477 @@
    "deps": {}
   },
   {
-   "key": "func WorkoutZoneBreakdown.compute(samples:userMaxHR:)",
-   "hash": "61dca7ae4cf225ef",
-   "does": "Bins each sample's time delta (offset minus previous offset, first sample measured from 0) into the HR zone of that sample (fraction of userMaxHR); samples without HR or below 50 % max add nothing. Returns per-zone seconds, total, and the zone with the most seconds; on a tie the LOWER zone wins because Sequence.max(by:) keeps the first maximal element.",
+   "key": "func WorkoutLiveTrends.RunningSum.add(_:)",
+   "hash": "41788019209e9de0",
+   "does": "Appends the running sum and count after one more sample: the value adds to the sum and counts one; nil adds nothing.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:RunningSum.sums/counts"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "value nil",
+     "effect": "sum and count carried unchanged"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutLiveTrends.RunningSum.mean(_:minimum:)",
+   "hash": "deb1789fd5b56ead",
+   "does": "The mean of the values at the given positions, from the running sums at its ends; nil when fewer than `minimum` (and at least one) values fall there.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:RunningSum.sums/counts"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "fewer values than max(minimum, 1)",
+     "effect": "returns nil"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "init WorkoutLiveTrends.Tally()",
+   "hash": "03b89b2f9e0c7a5d",
+   "does": "An empty tally: no samples, empty sums and folds, no zone fold.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutLiveTrends.Tally.catchUp(to:)",
+   "hash": "d8e3367fa7a647ed",
+   "does": "Brings the tally up to `buffer`: nothing when it holds the same count, first and last sample; appends buffer[count...] when the tally is empty or the buffer is the held one grown (same first sample, and the sample at the held count's last position equals the held last); otherwise starts over from the whole buffer (a new workout, a buffer trimmed at its memory cap or replaced). Once offsets have gone back, keeps the buffer itself for the answers.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)"
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::init WorkoutLiveTrends.Tally()",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.add(_:)"
    ],
    "reads": [],
+   "writes": [
+    "mem:Tally (all stored state)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "same count, first and last",
+     "effect": "returns, unchanged"
+    },
+    {
+     "at": "+2",
+     "cond": "empty, or the held buffer grown",
+     "effect": "adds the new samples"
+    },
+    {
+     "at": "+4",
+     "cond": "any other buffer",
+     "effect": "resets and adds every sample"
+    },
+    {
+     "at": "+7",
+     "cond": "offsets went back",
+     "effect": "holds the buffer for the stateless answers"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.add(_:)": "e7ad6c45f0ce64d6",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::init WorkoutLiveTrends.Tally()": "f9b7b643df3c068a"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrends.Tally.add(_:)",
+   "hash": "7883b7c5e0af084f",
+   "does": "Takes one sample in: marks the tally unordered when its offset is below the previous one; records first/last/count/offset; adds pace, heart rate and cadence to their running sums, and speed (1000/pace) and heart rate to the paired sums when the sample has both a positive heart rate and a positive pace; feeds the split, chunk and (when one is kept) zone folds.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.RunningSum.add(_:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.SplitFold.add(_:)",
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.ChunkFold.add(_:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.Fold.add(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:Tally (all stored state)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "offset below the previous sample's",
+     "effect": "marked unordered"
+    },
+    {
+     "at": "+11",
+     "cond": "heart rate and pace both positive",
+     "effect": "paired sums take speed and heart rate; else nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.RunningSum.add(_:)": "ede3cb8e7c6d8730",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.SplitFold.add(_:)": "8126ac65d6f0d86b",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.Fold.add(_:)": "e47fb8996286e818",
+    "Emuqu/Sources/Collection/WorkoutGeometry.swift::func WorkoutGeometry.ChunkFold.add(_:)": "95ea04a650e65541",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.cadenceStepsPerMin": "63e53468c2833bde"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrends.Tally.position(atOrAfter:)",
+   "hash": "de87541756128678",
+   "does": "Binary search: the position of the first held sample whose offset is at or after `offset` (the count when none is).",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:Tally.offsets"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutLiveTrends.Tally.reverseSplitDeltaSecPerKm",
+   "hash": "cf749a4f6feeec8b",
+   "does": "reverseSplitDeltaSecPerKm(samples:) of the synced buffer: second-half minus first-half mean pace, the halves split at half the last offset, each needing 30 paces; nil before 600 s. An unordered buffer is answered by the stateless function.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.position(atOrAfter:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.RunningSum.mean(_:minimum:)"
+   ],
+   "reads": [
+    "mem:Tally"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "unordered",
+     "effect": "stateless answer"
+    },
+    {
+     "at": "+2",
+     "cond": "no sample or last offset < 600 s",
+     "effect": "nil"
+    },
+    {
+     "at": "+4",
+     "cond": "either half has fewer than 30 paces",
+     "effect": "nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.RunningSum.mean(_:minimum:)": "bb67c5e6cdc5f37c",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.position(atOrAfter:)": "97a8cc9c4e61c4ae",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)": "a14332360ad925a3"
+   }
+  },
+  {
+   "key": "var WorkoutLiveTrends.Tally.hrDriftPercent",
+   "hash": "61bd0ee259f0f85e",
+   "does": "hrDriftPercent(samples:) of the synced buffer: last-quarter over first-quarter mean heart rate as a percent change, each quarter needing 30 readings and the first mean positive; nil before 420 s. An unordered buffer is answered by the stateless function.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.quartiles(minimumOffset:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.RunningSum.mean(_:minimum:)"
+   ],
+   "reads": [
+    "mem:Tally"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "unordered",
+     "effect": "stateless answer"
+    },
+    {
+     "at": "+2",
+     "cond": "no quarters, too few readings or a zero first mean",
+     "effect": "nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.RunningSum.mean(_:minimum:)": "bb67c5e6cdc5f37c",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.quartiles(minimumOffset:)": "ed001b2d994c9bc0",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)": "cfe47a2075181798"
+   }
+  },
+  {
+   "key": "var WorkoutLiveTrends.Tally.cadenceDriftSpm",
+   "hash": "8c5be765d5ba3f4b",
+   "does": "cadenceDriftSpm(samples:) of the synced buffer: last-quarter minus first-quarter mean cadence, each needing 30 readings; nil before 420 s. An unordered buffer is answered by the stateless function.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.quartiles(minimumOffset:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.RunningSum.mean(_:minimum:)"
+   ],
+   "reads": [
+    "mem:Tally"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "unordered",
+     "effect": "stateless answer"
+    },
+    {
+     "at": "+2",
+     "cond": "no quarters or too few readings",
+     "effect": "nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.RunningSum.mean(_:minimum:)": "bb67c5e6cdc5f37c",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.quartiles(minimumOffset:)": "ed001b2d994c9bc0",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.cadenceDriftSpm(samples:)": "cdb5a0cea6c4097b"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrends.Tally.quartiles(minimumOffset:)",
+   "hash": "e757e1b0dd897ae2",
+   "does": "The positions of the first quarter (offsets below a quarter of the last offset) and the last quarter (at or after three quarters of it); nil before `minimumOffset` or when a quarter is under one second.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.position(atOrAfter:)"
+   ],
+   "reads": [
+    "mem:Tally"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no sample or last offset below minimumOffset",
+     "effect": "nil"
+    },
+    {
+     "at": "+3",
+     "cond": "quarter of the last offset is 0",
+     "effect": "nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.position(atOrAfter:)": "97a8cc9c4e61c4ae"
+   }
+  },
+  {
+   "key": "var WorkoutLiveTrends.Tally.aerobicDecouplingPercent",
+   "hash": "5aafe30b95829edd",
+   "does": "aerobicDecouplingPercent(samples:) of the synced buffer: the percent drop from first-half to second-half efficiency (mean speed over mean heart rate of the samples with both), each half needing 30 such samples and a positive heart rate, the first efficiency positive; nil before 600 s. An unordered buffer is answered by the stateless function.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.position(atOrAfter:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.efficiency(_:)"
+   ],
+   "reads": [
+    "mem:Tally"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "unordered",
+     "effect": "stateless answer"
+    },
+    {
+     "at": "+2",
+     "cond": "no sample or last offset < 600 s",
+     "effect": "nil"
+    },
+    {
+     "at": "+9",
+     "cond": "either half has no efficiency, or the first is not positive",
+     "effect": "nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.efficiency(_:)": "048697d3f4080d79",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.position(atOrAfter:)": "97a8cc9c4e61c4ae",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.aerobicDecouplingPercent(samples:)": "37f4cb69898f6e4d"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrends.Tally.efficiency(_:)",
+   "hash": "f171e18b50f68f61",
+   "does": "Mean paired speed over mean paired heart rate at the given positions; nil with fewer than 30 paired samples or a heart rate mean that is not positive.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.RunningSum.mean(_:minimum:)"
+   ],
+   "reads": [
+    "mem:Tally"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "too few paired samples or mean heart rate <= 0",
+     "effect": "nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.RunningSum.mean(_:minimum:)": "bb67c5e6cdc5f37c"
+   }
+  },
+  {
+   "key": "var WorkoutLiveTrends.Tally.recentHRSlopeBpm",
+   "hash": "46a206a78d5b9822",
+   "does": "recentHRSlopeBpm(samples:) of the synced buffer: mean heart rate of the offsets above last - 30 minus that of the offsets above last - 90 up to last - 60, each needing 10 readings; nil before 90 s. An unordered buffer is answered by the stateless function.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentHRSlopeBpm(samples:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.position(atOrAfter:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.RunningSum.mean(_:minimum:)"
+   ],
+   "reads": [
+    "mem:Tally"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "unordered",
+     "effect": "stateless answer"
+    },
+    {
+     "at": "+2",
+     "cond": "no sample or last offset < 90 s",
+     "effect": "nil"
+    },
+    {
+     "at": "+5",
+     "cond": "either window has fewer than 10 readings",
+     "effect": "nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.RunningSum.mean(_:minimum:)": "bb67c5e6cdc5f37c",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.Tally.position(atOrAfter:)": "97a8cc9c4e61c4ae",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentHRSlopeBpm(samples:)": "41e113751acf5510"
+   }
+  },
+  {
+   "key": "var WorkoutLiveTrends.Tally.recentSplitGradeAdjustedPaces",
+   "hash": "c0587887bf545053",
+   "does": "recentSplitGradeAdjustedPaces(samples:) of the synced buffer, from the split fold (buffer order, as the stateless function reads it).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentGradeAdjustedPaces(of:)"
+   ],
+   "reads": [
+    "mem:Tally"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.recentGradeAdjustedPaces(of:)": "7db1d6eba6f4eb38"
+   }
+  },
+  {
+   "key": "var WorkoutLiveTrends.Tally.kilometreChunks",
+   "hash": "1597931e1be864b6",
+   "does": "WorkoutGeometry.kilometreChunks of the synced buffer, from the chunk fold.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:Tally"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "var WorkoutLiveTrends.Tally.projectedMinutesUntilFade",
+   "hash": "0fe7d95ab9565b90",
+   "does": "projectedMinutesUntilFade with the last held offset and this tally's hrDriftPercent.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.projectedMinutesUntilFade(lastOffset:currentDriftPercent:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutLiveTrends.Tally.hrDriftPercent"
+   ],
+   "reads": [
+    "mem:Tally"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.projectedMinutesUntilFade(lastOffset:currentDriftPercent:)": "5c9e0c69d989aa90",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutLiveTrends.Tally.hrDriftPercent": "118af00313d5bf92"
+   }
+  },
+  {
+   "key": "var WorkoutLiveTrends.Tally.sessionAverageHR",
+   "hash": "54d075017ca212fa",
+   "does": "The mean heart rate of every held sample that has one; nil when none does.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.RunningSum.mean(_:minimum:)"
+   ],
+   "reads": [
+    "mem:Tally"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.RunningSum.mean(_:minimum:)": "bb67c5e6cdc5f37c"
+   }
+  },
+  {
+   "key": "func WorkoutLiveTrends.Tally.zoneBreakdown(of:userMaxHR:)",
+   "hash": "c64a97736ff9525d",
+   "does": "WorkoutZoneBreakdown.compute(samples:userMaxHR:) of `buffer` (the buffer last synced): from the zone fold kept for the last max HR asked; a different max HR folds `buffer` again for it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::init WorkoutZoneBreakdown.Fold(userMaxHR:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.Fold.add(_:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutZoneBreakdown.Fold.breakdown"
+   ],
+   "reads": [
+    "mem:Tally.zones"
+   ],
+   "writes": [
+    "mem:Tally.zones"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "no zone fold, or one for another max HR",
+     "effect": "folds the buffer for this max HR"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.Fold.add(_:)": "e47fb8996286e818",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::init WorkoutZoneBreakdown.Fold(userMaxHR:)": "de3cc2c40c5d78c9",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutZoneBreakdown.Fold.breakdown": "3650d54d1f63ac5a",
+    "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "34d6c746a0425f31"
+   }
+  },
+  {
+   "key": "func WorkoutZoneBreakdown.compute(samples:userMaxHR:)",
+   "hash": "f7c9ccdd902feda1",
+   "does": "Bins each sample's time delta (offset minus previous offset, first sample measured from 0, capped at Alpha1ReportCards.maxSampleGapSec, 5 s, so a dropout or pause is not credited) into the HR zone of that sample (fraction of userMaxHR); samples without HR or below 50 % max add nothing. Returns per-zone seconds, total, and the zone with the most seconds; on a tie the LOWER zone wins.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::init WorkoutZoneBreakdown.Fold(userMaxHR:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.Fold.add(_:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutZoneBreakdown.Fold.breakdown"
+   ],
+   "reads": [
+    "mem:Alpha1ReportCards.maxSampleGapSec"
+   ],
    "writes": [],
    "branches": [
     {
@@ -367,7 +902,7 @@
     {
      "at": "+4",
      "cond": "for each sample",
-     "effect": "accumulate dt=max(0,offset-prev)"
+     "effect": "accumulate dt=min(max(0,offset-prev), 5)"
     },
     {
      "at": "+7",
@@ -381,7 +916,70 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)": "2a310b0b7cc59dcb",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.Fold.add(_:)": "e47fb8996286e818",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::init WorkoutZoneBreakdown.Fold(userMaxHR:)": "de3cc2c40c5d78c9",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::var WorkoutZoneBreakdown.Fold.breakdown": "3650d54d1f63ac5a"
+   }
+  },
+  {
+   "key": "init WorkoutZoneBreakdown.Fold(userMaxHR:)",
+   "hash": "55ec26a8ea3945d6",
+   "does": "An empty zone fold for `userMaxHR`.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutZoneBreakdown.Fold.add(_:)",
+   "hash": "1e4248016a3cb98d",
+   "does": "Takes one sample: its time delta (offset minus the previous offset, the first from 0, capped at Alpha1ReportCards.maxSampleGapSec) goes to the HR zone of the sample as a fraction of userMaxHR; no max HR, no HR or below 50 % adds nothing. The sample counts toward the fold either way.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)"
+   ],
+   "reads": [
+    "mem:Alpha1ReportCards.maxSampleGapSec"
+   ],
+   "writes": [
+    "mem:Fold.secs/prevOffset/count"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "userMaxHR <= 0, no HR, or zoneIndex nil (<50 % max)",
+     "effect": "time not binned"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutZoneBreakdown.zoneIndex(fractionOfMax:)": "2a310b0b7cc59dcb"
+   }
+  },
+  {
+   "key": "var WorkoutZoneBreakdown.Fold.breakdown",
+   "hash": "33f380d97c9ab369",
+   "does": "Per-zone seconds, total and the zone with the most seconds (1-based; on a tie the lower zone); .empty without a positive max HR or any sample.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:Fold.secs"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "userMaxHR <= 0 or no sample",
+     "effect": "returns .empty"
+    },
+    {
+     "at": "+6",
+     "cond": "total > 0",
+     "effect": "dominantZone set; else nil"
+    }
+   ],
+   "deps": {
     "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "699ce5740e639a1f"
    }
   },
@@ -471,7 +1069,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)": "6a6354d0b7249a0c",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.candidatePool(from:sport:now:)": "91de0fb7d877ce60",
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func RaceTimePrediction.riegel(_:to:)": "3f2b99adfbed514d"
    }
   },
@@ -488,10 +1086,12 @@
   },
   {
    "key": "func RaceTimePrediction.candidatePool(from:sport:now:)",
-   "hash": "23713c2aa4e2a0bf",
-   "does": "Builds Basis list from sessions of matching sport with duration>0 and distance>=3000 m; returns those from the last 90 days, or all of them if none are recent.",
+   "hash": "cefc978840877723",
+   "does": "Builds Basis list from sessions of matching sport with moving time (activeWorkoutSeconds) > 0 and distance>=3000 m; returns those from the last 90 days, or all of them if none are recent.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.activeWorkoutSeconds"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -506,7 +1106,9 @@
      "effect": "return all-history pool; else recent pool"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.activeWorkoutSeconds": "a956dd2ca4347410"
+   }
   },
   {
    "key": "func TrainingPaceZones.from5KPace(secPerKm:)",
@@ -668,16 +1270,18 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.distanceWeightedPace(_:)": "9e38aed1b6346fac",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.distanceWeightedPace(_:)": "e8bfac2f8474eb6f",
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.sampleWeightedAverages(_:)": "89b402bdee65ab11"
    }
   },
   {
    "key": "func WorkoutHistoryBaselines.distanceWeightedPace(_:)",
-   "hash": "efd3e902c006250d",
-   "does": "Sum of durations over sum of distances (sec/km) across sessions with distance>100 m and duration>60 s.",
+   "hash": "4b8fe9ce19a01f43",
+   "does": "Sum of moving times (activeWorkoutSeconds) over sum of distances (sec/km) across sessions with distance>100 m and moving time>60 s.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.activeWorkoutSeconds"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -697,7 +1301,9 @@
      "effect": "return pace; else nil"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.activeWorkoutSeconds": "a956dd2ca4347410"
+   }
   },
   {
    "key": "func WorkoutHistoryBaselines.sampleWeightedAverages(_:)",

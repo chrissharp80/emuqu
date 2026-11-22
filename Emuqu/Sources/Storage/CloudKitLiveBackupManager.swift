@@ -7,7 +7,8 @@ import Foundation
 ///
 /// Separate from CloudKitSyncManager's session sync, with its own record type
 /// ("RawBackup"); it shares the sync manager's zone, and the sync manager's
-/// zone-creation step is passed in as `ensureZone`.
+/// zone-creation step and account check are passed in as `ensureZone` and
+/// `confirmAccount`.
 @MainActor
 final class CloudKitLiveBackupManager {
     private let container = CKContainer(identifier: AppConfig.iCloudContainerIdentifier)
@@ -31,6 +32,10 @@ final class CloudKitLiveBackupManager {
 
     private let settingsManager: SettingsManager
     private let ensureZone: () async throws -> Void
+    /// Whether the signed-in iCloud account is the one sync is enabled for
+    /// (`CloudAccountGuard.confirmAccount`). Nothing is uploaded to, or read
+    /// back from, another account.
+    private let confirmAccount: () async -> Bool
 
     /// Sessions whose live backup this device put in iCloud and has not
     /// deleted yet. Persisted, so a night that ends after iCloud Sync was
@@ -46,9 +51,14 @@ final class CloudKitLiveBackupManager {
     private static let recoveryLimit = 10
     private static let listingLimit = 200
 
-    init(settingsManager: SettingsManager, ensureZone: @escaping () async throws -> Void) {
+    init(
+        settingsManager: SettingsManager,
+        ensureZone: @escaping () async throws -> Void,
+        confirmAccount: @escaping () async -> Bool
+    ) {
         self.settingsManager = settingsManager
         self.ensureZone = ensureZone
+        self.confirmAccount = confirmAccount
     }
 
     private var settings: UserSettings {
@@ -66,10 +76,12 @@ final class CloudKitLiveBackupManager {
     /// error catalog, and burned battery.
     ///
     /// Same gate as session uploads (`CloudKitSyncManager.cloudUploadsAllowed`):
-    /// nothing goes up before onboarding has asked about iCloud.
+    /// nothing goes up before onboarding has asked about iCloud, and nothing
+    /// to an iCloud account other than the one sync is enabled for.
     func upload(sessionId: UUID, points: [RRPoint], deviceId: String?, force: Bool = false) async {
         guard isUploadDue(pointCount: points.count, force: force) else { return }
         lastUpload = Date()
+        guard await confirmAccount() else { return }
         do {
             try await ensureZone()
             let record = try await liveBackupRecord(sessionId: sessionId)
@@ -171,9 +183,16 @@ final class CloudKitLiveBackupManager {
     /// upload. No zone is created for it; a missing zone means there is
     /// nothing to delete. A delete that fails leaves the session awaiting
     /// deletion (`backedUpIds`, persisted), and the full sync deletes it
-    /// again once its session is deleted (`retryAwaitingDeletion`).
+    /// again once its session is deleted (`retryAwaitingDeletion`). While the
+    /// signed-in account is not confirmed as the one the backup went to
+    /// (`CloudAccountIdentity.isConfirmed`), nothing is deleted and the
+    /// session stays awaiting deletion.
     func delete(sessionId: UUID) async {
         guard settings.iCloudSyncEnabled || backedUpIds.contains(sessionId.uuidString) else { return }
+        guard CloudAccountIdentity.isConfirmed else {
+            backedUpIds.insert(sessionId.uuidString)
+            return
+        }
         do {
             let recordID = CKRecord.ID(recordName: "live_\(sessionId.uuidString)", zoneID: zoneID)
             try await privateDB.deleteRecord(withID: recordID)
@@ -189,9 +208,10 @@ final class CloudKitLiveBackupManager {
     }
 
     /// Delete again every backup awaiting deletion whose session is in
-    /// `finished` (deleted, or deleted forever). Run by the full sync
-    /// (`CloudDeletionCoordinator.reconcileLocalDeletions`). A session not in
-    /// `finished`, such as a recording still in progress, keeps its backup.
+    /// `finished` (deleted, deleted forever, or archived and in iCloud). Run
+    /// by the full sync (`CloudDeletionCoordinator.reconcileLocalDeletions`).
+    /// A session not in `finished`, such as a recording still in progress,
+    /// keeps its backup.
     func retryAwaitingDeletion(among finished: Set<UUID>) async {
         let due = backedUpIds.compactMap(UUID.init(uuidString:)).filter { finished.contains($0) }
         for sessionId in due {
@@ -209,7 +229,7 @@ final class CloudKitLiveBackupManager {
     /// needs. Dates are listed first, without the beats, and only the newest
     /// records are then fetched whole.
     func fetchAll() async -> [LiveBackupSummary] {
-        guard settings.iCloudSyncEnabled else { return [] }
+        guard settings.iCloudSyncEnabled, await confirmAccount() else { return [] }
         do {
             try await ensureZone()
             let newest = try await newestBackupIDs()
@@ -246,27 +266,42 @@ final class CloudKitLiveBackupManager {
     /// Decode one queried record into a summary. Nil when the record is
     /// missing a required field, its asset can't be unsealed, decompressed
     /// or decoded, or it holds no beats. The beat count is the decoded
-    /// points' count.
+    /// points' count. A record that failed to fetch, or lacks a field, is
+    /// logged too, so a backup that exists but cannot be offered leaves a
+    /// trace; one that cannot be read is logged at error level. Either is
+    /// still left out of the recovery list: there are no beats to recover
+    /// from it.
     private static func liveBackupSummary(from result: Result<CKRecord, Error>) -> LiveBackupSummary? {
-        guard case let .success(record) = result,
-              let sessionIdStr = record["sessionId"] as? String,
+        guard let record = fetchedRecord(result) else { return nil }
+        guard let sessionIdStr = record["sessionId"] as? String,
               let sessionId = UUID(uuidString: sessionIdStr),
               let captureDate = record["captureDate"] as? Date,
               let asset = record["rrData"] as? CKAsset,
-              let fileURL = asset.fileURL else { return nil }
+              let fileURL = asset.fileURL else {
+            debugLog("[CloudKit] Live backup \(record.recordID.recordName.prefix(13)) is missing a field or its beats — not offered", level: .warning)
+            return nil
+        }
         do {
             let points = try decodePoints(at: fileURL)
             guard !points.isEmpty else { return nil }
             return LiveBackupSummary(sessionId: sessionId, beatCount: points.count, captureDate: captureDate, points: points)
         } catch {
-            // Logged at error level, apart from a missing field, so a backup
-            // that exists but cannot be read leaves a trace. It is still left
-            // out of the recovery list: there are no beats to recover from it.
             debugLog("[CloudKit] Live backup \(sessionIdStr.prefix(8)) is present but unreadable: \(error)",
                      level: .error)
             return nil
         }
     }
+    /// The record a fetch returned; nil, logged, when it failed.
+    private static func fetchedRecord(_ result: Result<CKRecord, Error>) -> CKRecord? {
+        switch result {
+        case let .success(record):
+            return record
+        case let .failure(error):
+            debugLog("[CloudKit] A live backup could not be fetched: \(error.localizedDescription)", level: .warning)
+            return nil
+        }
+    }
+
     /// Unseal, decompress and decode one live-backup asset.
     ///
     /// The exact inverse of `compressedPoints`, in that order. The live-backup

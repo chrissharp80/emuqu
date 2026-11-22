@@ -41,10 +41,10 @@ struct WearablesSettingsPage: View {
     /// but the act of switching from "your sensors connect to your phone"
     /// to "your phone broadcasts your HR + power outbound to other apps"
     /// deserves a dedicated explainer the user must read once per device.
-    /// Stored in UserDefaults so it persists across launches but isn't
-    /// synced to iCloud — re-enabling on a different device re-shows it.
+    /// The acceptance is this device's (`BroadcasterDisclosure`), and the
+    /// recorder broadcasts only with it, whatever the setting says.
     @State private var showingBroadcastExplainer = false
-    @AppStorage("settings.broadcaster.acknowledged") private var broadcastAcknowledged: Bool = false
+    @AppStorage(BroadcasterDisclosure.acceptedKey) private var broadcastAcknowledged: Bool = false
 
     var body: some View {
         withHealthAlreadyDecidedAlert(withCleanupResult(withCleanupDialogs(wearablesForm)))
@@ -642,5 +642,22 @@ extension WearablesSettingsPage {
             Button(String(localized: "Open Settings", bundle: LanguageManager.appBundle)) { openAppSettings() }
             Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
         }
+    }
+}
+
+// MARK: - Broadcaster disclosure
+
+/// This device's acceptance of the BLE broadcaster disclosure
+/// (`BroadcasterDisclosureSheet`). It lives in this device's UserDefaults,
+/// outside `UserSettings`, so the iCloud settings backup never carries it: a
+/// broadcast setting restored on another device stays inert there until the
+/// disclosure is accepted on that device.
+enum BroadcasterDisclosure {
+    static let acceptedKey = "settings.broadcaster.acknowledged"
+
+    /// Whether a workout may advertise heart rate and power: the setting is
+    /// on and this device accepted the disclosure.
+    static func allowsBroadcast(settingEnabled: Bool, defaults: UserDefaults = .standard) -> Bool {
+        settingEnabled && defaults.bool(forKey: acceptedKey)
     }
 }

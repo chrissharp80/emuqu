@@ -115,6 +115,51 @@
    }
   },
   {
+   "key": "func StrapExerciseDecoderTests.testAnIdWrittenInTheCurrentZoneReadsBackItsInstant()",
+   "hash": "54770855c6261cde",
+   "does": "Asserts an id written with no zone given reads back as the instant it was written.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)"
+   ],
+   "reads": [
+    "ud:StrapExerciseDecoder.offsetById.v2"
+   ],
+   "writes": [
+    "ud:StrapExerciseDecoder.offsetById.v2"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)": "df36a8d3a96537cc",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)": "542a14a837a1d74f"
+   }
+  },
+  {
+   "key": "func StrapExerciseDecoderTests.testAnIdFromTheRepeatedFallBackHourIsReadAtItsOffset()",
+   "hash": "aff70c1e136b2b60",
+   "does": "For both passes of 01:30 on the 2026 Europe/London fall-back night (one id), asserts reading at each pass's own GMT offset gives that pass back, and reading by the zone's name gives back only one of them.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)",
+    "ext:XCTUnwrap"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "for each pass",
+     "effect": "read at that pass's offset"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseId(at:timeZone:)": "df36a8d3a96537cc",
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)": "542a14a837a1d74f"
+   }
+  },
+  {
    "key": "func StrapExerciseDecoderTests.testIdsThisAppDidNotWriteHaveNoStart()",
    "hash": "6fae02e4e6682ac3",
    "does": "Asserts empty, non-numeric, 13- and 15-digit, ISO, full-width-digit and month-13 ids parse to no start.",

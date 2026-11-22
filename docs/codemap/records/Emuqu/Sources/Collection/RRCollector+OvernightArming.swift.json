@@ -124,7 +124,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/TrainingAdviceGate.swift::func TrainingAdviceGate.level(_:)": "d69dc4946fa26d08",
     "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.armWhenStrapIsReady()": "3db10e5d37b5d620",
-    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.noteArmingRefusal(_:)": "452701d43d46d593",
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.noteArmingRefusal(_:)": "fb0ef1417244f6a2",
     "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.waitBeforeRetrying()": "19bae9656b0648fb",
     "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::var OvernightStreamingCoordinator.nightWantsArming": "c2883d4de3b73fa8",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "269f485132940e8b",
@@ -158,36 +158,45 @@
   },
   {
    "key": "func OvernightStreamingCoordinator.noteArmingRefusal(_:)",
-   "hash": "f288cc4133a2b6ed",
-   "does": "Classifies an arming error: retryable → log, nil; undownloaded recording on strap → surface to user, nil; battery too low → surface, return BatteryRefusal with current battery level.",
+   "hash": "6925ab826f78aa8d",
+   "does": "Classifies an arming error: when the night no longer wants arming (the ending cancelled the attempt) only logs and returns nil; otherwise retryable → log, nil; undownloaded recording on strap → surface to user, nil; battery too low → surface, return BatteryRefusal with current battery level.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::var OvernightStreamingCoordinator.nightWantsArming",
     "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startRefusal(for:)",
     "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.surfaceArmingRefusal(_:_:)"
    ],
    "reads": [
+    "mem:RRCollector.isOvernightStreaming",
+    "mem:RRCollector.isOvernightEnding",
     "mem:PolarManager.batteryLevel"
    ],
    "writes": [],
    "branches": [
     {
-     "at": "+3",
+     "at": "+1",
+     "cond": "night no longer wants arming",
+     "effect": "debugLog only, return nil"
+    },
+    {
+     "at": "+7",
      "cond": "case .retryable",
      "effect": "debugLog only, return nil"
     },
     {
-     "at": "+6",
+     "at": "+10",
      "cond": "case .undownloadedRecordingOnStrap",
      "effect": "surfaceArmingRefusal, return nil"
     },
     {
-     "at": "+9",
+     "at": "+13",
      "cond": "case .batteryTooLow",
      "effect": "surfaceArmingRefusal, return BatteryRefusal(level)"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.surfaceArmingRefusal(_:_:)": "4275e1660e4ccb11",
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::var OvernightStreamingCoordinator.nightWantsArming": "c2883d4de3b73fa8",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "269f485132940e8b",
     "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startRefusal(for:)": "7e47fe24f4541e02",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
@@ -237,22 +246,26 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.link": "abae62e4da4537e1",
-    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.attemptDeviceRecordingStart()": "5d59ab1e19f07d67",
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.attemptDeviceRecordingStart()": "e553a7e8da703c11",
     "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::var OvernightStreamingCoordinator.nightWantsArming": "c2883d4de3b73fa8",
-    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)": "20ed6612da7db880"
+    "Emuqu/Sources/Collection/StrapLinkCoordinator.swift::func StrapLinkCoordinator.whenFeatureUsable(_:until:while:perform:)": "5a60bfd2b75ae207"
    }
   },
   {
    "key": "func OvernightStreamingCoordinator.attemptDeviceRecordingStart()",
-   "hash": "ec714bec530ef236",
-   "does": "Starts a fresh H10 internal recording (stopping/rescuing a stale one), logs success, sets overnightDeviceBackupActive=true, and clears lastError if it holds a non-retryable arming refusal.",
+   "hash": "2ac97534a9198de4",
+   "does": "Starts a fresh H10 internal recording (stopping/rescuing a stale one). When the start returns after the night stopped wanting arming, hands the recording to settleLateArmedRecording and returns without marking the night strap-backed; otherwise logs success, sets overnightDeviceBackupActive=true, and clears lastError if it holds a non-retryable arming refusal.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording",
     "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::var OvernightStreamingCoordinator.nightWantsArming",
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.settleLateArmedRecording()",
     "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startRefusal(for:)"
    ],
    "reads": [
+    "mem:RRCollector.isOvernightStreaming",
+    "mem:RRCollector.isOvernightEnding",
     "mem:RRCollector.lastError"
    ],
    "writes": [
@@ -263,22 +276,56 @@
    "branches": [
     {
      "at": "+2",
+     "cond": "night no longer wants arming once the start returns",
+     "effect": "settleLateArmedRecording, return"
+    },
+    {
+     "at": "+6",
      "cond": "connectedDeviceType nil",
      "effect": "display name falls back to 'device' in the log"
     },
     {
-     "at": "+9",
+     "at": "+13",
      "cond": "lastError present and classifies as non-retryable refusal",
      "effect": "true: lastError = nil; false: keep"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)": "2791be1f170c0a52",
+    "Emuqu/Sources/Collection/PolarManager+Recording.swift::func StrapRecordingCoordinator.startFreshRecording(while:)": "d33ba29182a3a396",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording": "ba196d3ce7f16574",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
+    "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.settleLateArmedRecording()": "1bd9e2cdac50df1c",
     "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::var OvernightStreamingCoordinator.nightWantsArming": "c2883d4de3b73fa8",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
     "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.startRefusal(for:)": "7e47fe24f4541e02",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func OvernightStreamingCoordinator.settleLateArmedRecording()",
+   "hash": "9153b25abd45565b",
+   "does": "For a strap start that answered after the night stopped wanting it: logs a warning; when no night is streaming and no transfer is using the strap, stops the strap's recording (stopDeviceRecordingIfNeeded, streamHoldsIt false, so it is not marked downloaded and the next start's rescue keeps it); otherwise leaves the strap to the transfer or the night now using it.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.stopDeviceRecordingIfNeeded(streamHoldsIt:)"
+   ],
+   "reads": [
+    "mem:RRCollector.isOvernightStreaming",
+    "mem:PolarManager.transfersInFlight"
+   ],
+   "writes": [
+    "ble:H10 recording stop"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "a night is streaming or a transfer is in flight",
+     "effect": "return, strap left recording"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.stopDeviceRecordingIfNeeded(streamHoldsIt:)": "13cae18053b4ce84",
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },

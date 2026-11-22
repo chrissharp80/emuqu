@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift",
- "hash": "9b242776e6fe3a55",
+ "hash": "f609816e6cd9a41b",
  "role": "Post-workout DFA-α1 report: α1 chart with AT1/AT2 rules and 'beat artifact' markers, plain-English threshold summary, avg/max/min and band totals, plus a route map coloured by α1 band. Also hosts the pure, nonisolated ectopic-shadow detector, band-totals/AT1-crossing rule and sample timing shared with the workout snapshot builder and PDF.",
  "types": [
   "Alpha1ReportCards: extension — α1 report and route cards",
@@ -10,16 +10,18 @@
   "Alpha1ReportCards.Alpha1Bands: struct — accumulator for band seconds + first crossing",
   "Alpha1ReportCards.AT1CrossDetector: struct — warmup(120 s)+armed+sustain(180 s) crossing state machine",
   "Alpha1ReportCards.Alpha1Segment: struct — coordinates + colour of one route run",
-  "Alpha1ReportCards.Alpha1SegmentBuilder: struct — groups consecutive fixes into same-colour runs"
+  "Alpha1ReportCards.Alpha1SegmentBuilder: struct — groups consecutive fixes into same-colour runs",
+  "Alpha1RouteColors: enum (private, file scope) — the route map band, no-reading and casing colours"
  ],
  "state": [
   "mem:Alpha1ReportCards.maxSampleGapSec = 5 (static let)",
   "mem:Alpha1Dip.windowSec=120 / approachPad=60 / recoveryPad=120 (private static lets)",
   "mem:AT1CrossDetector.warmupSec=120 / sustainSec=180",
   "mem:UtilityServices.alpha1StatsCache (single-entry Alpha1StatsCache, read/written here)",
-  "mem:Alpha1ReportCards.effortHeartRateRise = 10 bpm (static let)"
+  "mem:Alpha1ReportCards.effortHeartRateRise = 10 bpm (static let)",
+  "mem:Alpha1RouteColors easy=wongOptimal #009E73, threshold=wongCaution #E69F00, hard=wongAttention #D55E00, noReading=white 0.75, casing=black (static lets)"
  ],
- "toplevel": "File-scope private helper functions (alpha1Points, alpha1StatsRow, alpha1Line, ectopicShadowFooter, alpha1StatBlock, alpha1CacheKey, logAlpha1MinProvenance (#if DEBUG body), collectCleanAlpha1Values, cleanMinMaxAvg, bandLegend). No globals.",
+ "toplevel": "File-scope private helper functions (alpha1Points, alpha1StatsRow, alpha1Line, ectopicShadowFooter, alpha1StatBlock, alpha1CacheKey, logAlpha1MinProvenance (#if DEBUG body), collectCleanAlpha1Values, cleanMinMaxAvg, bandLegend). Alpha1RouteColors (private enum) holds the route map colours: the band lines are drawn over a black casing, against which each clears the WCAG 3:1 graphics floor in either map appearance. No globals.",
  "units": [
   {
    "key": "var Alpha1ReportCards.alpha1ReportCard",
@@ -70,7 +72,7 @@
    "deps": {
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Chart(alphaPoints:ectopicShadows:)": "4355e75cc161153e",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Hero(stats:)": "de5240a854e5912c",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Stats(samples:)": "59975878cd5d95a7",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Stats(samples:)": "06fd49f3265d876e",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "942186fe3cfe9065",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1StatsRow(stats:sampleCount:)": "aeaff67619e9b4ce",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func ectopicShadowFooter(_:)": "f27b4c13d00a4498",
@@ -380,7 +382,7 @@
    "does": "Localized 'Easy … · Threshold … · Above AT2 …' line with whole minutes (integer-divided) per band; empty string when no seconds counted.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)",
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.minutes(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.Alpha1Stats.totalSec"
    ],
@@ -396,13 +398,13 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.Alpha1Stats.totalSec": "d4128801065703ea",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9"
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9"
    }
   },
   {
    "key": "func Alpha1ReportCards.alpha1Stats(samples:)",
    "hash": "29f9ed305470fa3d",
-   "does": "Memoized α1 stats: builds a key from session id + sample shape; returns the cached value on a key match, else computes shadows, band totals/first crossing, shadow-cleaned min/max/avg, logs MIN provenance (DEBUG) and stores in the single-entry Alpha1StatsCache. The key carries no α1 values; FitnessSummaryCards.persistReanalyzedSamples, the one in-place α1 rewriter, clears the cache when it publishes re-analysed samples.",
+   "does": "Memoized α1 stats: builds a key from session id, sample shape and a hash of the α1 values; returns the cached value on a key match, else computes shadows, band totals/first crossing, shadow-cleaned min/max/avg, logs MIN provenance (DEBUG) and stores in the single-entry Alpha1StatsCache. Rewritten α1 values give a new key, so no writer has to clear the cache.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1CacheKey(sessionId:samples:)",
@@ -436,7 +438,7 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.alpha1StatsCache": "f1b54711087a1c5b",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1BandTotals(samples:shadows:)": "5a6901efb47d64c5",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.ectopicShadows(in:)": "942186fe3cfe9065",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1CacheKey(sessionId:samples:)": "2ccd96fe02154610",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func alpha1CacheKey(sessionId:samples:)": "37b4d5882e9967ed",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func cleanMinMaxAvg(values:)": "36271bd753530c3e",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func collectCleanAlpha1Values(samples:shadows:)": "f8437a1e19b42775",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func logAlpha1MinProvenance(min:samples:shadows:cleanCount:)": "6af2170b272fe733",
@@ -646,14 +648,16 @@
   },
   {
    "key": "func Alpha1ReportCards.alpha1RouteColoredCard(track:)",
-   "hash": "71acf1e4babfc2ed",
-   "does": "Route card: computes α1-band route segments from GPS track and samples; renders title, banded map and legend only when ≥2 segments.",
+   "hash": "98ce0f9e300ea94e",
+   "does": "Route card: computes α1-band route segments from GPS track and samples; renders title, banded map and legend only when ≥2 segments. The map is one accessibility element whose label gives the time in each band (alpha1Stats.distributionLabel), since the bands are colours only.",
    "entry": "SwiftUI body evaluation of FitnessPostSummaryView (via FitnessPostSummaryView+Alpha1Forwarding) when the GPS track is non-empty (FitnessPostSummaryView.swift:248)",
    "calls": [
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RouteSegments(track:samples:startDate:)",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RouteMap(segments:coords:)",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.alpha1BandLegend",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Stats(samples:)",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.Alpha1Stats.distributionLabel"
    ],
    "reads": [],
    "writes": [],
@@ -671,32 +675,35 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RouteMap(segments:coords:)": "e53488f2a888744e",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RouteMap(segments:coords:)": "c115d27d73ff26a5",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RouteSegments(track:samples:startDate:)": "4458ef57b885a7d1",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.alpha1BandLegend": "76961cc9f19c3309",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1Stats(samples:)": "06fd49f3265d876e",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.Alpha1Stats.distributionLabel": "4c3d0bcd00ff2964",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::var Alpha1ReportCards.alpha1BandLegend": "b6f663ad9f8d3425",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
   {
    "key": "func Alpha1ReportCards.alpha1RouteMap(segments:coords:)",
-   "hash": "ceede0e53b13b621",
-   "does": "MapKit Map with one MapPolyline per segment in its band colour, Start/End markers, realistic elevation style, 220 pt.",
+   "hash": "93192f85cf6a8cbb",
+   "does": "MapKit Map holding alpha1RouteLines (every segment's black casing, then its band colour on top), Start/End markers, realistic elevation style, 220 pt.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RegionForTrack(_:)",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RouteLines(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+6",
+     "at": "+3",
      "cond": "first coordinate exists",
      "effect": "adds Start marker"
     },
     {
-     "at": "+9",
+     "at": "+6",
      "cond": "last coordinate exists",
      "effect": "adds End marker"
     }
@@ -704,13 +711,25 @@
    "deps": {
     "Emuqu/Sources/Assistant/Views/ChatBubble.swift::var AssistantSubsystem.tint": "f708271adcc9f1d2",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RegionForTrack(_:)": "df2dd639a583251a"
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RegionForTrack(_:)": "df2dd639a583251a",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.alpha1RouteLines(_:)": "c29f05cfa6bebb58"
    }
   },
   {
+   "key": "func Alpha1ReportCards.alpha1RouteLines(_:)",
+   "hash": "655248182204af25",
+   "does": "Map content: one 7 pt black MapPolyline per segment (the casing), then one 4 pt MapPolyline per segment in its band colour, so every band sits on its casing and no casing covers the end of the band before it.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
    "key": "var Alpha1ReportCards.alpha1BandLegend",
-   "hash": "ef66afc7a47d06ec",
-   "does": "Legend row: sage Easy (≥0.75), yellow Threshold, orange Hard (<0.50).",
+   "hash": "dc477474b8185c7a",
+   "does": "Legend row in the route colours: Easy (≥0.75) #009E73, Threshold #E69F00, Hard (<0.50) #D55E00.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func bandLegend(color:label:)",
@@ -758,7 +777,7 @@
    "deps": {
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.Alpha1SegmentBuilder.add(_:color:)": "d1d53b022153c32d",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.Alpha1SegmentBuilder.finish()": "7640649e8a4b6a26",
-    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.bandColor(atOffset:readings:)": "d1fce85691ad7f2d",
+    "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.bandColor(atOffset:readings:)": "05cfe6fc7a484de1",
     "Emuqu/Sources/Views/Alpha1ReportCards+Report.swift::func Alpha1ReportCards.cleanAlpha1Readings(_:)": "56b4383a634a12f0"
    }
   },
@@ -787,8 +806,8 @@
   },
   {
    "key": "func Alpha1ReportCards.bandColor(atOffset:readings:)",
-   "hash": "1cdcc3662e74fb0b",
-   "does": "Binary-searches the offset-sorted readings for the last one at or before the track offset; textTertiary when none, else sage for α1 >= 0.75, yellow for >= 0.50, orange below.",
+   "hash": "4cf644981d23d4ae",
+   "does": "Binary-searches the offset-sorted readings for the last one at or before the track offset; the no-reading grey when none, else the easy colour for α1 >= 0.75, the threshold colour for >= 0.50, the hard colour below (Alpha1RouteColors).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -802,22 +821,20 @@
     {
      "at": "+7",
      "cond": "no reading at or before the offset",
-     "effect": "returns textTertiary"
+     "effect": "returns noReading grey"
     },
     {
      "at": "+9",
      "cond": "α1 >= 0.75",
-     "effect": "sage"
+     "effect": "easy #009E73"
     },
     {
      "at": "+10",
      "cond": "α1 >= 0.50",
-     "effect": "yellow; else orange"
+     "effect": "threshold #E69F00; else hard #D55E00"
     }
    ],
-   "deps": {
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
-   }
+   "deps": {}
   },
   {
    "key": "func Alpha1ReportCards.Alpha1SegmentBuilder.add(_:color:)",
@@ -985,14 +1002,16 @@
   },
   {
    "key": "func alpha1CacheKey(sessionId:samples:)",
-   "hash": "ea33ee89b6896b21",
-   "does": "Builds Alpha1StatsCache.Key from session id, sample count, first/last α1 offsets and α1 sample count.",
+   "hash": "2a82484a0533847e",
+   "does": "Builds Alpha1StatsCache.Key from session id, sample count, first/last α1 offsets, α1 sample count and a hash of every α1 value in order, so rewritten values give a new key.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()": "617bf2c6974d2d39"
+   }
   },
   {
    "key": "func logAlpha1MinProvenance(min:samples:shadows:cleanCount:)",

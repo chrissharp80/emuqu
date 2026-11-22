@@ -33,7 +33,7 @@ struct HistoryCalendarView: View {
     /// flat History list, and worse, a same-night collapse could hide the row
     /// there entirely. Plumbed from `TrendsV2View`, which owns the collector.
     /// Returns whether the reading left the archive.
-    var onDelete: (HRVSession) -> Bool = { _ in false }
+    var onDelete: (HRVSession) async -> Bool = { _ in false }
 
     @Environment(\.dependencies) private var dependencies
 
@@ -91,9 +91,12 @@ struct HistoryCalendarView: View {
     /// Horizontal swipe changes months. The chevrons stay for
     /// users who do not discover the gesture. The 80 pt threshold is roomy
     /// enough not to fight a vertical scroll intent from the outer ScrollView.
+    ///
+    /// Simultaneous, not exclusive: the enclosing ScrollView keeps vertical
+    /// drags that start on the card.
     private func withMonthSwipe(_ content: some View) -> some View {
         content
-            .gesture(
+            .simultaneousGesture(
                 DragGesture(minimumDistance: 30)
                     .onEnded { value in
                         guard abs(value.translation.width) > 80,
@@ -643,14 +646,14 @@ private struct DaySummarySheet: View {
     /// Local, mutable copy so a delete removes the row immediately — the parent
     /// passes a value snapshot and only reloads on the next archive signal.
     @State private var sessions: [HRVSession]
-    let onDelete: (HRVSession) -> Bool
+    let onDelete: (HRVSession) async -> Bool
 
     @State private var pendingDelete: HRVSession?
     @State private var deleteFailed = false
 
     @Environment(\.dismiss) private var dismiss
 
-    init(date: Date, sessions: [HRVSession], onDelete: @escaping (HRVSession) -> Bool) {
+    init(date: Date, sessions: [HRVSession], onDelete: @escaping (HRVSession) async -> Bool) {
         self.date = date
         _sessions = State(initialValue: sessions)
         self.onDelete = onDelete
@@ -682,7 +685,7 @@ private struct DaySummarySheet: View {
                 .padding(18)
         }
         .background(AppTheme.background.ignoresSafeArea())
-        .navigationTitle(Text(date, style: .date))
+        .navigationTitle(Text(date.formatted(Date.FormatStyle(date: .long, time: .omitted).locale(LanguageManager.appLocale))))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { doneToolbarItem }
     }
@@ -736,12 +739,14 @@ private struct DaySummarySheet: View {
 
     /// The row only goes once the reading has actually left the archive.
     private func confirmDelete(_ session: HRVSession) {
-        guard onDelete(session) else {
-            deleteFailed = true
-            return
+        Task {
+            guard await onDelete(session) else {
+                deleteFailed = true
+                return
+            }
+            sessions.removeAll { $0.id == session.id }
+            if sessions.isEmpty { dismiss() }
         }
-        sessions.removeAll { $0.id == session.id }
-        if sessions.isEmpty { dismiss() }
     }
 
     private var totalLoad: Double {

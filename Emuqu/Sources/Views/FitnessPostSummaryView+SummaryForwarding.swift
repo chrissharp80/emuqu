@@ -18,7 +18,7 @@ extension FitnessPostSummaryView {
             collector: collector, savedRouteStore: savedRouteStore,
             settingsManager: settingsManager,
             refreshedSession: $refreshedSession,
-            gpxURL: $gpxURL, csvURL: $csvURL, tcxURL: $tcxURL,
+            gpxExport: $gpxExport, csvExport: $csvExport, tcxExport: $tcxExport,
             exportsReady: $exportsReady, exportError: $exportError,
             recapImage: $recapImage, recapImageURL: $recapImageURL,
             recapGenerating: $recapGenerating, recapSharePresented: $recapSharePresented,

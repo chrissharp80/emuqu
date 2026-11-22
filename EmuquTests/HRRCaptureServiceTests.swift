@@ -103,4 +103,17 @@ final class HRRCaptureServiceTests: XCTestCase {
         let kept = HRRCaptureService.enforceMonotonicDrop(input)
         XCTAssertEqual(kept.count, 2)
     }
+
+    // MARK: - A heart rate that rose
+
+    /// Before, a sample whose HR rose above the stop rate was stored as a
+    /// negative drop and read as the worst possible recovery.
+    func testASampleAboveTheStopRateIsNotARecoveryReading() {
+        let kept = HRRCaptureService.withoutRises([sample(offset: 60, drop: -6), sample(offset: 120, drop: 20)])
+        XCTAssertEqual(kept.map(\.offsetSec), [120])
+    }
+
+    func testAZeroDropIsKept() {
+        XCTAssertEqual(HRRCaptureService.withoutRises([sample(offset: 60, drop: 0)]).count, 1)
+    }
 }

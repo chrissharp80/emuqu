@@ -8,7 +8,6 @@ struct ArchiveDiagnosticsView: View {
     @State private var diagnosticInfo = String(localized: "Loading...", bundle: LanguageManager.appBundle)
     @State private var isRepairing = false
     @State private var showingRepairConfirm = false
-    @State private var showingClearConfirm = false
     @State private var repairResult: String = ""
     @State private var showingResult = false
     /// RR storage audit state. The audit walks the
@@ -48,14 +47,7 @@ struct ArchiveDiagnosticsView: View {
             .alert(String(localized: "Repair Archive?", bundle: LanguageManager.appBundle), isPresented: $showingRepairConfirm) {
                 repairDialogActions
             } message: {
-                Text(String(localized: "This will remove corrupted/encrypted files and rebuild the index from valid JSON files.", bundle: LanguageManager.appBundle))
-            }
-            .alert(String(localized: "Clear All Data?", bundle: LanguageManager.appBundle), isPresented: $showingClearConfirm) {
-                clearDialogActions
-            } message: {
-                // Local only: the wipe also forgets which sessions were
-                // deleted, so the next iCloud pull brings synced ones back.
-                Text(String(localized: "This deletes every archived session stored on this device. Copies in iCloud are not deleted and will sync back. To remove those too, use Delete All My Data.", bundle: LanguageManager.appBundle))
+                Text(String(localized: "This rebuilds the index from the session files it can read. No file is deleted.", bundle: LanguageManager.appBundle))
             }
             .alert(String(localized: "Result", bundle: LanguageManager.appBundle), isPresented: $showingResult) {
                 Button(String(localized: "OK", bundle: LanguageManager.appBundle)) {}
@@ -93,17 +85,21 @@ struct ArchiveDiagnosticsView: View {
         SampleDataSection()
     }
 
+    /// No wipe here. This page once had a local-only "Clear All Archive
+    /// Data" that removed the whole archive directory, Trash and deletion
+    /// list included, after one alert, with no recording guard and no lock:
+    /// unsynced nights were lost for good. Deleting data goes through Delete
+    /// All My Data, which has the typed-phrase gate and the recording guard.
     private var actionsSection2: some View {
-        Section(String(localized: "Actions", bundle: LanguageManager.appBundle)) {
+        Section {
             refreshButton
 
             repairArchiveButton
                 .disabled(isRepairing)
-
-            // Not while a repair is rebuilding and saving the index: the
-            // wipe takes no archive lock and would delete it underneath.
-            clearAllArchiveDataButton
-                .disabled(isRepairing)
+        } header: {
+            Text(String(localized: "Actions", bundle: LanguageManager.appBundle))
+        } footer: {
+            Text(String(localized: "To delete your data, use Settings → Advanced Data Controls → Delete All My Data.", bundle: LanguageManager.appBundle))
         }
     }
 
@@ -120,14 +116,6 @@ struct ArchiveDiagnosticsView: View {
             showingRepairConfirm = true
         } label: {
             Label(String(localized: "Repair Archive", bundle: LanguageManager.appBundle), systemImage: "wrench.and.screwdriver")
-        }
-    }
-
-    private var clearAllArchiveDataButton: some View {
-        Button(role: .destructive) {
-            showingClearConfirm = true
-        } label: {
-            Label(String(localized: "Clear All Archive Data", bundle: LanguageManager.appBundle), systemImage: "trash")
         }
     }
 
@@ -247,65 +235,46 @@ struct ArchiveDiagnosticsView: View {
         if encryptedFiles.count > 10 {
             info += "  " + String(localized: "… and \(encryptedFiles.count - 10) more", bundle: bundle) + "\n"
         }
-        info += "\n" + String(localized: "Run Repair Archive to remove these.", bundle: bundle) + "\n"
+        info += "\n" + String(localized: "Repair Archive leaves these files in place.", bundle: bundle) + "\n"
         return info
     }
 
     /// Repair decodes and decrypts every session file, so it runs on a
-    /// detached task, not the main actor.
+    /// detached task, not the main actor. A repair that could not list the
+    /// directory or save the rebuilt index is reported as failed, with the
+    /// error, never as complete.
     private func performRepair() {
         isRepairing = true
         let archive = collector.archive
         let indexedBefore = archive.entries.count
         Task {
-            let count = await Task.detached(priority: .userInitiated) { archive.repairArchive() }.value
+            let outcome = await Task.detached(priority: .userInitiated) { Self.repair(archive) }.value
             isRepairing = false
             // Screens keyed on the archive signal reload the rebuilt index.
             collector.notifyArchiveChanged()
-            // repairArchive returns the rebuilt index's size; recovered is what it added.
-            let recovered = max(0, count - indexedBefore)
-            repairResult = String(localized: "Repair complete. \(recovered) sessions recovered.", bundle: LanguageManager.appBundle)
+            repairResult = Self.repairMessage(outcome, indexedBefore: indexedBefore)
             showingResult = true
             await refreshDiagnostics()
         }
     }
 
-    /// The delete + recreate of the whole archive directory must not run
-    /// synchronously on the main thread: it freezes the UI for the length of
-    /// the file-system walk on a large archive. The file ops run on a detached
-    /// task. On success the archive's in-memory index is dropped too, so the
-    /// app stops listing the deleted sessions and the next index save can't
-    /// write them back.
-    private func clearAllData() {
-        let archive = collector.archive
-        Task {
-            let outcome = await Task.detached(priority: .userInitiated) { Self.wipeArchiveDirectory() }.value
-            if outcome.cleared {
-                archive.resetInMemoryStateAfterPurge()
-                // The wipe also removed CloudKit's sync sidecars from the
-                // archive directory; reset the manager's in-memory copy so its
-                // next save cannot write the old uploaded / pending sets back.
-                collector.cloudSyncManager.resetLocalSyncState()
-                collector.notifyArchiveChanged()
-            }
-            repairResult = outcome.message
-            showingResult = true
-            await refreshDiagnostics()
-        }
-    }
-
-    nonisolated private static func wipeArchiveDirectory() -> (cleared: Bool, message: String) {
-        let fm = FileManager.default
-        guard let containerURL = fm.containerURL(forSecurityApplicationGroupIdentifier: AppConfig.appGroupIdentifier) else {
-            return (false, containerUnavailableMessage)
-        }
-        let archiveDir = containerURL.appendingPathComponent(AppConfig.archiveDirectoryName)
+    nonisolated private static func repair(_ archive: SessionArchive) -> Result<Int, Error> {
         do {
-            try fm.removeItem(at: archiveDir)
-            try fm.createDirectory(at: archiveDir, withIntermediateDirectories: true)
-            return (true, String(localized: "All archive data cleared. Restart the app to reinitialize.", bundle: LanguageManager.appBundle))
+            return .success(try archive.repairArchive())
         } catch {
-            return (false, String(localized: "Error clearing data: \(error.localizedDescription)", bundle: LanguageManager.appBundle))
+            return .failure(error)
+        }
+    }
+
+    /// repairArchive returns the rebuilt index's size; recovered is what it
+    /// added. A repair that threw is reported with its error.
+    private static func repairMessage(_ outcome: Result<Int, Error>, indexedBefore: Int) -> String {
+        switch outcome {
+        case .success(let count):
+            let recovered = max(0, count - indexedBefore)
+            return String(localized: "Repair complete. \(recovered) sessions recovered.", bundle: LanguageManager.appBundle)
+        case .failure(let error):
+            return String(localized: "Repair did not finish: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
         }
     }
 
@@ -429,12 +398,23 @@ struct ArchiveDiagnosticsView: View {
 
             diagnosticsLinks
         }
-        .task { loadDiagnosticFiles() }
+        .task { await loadDiagnosticFiles() }
     }
 
-    private func loadDiagnosticFiles() {
-        metricKitHistory = dependencies.app.systemDiagnosticsManager.readMetricKitHistory()
-        memoryTrace = dependencies.app.systemDiagnosticsManager.readRecentMemoryTrace(limit: 1000)
+    /// The two files are read and parsed (up to about 1.25 MB of JSON lines)
+    /// off the main actor; only the assignment runs on it.
+    private func loadDiagnosticFiles() async {
+        let files = await Self.readDiagnosticFiles(from: dependencies.app.systemDiagnosticsManager)
+        metricKitHistory = files.history
+        memoryTrace = files.trace
+    }
+
+    /// Nonisolated and async, so it runs on the global executor. The arrays
+    /// are built fresh here and handed over (`sending`) to the caller.
+    nonisolated private static func readDiagnosticFiles(
+        from manager: SystemDiagnosticsManager
+    ) async -> sending (history: [[String: Any]], trace: [[String: Any]]) {
+        (manager.readMetricKitHistory(), manager.readRecentMemoryTrace(limit: 1000))
     }
 
     @ViewBuilder
@@ -478,14 +458,6 @@ struct ArchiveDiagnosticsView: View {
         Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
         Button(String(localized: "Repair", bundle: LanguageManager.appBundle)) {
             performRepair()
-        }
-    }
-
-    @ViewBuilder
-    private var clearDialogActions: some View {
-        Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
-        Button(String(localized: "Clear Everything", bundle: LanguageManager.appBundle), role: .destructive) {
-            clearAllData()
         }
     }
 

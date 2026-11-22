@@ -93,11 +93,13 @@ extension MorningSessionPipeline {
     /// Flip every published flag to the post-stream "saving" state in one hop.
     /// The night stays live through `StreamingLifecycle.isEndingOvernight`,
     /// which the caller's claim holds until the night is saved or failed.
+    /// Whether the night armed the strap (`overnightDeviceBackupActive`) is
+    /// kept for the strap gate, which every ending reaches next and which
+    /// clears it.
     func publishGatherSavingState(streamingPoints: [RRPoint], elapsedHours: Double) async {
         await MainActor.run {
             collector.morningStatus = .saving(beats: streamingPoints.count)
             collector.isOvernightStreaming = false
-            collector.overnightDeviceBackupActive = false
             collector.deviceStatus.isStreaming = false
             collector.recordingPhase = .analyzing
             collector.isCollecting = false

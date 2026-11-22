@@ -300,9 +300,11 @@ extension VitalsHealthQueries {
     /// Start observing HealthKit for new vitals samples (Apple Watch sync).
     /// Apple Watch writes overnight respiratory rate, SpO2, wrist temperature,
     /// and resting HR MINUTES to HOURS after sleep ends — long after the user
-    /// has tapped "I'm Up" and the vitalsSnapshot was captured. Each time a
-    /// new sample arrives, `vitalsDataVersion` is incremented so views can
-    /// reactively re-fetch and re-archive the session snapshot.
+    /// has tapped "I'm Up" and the vitalsSnapshot was captured. Each time
+    /// another source's sample arrives, `vitalsDataVersion` is incremented so
+    /// views can reactively re-fetch and re-archive the session snapshot.
+    /// Started at launch, so it runs whether or not the night was streamed;
+    /// starting again replaces the running queries.
     func startObservingVitalsData() {
         guard manager.isHealthKitAvailable else { return }
         stopObservingVitalsData()
@@ -322,20 +324,20 @@ extension VitalsHealthQueries {
         return types
     }
 
-    /// Bounded to samples from the last two days: with no predicate, the
-    /// initial results were every sample of the type ever recorded, read and
-    /// discarded each time observation started. Last night's late writes are
-    /// dated inside that window, and so is everything written later.
+    /// Watched through `HealthSampleWatch`, which reads what was added since
+    /// the last read, across launches, and leaves out the app's own samples:
+    /// the resting heart rate Emuqu exports is not new data, and must not set
+    /// off a re-fetch.
+    ///
+    /// No background delivery: all a fire does is bump a version the open
+    /// screens watch, so waking the app in the background for it spent
+    /// battery for nothing. Delivery enabled by earlier builds is turned off;
+    /// samples that arrive meanwhile are read on the next launch.
     private func observeVitalsType(_ type: HKQuantityType) {
-        let recent = HKQuery.predicateForSamples(withStart: Date().addingTimeInterval(-48 * 60 * 60), end: nil, options: [])
-        let query = HKAnchoredObjectQuery(
-            type: type, predicate: recent, anchor: nil,
-            limit: HKObjectQueryNoLimit
-        ) { _, _, _, _, _ in
-            // Initial results — nothing to do.
-        }
-        query.updateHandler = { [weak manager] _, newSamples, _, _, _ in
-            guard let manager, let samples = newSamples, !samples.isEmpty else { return }
+        let query = HealthSampleWatch.observerQuery(
+            for: type, anchorKey: "HealthSampleWatch.vitalsAnchor.\(type.identifier).v1", store: manager.healthStore
+        ) { [weak manager] _ in
+            guard let manager else { return }
             Task { @MainActor in
                 manager.vitalsDataVersion += 1
             }
@@ -343,9 +345,9 @@ extension VitalsHealthQueries {
         manager.vitalsObserverQueries.append(query)
         manager.healthStore.execute(query)
         let typeName = type.identifier
-        manager.healthStore.enableBackgroundDelivery(for: type, frequency: .immediate) { success, error in
+        manager.healthStore.disableBackgroundDelivery(for: type) { @Sendable success, error in
             guard !success else { return }
-            debugLog("[HealthKitManager] Background delivery for \(typeName) not enabled: \(error?.localizedDescription ?? "no error given")")
+            debugLog("[HealthKitManager] Background delivery for \(typeName) not turned off: \(error?.localizedDescription ?? "no error given")")
         }
     }
 

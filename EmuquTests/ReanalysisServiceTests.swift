@@ -8,17 +8,13 @@ final class ReanalysisServiceTests: XCTestCase {
     // `compositeScore` is the 0-100 recovery score; the result is on the
     // 0-10 scale.
 
+    /// With no training context ATL and CTL are 0: no load leaves full
+    /// capacity (100), and with no fitness base the model earns no trust, so
+    /// the recovery modulation hands the whole say to the recovery score:
+    /// readiness is the composite on the 0-10 scale.
     func testComputeFrozenReadiness_withNilTrainingContext() {
-        // When training context is nil, ATL and CTL default to 0
-        let readiness = ReanalysisService.computeFrozenReadiness(
-            compositeScore: 75,
-            trainingContext: nil
-        )
-        // Should return a valid 0-10 scale score
-        XCTAssertFalse(readiness.isNaN)
-        XCTAssertFalse(readiness.isInfinite)
-        XCTAssertGreaterThanOrEqual(readiness, 0)
-        XCTAssertLessThanOrEqual(readiness, 10)
+        let readiness = ReanalysisService.computeFrozenReadiness(compositeScore: 75, trainingContext: nil)
+        XCTAssertEqual(readiness, 7.5, accuracy: 1e-9)
     }
 
     func testComputeFrozenReadiness_deterministic() {
@@ -35,33 +31,33 @@ final class ReanalysisServiceTests: XCTestCase {
     }
 
     func testComputeFrozenReadiness_higherCompositeScoreYieldsHigherReadiness() {
-        let low = ReanalysisService.computeFrozenReadiness(
-            compositeScore: 30,
-            trainingContext: nil
-        )
-        let high = ReanalysisService.computeFrozenReadiness(
-            compositeScore: 90,
-            trainingContext: nil
-        )
-        XCTAssertGreaterThan(high, low)
+        let low = ReanalysisService.computeFrozenReadiness(compositeScore: 30, trainingContext: nil)
+        let high = ReanalysisService.computeFrozenReadiness(compositeScore: 90, trainingContext: nil)
+        XCTAssertEqual(low, 3.0, accuracy: 1e-9)
+        XCTAssertEqual(high, 9.0, accuracy: 1e-9)
     }
 
     func testComputeFrozenReadiness_zeroCompositeScore() {
-        let readiness = ReanalysisService.computeFrozenReadiness(
-            compositeScore: 0,
-            trainingContext: nil
-        )
-        XCTAssertFalse(readiness.isNaN)
-        XCTAssertGreaterThanOrEqual(readiness, 0)
+        let readiness = ReanalysisService.computeFrozenReadiness(compositeScore: 0, trainingContext: nil)
+        XCTAssertEqual(readiness, 0, accuracy: 1e-9)
     }
 
     func testComputeFrozenReadiness_maxCompositeScore() {
-        let readiness = ReanalysisService.computeFrozenReadiness(
-            compositeScore: 100,
-            trainingContext: nil
-        )
-        XCTAssertFalse(readiness.isNaN)
-        XCTAssertLessThanOrEqual(readiness, 10)
+        let readiness = ReanalysisService.computeFrozenReadiness(compositeScore: 100, trainingContext: nil)
+        XCTAssertEqual(readiness, 10, accuracy: 1e-9)
+    }
+
+    /// ATL 40 on CTL 40: a capacity ratio of 1.0, which maps to 70; the
+    /// acute:chronic ratio of 1.0 is under the 1.3 damper and the morning ATL
+    /// is the current one, so no bonus. CTL 40 earns the model its full
+    /// trust (0.55). Against a recovery score of 50 the model is higher and
+    /// keeps 55 % of its lead: 50 + 0.55 x 20 = 61. Against 90 it is lower
+    /// and the score lifts it by 30 % of the gap: 70 + 0.3 x 20 = 76.
+    func testComputeFrozenReadiness_withTrainingLoad() {
+        let load = TrainingContext(atl: 40, ctl: 40, tsb: 0, yesterdayTrimp: 0, vo2Max: nil,
+                                   daysSinceHardWorkout: nil, recentWorkouts: nil)
+        XCTAssertEqual(ReanalysisService.computeFrozenReadiness(compositeScore: 50, trainingContext: load), 6.1, accuracy: 1e-9)
+        XCTAssertEqual(ReanalysisService.computeFrozenReadiness(compositeScore: 90, trainingContext: load), 7.6, accuracy: 1e-9)
     }
 
     // MARK: - Sleep that arrives after the morning
@@ -157,21 +153,98 @@ final class ReanalysisServiceTests: XCTestCase {
     /// snapshot yet; the automatic update path saves it, so the session holds
     /// the sleep ("the app will update sleep data from HealthKit when you view
     /// the session later") instead of re-querying on every open.
-    func testLateHealthKitSleepIsSavedForASessionWithoutASnapshot() throws {
+    func testLateHealthKitSleepIsSavedForASessionWithoutASnapshot() async throws {
         let session = overnight()
         try archive.archive(session)
-        XCTAssertTrue(makeService().updateSessionSleepBoundaries(sessionId: session.id, sleepData: watchNight(minutes: 420)))
+        let saved = await makeService().updateSessionSleepBoundaries(sessionId: session.id, sleepData: watchNight(minutes: 420)).value
+        XCTAssertTrue(saved)
         XCTAssertEqual(try archive.retrieve(session.id)?.sleepSnapshot?.nightSleepMinutes, 420)
     }
 
     /// User edits are the source of truth: late HealthKit sleep never
     /// replaces a timeline the user adjusted.
-    func testLateHealthKitSleepNeverOverwritesAUserAdjustedNight() throws {
+    func testLateHealthKitSleepNeverOverwritesAUserAdjustedNight() async throws {
         var session = overnight()
         session.sleepSnapshot = watchNight(minutes: 300)
         session.sleepUserAdjusted = true
         try archive.archive(session)
-        XCTAssertFalse(makeService().updateSessionSleepBoundaries(sessionId: session.id, sleepData: watchNight(minutes: 420)))
+        let saved = await makeService().updateSessionSleepBoundaries(sessionId: session.id, sleepData: watchNight(minutes: 420)).value
+        XCTAssertFalse(saved)
+        XCTAssertEqual(try archive.retrieve(session.id)?.sleepSnapshot?.nightSleepMinutes, 300)
+    }
+
+    // MARK: - Writing a sleep edit
+
+    /// What a sleep edit's re-score reads besides the session, as the tests'
+    /// service would capture it.
+    private func sleepInputs() -> SleepBoundaryWrite.Inputs {
+        SleepBoundaryWrite.Inputs(
+            context: RescoreContext(baselineStats: nil, typicalSleepHours: 8, scoringConfig: .init(from: UserSettings())),
+            fallbackTraining: nil
+        )
+    }
+
+    /// A user's edit decided on the copy it read lands on the archived copy:
+    /// the clamped boundaries, the snapshot and the adjusted mark are stored,
+    /// and an edit saved meanwhile to a field the edit does not read (the
+    /// tags) is kept.
+    func testASleepEditLandsOnTheArchivedCopy() throws {
+        let read = overnight()
+        try archive.archive(read)
+        try archive.updateTags(read.id, tags: [ReadingTag.alcohol], notes: "late dinner")
+        let edit = try XCTUnwrap(SleepBoundaryWrite.Edit(sleepData: watchNight(minutes: 420), isUserAdjustment: true))
+
+        let outcome = try SleepBoundaryWrite.write(edit, readFrom: read, inputs: sleepInputs(), to: archive)
+
+        guard case .written = outcome else { return XCTFail("expected a write, got \(outcome)") }
+        let stored = try XCTUnwrap(try archive.retrieve(read.id))
+        XCTAssertEqual(stored.sleepSnapshot?.nightSleepMinutes, 420)
+        XCTAssertEqual(stored.sleepStartMs, 600_000)
+        XCTAssertEqual(stored.sleepEndMs, (600 + 450 * 60) * 1000)
+        XCTAssertEqual(stored.sleepUserAdjusted, true)
+        XCTAssertEqual(stored.tags, [ReadingTag.alcohol])
+    }
+
+    /// A sleep edit decided on a copy that is no longer the archive's (other
+    /// sleep was saved after it was read) is refused: nothing of it is
+    /// written, and the stored copy comes back to run again from.
+    func testAStaleSleepEditIsRefused() throws {
+        let read = overnight()
+        try archive.archive(read)
+        let savedMeanwhile = watchNight(minutes: 300)
+        try archive.update(read.id, requestingReupload: false) { $0.sleepSnapshot = savedMeanwhile }
+        let modifiedBefore = try XCTUnwrap(try archive.retrieve(read.id)).modifiedAt
+        let edit = try XCTUnwrap(SleepBoundaryWrite.Edit(sleepData: watchNight(minutes: 420), isUserAdjustment: true))
+        let reuploadRequested = expectation(forNotification: .flowRecoveryArchiveSessionsNeedReupload, object: nil)
+        reuploadRequested.isInverted = true
+
+        let outcome = try SleepBoundaryWrite.write(edit, readFrom: read, inputs: sleepInputs(), to: archive)
+        wait(for: [reuploadRequested], timeout: 0.2)
+
+        guard case .inputsChanged(let stored) = outcome else { return XCTFail("expected a refusal, got \(outcome)") }
+        XCTAssertEqual(stored.sleepSnapshot?.nightSleepMinutes, 300, "the refusal hands back the stored copy")
+        let archived = try XCTUnwrap(try archive.retrieve(read.id))
+        XCTAssertEqual(archived.sleepSnapshot?.nightSleepMinutes, 300)
+        XCTAssertNil(archived.sleepStartMs)
+        XCTAssertNil(archived.sleepUserAdjusted)
+        XCTAssertEqual(archived.modifiedAt, modifiedBefore, "a refused edit writes nothing, so iCloud sees no newer copy")
+    }
+
+    /// Through the service, edits made one after another land in that order
+    /// (each waits for the one before), so the last one made is the one
+    /// stored.
+    func testSleepEditsLandInTheOrderTheyWereMade() async throws {
+        let session = overnight()
+        try archive.archive(session)
+        let service = makeService()
+
+        let first = service.updateSessionSleepBoundaries(sessionId: session.id, sleepData: watchNight(minutes: 420), isUserAdjustment: true)
+        let second = service.updateSessionSleepBoundaries(sessionId: session.id, sleepData: watchNight(minutes: 300), isUserAdjustment: true)
+        let firstSaved = await first.value
+        let secondSaved = await second.value
+
+        XCTAssertTrue(firstSaved)
+        XCTAssertTrue(secondSaved)
         XCTAssertEqual(try archive.retrieve(session.id)?.sleepSnapshot?.nightSleepMinutes, 300)
     }
 
@@ -200,17 +273,37 @@ final class ReanalysisServiceTests: XCTestCase {
         XCTAssertEqual(written.tags, [ReadingTag.alcohol], "callers get the session as written")
     }
 
-    /// A rescored session the archive does not hold is archived as it is.
-    func testARescoreOfASessionNotYetArchivedIsArchivedAsItIs() throws {
+    /// A rescore never creates a session. One the archive does not hold (a
+    /// reading not yet accepted, or a night "Delete All My Data" removed while
+    /// the rescore ran) is not written, so the purge's empty archive stays
+    /// empty.
+    func testARescoreOfASessionTheArchiveDoesNotHoldIsNotWritten() throws {
         var session = overnight()
         session.recoveryScore = 7.4
         session.notes = "from the card"
 
         let outcome = try RescoreWrite.write(session, readFrom: session, kind: .reanalysis(healedTraining: false), to: archive)
 
-        guard case .written(let written) = outcome else { return XCTFail("expected a write, got \(outcome)") }
-        XCTAssertEqual(written.notes, "from the card")
-        XCTAssertEqual(try archive.retrieve(session.id)?.recoveryScore, 7.4)
+        guard case .notArchived = outcome else { return XCTFail("expected no write, got \(outcome)") }
+        XCTAssertNil(outcome.written)
+        XCTAssertFalse(archive.exists(session.id), "A rescore archived a session the archive did not hold")
+    }
+
+    /// A rescore that finishes while "Delete All My Data" runs is refused by
+    /// the purge gate and writes nothing.
+    func testARescoreWriteIsRefusedWhileAPurgeRuns() async throws {
+        var read = overnight()
+        read.recoveryScore = 6.1
+        try archive.archive(read)
+        var rescored = read
+        rescored.recoveryScore = 7.4
+
+        await PurgeGate.beginPurge()
+        defer { PurgeGate.endPurge() }
+        XCTAssertThrowsError(try RescoreWrite.write(rescored, readFrom: read, kind: .scoreOnly(healedTraining: false), to: archive)) {
+            XCTAssertTrue($0 is PurgeGate.Refused, "expected the purge gate's refusal, got \($0)")
+        }
+        XCTAssertEqual(try archive.retrieve(read.id)?.recoveryScore, 6.1)
     }
 
     /// The HealthKit export stamp and the AI context are written while a

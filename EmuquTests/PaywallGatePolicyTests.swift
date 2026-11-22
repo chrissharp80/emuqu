@@ -95,10 +95,12 @@ final class PaywallGatePolicyTests: XCTestCase {
     /// trial is not offered; the unlock still is.
     func testPermanentFreeAccessIsOfferedTheUnlockButNotTheTrial() {
         for hasTransaction in [nil, false, true] as [Bool?] {
-            XCTAssertFalse(PaywallGatePolicy.canStartTrial(
-                storeKitHasTrialTransaction: hasTransaction, hasLocalTrialStart: false, hasPermanentAccess: true))
+            let canStartTrial = PaywallGatePolicy.canStartTrial(
+                storeKitHasTrialTransaction: hasTransaction, hasLocalTrialStart: false, hasPermanentAccess: true)
+            XCTAssertFalse(canStartTrial)
+            XCTAssertEqual(PaywallGatePolicy.offer(hasPurchasedProduct: false, canStartTrial: canStartTrial), .unlockOnly,
+                           "permanent free access with StoreKit's trial record \(String(describing: hasTransaction))")
         }
-        XCTAssertEqual(PaywallGatePolicy.offer(hasPurchasedProduct: false, canStartTrial: false), .unlockOnly)
     }
 
     /// The defect this pins: earlier sandbox builds anchored App Review's

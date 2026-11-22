@@ -143,14 +143,15 @@ struct TrendsV2View: View {
             }
         }
 
-        /// Y-axis caption + insight phrasing.
+        /// Y-axis caption + insight phrasing, in the app's language.
         var displayUnit: String {
-            switch self {
-            case .recoveryScore: "/ 100"
-            case .rmssd, .sdnn: "ms"
-            case .meanHR: "bpm"
+            let b = LanguageManager.appBundle
+            return switch self {
+            case .recoveryScore: String(localized: "/ 100", bundle: b)
+            case .rmssd, .sdnn: String(localized: "ms", bundle: b)
+            case .meanHR: String(localized: "bpm", bundle: b)
             case .balance: ""        // dimensionless ratio
-            case .hfPower: "ms²"
+            case .hfPower: String(localized: "ms²", bundle: b)
             case .stress: ""
             }
         }
@@ -272,9 +273,9 @@ struct TrendsV2View: View {
     /// through `SessionTrash.move`, the delete path History uses. Removing it
     /// from `allSessions` immediately keeps the calendar in sync before the
     /// archive signal re-loads. Returns whether the reading left the archive.
-    private func deleteSession(_ session: HRVSession) -> Bool {
+    private func deleteSession(_ session: HRVSession) async -> Bool {
         do {
-            try SessionTrash.move(session.id, collector: collector, cloudKit: dependencies.storage.cloudKitSyncManager)
+            try await SessionTrash.move(session.id, collector: collector, cloudKit: dependencies.storage.cloudKitSyncManager)
             allSessions.removeAll { $0.id == session.id }
             rebuildDerived()
             return true

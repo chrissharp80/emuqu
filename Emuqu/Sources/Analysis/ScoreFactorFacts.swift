@@ -173,9 +173,9 @@ struct ScoreFactorFacts: Codable, Equatable, Sendable {
             case let .autonomicBalance(points): Self.autonomicBalancePhrase(points)
             case let .staleBaseline(days, points):
                 String(localized: "baseline data is \(days) days old (−\(NarrativeLanguage.integer(points)))", bundle: NarrativeLanguage.bundle)
-            case .alphaBalanced: String(localized: "autonomic regulation balanced (+5)", bundle: NarrativeLanguage.bundle)
-            case .alphaStrained: String(localized: "autonomic regulation strained (−5)", bundle: NarrativeLanguage.bundle)
-            case .alphaReduced: String(localized: "autonomic regulation reduced (−3)", bundle: NarrativeLanguage.bundle)
+            case .alphaBalanced: String(localized: "DFA α1 in the app's reference range (+5)", bundle: NarrativeLanguage.bundle)
+            case .alphaStrained: String(localized: "DFA α1 above the app's reference range (−5)", bundle: NarrativeLanguage.bundle)
+            case .alphaReduced: String(localized: "DFA α1 below the app's reference range (−3)", bundle: NarrativeLanguage.bundle)
             case .variabilityFlat: String(localized: "day-to-day HRV unusually flat (−5)", bundle: NarrativeLanguage.bundle)
             case .variabilityErratic: String(localized: "day-to-day HRV erratic (−3)", bundle: NarrativeLanguage.bundle)
             }
@@ -191,8 +191,8 @@ struct ScoreFactorFacts: Codable, Equatable, Sendable {
         private static func autonomicBalancePhrase(_ points: Int) -> String {
             let shown = NarrativeLanguage.integer(points)
             return points > 0
-                ? String(localized: "autonomic balance tilted toward rest (+\(shown))", bundle: NarrativeLanguage.bundle)
-                : String(localized: "autonomic balance tilted toward stress (\(shown))", bundle: NarrativeLanguage.bundle)
+                ? String(localized: "PNS–SNS gap above its usual range (+\(shown))", bundle: NarrativeLanguage.bundle)
+                : String(localized: "PNS–SNS gap below its usual range (\(shown))", bundle: NarrativeLanguage.bundle)
         }
     }
 

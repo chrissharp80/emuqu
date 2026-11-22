@@ -208,7 +208,7 @@ extension TrendsV2View {
 
     func scrubPill(point pt: MetricPoint, band: BaselineStats) -> some View {
         HStack(spacing: 6) {
-            Text(verbatim: pt.date.formatted(.dateTime.month(.abbreviated).day()))
+            Text(verbatim: pt.date.formatted(.dateTime.month(.abbreviated).day().locale(LanguageManager.appLocale)))
                 .font(.system(size: dt12, weight: .medium))
                 .foregroundStyle(AppTheme.textSecondary)
             Text(verbatim: formatMetricValue(pt.value))
@@ -295,7 +295,8 @@ extension TrendsV2View {
         case .recoveryScore: return s.recoveryScore.map { $0 * 10 }
         case .rmssd: return s.analysisResult?.timeDomain.rmssd
         case .sdnn: return s.analysisResult?.measuredSDNN
-        case .meanHR: return s.analysisResult?.timeDomain.meanHR
+        // An analysis with no heart rate stores 0, which is no point to plot.
+        case .meanHR: return VitalsDetailV2View.strapMeanHR(of: s)
         case .balance: return s.analysisResult?.frequencyDomain?.lfHfRatio
         case .hfPower: return s.analysisResult?.frequencyDomain?.hf
         case .stress: return s.analysisResult?.ansMetrics?.stressIndex

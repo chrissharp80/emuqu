@@ -1,4 +1,5 @@
 import Foundation
+import os
 import Security
 
 // Durable anchor for the two entitlement facts that must survive an app
@@ -204,18 +205,32 @@ enum EntitlementAnchor {
 
     // MARK: - Public API
 
-    /// Fast, synchronous read for the launch path. Reads the UserDefaults
-    /// cache only — no keychain round trip, no I/O that could stall the
-    /// first frame. Callers that need the authoritative answer use
-    /// `resolve(wallClock:)`, which is safe to run after launch.
+    /// Fast, synchronous read of the UserDefaults cache only — no keychain
+    /// round trip. Every reader of the anchor goes through it. Callers that
+    /// need the authoritative answer use `resolve(wallClock:)`.
+    ///
+    /// Each update (`update`) reads and writes the keychain. The one that
+    /// runs at every launch, the reconcile (`resolve`), runs off the main
+    /// actor (`StoreKitManager.boot`). These run on the main actor:
+    /// - before the launch gate reads the anchor, the history check
+    ///   (`recordHistoryCheck`, every non-Debug launch), because a beta
+    ///   tester restored onto a new phone carries the status only in the
+    ///   keychain, and the legacy TestFlight migration (`recordBetaTester`,
+    ///   only while the legacy flag is set and the anchor does not yet say
+    ///   beta tester);
+    /// - a trial start, the App Store's after a purchase
+    ///   (`recordStoreTrialStart`) or one adopted from the synced settings
+    ///   (`adoptTrialStart`).
+    /// Updates take turns (`updateLock`), so a main-actor update that comes
+    /// while the background reconcile runs waits for its keychain pass.
     static func cached() -> Record {
         readDefaults().storedRecord ?? .empty
     }
 
     /// Merges every tier, writes the result back to the tiers that differ,
     /// and returns it. This is the authoritative read. It touches the
-    /// keychain, so it belongs off the synchronous launch path —
-    /// `StoreKitManager.boot()` calls it after the first frame paints. The
+    /// keychain, so it belongs off the main actor —
+    /// `StoreKitManager.boot()` runs it on a background task. The
     /// launch gate gets the same promotion from `recordHistoryCheck`, which
     /// `StoreKitManager.grandfatherExistingUserIfNeeded` runs on every
     /// non-Debug launch before the gate reads the anchor.
@@ -326,8 +341,16 @@ enum EntitlementAnchor {
     /// `change`, and writes the result to each tier that holds something
     /// different and is not unreadable. Returns the merged record before
     /// `change` and the result after it.
+    ///
+    /// One update at a time (`updateLock`): the background resolve and a
+    /// main-actor update (a trial start, the history check, the legacy
+    /// TestFlight migration) each read, merge and write every tier, and
+    /// interleaved, the later write put back what the other had replaced.
+    /// A main-actor update therefore waits while the resolve holds the lock.
     @discardableResult
     private static func update(wallClock: Date, _ change: (Record) -> Record) -> (resolved: Record, updated: Record) {
+        updateLock.lock()
+        defer { updateLock.unlock() }
         let tiers = readTiers()
         let resolved = advanced(merged(tiers.defaults.storedRecord, tiers.keychain) ?? .empty, to: wallClock)
         let updated = change(resolved)
@@ -335,6 +358,8 @@ enum EntitlementAnchor {
         if tiers.ownKeychain != .record(updated), tiers.ownKeychain != .unreadable { saveToKeychain(updated) }
         return (resolved, updated)
     }
+
+    private static let updateLock = OSAllocatedUnfairLock()
 
     private static func readTiers() -> Tiers {
         let keychain = loadFromKeychain()

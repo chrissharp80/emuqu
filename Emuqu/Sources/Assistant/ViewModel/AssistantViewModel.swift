@@ -86,7 +86,9 @@ final class AssistantViewModel {
 
     /// Cumulative summary of turns that have been dropped from the send window.
     /// Prepended to the system prompt of every send so the model retains context
-    /// past the truncation boundary.
+    /// past the truncation boundary. Persisted sealed beside the history
+    /// (`ConversationStore.saveSummary`): it restates the same conversation,
+    /// injuries and medications included.
     var priorSummary: String?
 
     /// The newest dropped turn already folded into `priorSummary`. Only turns
@@ -109,6 +111,8 @@ final class AssistantViewModel {
     // so a background Task can read them without hopping to MainActor just
     // to grab a string.
     nonisolated static let disclaimerKey = "assistant.disclaimerAccepted"
+    /// Where builds before the sealed summary file kept the summary, in plain
+    /// text. Read once to move it into the file, then removed.
     nonisolated static let summaryKey = "assistant.priorSummary"
 
     // MARK: - Dependencies
@@ -230,16 +234,19 @@ final class AssistantViewModel {
         self.factsStore = factsStore
         turns = store.load()
         hasAcceptedDisclaimer = UserDefaults.standard.bool(forKey: Self.disclaimerKey)
-        priorSummary = UserDefaults.standard.string(forKey: Self.summaryKey)
+        priorSummary = store.loadSummary(migratingFrom: UserDefaults.standard, key: Self.summaryKey)
+        // A chat export shared in an earlier run is not needed any more.
+        Self.removeChatExports()
         wireArchiveInvalidation()
         wireProtectedDataRecovery()
         wireComposerState(resolvedRegistry)
     }
 
-    /// The history and the remembered facts cannot be read while the phone is
-    /// locked. When this view model was created in that state, both started
-    /// empty; the stores hold their writes until they can merge, and this puts
-    /// the full history back on screen the moment the phone is unlocked.
+    /// The history, the summary and the remembered facts cannot be read while
+    /// the phone is locked. When this view model was created in that state,
+    /// all started empty; the stores hold their writes until they can merge,
+    /// and this puts the full history and the summary back the moment the
+    /// phone is unlocked.
     /// Becoming active is watched too: a suspended app can miss the unlock
     /// notification itself.
     private func wireProtectedDataRecovery() {
@@ -257,8 +264,14 @@ final class AssistantViewModel {
         }
     }
 
+    /// The summary is read again only while none is held and the store says
+    /// the sealed one was unreadable, so a summary written since, or a
+    /// cleared conversation, is never replaced.
     private func recoverAfterUnlock() {
         factsStore.recoverAfterUnlock()
+        if priorSummary == nil, store.summaryNeedsReload {
+            priorSummary = store.loadSummary(migratingFrom: UserDefaults.standard, key: Self.summaryKey)
+        }
         guard store.needsReloadFromDisk, let merged = store.mergedWithDisk(turns, acknowledging: true) else { return }
         turns = merged
         store.save(turns)
@@ -379,7 +392,7 @@ final class AssistantViewModel {
         guard !trimmed.isEmpty else { return .rejectedEmpty }
         if refusedWhileFloIsOff() { return .rejectedNoProvider }
         if medicalGuardRefused(trimmed) { return .dispatched }
-        guard registry.activeProvider.isAvailable else {
+        guard ProviderRegistry.canSend(to: registry.activeProvider) else {
             errorMessage = Self.unavailableMessage(for: registry.activeProvider.id)
             return .rejectedNoProvider
         }
@@ -394,13 +407,17 @@ final class AssistantViewModel {
         return .dispatched
     }
 
-    /// Why a provider can't take a message: a cloud provider without a key,
-    /// or Apple Intelligence, which has no key and is unavailable on this
-    /// device (unsupported, turned off, or its model not downloaded yet).
+    /// Why a provider can't take a message: a cloud provider switched off in
+    /// Settings or without a key, or Apple Intelligence, which has no key and
+    /// is unavailable on this device (unsupported, turned off, or its model
+    /// not downloaded yet).
     static func unavailableMessage(for id: ProviderID) -> String {
         let bundle = LanguageManager.appBundle
         if id == .apple {
             return String(localized: "Apple Intelligence isn't available on this device right now. Choose another model in Settings → Flo.", bundle: bundle)
+        }
+        if !ProviderRegistry.isEnabled(id) {
+            return String(localized: "\(id.displayName) is switched off. Turn it on or choose another model in Settings → Flo.", bundle: bundle)
         }
         return String(localized: "\(id.displayName) has no API key configured. Add one in Settings → Flo.", bundle: bundle)
     }
@@ -623,6 +640,8 @@ final class AssistantViewModel {
         }
         resetConversationState()
         AppDependencies.current.providers.llmRequestAudit.clear()
+        // The summary file went with the history (`ConversationStore.clear`);
+        // this is the plain copy an older build left, if it was never moved.
         // UserDefaults writes block on synchronous disk sync — push off main.
         Task.detached(priority: .utility) {
             UserDefaults.standard.removeObject(forKey: Self.summaryKey)
@@ -630,8 +649,10 @@ final class AssistantViewModel {
     }
 
     /// The in-memory side of a cleared conversation: turns, error, held
-    /// consent request, summary and its anchor, speech cursors, and the
-    /// adaptive-routing session (a new conversation is classified afresh).
+    /// consent request, summary and its anchor, speech cursors, the
+    /// adaptive-routing session (a new conversation is classified afresh), and
+    /// the number corrections waiting for the next prompt, which are about
+    /// replies in the conversation just cleared.
     private func resetConversationState() {
         turns = []
         errorMessage = nil
@@ -641,6 +662,7 @@ final class AssistantViewModel {
         speakableTextCursor = [:]
         sessionState.currentTier = .quick
         sessionState.turnCount = 0
+        MetricsVerifier.clearCorrections()
     }
 
     /// Serialize the current thread to Markdown and return a temporary file URL
@@ -652,14 +674,19 @@ final class AssistantViewModel {
     /// the extension scan is cold — see shareRow in FitnessTabView).
     ///
     /// Earlier exports are deleted first, so at most one copy of the chat
-    /// sits in the temporary directory; `clearConversation()` deletes that one.
+    /// sits in the temporary directory; `clearConversation()` deletes that one,
+    /// and the next launch deletes any left behind (`init`). The share target
+    /// has to read the file, so it cannot be sealed with the app's key; it is
+    /// written with complete file protection instead, unreadable whenever the
+    /// phone is locked. It holds the whole thread, including the turns that
+    /// never left the device.
     func exportConversation() -> URL? {
         guard !turns.isEmpty else { return nil }
         Self.removeChatExports()
         let filename = "\(Self.chatExportPrefix)\(Int(Date().timeIntervalSince1970)).md"
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
         do {
-            try conversationMarkdown().write(to: url, atomically: true, encoding: .utf8)
+            try Data(conversationMarkdown().utf8).write(to: url, options: [.atomic, .completeFileProtection])
             return url
         } catch {
             // Log the write error rather than swallowing it: a silent
@@ -726,10 +753,12 @@ final class AssistantViewModel {
     /// Runs `send`'s own gates first: nothing happens while Flo is off, and
     /// when the selected provider still needs consent the request is held
     /// for the consent sheet BEFORE the old reply is removed, so declining
-    /// leaves the conversation as it was.
+    /// leaves the conversation as it was. The reply itself is removed by
+    /// `dispatch(regenerating:)` once the routed provider may take the turn,
+    /// so a provider that is switched off or has no key leaves it in place.
     func regenerateLast() {
         guard !isStreaming, !refusedWhileFloIsOff() else { return }
-        // Find the last assistant turn and drop it.
+        // Find the last assistant turn, the one to replace.
         guard let lastAssistantIndex = turns.lastIndex(where: { $0.role == .assistant }) else { return }
         // A reply the app gave on the device — the crisis line, a medical
         // refusal — is not a model answer to reroll. Regenerating one sent the
@@ -738,9 +767,7 @@ final class AssistantViewModel {
         // Must have a user turn before it to regenerate from.
         guard lastAssistantIndex > 0, turns[lastAssistantIndex - 1].role == .user else { return }
         guard !holdRegenerationForConsent(userText: turns[lastAssistantIndex - 1].text) else { return }
-        turns.remove(at: lastAssistantIndex)
-        store.save(turns)
-        dispatch()
+        dispatch(regenerating: turns[lastAssistantIndex].id)
     }
 
     /// True, with the consent sheet requested, when the selected provider has
@@ -755,7 +782,7 @@ final class AssistantViewModel {
 
     /// Add a turn's text (or any string) to the cross-session memory store.
     func remember(_ text: String) {
-        factsStore.add(text)
+        factsStore.add(text, origin: .user)
     }
 
     /// The "Refresh data context" menu action. The context itself is rebuilt

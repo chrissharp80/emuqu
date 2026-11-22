@@ -318,7 +318,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func psdCurvePath(_:freqToX:in:)": "164abc51c951a27b",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Charts.swift::func psdCurvePath(_:freqToX:in:)": "76cd304cb507742c",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "613fc1ee098a7dd3",
     "Emuqu/Sources/Views/ScoreRing.swift::var ScoreRing.Size.lineWidth": "119d9c17d64c8b25"
    }
@@ -547,25 +547,25 @@
   },
   {
    "key": "func psdCurvePath(_:freqToX:in:)",
-   "hash": "6e7787eab6dbe93d",
-   "does": "Builds the PSD curve path: each (freq, power) normalised by the maximum power to 90% of the graph height.",
+   "hash": "e7a9794c77bd46a9",
+   "does": "Builds the PSD curve path: each (freq, power) normalised by the maximum power to 90% of the graph height; an all-zero (or empty) spectrum normalises by 1, so it draws flat along the bottom instead of NaN points.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+2",
-     "cond": "psdData empty (max nil)",
-     "effect": "maxPower = 1 — unreachable from drawPSDGraph, which returns early on empty data"
+     "at": "+4",
+     "cond": "maximum power ≤ 0 or no bins",
+     "effect": "maxPower = 1"
     },
     {
-     "at": "+6",
+     "at": "+8",
      "cond": "for each bin",
      "effect": "adds one point"
     },
     {
-     "at": "+11",
+     "at": "+13",
      "cond": "first point",
      "effect": "move(to:); else addLine(to:)"
     }

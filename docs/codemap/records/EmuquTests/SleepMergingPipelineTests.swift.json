@@ -52,7 +52,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.clipIntervals(_:to:end:)": "ca7eb433764d66d9",
-    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "46cf8d8d2290f40e",
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "282d64c9cade85ef",
     "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.date(minutesAfter:)": "dfce073a5d1147b5",
     "EmuquTests/SleepMergingPipelineTests.swift::func SleepMergingPipelineTests.makeInterval(stage:start:durationMinutes:)": "a7e840e1704a591b"
    }
@@ -227,7 +227,31 @@
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)": "f493e4f1da71f444",
     "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.totalSleep": "61d2f431b27f328e",
     "Emuqu/Sources/Models/SleepDomain.swift::init SleepStageInterval(stage:start:end:provenance:)": "f6e5f489bd3b0b44",
-    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "46cf8d8d2290f40e"
+    "Emuqu/Sources/Models/SleepDomain.swift::var SleepStageInterval.durationMinutes": "282d64c9cade85ef"
+   }
+  },
+  {
+   "key": "func SleepMergingPipelineTests.testShortStagesAddUpToTheirWholeSpan()",
+   "hash": "b5343bcc6f23c83c",
+   "does": "Sixty back-to-back 29-second core/REM stages: asserts SleepResolver.totalMinutes is 29, the two halves' totals add up to 29, and accumulateStageMinutes' core + REM and totalSleep agree.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.totalMinutes(_:)",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each of 60 stages",
+     "effect": "alternating core and REM"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/SleepResolver.swift::func SleepResolver.totalMinutes(_:)": "65fbfa0850ac9426",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::func SleepMergingPipeline.accumulateStageMinutes(_:)": "f493e4f1da71f444",
+    "Emuqu/Sources/Collection/SleepMergingPipeline.swift::var StageMinutes.totalSleep": "61d2f431b27f328e"
    }
   },
   {

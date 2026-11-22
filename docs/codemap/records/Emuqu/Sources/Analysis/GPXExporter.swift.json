@@ -1,22 +1,24 @@
 {
  "file": "Emuqu/Sources/Analysis/GPXExporter.swift",
  "hash": "34d224932d0a0792",
- "role": "GPX 1.1 writer for workout sessions (metadata name/desc/time, one trk/trkseg of trkpts with ele/time) and the decoder that rebuilds [CLLocation] from the stored two-part Google polyline (coords + decimetre altitudes) with evenly spread synthetic timestamps; decode is used app-wide (exports, route matching, HealthKit route export, TRIMP backfill, AI facts).",
+ "role": "GPX 1.1 writer for workout sessions (metadata name/desc/time, one trk/trkseg of trkpts with ele/time) and the decoder that rebuilds [CLLocation] from the stored two-part Google polyline (coords + decimetre altitudes) with evenly spread synthetic timestamps; decode is used app-wide (exports, route matching, HealthKit route export, TRIMP backfill, AI facts). Also reads the fix times a workout stored beside its polyline (gpsFixTimes) and puts a decoded track back at them for the exports.",
  "types": [
   "GPXExporter: enum — GPX writer + polyline decoder"
  ],
  "state": [
-  "file:FileManager.temporaryDirectory/<sport.rawValue>-<yyyyMMdd-HHmmss UTC>.gpx (writeToTempFile)"
+  "file:tmp/Exports/<sport.rawValue>-<yyyyMMdd-HHmmss UTC>.gpx (writeToTempFile; pendingFile only builds it in memory)"
  ],
  "toplevel": "No stored state.",
  "units": [
   {
    "key": "func GPXExporter.export(session:track:)",
-   "hash": "66300fff0ec85634",
-   "does": "Builds a GPX 1.1 document: header with sport/start/summary desc, one trkpt per fix, closing tags.",
+   "hash": "ee75fdf3ea4a2cdd",
+   "does": "Builds a GPX 1.1 document: header with sport/start/summary desc (which says whether point times are recorded or spread evenly), one trkpt per fix — at its recorded time when the workout stored them (timedAsRecorded) — and closing tags.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:)",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.timedAsRecorded(_:metadata:)",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.recordedFixTimes(_:count:)",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:timesRecorded:)",
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.header(sport:started:summary:iso:)",
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.trackSegment(_:iso:)",
     "Emuqu/Sources/Models/Sport.swift::var Sport.displayName"
@@ -30,25 +32,32 @@
      "at": "+2",
      "cond": "workoutMetadata nil",
      "effect": "sport name 'Workout'"
+    },
+    {
+     "at": "+7",
+     "cond": "recorded fix times match the track",
+     "effect": "desc says the times are recorded; else that they are spread evenly"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.header(sport:started:summary:iso:)": "86b17673bbc40733",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:)": "d6c3888fdc6affa9",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.recordedFixTimes(_:count:)": "7f999ee4492b1930",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:timesRecorded:)": "93dab1f5dd9127f4",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.timedAsRecorded(_:metadata:)": "0f36649205f7793e",
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.trackSegment(_:iso:)": "d5f0e5b306f60e20",
     "Emuqu/Sources/Models/Sport.swift::var Sport.displayName": "e04a40813a53feb6"
    }
   },
   {
-   "key": "func GPXExporter.summaryDesc(session:)",
-   "hash": "47e4ddfd1baa16e2",
-   "does": "Builds the human-readable <desc>: preferred unit system, the recorded totals from summaryTotals (left out when none), and notes that payload is metric and point times are evenly spread.",
+   "key": "func GPXExporter.summaryDesc(session:timesRecorded:)",
+   "hash": "1c64123fd20a8683",
+   "does": "Builds the human-readable <desc>: preferred unit system, the recorded totals from summaryTotals (left out when none), that the payload is metric, and the point-times note (pointTimesNote: recorded fix times, or spread evenly so pauses don't show as stops).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryTotals(session:imperial:)"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryTotals(session:imperial:)",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.pointTimesNote(recorded:points:)"
    ],
    "reads": [
     "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup; legacy UserDefaults.standard fallback, migrated on read)"
@@ -67,10 +76,84 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.pointTimesNote(recorded:points:)": "9a5ebfdcf6a4badc",
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryTotals(session:imperial:)": "4a9b4fcd58f3a3a1",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "1c67a4466d2d6f0e",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47"
+   }
+  },
+  {
+   "key": "func GPXExporter.pointTimesNote(recorded:points:)",
+   "hash": "11e9ff8f069cd6cb",
+   "does": "The sentence an export writes about its point times, naming the points with `points`: that they are the times the GPS fixes were taken, or (not recorded) that they are spread evenly across the session so pauses don't appear as stops.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "recorded",
+     "effect": "recorded-times sentence; else spread-evenly sentence"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func GPXExporter.recordedFixTimes(_:count:)",
+   "hash": "2421efd55612cbd5",
+   "does": "Decodes the metadata's gpsFixTimes (polyline value encoding: the first fix's time in tenths of a second since the reference date, then deltas) into one Date per fix; nil when count is 0, there are none, the bytes are not UTF-8, a value is truncated, the running sum overflows, or their number is not `count`.",
+   "entry": "Called by the GPX and TCX exporters; tests call it directly.",
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decodeValue(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "count 0, no stored times, or not UTF-8",
+     "effect": "nil"
+    },
+    {
+     "at": "+6",
+     "cond": "truncated value",
+     "effect": "nil"
+    },
+    {
+     "at": "+8",
+     "cond": "overflow",
+     "effect": "nil"
+    },
+    {
+     "at": "+12",
+     "cond": "number of times differs from count",
+     "effect": "nil; else the times"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.decodeValue(_:_:)": "ca134df3640f7d6c"
+   }
+  },
+  {
+   "key": "func GPXExporter.timedAsRecorded(_:metadata:)",
+   "hash": "571a133e20d8f669",
+   "does": "The track with each fix's timestamp replaced by its recorded time (recordedFixTimes) and coordinate, altitude and accuracies kept; the track unchanged when no matching times are stored.",
+   "entry": "Called by the GPX, TCX and CSV exporters; tests call it directly.",
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.recordedFixTimes(_:count:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no matching recorded times",
+     "effect": "track unchanged"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.recordedFixTimes(_:count:)": "7f999ee4492b1930"
    }
   },
   {
@@ -163,7 +246,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.escape(_:)": "c9a0eea9ba8fff2d",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:)": "d6c3888fdc6affa9"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryDesc(session:timesRecorded:)": "93dab1f5dd9127f4"
    }
   },
   {
@@ -190,37 +273,55 @@
   },
   {
    "key": "func GPXExporter.writeToTempFile(session:track:)",
-   "hash": "d68303a7c46b679d",
-   "does": "Renders the GPX, writes it atomically to '<sport>-<UTC yyyyMMdd-HHmmss>.gpx' in the temp directory, logs size and point count; throws NSError if UTF-8 encoding fails.",
+   "hash": "88c679fb4fbfe810",
+   "does": "Renders the GPX, names it '<sport>-<UTC yyyyMMdd-HHmmss>.gpx' and writes it to the export folder through ExportFile.write (atomic, complete file protection; the same session's file is overwritten on the next export), logs the byte count and returns the URL; throws an NSError if UTF-8 encoding fails, and rethrows a write failure.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.pendingFile(session:track:)",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.Pending.write()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup; legacy UserDefaults.standard fallback, migrated on read)"
    ],
    "writes": [
-    "file:tmp/<sport>-<yyyyMMdd-HHmmss>.gpx"
+    "file:tmp/Exports/<sport>-<yyyyMMdd-HHmmss>.gpx"
    ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.pendingFile(session:track:)": "0e9b583d13e4c02c",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.Pending.write()": "1dc5315527542820",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func GPXExporter.pendingFile(session:track:)",
+   "hash": "9f358d248c597af7",
+   "does": "Renders the GPX in memory and names it '<sport>-<UTC yyyyMMdd-HHmmss>.gpx' (POSIX, Gregorian), returning it as an ExportFile.Pending that is written only when shared; throws an NSError if UTF-8 encoding fails.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup; legacy UserDefaults.standard fallback, migrated on read)"
+   ],
+   "writes": [],
    "branches": [
     {
      "at": "+2",
      "cond": "workoutMetadata nil",
-     "effect": "sport part 'workout'"
+     "effect": "filename sport part 'workout'"
     },
     {
-     "at": "+12",
+     "at": "+11",
      "cond": "UTF-8 encoding nil",
-     "effect": "throws NSError 'Couldn't create the GPX file.'; else writes"
+     "effect": "throws NSError (cannot happen for a Swift String); otherwise returns the pending export"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "2a2b0f442629724a",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.export(session:track:)": "6b561e87968ef008",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {

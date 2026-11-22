@@ -531,13 +531,16 @@ final class Alpha1StatsCache {
     static let shared = Alpha1StatsCache()
 
     /// The session id keeps two workouts with matching sample shapes from
-    /// sharing an entry.
+    /// sharing an entry. `alphaValuesHash` covers the α1 values themselves,
+    /// so a re-analysis that rewrites them in place misses the cache even
+    /// when no writer clears it.
     struct Key: Equatable {
         let sessionId: UUID
         let count: Int
         let firstAlphaOffset: Int?
         let lastAlphaOffset: Int?
         let alphaSampleCount: Int
+        let alphaValuesHash: Int
     }
 
     var cachedKey: Key?

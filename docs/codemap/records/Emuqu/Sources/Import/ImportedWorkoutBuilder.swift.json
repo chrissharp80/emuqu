@@ -1,10 +1,10 @@
 {
  "file": "Emuqu/Sources/Import/ImportedWorkoutBuilder.swift",
- "hash": "8251a97a077c296e",
+ "hash": "e9d81ff4f53dea17",
  "role": "Shared builder that turns an ImportedWorkoutTrack (GPX file, Apple Health workout, or Health passive-sample rebuild) into a complete workout HRVSession with per-second WorkoutSamples, encoded polyline and provenance; also defines the import Source labels and whether a session is pre-stamped as already in HealthKit.",
  "types": [
   "ImportedWorkoutTrack: struct — common importer output (dates, CLLocation track, HR and cadence samples, sport)",
-  "ImportedWorkoutBuilder: enum (@MainActor namespace)",
+  "ImportedWorkoutBuilder: enum (nonisolated namespace: reads only its arguments, the app language bundle and DeviceProvenance.current)",
   "ImportedWorkoutBuilder.Source: struct — deviceId, localized label, alreadyInHealthKit"
  ],
  "state": [],

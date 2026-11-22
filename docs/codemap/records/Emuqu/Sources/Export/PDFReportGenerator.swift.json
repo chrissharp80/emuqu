@@ -43,7 +43,7 @@
    "does": "Formats totalSleepMinutes as localized hours+minutes via LocalizedDuration.hoursMinutes.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)"
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)"
    ],
    "reads": [
     "mem:LanguageManager.appBundle"
@@ -51,7 +51,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
    }
   },
   {
@@ -60,7 +60,7 @@
    "does": "Maps deepSleepMinutes through LocalizedDuration.hoursMinutes; nil when deep sleep was not measured.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)"
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)"
    ],
    "reads": [
     "mem:LanguageManager.appBundle"
@@ -68,7 +68,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
    }
   },
   {
@@ -189,7 +189,7 @@
    "deps": {
     "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "423a33f01886bd16",
     "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.drawReportPages(_:in:pageRect:)": "df859e350dcd9821",
-    "Emuqu/Sources/Export/PDFReportGenerator.swift::func reportInputs(session:result:flags:health:liveLoadSnapshot:style:sections:)": "fcec79b62a161400",
+    "Emuqu/Sources/Export/PDFReportGenerator.swift::func reportInputs(session:result:flags:health:liveLoadSnapshot:style:sections:)": "9d405e71209d4702",
     "Emuqu/Sources/Export/PDFReportGenerator.swift::func reportRendererFormat()": "27a39a5d118aa825"
    }
   },
@@ -221,7 +221,7 @@
     "Emuqu/Sources/Export/PDFReportGenerator+DeepDiveForwarding.swift::var PDFReportGenerator.deepDive": "e485da0234977362",
     "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawDeepDivePages(_:pageNumber:in:pageRect:)": "e01b59fb7cab916d",
     "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawPage1_SummaryAndMetrics(_:pageNumber:in:pageRect:)": "aa07852069042b33",
-    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawPage2_Visualizations(_:series:pageNumber:in:pageRect:)": "ea273c35815e9066",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawPage2_Visualizations(_:series:pageNumber:in:pageRect:)": "12512e15cce82140",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.hasRawData": "8a0220387434a45f"
    }
   },
@@ -301,8 +301,8 @@
   },
   {
    "key": "func reportInputs(session:result:flags:health:liveLoadSnapshot:style:sections:)",
-   "hash": "922acdc82cb035ac",
-   "does": "Assembles ReportInputs: session.rrSeries as series, explicit flags else session.artifactFlags else [], hasRawData = series has points, the health context fields, the merged training context, the session's frozen context (trainingSnapshot ?? result.trainingContext), and — only when the session ended today — the caller's live load snapshot as adviceLiveLoad; style and sections.",
+   "hash": "563c9c8de90dfb5c",
+   "does": "Assembles ReportInputs: session.rrSeries as series, explicit flags else session.artifactFlags else [], hasRawData = series has points, the health context fields, one frozen load (session.trainingSnapshot ?? result.trainingContext) used both as the base of the merged training context and as frozenTrainingContext, and — only when the session ended today — the caller's live load snapshot as adviceLiveLoad; style and sections.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/PDFReportGenerator.swift::func mergedTrainingContext(frozen:live:session:)"
@@ -311,17 +311,22 @@
    "writes": [],
    "branches": [
     {
-     "at": "+12",
+     "at": "+11",
+     "cond": "trainingSnapshot nil",
+     "effect": "the result's training context is the frozen load"
+    },
+    {
+     "at": "+16",
      "cond": "flags argument nil / session.artifactFlags nil",
      "effect": "flags ?? session.artifactFlags ?? [] — no production caller passes flags (generateReportURL omits it), so session flags are used, and an empty array when the session has none"
     },
     {
-     "at": "+13",
+     "at": "+17",
      "cond": "series is nil",
      "effect": "hasRawData = false when no series; else true only if series.points non-empty"
     },
     {
-     "at": "+22",
+     "at": "+26",
      "cond": "session did not end today",
      "effect": "adviceLiveLoad is nil, so the summary and advice gate read the frozen load"
     }
@@ -329,7 +334,6 @@
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
     "Emuqu/Sources/Export/PDFReportGenerator.swift::func mergedTrainingContext(frozen:live:session:)": "0c92fc962237a474",
-    "Emuqu/Sources/Services/SessionAcceptanceService.swift::func SessionAcceptanceService.scoreBreakdown(result:session:inputs:training:useBaselineHRV:)": "9c1c51ce35bf3a6b",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.compositeRecoveryScore": "497254c576bf8794",
     "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleepTrend": "de2201cf5d984288"
    }

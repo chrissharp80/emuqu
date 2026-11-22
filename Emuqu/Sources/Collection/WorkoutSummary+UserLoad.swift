@@ -45,10 +45,17 @@ enum WorkoutLoadRestingHR {
     }
 
     /// Called by `fetchAppleRestingHR` with each value it reads and the
-    /// sample's date.
+    /// sample's date. Only a value measured after the one kept replaces it,
+    /// so a reanalysis of a past day, which reads the resting HR as it stood
+    /// then, does not put an older value in place of today's.
     static func record(_ value: Double, measuredAt: Date) {
         guard value.isFinite, value > 0 else { return }
-        lastAppleValue.withLock { $0 = (value, measuredAt) }
+        let isNewer = lastAppleValue.withLock { last in
+            guard last.map({ measuredAt > $0.at }) ?? true else { return false }
+            last = (value, measuredAt)
+            return true
+        }
+        guard isNewer else { return }
         UserDefaults.standard.set(["value": value, "at": measuredAt.timeIntervalSince1970], forKey: storeKey)
     }
 

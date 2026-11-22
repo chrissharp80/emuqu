@@ -14,10 +14,11 @@
  "units": [
   {
    "key": "func DeviceRecordingSession.startSession(sessionType:)",
-   "hash": "cb924abf9021833f",
-   "does": "Starts a device-internal recording: requires a connected strap, refreshes the strap's own recording status, refuses if already recording or the new id exists, starts the strap recording, publishes the session as collecting (phase .deviceRecording), then persists the recording marker, which records that phase.",
+   "hash": "67d6d46ee5eda782",
+   "does": "Starts a device-internal recording: refuses (alreadyRecording) while a night is paused or being ended, then requires a connected strap, refreshes the strap's own recording status, refuses if already recording or the new id exists, starts the strap recording, publishes the session as collecting (phase .deviceRecording), then persists the recording marker, which records that phase.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.requireConnectedWithNoNightHeld(starting:)",
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarManager.recording",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.refreshRecordingState(until:)",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
@@ -28,6 +29,8 @@
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.publishDeviceRecordingStarted(session:startTime:)"
    ],
    "reads": [
+    "mem:StreamingLifecycle.isPaused",
+    "mem:StreamingLifecycle.isEndingOvernight",
     "mem:PolarManager.connectionState",
     "mem:PolarManager.isRecordingOnDevice",
     "ble:H10 recording status"
@@ -40,16 +43,16 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "strap not connected",
-     "effect": "throws notConnected"
+     "cond": "a night is paused or being ended, or the strap is not connected (requireConnectedWithNoNightHeld)",
+     "effect": "throws alreadyRecording / notConnected, nothing changed"
     },
     {
-     "at": "+8",
+     "at": "+6",
      "cond": "strap reports it is already recording",
      "effect": "throws alreadyRecording"
     },
     {
-     "at": "+13",
+     "at": "+11",
      "cond": "reconciliation already knows the new session id",
      "effect": "throws sessionExists (fresh UUID, effectively never)"
     }
@@ -60,7 +63,7 @@
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.deviceRecordingProvenance()": "8ad396ecbfecacf4",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.publishDeviceRecordingStarted(session:startTime:)": "1b2e7f9fadbbb42e",
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.persistRecordingState(sessionId:startTime:sessionType:)": "819342ac0cbfaaea",
-    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.requireConnectedWithNoNightHeld(starting:)": "a91decde2547df2c",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
     "Emuqu/Sources/Collection/StrapRecordingCoordinator+Transfer.swift::func StrapRecordingCoordinator.refreshRecordingState(until:)": "abc5528e8c1bfe1e",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
@@ -122,11 +125,11 @@
   },
   {
    "key": "func DeviceRecordingSession.stopSession()",
-   "hash": "19abeb6e43aa2760",
-   "does": "Stop (and Retry): returns nil touching nothing while a night's ending is in progress (the ending downloads the strap itself); requires connection; then holds a background-task assertion from BackgroundTaskAssertion.forRecordingStop (\"DeviceRecordingStop\") until it returns and marks the persisted recording record stop-requested; resolves the session the recording belongs to, downloads the strap recording made since its start (attended budget), and assembles it; a failed download yields a failed session.",
+   "hash": "1b73328e7524cca9",
+   "does": "Stop (and Retry): returns nil touching nothing while a night's ending is in progress (the ending downloads the strap itself), and while a workout is live (its backup recording: sets lastError alreadyRecording); requires connection; then holds a background-task assertion from BackgroundTaskAssertion.forRecordingStop (\"DeviceRecordingStop\") until it returns and marks the persisted recording record stop-requested; resolves the session the recording belongs to, downloads the strap recording made since its start (attended budget), and assembles it; a failed download yields a failed session.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.strapRecordingIsHeldElsewhere(_:)",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.forRecordingStop(named:)",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.resolveBaseSession()",
@@ -139,6 +142,7 @@
    ],
    "reads": [
     "mem:StreamingLifecycle.isEndingOvernight",
+    "mem:RecorderBox.recorder",
     "mem:PolarManager.connectionState",
     "ble:H10 recording",
     "ud:UserDefaultsKeys.persistedRecordingState"
@@ -146,26 +150,27 @@
    "writes": [
     "ble:H10 stop/download",
     "mem:SessionState",
+    "mem:RRCollector.lastError",
     "ud:UserDefaultsKeys.persistedRecordingState"
    ],
    "branches": [
     {
      "at": "+1",
-     "cond": "a night's ending is in progress",
-     "effect": "log, return nil (no assertion, no stop mark)"
+     "cond": "a night's ending is in progress, or a workout is live (strapRecordingIsHeldElsewhere; the latter sets lastError)",
+     "effect": "return nil (no assertion, no stop mark); the strap is not touched"
     },
     {
-     "at": "+5",
+     "at": "+2",
      "cond": "strap not connected",
      "effect": "throws notConnected (no assertion, no stop mark)"
     },
     {
-     "at": "+17",
+     "at": "+13",
      "cond": "fetchRecording throws",
      "effect": "returns makeFailedSession; persisted marker otherwise untouched (stopRequestedAt stays set)"
     },
     {
-     "at": "+18",
+     "at": "+14",
      "cond": "no base session",
      "effect": "failed session built from a new HRVSession() (fresh id, start now)"
     }
@@ -176,13 +181,12 @@
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.assembleDownloadedSession(_:placement:)": "ee6e1cea850c7598",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.makeFailedSession(from:error:)": "aaa7e87cf786b79c",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.placement(for:base:)": "ec14f1fb166f80c4",
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.resolveBaseSession()": "8578c57125b0b40c",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.resolveBaseSession()": "026c81562857e3cb",
+    "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.strapRecordingIsHeldElsewhere(_:)": "a17708edaec5cd69",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
-    "Emuqu/Sources/Collection/StreamingLifecycle.swift::var StreamingLifecycle.isEndingOvernight": "5b2ad0671cdd7076",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()": "12e7c44b52c0986c",
-    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.forRecordingStop(named:)": "c3840e6ca84c5e4e",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.forRecordingStop(named:)": "c3840e6ca84c5e4e"
    }
   },
   {
@@ -452,8 +456,8 @@
   },
   {
    "key": "func DeviceRecordingSession.resolveBaseSession()",
-   "hash": "647f3a13b1ac47df",
-   "does": "Resolves the session a device recording belongs to: the current session, else the persisted recording marker, else a single unresolved overnight placeholder from the archive in the last 24 h; else nil.",
+   "hash": "4675e40ba1f60462",
+   "does": "Resolves the session a device recording belongs to: the current session when it is a device-internal recording (its provenance's recordingMode), else the persisted recording marker, else a single unresolved overnight placeholder from the archive in the last 24 h; else nil.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.getPersistedRecordingState()",
@@ -469,8 +473,8 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "collector.currentSession non-nil",
-     "effect": "returns it (whatever its state, e.g. a previous failed session on Retry)"
+     "cond": "collector.currentSession non-nil with deviceInternal provenance",
+     "effect": "returns it (whatever its state, e.g. a previous failed session on Retry); a quick reading or streamed night is passed over"
     },
     {
      "at": "+2",
@@ -682,7 +686,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "e6ebfa51ed45acda",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)": "0241edd84800b1f0",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },

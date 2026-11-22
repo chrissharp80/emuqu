@@ -43,12 +43,12 @@
   },
   {
    "key": "func AssistantActionConfirmationTests.factsStore(_:)",
-   "hash": "393c98f4d0e35638",
+   "hash": "2c4a0babd240d552",
    "does": "Builds a UserFactsStore on a file in tempDir and adds the given facts.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)"
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:origin:)"
    ],
    "reads": [],
    "writes": [
@@ -56,7 +56,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "ad454a3decd772f0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:origin:)": "7b073d2d38c04085",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "947446a062a66b08",
     "EmuquTests/AssistantActionConfirmationTests.swift::let AssistantActionConfirmationTests.tempDir": "f7d445d2bf08f1cc"
    }
@@ -78,7 +78,7 @@
    "deps": {
     "Emuqu/Sources/Models/EmailContact.swift::func EmailContactStore.add(_:)": "bf5d46125beaa0ed",
     "Emuqu/Sources/Models/EmailContact.swift::init EmailContact(id:name:email:notes:createdAt:)": "f94e054e920f3b1d",
-    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "63b9cdc3c31ed5ef",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "1cb1469d0e3cb8af",
     "EmuquTests/AssistantActionConfirmationTests.swift::let AssistantActionConfirmationTests.tempDir": "f7d445d2bf08f1cc"
    }
   },
@@ -386,7 +386,7 @@
   },
   {
    "key": "func AssistantActionConfirmationTests.testClearedMemoryCanBeRestored()",
-   "hash": "1dc128dd11a3b71c",
+   "hash": "17402d91c1a1fe4c",
    "does": "After a confirmed clear and a new fact, restoreClearedMemory brings the three facts back next to the new one and drops the backup.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
@@ -394,14 +394,14 @@
     "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.userSays(_:)",
     "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.clear(_:at:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.restoreClearedMemory(store:)",
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:origin:)",
     "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.field(_:_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:)": "ad454a3decd772f0",
+    "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.add(_:origin:)": "7b073d2d38c04085",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.restoreClearedMemory(store:)": "dc5d27748ca9d031",
     "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.asksForConfirmation(_:file:line:)": "6c151721f0aaab09",
     "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.clear(_:at:)": "a36349455a112dd7",
@@ -446,6 +446,127 @@
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.clearKeepingBackup()": "0d56d2132b416b5d",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::func UserFactsStore.restoreCleared()": "f5e4e6631a246f68",
     "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.factsStore(_:)": "9fc43e3ad82d134b"
+   }
+  },
+  {
+   "key": "func AssistantActionConfirmationTests.saveFact(_:to:)",
+   "hash": "36bb492c10592840",
+   "does": "Runs saveMemoryFact for the text against the given store and the test context.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.saveMemoryFact(_:store:context:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.saveMemoryFact(_:store:context:)": "54701a125aa0ead2",
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.context(at:)": "e247caab2eaf210c"
+   }
+  },
+  {
+   "key": "func AssistantActionConfirmationTests.addContact(_:_:to:)",
+   "hash": "696554caff607006",
+   "does": "Runs addContact(name:email:notes:store:context:) with no notes against the given store and the test context.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.addContact(name:email:notes:store:context:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.addContact(name:email:notes:store:context:)": "b394fa01954cff17",
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.context(at:)": "e247caab2eaf210c"
+   }
+  },
+  {
+   "key": "func AssistantActionConfirmationTests.testAFactTheUserStatedIsSavedWithoutAsking()",
+   "hash": "df9a319392702115",
+   "does": "After 'Remember I'm training for a marathon in October', saving 'Training for a marathon in October' is added at once and stored with origin .user.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.saveFact(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.factsStore(_:)": "9fc43e3ad82d134b",
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.field(_:_:)": "61f8c84ff842c116",
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.saveFact(_:to:)": "137b09181c4dd03a",
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.userSays(_:)": "8f2902bb8a01c7a9"
+   }
+  },
+  {
+   "key": "func AssistantActionConfirmationTests.testAFactFromAToolResultNeedsTheUsersYes()",
+   "hash": "32c5792507e1f5fa",
+   "does": "After 'Summarize this article for me', a fact the user never said asks for confirmation and saves nothing; after the user's 'yes' the same call saves it.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.saveFact(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.asksForConfirmation(_:file:line:)": "6c151721f0aaab09",
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.factsStore(_:)": "9fc43e3ad82d134b",
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.field(_:_:)": "61f8c84ff842c116",
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.saveFact(_:to:)": "137b09181c4dd03a",
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.userSays(_:)": "8f2902bb8a01c7a9"
+   }
+  },
+  {
+   "key": "func AssistantActionConfirmationTests.testAnUnconfirmedFactIsNeverSaved()",
+   "hash": "5493bd31560bea4f",
+   "does": "A fact the user did not state, asked about and followed by an unrelated message, still asks for confirmation and is never saved.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.saveFact(_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.asksForConfirmation(_:file:line:)": "6c151721f0aaab09",
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.factsStore(_:)": "9fc43e3ad82d134b",
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.saveFact(_:to:)": "137b09181c4dd03a",
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.userSays(_:)": "8f2902bb8a01c7a9"
+   }
+  },
+  {
+   "key": "func AssistantActionConfirmationTests.testAContactNeedsConfirmationUnlessTheUserGaveItsDetails()",
+   "hash": "8a264d2bbfb8740c",
+   "does": "A contact whose name and address the user typed is added at once; one from 'Add the sender of this email' asks first, is not added, and is added after 'Yes'.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.addContact(_:_:to:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.addContact(_:_:to:)": "fb22c99a57a58d92",
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.asksForConfirmation(_:file:line:)": "6c151721f0aaab09",
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.contactsStore(_:)": "59b65456efebd003",
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.status(_:)": "ea6d1597680b83c8",
+    "EmuquTests/AssistantActionConfirmationTests.swift::func AssistantActionConfirmationTests.userSays(_:)": "8f2902bb8a01c7a9"
+   }
+  },
+  {
+   "key": "func AssistantActionConfirmationTests.testStatedMeansTheUsersOwnWords()",
+   "hash": "c4fed765bc38e590",
+   "does": "isStated matches whole words ignoring case and punctuation (an email, a route name), not part of a word ('Chris' in 'Christina'), not absent text, not an empty value, not a nil message.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.isStated(_:in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.isStated(_:in:)": "c77ada2804e1ed94"
    }
   },
   {

@@ -24,10 +24,10 @@ enum HRVThresholds {
 
     /// Maximum acceptable signal-loss gap before the recording is rejected (ms)
     static let verificationMaxGapMs: Int64 = 5000
-    /// RR-interval drift warning threshold (ms over the recording)
+    /// RR-interval drift warning threshold (ms over the recording). Drift
+    /// only ever warns: an overnight's own heart-rate fall can exceed any
+    /// fixed rejection limit (`Verification.checkSignalQuality`).
     static let verificationDriftWarnMs: Double = 200
-    /// RR-interval drift rejection threshold (ms over the recording — electrode movement)
-    static let verificationDriftRejectMs: Double = 400
     /// Ectopic-beat percentage above which the recording is rejected
     static let verificationEctopyRejectPercent: Double = 10.0
     /// Ectopic-beat absolute count above which a warning is surfaced

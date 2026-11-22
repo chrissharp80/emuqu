@@ -355,7 +355,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.chatBubble(_:isLast:)": "123aeb7970a0cb0f",
+    "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.chatBubble(_:isLast:)": "448d94bdbab4aa08",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "a01cd2e51b02ad49",
     "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "699ce5740e639a1f"
    }
@@ -380,8 +380,9 @@
    ],
    "writes": [
     "file:Assistant/user_facts.json (remember → UserFactsStore.add)",
-    "conversation store via regenerateLast (store.save(turns), AssistantViewModel.swift:668)",
-    "mem:AssistantViewModel.turns (regenerateLast removes last assistant turn)"
+    "file:conversation.json (regenerateLast → dispatch(regenerating:), once the routed provider may take the turn)",
+    "mem:AssistantViewModel.turns (regenerateLast → dispatch(regenerating:) removes the last assistant reply once the routed provider may take the turn)",
+    "mem:AssistantViewModel.pendingConsentRequest (regenerateLast holds the regeneration when the provider still needs consent)"
    ],
    "branches": [
     {
@@ -391,8 +392,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.regenerateLast()": "6800edee4be5238e",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.remember(_:)": "a6c7e14e322e7ec3",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.regenerateLast()": "6084b3a6ea638bbe",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.remember(_:)": "5e9df3fbef5cbe0f",
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.copyToPasteboard(_:)": "1a51de76aa6ec467",
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.displayedText(of:)": "98d2827ea6a0e422",
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::func AssistantChatView.presentEmail(for:)": "2b2b010d95425acd",
@@ -863,7 +864,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(prefab:)": "a5a84cd775bb04db",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "72eb08e01b5dcafe",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "cff675f29892739e",
     "Emuqu/Sources/Assistant/Views/AssistantChatView+Sections.swift::var AssistantChatView.isAppleActive": "40e3bf52b5aec3b8",
     "Emuqu/Sources/Assistant/Views/AssistantChatView.swift::var AssistantChatView.viewModel": "a01cd2e51b02ad49"
    }

@@ -211,3 +211,29 @@ final class StoredItemDeleteTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: copy.path))
     }
 }
+
+/// A contact book that could not be read at launch (file protection before
+/// first unlock) is read again before a lookup, so a name in it is not
+/// reported unknown for the rest of the run. Unreadable is simulated with
+/// POSIX permissions; the book is plain JSON, which opens without the key.
+@MainActor
+final class EmailContactReloadTests: XCTestCase {
+    func testABookUnreadableAtLaunchIsReadAgainBeforeALookup() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("EmailContactReloadTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let url = dir.appendingPathComponent("email_contacts.json")
+        addTeardownBlock {
+            try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: url.path)
+            try FileManager.default.removeItem(at: dir)
+        }
+        try JSONEncoder().encode([EmailContact(name: "Pat Reload", email: "pat@example.com")]).write(to: url)
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: url.path)
+
+        let store = EmailContactStore(storeURL: url)
+        XCTAssertTrue(store.contacts.isEmpty, "The read is blocked at launch")
+        try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: url.path)
+
+        XCTAssertEqual(store.resolveNames("Pat Reload").resolved, ["pat@example.com"])
+    }
+}

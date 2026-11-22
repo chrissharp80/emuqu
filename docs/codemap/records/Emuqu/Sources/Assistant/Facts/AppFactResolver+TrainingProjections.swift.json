@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift",
- "hash": "42f627bddc9b2d35",
+ "hash": "2e5a8dc09b4f977c",
  "role": "Forward-looking half of the `training.*` fact namespace (TrainingLoadNamespace extension): weekly load totals, recovery hours, days-until-fresh, Riegel race predictions, Daniels pace zones, sport baselines and ATL/CTL projection/convergence primitives exposed to the AI assistant as FactEntry tools.",
  "types": [
   "TrainingLoadNamespace: extension — projection / fitness-tool FactEntry declarations and resolvers"
@@ -9,9 +9,10 @@
   "static let trainingSportBaselineSportDescription (AI tool description text)",
   "static let daysUntilAtlConvergesDescription (tells the model to take daily_trimp from training.load.trimp.by_date — the power-aware load unit of ATL/CTL — not workout.most_recent.snapshot's heart-rate trimp)",
   "static let trainingProjectFromParamsDescription",
-  "static let daysUntilConvergedFromDescription"
+  "static let daysUntilConvergedFromDescription",
+  "static let olderWorkoutScanLimit = 120 (workouts from before the 90-day window decoded for a race-prediction basis, newest first)"
  ],
- "toplevel": "Four static description strings are AI-facing tool documentation; no other top-level code.",
+ "toplevel": "Four static description strings are AI-facing tool documentation, plus olderWorkoutScanLimit (120); no other top-level code.",
  "units": [
   {
    "key": "var TrainingLoadNamespace.projectionEntries",
@@ -53,7 +54,7 @@
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingDaysUntilFreshEntry": "d6a2841ea17ddbf4",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingLoadWeeklyCurrentEntry": "d1a3092b4b76490d",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingLoadWeeklyLast4WeeksEntry": "c3893246add9d5c6",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingPaceZonesEntry": "681ddf682f467ea9",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingPaceZonesEntry": "1959a26d385ba063",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingRacePredictionsSportEntry": "132ef4799549bb3a",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingRecoveryHoursNeededEntry": "5b0b42b879abf71d",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::var TrainingLoadNamespace.trainingSportBaselineSportEntry": "cd6899cfb8511486"
@@ -304,13 +305,13 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.raceBasisRecord(_:)": "d1729fccbb492a8b",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.racePredictions(for:)": "0d66e6d854b8c4aa"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.racePredictions(for:)": "5fc4ea5a79c361b6"
    }
   },
   {
    "key": "func TrainingLoadNamespace.racePredictions(for:)",
-   "hash": "4c0338167f2ff4a1",
-   "does": "Loads the workouts started in the last RaceTimePrediction.recentWindowDays (90) and runs predictWithBasis on them; only when that yields nothing does it also load the older workouts and predict from all of them — the same result as predicting from all history (the predictor prefers the recent window) without decrypting it on the common path.",
+   "hash": "c2e162987238a737",
+   "does": "Loads the workouts started in the last RaceTimePrediction.recentWindowDays (90) and runs predictWithBasis on them; only when that yields nothing does it also load the newest olderWorkoutScanLimit (120) workouts from before the window and predict from recent + those, so a deep archive is never decoded whole (the resolver runs synchronously on the main actor for training.race_predictions).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.loadSessions(_:)",
@@ -325,7 +326,7 @@
     {
      "at": "+5",
      "cond": "recent workouts give a prediction",
-     "effect": "returns it; otherwise loads older workouts and predicts from recent + older"
+     "effect": "returns it; otherwise loads the newest 120 older workouts and predicts from recent + older"
     }
    ],
    "deps": {
@@ -365,11 +366,11 @@
   },
   {
    "key": "var TrainingLoadNamespace.trainingPaceZonesEntry",
-   "hash": "8125bf0070dc3085",
-   "does": "Declares fixed fact `training.pace_zones` whose resolver is resolveTrainingPaceZones; description gives the multipliers TrainingPaceZones.from5KPace uses (easy ×1.30, marathon ×1.15, threshold ×1.06, interval ×1.00, repetition ×0.93).",
+   "hash": "b10c99687ef8300b",
+   "does": "Declares async fixed fact `training.pace_zones`, resolved by resolveTrainingPaceZones in a detached task off the main actor (its race predictions decode archived workouts); description gives the multipliers TrainingPaceZones.from5KPace uses (easy ×1.30, marathon ×1.15, threshold ×1.06, interval ×1.00, repetition ×0.93). A synchronous registry.resolve of this key gets the awaitable-path refusal.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingPaceZones()"
    ],
    "reads": [],
@@ -377,7 +378,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.resolveTrainingPaceZones()": "2c4501189f7b612c",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "838aa75e67df46a0"
    }
   },
   {
@@ -403,7 +404,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func TrainingPaceZones.from(racePredictions:)": "c662e48e1214adda",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.racePredictions(for:)": "0d66e6d854b8c4aa"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+TrainingProjections.swift::func TrainingLoadNamespace.racePredictions(for:)": "5fc4ea5a79c361b6"
    }
   },
   {

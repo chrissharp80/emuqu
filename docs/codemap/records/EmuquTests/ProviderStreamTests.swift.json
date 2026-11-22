@@ -1064,6 +1064,30 @@
    }
   },
   {
+   "key": "func GeminiEndOfStreamTests.testBlockedPromptIsABlockedReply()",
+   "hash": "7412ab78e742a693",
+   "does": "A promptFeedback.blockReason chunk (SAFETY, BLOCKLIST, PROHIBITED_CONTENT, OTHER) ends the stream as blockedReply(\"gemini: <reason>\"), which is not fallbackable.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)",
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isFallbackable"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each block reason",
+     "effect": "replay it and assert a blocked reply"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isFallbackable": "282db2562f4830f6",
+    "EmuquTests/ProviderStreamTests.swift::func GeminiEndOfStreamTests.replay(_:)": "cf41e587b2d8564d",
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.blockedReply": "16010666bd820a08"
+   }
+  },
+  {
    "key": "func GeminiEndOfStreamTests.testMalformedFunctionCallDoesNotRunATool()",
    "hash": "98d514fb99197691",
    "does": "A MALFORMED_FUNCTION_CALL chunk that also carries a get_sleep functionCall part emits no .toolUse and throws 'Gemini sent a malformed function call'.",
@@ -1744,6 +1768,96 @@
    "branches": [],
    "deps": {
     "EmuquTests/ProviderStreamTests.swift::func PartialReplyTests.settled(_:fallbackText:)": "cafab9e03f9a395e"
+   }
+  },
+  {
+   "key": "func PartialReplyTests.toolExchange(_:)",
+   "hash": "332f14969bfd16a8",
+   "does": "A ToolExchange for the tool name with empty JSON input and result.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func PartialReplyTests.testOnlyAMutatingToolKeepsTheTurnFromStartingOverElsewhere()",
+   "hash": "81cb358c4a312992",
+   "does": "ranMutatingTool is false for read tools and web_search and for no rounds, true once assistant_contacts_add or assistant_email_compose ran.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ranMutatingTool(_:)",
+    "EmuquTests/ProviderStreamTests.swift::func PartialReplyTests.toolExchange(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ranMutatingTool(_:)": "076186885deb6e6e",
+    "EmuquTests/ProviderStreamTests.swift::func PartialReplyTests.toolExchange(_:)": "f762afc17312bf82"
+   }
+  },
+  {
+   "key": "func PartialReplyTests.testEveryMutationToolThePromptNamesIsTreatedAsMutating()",
+   "hash": "39dc9cee693f0bd8",
+   "does": "Both directions: every non-artifact name in mutatingToolNames appears, backticked, in the tool overlay's text; and every backticked name in the overlay's MUTATION TOOLS list (between 'MUTATION TOOLS' and 'Their descriptions start', which must both be found, with at least one name) is in mutatingToolNames.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each non-artifact mutating tool",
+     "effect": "assert the overlay names it"
+    },
+    {
+     "at": "+13",
+     "cond": "for each tool the MUTATION TOOLS list names",
+     "effect": "assert mutatingToolNames contains it"
+    }
+   ],
+   "deps": {
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "699ce5740e639a1f"
+   }
+  },
+  {
+   "key": "func PartialReplyTests.testSummaryBatchFitsTheProvidersHistoryBudget()",
+   "hash": "b82aa49ec3e6ca1e",
+   "does": "From 40 turns of 400 characters, Apple's summary batch is the oldest prefix, non-empty, shorter than the input and within the history budget.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.summaryBatch(_:provider:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.estimateTokens(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "9a474c3f1ee99094",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)": "e3b46c70fc101f71",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.estimateTokens(_:)": "7cc0913bb85c3f93",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.summaryBatch(_:provider:)": "7015c0c0acba3a85"
+   }
+  },
+  {
+   "key": "func PartialReplyTests.testAnOversizedTurnIsCutToTheBudget()",
+   "hash": "dc351ca6ac3bcd73",
+   "does": "A single turn ten times the budget still forms a batch of itself, cut to budget × 4 characters, id kept.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.summaryBatch(_:provider:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::init ChatTurn(id:role:text:createdAt:providerID:modelID:subsystem:routedTierRaw:localOnly:)": "9a474c3f1ee99094",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.conversationTokenBudget(for:)": "e3b46c70fc101f71",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func AssistantViewModel.summaryBatch(_:provider:)": "7015c0c0acba3a85"
    }
   },
   {

@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift",
- "hash": "b6033d47b1ca797c",
+ "hash": "79939d2738090b8c",
  "role": "@MainActor process-lifetime singleton cache of per-session Beat Consistency nightly feature medians (and ids known to yield none), persisted to two JSON files in Caches, warmed by a single deduped background walk that decrypts archived sessions, and pruned via .flowRecoveryArchiveChanged.",
  "types": [
   "BeatConsistencyPriorsCache: class (@MainActor, final) — features cache + warm-up walk",
@@ -15,7 +15,7 @@
   "mem:BeatConsistencyPriorsCache.queuedIds ([UUID] ids waiting for the warm-up walk)",
   "mem:BeatConsistencyPriorsCache.entryOrder ([UUID] insertion order)",
   "mem:BeatConsistencyPriorsCache.entryCap (static let 200)",
-  "file:Caches/beat_consistency_priors.json (diskURL; ordered [{id, features}] array, legacy [UUID: Features] still read; sealed with the app's key, plain JSON from builds that did not seal it still opens)",
+  "file:Caches/beat_consistency_priors_v2.json (diskURL; the earlier beat_consistency_priors*.json are removed at launch; ordered [{id, features}] array, legacy [UUID: Features] still read; sealed with the app's key, plain JSON from builds that did not seal it still opens)",
   "file:Caches/beat_consistency_priors_featureless.json (featurelessURL; sealed like the features file)",
   "mem:BeatConsistencyPriorsCache.notificationToken",
   "mem:BeatConsistencyPriorsCache.boundArchive (weak SessionArchive)",
@@ -27,8 +27,8 @@
  "units": [
   {
    "key": "let BeatConsistencyPriorsCache.diskURL",
-   "hash": "dec47bc2c5dfbb07",
-   "does": "Resolves Caches directory (temporary directory if none) + beat_consistency_priors.json.",
+   "hash": "66724fa792e0d39e",
+   "does": "Resolves Caches directory (temporary directory if none) + beat_consistency_priors_v2.json (v2: features on the beat clock with neighbour-only differences).",
    "entry": "Stored-property initializer run when the singleton is created",
    "calls": [],
    "reads": [],
@@ -46,38 +46,66 @@
   },
   {
    "key": "var BeatConsistencyPriorsCache.featurelessURL",
-   "hash": "b568c130d80ccc6a",
-   "does": "Sibling URL beat_consistency_priors_featureless.json next to diskURL.",
+   "hash": "db9bf1bf79bf76af",
+   "does": "Sibling URL beat_consistency_priors_v2_featureless.json next to diskURL.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::let BeatConsistencyPriorsCache.diskURL": "f742a9029951dea9"
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::let BeatConsistencyPriorsCache.diskURL": "8a3d605c01d2cb8a"
    }
   },
   {
    "key": "init BeatConsistencyPriorsCache()",
-   "hash": "dd9a9f33d29e5441",
-   "does": "Private init: loads features and featureless ids from disk.",
+   "hash": "94832d146c07ae29",
+   "does": "Private init: removes the earlier builds' feature files, then loads features and featureless ids from disk.",
    "entry": "First access of BeatConsistencyPriorsCache.shared (AppDependencies.swift:470)",
    "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.removeLegacyFiles()",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.loadFromDisk()",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.loadFeaturelessFromDisk()"
    ],
    "reads": [
-    "file:Caches/beat_consistency_priors.json",
+    "file:Caches/beat_consistency_priors_v2.json",
     "file:Caches/beat_consistency_priors_featureless.json"
    ],
    "writes": [
-    "mem:BeatConsistencyPriorsCache.entries",
-    "mem:BeatConsistencyPriorsCache.featureless"
+    "file:Caches/beat_consistency_priors.json (removed)",
+    "file:Caches/beat_consistency_priors_featureless.json (removed)"
    ],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.loadFeaturelessFromDisk()": "232a327a9d8a87e5",
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.loadFromDisk()": "fd45509e008371fb"
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.loadFromDisk()": "ed250370542fc5e1",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.removeLegacyFiles()": "16481383cadcdc5a"
+   }
+  },
+  {
+   "key": "func BeatConsistencyPriorsCache.removeLegacyFiles()",
+   "hash": "14ee1a3c8a07fb27",
+   "does": "Deletes beat_consistency_priors.json and beat_consistency_priors_featureless.json (earlier builds' features, computed differently) when present; a failure is logged by attempt and leaves them unread.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.removeItem(at:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:Caches/beat_consistency_priors.json",
+    "file:Caches/beat_consistency_priors_featureless.json"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "file absent",
+     "effect": "skipped"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::let BeatConsistencyPriorsCache.diskURL": "8a3d605c01d2cb8a",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {
@@ -142,7 +170,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.invalidate(_:)": "f89aa7362778f073",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.invalidate(_:)": "8b780c880ac9d961",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.reconcileAgainstBoundArchive()": "795017ba06cd63b1"
    }
   },
@@ -184,7 +212,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.persistToDisk()": "426078366b31ca4b",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.persistToDisk()": "f6849ccb24ca1d43",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6"
    }
   },
@@ -212,7 +241,7 @@
    "reads": [],
    "writes": [
     "mem:BeatConsistencyPriorsCache.entries",
-    "file:Caches/beat_consistency_priors.json",
+    "file:Caches/beat_consistency_priors_v2.json",
     "file:Caches/beat_consistency_priors_featureless.json"
    ],
    "branches": [
@@ -229,7 +258,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.features(for:)": "c905bceea1190e17",
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.persistToDisk()": "426078366b31ca4b"
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.persistToDisk()": "f6849ccb24ca1d43"
    }
   },
   {
@@ -244,7 +273,7 @@
    "writes": [
     "mem:BeatConsistencyPriorsCache.entries",
     "mem:BeatConsistencyPriorsCache.featureless",
-    "file:Caches/beat_consistency_priors.json",
+    "file:Caches/beat_consistency_priors_v2.json",
     "file:Caches/beat_consistency_priors_featureless.json"
    ],
    "branches": [
@@ -255,7 +284,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.persistToDisk()": "426078366b31ca4b"
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.persistToDisk()": "f6849ccb24ca1d43"
    }
   },
   {
@@ -378,10 +407,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.baselineFeatures(from:)": "413751dff99a6a6d",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.baselineFeatures(from:)": "aa8e7f2606c70f27",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.features(for:)": "c905bceea1190e17",
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.markFeatureless(_:)": "12b93ad9bdf3d4e8",
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.store(_:for:)": "3541edd0d4523368",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.markFeatureless(_:)": "1bcba35f8e101fff",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.store(_:for:)": "84383a904359f8c0",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f"
    }
@@ -398,7 +427,7 @@
    "writes": [
     "mem:BeatConsistencyPriorsCache.featureless",
     "mem:BeatConsistencyPriorsCache.featurelessOrder",
-    "file:Caches/beat_consistency_priors.json",
+    "file:Caches/beat_consistency_priors_v2.json",
     "file:Caches/beat_consistency_priors_featureless.json"
    ],
    "branches": [
@@ -414,18 +443,18 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.persistToDisk()": "426078366b31ca4b"
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.persistToDisk()": "f6849ccb24ca1d43"
    }
   },
   {
    "key": "func BeatConsistencyPriorsCache.baselineFeatures(from:)",
-   "hash": "605a539a32297e75",
-   "does": "Scores a stored session with no baseline over its sleep window and returns the nightly medians when the night feeds the baseline.",
+   "hash": "e87a5b06f9f389ea",
+   "does": "Scores a stored session with no baseline over its sleep window placed on the beats' clock (BeatConsistency.sleepWindowOnBeatClock) and returns the nightly medians when the night feeds the baseline.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.sleepWindowOnBeatClock(sleepStartMs:sleepEndMs:series:sessionStart:)",
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::var BeatConsistency.State.feedsBaseline",
-    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::var BeatConsistency.State.feedsBaseline"
    ],
    "reads": [],
    "writes": [],
@@ -436,30 +465,21 @@
      "effect": "nil"
     },
     {
-     "at": "+4",
+     "at": "+7",
      "cond": "artifactFlags nil",
      "effect": "[] → all beats treated clean"
     },
     {
-     "at": "+5",
-     "cond": "sleepStartMs nil",
-     "effect": "0"
-    },
-    {
-     "at": "+6",
-     "cond": "sleepEndMs nil",
-     "effect": "series.durationMs"
-    },
-    {
-     "at": "+10",
+     "at": "+13",
      "cond": "state feeds baseline",
      "effect": "medians; else nil"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.score(rr:flags:sleepStartMs:sleepEndMs:baseline:config:)": "094983fccfea6c40",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.sleepWindowOnBeatClock(sleepStartMs:sleepEndMs:series:sessionStart:)": "fb1deeaba93066d0",
     "Emuqu/Sources/Analysis/BeatConsistency.swift::var BeatConsistency.State.feedsBaseline": "3268badba634fc45",
-    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "b8e2a1bd40019ca9"
+    "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417"
    }
   },
   {
@@ -517,7 +537,7 @@
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::init BeatConsistencyPriorsCache.StoredEntries(from:)"
    ],
    "reads": [
-    "file:Caches/beat_consistency_priors.json",
+    "file:Caches/beat_consistency_priors_v2.json",
     "kc:AppConfig.keychainService / session-encryption-key[-vN]"
    ],
    "writes": [
@@ -568,7 +588,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::var BeatConsistencyPriorsCache.featurelessURL": "af710bece9e022fb",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::var BeatConsistencyPriorsCache.featurelessURL": "17b1aa3a65c25d25",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)": "31bc2aea46cfe8ad",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
@@ -588,16 +608,16 @@
     "mem:BeatConsistencyPriorsCache.featurelessOrder"
    ],
    "writes": [
-    "file:Caches/beat_consistency_priors.json",
+    "file:Caches/beat_consistency_priors_v2.json",
     "file:Caches/beat_consistency_priors_featureless.json",
     "mem:BeatConsistencyPriorsCache.pendingWrite"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.write(_:to:)": "043f7f3c1d5246d9",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::func BeatConsistencyPriorsCache.write(_:to:)": "b413d1f99ccc94ad",
     "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::init BeatConsistencyPriorsCache.StoredEntries(entries:)": "1803e5bf8eada5ae",
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::let BeatConsistencyPriorsCache.diskURL": "f742a9029951dea9",
-    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::var BeatConsistencyPriorsCache.featurelessURL": "af710bece9e022fb"
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::let BeatConsistencyPriorsCache.diskURL": "8a3d605c01d2cb8a",
+    "Emuqu/Sources/Analysis/BeatConsistencyPriorsCache.swift::var BeatConsistencyPriorsCache.featurelessURL": "17b1aa3a65c25d25"
    }
   },
   {
@@ -614,7 +634,7 @@
     "kc:AppConfig.keychainService / session-encryption-key[-vN]"
    ],
    "writes": [
-    "file:Caches/beat_consistency_priors.json",
+    "file:Caches/beat_consistency_priors_v2.json",
     "file:Caches/beat_consistency_priors_featureless.json"
    ],
    "branches": [

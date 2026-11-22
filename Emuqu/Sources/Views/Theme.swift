@@ -455,7 +455,8 @@ enum AppTheme {
         case "composite": String(localized: "Streamed + Strap", bundle: LanguageManager.appBundle)
         case "internal": String(localized: "Strap", bundle: LanguageManager.appBundle)
         case "streaming": String(localized: "Streamed", bundle: LanguageManager.appBundle)
-        default: source.capitalized
+        // Not shown raw: the key is internal English text.
+        default: String(localized: "Unknown", bundle: LanguageManager.appBundle)
         }
     }
 

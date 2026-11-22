@@ -191,7 +191,7 @@ extension MorningProcessingService {
         sleepSchedule: SleepSchedule
     ) async {
         if result.sleepStartMs == nil, result.sleepBoundarySource != .healthKit,
-           let hrEstimate = healthKit.estimateSleepFromRR(
+           let hrEstimate = await healthKit.estimateSleepFromRR(
                rrPoints: series.points, recordingStart: effectiveStartDate
            ) {
             Self.applyEstimate(

@@ -375,9 +375,13 @@ private func drawPSDBand(
     UIBezierPath(rect: bandRect).fill()
 }
 
+/// The PSD curve, each bin's power over the peak. An all-zero spectrum (a
+/// constant RR window) draws flat along the bottom rather than dividing by
+/// zero into NaN points.
 private func psdCurvePath(_ psdData: [(Double, Double)], freqToX: (Double) -> CGFloat, in graphRect: CGRect) -> UIBezierPath {
     let graphHeight = graphRect.height
-    let maxPower = psdData.map(\.1).max() ?? 1
+    let peak = psdData.map(\.1).max() ?? 0
+    let maxPower = peak > 0 ? peak : 1
     let path = UIBezierPath()
     var first = true
 

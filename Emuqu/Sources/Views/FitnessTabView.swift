@@ -61,11 +61,14 @@ struct FitnessTabView: View {
     /// `interruptedRecordingCard` — the app telling the user its own recording
     /// failed and can be rebuilt, instead of waiting to be asked.
     @State var interruptedRecordings: [HealthWorkoutImporter.InterruptedSession] = []
-    /// Trailing GPX-download share state. Generated
-    /// on demand off-main; presented via system share sheet so the
-    /// user can save / mail / AirDrop the latest workout track.
-    @State var gpxShareURL: URL?
-    @State var gpxSharePresented: Bool = false
+    /// Bumped by every interrupted-recording scan; only the newest one lands.
+    @State var interruptedScanGeneration = 0
+    /// Trailing GPX-download share state. The file is written on demand
+    /// off-main when the preview opens and lives until the preview closes:
+    /// shared through the system share sheet (and deleted when that closes)
+    /// if Send was tapped, deleted at once if not.
+    @State var gpxFile: URL?
+    @State var gpxSendTapped = false
     /// User-requested GPX preview before the
     /// share sheet. Holds the decoded track + temp-file URL while
     /// the preview sheet is up; the sheet's "Send" button dismisses
@@ -117,12 +120,20 @@ struct FitnessTabView: View {
     /// hero picks up "Re-smooth elevation" / "Re-analyze α1" rewrites
     /// without the user having to close and reopen the tab.
     @State var latestWorkoutSession: HRVSession?
+    /// `latestWorkoutSession`'s GPS route, decoded off the main actor with it.
+    @State var latestWorkoutRoute: [CLLocation] = []
     @State var latestWorkoutLoadFailed = false
     /// A tapped Recent workout couldn't be read; drives the load-failure alert.
     @State var recentWorkoutLoadFailed = false
-    /// A workout could not be moved to the Trash; drives the alert on its
-    /// summary sheet.
+    /// A workout could not be moved to the Trash from its summary sheet;
+    /// drives the alert on that sheet.
     @State var workoutDeleteFailed = false
+    /// The Recent workout whose context-menu Delete is waiting for the
+    /// confirmation; nil when none is.
+    @State var pendingRecentDeleteId: UUID?
+    /// A Recent workout could not be moved to the Trash from the list (no
+    /// sheet open); drives the tab's own alert, not the sheet's.
+    @State var recentWorkoutDeleteFailed = false
 
     /// Unit preference shortcut, read from UnitsPreferenceStore on every
     /// access. Every distance on the tab formats through this, so a km/mi
@@ -239,8 +250,21 @@ struct FitnessTabView: View {
     }
 
     private func deleteFromSummary(_ item: WorkoutSummaryItem) {
-        guard deleteWorkout(item.session.id) else { return }
-        if item.isJustCompleted { recorderBox.recorder?.acknowledgeFinished() }
+        Task {
+            guard await deleteWorkout(item.session.id) else {
+                workoutDeleteFailed = true
+                return
+            }
+            if item.isJustCompleted { recorderBox.recorder?.acknowledgeFinished() }
+        }
+    }
+
+    /// The confirmed context-menu delete from the Recent list. A failure
+    /// raises the tab's alert, so it shows now and never later on a sheet.
+    func deleteRecentWorkout(_ id: UUID) {
+        Task {
+            if !(await deleteWorkout(id)) { recentWorkoutDeleteFailed = true }
+        }
     }
 
     private var startErrorBinding: Binding<Bool> {
@@ -391,10 +415,11 @@ struct FitnessTabView: View {
         getMeBackCard
     }
 
-    /// Title, accessibility handle, toolbar, the two tab-lifecycle hooks, and
-    /// the alert for a Recent workout that couldn't be read.
+    /// Title, accessibility handle, toolbar, the two tab-lifecycle hooks, the
+    /// alert for a Recent workout that couldn't be read, and the Recent list's
+    /// delete confirmation and its failure alert.
     private func withFitnessChrome(_ content: some View) -> some View {
-        content
+        withRecentDeleteDialogs(content)
             .sheet(isPresented: Bindable(planModel).sensorSheetPresented) { sensorSheet }
             .task { await loadFitnessHomeData() }
             .navigationTitle(String(localized: "Fitness", bundle: LanguageManager.appBundle))
@@ -403,6 +428,35 @@ struct FitnessTabView: View {
             .alert(String(localized: "Couldn't load this workout.", bundle: LanguageManager.appBundle), isPresented: $recentWorkoutLoadFailed) {
                 Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) { recentWorkoutLoadFailed = false }
             }
+    }
+
+    /// The Recent list's context-menu delete asks first; a failed delete is
+    /// alerted from the tab, where the user is.
+    private func withRecentDeleteDialogs(_ content: some View) -> some View {
+        content
+            .confirmationDialog(
+                String(localized: "Delete this workout?", bundle: LanguageManager.appBundle),
+                isPresented: recentDeleteBinding,
+                titleVisibility: .visible,
+                presenting: pendingRecentDeleteId
+            ) { id in
+                Button(String(localized: "Delete Workout", bundle: LanguageManager.appBundle), role: .destructive) {
+                    deleteRecentWorkout(id)
+                }
+                Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
+            } message: { _ in
+                Text(String(localized: "This moves the reading to the Trash. You can restore it from Settings → iCloud & Data → Trash.", bundle: LanguageManager.appBundle))
+            }
+            .alert(String(localized: "Couldn't delete this reading. Try again.", bundle: LanguageManager.appBundle), isPresented: $recentWorkoutDeleteFailed) {
+                Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) { recentWorkoutDeleteFailed = false }
+            }
+    }
+
+    private var recentDeleteBinding: Binding<Bool> {
+        Binding(
+            get: { pendingRecentDeleteId != nil },
+            set: { if !$0 { pendingRecentDeleteId = nil } }
+        )
     }
 
     /// Sensor-management sheet — opens when the user taps the
@@ -422,7 +476,8 @@ struct FitnessTabView: View {
     /// First-load work for the tab. The cached snapshot paints instantly, the
     /// training-load warm is fire-and-forget, and the HealthKit aggregates are
     /// awaited last.
-    /// `reloadInterruptedRecordings()` runs FIRST, before any `await`. It is a
+    /// `reloadInterruptedRecordings()` starts FIRST, before any `await` (its
+    /// scan runs on a detached task and is not awaited here). It is a
     /// local archive read with no HealthKit or CoreMotion dependency, and it
     /// drives the card that tells a user their recording died. Ordering it after
     /// the awaits below made it the one thing on this screen that a slow
@@ -478,13 +533,11 @@ struct FitnessTabView: View {
 
     private func withGPXSheets(_ content: some View) -> some View {
         content
-            .sheet(isPresented: gpxShareBinding, onDismiss: { gpxShareURL = nil }, content: { gpxShareSheet })
             // GPX preview sheet (user-requested
             // "I'm not able to preview first"). Shows the decoded route
             // on a map + summary stats; "Send" inside the sheet opens
-            // the system share. Dismissing without tapping Send keeps
-            // the temp .gpx file on disk for next time (cleaned up by
-            // the OS on temp-dir purge).
+            // the system share once the preview has gone. Dismissing
+            // without tapping Send deletes the .gpx file.
             .sheet(item: $gpxPreviewPayload, onDismiss: { presentPendingGPXShare() }, content: { gpxPreviewSheet($0) })
             .alert(String(localized: "Export", bundle: LanguageManager.appBundle), isPresented: Binding(
                 get: { exportMessage != nil },
@@ -496,38 +549,32 @@ struct FitnessTabView: View {
             }
     }
 
-    /// Presented only while there is a URL to share, so the sheet can never
-    /// come up empty.
-    private var gpxShareBinding: Binding<Bool> {
-        Binding(
-            get: { gpxSharePresented && gpxShareURL != nil },
-            set: { gpxSharePresented = $0 }
-        )
-    }
-
-    @ViewBuilder
-    private var gpxShareSheet: some View {
-        if let url = gpxShareURL {
-            ShareSheet(activityItems: [url])
-        }
-    }
-
     private func gpxPreviewSheet(_ payload: GPXPreviewPayload) -> some View {
         GPXPreviewSheet(payload: payload) { shareGPXAfterPreview(payload) }
     }
 
-    /// Send tapped: remember the URL and dismiss the preview. The share sheet
-    /// is presented from the preview's `onDismiss`, once its dismissal has
+    /// Send tapped: note it and dismiss the preview. The share sheet is
+    /// presented from the preview's `onDismiss`, once its dismissal has
     /// finished, rather than after a guessed delay.
     private func shareGPXAfterPreview(_ payload: GPXPreviewPayload) {
-        gpxShareURL = payload.url
+        gpxFile = payload.url
+        gpxSendTapped = true
         gpxPreviewPayload = nil
     }
 
-    /// Preview dismissed: share if Send set a URL; a plain dismissal leaves
-    /// none (the share sheet's own dismissal clears it).
+    /// Preview dismissed: after Send, the file goes to the system share sheet
+    /// (`presentFileShareSheet`), which deletes it once it closes; after a
+    /// plain dismissal, or with nothing to present from, it is deleted now.
     private func presentPendingGPXShare() {
-        if gpxShareURL != nil { gpxSharePresented = true }
+        guard let file = gpxFile else { return }
+        let send = gpxSendTapped
+        gpxFile = nil
+        gpxSendTapped = false
+        guard send, let presenter = topmostPresenter() else {
+            _ = attempt("FitnessTabView.removeUnsentGPX") { try FileManager.default.removeItem(at: file) }
+            return
+        }
+        presentFileShareSheet(file, title: nil, from: presenter)
     }
 
     private func withFitnessImports(_ content: some View) -> some View {
@@ -581,15 +628,14 @@ struct FitnessTabView: View {
 
     /// Moves the workout to the Trash the way History does
     /// (`SessionTrash.move`) and closes its summary sheet. False when the
-    /// archive could not move it: the sheet stays open and an alert says so
-    /// (`workoutDeleteFailed`).
-    @discardableResult
-    func deleteWorkout(_ id: UUID) -> Bool {
+    /// archive could not move it; the caller raises the alert where the user
+    /// is (the sheet's `workoutDeleteFailed`, or the tab's
+    /// `recentWorkoutDeleteFailed`).
+    func deleteWorkout(_ id: UUID) async -> Bool {
         do {
-            try SessionTrash.move(id, collector: collector, cloudKit: dependencies.storage.cloudKitSyncManager)
+            try await SessionTrash.move(id, collector: collector, cloudKit: dependencies.storage.cloudKitSyncManager)
         } catch {
             debugLog("[Fitness] Failed to delete workout \(id): \(error)", level: .error)
-            workoutDeleteFailed = true
             return false
         }
         if selectedHistorySession?.id == id { selectedHistorySession = nil }
@@ -623,6 +669,8 @@ struct FitnessTabView: View {
             exportMessage = String(localized: "Couldn't decode GPS track for export.", bundle: LanguageManager.appBundle)
             return
         }
+        gpxFile = url
+        gpxSendTapped = false
         gpxPreviewPayload = GPXPreviewPayload(url: url, track: track, session: session)
     }
 
@@ -689,30 +737,45 @@ struct FitnessTabView: View {
     /// Health import uses — so it can't count twice in training load. The
     /// reported duration is capped at 48 h like the session's samples, so one
     /// bad timestamp can't print millions of minutes.
+    ///
+    /// The read, parse and archive write run on a detached task
+    /// (`importGPXFile`), not the main actor; only the message lands here.
     private func importGPX(from url: URL) {
+        let archive = collector.archive
+        let starts = archive.entries.filter { $0.sessionType == .workout }.map(\.date)
+        Task {
+            let outcome = await Task.detached(priority: .userInitiated) {
+                Self.importGPXFile(url, archive: archive, existingStarts: starts)
+            }.value
+            switch outcome {
+            case .duplicate:
+                importMessage = String(localized: "This workout is already in your history, so it wasn't imported again.", bundle: LanguageManager.appBundle)
+            case .imported(let sport, let dur, let points):
+                collector.notifyArchiveChanged()
+                importMessage = String(localized: "Imported \(sport.localizedName) (\(dur) min, \(points) GPS points).", bundle: LanguageManager.appBundle)
+            case .failed(let reason):
+                importMessage = String(localized: "Import failed: \(reason)", bundle: LanguageManager.appBundle)
+            }
+        }
+    }
+
+    /// Reads the security-scoped file, parses it as a recorded workout,
+    /// refuses one whose start matches `existingStarts`, and archives the
+    /// rest. Off the main actor.
+    nonisolated private static func importGPXFile(_ url: URL, archive: SessionArchive, existingStarts: [Date]) -> GPXImportOutcome {
         let accessing = url.startAccessingSecurityScopedResource()
         defer {
             if accessing { url.stopAccessingSecurityScopedResource() }
         }
         do {
             let parsed = try GPXImporter.parseWorkout(data: try Data(contentsOf: url))
-            guard !isArchivedWorkout(startingAt: parsed.startDate) else {
-                importMessage = String(localized: "This workout is already in your history, so it wasn't imported again.", bundle: LanguageManager.appBundle)
-                return
-            }
-            let session = GPXImporter.buildSession(from: parsed)
-            _ = try collector.archive.archive(session)
-            collector.notifyArchiveChanged()
-            let dur = min(max(0, Int(parsed.endDate.timeIntervalSince(parsed.startDate))), 48 * 3_600) / 60
-            importMessage = String(localized: "Imported \(parsed.sport.localizedName) (\(dur) min, \(parsed.track.count) GPS points).", bundle: LanguageManager.appBundle)
+            guard !HealthWorkoutImporter.isAlreadyArchived(start: parsed.startDate, existingStarts: existingStarts) else { return .duplicate }
+            _ = try archive.archive(GPXImporter.buildSession(from: parsed))
+            let dur = ImportedWorkoutBuilder.clampedDurationSeconds(from: parsed.startDate, to: parsed.endDate) / 60
+            return .imported(sport: parsed.sport, minutes: dur, points: parsed.track.count)
         } catch {
-            importMessage = String(localized: "Import failed: \(error.localizedDescription)", bundle: LanguageManager.appBundle)
+            return .failed(error.localizedDescription)
         }
-    }
-
-    private func isArchivedWorkout(startingAt start: Date) -> Bool {
-        let starts = collector.archive.entries.filter { $0.sessionType == .workout }.map(\.date)
-        return HealthWorkoutImporter.isAlreadyArchived(start: start, existingStarts: starts)
     }
 
     /// Listener for Watch → iOS Save & Done confirmations. The app-level
@@ -819,4 +882,13 @@ final class RecorderBox {
         guard recorder == nil else { return }
         recorder = WorkoutRecorder(core: core, conversation: conversation)
     }
+}
+
+/// What a GPX import came to, handed from the detached import to the tab.
+private enum GPXImportOutcome: Sendable {
+    /// A workout with the same start is already archived; nothing was written.
+    case duplicate
+    case imported(sport: Sport, minutes: Int, points: Int)
+    /// The read, parse or archive write threw; the error's description.
+    case failed(String)
 }

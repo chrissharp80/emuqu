@@ -200,6 +200,22 @@ final class SpokenTextChunkerTests: XCTestCase {
         XCTAssertEqual(chunker.append(delta: "com/sense) for more. Next"), "See Polar's page for more.")
     }
 
+    /// A "[" that never closes ("[1" citation style) holds back speech only
+    /// as long as a link label could run, not until the reply ends.
+    func testAnUnclosedBracketDoesNotHoldBackTheRestOfTheReply() {
+        let chunker = SpokenTextChunker()
+        let opening = "Your heart rate is 160 [1 and has been climbing for the last ten minutes of the run."
+        XCTAssertNil(chunker.append(delta: opening))
+        XCTAssertNotNil(chunker.append(delta: " Ease off a little if you can. Then"))
+        XCTAssertEqual(chunker.pendingBuffer, " Then")
+    }
+
+    /// A "(" after "]" that reaches a space is no link address.
+    func testALinkAddressEndsAtASpace() {
+        let chunker = SpokenTextChunker()
+        XCTAssertEqual(chunker.append(delta: "See [notes](my notes. Next"), "See [notes](my notes.")
+    }
+
     // MARK: - Withdrawing rewound text
 
     /// When the text being read is rewound (a fallback replaces a failed

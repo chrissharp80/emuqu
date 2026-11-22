@@ -299,8 +299,8 @@
   },
   {
    "key": "func MetricInfoSheet.hfPowerEntry()",
-   "hash": "0e45b93d15a8d838",
-   "does": "Builds the localized Entry for HF power copy (0.15–0.4 Hz); 100–1,500 ms².",
+   "hash": "80513bcabf32624c",
+   "does": "Builds the localized Entry for HF power (0.15–0.4 Hz, the band most closely tied to parasympathetic activity): RSA at 9–24 breaths a minute, falls under stress, and slower breathing such as the mandala's moves the power into LF so HF drops; 100–1,500 ms².",
    "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
    "calls": [
     "ext:String(localized:bundle:)"
@@ -344,8 +344,8 @@
   },
   {
    "key": "func MetricInfoSheet.stressIndexEntry()",
-   "hash": "f3171a8a0fe6b4bc",
-   "does": "Builds the localized Entry for Baevsky stress index copy; resting 50–150, stressed 200+.",
+   "hash": "8c971d47c43753f3",
+   "does": "Builds the localized Entry for Baevsky stress index copy; usual resting range 50–100, 100–150 somewhat above, 150–300 well above (the Help Center's bands).",
    "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
    "calls": [
     "ext:String(localized:bundle:)"
@@ -359,8 +359,8 @@
   },
   {
    "key": "func MetricInfoSheet.readinessEntry()",
-   "hash": "0fba6a2961bb4953",
-   "does": "Builds the localized Entry for ANS Readiness (1–10 capacity) copy with bands 7–10/4.5–7/2–4.5/<2.",
+   "hash": "4c0b5abe5f33c2ff",
+   "does": "Builds the localized Entry for ANS Readiness (1–10): a nearness-to-norm score starting at 5 (RMSSD near usual, α1 in its resting band, PNS/SNS balance, lifted by recent hard training), so a night well above usual HRV can score low; bands 7–10/4.5–7/2–4.5/<2.",
    "entry": "Invoked through entryFactories dictionary lookup in entry(for:) (MetricInfoSheets.swift:133)",
    "calls": [
     "ext:String(localized:bundle:)"
@@ -679,7 +679,7 @@
    "does": "For reliable overnight entries returns the metric value: from the index entry's cached fields when possible, else from a lightweight session decode's analysisResult.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.isReliableForHRVAggregates",
     "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.fastValueStatic(for:entry:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)",
     "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.analysisValueStatic(for:result:)"
@@ -707,7 +707,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "b5f328ec30e3b34a",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "b5f328ec30e3b34a",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "917ec504a26a996e",
     "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.analysisValueStatic(for:result:)": "ad8b7b2d564ea237",
     "Emuqu/Sources/Views/MetricInfoSheets.swift::func MetricCompareToHistorySheet.fastValueStatic(for:entry:)": "3d1cf75d10c245bd",

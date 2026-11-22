@@ -51,7 +51,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.StartStamps.breakdown()": "e69fea2f84f7258b",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.StartStamps.mark(_:)": "7fdd2fad4a7c2e29",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.abandonFailedStart()": "fd4c674d2b0c517e",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.applyStartParameters(thresholds:route:)": "94cd663ab6e3b76b",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.applyStartParameters(thresholds:route:)": "cad0233730cf4b0a",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.beginPolarStreamingOrDefer(effectiveSource:workoutId:)": "0d774eb64f9595e2",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.bringUpRecording(session:sport:effectiveSource:intervalPlan:stamps:)": "c8ab98c68fa96654",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.guardStartablePhase()": "9a3b209a0cd52fc7",
@@ -235,8 +235,8 @@
   },
   {
    "key": "func WorkoutSessionLifecycle.applyStartParameters(thresholds:route:)",
-   "hash": "10410f0c72484bdd",
-   "does": "After every step of start() that can throw: clears the previous workout's finishedSession, stores the thresholds (resetting breach counters), the planned route, the auto-detected flag and the route-detection schedule (nextRouteDetectionAtMeters = 0).",
+   "hash": "bae77045ca7435d3",
+   "does": "After every step of start() that can throw: clears the previous workout's finishedSession, stores the thresholds (resetting breach counters), the planned route, the auto-detected flag, the route-detection schedule (nextRouteDetectionAtMeters = 0) and drops the previous workout's grade memo.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -246,7 +246,8 @@
     "mem:WorkoutRecorder.thresholdBreachSec",
     "mem:WorkoutRecorder.plannedRoute",
     "mem:WorkoutRecorder.plannedRouteWasAutoDetected",
-    "mem:WorkoutRecorder.nextRouteDetectionAtMeters"
+    "mem:WorkoutRecorder.nextRouteDetectionAtMeters",
+    "mem:WorkoutRecorder.gradeMemo"
    ],
    "branches": [],
    "deps": {
@@ -682,21 +683,23 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.deferZwiftBroadcast()": "1c62c05e9753ee7f",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.deferZwiftBroadcast()": "7872a44a264ff044",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func deferGeocodingReset()": "a2913bfdcc2ec046"
    }
   },
   {
    "key": "func WorkoutSessionLifecycle.deferZwiftBroadcast()",
-   "hash": "da70f1e230186425",
-   "does": "If Zwift broadcast is enabled, queues a main-actor Task that, only while the workout is still recording, starts the BLE peripheral HR/power broadcaster and logs its duration.",
+   "hash": "4b7f679ee762ad5a",
+   "does": "If Zwift broadcast is enabled and this device accepted the broadcaster disclosure (BroadcasterDisclosure.allowsBroadcast; a setting restored from the iCloud backup without that acceptance does nothing), queues a main-actor Task that, only while the workout is still recording, starts the BLE peripheral HR/power broadcaster and logs its duration.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.startBroadcasting()",
-    "closure:WorkoutRecorder.settingsProvider"
+    "closure:WorkoutRecorder.settingsProvider",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func BroadcasterDisclosure.allowsBroadcast(settingEnabled:defaults:)"
    ],
    "reads": [
     "mem:UserSettings.enableZwiftBroadcast",
+    "ud:settings.broadcaster.acknowledged",
     "mem:WorkoutLifecycle.phase"
    ],
    "writes": [
@@ -705,8 +708,8 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "settings.enableZwiftBroadcast",
-     "effect": "false: return; true: defers"
+     "cond": "settings.enableZwiftBroadcast && this device accepted the disclosure",
+     "effect": "false: return, nothing advertised; true: defers"
     },
     {
      "at": "+4",
@@ -717,11 +720,12 @@
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.StartStamps.ms(_:_:)": "3382b3dafe7f09ff",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "1594d0dd9fa6bbb7",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.startBroadcasting()": "fe2ee2aad08b1498",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.startBroadcasting()": "962d535849c8d225",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "f306ef98d67e6cfb",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func BroadcasterDisclosure.allowsBroadcast(settingEnabled:defaults:)": "cf774c1bba4c4382"
    }
   },
   {
@@ -975,9 +979,9 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.clear()": "a974238740108747",
-    "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.load(plan:startAt:)": "b8ec215ad17ccb51",
+    "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.load(plan:startAt:)": "aef6f780faab316e",
     "Emuqu/Sources/Collection/IntervalSpokenCue.swift::var IntervalSpokenCue.blockComplete": "cd3ea4e9b4fdc403",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.announce(on:prompt:fallback:)": "0b3a15dbb36b4ded",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.announce(on:prompt:fallback:)": "2846cc043b399254",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.announceStep(_:number:of:on:)": "3b90fba97cbc960a"
    }
   },
@@ -994,51 +998,37 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.step(_:number:of:)": "94d9903738bd3545",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.announce(on:prompt:fallback:)": "0b3a15dbb36b4ded"
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.step(_:number:of:)": "9ebbf45fcf96711c",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.announce(on:prompt:fallback:)": "2846cc043b399254"
    }
   },
   {
    "key": "func WorkoutSessionLifecycle.announce(on:prompt:fallback:)",
-   "hash": "7b13473e6e399cbd",
-   "does": "If InterjectionGate allows the active AI provider (Flo enabled, disclaimer accepted, consent), asks the conversation to speak an AI response to the prompt; otherwise speaks the scripted fallback via handleTrigger.",
+   "hash": "d1adfad97e97c07f",
+   "does": "Hands an interval call to the conversation as an AI interjection with its scripted line as the fallback (speakAIResponse(toPrompt:fallback:)): the conversation says the scripted line instead when the AI can't be asked (InterjectionGate: Flo off, notice not accepted, no consent), fails, replies with nothing, or has said nothing by the fallback deadline, so interval calls are never silent.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func InterjectionGate.maySend(to:disclaimerAccepted:)",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.handleTrigger(message:urgency:)",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.speakAIResponse(toPrompt:)"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.speakAIResponse(toPrompt:fallback:)"
    ],
-   "reads": [
-    "mem:ProviderRegistry.activeProvider",
-    "mem:AssistantViewModel.hasAcceptedDisclaimer"
-   ],
+   "reads": [],
    "writes": [
-    "net:active AI provider (speakAIResponse)"
+    "net:active AI provider (via speakAIResponse, when the gate allows)"
    ],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "InterjectionGate.maySend",
-     "effect": "false: handleTrigger(fallback) and return; true: speakAIResponse(prompt)"
-    }
-   ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func InterjectionGate.maySend(to:disclaimerAccepted:)": "cba8922bddc8b467",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.handleTrigger(message:urgency:)": "bc9e7a9e730970e1",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.speakAIResponse(toPrompt:)": "3a33b4ead1d02a64",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.speakAIResponse(toPrompt:fallback:)": "8a444e1c03a7fdb9"
    }
   },
   {
    "key": "func WorkoutSessionLifecycle.pause(isAuto:)",
-   "hash": "4ff08c601cf93649",
-   "does": "Soft pause: only while recording and not paused; sets isPaused/autoPaused, snapshots pedometer/foot-pod distance into the paused ledger, opens a pause in the timeline, pauses location accumulation, resets auto-pause detector.",
+   "hash": "146d9c098f73277b",
+   "does": "Soft pause: only while recording and not paused; sets isPaused/autoPaused, snapshots pedometer/foot-pod distance into the paused ledger, opens a pause in the timeline, pauses location accumulation when the location stack exists (an indoor workout never builds it to pause it), resets auto-pause detector.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pause(pedometer:footPod:)",
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.pause(atElapsed:now:)",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.footPodDistanceMeters()",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation",
     "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.reset()"
    ],
    "reads": [
@@ -1070,19 +1060,21 @@
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.footPodDistanceMeters()": "77948665d3827df7",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "1594d0dd9fa6bbb7",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c",
     "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.reset()": "98b8cbcdb3d4ff7c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func WorkoutSessionLifecycle.resume()",
-   "hash": "975671e9323328d4",
-   "does": "Resume: only while recording and paused; clears pause flags, closes the paused-motion ledger and timeline pause, unpauses location, resets auto-pause detector.",
+   "hash": "424764999301924f",
+   "does": "Resume: only while recording and paused; clears pause flags, closes the paused-motion ledger and timeline pause, unpauses location when the location stack exists, resets auto-pause detector.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.resume(pedometer:footPod:)",
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.resume(now:)",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.footPodDistanceMeters()",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation",
     "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.reset()"
    ],
    "reads": [
@@ -1112,6 +1104,7 @@
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.resume(pedometer:footPod:)": "d8a69cfb8a798a87",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.footPodDistanceMeters()": "77948665d3827df7",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "1594d0dd9fa6bbb7",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c",
     "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.reset()": "98b8cbcdb3d4ff7c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }

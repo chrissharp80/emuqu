@@ -31,7 +31,9 @@ extension SessionDataMigrations {
     /// whether or not a nap was found, so "already checked" is unambiguous. When
     /// HealthKit cannot be read for a night (locked, or the query failed) the
     /// scan stops without marking that night or setting the flag, and the
-    /// rest runs on a later launch. Runs once per install once it completes.
+    /// rest runs on a later launch. A night whose nap could not be written
+    /// stays unmarked and leaves the flag unset too, so a later launch folds
+    /// it in. Runs once per install once it completes.
     func runNapRepairMigrationIfNeeded() async {
         let defaults = UserDefaults.standard
         // Flag check FIRST, before touching the archive (matches the other
@@ -42,6 +44,10 @@ extension SessionDataMigrations {
             debugLog("[NapRepairMigration] HealthKit nap data unreadable — stopping; the rest is retried next launch", level: .warning)
             return
         }
+        guard scan.failed == 0 else {
+            debugLog("[NapRepairMigration] \(scan.failed) nights' naps could not be written — retrying next launch", level: .warning)
+            return
+        }
         defaults.set(true, forKey: Self.napRepairMigrationKey)
         let nightsSuffix = scan.adjustedNights.isEmpty ? "" : " — nights: \(scan.adjustedNights.joined(separator: ", "))"
         debugLog("[NapRepairMigration] Complete — scanned \(scan.scanned) overnight sessions, adjusted \(scan.adjustedNights.count) for daytime naps\(nightsSuffix)")
@@ -49,25 +55,27 @@ extension SessionDataMigrations {
 
     /// Runs `repairNap` over each entry not yet checked. Nil as soon as one
     /// night's naps cannot be read; nights handled before it stay marked.
-    private func repairNaps(in entries: [SessionArchiveEntry]) async -> (scanned: Int, adjustedNights: [String])? {
+    private func repairNaps(in entries: [SessionArchiveEntry]) async -> (scanned: Int, adjustedNights: [String], failed: Int)? {
         let dayFormatter = DateFormatter()
         dayFormatter.dateFormat = "yyyy-MM-dd"
-        var scanned = 0
+        var (scanned, failed) = (0, 0)
         var adjustedNights: [String] = []
         for entry in entries {
-            guard var session = await retrieveOffMain(entry.sessionId, caller: "NapRepairMigration") else { continue }
+            guard let session = await retrieveOffMain(entry.sessionId, caller: "NapRepairMigration") else { continue }
             if session.napRepaired == true { continue } // per-session idempotency
             scanned += 1
-            switch await repairNap(&session, entry: entry) {
+            switch await repairNap(session, entry: entry) {
             case .folded(let napMinutes):
                 adjustedNights.append("\(dayFormatter.string(from: session.startDate)) (+\(napMinutes)m nap)")
             case .unchanged:
                 continue
+            case .notWritten:
+                failed += 1
             case .unreadable:
                 return nil
             }
         }
-        return (scanned, adjustedNights)
+        return (scanned, adjustedNights, failed)
     }
 
     /// What `repairNap` did to one night.
@@ -76,6 +84,8 @@ extension SessionDataMigrations {
         case folded(Int)
         /// Checked (or nothing to adjust); marked `napRepaired`.
         case unchanged
+        /// A nap was found but the night could not be written; left unmarked.
+        case notWritten
         /// HealthKit could not say whether there was a nap; left unmarked.
         case unreadable
     }
@@ -103,14 +113,18 @@ extension SessionDataMigrations {
     }
 
     /// Folds a qualifying nap into one night. Every outcome but `.unreadable`
-    /// marks the session `napRepaired`, so "already checked" is unambiguous;
-    /// an unreadable night stays unmarked for a later launch.
+    /// and `.notWritten` marks the session `napRepaired`, so "already
+    /// checked" is unambiguous; those nights stay unmarked for a later launch.
     ///
     /// Only overnight sessions with an existing sleep snapshot can have a nap
     /// folded into their duration; nothing to adjust otherwise.
-    private func repairNap(_ session: inout HRVSession, entry: SessionArchiveEntry) async -> NapRepairOutcome {
+    ///
+    /// The night as loaded decides; the change is applied to the archive's
+    /// copy as it is at the write (`SessionArchive.update`), so a sleep
+    /// refresh or an edit saved since the load is kept.
+    private func repairNap(_ session: HRVSession, entry: SessionArchiveEntry) async -> NapRepairOutcome {
         guard let snapshot = session.sleepSnapshot, snapshot.nightSleepMinutes > 0 else {
-            markChecked(&session)
+            markChecked(session.id)
             return .unchanged
         }
         guard let napMinutes = await healthKit.fetchDaytimeNapMinutesIfReadable(nightAnchoredAt: session.startDate) else {
@@ -118,21 +132,22 @@ extension SessionDataMigrations {
         }
         guard napMinutes > 0 else {
             // Checked — no qualifying nap. Mark and move on (no score change).
-            markChecked(&session)
+            markChecked(session.id)
             return .unchanged
         }
         // Fold the nap into the snapshot (duration only) + flag, persist, then
         // recompute the score from the updated snapshot via the normal path.
-        session.sleepSnapshot = snapshot.withNapSleepMinutes(napMinutes)
-        session.napRepaired = true
-        guard persist(session, entry: entry) else { return .unchanged }
+        guard persistNap(napMinutes, entry: entry) else { return .notWritten }
         _ = await reanalysisService.recomputeScoreOnly(sessionId: entry.sessionId)
         return .folded(napMinutes)
     }
 
-    private func persist(_ session: HRVSession, entry: SessionArchiveEntry) -> Bool {
+    private func persistNap(_ napMinutes: Int, entry: SessionArchiveEntry) -> Bool {
         do {
-            _ = try archive.archive(session)
+            try archive.update(entry.sessionId, requestingReupload: false) { stored in
+                stored.sleepSnapshot = stored.sleepSnapshot?.withNapSleepMinutes(napMinutes)
+                stored.napRepaired = true
+            }
             return true
         } catch {
             debugLog("[NapRepairMigration] Failed to archive \(entry.sessionId.uuidString.prefix(8)): \(error.localizedDescription)", level: .warning)
@@ -140,14 +155,13 @@ extension SessionDataMigrations {
         }
     }
 
-    private func markChecked(_ session: inout HRVSession) {
-        session.napRepaired = true
+    private func markChecked(_ sessionId: UUID) {
         do {
-            _ = try archive.archive(session)
+            try archive.update(sessionId, requestingReupload: false) { $0.napRepaired = true }
         } catch {
-            // A lost mark only matters if the migration runs again: its
-            // global flag is set whatever happens to individual sessions.
-            debugLog("[NapRepairMigration] Failed to mark \(session.id.uuidString.prefix(8)) as checked: \(error.localizedDescription)", level: .warning)
+            // A lost mark only means the night is checked again if the
+            // migration runs again; it found no nap to fold in.
+            debugLog("[NapRepairMigration] Failed to mark \(sessionId.uuidString.prefix(8)) as checked: \(error.localizedDescription)", level: .warning)
         }
     }
 }

@@ -148,4 +148,30 @@ final class ImportedWorkoutBuilderTests: XCTestCase {
         let session = ImportedWorkoutBuilder.buildSession(from: backwards, source: .gpxFile)
         XCTAssertEqual(session.workoutMetadata?.samples?.count, 1)
     }
+
+    // MARK: - Isolation
+
+    /// The Fitness tab reads, parses and builds an imported GPX file on a
+    /// detached task. This body runs off the main actor, so it compiles only
+    /// while `GPXImporter` and `ImportedWorkoutBuilder` stay nonisolated, and
+    /// the values it returns are the ones the import reports.
+    func testAGPXFileParsesAndBuildsOffTheMainActor() async throws {
+        let gpx = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <gpx version="1.1"><trk><type>running</type><trkseg>
+        <trkpt lat="51.5" lon="-0.12"><time>2026-01-01T08:00:00Z</time></trkpt>
+        <trkpt lat="51.501" lon="-0.12"><time>2026-01-01T08:01:00Z</time></trkpt>
+        </trkseg></trk></gpx>
+        """
+        let data = try XCTUnwrap(gpx.data(using: .utf8))
+        let built = try await Task.detached { () throws -> (sport: Sport, samples: Int, seconds: Int) in
+            let parsed = try GPXImporter.parseWorkout(data: data)
+            let session = GPXImporter.buildSession(from: parsed)
+            let seconds = ImportedWorkoutBuilder.clampedDurationSeconds(from: parsed.startDate, to: parsed.endDate)
+            return (parsed.sport, session.workoutMetadata?.samples?.count ?? 0, seconds)
+        }.value
+        XCTAssertEqual(built.sport, .run)
+        XCTAssertEqual(built.seconds, 60)
+        XCTAssertEqual(built.samples, 61)
+    }
 }

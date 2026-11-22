@@ -48,13 +48,13 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.chartSections": "74fc005fa256bf49",
-    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.summarySections": "1796c50e1fbc5b8e"
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.summarySections": "f70bfaff8e6a5e33"
    }
   },
   {
    "key": "var SessionHRVDetailView.summarySections",
-   "hash": "34d3281d4ac71caf",
-   "does": "Hero RMSSD, HR stats row, then optional peak capacity card, HR chart (non-overnight), and trend section (overnight with recent sessions).",
+   "hash": "fb272d9174315a99",
+   "does": "Hero RMSSD, HR stats row, then optional peak capacity card (described as sleep only for overnight and nap sessions), HR chart (non-overnight), and trend section (overnight with recent sessions).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.hrvHeroSection",
@@ -69,7 +69,7 @@
     {
      "at": "+9",
      "cond": "result.peakCapacity non-nil",
-     "effect": "true: PeakCapacityCard(capacity:, showInfoButton: true); false: omitted"
+     "effect": "true: PeakCapacityCard(capacity:, showInfoButton: true, describesSleep: overnight or nap); false: omitted"
     },
     {
      "at": "+14",

@@ -166,10 +166,18 @@ enum WorkoutLiveTrends {
     /// split was actually 5:10/km flat-equivalent even though the
     /// watch said 4:30 — that downhill was free speed."
     static func recentSplitGradeAdjustedPaces(samples: [WorkoutSample]) -> [Double] {
-        kilometreSplits(samples).suffix(3).reversed().compactMap { entry in
+        recentGradeAdjustedPaces(of: kilometreSplits(samples))
+    }
+
+    /// The last up-to-3 of `splits`, most recent first, each grade-adjusted.
+    fileprivate static func recentGradeAdjustedPaces(of splits: [Split]) -> [Double] {
+        splits.suffix(3).reversed().compactMap { entry in
             gradeAdjustedPaceSecPerKm(pace: entry.rawPace, gradePercent: entry.gradePercent)
         }
     }
+
+    /// One completed kilometre: its raw pace, its grade, its length in km.
+    fileprivate typealias Split = (rawPace: Double, gradePercent: Double?, km: Double)
 
     /// Completed 1 km chunks, each with its raw pace and the average grade
     /// across it (rise over run between the chunk's endpoints). A sample
@@ -179,25 +187,33 @@ enum WorkoutLiveTrends {
     /// chunk's start had no altitude yet, the climb is measured from the first
     /// sample that has one and divided by the distance from THAT sample
     /// (`altDist`), not by the whole chunk, so the grade is not understated.
-    private static func kilometreSplits(_ samples: [WorkoutSample]) -> [(rawPace: Double, gradePercent: Double?, km: Double)] {
-        var splits: [(rawPace: Double, gradePercent: Double?, km: Double)] = []
-        var start = (dist: 0.0, sec: 0, alt: Double?.none, altDist: 0.0)
-        var lastAlt: Double?
-        for s in samples {
-            guard let d = s.distanceMeters else { continue }
+    /// The fold, one sample at a time, is `SplitFold`.
+    private static func kilometreSplits(_ samples: [WorkoutSample]) -> [Split] {
+        var fold = SplitFold()
+        for s in samples { fold.add(s) }
+        return fold.splits
+    }
+
+    /// `kilometreSplits`, taking the samples one at a time in order.
+    fileprivate struct SplitFold {
+        private(set) var splits: [Split] = []
+        private var start = (dist: 0.0, sec: 0, alt: Double?.none, altDist: 0.0)
+        private var lastAlt: Double?
+
+        mutating func add(_ s: WorkoutSample) {
+            guard let d = s.distanceMeters else { return }
             lastAlt = s.altitudeMeters ?? lastAlt
             if start.alt == nil, lastAlt != nil {
                 start.alt = lastAlt
                 start.altDist = d
             }
             let run = d - start.dist
-            guard run >= 1_000 else { continue }
+            guard run >= 1_000 else { return }
             let rawPace = Double(s.offsetSec - start.sec) / (run / 1_000)
-            let grade = splitGrade(from: start.alt, to: lastAlt, run: d - start.altDist)
+            let grade = WorkoutLiveTrends.splitGrade(from: start.alt, to: lastAlt, run: d - start.altDist)
             splits.append((rawPace, grade, run / 1_000))
             start = (d, s.offsetSec, lastAlt, d)
         }
-        return splits
     }
 
     /// Whole-session grade-adjusted pace (sec/km): each completed kilometre
@@ -216,7 +232,7 @@ enum WorkoutLiveTrends {
     }
 
     /// Rise over run in percent, or nil when either altitude is unknown.
-    private static func splitGrade(from startAlt: Double?, to endAlt: Double?, run: Double) -> Double? {
+    fileprivate static func splitGrade(from startAlt: Double?, to endAlt: Double?, run: Double) -> Double? {
         guard let startAlt, let endAlt, run > 0 else { return nil }
         return (endAlt - startAlt) / run * 100.0
     }
@@ -236,12 +252,18 @@ enum WorkoutLiveTrends {
         samples: [WorkoutSample],
         currentDriftPercent: Double?
     ) -> Double? {
+        projectedMinutesUntilFade(lastOffset: samples.last?.offsetSec, currentDriftPercent: currentDriftPercent)
+    }
+
+    /// `projectedMinutesUntilFade(samples:currentDriftPercent:)` from the last
+    /// sample's offset alone, which is all it reads of the buffer.
+    static func projectedMinutesUntilFade(lastOffset: Int?, currentDriftPercent: Double?) -> Double? {
         guard let drift = currentDriftPercent, drift > 1.0 else { return nil }
-        guard let last = samples.last, last.offsetSec >= driftMetricsMinSeconds * 2 else { return nil }
+        guard let lastOffset, lastOffset >= driftMetricsMinSeconds * 2 else { return nil }
         // Drift accumulated from quartile 1 to quartile 4 over
         // (3/4)*elapsed minutes. Extrapolate: minutes to reach 10 %
         // drift = (10 − currentDrift) / driftRate.
-        let elapsedMin = Double(last.offsetSec) / 60.0
+        let elapsedMin = Double(lastOffset) / 60.0
         let driftSpanMin = elapsedMin * 0.75
         guard driftSpanMin > 0 else { return nil }
         let driftRatePerMin = drift / driftSpanMin
@@ -252,6 +274,200 @@ enum WorkoutLiveTrends {
         // Clamp to reasonable range — the linear model breaks down
         // past ~3 hours, and "100 hours until fade" is misleading.
         return max(1.0, min(180.0, projected))
+    }
+}
+
+// MARK: - Kept as the buffer grows
+
+extension WorkoutLiveTrends {
+    /// A sum and a count of one optional value over the samples: entry `i`
+    /// covers the first `i`, so any run of positions reads in constant time.
+    fileprivate struct RunningSum {
+        private var sums: [Double] = [0]
+        private var counts: [Int] = [0]
+
+        mutating func add(_ value: Double?) {
+            sums.append(sums[sums.count - 1] + (value ?? 0))
+            counts.append(counts[counts.count - 1] + (value == nil ? 0 : 1))
+        }
+
+        /// The mean of the values at `positions`; nil with fewer than
+        /// `minimum` of them, or none.
+        func mean(_ positions: Range<Int>, minimum: Int) -> Double? {
+            let n = counts[positions.upperBound] - counts[positions.lowerBound]
+            guard n >= max(minimum, 1) else { return nil }
+            return (sums[positions.upperBound] - sums[positions.lowerBound]) / Double(n)
+        }
+    }
+
+    /// The live trends of the sample buffer, kept as it grows, so a tick
+    /// reads them without scanning the whole buffer (a long ride holds tens of
+    /// thousands of samples). `catchUp(to:)` adds the samples appended since the
+    /// last call, and starts over when the buffer is not the one it holds
+    /// grown (a new workout, a buffer trimmed at its memory cap or replaced).
+    ///
+    /// Each answer is the stateless function's on the synced buffer
+    /// (`WorkoutLiveTrends.hrDriftPercent(samples:)` and the rest). Their
+    /// windows are bounds on `offsetSec`, found by binary search, which needs
+    /// offsets in order; a buffer whose offsets go back is answered by the
+    /// stateless functions themselves.
+    struct Tally {
+        private(set) var count = 0
+        private var first: WorkoutSample?
+        private var last: WorkoutSample?
+        private var offsets: [Int] = []
+        /// The synced buffer, held only when its offsets go back.
+        private var unordered: [WorkoutSample]?
+        private var pace = RunningSum()
+        private var heartRate = RunningSum()
+        private var cadence = RunningSum()
+        /// Speed (m/s) and heart rate of the samples with both a heart rate
+        /// and a pace, as aerobic decoupling counts them.
+        private var pairedSpeed = RunningSum()
+        private var pairedHeartRate = RunningSum()
+        private var splits = SplitFold()
+        private var chunks = WorkoutGeometry.ChunkFold()
+        private var zones: WorkoutZoneBreakdown.Fold?
+
+        init() {}
+
+        /// Brings the tally up to `buffer`.
+        mutating func catchUp(to buffer: [WorkoutSample]) {
+            if buffer.count == count, buffer.first == first, buffer.last == last { return }
+            if count == 0 || (buffer.count > count && buffer.first == first && buffer[count - 1] == last) {
+                for s in buffer[count...] { add(s) }
+            } else {
+                self = Tally()
+                for s in buffer { add(s) }
+            }
+            if unordered != nil { unordered = buffer }
+        }
+
+        private mutating func add(_ s: WorkoutSample) {
+            if let last, s.offsetSec < last.offsetSec { unordered = [] }
+            if first == nil { first = s }
+            last = s
+            count += 1
+            offsets.append(s.offsetSec)
+            pace.add(s.paceSecPerKm)
+            heartRate.add(s.heartRate.map(Double.init))
+            cadence.add(s.cadenceStepsPerMin)
+            let paired = (s.heartRate ?? 0) > 0 && (s.paceSecPerKm ?? 0) > 0
+            pairedSpeed.add(paired ? s.paceSecPerKm.map { 1_000.0 / $0 } : nil)
+            pairedHeartRate.add(paired ? s.heartRate.map(Double.init) : nil)
+            splits.add(s)
+            chunks.add(s)
+            zones?.add(s)
+        }
+
+        /// The position of the first sample at or after `offset`.
+        private func position(atOrAfter offset: Int) -> Int {
+            var low = 0
+            var high = offsets.count
+            while low < high {
+                let mid = (low + high) / 2
+                if offsets[mid] < offset { low = mid + 1 } else { high = mid }
+            }
+            return low
+        }
+
+        /// `WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples:)`.
+        var reverseSplitDeltaSecPerKm: Double? {
+            if let unordered { return WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples: unordered) }
+            guard let last, last.offsetSec >= WorkoutLiveTrends.halfMetricsMinSeconds else { return nil }
+            let mid = position(atOrAfter: last.offsetSec / 2)
+            guard let firstAvg = pace.mean(0 ..< mid, minimum: 30),
+                  let secondAvg = pace.mean(mid ..< count, minimum: 30) else { return nil }
+            return secondAvg - firstAvg
+        }
+
+        /// `WorkoutLiveTrends.hrDriftPercent(samples:)`.
+        var hrDriftPercent: Double? {
+            if let unordered { return WorkoutLiveTrends.hrDriftPercent(samples: unordered) }
+            guard let ends = quartiles(minimumOffset: WorkoutLiveTrends.driftMetricsMinSeconds),
+                  let firstAvg = heartRate.mean(ends.first, minimum: 30),
+                  let lastAvg = heartRate.mean(ends.last, minimum: 30),
+                  firstAvg > 0 else { return nil }
+            return ((lastAvg - firstAvg) / firstAvg) * 100.0
+        }
+
+        /// `WorkoutLiveTrends.cadenceDriftSpm(samples:)`.
+        var cadenceDriftSpm: Double? {
+            if let unordered { return WorkoutLiveTrends.cadenceDriftSpm(samples: unordered) }
+            guard let ends = quartiles(minimumOffset: WorkoutLiveTrends.driftMetricsMinSeconds),
+                  let firstAvg = cadence.mean(ends.first, minimum: 30),
+                  let lastAvg = cadence.mean(ends.last, minimum: 30) else { return nil }
+            return lastAvg - firstAvg
+        }
+
+        /// The first and the last quarter of the active time, as positions;
+        /// nil before `minimumOffset` or with no quarter.
+        private func quartiles(minimumOffset: Int) -> (first: Range<Int>, last: Range<Int>)? {
+            guard let last, last.offsetSec >= minimumOffset else { return nil }
+            let q = last.offsetSec / 4
+            guard q > 0 else { return nil }
+            return (0 ..< position(atOrAfter: q), position(atOrAfter: 3 * q) ..< count)
+        }
+
+        /// `WorkoutLiveTrends.aerobicDecouplingPercent(samples:)`.
+        var aerobicDecouplingPercent: Double? {
+            if let unordered { return WorkoutLiveTrends.aerobicDecouplingPercent(samples: unordered) }
+            guard let last, last.offsetSec >= WorkoutLiveTrends.halfMetricsMinSeconds else { return nil }
+            let mid = position(atOrAfter: last.offsetSec / 2)
+            func efficiency(_ positions: Range<Int>) -> Double? {
+                guard let speed = pairedSpeed.mean(positions, minimum: 30),
+                      let hr = pairedHeartRate.mean(positions, minimum: 30), hr > 0 else { return nil }
+                return speed / hr
+            }
+            guard let firstEff = efficiency(0 ..< mid), let secondEff = efficiency(mid ..< count), firstEff > 0 else { return nil }
+            return ((firstEff - secondEff) / firstEff) * 100.0
+        }
+
+        /// `WorkoutLiveTrends.recentHRSlopeBpm(samples:)`.
+        var recentHRSlopeBpm: Double? {
+            if let unordered { return WorkoutLiveTrends.recentHRSlopeBpm(samples: unordered) }
+            guard let last, last.offsetSec >= 90 else { return nil }
+            let end = last.offsetSec
+            // Offsets above `end - 30`, and above `end - 90` up to `end - 60`.
+            guard let recentAvg = heartRate.mean(position(atOrAfter: end - 29) ..< count, minimum: 10),
+                  let priorAvg = heartRate.mean(position(atOrAfter: end - 89) ..< position(atOrAfter: end - 59), minimum: 10)
+            else { return nil }
+            return recentAvg - priorAvg
+        }
+
+        /// `WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples:)`. The
+        /// split fold reads the samples in buffer order, as that does.
+        var recentSplitGradeAdjustedPaces: [Double] {
+            WorkoutLiveTrends.recentGradeAdjustedPaces(of: splits.splits)
+        }
+
+        /// `WorkoutGeometry.kilometreChunks`, in buffer order.
+        var kilometreChunks: [WorkoutGeometry.SplitChunk] {
+            chunks.chunks
+        }
+
+        /// `WorkoutLiveTrends.projectedMinutesUntilFade(samples:currentDriftPercent:)`
+        /// with this buffer's HR drift.
+        var projectedMinutesUntilFade: Double? {
+            WorkoutLiveTrends.projectedMinutesUntilFade(lastOffset: last?.offsetSec, currentDriftPercent: hrDriftPercent)
+        }
+
+        /// The mean heart rate of every sample that has one.
+        var sessionAverageHR: Double? {
+            heartRate.mean(0 ..< count, minimum: 1)
+        }
+
+        /// `WorkoutZoneBreakdown.compute(samples:userMaxHR:)` of `buffer`, the
+        /// buffer last synced: kept for the last max HR asked, and folded again
+        /// over `buffer` when it changes.
+        mutating func zoneBreakdown(of buffer: [WorkoutSample], userMaxHR: Int) -> WorkoutZoneBreakdown {
+            if zones?.userMaxHR != userMaxHR {
+                var fold = WorkoutZoneBreakdown.Fold(userMaxHR: userMaxHR)
+                for s in buffer { fold.add(s) }
+                zones = fold
+            }
+            return zones?.breakdown ?? .empty
+        }
     }
 }
 
@@ -267,6 +483,11 @@ enum WorkoutLiveTrends {
 /// Lets the AI answer "what zone has most of this run been in?"
 /// mid-workout. Cheap (single linear pass over `samples` — typical
 /// session is a few thousand entries).
+///
+/// Each sample stands for the seconds since the previous one, at most
+/// `Alpha1ReportCards.maxSampleGapSec` (5), as in the finished workout's
+/// zone time (`WorkoutPDFRenderer.hrZoneSeconds`), so a strap dropout or a
+/// pause is not credited to the zone of the sample after it.
 struct WorkoutZoneBreakdown: Equatable {
     let z1Sec: Int
     let z2Sec: Int
@@ -283,23 +504,42 @@ struct WorkoutZoneBreakdown: Equatable {
     )
 
     static func compute(samples: [WorkoutSample], userMaxHR: Int) -> WorkoutZoneBreakdown {
-        guard userMaxHR > 0, !samples.isEmpty else { return .empty }
-        var secs = [0, 0, 0, 0, 0]
-        var prevOffset = 0
-        for s in samples {
-            let dt = max(0, s.offsetSec - prevOffset)
+        var fold = Fold(userMaxHR: userMaxHR)
+        for s in samples { fold.add(s) }
+        return fold.breakdown
+    }
+
+    /// `compute`, taking the samples one at a time in order, for one max HR.
+    struct Fold {
+        let userMaxHR: Int
+        private var secs = [0, 0, 0, 0, 0]
+        private var prevOffset = 0
+        private var count = 0
+
+        init(userMaxHR: Int) {
+            self.userMaxHR = userMaxHR
+        }
+
+        mutating func add(_ s: WorkoutSample) {
+            count += 1
+            let dt = min(max(0, s.offsetSec - prevOffset), Alpha1ReportCards.maxSampleGapSec)
             prevOffset = s.offsetSec
-            guard let hr = s.heartRate,
-                  let zone = zoneIndex(fractionOfMax: Double(hr) / Double(userMaxHR))
-            else { continue }
+            guard userMaxHR > 0, let hr = s.heartRate,
+                  let zone = WorkoutZoneBreakdown.zoneIndex(fractionOfMax: Double(hr) / Double(userMaxHR))
+            else { return }
             secs[zone] += dt
         }
-        let total = secs.reduce(0, +)
-        return WorkoutZoneBreakdown(
-            z1Sec: secs[0], z2Sec: secs[1], z3Sec: secs[2], z4Sec: secs[3], z5Sec: secs[4],
-            totalSec: total,
-            dominantZone: total > 0 ? (secs.enumerated().max(by: { $0.element < $1.element })?.offset).map { $0 + 1 } : nil
-        )
+
+        /// The breakdown of the samples added; empty without a max HR or a sample.
+        var breakdown: WorkoutZoneBreakdown {
+            guard userMaxHR > 0, count > 0 else { return .empty }
+            let total = secs.reduce(0, +)
+            return WorkoutZoneBreakdown(
+                z1Sec: secs[0], z2Sec: secs[1], z3Sec: secs[2], z4Sec: secs[3], z5Sec: secs[4],
+                totalSec: total,
+                dominantZone: total > 0 ? (secs.enumerated().max(by: { $0.element < $1.element })?.offset).map { $0 + 1 } : nil
+            )
+        }
     }
 
     /// Zero-based zone for a heart rate as a fraction of max HR; nil below 50 %.
@@ -398,7 +638,7 @@ enum RaceTimePrediction {
     private static func candidatePool(from sessions: [HRVSession], sport: Sport, now: Date) -> [Basis] {
         let all: [Basis] = sessions.compactMap { s in
             guard s.workoutMetadata?.sport == sport,
-                  let dur = s.duration, dur > 0,
+                  let dur = s.activeWorkoutSeconds, dur > 0,
                   let dist = s.workoutMetadata?.distanceMeters, dist >= minimumBasisMeters
             else { return nil }
             return Basis(distanceMeters: dist, durationSec: dur, date: s.startDate)
@@ -618,7 +858,7 @@ struct WorkoutHistoryBaselines: Equatable {
         var totalDur: Double = 0
         for s in matches {
             guard let dist = s.workoutMetadata?.distanceMeters, dist > 100,
-                  let dur = s.duration, dur > 60 else { continue }
+                  let dur = s.activeWorkoutSeconds, dur > 60 else { continue }
             totalDist += dist
             totalDur += dur
         }

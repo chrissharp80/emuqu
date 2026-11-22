@@ -51,6 +51,10 @@ func isPendingPlaintextSessionFile(_ filename: String, pending: Set<UUID>) -> Bo
 /// put back as it was. Otherwise a failed encrypted write would leave a
 /// plaintext file no longer queued for re-encryption, and a failed plaintext
 /// write would queue bytes that were never written.
+///
+/// Every session file the archive writes goes through here, so this is where
+/// "Delete All My Data" stops them (`PurgeGate`): while a purge runs the write
+/// throws `PurgeGate.Refused` and touches neither the file nor the ledger.
 func writeArchiveBytes(
     _ data: Data, to url: URL,
     format: SessionArchive.SessionFileCodec.DiskFormat,
@@ -58,7 +62,11 @@ func writeArchiveBytes(
 ) throws {
     let wasPending = PendingEncryptionLedger.pending.contains(sessionID)
     do {
-        try data.write(to: url, options: archiveWriteOptions(for: format, sessionID: sessionID))
+        try PurgeGate.admitWrite {
+            try data.write(to: url, options: archiveWriteOptions(for: format, sessionID: sessionID))
+        }
+    } catch let refused as PurgeGate.Refused {
+        throw refused
     } catch {
         if wasPending { PendingEncryptionLedger.record(sessionID) } else { PendingEncryptionLedger.clear(sessionID) }
         throw error
@@ -162,7 +170,8 @@ private func clearOnceParkedCopiesAreEncrypted(_ id: UUID, in archive: SessionAr
 /// Rewrite a Trash or quarantine copy encrypted, in place, unless it already
 /// is. Under `archiveLock`, which `delete` holds while it moves a file into
 /// the Trash, so a newer copy is not overwritten with these bytes. False when
-/// it could not be read, encrypted or written.
+/// it could not be read, encrypted or written, the write refused while
+/// "Delete All My Data" runs (`PurgeGate`) included.
 private func reencryptParkedCopy(_ url: URL, id: UUID, in archive: SessionArchive) -> Bool {
     archive.archiveLock.lock()
     defer { archive.archiveLock.unlock() }
@@ -170,7 +179,9 @@ private func reencryptParkedCopy(_ url: URL, id: UUID, in archive: SessionArchiv
         let stored = try Data(contentsOf: url)
         guard !ArchiveStore.looksEncrypted(stored) else { return true }
         let sealed = try AppDependencies.current.storage.encryptionManager.encrypt(ArchiveStore.plaintextBytes(stored, id: id))
-        try sealed.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        try PurgeGate.admitWrite {
+            try sealed.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        }
         return true
     } catch {
         debugLog("[Archive] re-encryption deferred for \(url.lastPathComponent): \(error)", level: .warning)

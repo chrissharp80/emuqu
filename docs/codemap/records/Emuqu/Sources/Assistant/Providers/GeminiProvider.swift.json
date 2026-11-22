@@ -405,7 +405,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.streamFailure(in:provider:)": "c730c10bedc5489d",
-    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.blockedPrompt(in:)": "5906398717690c49",
+    "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.blockedPrompt(in:)": "d2f6e5d45d322b88",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.contentParts(in:)": "ff235124f086d0c7",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.finishReason(in:)": "698cfc1a6535a837",
     "Emuqu/Sources/Assistant/Providers/GeminiProvider.swift::func GeminiProvider.stopFailure(_:)": "6fdae9748b3c7257",
@@ -453,8 +453,8 @@
   },
   {
    "key": "func GeminiProvider.blockedPrompt(in:)",
-   "hash": "95bd1948cdea638c",
-   "does": "For a chunk with no candidates whose promptFeedback carries a blockReason, returns .invalidResponse('Gemini blocked the request (<reason>)'); nil for any other chunk.",
+   "hash": "03c9dbac650760c2",
+   "does": "For a chunk with no candidates whose promptFeedback carries a blockReason, returns .blockedReply(provider: .gemini, reason: <reason>) — Gemini's safety system refused the request, which is shown and never sent on to another provider; nil for any other chunk.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -466,7 +466,9 @@
      "effect": "returns nil"
     }
    ],
-   "deps": {}
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.blockedReply": "16010666bd820a08"
+   }
   },
   {
    "key": "func GeminiProvider.contentParts(in:)",

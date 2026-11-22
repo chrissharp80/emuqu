@@ -36,14 +36,20 @@ enum SnapshotTesting {
     /// harness flaky, and a flaky gate is one people disable.
     static let channelTolerance = 8
 
-    /// Fraction of *drawn* pixels allowed to exceed `channelTolerance` before
-    /// a snapshot is considered changed.
+    /// Pixels allowed to exceed `channelTolerance` before a snapshot is
+    /// considered changed: a fixed count, whatever the view's size.
     ///
-    /// Measured against drawn pixels, not the whole canvas. A card occupies
-    /// ~1% of a 402x874 frame, so a whole-canvas tolerance of even 0.2% would
-    /// absorb a change to a fifth of the card and report it as unchanged — a
-    /// gate loose enough to miss what it exists to catch.
-    static let drawnFractionTolerance = 0.02
+    /// A share of the drawn pixels (2 % was used) scaled the allowance with
+    /// the view: a full screen drawing 50,000 pixels let about 1,000 change,
+    /// more than a recovery score going from "72" to "27" or a reworded line
+    /// changes at 1x, so value and copy regressions on large screens passed;
+    /// a small badge drawing 437 was allowed 8, few enough to fail on a stray
+    /// pixel. In the committed references one character of text is 30 to 50
+    /// pixels past the channel tolerance (measured on `badge-morning-feeling`
+    /// and `chip-hrv`), so 24 lets through a few stray pixels and no changed
+    /// glyph. Antialiasing that moves by a hair stays inside
+    /// `channelTolerance` and is not counted at all.
+    static let maxChangedPixels = 24
 
     /// The time zone every reference was recorded in. A view that shows a
     /// clock time or an hour axis (the sleep hypnogram) would otherwise
@@ -184,6 +190,34 @@ extension SnapshotTesting {
     }
 }
 
+// MARK: - Renders kept for inspection
+
+extension SnapshotTesting {
+    /// Where a render that did not match, or was recorded, is written as a
+    /// reference file would hold it: the `SNAPSHOT_RENDER_DIR` directory, when
+    /// the run sets one. CI sets it (as `TEST_RUNNER_SNAPSHOT_RENDER_DIR`) and
+    /// uploads the folder, so the render of a failed snapshot can be looked at,
+    /// and once checked against the intended change, committed as its new
+    /// reference. Without the variable nothing is written.
+    static var renderDirectory: URL? {
+        guard let path = ProcessInfo.processInfo.environment["SNAPSHOT_RENDER_DIR"], !path.isEmpty else { return nil }
+        return URL(fileURLWithPath: path, isDirectory: true)
+    }
+
+    /// Write `bytes` (a reference file's contents) to `renderDirectory` as
+    /// `<name>.raw`. A failed write is reported in the log and changes no
+    /// result: the snapshot has already failed for its own reason.
+    static func keepRender(_ bytes: Data, named name: String) {
+        guard let dir = renderDirectory else { return }
+        do {
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            try bytes.write(to: dir.appendingPathComponent("\(name).raw"))
+        } catch {
+            print("snapshot '\(name)': could not keep the render in \(dir.path): \(error)")
+        }
+    }
+}
+
 // MARK: - The assertion
 
 extension XCTestCase {
@@ -252,6 +286,7 @@ extension XCTestCase {
                         file: file, line: line)
                 return
             }
+            SnapshotTesting.keepRender(header, named: name)
             // Recording is never a pass. A run that wrote its own expectations
             // has verified nothing, and must not report success.
             XCTFail(
@@ -273,6 +308,7 @@ extension XCTestCase {
         let dims = String(data: stored[..<nl], encoding: .utf8) ?? ""
         let expectedDims = "\(shot.width)x\(shot.height)"
         guard dims == expectedDims else {
+            SnapshotTesting.keepRender(header, named: name)
             XCTFail(
                 "snapshot '\(name)': size changed — reference is \(dims), "
                 + "rendered \(expectedDims)",
@@ -292,12 +328,13 @@ extension XCTestCase {
             XCTFail("snapshot '\(name)': buffers not comparable", file: file, line: line)
             return
         }
-        if diff.fraction > SnapshotTesting.drawnFractionTolerance {
+        if diff.changedPixels > SnapshotTesting.maxChangedPixels {
+            SnapshotTesting.keepRender(header, named: name)
             let pct = String(format: "%.2f%%", diff.fraction * 100)
             XCTFail(
                 "snapshot '\(name)': \(diff.changedPixels) pixels changed, "
                 + "\(pct) of the \(diff.drawnPixels) this view draws (tolerance "
-                + "\(SnapshotTesting.drawnFractionTolerance * 100)%). If the change "
+                + "\(SnapshotTesting.maxChangedPixels) pixels). If the change "
                 + "is intended, re-record with SNAPSHOT_RECORD=1 and commit the "
                 + "new reference.",
                 file: file, line: line

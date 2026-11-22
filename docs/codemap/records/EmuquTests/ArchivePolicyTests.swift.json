@@ -89,13 +89,13 @@
    "does": "Builds an overnight SessionArchiveEntry with the given id, start/end, recovery score, RMSSD and links (fixed hash/path).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)": "a8931f1f0477a31d",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)": "a8931f1f0477a31d",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "cf123d68a877f6e2"
    }
   },
@@ -123,7 +123,7 @@
    "deps": {
     "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "025250d13e217eee",
     "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.linkedSessionIdSet(in:)": "af1f17b59e346847",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "7ab5624b72679cf1",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "07eda36ae2e46d06",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.linkedSessionIdSet(in:)": "5fef6caa918661db",
     "EmuquTests/ArchivePolicyTests.swift::var ArchivePolicyTests.farFuture": "589ea84bc2fa0a85"
    }
@@ -144,8 +144,9 @@
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "025250d13e217eee",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "7ab5624b72679cf1",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "07eda36ae2e46d06",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "cf123d68a877f6e2",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)": "110dcfd27cb15ab9",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)": "f75f4463d6fb822b"
@@ -168,7 +169,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "025250d13e217eee",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "7ab5624b72679cf1",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "07eda36ae2e46d06",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "cf123d68a877f6e2",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)": "110dcfd27cb15ab9",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)": "f75f4463d6fb822b"
@@ -191,7 +192,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "025250d13e217eee",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "7ab5624b72679cf1",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "07eda36ae2e46d06",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "cf123d68a877f6e2",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)": "110dcfd27cb15ab9",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)": "f75f4463d6fb822b"
@@ -214,7 +215,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "025250d13e217eee",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "7ab5624b72679cf1",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "07eda36ae2e46d06",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "cf123d68a877f6e2",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)": "110dcfd27cb15ab9",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)": "f75f4463d6fb822b"
@@ -237,7 +238,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "025250d13e217eee",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "7ab5624b72679cf1",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "07eda36ae2e46d06",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "cf123d68a877f6e2",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)": "110dcfd27cb15ab9",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)": "f75f4463d6fb822b"
@@ -260,7 +261,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "025250d13e217eee",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "7ab5624b72679cf1",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "07eda36ae2e46d06",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "cf123d68a877f6e2",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)": "110dcfd27cb15ab9",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)": "f75f4463d6fb822b"
@@ -283,7 +284,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "025250d13e217eee",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "7ab5624b72679cf1",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "07eda36ae2e46d06",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "cf123d68a877f6e2",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)": "110dcfd27cb15ab9",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)": "f75f4463d6fb822b"
@@ -305,8 +306,9 @@
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "025250d13e217eee",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "7ab5624b72679cf1",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "07eda36ae2e46d06",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "cf123d68a877f6e2",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)": "110dcfd27cb15ab9",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)": "f75f4463d6fb822b"
@@ -328,8 +330,9 @@
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "025250d13e217eee",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "7ab5624b72679cf1",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "07eda36ae2e46d06",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "cf123d68a877f6e2",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)": "110dcfd27cb15ab9",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)": "f75f4463d6fb822b"
@@ -351,8 +354,9 @@
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "025250d13e217eee",
-    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "7ab5624b72679cf1",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.duplicatesToQuarantine(overnightEntries:linkedIds:schedule:now:mergeMode:)": "07eda36ae2e46d06",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "cf123d68a877f6e2",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)": "110dcfd27cb15ab9",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)": "f75f4463d6fb822b"
@@ -604,6 +608,77 @@
     "Emuqu/Sources/Storage/SessionMerger.swift::func SessionMerger.mergeOutcome(imported:existing:)": "24a52b7317cd200e",
     "Emuqu/Sources/Storage/SessionMerger.swift::var SessionMerger.MergeOutcome.hasChanges": "4636950f508e9d69",
     "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.makeSession(points:withAnalysis:recoveryScore:tags:notes:importedMetrics:)": "fa7996cc52abf83e"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.testTheKeeperOfTiedDuplicatesDoesNotDependOnOrder()",
+   "hash": "41673d4f8f4728d6",
+   "does": "Two copies with the same start, end and score under fixed ids: the higher id is quarantined whichever order they are passed in.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.date(day:hour:minute:)": "cf123d68a877f6e2",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.entry(id:date:endDate:recoveryScore:meanRMSSD:linked:)": "110dcfd27cb15ab9",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.quarantine(_:now:mergeMode:)": "f75f4463d6fb822b"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.testARetiredCopysContentIsCarriedIntoTheKeeper()",
+   "hash": "590111a73405a4f1",
+   "does": "A retired copy's missing tag, notes, morning feeling and perceived readiness are carried into the keeper (notes appended after a blank line); carrying again changes nothing.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.makeSession(points:withAnalysis:recoveryScore:tags:notes:importedMetrics:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.carryUserContent(from:into:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.carryUserContent(from:into:)": "a66d30ee4eab420a",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.makeSession(points:withAnalysis:recoveryScore:tags:notes:importedMetrics:)": "fa7996cc52abf83e"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.testTheKeepersOwnContentIsNotReplaced()",
+   "hash": "0e9680de7cb43419",
+   "does": "The keeper's own morning feeling and identical notes stay and nothing counts as changed; mergedNotes takes the copy's notes only when the keeper has none, and keeps the keeper's against nil or empty.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.makeSession(points:withAnalysis:recoveryScore:tags:notes:importedMetrics:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.carryUserContent(from:into:)",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.mergedNotes(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.carryUserContent(from:into:)": "a66d30ee4eab420a",
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.mergedNotes(_:_:)": "61e2fad198187687",
+    "EmuquTests/ArchivePolicyTests.swift::func ArchivePolicyTests.makeSession(points:withAnalysis:recoveryScore:tags:notes:importedMetrics:)": "fa7996cc52abf83e"
+   }
+  },
+  {
+   "key": "func ArchivePolicyTests.testNotesAlreadyCarriedAreNotAppendedAgain()",
+   "hash": "e366d76afed90487",
+   "does": "mergedNotes leaves the keeper unchanged when its paragraphs already hold the copy's notes whole (last, first, or a two-paragraph run) and appends when the copy's text appears only inside a paragraph.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.mergedNotes(_:_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.mergedNotes(_:_:)": "61e2fad198187687"
    }
   }
  ],

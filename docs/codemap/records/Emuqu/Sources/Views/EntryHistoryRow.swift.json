@@ -69,7 +69,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.rowMetrics": "05ca3e3fd9a4c130",
     "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.sessionTypeIcon": "915d51f2d45188e9",
-    "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.timeAndTags": "95ac8912bf81b0af",
+    "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.timeAndTags": "abed8d6e13482d33",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
@@ -93,21 +93,24 @@
   },
   {
    "key": "var EntryHistoryRow.timeAndTags",
-   "hash": "ca62a7f5eb0cd619",
-   "does": "VStack: timeRow, displayDate as date, tag chips.",
+   "hash": "ddf7a5140141f36b",
+   "does": "VStack: timeRow, displayDate as a long date in the app language, tag chips.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.timeRow",
     "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.tagChips",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.displayDate",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "754c8c3bf69f57cc",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.displayDate": "754c8c3bf69f57cc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
     "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.tagChips": "7332621568e128cd",
-    "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.timeRow": "3eb9bf75e9154a45",
+    "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.timeRow": "4751ff2bbf6aa277",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
@@ -187,19 +190,22 @@
   },
   {
    "key": "var EntryHistoryRow.timeRow",
-   "hash": "5500a74b57888b7f",
-   "does": "HStack: displayDate time, session-type badge, linked segment badge.",
+   "hash": "bd3bb0de1af12d6f",
+   "does": "HStack: displayDate as a short time in the app language, session-type badge, linked segment badge.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.sessionTypeBadge",
     "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.segmentCountBadge",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.displayDate",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "754c8c3bf69f57cc",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.displayDate": "754c8c3bf69f57cc",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
     "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.segmentCountBadge": "d8eb74c540d7a895",
     "Emuqu/Sources/Views/EntryHistoryRow.swift::var EntryHistoryRow.sessionTypeBadge": "4d0349cd7a37457b"
    }
@@ -408,8 +414,8 @@
    "does": "Workout trailing metrics: duration (h m when ≥ 60 min, else minutes) when endDate-date > 0, plus a 'Workout' caption.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)",
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)",
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.minutes(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -433,8 +439,8 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9",
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316",
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }

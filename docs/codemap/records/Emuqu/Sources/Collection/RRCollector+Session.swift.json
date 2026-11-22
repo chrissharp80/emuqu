@@ -1,9 +1,9 @@
 {
  "file": "Emuqu/Sources/Collection/RRCollector+Session.swift",
  "hash": "0a4edec48979e6fb",
- "role": "RRCollector conveniences: resetSession between recordings and the notifyArchiveChanged forwarder (RecordingCore requirement).",
+ "role": "RRCollector conveniences: resetSession between recordings, the guards shared by a new quick reading or strap recording (requireConnectedWithNoNightHeld) and by the strap-only Stop and Discard (strapRecordingIsHeldElsewhere), and the notifyArchiveChanged forwarder (RecordingCore requirement).",
  "types": [
-  "RRCollector: extension — session reset and archive-changed forwarder"
+  "RRCollector: extension — session reset, start/stop guards and archive-changed forwarder"
  ],
  "state": [],
  "toplevel": "",
@@ -64,6 +64,82 @@
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recoveryWindow": "32b809f4bdd43de6",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.verificationResult": "c178ef092653f880",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.clearPausedSessionState()": "3a2764380968ec87",
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::var StreamingLifecycle.isEndingOvernight": "5b2ad0671cdd7076",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func RRCollector.requireConnectedWithNoNightHeld(starting:)",
+   "hash": "6388398e58288bbe",
+   "does": "Guard for a quick reading or strap-only recording about to start: logs and throws CollectorError.alreadyRecording while a night is paused or being ended; throws notConnected unless the strap is connected; otherwise returns.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isPaused",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:StreamingLifecycle.isPaused",
+    "mem:StreamingLifecycle.isEndingOvernight",
+    "mem:PolarManager.connectionState"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a night is paused or being ended",
+     "effect": "warning logged, throw alreadyRecording"
+    },
+    {
+     "at": "+5",
+     "cond": "strap not connected",
+     "effect": "throw notConnected"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isPaused": "2adbcfd04fa8941f",
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::var StreamingLifecycle.isEndingOvernight": "5b2ad0671cdd7076",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func RRCollector.strapRecordingIsHeldElsewhere(_:)",
+   "hash": "f9d07fff0d44c33b",
+   "does": "For the strap-only Stop and Discard: true (logged) while a night's ending is in progress; true, logged with lastError set to alreadyRecording, while a workout is live (strapRecordingBelongsToLiveWorkout); false otherwise.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveWorkout",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "mem:StreamingLifecycle.isEndingOvernight",
+    "mem:RecorderBox.recorder"
+   ],
+   "writes": [
+    "mem:RRCollector.lastError"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a night's ending is in progress",
+     "effect": "log, true"
+    },
+    {
+     "at": "+5",
+     "cond": "no workout is live",
+     "effect": "false"
+    },
+    {
+     "at": "+6",
+     "cond": "a workout is live",
+     "effect": "warning logged, lastError = alreadyRecording, true"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveWorkout": "d06f4707871366fb",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "d39519f741795634",
     "Emuqu/Sources/Collection/StreamingLifecycle.swift::var StreamingLifecycle.isEndingOvernight": "5b2ad0671cdd7076",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }

@@ -179,7 +179,7 @@ flows roughly top-to-bottom on capture and bottom-to-top on display:
 - **`Assistant/` is a near-self-contained module** — its only app-specific
   seam is the Fact Catalog resolvers. It
   has its own spec: [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md).
-- **`Views/` is the largest file count** (~211 files) but the thinnest logic —
+- **`Views/` is the largest file count** (~205 files) but the thinnest logic —
   screens observe view models / collector sub-objects and render.
 
 ### The C4 "container" view
@@ -188,7 +188,7 @@ flows roughly top-to-bottom on capture and bottom-to-top on display:
 |---|---|---|
 | **Emuqu (iOS app)** | The whole product | `Emuqu/EmuquApp.swift` → `Emuqu/Sources/Views/MainTabView.swift` |
 | **EmuquWatch (watchOS)** | Live-workout mirror + wrist controls + optional direct strap | `EmuquWatch Watch App/WatchApp.swift` |
-| **EmuquTests** | Unit tests (256 files) | `EmuquTests/` + `Emuqu.xctestplan` |
+| **EmuquTests** | Unit tests (278 files) | `EmuquTests/` + `Emuqu.xctestplan` |
 | **EmuquUITests** | XCUITest UI tests (18 files) | `EmuquUITests/` |
 
 ### The five tabs (navigation spine)
@@ -264,7 +264,7 @@ magic numbers. Hold every change to the [Refactor Completion Checklist](REFACTOR
 CI measures only part of it: `scripts/check_refactor_spec_conformance.sh` checks
 function, property and init length, nesting depth, commented-out code and empty
 catches, and other gates own `try?`, `.shared` and log redaction. Magic numbers
-are not checked by any gate (neither SwiftLint config enables `no_magic_numbers`),
+are not checked by any gate (`.swiftlint.yml` does not enable `no_magic_numbers`),
 nor are the judgement items, so review is what holds them.
 
 ---
@@ -336,7 +336,7 @@ drift — treat them as scale indicators, not invariants. Directories are under
 | `Emuqu/` | Main iOS app target (source, `Assets.xcassets`, `Info.plist`, entitlements, `Localizable.xcstrings`). |
 | `Emuqu/EmuquApp.swift` | `@main` (`EmuquMain`) and `EmuquApp` — launch, singleton wiring, deferred boot, launch-modal gating. |
 | `Emuqu/Sources/` | All app Swift source, by layer (below). |
-| `EmuquTests/` | Unit tests (256 files). |
+| `EmuquTests/` | Unit tests (278 files). |
 | `EmuquUITests/` | XCUITest UI tests (18 files). |
 | `EmuquWatch Watch App/` | watchOS companion (§8.6). |
 | `Emuqu.xcodeproj/` | Xcode project (last upgraded with Xcode 26.6; CI selects Xcode 26.6). |
@@ -350,10 +350,10 @@ drift — treat them as scale indicators, not invariants. Directories are under
 | `.githooks/pre-commit` | SwiftFormat + SwiftLint + the code-map check before commit (install via `make setup-hooks`). |
 | `Makefile` | Dev/CI entry points (§10). |
 | `README.md`, `LICENSE` | Overview; PolyForm Strict 1.0.0 source-available, no-derivatives license. |
-| `.swiftlint.yml` / `.swiftlint-strict.yml` / `.swiftformat` | Lint & format config. |
+| `.swiftlint.yml` / `.swiftformat` | Lint & format config. |
 | `.env.example` | Local overrides for the coverage script (SCHEME/PROJECT/MIN_COVERAGE). |
 
-### 5.1 `Analysis/` — physiology math + scoring (~75 files)
+### 5.1 `Analysis/` — physiology math + scoring (~83 files)
 
 The signal-processing and scoring engine. Mostly pure transforms.
 
@@ -364,9 +364,10 @@ The signal-processing and scoring engine. Mostly pure transforms.
 - Workout analytics: `WorkoutAnalyzer.swift`, `WorkoutAnalysisSnapshotBuilder.swift`, `WorkoutLiveTrends.swift`, `WorkoutAlpha1Reanalyzer`, `BarometricAltitudeProcessor`, `TopoElevationService`.
 - Baselines/trends/load/sleep: `BaselineTracker`, `TrendAnalysis`, `TrainingLoadRegistry`, `HeatAcclimation`, `SleepScienceAnalyzer`, `SleepResolver`, `AnalysisSummaryGenerator` (narrative).
 - Track I/O: `CSVExporter`, `GPXExporter`, `TCXExporter`, `GPXImporter`.
+- `ArchiveAccessFailure` — whether a failed archive read or write may clear by itself (a locked device, a full disk, a locked keychain); the launch scans stay open for another try only on those.
 - **`CauseDetection/` (7 files)** — rule engines explaining *why* a score is high/low: `CauseDetector` + Metric/Pattern/Positive/Severe/Sleep/Tag detectors.
 
-### 5.2 `Collection/` — sensor capture + recording lifecycle (~150 files)
+### 5.2 `Collection/` — sensor capture + recording lifecycle (~160 files)
 
 The largest, most stateful layer. Owns hardware and the recording state machine.
 
@@ -383,6 +384,7 @@ The largest, most stateful layer. Owns hardware and the recording state machine.
   why they are not `unowned` back-pointers.
 - `PolarManager.swift` (+`+Streaming`, `+Recording`, `+Observers`) — Polar BLE.
 - `HealthKitManager.swift` (+`+HRV`, `+HeartRate`, `+SleepTrends`, `+Store`, `+Heat`) — HealthKit read/write. Three query classes hold the reads: `VitalsHealthQueries`, `TrainingHealthQueries` and `SleepHealthQueries`. Sleep export, trend analysis and the observers stay on `+SleepTrends` — those write and observe, which is a different job with different failure modes.
+- Apple Health write-back: `HealthExportIdentity` stamps every sample and workout the app exports with the session's sync identifier and a rising sync version, so a re-export replaces the earlier copy rather than adding one; `HealthKitWorkoutExport` (the workout, with its samples and route) and `HealthWriteAndObserve.swift` (`HealthSampleReplacer`, `removeExports` for a session deleted forever, and `HealthSampleWatch`, the anchored observer that hands the app other sources' new samples). A workout saved while the phone was locked, when its earlier exports could not be read, is noted in `PendingWorkoutReplacements` and its earlier copies are deleted on the next return to the app.
 - `WorkoutRecorder.swift` (+`+Lifecycle`, `+Ticker`, `+Start`, `+Stop`, `+Metrics`) — live workout; with `WorkoutLocationManager`, `WorkoutMotion`, `WorkoutPedometer`, `WorkoutHR`. `WorkoutAIContextBuilder` owns everything the assistant is told about a workout in progress (context snapshot, route topology, climbs ahead, live weather, interval progress, threshold breaches, split paces, grade) — the recorder's largest piece that is not the recording pipeline.
 - Extra devices: `Concept2Manager` (PM5 rower), `FootPodManager` (Stryd RSC + FTMS bike), `ZwiftPeripheralBroadcaster`.
 - Recording support: `BackgroundAudioManager` (per-cue audio session for spoken workout cues), `BreathingAudioManager`, `IntervalController`, `SleepMergingPipeline` (`SleepData` itself is in `Models/`), `TrainingLoad`/`TrainingMetrics`, `RecoveryVitals`, `SessionState`, `RecordingPhase`.
@@ -401,11 +403,11 @@ The largest, most stateful layer. Owns hardware and the recording state machine.
   Where an external caller needs the old entry point, a one-line forwarder
   keeps it (`HealthKitManager.estimateSleepFromHR`).
 
-### 5.3 `Assistant/` — the "Flo" AI subsystem (~115 files)
+### 5.3 `Assistant/` — the "Flo" AI subsystem (~118 files)
 
 Near-self-contained; see [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). Layout:
 
-- **root:** `VoiceConversationController.swift` (+`+Audio`) — app-wide voice chat; `VoiceEchoHeuristics` — the token-overlap rules that decide whether recognised speech is the mic hearing the app's own TTS (three call sites shared this comparison and one carried its own drifting copy of the tokeniser); `WorkoutVoiceCoach`, `WorkoutTriggerEngine`, `WorkoutMileMarkerEngine`, `TurnAlertEngine`, `TurnMarkerEngine` — mid-workout spoken coaching; `MedicalQueryGuard`, `CoachVoiceGuard`, `MetricsVerifier` — safety guards; `TTSTextNormalizer`, `SpokenTextChunker`, `PhoneticOverrides` — speech prep.
+- **root:** `VoiceConversationController.swift` (+`+Audio`) — app-wide voice chat; `VoiceEchoHeuristics` — the token-overlap rules that decide whether recognised speech is the mic hearing the app's own TTS (three call sites shared this comparison and one carried its own drifting copy of the tokeniser); `WorkoutVoiceCoach`, `WorkoutTriggerEngine`, `WorkoutMileMarkerEngine`, `TurnAlertEngine`, `TurnMarkerEngine` — mid-workout spoken coaching; `CoachCueSpeech` — the coach lines the voice controller speaks, each claiming the workout-cue audio session before it is spoken, and the scripted line an AI-worded interjection falls back to; `MedicalQueryGuard`, `CoachVoiceGuard`, `MetricsVerifier` — safety guards; `TTSTextNormalizer`, `SpokenTextChunker`, `PhoneticOverrides` — speech prep.
 - **`Providers/`:** `AIProvider.swift` (protocol + ToolSpec + stream event) + `AppleFoundationProvider` (on-device) and its `AppleFoundationToolAdapter`/`AppleToolDispatcher`, `AnthropicProvider`, `OpenAIProvider`, `GeminiProvider`, `GrokProvider`, `DeepSeekProvider`, `OpenAICompatibleStreamer`, `ProviderStream`, `ProviderRegistry`.
 - **`Facts/`:** `AppFactResolver.swift` (+`+Live`, `+Settings`, `+Sleep`, `+Workout`) — resolves app data into facts; `FactCatalog`, `FactKey`, `FactValue`, `CompactToolRouter`, `SmartProviderRouter`, `TierProviderMapper`, `CapabilityClassifier`, `DeterministicIntent`, `AppleContextCompactor`, `LLMCacheTelemetry`.
 - **`Chat/`:** `ConversationStore`, `AssistantInbox`, `SpeechInputManager`, `WhisperKitSTTBridge`/`STTProvider`, `UserFactsStore`, `AssistantEmailBridge`, `AssistantCitationResolver`, `PrefabQuestions`, `AnalysisSummaryCache`, `AssistantContextSource`.
@@ -414,20 +416,25 @@ Near-self-contained; see [`FLO_ARCHITECTURE.md`](FLO_ARCHITECTURE.md). Layout:
 - **`Views/`:** `AssistantChatView`, `ChatBubble`, `ModelPicker`, `ProviderConsentSheet`, `AIAssistantSettingsPage`, `DisclaimerSheet`, `CitationQuickView`, `TypingIndicator`, `PrefabQuestionChips`.
 - **`Keys/`:** `APIKeyStore.swift` — Keychain-backed provider key store.
 
-### 5.4 `Services/` — cross-cutting app services (~50 files)
+### 5.4 `Services/` — cross-cutting app services (~55 files)
 
-- IAP + platform: `StoreKitManager` (lifetime one-time purchase) + `EntitlementAnchor` (durable trial/beta anchor), `WatchConnectivityBridge` (Watch↔phone), `DataPurgeService` ("Delete all my data").
-- Recovery/morning pipeline: `ReanalysisService`, `MorningProcessingService`, `MorningNotificationScheduler`, `SessionRecoveryService`, `SessionAcceptanceService`, `WorkoutRecoveryService`, `PowerStatePolicy`.
+- IAP + platform: `StoreKitManager` (lifetime one-time purchase) + `EntitlementAnchor` (durable trial/beta anchor), `WatchConnectivityBridge` (Watch↔phone; `+Transport` holds the queued-transfer and send-timeout rules), `DataPurgeService` ("Delete all my data"; `+Defaults` holds the preferences sweep) + `PurgeGate` (the process-wide lock it holds: archive writes are refused and uploads skipped while it runs).
+- Recovery/morning pipeline: `ReanalysisService` (its write-back is `RescoreWrite`: a rescore lands only while the stored copy's inputs still match the copy it read), `MorningProcessingService`, `MorningNotificationScheduler`, `SessionRecoveryService`, `SessionAcceptanceService`, `WorkoutRecoveryService`, `PowerStatePolicy`.
 - Location/road/nav stack: `AmbientLocationService`, `RoadGeocodingService`, `RoadGraphService`, `RoadAwarenessEngine`, `DirectionsService`, `ActiveRouteSession`, `LocationFinder`, `TrailDiscoveryService`, `SurroundingsPOIService`, `JourneyIntelligenceService`, `BreadcrumbRecorder`/`BreadcrumbStore`, `AudioSessionCoordinator`.
 - Data/localization: `LanguageManager` (localization singleton), `NarrativeLanguage` (bundle and locale for runtime-assembled text), `WeatherService`, `WebSearchService`.
 
-### 5.5 `Storage/` — persistence, encryption, sync (~44 files)
+### 5.5 `Storage/` — persistence, encryption, sync (~49 files)
 
 - `Archive.swift` (+`+MergeForwarding`, `+Migrations`, `+Repair`; merge logic in `SessionMerger`) — the on-disk session archive (JSON in the App Group, SHA-256 integrity, in-memory index).
-- iCloud: `CloudKitSyncManager`, `CloudKitLiveBackupManager`, `CloudKitSyncState`, `Reconciliation`.
+- iCloud: `CloudKitSyncManager`, `CloudKitLiveBackupManager`, `CloudKitSyncState`, `Reconciliation`; `CloudSessionPayload` (`CloudSessionPayload.swift`) — the upload shape, with Apple Health data left out; `CloudAccountIdentity` + `CloudAccountGuard` (`CloudAccountIdentity.swift`) — the Apple ID sync was turned on for, checked before anything is read from or written to iCloud; `CloudAccountChangeHandler` — what `.CKAccountChanged` does to sync.
 - Support: `EncryptionManager`, `DataCompression` (ZLIB), `RawRRBackup`, `WorkoutTrackBackup`, caches (`SleepDataCache`, `UIStateCache`, `RespiratoryBaselineCache`, `WristTemperatureBaselineCache`), `SessionStorageDiagnostic`.
 
-### 5.6 `Models/` — domain types & settings (~29 files)
+### 5.5a `Export/` and `Import/` — reports, export files, data import
+
+- `Export/`: the PDF reports — `PDFReportGenerator` (+extensions) with `OvernightReportRenderer`, `DeepDiveReportRenderer` and `ReportSectionRenderer`; `HolisticDailyReport`; `WorkoutPDFReport` / `WorkoutPDFRenderer`. `ExportFile.swift` writes the CSV, GPX and TCX exports, the PDFs `PDFReportGenerator` writes, and the log and crash-report exports into one temporary `Exports` folder with complete file protection, and empties that folder at launch (`EmuquApp.init`, `removeLeftovers`); the workout PDF and the daily report get the same protection where they are written (`ExportFile.protect`).
+- `Import/`: `RRDataImporter` (+`+CSV`, `+EliteHRV`, `+FlowHRV`, `+JSON`) for RR files from other apps; `HealthWorkoutImporter` (+`+Queries`, `+Rebuild`) and `ImportedWorkoutBuilder` for workouts read from Apple Health.
+
+### 5.6 `Models/` — domain types & settings (~32 files)
 
 `HRVSession` (the central record), `SettingsManager`/`UserSettings` (persisted
 settings singleton — drives launch gating), `RRModels`, `WorkoutMetadata` /
@@ -458,14 +465,14 @@ implementation" the refactor spec's completion checklist forbids. To delete a
 Swift file with explicit pbxproj build membership, use
 `scripts/remove_swift_file.py`.
 
-### 5.8 `Utilities/` (~22 files)
+### 5.8 `Utilities/` (~23 files)
 
 `Constants.swift` (+`+RecoveryScore`) — **all magic numbers**; `Extensions`,
 `Statistics`, `Errors`, `DebugLog`, `CrashLogManager`,
 `SystemDiagnosticsManager`, keyboard helpers (`GlobalKeyboardDismissal`,
 `KeyboardPerfSignpost`), `PendingScoreChange`.
 
-### 5.9 `Views/` (~211 files) + `ViewModels/` (2 files)
+### 5.9 `Views/` (~205 files) + `ViewModels/` (2 files)
 
 > **Known deviation, not the intended layering.** Two hundred-odd view files against 2 view
 > models means most screens hold their logic inline. No view
@@ -503,7 +510,7 @@ orientation.
 | Type | File | What it is |
 |---|---|---|
 | **`HRVSession`** | `Emuqu/Sources/Models/SessionMetadata.swift` (`HRVSession`) | **The central record.** One recording (overnight or quick) or workout. Holds `analysisResult`, `sleepSnapshot`, `vitalsSnapshot`, `rrSeries`, tags, notes, `recoveryScore` (0–10 stored), `sessionType`, `linkedSessionIds`. |
-| **`SessionArchiveEntry`** | `Emuqu/Sources/Models/SessionMetadata.swift` (`SessionArchiveEntry`) | Lightweight **in-memory index** row — metadata only (no `rrSeries`) so trends/lists/AI can scan the whole archive cheaply. Carries score, means, tags, sleep-stage minutes, `sleepEnd`, `fileHash`, `filePath`. |
+| **`SessionArchiveEntry`** | `Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift` (`SessionArchiveEntry`) | Lightweight **in-memory index** row — metadata only (no `rrSeries`) so trends/lists/AI can scan the whole archive cheaply. Carries score, means, tags, sleep-stage minutes, `sleepEnd`, `fileHash`, `filePath`. |
 | **`HRVAnalysisResult`** | `Emuqu/Sources/Models/RRModels.swift` | The computed HRV payload (time/frequency/nonlinear metrics, window info, artifact %). The doc's "AnalysisResult". |
 | **`ANSMetrics`** | `Emuqu/Sources/Models/RRModels.swift` (`ANSMetrics`) | Autonomic metrics incl. the HRV-only `readinessScore` (1-10). |
 | **`RRPoint` / RR models** | `Emuqu/Sources/Models/RRModels.swift` | Raw RR-interval primitives (`t_ms`, `rr`, wall-clock). |
@@ -574,12 +581,14 @@ The spine of the product. Full version: [`FLOWCHART.md` §2–§5](FLOWCHART.md)
    the streaming infrastructure, backs up the streamed beats, then downloads the H10
    internal recording (reconnecting a dropped strap within a bounded window, polling
    HealthKit sleep in parallel), merges and scores the night; a too-short stream takes
-   `fallbackToDeviceFetch`. (`gatherOvernightData()` in `RRCollector+OvernightGather.swift`
+   `fallbackToDeviceFetch`. The download is skipped when the night never armed the
+   strap and the strap reports no recording (`nightFetchAllowed`). (`gatherOvernightData()` in `RRCollector+OvernightGather.swift`
    is the pause and recovery gather, not the morning stop.)
 4. **Pick the best source** — `DataSourceSelector.selectBestSource(...)`
    (`Emuqu/Sources/Collection/DataSourceSelector.swift`): internal → composite (if internal
-   has ≥5% fewer beats) → streaming → raw backup. Composite gap-fill uses a 2 s
-   gap threshold.
+   has more than 5% fewer beats) → streaming → raw backup. The composite takes the
+   streamed beats that fall in the internal series' gaps (2 s past the expected
+   interval) or before and after the span the strap recorded.
 5. **Analyze** — `HRVAnalysisPipeline` (`Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift`).
    `analyzeWithAutoWindow` runs `WindowSelector.findBestWindow` over the
    30–70 % band of *actual sleep*, then `analyzeWithWindow`: artifact flags →
@@ -605,18 +614,25 @@ The spine of the product. Full version: [`FLOWCHART.md` §2–§5](FLOWCHART.md)
 
 1. **Start** — `WorkoutRecorder` (`Emuqu/Sources/Collection/WorkoutRecorder.swift`, MainActor
    orchestrator) auto-reconnects the last strap + Stryd/FTMS/PM5 in parallel,
-   starts GPS (`WorkoutLocationManager`) and the barometric altitude buffer, and
+   starts GPS (`WorkoutLocationManager`) and the barometric altitude buffer for a
+   GPS sport (an indoor workout never builds that stack: `startedLocation`), and
    drives a per-tick ticker.
 2. **Live** — `LiveDFAAnalyzer` computes rolling α1 every 20 s (Kubios-style
    artifact filter first); `LiveWorkoutBroker` publishes a thread-safe snapshot
    to the AI/voice coach; `WorkoutTriggerEngine` + `WorkoutVoiceCoach` speak
    observations over long cooldowns; declared `WorkoutThreshold`s duck audio only
-   on breach.
-3. **Stop** — `stopStreaming()` is deferred until after a 120 s HRR capture
+   on breach. An alert also plays a haptic on the phone and, over
+   `WatchConnectivityBridge.sendCoachAlertHaptic`, on the Watch
+   (`WorkoutVoiceCoach.dispatch(event:)`); each spoken line claims the cue audio
+   session through `CoachCueSpeech`.
+3. **Stop** — `stop()` ends an open pause at the stop time; `stopStreaming()` is
+   deferred until after a 120 s HRR capture
    window (`HRRCaptureService`); `finalizeSession()` runs `WorkoutAnalyzer`
    (Banister TRIMP, hrTSS, power-TSS, splits, decoupling), the barometric
    elevation post-processor, and archives the workout (also auto-archiving its
-   GPS track as a breadcrumb trail).
+   GPS track as a breadcrumb trail). Once archived, the workout is written to Apple
+   Health when the app may write workouts (`HealthKitWorkoutExport.export`), replacing any earlier export of the same
+   session, with active energy net of resting metabolism.
 4. **Summary/PDF** — `FitnessPostSummaryView*` renders the
    α1 "epic report"; `WorkoutPDFReport.generate` (`Emuqu/Sources/Export/WorkoutPDFReport.swift`)
    produces the 6–7 page clinical PDF. Training-load math and citations:
@@ -628,7 +644,10 @@ Full version: [`FLO_ARCHITECTURE.md` §3](FLO_ARCHITECTURE.md) and
 [`FLOWCHART.md` §20](FLOWCHART.md).
 
 1. **Input** — chip/type/dictate → `AssistantViewModel.send(text:fromVoice:)`.
-   On first send of a session, Apple Foundation model is prewarmed.
+   On first send of a session, Apple Foundation model is prewarmed. A
+   health-symptom question is answered locally by `MedicalQueryGuard` and never
+   sent; otherwise the selected provider must be able to take the turn
+   (`ProviderRegistry.canSend`: available and switched on in Settings → Flo).
 2. **Deterministic shortcut** — for a voice turn while no reply is streaming,
    `DeterministicIntent.tryMatch` catches the 14 highest-frequency factual
    queries with a fact-catalog read + template, **zero tokens**, before the
@@ -650,14 +669,25 @@ Full version: [`FLO_ARCHITECTURE.md` §3](FLO_ARCHITECTURE.md) and
    call is resolved **locally** by `CompactToolRouter.resolveTool` over the Fact
    Catalog (no network); results go back as a continuation. Hard cap
    **`maxToolCallsPerTurn = 8`** (`AssistantViewModel+Tools.swift`), then one closing pass.
+   Once a tool that changes data has run, a failed round is shown rather than
+   handed to another model (`PickedModelFailure`). Tools that delete, or that
+   write a value the user did not state in their latest message (a memory fact,
+   a contact, an address, a route name), change nothing until the user's next
+   message confirms (`DestructiveActionContext`, `AssistantActionConfirmations`).
+   Replies pass `CoachVoiceGuard.scrub`, which leaves the app's own safety
+   replies byte-identical.
 5. **Apple path** — Apple's `LanguageModelSession(tools:)` is wired through
    `AppleFoundationToolAdapter` → `AppleToolDispatcher`; transcript is
    verbatim-compacted at 70 % of the 4 K window (`AppleContextCompactor`); a
-   `SessionCache` reuses the warm session, rotating after 20 turns or when
+   `SessionCache` reuses the warm session only when the exchange before the new
+   question is the one it answered (`AppleExchange`), rotating after 20 turns or when
    its running token estimate says the next turn would not fit; replies are
    capped at 512 tokens.
 6. **Side-effects** — on completion, optional auto-fact-extraction adds new facts
-   to `UserFactsStore`; cache-hit telemetry is recorded.
+   to `UserFactsStore` (only with consent and a provider that can take a turn);
+   older turns are summarised one batch per send into the conversation summary,
+   kept sealed beside the history (`ConversationStore.saveSummary`); cache-hit
+   telemetry is recorded.
 
 ### 7.5 Storage & iCloud sync
 
@@ -672,10 +702,29 @@ Full version: [`FLO_ARCHITECTURE.md` §3](FLO_ARCHITECTURE.md) and
    rate filled from Health), then ZLIB-compresses and encrypts the JSON into a
    `CKAsset` and writes it to the **private** database. Each device reads
    Health itself; a pull keeps this device's own copies of the stripped fields.
+   Sample nights are never uploaded (`CloudUploadExclusion.sampleData`).
 3. **Sync down** — `performFullSync()` on launch/foreground; deletes
    propagate via a soft-delete flag (`isDeleted`), and `deletedSessionIds`
    prevents re-creation of locally deleted sessions.
-4. **Deferred migrations** — `runDeferredMigrations()`
+4. **Which iCloud account** — sync belongs to the Apple ID it was turned on for
+   (`CloudAccountIdentity`, recorded in this device's `UserDefaults`). Nothing
+   is read from or written to iCloud, and no cloud key is created, until this
+   launch has confirmed the signed-in account is that one; an install from
+   before the account was recorded adopts the signed-in account on its first
+   check (`CloudAccountIdentity.verdict`). If the account changed during that
+   launch while earlier sync bookkeeping remains, the check first looks up a
+   few of the sessions this device uploaded in the signed-in account: one found
+   adopts it, none found makes it a different account, and an iCloud error
+   decides nothing. A different account, or a zone found deleted (Delete All My Data on
+   another device, or the iCloud settings), turns sync off with a notice under
+   the switch (`CloudAccountGuard.stopSync`): the sync bookkeeping is reset,
+   local data is kept, and no zone is recreated until the user turns sync on
+   again.
+5. **Delete All My Data** — `PurgeGate` closes for the purge: archive writes
+   are refused, uploads and full syncs are skipped, and the purge waits for
+   writes already under way. iCloud sync is turned off before the remote
+   delete.
+6. **Deferred migrations** — `runDeferredMigrations()`
    (`Emuqu/Sources/Storage/Archive+Migrations.swift`) runs the idempotent one-time
    migrations on a background thread at launch.
 
@@ -737,21 +786,27 @@ doc. Use this to decide *where to read next*.
   [`ARCHITECTURE.md` → AI Assistant](ARCHITECTURE.md#ai-assistant).
 - **Key contracts:** system prompt is byte-stable for prompt caching (volatile
   live-state moved to the last-user-tail); tool schemas serialized sorted-keys;
-  cap of 8 tool calls/turn; API keys in Keychain, never iCloud-synced.
+  cap of 8 tool calls/turn; API keys in Keychain, never iCloud-synced; a turn
+  goes only to a provider that is available and switched on
+  (`ProviderRegistry.canSend`); the reply scrub never rewrites the app's own
+  safety replies (`CoachVoiceGuard.scrub`).
 
 ### 8.5 Storage, sync & export
 
 - **Owns:** the JSON archive, encryption, integrity, CloudKit sync, PDF/CSV/GPX/
   TCX export, external-format import.
-- **Code:** `Storage/` (Archive, CloudKitSyncManager, EncryptionManager,
-  DataCompression, RawRRBackup), `Export/`, `Import/`,
-  `Analysis/{CSV,GPX,TCX}Exporter`.
+- **Code:** `Storage/` (Archive, CloudKitSyncManager, CloudAccountIdentity,
+  EncryptionManager, DataCompression, RawRRBackup), `Services/PurgeGate`,
+  `Export/` (incl. `ExportFile`), `Import/`, `Analysis/{CSV,GPX,TCX}Exporter`.
 - **Deep doc:** [`ARCHITECTURE.md` → Storage & Sync](ARCHITECTURE.md#storage--sync);
   [`API_REFERENCE.md` → Storage](API_REFERENCE.md#storage).
 - **Key contracts:** per-screen archive subscriptions (load limits are per-screen,
   §3); the [post-acceptance mutation contract](FLOWCHART.md#13-post-acceptance-mutation-contract)
   governs when archived sessions may be rewritten (user overwrite vs. additive
-  merge only).
+  merge only); sync acts only for the recorded iCloud account and turns itself
+  off rather than recreate a deleted zone (§7.5); no archive write lands while
+  Delete All My Data runs (`PurgeGate`); the exports `ExportFile` writes go,
+  with complete file protection, to the temporary `Exports` folder (§5.5a).
 
 ### 8.6 The Apple Watch app
 
@@ -763,6 +818,19 @@ doc. Use this to decide *where to read next*.
   `Emuqu/Sources/Services/WatchConnectivityBridge.swift`.
 - **Design:** the **iPhone owns the Polar strap and canonical record**; the Watch
   mirrors live HR/stats over `WatchConnectivity` and offers start/stop/pause.
+  A relaunched Watch app takes back its running workout session
+  (`WatchAppDelegate.handleActiveWorkoutRecovery` →
+  `WatchWorkoutManager.recoverActiveSession`): the recovery begins first, then
+  the delegate wires the workout manager to the session manager itself, and a
+  start, stop or not-recording report from the iPhone while the hand-back is
+  pending is applied once it finishes. Coach alerts arrive as a `coachAlert` message and play a
+  haptic only while fresh (`WatchSessionManager`,
+  `WatchMessageDecoding.playsCoachAlert`); the Watch's End/Pause/Resume sends
+  are in `WatchSessionManager+Controls.swift`. On the phone
+  (`WatchConnectivityBridge+Transport.swift`), a queued coach alert is replaced
+  by a newer one rather than queued behind it (`transferLatestUserInfo`), and
+  `WatchSendTimeoutBreaker` skips live `sendMessage` for 30 s after three
+  timeouts, leaving the application-context copy to carry the snapshot.
 - **Deep doc:** [`ARCHITECTURE.md` → Apple Watch app](ARCHITECTURE.md#apple-watch-app).
 
 ### 8.7 Navigation & location (workout-time)
@@ -921,15 +989,24 @@ Overnight recordings and indoor workouts stay alive on `bluetooth-central`
 wakeups from incoming BLE data — no silent audio, no background location.
 Background location serves *only* workout GPS, a user-visible feature, per App
 Store rule 2.5.4; spoken cues activate a mixable audio session only while they
-speak, a voice chat the user starts holds it until the chat ends, and the app
-neither activates audio nor speaks at launch. See
+speak (`BackgroundAudioManager`, claimed per line by `CoachCueSpeech`), a voice
+chat the user starts holds it until the chat ends, the breathing guide holds it
+while it runs, and the app neither activates audio nor speaks at launch. Apple
+Health wakes the app in the background only for new sleep samples (background
+delivery is on for sleep and off for the vitals types); `HealthSampleWatch`
+reads what was added since an anchor kept across launches, so samples that
+arrived while the app was not running are read on the next launch. The Watch
+app takes back a workout session still running after it was relaunched
+(`WatchAppDelegate`). See
 [`ARCHITECTURE.md` → Background Execution](ARCHITECTURE.md#background-execution).
 
 ### 9.7 Privacy & security
 
 All health data is processed **on-device**; iCloud sync (off until the user
 turns it on) uses the user's **private** CloudKit database, encrypted on device
-before upload, and uploads nothing read from Apple Health. Nothing
+before upload, and uploads nothing read from Apple Health. It acts only for the
+iCloud account it was turned on for (§7.5), so a device signed into another
+Apple ID uploads nothing to it. Nothing
 goes to the developer. AI: Apple Intelligence is fully on-device. A cloud
 provider (Anthropic, OpenAI, Google, xAI, DeepSeek — the user's own key, after a
 consent sheet) receives:
@@ -945,6 +1022,18 @@ consent sheet) receives:
   instead.
 
 Every other network destination is listed in §2.
+
+Assistant tools that delete data, or that would save a value the user did not
+state themselves, wait for the user's own confirmation (§7.4). The heart-rate
+and power broadcaster advertises only once the disclosure has been accepted on
+that device (`BroadcasterDisclosure`, kept out of the iCloud settings backup).
+
+**On the device.** Log lines are scrubbed by `DebugLogger.scrubPHI`, which
+redacts every named value whose key is not on a short allow-list of counts and
+identifiers, so a new key is covered without anyone naming it. The CSV, GPX,
+TCX, report-PDF, log and crash exports are written through `ExportFile` (§5.5a)
+with complete file protection. The conversation summary is sealed beside the
+history, as the conversation is.
 
 > **Keychain exception.** The blanket "never iCloud-synced" below
 > holds for API keys but not for the whole keychain:
@@ -1300,8 +1389,13 @@ lists them all as possible callers, and only certain edges trigger re-checks.
     that can show the `@unchecked Sendable` / `nonisolated(unsafe)` escapes
     (capped by `.ci/unchecked_sendable_budget.txt`, each in an allowlisted
     file, each naming the queue or lock that owns its state) are actually
-    safe, as opposed to merely no more numerous than last week. Its last step
-    writes the job's result to the run summary.
+    safe, as opposed to merely no more numerous than last week.
+    `scripts/check_thread_sanitizer.sh` runs the tests serially
+    (`-parallel-testing-enabled NO`, so race reports reach the log) with
+    `TSAN_OPTIONS=halt_on_error=1` (so a race fails the run), and first runs a
+    canary, `EmuquTests/ThreadSanitizerCanaryTests`, that races on purpose: the
+    gate fails unless the canary's race is reported and fails its run. Its last
+    step writes the job's result to the run summary.
   - **Job 4 `release-build`** — `make release-build`: the Release
     configuration compiles with the optimizer, in parallel with the tests so a
     full-scope run fits its time limit. Its last step writes the job's result
@@ -1317,11 +1411,16 @@ lists them all as possible callers, and only certain edges trigger re-checks.
   this job ("Script gates (no Xcode)") and the five `ci.yml` jobs above to
   pass, on a branch that is up to date with `main`, before anything merges.
 - **`security.yml`** — `workflow_dispatch` only — CodeQL over the Swift
-  (macOS) and dependency review (ubuntu).
+  (macOS) and dependency review (ubuntu). Before the review, every package
+  pinned in `Package.resolved` must appear in the repository's dependency-graph
+  SBOM, or the job fails rather than review a graph that left them out.
 - **`performance.yml`** — `workflow_dispatch` only — `AnalysisPerformanceTests`.
 - **`testflight.yml`** — `workflow_dispatch` only — TestFlight build + upload.
   The deploy job runs in the `testflight` environment, which holds the signing
-  secrets, accepts only `main` and waits for the owner's approval.
+  secrets, accepts only `main` and waits for the owner's approval; the job's own
+  `if:` also requires `refs/heads/main`. Secrets reach its scripts through
+  `env:`, the signing keychain gets a random password, and a final `if: always()`
+  step removes the keychain, certificate and API key.
 
 ### Dependency upgrade constraints
 
@@ -1376,6 +1475,11 @@ Numeric ceilings in `.ci/*.txt`, enforced by `scripts/enforce_tech_debt_budgets.
 (and friends): SwiftLint warnings, large-file count, coverage floor,
 silent-`try?` count, `.shared` usage, and **legacy `ObservableObject` count**
 (`legacy_observable_object_budget.txt` — ratchets new code onto `@Observable`).
+The Watch target is counted the same ways against one combined ceiling,
+`watch_tech_debt_budget.txt` (its `try?` on write paths is shown but not added
+again, since the `try?` count already holds it). A debt ceiling must be a whole number: the gates
+that read one refuse anything else, and `check_budget_monotonicity.sh` treats a
+ceiling that stops being whole (`83` → `83.0`) as a raise.
 Every budget is **monotonic** — it can only ever be lowered, so these axes can't
 regress. That is now enforced rather than asserted:
 `scripts/check_budget_monotonicity.sh` fails any diff that raises a `.ci/*.txt`
@@ -1405,7 +1509,7 @@ migrate a type to `@Observable`, lower the matching budget in the same change.
 
 ### Tests
 
-- **`EmuquTests/`** (~267 files): deep unit coverage of analysis/scoring/sleep/
+- **`EmuquTests/`** (~278 files): deep unit coverage of analysis/scoring/sleep/
   AI-routing/collector-state/persistence/sync. Shared `EmuquTests/Helpers/TestHelpers.swift`
   + `Mocks/` (MockHealthKitService). Includes `WatchMessageDecodingTests`,
   which covers the phone → Watch `WCSession` contract via
@@ -1462,6 +1566,9 @@ Domain terms you'll meet in the code and docs.
 | **Fact Catalog** | The set of ~200 typed data facts the AI can read via tool-use (`Assistant/Facts/`). |
 | **Tier (Quick/Auto/Deep)** | The AI routing tiers, active only while Apple Intelligence is the selected model: Quick → Apple; Auto → classifier, mid tier to consented Grok then DeepSeek; Deep → the same consented mid-tier cloud (Apple if none). |
 | **Flo / Coach / Flo Report** | Chat tab / mid-workout voice / auto-email — three AI subsystems, one model. |
+| **Sync identifier / version (Apple Health)** | `HKMetadataKeySyncIdentifier` and `HKMetadataKeySyncVersion`, set on every sample and workout the app exports (`HealthExportIdentity.metadata`); a later save with the same identifier and a higher version replaces the earlier one. |
+| **Recorded iCloud account** | The `userRecordID` of the Apple ID iCloud sync was turned on for (`CloudAccountIdentity`); sync reads and writes iCloud only while the signed-in account is confirmed to be it. |
+| **Purge gate** | `PurgeGate`: the lock Delete All My Data holds, refusing archive writes and skipping uploads while it runs. |
 
 ---
 

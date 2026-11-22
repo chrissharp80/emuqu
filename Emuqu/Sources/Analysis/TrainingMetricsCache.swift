@@ -72,7 +72,34 @@ final class TrainingMetricsCache {
     /// half its real value.
     private let replayWarmUpDays: Int = 180
 
-    private init() {
+    /// Where the archived workouts are read from: their fingerprint and the
+    /// series replay. The app's cache resolves `AppDependencies.current` at
+    /// each read; a test passes its own archive.
+    private let archiveSource: @Sendable () -> SessionArchive
+    /// The user's settings, read for the load settings in force. The app's
+    /// cache reads the settings manager of `AppDependencies.current` at each
+    /// read; a test passes its own.
+    private let settingsSource: @MainActor () -> UserSettings
+    /// The cold-start snapshot file, or nil to keep nothing on disk.
+    private let persistenceURL: URL?
+    /// Seals the snapshot for the disk and opens it again.
+    private let seal: JSONFileSeal
+
+    /// A cache over `archive` and `settings`, persisted at `persistenceURL`
+    /// sealed with `seal`. The defaults are the app's: the archive and
+    /// settings of `AppDependencies.current`, `TrainingMetricsCache.json` in
+    /// Application Support, the app's key. A test builds one entirely from
+    /// its own, so it never reads or writes the app's stores.
+    init(
+        archive: @escaping @Sendable () -> SessionArchive = { AppDependencies.current.storage.sessionArchive },
+        settings: @escaping @MainActor () -> UserSettings = { AppDependencies.current.app.settingsManager.settings },
+        persistenceURL: URL? = TrainingMetricsCache.defaultPersistenceURL,
+        seal: JSONFileSeal = .app
+    ) {
+        archiveSource = archive
+        settingsSource = settings
+        self.persistenceURL = persistenceURL
+        self.seal = seal
         // Restore last-known metrics from disk FIRST so the dashboard
         // and AI see numbers immediately on cold launch (reconciled by refresh()).
         loadFromDisk()
@@ -140,7 +167,7 @@ final class TrainingMetricsCache {
     /// the full rebuild the persistence exists to skip.
     private func workoutFingerprint() -> String {
         var digest = SHA256()
-        let workouts = AppDependencies.current.storage.sessionArchive.entries
+        let workouts = archiveSource().entries
             .filter { $0.sessionType == .workout }
             .sorted { $0.sessionId.uuidString < $1.sessionId.uuidString }
         for entry in workouts {
@@ -185,7 +212,9 @@ final class TrainingMetricsCache {
         let loadSettings: LoadSettings?
     }
 
-    private static let persistenceURL: URL? = {
+    /// `TrainingMetricsCache.json` in Application Support, the app's
+    /// snapshot file.
+    nonisolated static let defaultPersistenceURL: URL? = {
         let fm = FileManager.default
         guard let dir = attempt("trainingMetricsCache.supportDir", { try fm.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true) }) else { return nil }
         return dir.appendingPathComponent("TrainingMetricsCache.json")
@@ -199,7 +228,7 @@ final class TrainingMetricsCache {
     /// land after a newer one (the series adoption's). Nothing is written
     /// before the first compute.
     private func persistToDisk() {
-        guard let url = Self.persistenceURL, let computedAt else { return }
+        guard let url = persistenceURL, let computedAt else { return }
         let snapshot = PersistedCache(
             current: current,
             dailySeries: dailySeries,
@@ -209,10 +238,11 @@ final class TrainingMetricsCache {
             loadSettings: lastLoadSettings
         )
         let previous = persistTask
+        let seal = self.seal
         persistTask = Task.detached(priority: .utility) {
             await previous?.value
             do {
-                try Self.writeSnapshot(snapshot, to: url)
+                try Self.writeSnapshot(snapshot, to: url, seal: seal)
             } catch {
                 debugLog("[TrainingMetricsCache] persist failed (previous file kept): \(error)", level: .warning)
             }
@@ -244,8 +274,8 @@ final class TrainingMetricsCache {
     /// first write replaces the file. Deliberately keeps the SAVED
     /// `lastUpdated` (not "now") so `needsRebuild` still ages it.
     private func loadFromDisk() {
-        guard let url = Self.persistenceURL,
-              let snapshot = attempt("trainingMetricsCache.load", { try Self.readSnapshot(at: url) }) ?? nil
+        guard let url = persistenceURL,
+              let snapshot = attempt("trainingMetricsCache.load", { try Self.readSnapshot(at: url, seal: seal) }) ?? nil
         else { return }
         current = snapshot.current
         dailySeries = snapshot.dailySeries
@@ -350,21 +380,24 @@ final class TrainingMetricsCache {
     /// `invalidate()` (fired by a workout add/edit/delete) clears
     /// `lastUpdated` as its dirty flag while leaving the fingerprint updated,
     /// so the nil check forces the rebuild in that case.
-    private func needsRebuild(reference: Date) -> Bool {
+    ///
+    /// Internal rather than private so a test can check it against the
+    /// archive and settings it built the cache from.
+    func needsRebuild(reference: Date) -> Bool {
         let refDay = Calendar.current.startOfDay(for: reference)
-        let observedChange = workoutFingerprint() != lastWorkoutFingerprint || refDay != lastComputedDay
         return Self.needsRebuild(
             lastUpdated: lastUpdated,
             hasResult: current != nil && (!dailySeries.isEmpty || historicalBuildPending),
-            observedChange: observedChange,
+            observedChange: workoutFingerprint() != lastWorkoutFingerprint,
             settingsChanged: currentLoadSettings() != lastLoadSettings,
+            dayChanged: refDay != lastComputedDay,
             reference: reference
         )
     }
 
     /// The load settings in force now.
     private func currentLoadSettings() -> LoadSettings {
-        LoadSettings(AppDependencies.current.app.settingsManager.settings)
+        LoadSettings(settingsSource())
     }
 
     /// Create, register (as `refreshTask`), and return the actual refresh
@@ -418,13 +451,25 @@ final class TrainingMetricsCache {
 
     /// The refresh task's work: fetch, compute and publish `current`, then
     /// start the series build if its inputs changed.
+    ///
+    /// A HealthKit workout query that failed or timed out (a locked store, a
+    /// wedged daemon) publishes nothing: computed without the Watch and
+    /// Strava workouts, the load would collapse, be stamped fresh, persisted
+    /// and replayed into the series. The published result and the series
+    /// stay as they were, still due for a rebuild, and the registration is
+    /// released so the next refresh asks HealthKit again.
     private func recompute(
         healthKit hk: HealthKitManager, reference: Date, forMorningReading: Bool, settings: LoadSettings
     ) async {
         // The archived workouts this compute starts from; a workout archived
         // while it awaits HealthKit is not in it.
         let startFingerprint = workoutFingerprint()
-        let hkWorkouts = await hk.fetchWorkoutsExtended(days: lookbackDays + replayWarmUpDays, relativeTo: reference)
+        guard let hkWorkouts = await hk.fetchWorkoutsExtendedIfAnswered(
+            days: lookbackDays + replayWarmUpDays, relativeTo: reference
+        ) else {
+            debugLog("[TrainingMetricsCache] HealthKit workout query failed or timed out — the published load is kept and the next refresh asks again", level: .warning)
+            return releaseRefreshTaskUnlessCancelled()
+        }
         let anchors = await hk.trainingHeartRateAnchors()
         let metrics = await hk.calculateTrainingMetrics(
             restingHR: anchors.restingHR, userMaxHR: anchors.maxHR, forMorningReading: forMorningReading,
@@ -488,9 +533,11 @@ final class TrainingMetricsCache {
         lastHistoricalKey = key
         historicalBuildPending = true
         let (keptDays, replayDays) = (lookbackDays, lookbackDays + replayWarmUpDays)
+        let archive = archiveSource()
         historicalTask = Task.detached(priority: .utility) {
             let series = Self.buildDailySeries(
-                reference: reference, lookbackDays: replayDays, healthKitWorkouts: workouts, anchors: key.anchors
+                reference: reference, lookbackDays: replayDays, archive: archive,
+                healthKitWorkouts: workouts, anchors: key.anchors
             )
             let kept = Self.lastDays(keptDays, of: series, reference: reference)
             await self.adoptHistoricalSeries(kept, key: key)
@@ -544,10 +591,13 @@ final class TrainingMetricsCache {
     nonisolated private static func buildDailySeries(
         reference: Date,
         lookbackDays: Int,
+        archive: SessionArchive,
         healthKitWorkouts: [HealthKitManager.WorkoutSummary],
         anchors: TrainingLoadSeries.HeartRateAnchors
     ) -> [Date: DaySample] {
-        let workouts = mergedWorkouts(reference: reference, lookbackDays: lookbackDays, healthKitWorkouts: healthKitWorkouts)
+        let workouts = mergedWorkouts(
+            reference: reference, lookbackDays: lookbackDays, archive: archive, healthKitWorkouts: healthKitWorkouts
+        )
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: reference)
         let firstDay = calendar.date(byAdding: .day, value: -lookbackDays, to: today) ?? today
@@ -566,14 +616,16 @@ final class TrainingMetricsCache {
     ///
     /// `fromAppArchive` is nonisolated and uses
     /// `archive.retrieveLightweight` internally (skipping the `rrSeries`
-    /// decode), so this runs off the main thread.
+    /// decode), so this runs off the main thread. `archive` is the cache's
+    /// archive, resolved on the main actor when the build started.
     nonisolated private static func mergedWorkouts(
         reference: Date,
         lookbackDays: Int,
+        archive: SessionArchive,
         healthKitWorkouts: [HealthKitManager.WorkoutSummary]
     ) -> [HealthKitManager.WorkoutSummary] {
         let archiveWorkouts = HealthKitManager.WorkoutSummary.fromAppArchive(
-            archive: AppDependencies.current.storage.sessionArchive, days: lookbackDays, relativeTo: reference
+            archive: archive, days: lookbackDays, relativeTo: reference
         )
         return HealthKitManager.mergeArchiveAuthoritative(archive: archiveWorkouts, healthKit: healthKitWorkouts)
     }
@@ -607,7 +659,7 @@ final class TrainingMetricsCache {
         lastWorkoutFingerprint = nil
         lastComputedDay = nil
         lastLoadSettings = nil
-        guard let url = Self.persistenceURL else { return }
+        guard let url = persistenceURL else { return }
         let previous = persistTask
         persistTask = Task.detached(priority: .utility) {
             await previous?.value

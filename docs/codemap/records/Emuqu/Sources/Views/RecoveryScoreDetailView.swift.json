@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/RecoveryScoreDetailView.swift",
- "hash": "394f13c355fb9b55",
+ "hash": "fe271e653a1b0daf",
  "role": "Recovery Score detail screen (pushed in the report sheet from MainTabView): computes the displayed composite/verdict/breakdown/vitals from the frozen session plus a fresh HealthKit vitals fetch, lays out the sections, and on .task(id: session.id) reloads the full RR series, refetches vitals (persisting newly-filled fields back to the archive), fetches HealthKit HR fallback samples, loads organized-recovery zones and builds the cached chart series off-main.",
  "types": [
   "RecoveryScoreDetailView: struct (View) — the detail screen; extended by +Charts (via RecoveryScoreCharts), +Panels, +Sections and RecoveryScoreCharts.swift forwarders",
@@ -9,11 +9,12 @@
  "state": [
   "mem:RecoveryScoreDetailView.dt11/dt12/dt13/dt14/dt15/dt17/dt22 (@ScaledMetric font sizes)",
   "mem:RecoveryScoreDetailView.expandedFactor (@State String?)",
-  "mem:RecoveryScoreDetailView.selectedWindowSegment (@State, initial .bestRecovery)",
+  "mem:RecoveryScoreDetailView.selectedWindowSegment (@State AnalysisWindowSegment?, initial from RecoveryDetailCopy.initialSegment: .bestRecovery or nil)",
   "mem:RecoveryScoreDetailView.windowChangedHere (@State Bool)",
-  "mem:RecoveryScoreDetailView.segmentBeforePick (@State)",
+  "mem:RecoveryScoreDetailView.segmentBeforePick (@State AnalysisWindowSegment?)",
   "mem:RecoveryScoreDetailView.restoringSegment (@State)",
   "mem:RecoveryScoreDetailView.isReanalyzing (@State)",
+  "mem:RecoveryScoreDetailView.reanalysisFailed (@State Bool: the last re-analysis stored nothing)",
   "mem:RecoveryScoreDetailView.refreshedVitals (@State RecoveryVitals?)",
   "mem:RecoveryScoreDetailView.fallbackHRSamples (@State)",
   "mem:RecoveryScoreDetailView.fullRRSeries (@State RRSeries?)",
@@ -42,14 +43,20 @@
   },
   {
    "key": "init RecoveryScoreDetailView(session:result:recentSessions:baselineStats:totalSessionCount:onReanalyze:onReanalyzeAt:)",
-   "hash": "ddb3f739c1ae7e87",
-   "does": "Memberwise-style init storing session, result, recentSessions, baselineStats, totalSessionCount and the two optional re-analysis closures.",
+   "hash": "2c1ad2bbe20fbdea",
+   "does": "Memberwise-style init storing session, result, recentSessions, baselineStats, totalSessionCount and the two optional re-analysis closures (each returning whether a result was stored), and starting the window picker on the segment the stored window came from (RecoveryDetailCopy.initialSegment; nil when no segment names it).",
    "entry": "Called by MainTabView.recoveryScoreDetail and tests (TrainingAdviceGateTests, DetailScreenSnapshotTests, UncoveredScreenSnapshotTests)",
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.initialSegment(forWindowReason:)"
+   ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:RecoveryScoreDetailView.selectedWindowSegment (@State initial value)"
+   ],
    "branches": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.initialSegment(forWindowReason:)": "f722eb2009b8176c"
+   }
   },
   {
    "key": "var RecoveryScoreDetailView.compositeScore",
@@ -724,7 +731,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "2eca9f3f414ea24c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.fill(_:in:)": "4d440ba187b5159a"
    }

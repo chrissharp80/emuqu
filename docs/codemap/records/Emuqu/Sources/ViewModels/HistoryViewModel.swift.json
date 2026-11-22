@@ -144,7 +144,7 @@
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.sameNightHiddenToWinner(_:entryById:schedule:)",
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.applyFilters(_:typeFilter:tagFilter:searchText:)",
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.shownRow(for:hiddenToWinner:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.displayDate",
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.computeLinkedSegmentCountsStatic(for:entryById:)"
    ],
    "reads": [],
@@ -157,8 +157,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "754c8c3bf69f57cc",
-    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.applyFilters(_:typeFilter:tagFilter:searchText:)": "e8a7037d71a0e1c6",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.displayDate": "754c8c3bf69f57cc",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
+    "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.applyFilters(_:typeFilter:tagFilter:searchText:)": "c3ded461932e3e55",
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.chainHiddenToWinner(entries:entryById:)": "975a0157be35085a",
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.computeLinkedSegmentCountsStatic(for:entryById:)": "2e85a417fa4404cd",
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.sameNightHiddenToWinner(_:entryById:schedule:)": "958c79674f1953e8",
@@ -298,11 +299,12 @@
   },
   {
    "key": "func HistoryViewModel.applyFilters(_:typeFilter:tagFilter:searchText:)",
-   "hash": "250117ea87d37aba",
-   "does": "Applies session-type, tag (any-overlap) and case-insensitive search over the app-locale medium date string, tag names and notes.",
+   "hash": "01d74016f1aa7dd7",
+   "does": "Applies session-type, tag (any-overlap) and case-insensitive search over the app-locale medium date string, tag display names (system tags in the app language) and notes.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.displayDate",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName"
    ],
    "reads": [],
    "writes": [],
@@ -330,7 +332,8 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "754c8c3bf69f57cc",
+    "Emuqu/Sources/Models/HRVSession.swift::var ReadingTag.displayName": "c9c2903729a36884",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.displayDate": "754c8c3bf69f57cc",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },

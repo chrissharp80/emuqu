@@ -101,11 +101,12 @@
   },
   {
    "key": "func HeatAcclimationCache.persistReadout(_:)",
-   "hash": "a53441ca5798fe33",
-   "does": "JSON-encodes the readout via attempt() and stores it in UserDefaults; encode failure is logged by attempt and nothing stored.",
+   "hash": "babeb9d0db600f71",
+   "does": "Seals the readout with the app's key (JSONFileSeal.app) and stores it in UserDefaults; a readout that cannot be sealed is logged and not stored, never in the clear.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [
@@ -113,21 +114,25 @@
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "encode succeeded",
-     "effect": "stores data; else nothing written"
+     "at": "+4",
+     "cond": "seal failed",
+     "effect": "logged, nothing stored"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.sealJSON(_:with:)": "506794a8a13263fb",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func HeatAcclimationCache.loadPersistedReadout()",
-   "hash": "d78f3c646b2f3001",
-   "does": "Loads and decodes the persisted readout, nil if missing or undecodable (decode error swallowed by try?).",
+   "hash": "9e4bd791109dd623",
+   "does": "Loads the stored readout and opens it with the app's key (sealed, or plain JSON from an older build); nil when missing, or when it cannot be opened or decoded (logged by attempt).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)"
+   ],
    "reads": [
     "ud:FlowRecovery.heat.lastReadout"
    ],
@@ -136,10 +141,13 @@
     {
      "at": "+1",
      "cond": "data stored",
-     "effect": "false: nil; true: try? decode"
+     "effect": "false: nil; true: open and decode"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.openJSON(_:from:with:)": "31bc2aea46cfe8ad",
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+   }
   },
   {
    "key": "var HeatAcclimationCache.Readout.hasHeatExposure",
@@ -182,7 +190,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.invalidate()": "75576b7a2a663ea7",
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.loadPersistedReadout()": "7b89631783d33317",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.loadPersistedReadout()": "5e1070fa5c814293",
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.makeArchiveObserver(_:)": "f6992b465db4bcf1",
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled": "32663bec544ff592",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
@@ -236,8 +244,8 @@
   },
   {
    "key": "func HeatAcclimationCache.refresh()",
-   "hash": "42d8f85d365b9131",
-   "does": "If tracking is enabled, the last settled compute is older than 5 min (or none), and no refresh is running, launches a Task that computes the status and, unless cancelled meanwhile, publishes and caches it.",
+   "hash": "8d94378d95f4febe",
+   "does": "If tracking is enabled, the last settled compute is older than 5 min (or none), and no refresh is running, launches a Task that computes the status and, unless cancelled meanwhile (clear()), releases its registration, publishes and caches it; a cancelled task leaves the registration to the refresh started since.",
    "entry": "HeatAcclimationCard .task.",
    "calls": [
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled",
@@ -259,7 +267,7 @@
     },
     {
      "at": "+2",
-     "cond": "lastUpdated set and < 300 s old (any settled status)",
+     "cond": "lastUpdated set and < 300 s old",
      "effect": "returns (fresh)"
     },
     {
@@ -268,14 +276,14 @@
      "effect": "returns (compute already in flight)"
     },
     {
-     "at": "+8",
+     "at": "+7",
      "cond": "self still alive in task",
      "effect": "false: task ends; true: computes"
     },
     {
-     "at": "+10",
+     "at": "+12",
      "cond": "task cancelled (clear())",
-     "effect": "result dropped"
+     "effect": "result dropped, registration untouched"
     }
    ],
    "deps": {
@@ -306,7 +314,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.persistReadout(_:)": "e2fa29bd599956f1",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.persistReadout(_:)": "96857b269869a24a",
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled": "32663bec544ff592"
    }
   },
@@ -335,7 +343,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.refresh()": "49b8309243951cd6",
+    "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::func HeatAcclimationCache.refresh()": "b44609e899a65afc",
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.current": "a3787d13f9c2f356",
     "Emuqu/Sources/Analysis/HeatAcclimationCache.swift::var HeatAcclimationCache.trackingEnabled": "32663bec544ff592"
    }

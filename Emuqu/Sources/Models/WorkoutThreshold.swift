@@ -465,21 +465,44 @@ struct WorkoutThreshold: Codable, Identifiable, Equatable, Hashable {
         }
     }
 
-    /// Cues about how far through the workout the athlete is.
+    /// Cues about how far through the workout the athlete is. Distance and
+    /// climb are spoken in the user's units: miles and feet for imperial.
     private func progressCue() -> String? {
+        let imperial = UnitsPreferenceStore.current.resolved == .imperial
         switch metric {
         case .distanceMeters:
+            if imperial { return imperialDistanceCue() }
             return condition == .greaterThan ? String(localized: "Hit \(Int(value)) meters", bundle: LanguageManager.appBundle) : String(localized: "Under \(Int(value)) meters", bundle: LanguageManager.appBundle)
         case .elapsedSec:
             let mins = Int(value / 60)
             return condition == .greaterThan ? String(localized: "\(mins) minutes in", bundle: LanguageManager.appBundle) : String(localized: "Less than \(mins) minutes", bundle: LanguageManager.appBundle)
         case .elevationGainMeters:
+            if imperial { return imperialClimbCue() }
             return condition == .greaterThan ? String(localized: "Climbed \(Int(value)) meters", bundle: LanguageManager.appBundle) : String(localized: "Under \(Int(value)) meters of climb", bundle: LanguageManager.appBundle)
         case .gradePercent:
             return condition == .greaterThan ? String(localized: "Steeper than \(Int(value)) percent", bundle: LanguageManager.appBundle) : String(localized: "Grade easing", bundle: LanguageManager.appBundle)
         default:
             return nil
         }
+    }
+
+    /// The distance in miles, to one decimal place unless it is whole.
+    private func imperialDistanceCue() -> String {
+        let miles = value / 1_609.344
+        let rounded = (miles * 10).rounded() / 10
+        let digits = rounded == rounded.rounded() ? 0 : 1
+        let amount = rounded.formatted(.number.precision(.fractionLength(digits)).locale(LanguageManager.appLocale))
+        return condition == .greaterThan
+            ? String(localized: "Hit \(amount) miles", bundle: LanguageManager.appBundle)
+            : String(localized: "Under \(amount) miles", bundle: LanguageManager.appBundle)
+    }
+
+    /// The climb in whole feet.
+    private func imperialClimbCue() -> String {
+        let feet = Int((value * UnitConstants.feetPerMeter).rounded())
+        return condition == .greaterThan
+            ? String(localized: "Climbed \(feet) feet", bundle: LanguageManager.appBundle)
+            : String(localized: "Under \(feet) feet of climb", bundle: LanguageManager.appBundle)
     }
 }
 

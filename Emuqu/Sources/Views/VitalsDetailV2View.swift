@@ -49,8 +49,17 @@ struct VitalsDetailV2View: View {
         Self.mergedVitals(
             stored: latestOvernight.map(\.vitalsSnapshot) ?? vitals,
             fresh: refreshedVitals,
-            strapHR: latestOvernight?.analysisResult?.timeDomain.meanHR
+            strapHR: Self.strapMeanHR(of: latestOvernight)
         )
+    }
+
+    /// The strap's nocturnal mean HR from a session's analysis window, nil
+    /// when there is none: an analysis that found no heart rate stores 0,
+    /// which must not win the merge or plot as 0 bpm. The rule every detail
+    /// screen applies (`RecoveryScoreDetailView.strapSleepHR`).
+    nonisolated static func strapMeanHR(of session: HRVSession?) -> Double? {
+        guard let meanHR = session?.analysisResult?.timeDomain.meanHR, meanHR > 0 else { return nil }
+        return meanHR
     }
 
     /// The one merge rule for a night's vitals on the detail screens: the
@@ -184,7 +193,7 @@ struct VitalsDetailV2View: View {
     private func refreshVitals() async {
         guard let latest = latestOvernight else { return }
         let referenceDate = latest.endDate ?? latest.startDate
-        let strapHR = latest.analysisResult?.timeDomain.meanHR
+        let strapHR = Self.strapMeanHR(of: latest)
         let fresh = await collector.healthKit
             .fetchRecoveryVitals(relativeTo: referenceDate)
             .withStrapNocturnalRHR(strapHR)
@@ -496,7 +505,7 @@ struct VitalsDetailV2View: View {
         var out: [TrendPoint] = []
         for s in trendNights() {
             let v = s.vitalsSnapshot
-            if let rhr = s.analysisResult?.timeDomain.meanHR ?? v?.restingHeartRate {
+            if let rhr = Self.strapMeanHR(of: s) ?? v?.restingHeartRate {
                 out.append(TrendPoint(date: s.startDate, metric: Self.rhrSeries, value: rhr))
             }
             if let resp = v?.respiratoryRate {

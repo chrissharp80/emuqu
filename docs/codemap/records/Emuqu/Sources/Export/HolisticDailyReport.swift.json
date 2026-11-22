@@ -50,25 +50,27 @@
   },
   {
    "key": "func HolisticDailyReport.generate(to:)",
-   "hash": "02abc19b08f51189",
-   "does": "Async entry point: renders the workout PDF to a temp file, then the two cover pages to another temp, merges cover-then-workout into `url`, and removes both temps via defer whatever happens after each exists.",
+   "hash": "3c48e5e4ccaa29e1",
+   "does": "Async entry point: renders the workout PDF to a temp file, then the two cover pages to another temp, merges cover-then-workout into `url`, raises it to complete protection (ExportFile.protect), and removes both temps via defer whatever happens after each exists.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.renderWorkoutPDF()",
     "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.removeTemp(_:)",
     "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.renderCoverPDF()",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.mergePDFs(cover:workout:to:)"
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.mergePDFs(cover:workout:to:)",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.protect(_:)"
    ],
    "reads": [],
    "writes": [
-    "file:<destination url>",
+    "file:<destination url> (complete protection)",
     "file:<tmp>/holistic-*.pdf (transient)"
    ],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.protect(_:)": "12c56ef05601a449",
     "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.mergePDFs(cover:workout:to:)": "462e4e5988f91144",
     "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.removeTemp(_:)": "b7ab0e7d1e958195",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.renderCoverPDF()": "736bf1cc84cce607",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.renderCoverPDF()": "a365bc9c7016bf49",
     "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.renderWorkoutPDF()": "fbdb76ba2f8668f6"
    }
   },
@@ -127,27 +129,29 @@
   },
   {
    "key": "func HolisticDailyReport.renderCoverPDF()",
-   "hash": "df2c493e443495f8",
-   "does": "Renders page 1 (Today in one glance) and page 2 (Why your score) with UIGraphicsPDFRenderer to <tmp>/holistic-cover-<8>.pdf; on failure removes it and rethrows.",
+   "hash": "6e816f9f7d0d8464",
+   "does": "Renders page 1 (Today in one glance) and page 2 (Why your score) with UIGraphicsPDFRenderer to <tmp>/holistic-cover-<8>.pdf, raised to complete protection; on failure removes it and rethrows.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawTodayInOneGlancePage(ctx:)",
     "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawWhyYourScorePage(ctx:)",
     "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.removeTemp(_:)",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.protect(_:)",
     "ext:UIGraphicsPDFRenderer.writePDF"
    ],
    "reads": [],
    "writes": [
-    "file:<tmp>/holistic-cover-<8 hex>.pdf"
+    "file:<tmp>/holistic-cover-<8 hex>.pdf (complete protection)"
    ],
    "branches": [
     {
      "at": "+10",
      "cond": "writePDF throws",
-     "effect": "removes the temp and rethrows; otherwise returns the URL"
+     "effect": "removes the temp and rethrows; otherwise protects and returns the URL"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.protect(_:)": "12c56ef05601a449",
     "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawTodayInOneGlancePage(ctx:)": "8cd83681778a5d63",
     "Emuqu/Sources/Export/HolisticDailyReport+Pages.swift::func HolisticDailyReport.drawWhyYourScorePage(ctx:)": "f133e48cd9194fa5",
     "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.removeTemp(_:)": "b7ab0e7d1e958195",

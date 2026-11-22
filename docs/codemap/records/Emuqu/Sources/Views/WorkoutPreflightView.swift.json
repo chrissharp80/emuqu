@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/WorkoutPreflightView.swift",
- "hash": "666705a306d1631d",
+ "hash": "41fbf62be2d87275",
  "role": "Fitness tab pre-flight surface: sport chips + strap status pill, Start button that resolves HR source and hands the plan to FitnessTabView.startWorkout, route disclosure (bound route summary or saved-route/GPX/trail picker), and coaching disclosure (intervals, target zone, smart cues). Also defines Sport.themeColor.",
  "types": [
   "WorkoutPreflightView: struct View — plan + start surface reading WorkoutPlanModel from environment",
@@ -18,7 +18,7 @@
   "global private func preflightAscent",
   "accessibility identifiers fitness.start, fitness.sport.<raw>, fitness.strapPill, fitness.findTrail"
  ],
- "toplevel": "Stored properties collector, recorder, onStart set by FitnessTabView.swift:327 (onStart → FitnessTabView.startWorkout → recorder.start) and UncoveredScreenSnapshotTests.",
+ "toplevel": "Stored properties collector, recorder, onStart set by FitnessTabView.swift:327 (onStart → FitnessTabView.startWorkout → recorder.start) and UncoveredScreenSnapshotTests. @Environment(\\.self) environment resolves the sport colour for the Start label's contrast check.",
  "units": [
   {
    "key": "var WorkoutPreflightView.body",
@@ -402,18 +402,19 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.workoutStartLatencyTracker": "d954728e9ccea9dc",
     "Emuqu/Sources/Views/WorkoutPlanModel.swift::func WorkoutPlanModel.canStart(recorderPhase:)": "494ed62a08722f09",
     "Emuqu/Sources/Views/WorkoutPreflightView.swift::func WorkoutPreflightView.runStartSequence()": "c4d24dc18884b342",
-    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func WorkoutPreflightView.startButtonLabel(canTap:)": "130a80ed1d74a6c5",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::func WorkoutPreflightView.startButtonLabel(canTap:)": "869e1ed1c8b58fb1",
     "Emuqu/Sources/Views/WorkoutPreflightView.swift::var StrapStatusPill.label": "a755f5fc429c154e"
    }
   },
   {
    "key": "func WorkoutPreflightView.startButtonLabel(canTap:)",
-   "hash": "a035c23dc17c7ac8",
-   "does": "Label: play icon + CTA; sport colour background when tappable, grey otherwise.",
+   "hash": "2d7f46accc43c4ef",
+   "does": "Label: play icon + CTA; when tappable, sport colour background with the label colour that clears 4.5:1 on it (startLabelColor), otherwise grey with white text.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.startCTALabel",
-    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var Sport.themeColor"
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var Sport.themeColor",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.startLabelColor"
    ],
    "reads": [
     "mem:WorkoutPlanModel.startInProgress",
@@ -425,11 +426,42 @@
      "at": "+8",
      "cond": "canTap",
      "effect": "sport themeColor background, else grey"
+    },
+    {
+     "at": "+9",
+     "cond": "canTap",
+     "effect": "startLabelColor, else white"
     }
    ],
    "deps": {
     "Emuqu/Sources/Views/WorkoutPreflightView.swift::var Sport.themeColor": "c53db158677e0ba0",
-    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.startCTALabel": "af815d984f9af0eb"
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.startCTALabel": "af815d984f9af0eb",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var WorkoutPreflightView.startLabelColor": "321c3961148eb338"
+   }
+  },
+  {
+   "key": "var WorkoutPreflightView.startLabelColor",
+   "hash": "89cab9c72ef202c6",
+   "does": "White when it reaches WCAG 2.2 AA 4.5:1 on the selected sport's colour resolved in the current environment (ZenButtonStyle.whiteClearsContrast), black otherwise (walk's sage, treadmill's primaryLight).",
+   "entry": "Read by startButtonLabel",
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var Sport.themeColor",
+    "Emuqu/Sources/Views/Theme.swift::func ZenButtonStyle.whiteClearsContrast(on:)"
+   ],
+   "reads": [
+    "mem:WorkoutPlanModel.selectedSport"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "white clears 4.5:1",
+     "effect": "white; else black"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/Theme.swift::func ZenButtonStyle.whiteClearsContrast(on:)": "9cd0eab382de0bab",
+    "Emuqu/Sources/Views/WorkoutPreflightView.swift::var Sport.themeColor": "c53db158677e0ba0"
    }
   },
   {

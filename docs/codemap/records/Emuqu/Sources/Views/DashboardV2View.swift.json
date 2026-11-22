@@ -175,8 +175,8 @@
   },
   {
    "key": "var DashboardV2View.liveReadiness",
-   "hash": "a90d75e27b98d5a3",
-   "does": "LiveReadiness for the loop card: nil when no overnight recoveryScore; else LiveReadiness.compute(recoveryScore ×10, morning session, trainingMetricsCache.current).",
+   "hash": "97b4da517ee42c36",
+   "does": "LiveReadiness for the loop card: nil when the latest complete overnight has neither recoveryScore nor (for a night saved before scores were persisted) readinessScore; else LiveReadiness.compute(that score ×10, morning session, trainingMetricsCache.current).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete",
@@ -189,12 +189,12 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "latestOvernightComplete with recoveryScore exists",
+     "cond": "latestOvernightComplete with recoveryScore ?? readinessScore",
      "effect": "compute readiness; else nil"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "53467252c9f850fb",
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func LiveReadiness.compute(recoveryScore:morningSession:liveMetrics:now:)": "43565f161f7e12f3",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.latestOvernightComplete": "b92aed75b0ecc3d2"
    }
@@ -350,7 +350,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordDashboardOpen()": "d185897487601bd5",
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.recordDashboardOpen()": "fc37dff3e57e4899",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
     "Emuqu/Sources/Utilities/PendingScoreChange.swift::func PendingScoreChange.read(currentSessionId:now:)": "e2e50ee5c7833c6a",
     "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.celebrateDay14IfNeeded()": "6a03c5ed332a2bf8",
@@ -775,13 +775,14 @@
   },
   {
    "key": "func DashboardV2View.saveSleepBoundaries(_:for:)",
-   "hash": "1e2903ffa131103d",
-   "does": "Persists a user sleep-boundary edit through the reanalysis service (dependencies.collection.reanalysisService.updateSessionSleepBoundaries); on false sets sleepEditSaveFailed to show the alert.",
+   "hash": "169c4f97fe576f01",
+   "does": "Starts persisting a user sleep-boundary edit through the reanalysis service (updateSessionSleepBoundaries, which runs off the main actor in the order edits are made); once its task reports false, sets sleepEditSaveFailed to show the alert.",
    "entry": "SleepDetailV2View onAdjust closure",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)"
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
+    "ext:Task"
    ],
    "reads": [],
    "writes": [
@@ -789,13 +790,13 @@
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "update returned false",
-     "effect": "sleepEditSaveFailed = true"
+     "at": "+7",
+     "cond": "update reported false",
+     "effect": "sleepEditSaveFailed = true; else nothing"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "c11d10dab10551e5",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "bdc8d0383e8b6150",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService": "66fe82646a7ded58"
    }
@@ -859,7 +860,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.liveReadiness": "195be5389d3131d2",
+    "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.liveReadiness": "35b69819ffe494ba",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.noReadinessState": "f26ffdd00c142fbc",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.viewMorningReportAction": "3f4d046f1330787b"
    }

@@ -68,12 +68,16 @@ A ratio that small is easy to dismiss as floating-point noise. It is not.
 successive differences; a plain reference does not. On nsr005 the app reports RMSSD
 15.96 against 28.98. That is the gate removing beats that are not sinus
 rhythm, a documented design choice. The suite compares the unfiltered reference
-against `rmssd(fromCleanRRs:)`, which is the pure formula, and separately
-recomputes the pipeline's RMSSD from the kept beats: the root mean square over
-the pairs adjacent in the original series, both kept, with no recording break
-between them. Removing beats can raise RMSSD as well as lower it, so no
-direction is asserted; the suite asserts only that the gate changes at least
-one record.
+against `rmssd(fromCleanRRs:)`, which is the pure formula, and compares the
+pipeline's RMSSD and pNN50, and the number of beats its gate removes, with
+gated values pinned in the test on every record. Those values were computed
+outside the app, in Python, from the published rule: a beat is kept when it is
+within 20 % of the median of up to five neighbours on each side, and RMSSD and
+pNN50 are taken over the pairs adjacent in the recording with both beats kept.
+At least one record must lose beats, so a gate that does nothing fails. A
+twelve-beat series with one premature beat, worked by hand, pins the same rule
+to an exact 10 ms, and on the sixteen records the gate leaves whole the
+pipeline's pNN50 must equal the unfiltered reference.
 
 **Mean heart rate.** The app derives mean HR from rolling 10-second windows,
 not as `60000 / meanRR`. The two differ because the mean of reciprocals is not

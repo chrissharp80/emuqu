@@ -14,7 +14,7 @@ import Foundation
 // realistic scenario is "phone in pocket, locked, audiobook in
 // earbuds, voice chat from a Bluetooth tap". In that scenario the
 // workout's `WorkoutLocationManager` is already streaming GPS fixes
-// at `BestForNavigation` accuracy under the `location` background
+// at `Best` accuracy under the `location` background
 // mode, AND piping them into `AppDependencies.current.location.roadGeocodingService`. The AI's
 // location tools just need to READ that cache (instead of triggering
 // a fresh fetch). That's what makes the voice query instant — see
@@ -43,7 +43,7 @@ import Foundation
 //
 // **Why three CLLocationManager instances?** A reasonable question. The
 // app currently has:
-//   - `WorkoutLocationManager` — `BestForNavigation`, runs during
+//   - `WorkoutLocationManager` — `Best`, runs during
 //      workouts, has the `location` background-mode entitlement.
 //   - `BreadcrumbRecorder` — `NearestTenMeters`, runs while Get Me
 //      Back is engaged, lower power for long hikes.
@@ -91,13 +91,21 @@ final class AmbientLocationService: NSObject, @unchecked Sendable {
     /// (a real crash, not a hypothetical).
     private var _latestRoadContext: RoadGeocodingService.RoadContext?
 
+    /// Updates are never paused automatically. iOS pauses a stream it judges
+    /// idle (a user sitting still) and does not resume it: the app has to
+    /// start it again, and nothing here would have, because the service
+    /// still counted itself running, so `startIfAuthorized()` did nothing and
+    /// the cached fix went stale for as long as the app stayed in the
+    /// foreground. The stream runs only in the foreground (`stop()` on
+    /// background), at a hundred metres' accuracy behind a 50 m filter, so a
+    /// still user costs little.
     override private init() {
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
         manager.distanceFilter = 50
         manager.activityType = .other
-        manager.pausesLocationUpdatesAutomatically = true
+        manager.pausesLocationUpdatesAutomatically = false
     }
 
     /// Start streaming, asking for permission first if the user has never

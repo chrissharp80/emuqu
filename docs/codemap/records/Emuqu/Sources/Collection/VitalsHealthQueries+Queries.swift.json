@@ -574,7 +574,7 @@
   {
    "key": "func VitalsHealthQueries.startObservingVitalsData()",
    "hash": "6c48d480438ea05c",
-   "does": "Stops existing vitals observers, then starts an anchored observer query (with immediate background delivery) for each observed vitals type.",
+   "does": "Stops existing vitals observers, then starts a HealthSampleWatch observer (persisted anchor, other sources only, no background delivery) for each observed vitals type.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable",
@@ -600,7 +600,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/HealthKitManager.swift::var HealthKitManager.isHealthKitAvailable": "7d45a9a4a2660610",
-    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.observeVitalsType(_:)": "d63f0357f8126fb7",
+    "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.observeVitalsType(_:)": "b057daf08ad5501e",
     "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.observedVitalsTypes()": "92f9c77e0b9e6f65",
     "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.stopObservingVitalsData()": "bcf462a25cd5fa2d"
    }
@@ -644,33 +644,38 @@
   },
   {
    "key": "func VitalsHealthQueries.observeVitalsType(_:)",
-   "hash": "f50ece042f1fe29e",
-   "does": "Creates an HKAnchoredObjectQuery over the last 48 h for the type, ignores initial results, and on each update with new samples increments manager.vitalsDataVersion on the main actor; stores, executes the query and enables immediate background delivery, logging the type and error when registration fails.",
+   "hash": "13e9d4c82623c256",
+   "does": "Builds the type's observer through HealthSampleWatch.observerQuery (anchor key 'HealthSampleWatch.vitalsAnchor.<type>.v1'): each batch of other sources' added samples (the app's own resting-HR exports never count), while the manager is alive, increments manager.vitalsDataVersion on the main actor. Stores and executes the query, and turns background delivery for the type off (an earlier build enabled it; a fire only bumps a version open screens watch), logging the type and error when HealthKit refuses.",
    "entry": null,
    "calls": [
-    "ext:HKAnchoredObjectQuery",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.observerQuery(for:anchorKey:store:deliver:)",
     "ext:HKHealthStore.execute",
-    "ext:HKHealthStore.enableBackgroundDelivery",
+    "ext:HKHealthStore.disableBackgroundDelivery",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
-   "reads": [],
+   "reads": [
+    "hk:<vitals type> (other sources)",
+    "ud:HealthSampleWatch.vitalsAnchor.<type>.v1"
+   ],
    "writes": [
     "mem:HealthKitManager.vitalsDataVersion",
-    "mem:HealthKitManager.vitalsObserverQueries"
+    "mem:HealthKitManager.vitalsObserverQueries",
+    "ud:HealthSampleWatch.vitalsAnchor.<type>.v1"
    ],
    "branches": [
     {
-     "at": "+9",
-     "cond": "manager deallocated or update has no new samples",
-     "effect": "handler does nothing; otherwise bumps vitalsDataVersion"
+     "at": "+4",
+     "cond": "manager deallocated",
+     "effect": "batch ignored; otherwise bumps vitalsDataVersion"
     },
     {
-     "at": "+18",
-     "cond": "background delivery registration succeeded",
+     "at": "+13",
+     "cond": "background delivery turned off",
      "effect": "nothing; failure: logs type and error"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.observerQuery(for:anchorKey:store:deliver:)": "ca2716f60a3e4c79",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },

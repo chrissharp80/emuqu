@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Collection/Concept2Manager.swift",
- "hash": "6a2334b7e25ca7b4",
+ "hash": "045cb7a964ab753a",
  "role": "CoreBluetooth client for a Concept2 PM5 rowing monitor: lazy central, scan/auto-connect to remembered ergs, reconnect during a workout (after a drop or a failed connect), subscription to the rowing service's 0x0031/0x0032/0x0036 characteristics, and decoding into observable workout distance, drag factor, stroke rate, stroke power and workout stroke count read by WorkoutRecorder. Declares ErgPieceCounter, which turns the PM5's own piece counters into workout totals.",
  "types": [
   "Concept2Manager: class (@Observable @MainActor, NSObject, BLEPeripheralConnecting, CBCentralManagerDelegate, CBPeripheralDelegate) — PM5 BLE manager",
@@ -19,6 +19,7 @@
   "mem:Concept2Manager.instantaneousPowerWatts",
   "mem:Concept2Manager.strokeCount",
   "mem:Concept2Manager.knownDevices",
+  "mem:Concept2Manager.linkedDeviceId (the linked or linking peripheral id; set by attach, cleared on disconnect)",
   "mem:Concept2Manager.discoveredDevices",
   "mem:Concept2Manager.lastStatusLine",
   "mem:Concept2Manager.pendingReconnectId",
@@ -241,7 +242,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect(keepingPiece:)": "712a682eaef864e6"
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect(keepingPiece:)": "1727e70a3718c784"
    }
   },
   {
@@ -263,8 +264,8 @@
   },
   {
    "key": "func Concept2Manager.attach(peripheral:)",
-   "hash": "ba3b5550cb7dd944",
-   "does": "Makes the peripheral active with self as delegate, sets .connecting and status text, and calls central.connect.",
+   "hash": "11636c3a7480623d",
+   "does": "Makes the peripheral active with self as delegate, records its id as linkedDeviceId, sets .connecting and status text, and calls central.connect.",
    "entry": "Also BLEPeripheralConnecting requirement used by connect(deviceId:).",
    "calls": [
     "Emuqu/Sources/Collection/Concept2Manager.swift::var Concept2Manager.central",
@@ -272,12 +273,13 @@
    ],
    "reads": [],
    "writes": [
+    "mem:Concept2Manager.linkedDeviceId",
     "mem:Concept2Manager.connectionState",
     "mem:Concept2Manager.lastStatusLine"
    ],
    "branches": [
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "peripheral has no name",
      "effect": "uses 'Concept2 PM5'"
     }
@@ -289,12 +291,13 @@
   },
   {
    "key": "func Concept2Manager.cleanupAfterDisconnect(keepingPiece:)",
-   "hash": "850815034e275412",
-   "does": "Clears the active peripheral, characteristic refs, stroke rate and stroke power and sets .disconnected. Unless keepingPiece (a drop mid-workout), also clears distanceMeters, dragFactor and strokeCount; kept, they stand through the drop so live distance stays the erg's and a workout stopped meanwhile still saves strokes and drag factor.",
+   "hash": "ba384b3f81722805",
+   "does": "Clears the active peripheral and linkedDeviceId, characteristic refs, stroke rate and stroke power and sets .disconnected. Unless keepingPiece (a drop mid-workout), also clears distanceMeters, dragFactor and strokeCount; kept, they stand through the drop so live distance stays the erg's and a workout stopped meanwhile still saves strokes and drag factor.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [
+    "mem:Concept2Manager.linkedDeviceId",
     "mem:Concept2Manager.connectionState",
     "mem:Concept2Manager.distanceMeters",
     "mem:Concept2Manager.strokeRateSPM",
@@ -304,7 +307,7 @@
    ],
    "branches": [
     {
-     "at": "+8",
+     "at": "+9",
      "cond": "keepingPiece",
      "effect": "return with distance, drag factor and stroke count kept; else clear them"
     }
@@ -453,7 +456,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect(keepingPiece:)": "712a682eaef864e6"
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect(keepingPiece:)": "1727e70a3718c784"
    }
   },
   {
@@ -493,7 +496,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.attach(peripheral:)": "b67228b9048bd099",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.attach(peripheral:)": "ac810793d101d3ff",
     "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.stopScanning()": "01dbf138be0a2e74",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
@@ -544,7 +547,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect(keepingPiece:)": "712a682eaef864e6",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect(keepingPiece:)": "1727e70a3718c784",
     "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.retryConnect(_:)": "d2f44d5822fb69fb",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
@@ -570,7 +573,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.attach(peripheral:)": "b67228b9048bd099",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.attach(peripheral:)": "ac810793d101d3ff",
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4"
    }
   },
@@ -595,8 +598,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.attach(peripheral:)": "b67228b9048bd099",
-    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect(keepingPiece:)": "712a682eaef864e6"
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.attach(peripheral:)": "ac810793d101d3ff",
+    "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.cleanupAfterDisconnect(keepingPiece:)": "1727e70a3718c784"
    }
   },
   {

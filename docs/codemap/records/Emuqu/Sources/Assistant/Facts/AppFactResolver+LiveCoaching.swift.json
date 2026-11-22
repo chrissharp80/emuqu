@@ -412,7 +412,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.addActiveRouteField(_:at:)": "2a2e897b46c06ec4",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.addActiveRouteField(_:at:)": "d57cd28f6295a1bb",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.addAddressFields(_:resolved:)": "f23f475b333a7c81",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.addJourneyField(_:)": "99cc23a9589d47ad",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+LiveCoaching.swift::func WorkoutLiveCoachingNamespace.emptyPOICategories(_:)": "b5e197222f4bb464",
@@ -651,14 +651,14 @@
   },
   {
    "key": "func WorkoutLiveCoachingNamespace.addActiveRouteField(_:at:)",
-   "hash": "201dd4e93e83b3e2",
-   "does": "When a route is engaged and ActiveRouteSession yields a step for this fix, adds active_route {destination_label, current_instruction, upcoming_instruction, distance_to_upcoming_step_meters, remaining_distance_meters, arrived}.",
+   "hash": "1f15196c6a03621e",
+   "does": "When a route is engaged and ActiveRouteSession.peekStep yields a step for this fix, adds active_route {destination_label, current_instruction, upcoming_instruction, distance_to_upcoming_step_meters, remaining_distance_meters, arrived}. The read leaves the route's step index and departure flag as the voice coach left them.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.activeRouteSession",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.snapshot()",
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)"
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.peekStep(for:)"
    ],
    "reads": [
     "mem:ActiveRouteSession"
@@ -667,12 +667,12 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "route snapshot exists and currentStep returns a step",
+     "cond": "route snapshot exists and peekStep returns a step",
      "effect": "adds active_route; else returns without adding"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.currentStep(for:)": "074edeb377d65cad",
+    "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.peekStep(for:)": "a8daeda3eb90fea8",
     "Emuqu/Sources/Services/ActiveRouteSession.swift::func ActiveRouteSession.snapshot()": "236e3a0832306138",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.activeRouteSession": "afc55a2a74fa184f"

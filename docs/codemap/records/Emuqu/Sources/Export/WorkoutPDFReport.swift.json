@@ -36,8 +36,8 @@
   },
   {
    "key": "func WorkoutPDFReport.generate(to:)",
-   "hash": "52f9fab4a77d9c32",
-   "does": "Renders the whole workout report to a PDF file at url: awaits the MapKit route snapshot, then in UIGraphicsPDFRenderer.writePDF draws executive summary, autonomic/HRV page, cardiopulmonary page, the effort & terrain page only when a map image exists, splits page(s), 'What this means' page and methodology page. Throws whatever writePDF throws.",
+   "hash": "abd75534809c5648",
+   "does": "Renders the whole workout report to a PDF file at url: awaits the MapKit route snapshot, then in UIGraphicsPDFRenderer.writePDF draws executive summary, autonomic/HRV page, cardiopulmonary page, the effort & terrain page only when a map image exists, splits page(s), 'What this means' page and methodology page; then raises the file to complete protection (ExportFile.protect). Throws whatever writePDF throws.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/WorkoutPDFReport.swift::var WorkoutPDFReport.drawing",
@@ -50,11 +50,12 @@
     "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawSplitsAndDerivedPage(ctx:)",
     "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawWhatThisMeansPage(ctx:)",
     "Emuqu/Sources/Export/WorkoutPDFReport+Physiology.swift::func WorkoutPDFPhysiologyPages.drawMethodologyPage(ctx:)",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.protect(_:)",
     "ext:UIGraphicsPDFRenderer.writePDF(to:)"
    ],
    "reads": [],
    "writes": [
-    "file:<caller-supplied url> (PDF)"
+    "file:<caller-supplied url> (PDF, complete protection)"
    ],
    "branches": [
     {
@@ -64,6 +65,7 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.protect(_:)": "12c56ef05601a449",
     "Emuqu/Sources/Export/WorkoutPDFRenderer.swift::var WorkoutPDFRenderer.physiology": "8f4eb06c42284960",
     "Emuqu/Sources/Export/WorkoutPDFReport+Charts.swift::func WorkoutPDFRenderer.renderMapSnapshot()": "f195d166bc74f8b1",
     "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.drawSplitsAndDerivedPage(ctx:)": "ddacf42164bedf58",
@@ -661,9 +663,9 @@
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce",
     "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.alphaAvgString()": "1b796f148bdbfc0e",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.avgPaceString()": "1a26f4ad64648a65",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.avgPaceString()": "96ff38c79ae234ae",
     "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.bestSplitString()": "f6615b73b8f800ed",
-    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.calorieString()": "7c063b4f171ec0ff",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.calorieString()": "274a2226e2021e53",
     "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.formatDuration(_:)": "933cd2cb96fd6eed",
     "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.oneMinuteHRRString()": "7974382726d623d8",
     "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.peakHRString()": "e5219cc1ef716b27",

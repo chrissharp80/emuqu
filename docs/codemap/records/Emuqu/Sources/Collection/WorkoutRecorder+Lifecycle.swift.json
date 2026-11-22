@@ -75,8 +75,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyAnalyzerMetrics(to:computed:hrrSamples:)": "df3fb4262d8eaedc",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyElevationMetrics(to:)": "6927a9127c43613d",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyAnalyzerMetrics(to:computed:hrrSamples:)": "fbe8c342040d1e20",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyElevationMetrics(to:)": "e01909ec3c0ded61",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyPowerAggregates(to:sport:startDate:stopDate:)": "fca6169a946d014f",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyRouteTRIMPEstimate(to:sport:)": "7b7595c13e22a91a",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyRowingTelemetry(to:sport:)": "1f5e251eb9d094f0",
@@ -89,14 +89,15 @@
   },
   {
    "key": "func WorkoutFinalizer.analyzeWorkoutForFinalize(rrPoints:session:startDate:)",
-   "hash": "373f15bebc7f8f8b",
+   "hash": "543ed09d798cd634",
    "does": "Stage 1: builds an RRSeries from rrPoints (nil if empty), resolves sport (session.sport or .run), reads settings via recorder.settingsProvider, and runs WorkoutAnalyzer.analyze with track, max/resting/LTHR, Banister sex, unit-dependent split distance and pause list; returns FinalizeAnalysis.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.banisterSex(for:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.splitDistanceMeters()",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.analyze(sport:rrPoints:startDate:track:userMaxHR:userRestingHR:userLTHR:sex:splitDistanceMeters:pauses:)",
-    "closure:WorkoutRecorder.settingsProvider (init default reads AppDependencies.current.app.settingsManager.settings, WorkoutRecorder.swift:409)"
+    "closure:WorkoutRecorder.settingsProvider (init default reads AppDependencies.current.app.settingsManager.settings, WorkoutRecorder.swift:409)",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation"
    ],
    "reads": [
     "mem:WorkoutLocationManager.track",
@@ -120,9 +121,10 @@
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.analyze(sport:rrPoints:startDate:track:userMaxHR:userRestingHR:userLTHR:sex:splitDistanceMeters:pauses:)": "5ec13b5f22fc7b93",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.banisterSex(for:)": "c82288923a782cc7",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.splitDistanceMeters()": "26a7ba34c65dec4c",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "f306ef98d67e6cfb",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.biologicalSex": "95791358c97c8afc",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8d8a7ef3cdac7b54",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8ad8fec17a5ea41b",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "e5203c48a278e778"
    }
@@ -194,19 +196,20 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.finalDistanceMeters(sport:computed:)": "faa081e1a136e267",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.finalDistanceMeters(sport:computed:)": "5b5765fcc8b63032",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95"
    }
   },
   {
    "key": "func WorkoutFinalizer.finalDistanceMeters(sport:computed:)",
-   "hash": "234d5ed0edeead5d",
+   "hash": "4054cbd867bbc3da",
    "does": "Chooses saved distance: for .row the Concept2 PM5 odometer when it reports one; otherwise max(GPS distance from analyzer or live location accumulator, pause-adjusted pedometer distance, pause-adjusted foot-pod distance).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pedometerDistance(_:)",
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.footPodDistance(_:)",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.footPodDistanceMeters()"
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.footPodDistanceMeters()",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation"
    ],
    "reads": [
     "mem:Concept2Manager.distanceMeters",
@@ -227,23 +230,25 @@
     {
      "at": "+5",
      "cond": "computed.distanceMeters is nil",
-     "effect": "?? fallback: recorder.location.distanceMeters (live accumulator, includes paused stretches) when the analyzer produced no GPS distance"
+     "effect": "?? fallback: the live location accumulator (includes paused stretches) when the analyzer produced no GPS distance, 0 when no location stack was built (an indoor workout)"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.footPodDistance(_:)": "29b8fe8b5c476a24",
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pedometerDistance(_:)": "c84e42529d210659",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.footPodDistanceMeters()": "77948665d3827df7",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"
    }
   },
   {
    "key": "func WorkoutFinalizer.applyElevationMetrics(to:)",
-   "hash": "c47c594bca715faf",
+   "hash": "416cfe6038a7001d",
    "does": "Stage 3: if the barometer ran and captured samples, runs BarometricAltitudeProcessor.process and stores gain/loss; otherwise stores the live GPS-altitude accumulator gain/loss.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation",
     "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)"
    ],
    "reads": [
@@ -255,21 +260,22 @@
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "barometerAvailable && barometricSamples non-empty",
-     "effect": "false: uses GPS accumulator gain/loss, logs, returns; true: barometric post-processed gain/loss"
+     "at": "+2",
+     "cond": "location stack built && barometerAvailable && barometricSamples non-empty",
+     "effect": "false: uses GPS accumulator gain/loss (0 with no location stack), logs, returns; true: barometric post-processed gain/loss"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "9dcf57bfefae560f",
+    "Emuqu/Sources/Analysis/BarometricAltitudeProcessor.swift::func BarometricAltitudeProcessor.process(samples:smootherWindow:sustainedClimbThresholdMeters:)": "ad1f23d4e060bae9",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func WorkoutFinalizer.applyAnalyzerMetrics(to:computed:hrrSamples:)",
-   "hash": "728150eb30531a56",
-   "does": "Stage 4: copies analyzer polyline, splits, Lucia TRIMP, hrTSS, decoupling, efficiency factor; sets recognizedRouteName from the planned route; stores HRR samples (nil if empty).",
+   "hash": "57ec48d386695b94",
+   "does": "Stage 4: copies analyzer polyline and its fix times, splits, Lucia TRIMP, hrTSS, decoupling, efficiency factor; sets recognizedRouteName from the planned route; stores HRR samples (nil if empty).",
    "entry": null,
    "calls": [],
    "reads": [
@@ -278,7 +284,7 @@
    "writes": [],
    "branches": [
     {
-     "at": "+13",
+     "at": "+14",
      "cond": "hrrSamples is empty",
      "effect": "true: hrrSamples = nil; false: stores the array (finalize is called with [] from Stop.swift:114, so nil at finalize)"
     }
@@ -289,13 +295,14 @@
   },
   {
    "key": "func WorkoutFinalizer.backfillHRAndAttachSamples(metadata:startDate:stopDate:)",
-   "hash": "de225e75d976cbb8",
+   "hash": "b623d40368122a34",
    "does": "Stage 5: backfills nil-HR sample rows from HealthKit wrist HR (writes back recorder.workoutSamples if any filled), stores samples (nil if none), records healthKitHROffsets (backfilled + live wrist offsets, or all HR rows for Watch source), clears recorder.wristHROffsets, and enriches splits with per-split α1 using the recorded track.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.backfillWorkoutHRFromHealthKit(samples:sessionStart:sessionEnd:pauses:healthKit:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.healthKitHROffsets(samples:backfilled:source:)",
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.enrichSplitsWithAlpha1(splits:samples:startDate:track:)"
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.enrichSplitsWithAlpha1(splits:samples:startDate:track:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation"
    ],
    "reads": [
     "mem:WorkoutRecorder.workoutSamples",
@@ -330,6 +337,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.backfillWorkoutHRFromHealthKit(samples:sessionStart:sessionEnd:pauses:healthKit:)": "7dc90c8fcada2f13",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.healthKitHROffsets(samples:backfilled:source:)": "0b88a7b51f244418",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.activeHRSource": "2dbcbb79e6918039",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5"
    }
@@ -403,11 +411,12 @@
   },
   {
    "key": "func WorkoutFinalizer.applyRouteTRIMPEstimate(to:sport:)",
-   "hash": "ec8d09abd779a1cf",
+   "hash": "62229203dc74a09b",
    "does": "Stage 7: asks RouteTRIMPEstimator for a route-history TRIMP estimate from the track, recorded TRIMP and distance, archive and saved routes; when one is returned stores extrapolatedTRIMP, confidence and route name and logs.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.estimate(track:sport:recordedTRIMP:recordedDistance:distanceMayBeTruncated:archive:savedRouteStore:)"
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.estimate(track:sport:recordedTRIMP:recordedDistance:distanceMayBeTruncated:archive:savedRouteStore:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation"
    ],
    "reads": [
     "mem:WorkoutLocationManager.track",
@@ -428,7 +437,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.estimate(track:sport:recordedTRIMP:recordedDistance:distanceMayBeTruncated:archive:savedRouteStore:)": "79a9067b84cc9c9e",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.estimate(track:sport:recordedTRIMP:recordedDistance:distanceMayBeTruncated:archive:savedRouteStore:)": "d1f147aa9676b2b9",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }

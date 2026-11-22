@@ -219,6 +219,18 @@ extension WorkoutMetadata {
         }
         return Double(activeOffset) + pausedBefore
     }
+
+    /// Seconds of the workout spent moving, the clock pace, calories and a
+    /// TCX lap's timer time are measured on: the last per-second sample's
+    /// offset (the ticker records none while paused), else
+    /// `wallClockDuration` less the recorded pauses. Nil when neither is
+    /// known.
+    func movingSeconds(wallClockDuration: Double?) -> Double? {
+        if let moving = totalDurationSec(), moving > 0 { return moving }
+        guard let wallClockDuration else { return nil }
+        let paused = (pauseSpans ?? []).reduce(0.0) { $0 + $1.seconds }
+        return max(0, wallClockDuration - paused)
+    }
 }
 
 // MARK: - HRR Sample
@@ -271,6 +283,12 @@ struct WorkoutMetadata: Codable, Equatable {
     /// zlib-compressed encoded polyline of the GPS track (nil for indoor sessions
     /// or sessions where the user denied location permission).
     var gpsPolyline: Data?
+    /// When each fix of `gpsPolyline` was taken
+    /// (`WorkoutAnalyzer.encodeFixTimes`, read by
+    /// `GPXExporter.recordedFixTimes`). Nil for workouts recorded before it
+    /// was stored, or re-saved by a build that drops it; their exports
+    /// spread the fix times evenly.
+    var gpsFixTimes: Data?
     /// Total distance covered in meters (GPS-derived, treadmill pedometer, or
     /// indoor-bike trainer).
     var distanceMeters: Double?
@@ -736,7 +754,7 @@ struct WorkoutMetadata: Codable, Equatable {
     private enum CodingKeys: String, CodingKey {
         case schemaVersion
         case sport
-        case gpsPolyline, distanceMeters, elevationGainMeters, elevationLossMeters
+        case gpsPolyline, gpsFixTimes, distanceMeters, elevationGainMeters, elevationLossMeters
         case splits, laps, liveMarkers, pauseSpans
         case samples, healthKitHROffsets
         case hrrSamples, decouplingPercent, efficiencyFactor, luciaTRIMP, hrTSS
@@ -764,6 +782,7 @@ struct WorkoutMetadata: Codable, Equatable {
         sport = try Self.decodedSport(from: c)
         unrecognizedSportRawValue = Self.unrecognizedSport(in: c)
         gpsPolyline = try c.decodeIfPresent(Data.self, forKey: .gpsPolyline)
+        gpsFixTimes = try c.decodeIfPresent(Data.self, forKey: .gpsFixTimes)
         distanceMeters = try c.decodeIfPresent(Double.self, forKey: .distanceMeters)
         elevationGainMeters = try c.decodeIfPresent(Double.self, forKey: .elevationGainMeters)
         elevationLossMeters = try c.decodeIfPresent(Double.self, forKey: .elevationLossMeters)
@@ -832,6 +851,7 @@ struct WorkoutMetadata: Codable, Equatable {
         try c.encode(Self.currentSchemaVersion, forKey: .schemaVersion)
         try c.encode(unrecognizedSportRawValue ?? sport.rawValue, forKey: .sport)
         try c.encodeIfPresent(gpsPolyline, forKey: .gpsPolyline)
+        try c.encodeIfPresent(gpsFixTimes, forKey: .gpsFixTimes)
         try c.encodeIfPresent(distanceMeters, forKey: .distanceMeters)
         try c.encodeIfPresent(elevationGainMeters, forKey: .elevationGainMeters)
         try c.encodeIfPresent(elevationLossMeters, forKey: .elevationLossMeters)

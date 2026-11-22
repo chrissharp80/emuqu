@@ -68,6 +68,19 @@ final class WeatherService {
     /// MET Norway rejects requests without an identifying User-Agent.
     nonisolated static let userAgent = "Emuqu/\(Bundle.main.appVersion) github.com/chrissharp80/emuqu"
 
+    /// Delete All My Data: drop the snapshot, the forecast and the place they
+    /// were fetched for (a coordinate), and stop a fetch in flight from
+    /// putting them back. The time of the last request is kept: it is MET
+    /// Norway's request spacing, not the user's data.
+    func forgetAfterPurge() {
+        inflightTask?.cancel()
+        inflightTask = nil
+        snapshot = nil
+        forecast = nil
+        fetchedAt = nil
+        fetchedAtCoord = nil
+    }
+
     func refreshIfNeeded(for location: CLLocation?) {
         guard let loc = location, inflightTask == nil, !cacheCovers(loc) else { return }
         let coord = Self.rounded(loc.coordinate)
@@ -77,8 +90,12 @@ final class WeatherService {
         // The task inherits the main actor, so the slot is released in the
         // same turn as `apply`, with no window between them.
         inflightTask = Task { [weak self] in
-            defer { self?.inflightTask = nil }
             let outcome = await Self.fetch(at: coord, ifModifiedSince: ifModifiedSince, transport: transport)
+            // Cancelled by `forgetAfterPurge`: the place it was fetched for is
+            // gone, and so is its answer. The slot is left alone: the purge
+            // released it already, and it may hold a newer request by now.
+            guard !Task.isCancelled else { return }
+            self?.inflightTask = nil
             self?.apply(outcome, at: coord)
         }
     }

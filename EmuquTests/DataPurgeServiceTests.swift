@@ -92,15 +92,39 @@ final class DataPurgeServiceTests: XCTestCase {
     private lazy var userFactsStore = UserFactsStore(fileURL: root.appendingPathComponent("Assistant/user_facts.json"))
     private lazy var breadcrumbStore = BreadcrumbStore(fileURL: root.appendingPathComponent("Breadcrumbs/active.json"))
     /// Every store the purge takes beyond the named ones: the substitutes
-    /// above, and otherwise the live services.
+    /// above; the AI provider keys under a Keychain service of this test's
+    /// own; the workout crash-recovery backups, saved routes and email
+    /// contacts in this test's folder; otherwise the live services.
     private lazy var stores: DataPurgeService.Stores = {
         let dependencies = AppDependencies()
         dependencies.overrides.conversationStore = conversationStore
         dependencies.overrides.userFactsStore = userFactsStore
         dependencies.overrides.breadcrumbStore = breadcrumbStore
         dependencies.overrides.recorderBox = RecorderBox()
+        dependencies.overrides.apiKeyStore = apiKeyStore
+        dependencies.overrides.workoutTrackBackup = WorkoutTrackBackup(
+            directory: root.appendingPathComponent("WorkoutBackup", isDirectory: true), notificationCenter: NotificationCenter()
+        )
+        dependencies.overrides.savedRouteStore = SavedRouteStore(storeURL: root.appendingPathComponent("saved_routes.json"))
+        dependencies.overrides.emailContactStore = EmailContactStore(storeURL: root.appendingPathComponent("email_contacts.json"))
         return dependencies.purgeStores
     }()
+    /// The provider keys the purge removes: never the host's Keychain items.
+    private lazy var apiKeyStore = APIKeyStore(keychainService: "DataPurgeServiceTests.\(UUID().uuidString)")
+    /// The sync bookkeeping the purge resets: this test's own, over its
+    /// archive, never `CloudKitSyncManager.shared`'s uploaded and pending
+    /// lists. What the reset clears in standard defaults is set aside.
+    private lazy var cloudSync = CloudKitSyncManager.isolated(
+        archive: archive, directory: root.appendingPathComponent("Sync", isDirectory: true)
+    )
+    /// The host's sync bookkeeping and assistant-disclaimer acceptance in
+    /// standard defaults, and its units choice, put back in `tearDown`.
+    private var hostDefaults: HostDefaults?
+    private var savedUnits: UnitsPreference = .auto
+    /// The purge empties the process-wide re-encryption ledger, the only
+    /// record of which of the host's files were written in plaintext; its
+    /// entries are recorded again in `tearDown`.
+    private var hostLedger: [PendingEncryptionLedger.Store: Set<UUID>] = [:]
 
     private static func suite(named name: String) -> UserDefaults {
         guard let suite = UserDefaults(suiteName: name) else { preconditionFailure("could not open the test suite \(name)") }
@@ -111,8 +135,11 @@ final class DataPurgeServiceTests: XCTestCase {
         try await super.setUp()
         savedSettings = SettingsManager.shared.settings
         savedDisclaimer = SettingsManager.shared.hasAcceptedDisclaimer
+        savedUnits = UnitsPreferenceStore.current
+        hostDefaults = HostDefaults.setAside(HostDefaults.cloudSyncBookkeeping + [AssistantViewModel.disclaimerKey])
+        hostLedger = Dictionary(uniqueKeysWithValues: PendingEncryptionLedger.Store.allCases.map { ($0, PendingEncryptionLedger.pending(in: $0)) })
         pinEnglishLanguage()
-        for container in containers {
+        for container in containers + [root.appendingPathComponent("Sync", isDirectory: true)] {
             try FileManager.default.createDirectory(at: container, withIntermediateDirectories: true)
         }
     }
@@ -120,6 +147,11 @@ final class DataPurgeServiceTests: XCTestCase {
     override func tearDown() async throws {
         if let savedSettings { SettingsManager.shared.settings = savedSettings }
         SettingsManager.shared.hasAcceptedDisclaimer = savedDisclaimer
+        UnitsPreferenceStore.current = savedUnits
+        hostDefaults?.restore()
+        for (store, ids) in hostLedger {
+            ids.forEach { PendingEncryptionLedger.record($0, in: store) }
+        }
         appSuite.removePersistentDomain(forName: appSuiteName)
         groupSuite.removePersistentDomain(forName: groupSuiteName)
         do {
@@ -131,10 +163,13 @@ final class DataPurgeServiceTests: XCTestCase {
     }
 
     /// The purge over this test's temporary containers, suites, baseline and
-    /// stores. The keychain, settings, CloudKit's local state and the caches
-    /// the purge forgets (routes, contacts, the display and training-load
-    /// caches) are still the app's shared instances; settings are restored
-    /// above.
+    /// stores, its Keychain service and its sync manager. Settings are still
+    /// the app's shared instance and are restored above, as are the units
+    /// choice, the standard-defaults keys the purge clears and the host's
+    /// re-encryption ledger. The in-memory caches the purge forgets (the
+    /// display and training-load caches, the location services, the provider
+    /// consents and telemetry), the morning notifications and the logs are
+    /// still the app's.
     ///
     /// Nothing is recording: the answer is passed, so the host app's own
     /// collector and workout recorder are never consulted.
@@ -143,7 +178,7 @@ final class DataPurgeServiceTests: XCTestCase {
     ) async throws -> DataPurgeService.Report {
         try await DataPurgeService.purgeAllUserData(
             archive: archive, rawBackup: rawBackup,
-            cloudSync: CloudKitSyncManager.shared, settingsManager: SettingsManager.shared, stores: stores,
+            cloudSync: cloudSync, settingsManager: SettingsManager.shared, stores: stores,
             baselineTracker: baselineTracker, recordingInProgress: { false },
             deleteRemote: { remoteDeleted }, scope: customScope ?? scope
         )
@@ -249,7 +284,7 @@ final class DataPurgeServiceTests: XCTestCase {
     /// Read from the file, not only from memory: `clear()` empties the list
     /// at once, and only the queued write shows whether the facts left disk.
     func testPurgeClearsTheUserFacts() async throws {
-        userFactsStore.add("purge-marker-\(UUID().uuidString)")
+        userFactsStore.add("purge-marker-\(UUID().uuidString)", origin: .user)
         XCTAssertFalse(userFactsStore.facts.isEmpty, "Sanity: facts seeded")
 
         let report = try await purge()
@@ -355,6 +390,7 @@ final class DataPurgeServiceTests: XCTestCase {
             "storekit.lastKnownPurchased",
             "storekit.lastKnownTestFlight",
             "entitlement.anchor.v1",
+            "entitlement.anchor.account",
             "FlowRecovery.migration.metrics.v1.done",
             "didRunTrimpRepairMigration_v1"
         ]
@@ -528,6 +564,74 @@ final class DataPurgeServiceTests: XCTestCase {
         XCTAssertFalse(manager.settings.iCloudSyncEnabled, "Delete All My Data turned iCloud sync back on")
     }
 
+    /// iCloud sync is off, and the purge gate closed, before the remote
+    /// deletion starts: a sync queued behind that deletion must find nothing
+    /// to upload into the emptied iCloud.
+    func testICloudSyncIsOffAndWritesAreRefusedWhileTheRemoteDeletionRuns() async throws {
+        let manager = SettingsManager.shared
+        manager.settings.iCloudSyncEnabled = true
+        var night = HRVSession(
+            id: UUID(), startDate: Date(timeIntervalSince1970: 4_102_444_800), endDate: nil,
+            state: .complete, sessionType: .overnight, rrSeries: nil, analysisResult: nil, artifactFlags: nil
+        )
+        night.recoveryScore = 7
+        var syncWasOn = true
+        var writeRefused = false
+        _ = try await DataPurgeService.purgeAllUserData(
+            archive: archive, rawBackup: rawBackup,
+            cloudSync: cloudSync, settingsManager: manager, stores: stores,
+            baselineTracker: baselineTracker, recordingInProgress: { false },
+            deleteRemote: { [archive] in
+                syncWasOn = manager.settings.iCloudSyncEnabled
+                do {
+                    try archive.archive(night)
+                } catch is PurgeGate.Refused {
+                    writeRefused = true
+                } catch {
+                    XCTFail("expected the purge gate to refuse the write, got \(error)")
+                }
+                return true
+            },
+            scope: scope
+        )
+
+        XCTAssertFalse(syncWasOn, "iCloud sync was still on while the remote deletion ran")
+        XCTAssertTrue(writeRefused, "An archive write went through while the purge ran")
+        XCTAssertFalse(archive.exists(night.id))
+        XCTAssertFalse(PurgeGate.isPurging, "The purge left the gate closed")
+        XCTAssertNoThrow(try archive.archive(night), "Archive writes stayed refused after the purge")
+    }
+
+    /// A recording started while the remote deletion ran would write its beats
+    /// back into the emptied backups, so the purge stops before the local
+    /// wipe and says so; the device keeps its data and the gate opens again.
+    func testARecordingStartedDuringTheRemoteDeletionStopsThePurgeBeforeTheLocalWipe() async throws {
+        let sentinel = try XCTUnwrap(scope.appGroupContainer).appendingPathComponent("zz_late_recording_sentinel.json")
+        try Data("sentinel".utf8).write(to: sentinel)
+        var asked = 0
+
+        do {
+            _ = try await DataPurgeService.purgeAllUserData(
+                archive: archive, rawBackup: rawBackup,
+                cloudSync: cloudSync, settingsManager: SettingsManager.shared, stores: stores,
+                baselineTracker: baselineTracker,
+                recordingInProgress: {
+                    asked += 1
+                    return asked > 1
+                },
+                deleteRemote: { true }, scope: scope
+            )
+            XCTFail("The local wipe ran although a recording started during the remote deletion")
+        } catch {
+            XCTAssertEqual(error, .recordingStartedDuringDelete)
+        }
+
+        XCTAssertEqual(asked, 2, "The recording check was not made again after the remote deletion")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: sentinel.path), "The local wipe ran")
+        XCTAssertFalse(SettingsManager.shared.settings.iCloudSyncEnabled, "iCloud sync was turned back on")
+        XCTAssertFalse(PurgeGate.isPurging, "The stopped purge left the gate closed")
+    }
+
     /// A recording still running holds its beats in memory: it would write
     /// them back into the emptied backups and archive its session when it
     /// stopped. So the purge refuses while one runs, and deletes nothing,
@@ -541,7 +645,7 @@ final class DataPurgeServiceTests: XCTestCase {
         do {
             _ = try await DataPurgeService.purgeAllUserData(
                 archive: archive, rawBackup: rawBackup,
-                cloudSync: CloudKitSyncManager.shared, settingsManager: SettingsManager.shared, stores: stores,
+                cloudSync: cloudSync, settingsManager: SettingsManager.shared, stores: stores,
                 baselineTracker: baselineTracker, recordingInProgress: { true },
                 deleteRemote: {
                     XCTFail("The iCloud deletion ran although the purge was refused")
@@ -568,7 +672,7 @@ final class DataPurgeServiceTests: XCTestCase {
 
         let report = try await DataPurgeService.purgeAllUserData(
             archive: archive, rawBackup: rawBackup,
-            cloudSync: CloudKitSyncManager.shared, settingsManager: SettingsManager.shared, stores: stores,
+            cloudSync: cloudSync, settingsManager: SettingsManager.shared, stores: stores,
             baselineTracker: baselineTracker,
             recordingInProgress: { DataPurgeService.isRecordingInProgress(collector: collector, workout: nil) },
             deleteRemote: { true }, scope: scope

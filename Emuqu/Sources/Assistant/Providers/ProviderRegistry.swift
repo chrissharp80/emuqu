@@ -158,9 +158,12 @@ final class ProviderRegistry {
     ///   - After a key is set/removed (via `keysChanged()`)
     ///   - After `setActive(...)` swaps the active provider
     ///   - At app launch via deferred init
+    ///
+    /// A provider switched off in Settings counts as unavailable here, so
+    /// the composer cannot send to it.
     func refreshAvailabilityCache() {
         AppDependencies.current.app.keyboardPerfSignpost.event("ProviderRegistry.refreshAvailabilityCache")
-        let active = activeProvider.isAvailable
+        let active = Self.canSend(to: activeProvider)
         if activeProviderAvailable != active { activeProviderAvailable = active }
     }
 
@@ -195,6 +198,13 @@ final class ProviderRegistry {
         }
     }
 
+    /// Whether a turn may go to `provider`: it has what it needs to answer
+    /// (`isAvailable`: a key, or Apple Intelligence on this device) and its
+    /// Settings switch is on.
+    static func canSend(to provider: AIProvider) -> Bool {
+        provider.isAvailable && isEnabled(provider.id)
+    }
+
     func setActive(provider: AIProvider, model: ModelOption? = nil) {
         let chosen: ModelOption = if let model, provider.availableModels.contains(model) {
             model
@@ -218,12 +228,21 @@ final class ProviderRegistry {
 
     /// Call after a key is added/removed or a provider switch changes, so the
     /// registry can re-evaluate the active provider.
+    ///
+    /// A provider switched off never stays selected: with no working provider
+    /// to move to, the selection falls back to Apple Intelligence as it does
+    /// at launch (`restoreSelection`), and the composer is gated on Apple's
+    /// availability. One that only lost its key stays selected, so the user
+    /// is told which key is missing.
     func keysChanged() {
         // If the active provider just lost its key or was switched off, fall
         // back to any working one.
-        if !activeProvider.isAvailable || !Self.isEnabled(activeProvider.id),
-           let fallback = visibleProviders.first(where: { $0.isAvailable }) {
-            setActive(provider: fallback)
+        if !Self.canSend(to: activeProvider) {
+            if let fallback = visibleProviders.first(where: { $0.isAvailable }) {
+                setActive(provider: fallback)
+            } else if !Self.isEnabled(activeProvider.id) {
+                setActive(provider: apple)
+            }
         }
         refreshAvailabilityCache()
     }

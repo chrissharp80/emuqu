@@ -169,18 +169,93 @@ final class RecordingDiscardTests: XCTestCase {
         XCTAssertNotNil(lifecycle.claimOvernightEnding(), "a released ending can be claimed again")
     }
 
-    /// A claim dropped for a new night no longer holds anything: releasing
-    /// it late leaves the new night's ending claimed.
+    /// A claim left behind longer than any ending takes is dropped for a new
+    /// night, and then holds nothing: releasing it late leaves the new
+    /// night's ending claimed.
     func testAStaleClaimDroppedForANewNightCannotReleaseTheNextOne() throws {
         let lifecycle = StreamingLifecycle()
         lifecycle.isOvernightStreaming = true
-        let stale = try XCTUnwrap(lifecycle.claimOvernightEnding())
+        let claimed = Date()
+        let stale = try XCTUnwrap(lifecycle.claimOvernightEnding(now: claimed))
 
-        XCTAssertTrue(lifecycle.dropStaleOvernightEnding())
-        let current = try XCTUnwrap(lifecycle.claimOvernightEnding())
+        let later = claimed.addingTimeInterval(StreamingLifecycle.staleEndingClaimAge + 60)
+        XCTAssertEqual(
+            lifecycle.clearEndingForNewNight(now: later),
+            .droppedStale(ageSeconds: StreamingLifecycle.staleEndingClaimAge + 60)
+        )
+        let current = try XCTUnwrap(lifecycle.claimOvernightEnding(now: later))
         lifecycle.releaseOvernightEnding(stale)
 
         XCTAssertEqual(lifecycle.overnightEndingClaim, current)
+    }
+
+    /// An ending still in progress keeps its claim: a night starting meanwhile
+    /// is refused instead of taking the recorder from under it.
+    func testAnEndingInProgressRefusesANewNightAndKeepsItsClaim() throws {
+        let lifecycle = StreamingLifecycle()
+        lifecycle.isOvernightStreaming = true
+        let claimed = Date()
+        let claim = try XCTUnwrap(lifecycle.claimOvernightEnding(now: claimed))
+
+        XCTAssertEqual(lifecycle.clearEndingForNewNight(now: claimed.addingTimeInterval(120)), .endingInProgress)
+        XCTAssertEqual(lifecycle.overnightEndingClaim, claim)
+        lifecycle.releaseOvernightEnding(claim)
+        XCTAssertEqual(lifecycle.clearEndingForNewNight(now: claimed.addingTimeInterval(120)), .clear)
+    }
+
+    /// Start, resume, a quick reading and a strap-only recording are all
+    /// refused while a night is being ended, before anything is changed.
+    func testNothingStartsWhileANightIsBeingEnded() async throws {
+        let collector = makeCollector()
+        let session = HRVSession(sessionType: .overnight)
+        try startRecording(session, on: collector)
+        let claim = try XCTUnwrap(collector.streamingLifecycle.claimOvernightEnding())
+        collector.isOvernightStreaming = false
+
+        XCTAssertThrowsError(try collector.startOvernightStreaming()) { error in
+            XCTAssertEqual(error as? RRCollector.CollectorError, .alreadyRecording)
+        }
+        XCTAssertThrowsError(try collector.resumeOvernightStreaming(linkedSessionId: UUID())) { error in
+            XCTAssertEqual(error as? RRCollector.CollectorError, .alreadyRecording)
+        }
+        XCTAssertThrowsError(try collector.startStreamingSession()) { error in
+            XCTAssertEqual(error as? RRCollector.CollectorError, .alreadyRecording)
+        }
+        do {
+            try await collector.startSession()
+            XCTFail("a strap-only recording must not start while a night is being ended")
+        } catch {
+            XCTAssertEqual(error as? RRCollector.CollectorError, .alreadyRecording)
+        }
+
+        XCTAssertEqual(collector.streamingLifecycle.overnightEndingClaim, claim, "the ending keeps its claim")
+        XCTAssertEqual(collector.currentSession?.id, session.id)
+        XCTAssertEqual(collector.recordingPhase, .overnightStreaming)
+    }
+
+    /// A quick reading or a strap-only recording started while a night is
+    /// paused would take over the paused night's session and phase.
+    func testAQuickReadingOrStrapRecordingDoesNotStartWhileANightIsPaused() async throws {
+        let collector = makeCollector()
+        isolateFromHostPausedNight(collector)
+        let paused = try pausedNight()
+        collector.pausedSession = paused
+        collector.currentSession = paused
+        collector.isPaused = true
+        collector.recordingPhase = .paused(sessionId: paused.id)
+
+        XCTAssertThrowsError(try collector.startStreamingSession()) { error in
+            XCTAssertEqual(error as? RRCollector.CollectorError, .alreadyRecording)
+        }
+        do {
+            try await collector.startSession()
+            XCTFail("a strap-only recording must not start while a night is paused")
+        } catch {
+            XCTAssertEqual(error as? RRCollector.CollectorError, .alreadyRecording)
+        }
+
+        XCTAssertEqual(collector.currentSession?.id, paused.id)
+        XCTAssertEqual(collector.recordingPhase, .paused(sessionId: paused.id))
     }
 
     /// Stop, Pause and Discard each claim the night's ending before they
@@ -275,6 +350,73 @@ final class RecordingDiscardTests: XCTestCase {
         collector.resetSession()
 
         XCTAssertNil(collector.control.getPersistedPausedSessionId())
+        XCTAssertNil(collector.pausedSession)
+    }
+
+    // MARK: - Continue Recording
+
+    /// Paused, resumed and finished: the paused part stays paused in the
+    /// archive, but it is not offered to continue, which would start a second
+    /// night that leaves out the resumed part.
+    func testAPausedNightThatWasResumedIsNotOfferedToContinue() throws {
+        let pausedAt = Date().addingTimeInterval(-2 * 3600)
+        let start = pausedAt.addingTimeInterval(-4 * 3600)
+        let parentId = UUID()
+        let segmentId = UUID()
+        var parent = HRVSession(
+            id: parentId, startDate: start, endDate: pausedAt, state: .paused, sessionType: .overnight,
+            rrSeries: RRSeries(points: beats(200), sessionId: parentId, startDate: start),
+            analysisResult: nil, artifactFlags: nil
+        )
+        parent.pausedDate = pausedAt
+        parent.linkedSessionIds = [segmentId]
+        var segment = HRVSession(
+            id: segmentId, startDate: start, endDate: Date().addingTimeInterval(-600), state: .complete,
+            sessionType: .overnight,
+            rrSeries: RRSeries(points: beats(400), sessionId: segmentId, startDate: start),
+            analysisResult: nil, artifactFlags: nil
+        )
+        segment.linkedSessionIds = [parentId]
+        _ = try archive.archive(parent, skipSameNightMerge: true)
+        _ = try archive.archive(segment, skipSameNightMerge: true)
+
+        let offered = CollectorSessionControl.findRecentPausedSessionOffMain(archive: archive, maxGap: 4.5 * 3600)
+
+        XCTAssertNotEqual(offered?.id, parentId)
+    }
+
+    /// A paused night nobody resumed is still offered.
+    func testAPausedNightNotYetResumedIsOfferedToContinue() throws {
+        let paused = try pausedNight()
+        try archive.update(paused.id, requestingReupload: false) { $0.pausedDate = Date().addingTimeInterval(-600) }
+
+        let offered = CollectorSessionControl.findRecentPausedSessionOffMain(archive: archive, maxGap: 4.5 * 3600)
+
+        XCTAssertEqual(offered?.id, paused.id)
+    }
+
+    // MARK: - Done on a paused night
+
+    /// A sleep refresh rewrote the paused night in the archive after the
+    /// pause. Done finalizes the archive's copy, not the one held since the
+    /// pause, so the refreshed score stays.
+    func testDoneOnAPausedNightKeepsARewriteMadeSinceThePause() throws {
+        let collector = makeCollector()
+        isolateFromHostPausedNight(collector)
+        let paused = try pausedNight()
+        collector.pausedSession = paused
+        collector.currentSession = paused
+        collector.isPaused = true
+        collector.recordingPhase = .paused(sessionId: paused.id)
+        try archive.update(paused.id, requestingReupload: false) { $0.recoveryScore = 7.4 }
+
+        collector.finalizeFromPause()
+
+        let finished = try XCTUnwrap(try archive.retrieve(paused.id))
+        XCTAssertEqual(finished.state, .complete)
+        XCTAssertEqual(finished.recoveryScore, 7.4, "the score from before the refresh was written back")
+        XCTAssertEqual(collector.currentSession?.recoveryScore, 7.4)
+        XCTAssertFalse(collector.isPaused)
         XCTAssertNil(collector.pausedSession)
     }
 

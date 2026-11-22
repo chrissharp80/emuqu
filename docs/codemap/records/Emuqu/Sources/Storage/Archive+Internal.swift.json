@@ -49,7 +49,7 @@
    "deps": {
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.guardWritable(_:)": "03f2b22afc8e75fd",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.preservingRRSeries(_:)": "8b71bc56529f3cde",
-    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.sameNightMerge(of:skipSameNightMerge:)": "10fdea0a09822f0a",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.sameNightMerge(of:skipSameNightMerge:)": "6af846006ea488ac",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.writeAndIndex(_:)": "fd985e02ff0336dc"
    }
   },
@@ -244,8 +244,8 @@
   },
   {
    "key": "func ArchiveStore.sameNightMerge(of:skipSameNightMerge:)",
-   "hash": "fc5a972d09074115",
-   "does": "For a NEW overnight (not a re-archive, merge not skipped, no explicit linkedSessionIds) with a same-sleep gap configured, finds a merge target; if found, loads it, merges the incoming session's data into it (SessionMerger) and re-archives the existing session, discarding the new UUID. Returns the merged entry, or nil to write standalone; a target that cannot be loaded (retrieve throws, or the id lookup misses) or re-archived throws instead.",
+   "hash": "2ac4e66be93c79c5",
+   "does": "For a NEW overnight (not a re-archive, merge not skipped, no explicit linkedSessionIds) with a same-sleep gap configured, finds a merge target; if found, loads it, merges the incoming session's data into it (SessionMerger), stamps modifiedAt (whole seconds) when the merge changed it — an edit made here, so another device holding the older copy takes this one — and re-archives the existing session, discarding the new UUID. Returns the merged entry, or nil to write standalone; a target that cannot be loaded (retrieve throws, or the id lookup misses) or re-archived throws instead.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.sameSleepGap(for:)",
@@ -253,7 +253,8 @@
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._retrieve(_:)",
     "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.mergeSessionData(from:into:)",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._archive(_:skipSameNightMerge:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:after:)"
    ],
    "reads": [
     "mem:SessionArchive.index",
@@ -287,6 +288,11 @@
      "effect": "throw ArchiveError.fileNotFound (caught below, rethrown); never a standalone write"
     },
     {
+     "at": "+14",
+     "cond": "mergeSessionData reported a change",
+     "effect": "modifiedAt = stamp(); else unchanged"
+    },
+    {
      "at": "+17",
      "cond": "catch: _retrieve, the lookup miss or the recursive _archive threw",
      "effect": "log warning and rethrow so the caller does not mark the backup archived"
@@ -295,11 +301,14 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._archive(_:skipSameNightMerge:)": "92f6b2132190f7b5",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore._retrieve(_:)": "24c88f25992eca37",
     "Emuqu/Sources/Storage/Archive+MergeForwarding.swift::func SessionArchive.mergeSessionData(from:into:)": "130682e15f59bee7",
     "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.mergeTarget(for:sameSleepGap:)": "2ba6aba0529159ea",
     "Emuqu/Sources/Storage/Archive+MergeTarget.swift::func ArchiveStore.sameSleepGap(for:)": "47f346a2d3754e60",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stamp(at:after:)": "d14e6c55f8aaa87a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -342,12 +351,12 @@
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "2d06ba44e8e8015c",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "fa7f11dc067c058a",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchiveEntry.make(from:hash:filePath:overridingSessionId:recoveryScoreFallback:)": "e279cc050a658fb7",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.encodedForDisk(_:)": "29d80916bd56a55b",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.rollBackWrite(to:filePath:prior:id:)": "7adfe94797a0d0b6",
     "Emuqu/Sources/Storage/Archive+Internal.swift::init ArchiveStore.PriorFile(at:id:fileManager:)": "320b6db69109e18e",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func writeArchiveBytes(_:to:format:sessionID:)": "b0adb3c1e0c04836"
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func writeArchiveBytes(_:to:format:sessionID:)": "ccb854c5aaf1d21a"
    }
   },
   {
@@ -425,7 +434,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func writeArchiveBytes(_:to:format:sessionID:)": "b0adb3c1e0c04836",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func writeArchiveBytes(_:to:format:sessionID:)": "ccb854c5aaf1d21a",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "d45edfb391017e71",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
@@ -1109,7 +1118,7 @@
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "245124c441f7143c",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "bc9f8909df43d2dd",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "fa7f11dc067c058a",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.dropFromIndex(_:)": "1076945f98cef7ec",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)": "703c2a2085c25cdf",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.undoDrop(_:)": "b907535626240f39",
@@ -1120,8 +1129,8 @@
   },
   {
    "key": "func ArchiveStore.deleteWithoutTrash(_:)",
-   "hash": "a5d1ea59caab841f",
-   "does": "For a session deleted on another device: under the lock, for an indexed id logs a breadcrumb and drops it from the index with a tombstone + deletion time (dropFromIndex, throws on a failed save), then removes its file directly rather than moving it to the Trash. A file already gone is fine. A failed removal (logged by attempt) falls back to moving the file into the Trash (moveToTrash, a failure logged), where discardTrashed and expiry remove it; the deletion stands either way. Unknown ids are a silent no-op.",
+   "hash": "c5e0d9bdb49bef70",
+   "does": "For a session deleted on another device: under the lock, for an indexed id logs a breadcrumb and drops it from the index with a tombstone + deletion time (dropFromIndex, throws on a failed save), then removes its file directly rather than moving it to the Trash. A file already gone is fine. A failed removal (logged by attempt) falls back to moving the file into the Trash, where discardTrashed and expiry remove it. When that move fails too, the file is still in the archive folder: the drop is undone (undoDrop, index saved again via attempt) and the error thrown, so the session stays and the caller retries. Unknown ids are a silent no-op.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)",
@@ -1131,7 +1140,9 @@
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "ext:FileManager.fileExists",
-    "ext:FileManager.removeItem"
+    "ext:FileManager.removeItem",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.undoDrop(_:)",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()"
    ],
    "reads": [
     "mem:SessionArchive.index",
@@ -1163,16 +1174,23 @@
      "effect": "return; the deletion stands"
     },
     {
-     "at": "+10",
+     "at": "+11",
      "cond": "removal failed",
-     "effect": "move the file into the Trash (failure logged)"
+     "effect": "move the file into the Trash"
+    },
+    {
+     "at": "+12",
+     "cond": "the move failed too",
+     "effect": "log, undo the drop, save the index, rethrow"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "245124c441f7143c",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "fa7f11dc067c058a",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.dropFromIndex(_:)": "1076945f98cef7ec",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.entryById(_:)": "703c2a2085c25cdf",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.undoDrop(_:)": "b907535626240f39",
     "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.moveToTrash(_:id:)": "bae2730948a9b981",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
@@ -1211,8 +1229,8 @@
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "38a4b1f67bd1c949",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "bc9f8909df43d2dd",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "79f2c2d15798a516",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "fa7f11dc067c058a",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.recordDeletionTime(_:)": "458c4130b9c80d9d",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.undoDrop(_:)": "b907535626240f39"
    }
@@ -1239,7 +1257,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "38a4b1f67bd1c949",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "79f2c2d15798a516",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.forgetDeletionTime(_:)": "081a68f3d50e3c17",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
@@ -1289,18 +1307,19 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "38a4b1f67bd1c949",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "79f2c2d15798a516",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.forgetDeletionTime(_:)": "081a68f3d50e3c17"
    }
   },
   {
    "key": "func ArchiveStore.markAsDeleted(_:)",
-   "hash": "43bf706968117c9e",
-   "does": "Takes the lock; inserts a tombstone for the id (need not be archived), records its deletion time and saves deleted.json (throws).",
+   "hash": "21d9ce565ee0a797",
+   "does": "Takes the lock; inserts a tombstone for the id (need not be archived), records its deletion time and saves deleted.json. When the save throws and this call added the tombstone, removes it and forgets the deletion time again, then rethrows.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.recordDeletionTime(_:)",
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.forgetDeletionTime(_:)"
    ],
    "reads": [
     "mem:SessionArchive.deletedSessionIds"
@@ -1310,9 +1329,16 @@
     "ud:archive.deletionTimes",
     "file:<archiveDirectory>/deleted.json"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "catch: saveDeletedIndex threw",
+     "effect": "rethrow; first, if the id was newly inserted, remove it and forget its deletion time"
+    }
+   ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "38a4b1f67bd1c949",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveDeletedIndex()": "79f2c2d15798a516",
+    "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.forgetDeletionTime(_:)": "081a68f3d50e3c17",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.recordDeletionTime(_:)": "458c4130b9c80d9d"
    }
   },

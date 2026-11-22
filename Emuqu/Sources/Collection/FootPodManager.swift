@@ -116,9 +116,41 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
     private(set) var podReportedDistanceMeters: Double?
     /// Instantaneous power in watts (from Cycling Power Service — Stryd uses
     /// this for running power too). Nil if the pod doesn't publish power.
+    /// Zero is a measurement (coasting, standing on a stopped belt), not a
+    /// missing reading, and is kept as zero.
     private(set) var instantaneousPowerWatts: Int?
+    /// When `instantaneousPowerWatts` last arrived.
+    @ObservationIgnored private(set) var powerMeasuredAt: Date?
+
+    /// A power reading older than this is not current: a meter that stops
+    /// notifying (asleep, out of range) without dropping the link leaves its
+    /// last value behind. Meters notify about once a second.
+    nonisolated static let powerStaleAfter: TimeInterval = 5
+
+    /// The power reading if it arrived within `powerStaleAfter` of `now`.
+    func currentPowerWatts(now: Date = Date()) -> Int? {
+        Self.freshPower(instantaneousPowerWatts, measuredAt: powerMeasuredAt, now: now)
+    }
+
+    /// `watts` while it is no older than `powerStaleAfter`, else nil.
+    nonisolated static func freshPower(_ watts: Int?, measuredAt: Date?, now: Date) -> Int? {
+        guard let watts, let measuredAt, now.timeIntervalSince(measuredAt) <= powerStaleAfter else { return nil }
+        return watts
+    }
+
+    /// Store a power reading, negative values (a measurement artifact, e.g.
+    /// standing still on a treadmill) clamped to zero.
+    @MainActor
+    private func recordPower(_ raw: Int16) {
+        instantaneousPowerWatts = max(0, Int(raw))
+        powerMeasuredAt = Date()
+    }
     /// Known / remembered devices — shown as "Reconnect to X" in UI.
     private(set) var knownDevices: [KnownFootPod] = []
+    /// The peripheral id of the sensor connected or being connected now; nil
+    /// while none is. The sensor sheet titles the row with it, so the row
+    /// names the linked sensor rather than the first one paired.
+    private(set) var linkedDeviceId: String?
     /// Devices seen during the current scan window.
     private(set) var discoveredDevices: [DiscoveredFootPod] = []
     /// Latest human-readable status for UI diagnostics.
@@ -295,6 +327,7 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
 
     func attach(peripheral: CBPeripheral) {
         activePeripheral = peripheral
+        linkedDeviceId = peripheral.identifier.uuidString
         peripheral.delegate = self
         connectionState = .connecting
         let name = peripheral.name ?? String(localized: "foot pod", bundle: LanguageManager.appBundle)
@@ -308,6 +341,7 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
     /// session's reading as its starting point.
     private func cleanupAfterDisconnect() {
         activePeripheral = nil
+        linkedDeviceId = nil
         rscMeasurementChar = nil
         powerMeasurementChar = nil
         indoorBikeDataChar = nil
@@ -315,6 +349,7 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
         cadenceStepsPerMin = nil
         strideLengthMeters = nil
         instantaneousPowerWatts = nil
+        powerMeasuredAt = nil
         if !workoutHoldsLink { podReportedDistanceMeters = nil }
         connectionState = .disconnected
     }
@@ -616,11 +651,7 @@ extension FootPodManager: CBPeripheralDelegate {
         let lo = UInt16(bytes[2])
         let hi = UInt16(bytes[3])
         let raw = lo | (hi << 8)
-        let signed = Int16(bitPattern: raw)
-        // Negative power from a foot pod is a measurement artifact (e.g.
-        // standing still on a treadmill). Clamp to 0 for display.
-        let watts = max(0, Int(signed))
-        instantaneousPowerWatts = watts > 0 ? watts : nil
+        recordPower(Int16(bitPattern: raw))
     }
 
     /// FTMS Indoor Bike Data characteristic (0x2AD2). Used by smart trainers
@@ -679,8 +710,7 @@ extension FootPodManager: CBPeripheralDelegate {
     @MainActor
     private func applyInstantaneousPower(_ bytes: [UInt8], at offset: Int, flags: UInt16) {
         guard flags & 0x0040 != 0, let raw = Self.u16(bytes, at: offset) else { return }
-        let watts = max(0, Int(Int16(bitPattern: raw)))
-        instantaneousPowerWatts = watts > 0 ? watts : nil
+        recordPower(Int16(bitPattern: raw))
     }
 
     /// Little-endian u16 at `offset`, or nil when the packet is too short.

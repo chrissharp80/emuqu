@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Storage/CloudKitSyncState.swift",
- "hash": "1358bce78c077e9a",
+ "hash": "b26d0b02fbdfb389",
  "role": "Value type holding CloudKit sync bookkeeping (uploaded / pending / quarantined / local-only id sets and in-memory failure counts) and persisting each set as a JSON array of UUID strings next to sync_state.json.",
  "types": [
   "CloudKitSyncState: struct — durable sync bookkeeping with load/save/mutation helpers"
@@ -14,9 +14,10 @@
   "mem:CloudKitSyncState.uploadFailureCounts (NOT persisted)",
   "mem:CloudKitSyncState.isLoaded",
   "ud:UserDefaultsKeys.cloudKitChangeToken (only removed, legacy cleanup)",
-  "mem:CloudKitSyncState.uploadedRemovedBeforeLoad / pendingRemovedBeforeLoad (ids removed before loadAll; kept out of the load's merge, cleared by loadAll/resetAll)"
+  "mem:CloudKitSyncState.uploadedRemovedBeforeLoad / pendingRemovedBeforeLoad (ids removed before loadAll; kept out of the load's merge, cleared by loadAll/resetAll)",
+  "mem:CloudKitSyncState.writeQueue (serial DispatchQueue: every write of the files, in call order)"
  ],
- "toplevel": "All sets default empty; isLoaded false until loadAll or resetAll. The four sibling file URLs are derived from syncStateURL's directory. uploadFailureCounts is in memory only (documented): backoff restarts at each launch.",
+ "toplevel": "All sets default empty; isLoaded false until loadAll or resetAll. The four sibling file URLs are derived from syncStateURL's directory. uploadFailureCounts is in memory only (documented): backoff restarts at each launch. writeQueue is a static serial DispatchQueue (com.emuqu.cloudkit.syncstate.write).",
  "units": [
   {
    "key": "var CloudKitSyncState.pendingQueueURL",
@@ -212,9 +213,25 @@
    }
   },
   {
+   "key": "func CloudKitSyncState.enqueueWrite(_:)",
+   "hash": "2b0a55499cc9ec28",
+   "does": "On the main actor: queues write on writeQueue before its first suspension (the continuation body runs synchronously on the caller) and resumes the caller once it has run, so writes queue in the order the main-actor callers call.",
+   "entry": null,
+   "calls": [
+    "ext:DispatchQueue.async",
+    "ext:withCheckedContinuation"
+   ],
+   "reads": [
+    "mem:CloudKitSyncState.writeQueue (serial DispatchQueue: every write of the files, in call order)"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
    "key": "func CloudKitSyncState.saveSyncState()",
-   "hash": "48d0a69e716b7d67",
-   "does": "Synchronously writes uploadedSessionIds to sync_state.json and recordVersions to record_versions.json once loaded.",
+   "hash": "eef477744d9c0fcc",
+   "does": "Snapshots uploadedSessionIds and recordVersions and writes sync_state.json and record_versions.json on writeQueue, waiting for it and for every write queued before it; skipped before load.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)",
@@ -222,7 +239,9 @@
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeVersionsSync(_:to:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL"
    ],
-   "reads": [],
+   "reads": [
+    "mem:CloudKitSyncState.writeQueue (serial DispatchQueue: every write of the files, in call order)"
+   ],
    "writes": [
     "file:sync_state.json",
     "file:record_versions.json"
@@ -243,28 +262,32 @@
   },
   {
    "key": "func CloudKitSyncState.saveSyncStateAsync()",
-   "hash": "1e7e325158486e3f",
-   "does": "Snapshots uploadedSessionIds and recordVersions and writes sync_state.json and record_versions.json on a detached utility task, awaiting completion; skipped before load.",
+   "hash": "8861db650d498c20",
+   "does": "On the main actor, where every caller is: snapshots uploadedSessionIds and recordVersions and queues the write of sync_state.json and record_versions.json on writeQueue (enqueueWrite), awaiting it; the snapshot and the queueing happen without a suspension between them, so writes land in the order the saves were made. Skipped before load.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeVersionsSync(_:to:)",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.enqueueWrite(_:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:CloudKitSyncState.writeQueue (serial DispatchQueue: every write of the files, in call order)"
+   ],
    "writes": [
     "file:sync_state.json",
     "file:record_versions.json"
    ],
    "branches": [
     {
-     "at": "+1",
+     "at": "+2",
      "cond": "isLoaded false",
      "effect": "log and skip"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.enqueueWrite(_:)": "df359b986c3f6a56",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)": "62913121e4810299",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "723a3b85f30d22d2",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeVersionsSync(_:to:)": "0e55bf58de2875bb",
@@ -273,15 +296,17 @@
   },
   {
    "key": "func CloudKitSyncState.savePendingQueue()",
-   "hash": "8c189d0a4b6fdf7b",
-   "does": "Synchronously writes pendingUploadIds to pending_uploads.json once loaded.",
+   "hash": "067889b1d89a06b4",
+   "does": "Snapshots pendingUploadIds and writes pending_uploads.json on writeQueue, waiting for it and for every write queued before it; skipped before load.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.pendingQueueURL"
    ],
-   "reads": [],
+   "reads": [
+    "mem:CloudKitSyncState.writeQueue (serial DispatchQueue: every write of the files, in call order)"
+   ],
    "writes": [
     "file:pending_uploads.json"
    ],
@@ -300,26 +325,30 @@
   },
   {
    "key": "func CloudKitSyncState.savePendingQueueAsync()",
-   "hash": "796c3a1f04ac1a02",
-   "does": "Snapshots pendingUploadIds and writes pending_uploads.json on a detached task; skipped before load.",
+   "hash": "9468b68e3b6989c5",
+   "does": "On the main actor, where every caller is: snapshots pendingUploadIds and queues the write of pending_uploads.json on writeQueue (enqueueWrite), awaiting it; the snapshot and the queueing happen without a suspension between them, so writes land in the order the saves were made. Skipped before load.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.pendingQueueURL"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.pendingQueueURL",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.enqueueWrite(_:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:CloudKitSyncState.writeQueue (serial DispatchQueue: every write of the files, in call order)"
+   ],
    "writes": [
     "file:pending_uploads.json"
    ],
    "branches": [
     {
-     "at": "+1",
+     "at": "+2",
      "cond": "isLoaded false",
      "effect": "log and skip"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.enqueueWrite(_:)": "df359b986c3f6a56",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)": "62913121e4810299",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "723a3b85f30d22d2",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.pendingQueueURL": "b730d3ac0418199f"
@@ -327,15 +356,17 @@
   },
   {
    "key": "func CloudKitSyncState.saveQuarantineQueue()",
-   "hash": "da2e4915d6f72bda",
-   "does": "Synchronously writes quarantinedSessionIds to quarantined_uploads.json once loaded.",
+   "hash": "f22ca3e02cb10d9f",
+   "does": "Snapshots quarantinedSessionIds and writes quarantined_uploads.json on writeQueue, waiting for it and for every write queued before it; skipped before load.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.quarantineQueueURL"
    ],
-   "reads": [],
+   "reads": [
+    "mem:CloudKitSyncState.writeQueue (serial DispatchQueue: every write of the files, in call order)"
+   ],
    "writes": [
     "file:quarantined_uploads.json"
    ],
@@ -354,26 +385,30 @@
   },
   {
    "key": "func CloudKitSyncState.saveQuarantineQueueAsync()",
-   "hash": "0ad6a50f8a6923f7",
-   "does": "Snapshots quarantinedSessionIds and writes quarantined_uploads.json on a detached task; skipped before load.",
+   "hash": "e4b9bcf7101a3c29",
+   "does": "On the main actor, where every caller is: snapshots quarantinedSessionIds and queues the write of quarantined_uploads.json on writeQueue (enqueueWrite), awaiting it; the snapshot and the queueing happen without a suspension between them, so writes land in the order the saves were made. Skipped before load.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.quarantineQueueURL"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.quarantineQueueURL",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.enqueueWrite(_:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:CloudKitSyncState.writeQueue (serial DispatchQueue: every write of the files, in call order)"
+   ],
    "writes": [
     "file:quarantined_uploads.json"
    ],
    "branches": [
     {
-     "at": "+1",
+     "at": "+2",
      "cond": "isLoaded false",
      "effect": "log and skip"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.enqueueWrite(_:)": "df359b986c3f6a56",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)": "62913121e4810299",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "723a3b85f30d22d2",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.quarantineQueueURL": "c866c5be7fb5dc63"
@@ -381,26 +416,30 @@
   },
   {
    "key": "func CloudKitSyncState.saveLocalOnlyAsync()",
-   "hash": "03d9d7acb52b07c0",
-   "does": "Snapshots localOnlySessionIds and writes local_only_sessions.json on a detached task; skipped before load.",
+   "hash": "396bdfd8906f0734",
+   "does": "On the main actor, where every caller is: snapshots localOnlySessionIds and queues the write of local_only_sessions.json on writeQueue (enqueueWrite), awaiting it; the snapshot and the queueing happen without a suspension between them, so writes land in the order the saves were made. Skipped before load.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.localOnlyURL"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.localOnlyURL",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.enqueueWrite(_:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:CloudKitSyncState.writeQueue (serial DispatchQueue: every write of the files, in call order)"
+   ],
    "writes": [
     "file:local_only_sessions.json"
    ],
    "branches": [
     {
-     "at": "+1",
+     "at": "+2",
      "cond": "isLoaded false",
      "effect": "log and skip"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.enqueueWrite(_:)": "df359b986c3f6a56",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.logSkippedSave(_:)": "62913121e4810299",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.writeUUIDsSync(_:to:label:)": "723a3b85f30d22d2",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.localOnlyURL": "b8a57aeea90ce3d0"
@@ -767,18 +806,20 @@
   },
   {
    "key": "func CloudKitSyncState.resetAll()",
-   "hash": "f80b30546eeb70dc",
-   "does": "Marks loaded, empties all sets, failure counts, recordVersions and the removed-before-load sets, removes the legacy change-token UserDefaults value and deletes the five state files (errors routed through attempt()).",
+   "hash": "e8743ad929c6f869",
+   "does": "Marks loaded, empties all sets, failure counts, recordVersions and the removed-before-load sets, removes the legacy change-token UserDefaults value and deletes the five state files on writeQueue, behind any save still queued (removeFiles; errors routed through attempt()).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "ext:FileManager.removeItem",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.removeFiles(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.pendingQueueURL",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.quarantineQueueURL",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.localOnlyURL",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL",
+    "ext:DispatchQueue.sync"
    ],
-   "reads": [],
+   "reads": [
+    "mem:CloudKitSyncState.writeQueue (serial DispatchQueue: every write of the files, in call order)"
+   ],
    "writes": [
     "mem:CloudKitSyncState.isLoaded",
     "ud:UserDefaultsKeys.cloudKitChangeToken",
@@ -793,10 +834,38 @@
    ],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.removeFiles(_:)": "9a3b1890cec87400",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.localOnlyURL": "b8a57aeea90ce3d0",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.pendingQueueURL": "b730d3ac0418199f",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.quarantineQueueURL": "c866c5be7fb5dc63",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL": "5199f1d780b0e8e7",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::var CloudKitSyncState.recordVersionsURL": "5199f1d780b0e8e7"
+   }
+  },
+  {
+   "key": "func CloudKitSyncState.removeFiles(_:)",
+   "hash": "cac6fc921e298bd2",
+   "does": "Removes each file, logging a failure through attempt().",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:sync_state.json",
+    "file:pending_uploads.json",
+    "file:quarantined_uploads.json",
+    "file:local_only_sessions.json",
+    "file:record_versions.json"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each url",
+     "effect": "remove it"
+    }
+   ],
+   "deps": {
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   }

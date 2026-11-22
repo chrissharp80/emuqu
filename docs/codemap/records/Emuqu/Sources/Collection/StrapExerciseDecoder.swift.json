@@ -1,46 +1,47 @@
 {
  "file": "Emuqu/Sources/Collection/StrapExerciseDecoder.swift",
- "hash": "68cec6613c7ea0c0",
- "role": "Converts H10 exercise recordings into RR beat series and encodes/decodes the app's exercise-id start stamp (yyyyMMddHHmmss, POSIX, Gregorian, local zone), remembering the zone each app-written id was written in so it reads back in that zone.",
+ "hash": "f50ec7ab2f55c023",
+ "role": "Converts H10 exercise recordings into RR beat series and encodes/decodes the app's exercise-id start stamp (yyyyMMddHHmmss, POSIX, Gregorian, local zone), remembering the offset from GMT each app-written id was written at so it reads back as the instant it was written (also in the hour a DST fall-back repeats); ids an earlier version remembered by zone name still read back in that zone.",
  "types": [
   "StrapExerciseDecoder: enum — exercise id formatting/parsing, newest-recording selection, duration and RR point reconstruction (no quality filter by design)"
  ],
  "state": [
   "static idStampToleranceSeconds = 2",
-  "private static zonesKey = \"StrapExerciseDecoder.zoneById.v1\" (UserDefaults key: id → time-zone identifier)",
+  "private static offsetsKey = \"StrapExerciseDecoder.offsetById.v2\" (UserDefaults key: id → seconds from GMT when written)",
+  "private static zonesKey = \"StrapExerciseDecoder.zoneById.v1\" (UserDefaults key: id → time-zone identifier, written by earlier versions; read only)",
   "private static zonesKept = 32"
  ],
  "toplevel": "No code outside units.",
  "units": [
   {
    "key": "func StrapExerciseDecoder.exerciseId(at:timeZone:)",
-   "hash": "e5b2440cddf00a7e",
-   "does": "Formats `date` as a 14-digit yyyyMMddHHmmss id used as the H10 exercise id, in `timeZone` when given, else in the current zone, which is then remembered for the id (rememberZone) so the id reads back in it.",
+   "hash": "3586dafb5d1bc66b",
+   "does": "Formats `date` as a 14-digit yyyyMMddHHmmss id used as the H10 exercise id, in `timeZone` when given, else in the current zone, whose offset from GMT at `date` is then remembered for the id (rememberOffset) so the id reads back as that instant.",
    "entry": "Called from PolarManager+Recording.swift:196 when arming the H10; tests StrapExerciseDecoderTests and strap flow tests.",
    "calls": [
     "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseIdFormatter(timeZone:)",
-    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rememberZone(_:forId:)"
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rememberOffset(_:forId:)"
    ],
    "reads": [],
    "writes": [
-    "ud:StrapExerciseDecoder.zoneById.v1"
+    "ud:StrapExerciseDecoder.offsetById.v2"
    ],
    "branches": [
     {
      "at": "+1",
      "cond": "timeZone nil (??)",
-     "effect": "formats in TimeZone.current and remembers that zone for the id; an explicit zone is used as given and nothing is remembered"
+     "effect": "formats in TimeZone.current and remembers its offset at the date for the id; an explicit zone is used as given and nothing is remembered"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseIdFormatter(timeZone:)": "ef1c47d05d08f4e5",
-    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rememberZone(_:forId:)": "129cd941d47d32c7"
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.rememberOffset(_:forId:)": "3b6eaf8cac3a59d9"
    }
   },
   {
    "key": "func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)",
    "hash": "eb24a40e9cacf15d",
-   "does": "Parses a 14-digit all-numeric id back into the recording start Date: in `timeZone` when given, else in the zone the id was written in when remembered (writtenZone), else the current zone; nil for any other id. A phone that changed zone or DST offset between arming and download reads back the real start.",
+   "does": "Parses a 14-digit all-numeric id back into the recording start Date: in `timeZone` when given, else at the offset the id was written at when remembered, or the zone an earlier version remembered for it (writtenZone), else the current zone; nil for any other id. A phone that changed zone or DST offset between arming and download, or armed in the hour a DST fall-back repeats, reads back the real start.",
    "entry": "Called from PolarManager+Recording.swift:181,403, StrapRecordingCoordinator+Transfer.swift:239,447, and newestRecording.",
    "calls": [
     "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseIdFormatter(timeZone:)",
@@ -59,54 +60,66 @@
     {
      "at": "+2",
      "cond": "timeZone ?? writtenZone ?? current",
-     "effect": "explicit zone wins; else the remembered zone of the id; else TimeZone.current (ids written before zones were remembered, or by tests with explicit zones)"
+     "effect": "explicit zone wins; else the remembered offset (or zone) of the id; else TimeZone.current (ids written before either was remembered, or by tests with explicit zones)"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.exerciseIdFormatter(timeZone:)": "ef1c47d05d08f4e5",
-    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.writtenZone(forId:)": "deede4be33b84527"
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.writtenZone(forId:)": "f00f71d3e0b1f009"
    }
   },
   {
-   "key": "func StrapExerciseDecoder.rememberZone(_:forId:)",
-   "hash": "e9b24aaabf0a2fdf",
-   "does": "Records `zone`'s identifier for `id` in the UserDefaults dictionary zoneById.v1, dropping the lexicographically smallest (oldest) ids beyond the 32 kept.",
+   "key": "func StrapExerciseDecoder.rememberOffset(_:forId:)",
+   "hash": "b39f5524d67de8a0",
+   "does": "Stores the id's offset from GMT in the offsetById.v2 dictionary in UserDefaults, dropping the lexically oldest ids beyond the 32 kept.",
    "entry": null,
    "calls": [
     "ext:UserDefaults.standard"
    ],
    "reads": [
-    "ud:StrapExerciseDecoder.zoneById.v1"
+    "ud:StrapExerciseDecoder.offsetById.v2"
    ],
    "writes": [
-    "ud:StrapExerciseDecoder.zoneById.v1"
+    "ud:StrapExerciseDecoder.offsetById.v2"
    ],
    "branches": [
     {
+     "at": "+1",
+     "cond": "no dictionary stored yet",
+     "effect": "starts from empty"
+    },
+    {
      "at": "+3",
-     "cond": "more than zonesKept ids stored",
-     "effect": "the oldest ids are removed until 32 remain; otherwise nothing removed"
+     "cond": "more than 32 ids kept",
+     "effect": "the oldest ids by name are removed"
     }
    ],
    "deps": {}
   },
   {
    "key": "func StrapExerciseDecoder.writtenZone(forId:)",
-   "hash": "739225df8300bcba",
-   "does": "The time zone remembered for an app-written exercise id, or nil when none was remembered or the identifier no longer resolves.",
+   "hash": "619eadf54f0550a4",
+   "does": "The zone an app-written exercise id reads back in: a fixed-offset zone at the offset remembered for it, else the zone an earlier version remembered by name for it, else nil (none remembered, or the identifier no longer resolves).",
    "entry": null,
    "calls": [
     "ext:UserDefaults.standard",
+    "ext:TimeZone.init(secondsFromGMT:)",
     "ext:TimeZone.init(identifier:)"
    ],
    "reads": [
+    "ud:StrapExerciseDecoder.offsetById.v2",
     "ud:StrapExerciseDecoder.zoneById.v1"
    ],
    "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "id present in the dictionary",
+     "cond": "an offset is remembered for the id",
+     "effect": "TimeZone(secondsFromGMT:)"
+    },
+    {
+     "at": "+4",
+     "cond": "a zone name is remembered for the id",
      "effect": "TimeZone(identifier:) (nil if unknown); absent: nil"
     }
    ],
@@ -136,7 +149,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)": "8781b669c14a872e"
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.recordingStart(fromExerciseId:timeZone:)": "542a14a837a1d74f"
    }
   },
   {

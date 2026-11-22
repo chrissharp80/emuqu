@@ -367,6 +367,56 @@
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveCyclingFTP": "f0af4a98fba62550",
     "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
    }
+  },
+  {
+   "key": "func EffectiveSettingsTests.testABlankRecipientFallsThroughToTheNextField()",
+   "hash": "1ffd26f46e152f07",
+   "does": "A spaces-only recovery recipient falls through to the trimmed training one, an empty training one to the legacy one, and nothing set gives nil (resolvedDefaultEmailRecipient).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient": "46367860bc72e5b4",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
+   }
+  },
+  {
+   "key": "func EffectiveSettingsTests.testACcOfOnlyCommasFallsThroughToTheNextField()",
+   "hash": "88593e9779455837",
+   "does": "A recovery CC of only commas and spaces falls through to the training CC's two addresses (resolvedDefaultEmailCC).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "dac42d076ea6279c",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
+   }
+  },
+  {
+   "key": "func EffectiveSettingsTests.testWorkoutReportsPreferTheTrainingFieldThenFallBack()",
+   "hash": "cdc134cc32fd6060",
+   "does": "Workout reports take the training recipient first, the recovery one when the training field is empty, and the recovery CC when the training CC is blank (resolvedTrainingEmailRecipient / resolvedTrainingEmailCC).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailRecipient",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailCC"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailCC": "c4c996f8ca2bbd96",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailRecipient": "19fcbec0d072481a",
+    "EmuquTests/EffectiveSettingsTests.swift::func EffectiveSettingsTests.settings()": "b2da63ed30caa14c"
+   }
   }
  ],
  "deps": {}

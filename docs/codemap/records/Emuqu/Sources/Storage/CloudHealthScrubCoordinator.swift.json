@@ -143,7 +143,7 @@
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.remainingIds()": "fd3e07cdb070d982",
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults": "91861ee40a5793bd",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "271213db35c3c82e",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "e52297fe4b9ce11f",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "e40f54cf139e488a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -187,7 +187,7 @@
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.remainingIds()": "fd3e07cdb070d982",
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.scrub(_:)": "9398d7c75ecac942",
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::var CloudHealthScrubCoordinator.defaults": "91861ee40a5793bd",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "e52297fe4b9ce11f",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "e40f54cf139e488a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -228,26 +228,25 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+Sessions.swift::func SessionNamespace.record(for:)": "cbe5cd4ccaecc694",
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.meansNoRecord(_:)": "ce3859c45e532228",
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.rewrite(_:sessionId:)": "60cc3c51cbf9f06e",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.rewrite(_:sessionId:)": "043e4e756d2b22d0",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "d37a3ba79fd481d8",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func CloudHealthScrubCoordinator.rewrite(_:sessionId:)",
-   "hash": "04e631f78513f0e1",
-   "does": "A tombstone (isDeleted == 1) has any payload removed (clearTombstonePayload). Otherwise — live or restored from Trash (-1) — when its payload decodes here: deletes the record when the session is HealthKit-sourced (and marks it local-only, persisting local-only + sync state); else rewrites it as this build's builder would (saveStripped: stripped payload, legacy plaintext fields removed, isDeleted and modifiedAt kept).",
+   "hash": "49fbda8d7d529657",
+   "does": "A tombstone (isDeleted == 1) has any payload removed (clearTombstonePayload). Otherwise — live or restored from Trash (-1) — when its payload decodes here: when the session is HealthKit-sourced, removes the record's payload and marks it kept on device (CloudKitSyncManager.markKeptOnDevice) rather than deleting it, and marks it local-only, persisting local-only + sync state; else rewrites it as this build's builder would (saveStripped: stripped payload, legacy plaintext fields removed, isDeleted and modifiedAt kept).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.clearTombstonePayload(_:)",
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.storedSession(in:)",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.isHealthKitSourced(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markLocalOnly(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveLocalOnlyAsync()",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()",
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.saveStripped(_:over:)",
-    "ext:CKDatabase.deleteRecord"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.markKeptOnDevice(_:)"
    ],
    "reads": [
     "ck:HRVSession/HRVSessions"
@@ -274,18 +273,18 @@
     {
      "at": "+3",
      "cond": "session is HealthKit-sourced",
-     "effect": "deletes the record and marks local-only; else saveStripped"
+     "effect": "marks the record kept on device and the session local-only; else saveStripped"
     }
    ],
    "deps": {
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.clearTombstonePayload(_:)": "5b53b0886a66561e",
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.saveStripped(_:over:)": "856180afd6888931",
-    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.storedSession(in:)": "a80113fc13ada27e",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "d37a3ba79fd481d8",
+    "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.storedSession(in:)": "45946c2a7c0da71b",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.markKeptOnDevice(_:)": "546aa9f28bd8833f",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markLocalOnly(_:)": "64014e3dc11e8241",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveLocalOnlyAsync()": "5a55427ad8b77917",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "e52297fe4b9ce11f",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveLocalOnlyAsync()": "3e131c26786023b5",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "e40f54cf139e488a",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a"
    }
   },
   {
@@ -313,7 +312,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)": "044e343b3259ee39",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)": "4c7fe1d60d564374",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cleanupTempAsset(for:)": "58d2a43cf55426c0",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.noteRecordVersion(_:of:)": "67ad5852adb1be04"
    }
@@ -343,11 +342,12 @@
   },
   {
    "key": "func CloudHealthScrubCoordinator.storedSession(in:)",
-   "hash": "0d67e5d255f21f12",
-   "does": "Reads the record's sessionData asset and decodes it off-main via CloudPullCoordinator.decodeSessionAsset; nil when no asset, or (logged warning) when it cannot be unsealed/decoded on this device.",
+   "hash": "0330b46cecbeca71",
+   "does": "Reads the record's sessionData asset and decodes it off-main via CloudPullCoordinator.decodeSessionAsset; nil, logged, when there is no asset (nothing to strip), and nil (logged warning) when it cannot be unsealed/decoded on this device.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.decodeSessionAsset(at:)"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.decodeSessionAsset(at:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "ck:HRVSession.sessionData asset"
@@ -357,16 +357,17 @@
     {
      "at": "+1",
      "cond": "no CKAsset fileURL",
-     "effect": "returns nil"
+     "effect": "logs, returns nil"
     },
     {
-     "at": "+6",
+     "at": "+9",
      "cond": "decode throws (other device's key, damage)",
      "effect": "logs warning, returns nil"
     }
    ],
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.decodeSessionAsset(at:)": "dc8ab6c016fb95fa",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.fileURL(_:)": "acbd0989051106ca",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },

@@ -112,9 +112,17 @@ final class RawRRBackupTests: XCTestCase {
         XCTAssertFalse(backup.unarchivedSessionIds.contains(sessionId))
     }
 
-    func testMarkAsArchived_nonExistentSession_doesNotCrash() {
-        backup.markAsArchived(UUID())
-        // Should not crash
+    /// Marking an id the store holds no backup of changes nothing: no row
+    /// is added for it and another session's backup stays unarchived.
+    func testMarkAsArchived_nonExistentSession_doesNotCrash() throws {
+        let kept = UUID()
+        try backup.backup(points: makePoints(count: 50), sessionId: kept)
+        let unknown = UUID()
+
+        backup.markAsArchived(unknown)
+
+        XCTAssertFalse(backup.index.contains { $0.id == unknown }, "a row was added for an id with no backup")
+        XCTAssertEqual(backup.unarchivedSessionIds, [kept])
     }
 
     // MARK: - Incremental Backup
@@ -479,9 +487,8 @@ final class RawRRBackupTests: XCTestCase {
         backup.sealer.reencrypt(sessionId, in: backup)
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: stale.path))
-        if EncryptionManager.shared.isAvailable {
-            XCTAssertFalse(PendingEncryptionLedger.pending(in: .rawBackup).contains(sessionId))
-        }
+        try requireEncryptionKey()
+        XCTAssertFalse(PendingEncryptionLedger.pending(in: .rawBackup).contains(sessionId))
         XCTAssertEqual(try backup.retrieve(sessionId)?.points.count, 50)
     }
 
@@ -498,9 +505,8 @@ final class RawRRBackupTests: XCTestCase {
 
         XCTAssertEqual(try backup.retrieve(sessionId)?.points.count, 80)
         XCTAssertFalse(FileManager.default.fileExists(atPath: newer.path))
-        if EncryptionManager.shared.isAvailable {
-            XCTAssertFalse(PendingEncryptionLedger.pending(in: .rawBackup).contains(sessionId))
-        }
+        try requireEncryptionKey()
+        XCTAssertFalse(PendingEncryptionLedger.pending(in: .rawBackup).contains(sessionId))
     }
 
     /// A newer file holding fewer beats is neither adopted (`backup()` never
@@ -577,7 +583,7 @@ final class RawRRBackupTests: XCTestCase {
     /// test queues it by hand for that reason. Needs the key to write the
     /// sealed file.
     func testReencryptionAdoptsAnEncryptedUnindexedFileOfAQueuedSession() throws {
-        guard EncryptionManager.shared.isAvailable else { return }
+        try requireEncryptionKey()
         let sessionId = UUID()
         defer { PendingEncryptionLedger.clear(sessionId, in: .rawBackup) }
         let stale = try writeUnindexedFile(sessionId: sessionId, indexedBeats: 50, beats: 20, offsetMs: -1_000)

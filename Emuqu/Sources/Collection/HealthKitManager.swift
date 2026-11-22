@@ -348,16 +348,19 @@ final class HealthKitManager {
     /// since the last clean (failed==0) backfill, judged by the count AND the
     /// newest workout's date: deleting one workout and recording another
     /// leaves the count alone, but not the newest date.
+    ///
+    /// First, before the watermark: a workout saved while the phone was
+    /// locked has its earlier copies deleted (`PendingWorkoutReplacements`).
     @discardableResult
     func backfillWorkoutsToHealthKit(
         archive: SessionArchive,
         bodyWeightKg: Double
     ) async -> (exported: Int, skipped: Int, failed: Int) {
         guard isHealthKitAvailable, workoutWriteAuthorized else { return (0, 0, 0) }
+        await PendingWorkoutReplacements.finish(in: sampleReplacer.store)
         let candidates = archive.entries.filter { $0.sessionType == .workout }
-        let defaults = UserDefaults.standard
         let watermark = Self.backfillWatermark(candidates)
-        if defaults.string(forKey: Self.backfillWatermarkKey) == watermark {
+        if UserDefaults.standard.string(forKey: Self.backfillWatermarkKey) == watermark {
             return (0, candidates.count, 0)
         }
         reportDeniedWorkoutSampleTypes()
@@ -369,7 +372,7 @@ final class HealthKitManager {
         // Advance the watermark only when nothing failed, so failed sessions
         // are retried next foreground (until the retry ceiling skips them).
         if tally.failed == 0 {
-            defaults.set(watermark, forKey: Self.backfillWatermarkKey)
+            UserDefaults.standard.set(watermark, forKey: Self.backfillWatermarkKey)
         }
         debugLog("[HealthKitManager] backfill complete — exported=\(tally.exported) skipped=\(tally.skipped) failed=\(tally.failed) of \(candidates.count) candidates")
         return tally
@@ -427,6 +430,14 @@ final class HealthKitManager {
     ]
 
     nonisolated private static let backfillWatermarkKey = "hkBackfillExportedWatermark"
+
+    /// Make the next backfill scan every workout. For a change the
+    /// watermark cannot see: a rebuilt workout keeps its id, start and
+    /// count, but its export stamp was cleared so the new copy replaces the
+    /// one in Apple Health.
+    nonisolated static func requestBackfillRescan() {
+        UserDefaults.standard.removeObject(forKey: backfillWatermarkKey)
+    }
 
     /// "count-newestDate" for the workout entries; see `backfillWorkoutsToHealthKit`.
     nonisolated private static func backfillWatermark(_ entries: [SessionArchiveEntry]) -> String {
@@ -512,7 +523,7 @@ final class HealthKitManager {
     /// sustained without throwing, so a 1 s pause after each export keeps
     /// the batch at or below that.
     private func exportAndStamp(_ session: inout HRVSession, archive: SessionArchive, bodyWeightKg: Double) async throws {
-        try await HealthKitWorkoutExport.export(session: session, store: healthStore, bodyWeightKg: bodyWeightKg)
+        try await HealthKitWorkoutExport.export(session: session, healthKit: self, bodyWeightKg: bodyWeightKg)
         let exportedAt = Date()
         session.healthKitExportedAt = exportedAt
         session.healthKitExportFailureCount = nil
@@ -530,8 +541,14 @@ final class HealthKitManager {
 
     /// Only the stamp, onto the copy as stored now: the export takes a
     /// moment, and writing back the copy read before it undid an edit or a
-    /// heart-rate-recovery save made meanwhile.
-    private static func writeExportStamp(_ id: UUID, at exportedAt: Date, archive: SessionArchive) throws {
+    /// heart-rate-recovery save made meanwhile. A routine stamp: it asks for
+    /// no re-upload and leaves `modifiedAt` alone, so this device's copy,
+    /// which may predate an edit made on another device, cannot overwrite
+    /// that edit in iCloud. The stamp rides the session's next real upload,
+    /// and a pull keeps it (`CloudKitSessionFreshness.replacing`); the sync
+    /// identifiers already stop a second device's export from duplicating
+    /// the workout in Health.
+    static func writeExportStamp(_ id: UUID, at exportedAt: Date, archive: SessionArchive) throws {
         try archive.update(id, requestingReupload: false) {
             $0.healthKitExportedAt = exportedAt
             $0.healthKitExportFailureCount = nil

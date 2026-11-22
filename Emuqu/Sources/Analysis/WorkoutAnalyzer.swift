@@ -92,7 +92,7 @@ import Foundation
 //   • Lucia (and validation gap): https://www.trainingimpulse.com/lucias-trimp-0
 //   • Manzi TRIMPi: https://pubmed.ncbi.nlm.nih.gov/19812506/
 //   • Rogers & Gronwald α1 2021: https://pmc.ncbi.nlm.nih.gov/articles/PMC7845545/
-//   • 2024 α1 replication:       https://www.frontiersin.org/journals/physiology/articles/10.3389/fphys.2024.1329360/full
+//   • 2024 α1 reliability study: https://www.frontiersin.org/journals/physiology/articles/10.3389/fphys.2024.1329360/full
 //   • Friel LTHR protocol:       https://www.trainingpeaks.com/learn/articles/joe-friel-s-quick-guide-to-setting-zones/
 // ─────────────────────────────────────────────────────────────────
 enum WorkoutAnalyzer {
@@ -175,6 +175,7 @@ enum WorkoutAnalyzer {
     ) {
         metadata.distanceMeters = computeDistance(track: track, pauses: pauses)
         metadata.gpsPolyline = encodePolyline(track: track)
+        metadata.gpsFixTimes = encodeFixTimes(track: track)
         // Splits carry no α1 yet: the per-second samples are attached after
         // this analyzer runs. `splitsEnrichedWithAlpha1` fills the column in
         // once they are.
@@ -674,6 +675,23 @@ enum WorkoutAnalyzer {
         let altPoly = encode(altitudes: track.map(\.altitude))
         let joined = "\(coordPoly)\n\(altPoly)"
         return joined.data(using: .utf8)
+    }
+
+    /// When each fix of the track was taken, in the polyline value encoding:
+    /// the first fix's time in tenths of a second since the reference date,
+    /// then each fix's difference from the one before. Stored beside the
+    /// polyline (`WorkoutMetadata.gpsFixTimes`) so an export can give each
+    /// point its real time. Nil for an empty track.
+    static func encodeFixTimes(track: [CLLocation]) -> Data? {
+        guard !track.isEmpty else { return nil }
+        var result = ""
+        var previous = 0
+        for fix in track {
+            let tenths = scaledInt(fix.timestamp.timeIntervalSinceReferenceDate, by: 10)
+            result += encode(value: tenths - previous)
+            previous = tenths
+        }
+        return result.data(using: .utf8)
     }
 
     /// Scale a coordinate or altitude to the fixed-point integer the polyline

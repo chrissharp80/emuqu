@@ -232,8 +232,8 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)": "11b7d59f422f3990",
-    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.drainCompletedSentence()": "e677fd446e18a926",
-    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()": "2a4db3fb94564d8d",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.drainCompletedSentence()": "2c930d6fec7cace0",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()": "ee286b1dae0bcd67",
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::var SpokenTextChunker.hasPendingContent": "1d3fc6e50efc1e03"
    }
   },
@@ -456,6 +456,36 @@
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.isInsideLinkOrURL(at:)": "b48749a65fa7a842",
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.isSentenceBoundary(at:)": "8894c260978577ab",
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.stripMarkdownForSpeech(_:)": "e04a3b97f7baba8b"
+   }
+  },
+  {
+   "key": "func SpokenTextChunkerTests.testAnUnclosedBracketDoesNotHoldBackTheRestOfTheReply()",
+   "hash": "4b46ad4cef5d07be",
+   "does": "A reply with an unclosed '[1' holds its first sentence while the open label is under 80 characters, then emits once the label runs longer, leaving only ' Then' buffered.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)": "11b7d59f422f3990"
+   }
+  },
+  {
+   "key": "func SpokenTextChunkerTests.testALinkAddressEndsAtASpace()",
+   "hash": "9eb67561a5d01387",
+   "does": "'See [notes](my notes. Next' emits 'See [notes](my notes.': a '(' address that reaches a space is not a link.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)": "11b7d59f422f3990"
    }
   },
   {

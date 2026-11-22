@@ -35,6 +35,7 @@ struct EngineRoomDisclosure<Content: View>: View {
                 bodyLabel
             }
             .buttonStyle(.plain)
+            .accessibilityValue(Text(expanded ? "Expanded" : "Collapsed", bundle: LanguageManager.appBundle))
             .accessibilityHint(Text(expanded ? "Tap to collapse" : "Tap to expand", bundle: LanguageManager.appBundle))
             if expanded {
                 content()
@@ -44,13 +45,16 @@ struct EngineRoomDisclosure<Content: View>: View {
     }
 
     /// Remembers the last time this section was opened so the disclosure can
-    /// restore its state on the next visit.
+    /// restore its state on the next visit; collapsing it forgets that, so a
+    /// section the user closed stays closed.
     private func toggle() {
         withAnimation(.easeInOut(duration: 0.22)) {
             expanded.toggle()
         }
         if expanded {
             UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: memoryKey)
+        } else {
+            UserDefaults.standard.removeObject(forKey: memoryKey)
         }
     }
 

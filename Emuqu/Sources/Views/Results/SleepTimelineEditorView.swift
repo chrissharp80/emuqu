@@ -45,6 +45,10 @@ struct SleepTimelineEditorView: View {
     @State var refreshError: String?
     /// True once a refresh from Apple Health replaced the starting point.
     @State var refreshedFromHealth = false
+    /// Cancel over unsaved changes, and Refresh over this visit's edits,
+    /// waiting for confirmation.
+    @State var confirmingDiscardEdits = false
+    @State var confirmingRefresh = false
 
     /// Sheet state for add-segment and carve flows.
     @State private var pendingAdd: PendingRange?
@@ -82,10 +86,13 @@ struct SleepTimelineEditorView: View {
         }
     }
 
+    /// Swipe-down cannot close the sheet over unsaved changes; Cancel asks
+    /// first (`withDiscardConfirmations`).
     private var editorScroll: some View {
-        ScrollView {
+        withDiscardConfirmations(ScrollView {
             editorStack
-        }
+        })
+        .interactiveDismissDisabled(hasUnsavedChanges)
         .background(AppTheme.background)
         .navigationTitle(String(localized: "Edit Sleep", bundle: LanguageManager.appBundle))
         .navigationBarTitleDisplayMode(.inline)
@@ -151,7 +158,7 @@ struct SleepTimelineEditorView: View {
     @ToolbarContentBuilder
     private var editorToolbar: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
-            Button(String(localized: "Cancel", bundle: LanguageManager.appBundle)) { dismiss() }
+            Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), action: cancelEditing)
         }
         ToolbarItem(placement: .topBarLeading) { undoButton }
         ToolbarItem(placement: .confirmationAction) {

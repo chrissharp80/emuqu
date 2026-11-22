@@ -120,7 +120,8 @@
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.prefabChips": "166a21fa4914e937",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost": "307d74d767ff8c77",
-    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "066d90ca11e8f12b"
+    "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "066d90ca11e8f12b",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.canSend(to:)": "7763f988c02137b8"
    }
   },
   {
@@ -164,7 +165,8 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(prefab:)": "a5a84cd775bb04db",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.canSend": "5991e7b484d5b439"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.canSend": "5991e7b484d5b439",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.canSend(to:)": "7763f988c02137b8"
    }
   },
   {
@@ -282,10 +284,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "72eb08e01b5dcafe",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "cff675f29892739e",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.stopDictationIfRecording()": "c93ed3fd5f689494",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907"
+    "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.canSend(to:)": "7763f988c02137b8"
    }
   },
   {
@@ -361,7 +364,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.toggleDictation()": "d55d0fb6f1ca31b9",
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.toggleDictation()": "5c27e1f1499565b0",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907"
    }
@@ -414,8 +417,8 @@
   },
   {
    "key": "func ChatInputBar.toggleDictation()",
-   "hash": "41389e0dd58b2776",
-   "does": "If recording, stops SpeechInputManager and puts the text typed before dictation followed by its final transcript in draft; otherwise remembers the current draft as draftBeforeDictation and starts dictation asynchronously, showing any start error (LocalizedError description or localizedDescription) in the alert. A second tap while start() awaits permissions is ignored by SpeechInputManager.start (isStarting guard).",
+   "hash": "97ec52743b95400e",
+   "does": "If recording, starts a task that awaits SpeechInputManager.stop() (which waits for the recognizer's final words) and then puts the text typed before dictation followed by that final transcript in draft; otherwise remembers the current draft as draftBeforeDictation and starts dictation asynchronously, showing any start error (LocalizedError description or localizedDescription) in the alert. A second tap while start() awaits permissions is ignored by SpeechInputManager.start (isStarting guard).",
    "entry": "mic button tap",
    "calls": [
     "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.stop()",
@@ -428,7 +431,7 @@
     {
      "at": "+1",
      "cond": "speech.isRecording",
-     "effect": "draft = joined(text before, speech.stop()); return"
+     "effect": "Task: draft = joined(text before, await speech.stop()); return"
     },
     {
      "at": "+9",
@@ -443,7 +446,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.start()": "ba5c684196dfff57",
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.stop()": "fa2b9b6187823abb",
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.stop()": "9b36d52513445124",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.joined(_:_:)": "db0645396bac441f"
    }
   },
@@ -465,7 +468,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.cancel()": "7c3fb706209c30ff"
+    "Emuqu/Sources/Assistant/Chat/SpeechInputManager.swift::func SpeechInputManager.cancel()": "9a61edfee67ccb1f"
    }
   },
   {
@@ -507,11 +510,12 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "72eb08e01b5dcafe",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "cff675f29892739e",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.endsWithQuestionMark(_:)": "4a4d13807970f1c7",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::func ChatInputBar.joined(_:_:)": "db0645396bac441f",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.floNoticeAccepted": "182e95ef93f6bdb3",
-    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.inbox": "0d96f575651cb6b5"
+    "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var ChatInputBar.inbox": "0d96f575651cb6b5",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.canSend(to:)": "7763f988c02137b8"
    }
   },
   {
@@ -713,7 +717,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.keysChanged()": "f919965df5da8e6e",
+    "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.keysChanged()": "8522ad82a823fe33",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var FloSetupCard.addKeyButton": "3523eb379901ebf8",
     "Emuqu/Sources/Assistant/Views/AssistantChatSupport.swift::var FloSetupCard.setupText": "592886fd8c15324d",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",

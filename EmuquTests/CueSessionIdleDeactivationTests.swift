@@ -45,6 +45,22 @@ final class CueSessionIdleDeactivationTests: XCTestCase {
         XCTAssertNotNil(deactivate(manager))
     }
 
+    /// The breathing guide's activation runs on the transition queue, after
+    /// a deactivation queued before it, so the guide's session is not taken
+    /// down by a voice chat ending just before it started.
+    func testClaimantActivationRunsInOrderAfterAQueuedDeactivation() {
+        let session = IdleRecordingSession()
+        let manager = BackgroundAudioManager(session: session, observesInterruptions: false)
+        let done = expectation(description: "activated")
+        manager.deactivateIfIdle { _ in }
+        manager.activateForClaimant { error in
+            XCTAssertNil(error)
+            done.fulfill()
+        }
+        wait(for: [done], timeout: 2)
+        XCTAssertEqual(session.calls, ["deactivate", "activate"])
+    }
+
     /// Runs `deactivateIfIdle` and returns the code of the error its
     /// completion received, or nil when it received none.
     private func deactivate(_ manager: BackgroundAudioManager) -> Int? {
@@ -67,11 +83,13 @@ private final class IdleRecordingSession: CueAudioSession {
         var otherClaimant = false
         var failsDeactivation = false
         var deactivations = 0
+        var calls: [String] = []
     }
 
     private let state = OSAllocatedUnfairLock(initialState: State())
 
     var deactivations: Int { state.withLock { $0.deactivations } }
+    var calls: [String] { state.withLock { $0.calls } }
 
     func setOtherClaimant(_ holds: Bool) {
         state.withLock { $0.otherClaimant = holds }
@@ -91,10 +109,13 @@ private final class IdleRecordingSession: CueAudioSession {
 
     var hasActiveClaims: Bool { state.withLock { $0.cueClaimed || $0.otherClaimant } }
 
-    func activate() throws {}
+    func activate() throws {
+        state.withLock { $0.calls.append("activate") }
+    }
 
     func deactivate() throws {
         let fails = state.withLock { (state: inout State) -> Bool in
+            state.calls.append("deactivate")
             if !state.failsDeactivation { state.deactivations += 1 }
             return state.failsDeactivation
         }

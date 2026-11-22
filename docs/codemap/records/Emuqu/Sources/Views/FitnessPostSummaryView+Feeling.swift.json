@@ -144,7 +144,7 @@
    "does": "Read-modify-write of the archived session setting workoutMetadata.workoutFeeling and workoutFeelingNote; returns the stored session, or nil when not found, when the stored copy has no workoutMetadata (nothing could be stored), or on error (logged).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.updateArchived(_:in:_:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Rewrites.swift::func FitnessSummaryCards.updateArchived(_:in:_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -165,14 +165,14 @@
    ],
    "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.updateArchived(_:in:_:)": "8fbbfffdfad51c16"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Rewrites.swift::func FitnessSummaryCards.updateArchived(_:in:_:)": "8fbbfffdfad51c16"
    }
   },
   {
    "key": "func FitnessPostSummaryView.backfillAnalysisSnapshotIfNeeded()",
-   "hash": "73de245f2b87d19b",
-   "does": "If the stored analysisSnapshot is missing or needsRebuild (older schema or different narrative language) and the session has samples, builds a new WorkoutAnalysisSnapshot and writes it to the archive on one detached task (persistAnalysisSnapshot, which skips the write when the archived samples/duration changed meanwhile); when written, sets refreshedSession and bumps the archive-change signal.",
-   "entry": "Spawned from primeSummary (.onAppear).",
+   "hash": "347603a4c5eda062",
+   "does": "If the stored analysisSnapshot is missing or needsRebuild (older schema or different narrative language), builds a new WorkoutAnalysisSnapshot on a detached task and, when the session has samples, writes it to the archive there too (persistAnalysisSnapshot, which skips the write when the archived samples/duration changed meanwhile). Only the newest build (analysisGeneration) lands: it becomes builtAnalysis whether or not it was written; when written, refreshedSession is set and the archive-change signal bumped.",
+   "entry": "Spawned from invalidateCachedExports, after each reload that applied a copy.",
    "calls": [
     "Emuqu/Sources/Models/WorkoutAnalysisSnapshot.swift::var WorkoutAnalysisSnapshot.needsRebuild",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.snapshotInputs()",
@@ -185,6 +185,8 @@
     "mem:AppDependencies.storage.sessionArchive"
    ],
    "writes": [
+    "mem:FitnessPostSummaryView.analysisGeneration",
+    "mem:FitnessPostSummaryView.builtAnalysis",
     "mem:FitnessPostSummaryView.refreshedSession",
     "mem:ArchiveSignal.version",
     "archive:SessionArchive.update (analysisSnapshot)"
@@ -197,13 +199,23 @@
     },
     {
      "at": "+3",
-     "cond": "needsRebuild AND inputs AND non-empty samples",
+     "cond": "needsRebuild AND inputs",
      "effect": "false: return without work"
     },
     {
-     "at": "+9",
-     "cond": "nothing written (stale or failed)",
-     "effect": "return without refresh/notify"
+     "at": "+11",
+     "cond": "session has samples",
+     "effect": "true: persist after building; false: build only"
+    },
+    {
+     "at": "+14",
+     "cond": "a newer backfill started meanwhile",
+     "effect": "return; nothing lands"
+    },
+    {
+     "at": "+16",
+     "cond": "nothing written (no samples, stale or failed)",
+     "effect": "return after setting builtAnalysis"
     }
    ],
    "deps": {
@@ -261,7 +273,7 @@
    "does": "Archive read-modify-write (off the main actor) storing the snapshot via store(_:in:ifBuiltFrom:), i.e. only onto a copy with the same samples and duration it was built from; returns the stored session when written (logged), nil when skipped, not found or on error (logged).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.updateArchived(_:in:_:)",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Rewrites.swift::func FitnessSummaryCards.updateArchived(_:in:_:)",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.store(_:in:ifBuiltFrom:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -283,7 +295,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.updateArchived(_:in:_:)": "8fbbfffdfad51c16",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Rewrites.swift::func FitnessSummaryCards.updateArchived(_:in:_:)": "8fbbfffdfad51c16",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.store(_:in:ifBuiltFrom:)": "61671fb3a0595151"
    }
   },
@@ -323,7 +335,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.generateSessionAnalysis()": "cb8515d9c83e0d63",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.generateSessionAnalysis()": "5b3a9eea1e71fbe7",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.sessionAnalysisBody(_:)": "93534772e6d85474"
    }
   },
@@ -362,7 +374,7 @@
   {
    "key": "func FitnessPostSummaryView.generateSessionAnalysis()",
    "hash": "4dfe52c91e01fdac",
-   "does": "The 'How you did' text: displayedAnalysis's howYouDidNarrative (stored snapshot, or the builder's on-the-fly snapshot before backfill), '' when none.",
+   "does": "The 'How you did' text: displayedAnalysis's howYouDidNarrative (stored snapshot, or the one the backfill built off the main actor), '' when none.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.displayedAnalysis"
@@ -377,30 +389,27 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.displayedAnalysis": "55a12c049ca64c5a"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.displayedAnalysis": "5ecaa8106e6ec886"
    }
   },
   {
    "key": "var FitnessPostSummaryView.displayedAnalysis",
-   "hash": "077620beecad8c14",
-   "does": "The stored analysisSnapshot when present (even one awaiting a rebuild); otherwise WorkoutAnalysisSnapshotBuilder.build over snapshotInputs (an O(samples) pass per evaluation, only until the backfill lands); nil without metadata or duration.",
+   "hash": "f8fc5808507cf491",
+   "does": "The stored analysisSnapshot when present (even one awaiting a rebuild), otherwise builtAnalysis (built off the main actor by the backfill); nil until that lands. Builds nothing itself.",
    "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.snapshotInputs()",
-    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.build(_:)"
+   "calls": [],
+   "reads": [
+    "mem:FitnessPostSummaryView.builtAnalysis"
    ],
-   "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+1",
      "cond": "stored snapshot present",
-     "effect": "returned; else built on the fly"
+     "effect": "returned; else builtAnalysis"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalysisSnapshotBuilder.swift::func WorkoutAnalysisSnapshotBuilder.build(_:)": "6ec491a7dd7482ce",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.snapshotInputs()": "26197052d60a9ac0",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "1f4da74e2a051ea4"
    }
   },
@@ -453,13 +462,13 @@
    ],
    "deps": {
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatDistance(meters:)": "12d2b7be83b2918b",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.displayedAnalysis": "55a12c049ca64c5a",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.displayedAnalysis": "5ecaa8106e6ec886",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::var FitnessPostSummaryView.units": "3e400c1f12cc0758",
     "Emuqu/Sources/Views/FitnessPostSummaryView+StatsForwarding.swift::var FitnessPostSummaryView.stats": "ca3d3819089043f0",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "1f4da74e2a051ea4",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.track": "6ac5b02917da2d08",
     "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.activeDurationDisplay": "e775da301517aeab",
-    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.avgPaceDisplay": "979c5895c105e318"
+    "Emuqu/Sources/Views/WorkoutStatsCards+Cards.swift::var WorkoutStatsCards.avgPaceDisplay": "1eca3242c5503115"
    }
   },
   {
@@ -518,7 +527,7 @@
    "deps": {
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var PartialDataReason.displayLabel": "b925ca8bf8961404",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.PartialBannerChrome.body(content:)": "24a5daa79d175bb3",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.partialBannerExplainer(reason:recoveredAt:)": "01ab74e3368b5591",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.partialBannerExplainer(reason:recoveredAt:)": "eeac3f50a2af247e",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "1f4da74e2a051ea4",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
@@ -539,10 +548,12 @@
   },
   {
    "key": "func FitnessPostSummaryView.partialBannerExplainer(reason:recoveredAt:)",
-   "hash": "1db28d8c7c56f681",
-   "does": "Explainer copy per PartialDataReason; appCrashed appends the recovery time when known.",
+   "hash": "3e1b3a5b7d56a0f6",
+   "does": "Explainer copy per PartialDataReason; appCrashed appends the recovery time when known, in the app language, with the date too unless it was today.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -552,23 +563,29 @@
      "effect": "'Recovered from on-device backup<time>…'"
     },
     {
-     "at": "+3",
+     "at": "+5",
+     "cond": "recovered today",
+     "effect": "time only; else date and time"
+    },
+    {
+     "at": "+8",
      "cond": "recoveredAt nil",
      "effect": "`??` '' -> no time shown"
     },
     {
-     "at": "+5",
+     "at": "+10",
      "cond": "case .strapDisconnected",
      "effect": "strap dropout explanation"
     },
     {
-     "at": "+7",
+     "at": "+12",
      "cond": "case .userInterrupted",
      "effect": "interrupted-session explanation"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {

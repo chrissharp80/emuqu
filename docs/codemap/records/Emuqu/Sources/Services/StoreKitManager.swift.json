@@ -35,8 +35,8 @@
   },
   {
    "key": "func boot()",
-   "hash": "d35e2b7c6a9a2da8",
-   "does": "Idempotent post-first-frame start: resolves the entitlement anchor across tiers, migrates the legacy TestFlight flag, installs the Transaction.updates listener, kicks off refreshStatus, and starts the background AppTransaction verification. Called from AppLaunchTasks.runDeferredBoot (timedBoot 'storeKitManager').",
+   "hash": "72beb841a5f6b97a",
+   "does": "Idempotent post-first-frame start: on a task, resolves the entitlement anchor across tiers on a detached utility task (its keychain list and reads stay off the main actor) and then migrates the legacy TestFlight flag; installs the Transaction.updates listener, kicks off refreshStatus, and starts the background AppTransaction verification. Called from AppLaunchTasks.runDeferredBoot (timedBoot 'storeKitManager').",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)",
@@ -67,11 +67,11 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)": "ac55d5528623c3fb",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.resolve(wallClock:)": "4d7efcd4ad0fd486",
     "Emuqu/Sources/Services/StoreKitManager.swift::func listenForTransactions()": "7c5292baf69cdfc9",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func migrateLegacyTestFlightFlag(now: Date)": "0a96e2bb61904cf4",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()": "4a419daa1ea32c6c",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func verifyAppTransactionInBackground()": "e693c5f18f50b045"
+    "Emuqu/Sources/Services/StoreKitManager.swift::func migrateLegacyTestFlightFlag(now: Date)": "56ae12379090a5d7",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func refreshStatus()": "643885aa9999eb53",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func verifyAppTransactionInBackground()": "a6b0edc3eaae3d29"
    }
   },
   {

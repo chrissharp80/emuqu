@@ -289,7 +289,8 @@ extension WorkoutLiveCoachingNamespace {
             [ACTION] Forward-geocode a free-text address the user TOLD you (e.g. 'I'm at the corner of Elm and 5th in Springfield', 'I'm at Lakeside Park entrance'). Apple's geocoder resolves loose natural-language queries — most corner-of \
             / landmark / address phrasings work. On success, the resolved road / city / state / country override the ambient road context so all subsequent live-location reads (and your own next-turn answers) reflect what the user said. \
             Use this when `workout.live.location.road` returns missing or stale and the user provides a verbal location. Returns the resolved address record on success; returns invalidParameter when the geocoder \
-            can't match or can't be reached, and notRecorded when it doesn't answer in time (retry, don't ask the user to rephrase).
+            can't match or can't be reached, and notRecorded when it doesn't answer in time (retry, don't ask the user to rephrase). When the address is not in the user's own words from their latest message, the first call \
+            changes nothing and returns status=confirmation_required with an ask_user question: ask it and end your reply; call again with the same address only if their next message is a plain yes.
             """,
             parameters: [
                 ActionParam("address", "The free-text address the user gave. Examples: 'corner of Elm Pkwy and Hill Rd, Springfield', 'Lakeside Park trailhead', '1600 Pennsylvania Ave Washington DC'. Pass it verbatim — Apple's geocoder handles the parsing.")
@@ -303,6 +304,7 @@ extension WorkoutLiveCoachingNamespace {
         else {
             return .missing(reason: .invalidParameter, detail: "address is required")
         }
+        if let unconfirmed = Self.addressUnconfirmed(query) { return unconfirmed }
         switch await geocodedRoadContext(query) {
         case let .matched(context)?:
             // Apply the override on MainActor so the published
@@ -314,6 +316,17 @@ extension WorkoutLiveCoachingNamespace {
         case nil:
             return .missing(reason: .notRecorded, detail: "the geocoder didn't answer in time (slow network or rate limit) — the address may be fine; try again in a moment rather than asking the user to rephrase it")
         }
+    }
+
+    /// The answer asking the user first when `query` is not in their own
+    /// latest message (`DestructiveActionContext.gateUnlessUserStated`), else
+    /// nil. An address the model took from what it read (a web page, a route
+    /// or road name) would move every later location answer.
+    @MainActor private static func addressUnconfirmed(_ query: String) -> FactValue? {
+        AssistantMemoryNamespace.DestructiveActionContext.live.gateUnlessUserStated(
+            [query], action: "location.set_address", target: query,
+            question: "Set your location to \"\(query)\"? Reply yes to confirm."
+        )
     }
 
     /// What a forward geocode came back with; nil from the timeout race
@@ -650,7 +663,7 @@ extension WorkoutLiveCoachingNamespace {
         guard let currentLoc = AppDependencies.current.location.ambientLocationService.cachedLocation(maxAgeSec: 60) else {
             return .missing(reason: .notRecorded, detail: "no current location fix — open the app foreground or start a workout to warm up the GPS pipeline")
         }
-        guard let step = AppDependencies.current.location.activeRouteSession.currentStep(for: currentLoc) else {
+        guard let step = AppDependencies.current.location.activeRouteSession.peekStep(for: currentLoc) else {
             return .missing(reason: .notRecorded, detail: "route engaged but step lookup returned nothing — try directions.routeTo again")
         }
         return .record(nextStepRecord(session: session, step: step))

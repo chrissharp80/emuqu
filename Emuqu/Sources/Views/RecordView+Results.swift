@@ -49,13 +49,17 @@ extension RecordView {
     /// The score reveal is gated behind the pre-score
     /// subjective prompt. This sets the pending presentation; the prompt's
     /// onComplete handler hands off to `morningPresentation` when finished.
+    /// A split night's linked segments are read here, off the main actor, as
+    /// HistoryView does (`ResultsPresentation.linkedSegments`).
     func presentFullReport() {
         guard let session = sessionState.currentSession,
               let result = session.analysisResult else { return }
         Task {
             cachedRecentSessions = await collector.recentSessionsAsync(
                 limit: MorningResultsView.recentSessionsContextLimit, before: session.startDate)
-            pendingMorningPresentation = ResultsPresentation(session: session, result: result)
+            let archive = collector.archive
+            let segments = await Task.detached(priority: .userInitiated) { archive.linkedSegments(for: session) }.value
+            pendingMorningPresentation = ResultsPresentation(session: session, result: result, linkedSegments: segments)
         }
     }
 

@@ -26,10 +26,11 @@ cd "$(dirname "$0")/.."
 
 source "$(dirname "$0")/lib/preflight.sh"
 
-# The watch target is scanned too. It makes no logging calls today, so the
-# hole is empty, but it talks to the phone over WatchConnectivity and a PII
-# leak into a `print()` there would otherwise be invisible to the one gate
-# written to prevent exactly that.
+# The watch target is scanned too. It logs through `os.Logger` instances named
+# `log` (`log.info(…)`, `self?.log.info(…)`) and through a `Logger(…)` built in
+# place and called on the next line, and it talks to the phone over
+# WatchConnectivity, so a PII leak there would otherwise be invisible to the one
+# gate written to prevent exactly that.
 SOURCE_ROOTS=("${@:-Emuqu/Sources}")
 if (( $# == 0 )); then
     SOURCE_ROOTS=("Emuqu/Sources" "EmuquWatch Watch App")
@@ -51,8 +52,11 @@ RAW_SERIES_PATTERN='\\\((([^)]*\.)?(rr|rrValues|rrSeries|beats|rrIntervals)|samp
 
 # `NSLog` and `(Swift.)print` are log calls too. The app target has dozens of
 # NSLog call sites, all lifecycle text today, and a list without them leaves
-# every one outside this gate's field of view.
-LOG_CALL='(debugLog|debugLogExternal|RuntimeLogger[.]shared[.]log|logger[.](debug|info|notice|warning|error|fault)|os_log|os_signpost|NSLog|(Swift[.])?print)[(]'
+# every one outside this gate's field of view. An `os.Logger` is matched under
+# both names this repo gives one (`logger`, `log`) and when it is built in place
+# (`Logger(…)` then `.debug(…)`, the chained call allowed on the next line).
+LOGGER_LEVEL='(debug|info|notice|warning|error|fault|trace|critical)'
+LOG_CALL="(debugLog|debugLogExternal|RuntimeLogger[.]shared[.]log|(logger|log)[.]${LOGGER_LEVEL}|Logger[(][^)]*[)]\\s*[.]${LOGGER_LEVEL}|os_log|os_signpost|NSLog|(Swift[.])?print)[(]"
 
 # A missing root would make the scan read nothing and report clean.
 for root in "${SOURCE_ROOTS[@]}"; do

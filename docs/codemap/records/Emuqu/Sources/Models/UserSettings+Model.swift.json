@@ -131,8 +131,68 @@
   },
   {
    "key": "var UserSettings.resolvedDefaultEmailRecipient",
-   "hash": "7442e375eee50658",
-   "does": "First non-empty of recovery recipient, training recipient, legacy defaultEmailRecipient (nil after any decode); nil when none.",
+   "hash": "2c02e156a15cd89c",
+   "does": "firstAddress of the recovery recipient, training recipient and legacy defaultEmailRecipient: the first that holds an address, trimmed (a field of only spaces counts as unset); nil when none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.firstAddress(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.firstAddress(in:)": "65aea47b02fb6e33"
+   }
+  },
+  {
+   "key": "var UserSettings.resolvedDefaultEmailCC",
+   "hash": "91880adfeee6297a",
+   "does": "firstAddresses of the recovery, training and legacy CC fields: the addresses of the first that names anybody (a field of only spaces or commas counts as unset); [] when none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.firstAddresses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.firstAddresses(in:)": "f02f9fc9d36b5d9b"
+   }
+  },
+  {
+   "key": "var UserSettings.resolvedTrainingEmailRecipient",
+   "hash": "71eb2c70e3116446",
+   "does": "firstAddress of the training recipient, recovery recipient and legacy defaultEmailRecipient, for workout reports; nil when none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.firstAddress(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.firstAddress(in:)": "65aea47b02fb6e33"
+   }
+  },
+  {
+   "key": "var UserSettings.resolvedTrainingEmailCC",
+   "hash": "d772f3d2bea03ce9",
+   "does": "firstAddresses of the training, recovery and legacy CC fields, for workout reports; [] when none.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.firstAddresses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.firstAddresses(in:)": "f02f9fc9d36b5d9b"
+   }
+  },
+  {
+   "key": "func UserSettings.firstAddress(in:)",
+   "hash": "0c5100c423e6e683",
+   "does": "The first field that, trimmed of whitespace and newlines, is not empty, returned trimmed; nil when every field is nil or blank.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -141,20 +201,29 @@
    "deps": {}
   },
   {
-   "key": "var UserSettings.resolvedDefaultEmailCC",
-   "hash": "26290131d6bddce8",
-   "does": "First non-empty CC string among recovery, training, legacy CC, split on commas, trimmed, empties dropped.",
+   "key": "func UserSettings.firstAddresses(in:)",
+   "hash": "c27e14bac08391ef",
+   "does": "The addresses (addresses(in:)) of the first field that names at least one; [] when none does.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.addresses(in:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::func UserSettings.addresses(in:)": "e2a607039558ff94"
+   }
+  },
+  {
+   "key": "func UserSettings.addresses(in:)",
+   "hash": "02ad0878c5d48583",
+   "does": "Splits the field on commas, trims each part of whitespace and newlines and drops the empty ones; [] for nil.",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "?? — no non-empty CC configured",
-     "effect": "uses '' → returns []"
-    }
-   ],
+   "branches": [],
    "deps": {}
   },
   {

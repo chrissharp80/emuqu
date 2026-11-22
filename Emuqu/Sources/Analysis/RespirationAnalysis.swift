@@ -6,7 +6,8 @@ import Foundation
 enum RespirationAnalyzer {
     // MARK: - Respiration Rate from RR
 
-    /// Estimate respiration rate from RR interval series
+    /// Estimate respiration rate from a gapless RR interval series, each
+    /// beat timed by the sum of the intervals before it.
     /// Uses the HF peak in PSD as respiratory frequency
     ///
     /// - Parameters:
@@ -14,8 +15,19 @@ enum RespirationAnalyzer {
     ///   - fs: Resampling frequency (default 4 Hz)
     /// - Returns: Respiration rate in breaths/min, or nil if cannot determine
     static func estimateRespirationRate(_ rr: [Double], fs: Double = 4.0) -> Double? {
-        guard rr.count >= 60 else { return nil }
-        let resampled = resampleRR(rr, fs: fs)
+        estimateRespirationRate(rr, beatTimes: cumulativeTimeAxis(rr), fs: fs)
+    }
+
+    /// Estimate respiration rate from RR intervals at their own beat times
+    /// (seconds, ascending, parallel to `rr`). Beats left out of `rr`
+    /// (artifacts) leave their time in the axis, and the resampling
+    /// interpolates across it: timed by the sum of the kept intervals
+    /// instead, the series is shorter than the time it covers, and every
+    /// frequency, the breathing rate with it, reads high by the share of
+    /// time removed.
+    static func estimateRespirationRate(_ rr: [Double], beatTimes: [Double], fs: Double = 4.0) -> Double? {
+        guard rr.count >= 60, beatTimes.count == rr.count else { return nil }
+        let resampled = resampleRR(rr, t: beatTimes, fs: fs)
         guard resampled.count >= 32 else { return nil }
         let windowed = meanRemovedHannWindow(resampled)
         guard let psd = powerSpectrum(windowed) else { return nil }
@@ -97,7 +109,7 @@ enum RespirationAnalyzer {
     static let peakHalfWidthHz = 0.02
     static let peakConcentrationMinimum = 0.4
     /// How tall the band's peak must be against the strongest peak above
-    /// 0.04 Hz.
+    /// 0.04 Hz, anywhere up to the Nyquist frequency.
     static let peakHeightMinimum = 0.05
 
     /// Whether the band's largest bin is breathing rather than noise or
@@ -106,7 +118,9 @@ enum RespirationAnalyzer {
     /// 3 breaths/min modulation (8.9, the band's edge, at a millionth of the
     /// slow peak's power). Breathing concentrates the band's power near one
     /// frequency (at least 40 % within ±0.02 Hz) and is not dwarfed by a
-    /// slower rhythm (at least 5 % of the strongest peak above 0.04 Hz). On
+    /// slower or faster rhythm (at least 5 % of the strongest peak from
+    /// 0.04 Hz to Nyquist: breathing above 30/min would otherwise leave only
+    /// its leakage in the band, read as a slower in-band rate). On
     /// synthetic five-minute windows this keeps 95-100 % of breathing,
     /// including a rate wandering ±0.04 Hz with beat noise, and passes 0-3 %
     /// of white or 1/f noise.
@@ -115,16 +129,16 @@ enum RespirationAnalyzer {
         let near = max(band.lowerBound, peakBin - halfWidth) ... min(band.upperBound, peakBin + halfWidth)
         let bandPower = psd[band].reduce(0, +)
         let nearPower = psd[near].reduce(0, +)
-        let strongest = psd[min(Int(0.04 / freqRes), band.lowerBound) ... band.upperBound].max() ?? 0
+        let strongest = psd[min(Int(0.04 / freqRes), band.lowerBound)...].max() ?? 0
         return nearPower >= peakConcentrationMinimum * bandPower && psd[peakBin] >= peakHeightMinimum * strongest
     }
 
     // MARK: - Helpers
 
-    /// Linear-interpolation resampling of the RR series to a uniform grid.
-    private static func resampleRR(_ rr: [Double], fs: Double) -> [Double] {
+    /// Linear-interpolation resampling of the RR series, timed by `t`, to a
+    /// uniform grid.
+    private static func resampleRR(_ rr: [Double], t: [Double], fs: Double) -> [Double] {
         guard rr.count >= 4 else { return rr }
-        let t = cumulativeTimeAxis(rr)
         guard let tFirst = t.first, let tLast = t.last else { return rr }
         let sampleCount = Int((tLast - tFirst) * fs) + 1
         guard sampleCount >= 4 else { return rr }

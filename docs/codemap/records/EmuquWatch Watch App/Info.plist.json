@@ -1,6 +1,6 @@
 {
  "file": "EmuquWatch Watch App/Info.plist",
- "hash": "f950f561ce0c9210",
+ "hash": "a7d9bb2c1adc82dd",
  "role": "Canonical watch Info.plist source: watch app identity, companion link, workout background mode and purpose strings.",
  "types": [],
  "state": [
@@ -9,7 +9,7 @@
   "plist:WKWatchOnly=false",
   "plist:CFBundleDisplayName=Emuqu"
  ],
- "toplevel": "Header comment: this file is the canonical source of the watch purpose strings; INFOPLIST_KEY_*UsageDescription entries must not be added to project.pbxproj because they override these (guarded by scripts/check_infoplist_key_drift.sh), and GENERATE_INFOPLIST_FILE = YES is intentional so Xcode merges the build-time keys. Keys: CFBundleDisplayName Emuqu; WKApplication true; UISupportedInterfaceOrientations portrait/upside-down (ignored on watchOS); WKWatchOnly false; WKCompanionAppBundleIdentifier com.chrissharp.flowrecovery (matches iOS PRODUCT_BUNDLE_IDENTIFIER); WKBackgroundModes workout-processing (keeps the app alive under an HKWorkoutSession). Purpose strings: HealthShare (reads wrist heart rate during a workout, streams to iPhone, fills in for strap dropouts) - matches WatchWorkoutManager.swift:57-62 (share workoutType, read heartRate); HealthUpdate says the watch session is discarded and the iPhone saves the workout - matches WatchWorkoutManager.swift:180-186 (endCollection then session.end(), never finishWorkout); BluetoothAlways for direct strap connection (WatchStrapConnector CBCentralManager). Excluded from the synchronized group's membership (pbxproj 2117-2124) and used via INFOPLIST_FILE.",
+ "toplevel": "Header comment: this file is the canonical source of the watch purpose strings; INFOPLIST_KEY_*UsageDescription entries must not be added to project.pbxproj because they override these (guarded by scripts/check_infoplist_key_drift.sh), and GENERATE_INFOPLIST_FILE = YES is intentional so Xcode merges the build-time keys. Keys: CFBundleDisplayName Emuqu; WKApplication true; UISupportedInterfaceOrientations portrait/upside-down (ignored on watchOS); WKWatchOnly false; WKCompanionAppBundleIdentifier com.chrissharp.flowrecovery (matches iOS PRODUCT_BUNDLE_IDENTIFIER); WKBackgroundModes workout-processing (keeps the app alive under an HKWorkoutSession). Purpose strings: HealthShare (reads wrist heart rate during a workout, streams to iPhone, fills in for strap dropouts) - matches WatchWorkoutManager.requestAuthorizationIfNeeded (share workoutType, read heartRate); HealthUpdate says the watch session is discarded and the iPhone saves the workout - matches WatchWorkoutManager.stop (session.end() and builder.discardWorkout(), never finishWorkout); BluetoothAlways for direct strap connection (WatchStrapConnector CBCentralManager), saying the Watch shows live heart rate when the iPhone is out of range and heartbeats reach the iPhone's recording only while it is in range (forwardSampleToiPhone sends live only). Excluded from the synchronized group's membership (pbxproj 2117-2124) and used via INFOPLIST_FILE.",
  "units": [],
  "deps": {}
 }

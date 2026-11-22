@@ -213,10 +213,10 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.exportToHealthKitIfAvailable(_:)": "35c8c50d7e58c5f7",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.exportToHealthKitIfAvailable(_:)": "2f63271847dcba8c",
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.retireRedundantBackups(for:)": "09ab28233eb711fb",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "1aa026e4481155fe",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "55bc57d654968cf9",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -260,11 +260,11 @@
   },
   {
    "key": "func WorkoutSessionLifecycle.exportToHealthKitIfAvailable(_:)",
-   "hash": "9558fb1cdb7a99a5",
-   "does": "Captures the HealthKit store, effective body weight and archive, and launches a utility Task running exportWorkoutToHealthKit.",
+   "hash": "b06a1de59f1874bd",
+   "does": "Captures the HealthKitManager, effective body weight and archive, and launches a utility Task running exportWorkoutToHealthKit.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.exportWorkoutToHealthKit(session:store:bodyWeightKg:archive:)",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.exportWorkoutToHealthKit(session:healthKit:bodyWeightKg:archive:)",
     "closure:WorkoutRecorder.settingsProvider"
    ],
    "reads": [],
@@ -272,21 +272,21 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.archive(session:)": "66055d6a54f84c45",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.exportWorkoutToHealthKit(session:store:bodyWeightKg:archive:)": "9aace41a5e76faf4",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.exportWorkoutToHealthKit(session:healthKit:bodyWeightKg:archive:)": "2261a2492beff4ba",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.settingsProvider": "f306ef98d67e6cfb",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveBodyWeightKg": "f13b6ef4aa525d0f",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5"
    }
   },
   {
-   "key": "func WorkoutSessionLifecycle.exportWorkoutToHealthKit(session:store:bodyWeightKg:archive:)",
-   "hash": "fa6ec62dfa9e0013",
-   "does": "Claims the session id in HealthExportClaims (returns if another exporter holds it), exports the HKWorkout via HealthKitWorkoutExport.export, then stamps healthKitExportedAt; export errors are logged at info level; claim released on exit.",
+   "key": "func WorkoutSessionLifecycle.exportWorkoutToHealthKit(session:healthKit:bodyWeightKg:archive:)",
+   "hash": "8c410ece036e0e72",
+   "does": "Claims the session id in HealthExportClaims (returns if another exporter holds it), exports the HKWorkout via HealthKitWorkoutExport.export (replacing any earlier export of the session), then stamps healthKitExportedAt; export errors are logged at info level; claim released on exit.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.claim(_:)",
     "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.release(_:)",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:store:bodyWeightKg:writesHeartRate:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.stampHealthKitExport(sessionId:archive:)"
    ],
    "reads": [],
@@ -308,41 +308,41 @@
    "deps": {
     "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.claim(_:)": "e893db4f613ebe89",
     "Emuqu/Sources/Collection/HealthExportClaims.swift::func HealthExportClaims.release(_:)": "1b5b0fdc46896c07",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:store:bodyWeightKg:writesHeartRate:)": "66252bcf11489020",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)": "cd6403f788fa4edb",
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.archive(session:)": "66055d6a54f84c45",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.stampHealthKitExport(sessionId:archive:)": "f1cb517d350b80f2",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.stampHealthKitExport(sessionId:archive:)": "f807ca6e293a2d64",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func WorkoutSessionLifecycle.stampHealthKitExport(sessionId:archive:)",
    "hash": "4dcea9df3b3503f6",
-   "does": "Updates the archived session in place (requestingReupload false) to set healthKitExportedAt = now; logs a warning if the archive update throws.",
+   "does": "Updates the archived session in place to set healthKitExportedAt = now, as a routine stamp (requestingReupload false: modifiedAt unchanged, no re-upload asked), so a copy older than another device's edit cannot overwrite that edit in iCloud; the stamp rides the next real upload. Logs a warning if the archive update throws.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)"
    ],
    "reads": [],
    "writes": [
-    "archive:SessionArchive.update (healthKitExportedAt)"
+    "archive:SessionArchive.update (healthKitExportedAt; modifiedAt unchanged)"
    ],
    "branches": [
     {
-     "at": "+7",
+     "at": "+9",
      "cond": "archive.update throws",
-     "effect": "catch: warning log; HealthKit has the workout but archive lacks the stamp, so a later backfill can export a duplicate"
+     "effect": "catch: warning log; HealthKit has the workout but the archive lacks the stamp, so a later backfill exports it again, replacing the copy in Health"
     }
    ],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.archive(session:)": "66055d6a54f84c45",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "2eca9f3f414ea24c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func WorkoutSessionLifecycle.scheduleCoachReportEmail(for:settings:)",
-   "hash": "5b16d5bece55510d",
-   "does": "Snapshots coach-report inputs on the main actor and launches a detached userInitiated task that renders and stages the Coach Report email.",
+   "hash": "cc2b406f3dada602",
+   "does": "Main actor: snapshots coach-report inputs, launches a detached userInitiated task that renders and stages the Coach Report email, and returns that task (discardable); its value is whether the staged draft carries the PDF.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.coachReportInputs(for:settings:)",
@@ -354,16 +354,16 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.coachReportInputs(for:settings:)": "dc313bd9ce0b4821",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.renderAndStageCoachReport(_:)": "20e32aabdf294708",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.coachReportInputs(for:settings:)": "ccdf21cc04ec760f",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.renderAndStageCoachReport(_:)": "792f5ed281d6c5f9",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"
    }
   },
   {
    "key": "func WorkoutSessionLifecycle.coachReportInputs(for:settings:)",
-   "hash": "94e3344c717b0520",
-   "does": "Main-actor snapshot: reads the archive, picks overnight sessions (reported night within last 36 h + earlier overnights until 60 baseline nights, recentOvernightSessions with the settings' sleep schedule), subject, recipient (training ?? recovery ?? default email), Cc (coachReportCC), units, max/resting HR, LTHR, temperature unit, sleep schedule, temp PDF URL, today's overnight (todaysOvernight: the reported night only when it ended today), and up to CoachReportGenerator.historyLimit (120) past workout ids newest first.",
+   "hash": "52b6642f2605eacc",
+   "does": "Main-actor snapshot: reads the archive, picks overnight sessions (reported night within last 36 h + earlier overnights until 60 baseline nights, recentOvernightSessions with the settings' sleep schedule), subject, recipient and Cc (UserSettings.resolvedTrainingEmailRecipient / resolvedTrainingEmailCC: training, then recovery, then the general default, blank fields skipped), units, max/resting HR, LTHR, temperature unit, sleep schedule, temp PDF URL, today's overnight (todaysOvernight: the reported night only when it ended today), and up to CoachReportGenerator.historyLimit (120) past workout ids newest first.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.recentOvernightSessions(archive:reportedNightCutoff:sleepSchedule:)",
@@ -371,7 +371,8 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.coachReportPDFURL(for:)",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.todaysOvernight(in:reportedNightCutoff:)",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.coachReportCC(_:)",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailRecipient",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailCC",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.sleepSchedule"
    ],
    "reads": [
@@ -386,17 +387,11 @@
      "at": "+3",
      "cond": "Calendar date(-36h) nil",
      "effect": "?? Date.distantPast fallback (all overnights qualify)"
-    },
-    {
-     "at": "+8",
-     "cond": "defaultTrainingEmailRecipient nil",
-     "effect": "?? falls back to defaultRecoveryEmailRecipient, then defaultEmailRecipient, else nil recipient"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.archive(session:)": "66055d6a54f84c45",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.coachReportCC(_:)": "5be85082287b8048",
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.coachReportPDFURL(for:)": "035226187084812a",
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.coachReportSubject(for:)": "b5af4916498b5158",
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.recentOvernightSessions(archive:reportedNightCutoff:sleepSchedule:)": "8c8890889bae4fb4",
@@ -406,33 +401,13 @@
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveLTHR": "8ad8fec17a5ea41b",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMaxHR": "a8a37ef3588dc7db",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveRestingHR": "e5203c48a278e778",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailCC": "c4c996f8ca2bbd96",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailRecipient": "19fcbec0d072481a",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.sleepSchedule": "7f2420b682faf9cb",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
     "Emuqu/Sources/Views/MorningResults/ScoreBreakdownCard.swift::var ScoreBreakdownCard.temperatureUnit": "793b7401620a8337"
-   }
-  },
-  {
-   "key": "func WorkoutSessionLifecycle.coachReportCC(_:)",
-   "hash": "a39a65b5e7e1535b",
-   "does": "Cc list for the staged workout coach report: defaultTrainingEmailCC split on commas, trimmed, empties dropped; when that is empty, UserSettings.resolvedDefaultEmailCC (same rule as FitnessPostSummaryView.trainingMailCC).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC"
-   ],
-   "reads": [
-    "mem:UserSettings.defaultTrainingEmailCC"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "training Cc list empty",
-     "effect": "resolvedDefaultEmailCC; else the training list"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "91eeb80e18c9f867"
    }
   },
   {
@@ -543,8 +518,8 @@
   },
   {
    "key": "func WorkoutSessionLifecycle.renderAndStageCoachReport(_:)",
-   "hash": "806fdf11a8926ec4",
-   "does": "Detached: refreshes live training load, decodes past workouts lightweight off-main, renders the conversational summary, renders the PDF (holistic or standalone), then on the main actor stages an AssistantEmailDraft (body + PDF footnote when attached, the inputs' recipient and Cc list) on the AssistantEmailBridge and logs.",
+   "hash": "e8b83d92f91739b4",
+   "does": "Detached: refreshes live training load, decodes past workouts lightweight off-main, renders the conversational summary, renders the PDF (holistic or standalone; nil on a render failure), then on the main actor stages an AssistantEmailDraft (body + PDF footnote when attached, the inputs' recipient and Cc list) on the AssistantEmailBridge and logs. Returns whether the PDF was attached.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.liveRefreshed()",
@@ -572,6 +547,11 @@
      "at": "+17",
      "cond": "attachment != nil (log)",
      "effect": "logs pdf=yes/no"
+    },
+    {
+     "at": "+19",
+     "cond": "attachment != nil",
+     "effect": "returned: true when the PDF was attached"
     }
    ],
    "deps": {
@@ -619,9 +599,9 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.coachReportTrack(for:)": "d689dba02ca70fdd",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.holisticReport(_:track:liveLoadSnapshot:)": "ac57fe966d2d1418",
-    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)": "25451d753d99a6cd",
-    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "88a243ef2ca4a8fe",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.holisticReport(_:track:liveLoadSnapshot:)": "eb0f5d4df438585a",
+    "Emuqu/Sources/Export/HolisticDailyReport.swift::func HolisticDailyReport.generate(to:)": "dbdf6957f951aa61",
+    "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "f56389b765313440",
     "Emuqu/Sources/Export/WorkoutPDFReport.swift::init WorkoutPDFReport(session:track:userMaxHR:userRestingHR:userLTHR:units:config:)": "8c54fb5979cbb404",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }

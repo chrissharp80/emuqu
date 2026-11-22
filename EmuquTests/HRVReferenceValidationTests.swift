@@ -142,67 +142,101 @@ final class HRVReferenceValidationTests: XCTestCase {
 
     // MARK: - The ectopic filter, which is why the two RMSSDs differ
 
-    /// `computeTimeDomain` gates ectopic beats before taking successive
-    /// differences; `rmssd(fromCleanRRs:)` does not. Removing beats does not
-    /// bound RMSSD in either direction: RMSSD is the root mean square over the
-    /// pairs that survive, so dropping pairs whose squared difference is below
-    /// the average raises it.
+    /// The pipeline's values on each record, from a second implementation.
     ///
-    /// What does hold is the adjacency rule. The pipeline's RMSSD is the root
-    /// mean square of `rr[i] - rr[i-1]` over exactly the pairs adjacent in the
-    /// original series, with both beats kept by the ectopic gate and no
-    /// recording break between them, never a difference across a removed
-    /// beat. That value is recomputed here from the kept beats and compared,
-    /// and the filter must change at least one record's RMSSD, or the corpus
-    /// could not tell a working filter from one that does nothing.
-    func testPipelineRMSSDIsTheRMSOfTheKeptAdjacentPairs() throws {
-        var changed = 0
+    /// `computeTimeDomain` gates ectopic beats before taking successive
+    /// differences; `rmssd(fromCleanRRs:)` and the fixtures' unfiltered
+    /// reference do not. These are the gated values, computed outside the app
+    /// in Python from the published rule, not from anything in the app: a
+    /// beat is kept when it is within 20 % of the median of its neighbours (up
+    /// to five on each side, itself excluded; local-median gate, Kubios /
+    /// PMC3268104), and RMSSD and pNN50 are taken over the pairs adjacent in
+    /// the recording with both beats kept (Task Force 1996). Given to six
+    /// decimals. nsr005's 15.959937 is the 15.96 `docs/hrv-reference-data.md`
+    /// quotes: beats 164 and 165 there (492 ms early, 844 ms compensatory) are
+    /// the two the gate removes.
+    private struct GatedReference {
+        let rmssd: Double
+        let pnn50: Double
+        let beatsRemoved: Int
+    }
+
+    private static let gated: [String: GatedReference] = [
+        "nsr001": GatedReference(rmssd: 14.023630, pnn50: 0.000000, beatsRemoved: 0),
+        "nsr002": GatedReference(rmssd: 15.297168, pnn50: 0.668896, beatsRemoved: 0),
+        "nsr003": GatedReference(rmssd: 30.001895, pnn50: 8.695652, beatsRemoved: 0),
+        "nsr004": GatedReference(rmssd: 25.276465, pnn50: 4.013378, beatsRemoved: 0),
+        "nsr005": GatedReference(rmssd: 15.959937, pnn50: 0.000000, beatsRemoved: 2),
+        "nsr006": GatedReference(rmssd: 26.308880, pnn50: 5.016722, beatsRemoved: 0),
+        "nsr007": GatedReference(rmssd: 14.733190, pnn50: 0.000000, beatsRemoved: 0),
+        "nsr008": GatedReference(rmssd: 15.564409, pnn50: 0.000000, beatsRemoved: 0),
+        "nsr009": GatedReference(rmssd: 25.678160, pnn50: 4.347826, beatsRemoved: 0),
+        "nsr010": GatedReference(rmssd: 29.861803, pnn50: 9.764310, beatsRemoved: 1),
+        "nsr011": GatedReference(rmssd: 19.666704, pnn50: 1.337793, beatsRemoved: 0),
+        "nsr012": GatedReference(rmssd: 17.443459, pnn50: 1.672241, beatsRemoved: 0),
+        "nsr013": GatedReference(rmssd: 19.806252, pnn50: 3.010033, beatsRemoved: 0),
+        "nsr014": GatedReference(rmssd: 48.877227, pnn50: 16.722408, beatsRemoved: 0),
+        "nsr015": GatedReference(rmssd: 14.813444, pnn50: 0.000000, beatsRemoved: 0),
+        "nsr016": GatedReference(rmssd: 15.448912, pnn50: 0.334448, beatsRemoved: 0),
+        "nsr017": GatedReference(rmssd: 45.063022, pnn50: 21.254355, beatsRemoved: 8),
+        "nsr018": GatedReference(rmssd: 15.197474, pnn50: 0.000000, beatsRemoved: 0),
+        "nsr019": GatedReference(rmssd: 9.883942, pnn50: 0.000000, beatsRemoved: 0),
+        "nsr020": GatedReference(rmssd: 18.847965, pnn50: 1.010101, beatsRemoved: 1)
+    ]
+
+    /// The pipeline's RMSSD and pNN50, and the number of beats its ectopic
+    /// gate removes, against the independent gated values on every record. At
+    /// least one record must lose beats, or the corpus could not tell a
+    /// working gate from one that does nothing.
+    func testPipelineRMSSDMatchesTheIndependentGatedReferenceOnEveryRecord() throws {
+        XCTAssertEqual(Set(Self.gated.keys), Set(Self.fixtures.records.map(\.record)),
+                       "Every fixture record needs a gated reference, and only those")
         for record in Self.fixtures.records {
-            let metrics = try XCTUnwrap(analyse(record))
-            let expected = try XCTUnwrap(Self.rmssdOverKeptAdjacentPairs(record.rrMs),
-                                         "\(record.record) has no kept adjacent pair")
-            XCTAssertEqual(metrics.rmssd, expected, accuracy: tolerance,
-                           "Pipeline RMSSD is not the RMS of the kept adjacent pairs on \(record.record)")
-            let raw = try XCTUnwrap(TimeDomainAnalyzer.rmssd(fromCleanRRs: record.rrMs.map(Double.init)))
-            if abs(metrics.rmssd - raw) > tolerance { changed += 1 }
+            let reference = try XCTUnwrap(Self.gated[record.record])
+            let metrics = try XCTUnwrap(analyse(record), "\(record.record) produced no metrics")
+            XCTAssertEqual(metrics.rmssd, reference.rmssd, accuracy: 1e-6,
+                           "Pipeline RMSSD disagrees with the gated reference on \(record.record)")
+            XCTAssertEqual(metrics.pnn50, reference.pnn50, accuracy: 1e-5,
+                           "Pipeline pNN50 disagrees with the gated reference on \(record.record)")
+            let rr = record.rrMs.map(Double.init)
+            XCTAssertEqual(rr.count - TimeDomainAnalyzer.filterEctopicBeats(rr).count, reference.beatsRemoved,
+                           "The ectopic gate removed a different number of beats on \(record.record)")
         }
-        XCTAssertGreaterThan(changed, 0,
-                             "No record was affected by ectopic filtering — the corpus cannot "
-                                 + "distinguish a working filter from one that does nothing")
+        XCTAssertGreaterThan(Self.gated.values.filter { $0.beatsRemoved > 0 }.count, 0)
     }
 
-    /// RMSSD over the pairs (i-1, i) adjacent in the series as recorded, both
-    /// kept by the ectopic gate, with no recording break between them; nil
-    /// when there is no such pair. The fixtures carry no artifact flags, so
-    /// every beat is in the window and series adjacency is index adjacency.
-    private static func rmssdOverKeptAdjacentPairs(_ rrMs: [Int]) -> Double? {
-        let points = Self.points(rrMs)
-        let kept = TimeDomainAnalyzer.ectopicKeepMask(rrMs.map(Double.init))
-        var sumOfSquares = 0.0
-        var pairs = 0
-        for i in 1 ..< points.count where kept[i] && kept[i - 1]
-            && !TimeDomainAnalyzer.isRecordingBreak(between: points[i - 1], and: points[i]) {
-            let difference = Double(rrMs[i] - rrMs[i - 1])
-            sumOfSquares += difference * difference
-            pairs += 1
-        }
-        return pairs > 0 ? (sumOfSquares / Double(pairs)).squareRoot() : nil
+    /// The same rule worked by hand on twelve beats, so the expected value is
+    /// checkable without any code. Beats alternate 1000 / 1010 ms except
+    /// beat 5, a 600 ms premature beat: the median of its ten neighbours is
+    /// 1000 ms and it is 40 % off, so the gate removes it; every other beat is
+    /// within 1 % of its neighbours' median. The pairs (4, 5) and (5, 6) go
+    /// with it, leaving nine adjacent pairs, each 10 ms apart: RMSSD is
+    /// exactly 10 ms and pNN50 is 0. Differencing the collapsed series instead
+    /// would add a 0 ms pair across the gap (9.49 ms), and no gate at all
+    /// would keep the ±400 ms pairs (170.80 ms).
+    func testPipelineRMSSDOnAHandWorkedSeriesWithOnePrematureBeat() throws {
+        let rrMs = [1000, 1010, 1000, 1010, 1000, 600, 1000, 1010, 1000, 1010, 1000, 1010]
+        let record = Record(record: "hand", age: nil, sex: nil, sourceSHA256: "", rrMs: rrMs,
+                            expected: Expected(meanRR: 0, sdnn: 0, rmssdUnfiltered: 0, pnn50Unfiltered: 0, hrFromMeanRR: 0))
+        let metrics = try XCTUnwrap(analyse(record))
+        XCTAssertEqual(metrics.rmssd, 10, accuracy: 1e-9)
+        XCTAssertEqual(metrics.pnn50, 0, accuracy: 1e-9)
+        XCTAssertEqual(TimeDomainAnalyzer.filterEctopicBeats(rrMs.map(Double.init)).count, 11)
     }
 
-    /// pNN50 against the reference on every record the ectopic filter leaves
-    /// whole: there the pipeline's successive differences are the raw ones, so
-    /// its pNN50 must equal the unfiltered reference (given to 6 decimals).
+    /// pNN50 against the fixtures' unfiltered reference on every record the
+    /// gate leaves whole (by the independent count above): there the
+    /// pipeline's successive differences are the raw ones, so its pNN50 must
+    /// equal the unfiltered reference (given to 6 decimals).
     func testPNN50MatchesTheReferenceWhereNoBeatIsFiltered() throws {
         var compared = 0
-        for record in Self.fixtures.records {
-            let rr = record.rrMs.map(Double.init)
-            guard TimeDomainAnalyzer.filterEctopicBeats(rr).count == rr.count else { continue }
+        for record in Self.fixtures.records where Self.gated[record.record]?.beatsRemoved == 0 {
             let metrics = try XCTUnwrap(analyse(record))
             XCTAssertEqual(metrics.pnn50, record.expected.pnn50Unfiltered, accuracy: 1e-5,
                            "pNN50 disagrees on \(record.record)")
             compared += 1
         }
-        XCTAssertGreaterThan(compared, 0, "No record reached the pNN50 comparison")
+        XCTAssertEqual(compared, 16, "Sixteen records are left whole by the gate")
     }
 
     /// The filter must remove beats, not invent them.

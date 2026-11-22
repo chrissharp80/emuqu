@@ -102,16 +102,16 @@ enum DataSourceSelector {
         )
     }
 
-    /// Internal has gaps — try a composite. If the composite can't be built,
-    /// use streaming rather than silently falling back to the smaller internal
-    /// dataset.
+    /// Internal is missing beats streaming has — try a composite. If streaming
+    /// adds nothing to it, use streaming rather than silently falling back to
+    /// the smaller internal dataset.
     private static func compositeOrStreaming(
         internalData: [RRPoint],
         streamingPoints: [RRPoint],
         sessionId: UUID,
         sessionStart: Date
     ) -> SelectionResult {
-        debugLog("[DataSourceSelector] Internal has gaps - attempting composite creation")
+        debugLog("[DataSourceSelector] Internal is missing beats - attempting composite creation")
         let internalSeries = RRSeries(points: internalData, sessionId: sessionId, startDate: sessionStart)
         let streamingSeries = RRSeries(points: streamingPoints, sessionId: sessionId, startDate: sessionStart)
         if let composite = createComposite(internalSeries: internalSeries, streamingSeries: streamingSeries) {
@@ -143,8 +143,13 @@ enum DataSourceSelector {
     /// data: streaming fills the internal series' gaps and also supplies the
     /// beats before its first beat and after its last (a strap recording that
     /// started late or stopped early), the same rule as
-    /// `mergeAddingOnlyUncoveredBeats`. Nil when the internal series has no
-    /// gap streaming can fill.
+    /// `mergeAddingOnlyUncoveredBeats`. Nil when streaming adds nothing: no
+    /// beat in a gap it can fill and none outside the span the internal
+    /// series recorded.
+    ///
+    /// A strap series is built by summing its intervals, so it never has a
+    /// gap of its own; what streaming adds to it is the stretch the strap
+    /// was not yet, or no longer, recording.
     private static func createComposite(
         internalSeries: RRSeries,
         streamingSeries: RRSeries
@@ -156,11 +161,14 @@ enum DataSourceSelector {
             return nil
         }
         let gaps = findGaps(in: internalPoints)
-        guard let fill = fillableGapSummary(gaps: gaps, streamingPoints: streamingPoints) else {
+        let fill = fillableGapSummary(gaps: gaps, streamingPoints: streamingPoints)
+        let uncovered = uncoveredBeats(streamingPoints, internal: internalPoints, gaps: gaps)
+        guard !uncovered.isEmpty else {
+            debugLog("[DataSourceSelector] Streaming adds no beat the internal series lacks")
             return nil
         }
-        let merged = mergePoints(internal: internalPoints, streaming: uncoveredBeats(streamingPoints, internal: internalPoints, gaps: gaps))
-        debugLog("[DataSourceSelector] Composite complete: \(merged.count) beats — added \(merged.count - internalPoints.count) streaming beats, \(fill.beatsAdded) of them in \(fill.gapsFilled) gap(s)")
+        let merged = mergePoints(internal: internalPoints, streaming: uncovered)
+        debugLog("[DataSourceSelector] Composite complete: \(merged.count) beats — added \(merged.count - internalPoints.count) streaming beats, \(fill?.beatsAdded ?? 0) of them in \(fill?.gapsFilled ?? 0) gap(s)")
         return merged
     }
 

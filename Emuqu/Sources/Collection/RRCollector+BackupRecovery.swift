@@ -2,10 +2,11 @@ import CoreLocation
 import Foundation
 import os
 
-// Backup, corrupted-session and merge-repair recovery: restoring from the
-// app's own on-disk backups. These delegate to `SessionRecoveryService`
-// rather than touching the device at all; pulling RR back off the strap's
-// internal memory lives in `RRCollector+Recovery.swift`.
+// Backup and corrupted-session recovery: restoring from the app's own
+// on-disk backups. These delegate to `SessionRecoveryService` rather than
+// touching the device at all; pulling RR back off the strap's internal memory
+// lives in `RRCollector+Recovery.swift`, and the merge data-loss repair in
+// `RRCollector+MergeRepair.swift`.
 
 extension SessionRecoveryCoordinator {
     // MARK: - Backup Recovery (delegates to SessionRecoveryService)
@@ -80,28 +81,31 @@ extension SessionRecoveryCoordinator {
         return session
     }
 
-    /// Deletes sessions from the Trash for good, and the HRV samples each
-    /// exported to Apple Health
-    /// (`SessionRecoveryService.permanentlyDelete(_:removeHealthSamples:)`).
+    /// Deletes sessions from the Trash for good, and everything each
+    /// exported to Apple Health: HRV, heart rate, resting heart rate, sleep
+    /// and workouts (`HealthWriteAndObserve.removeExports`,
+    /// `SessionRecoveryService.permanentlyDelete(_:removeHealthSamples:)`).
     @discardableResult
     func permanentlyDelete(_ ids: [UUID]) async -> TrashDeletionOutcome {
         await recoveryService.permanentlyDelete(ids) { id, span in
-            await removeExportedHRV(of: id, over: span)
+            await removeHealthExports(of: id, over: span)
         }
     }
 
-    /// False (logged) when HealthKit could not delete them.
-    private func removeExportedHRV(of id: UUID, over span: ClosedRange<Date>) async -> Bool {
+    /// False (logged) when HealthKit could not delete all of them.
+    private func removeHealthExports(of id: UUID, over span: ClosedRange<Date>) async -> Bool {
         do {
-            try await collector.healthKit.writes.removeExportedHRV(sessionId: id, from: span.lowerBound, to: span.upperBound)
+            try await collector.healthKit.writes.removeExports(sessionId: id, from: span.lowerBound, to: span.upperBound)
             return true
         } catch {
-            debugLog("[Recovery] HRV samples of \(id.uuidString.prefix(8)) could not be deleted from Apple Health: \(error)", level: .error)
+            debugLog("[Recovery] Apple Health samples of \(id.uuidString.prefix(8)) could not all be deleted: \(error)", level: .error)
             return false
         }
     }
 
-    func deleteLostSessions(_ sessionIds: [UUID]) {
+    /// The ids whose deletion mark was stored.
+    @discardableResult
+    func deleteLostSessions(_ sessionIds: [UUID]) -> Set<UUID> {
         recoveryService.deleteLostSessions(sessionIds)
     }
 
@@ -110,20 +114,25 @@ extension SessionRecoveryCoordinator {
     /// path. And the H10 records the full workout internally, so we pull that
     /// complete recording from the strap when it's connected — it survives the
     /// BLE drop + crash the streamed disk backup misses.
-    func recoverFromBackup(_ sessionId: UUID) async -> HRVSession? {
+    ///
+    /// `recordedType` is the type the recording was started as, when known
+    /// (the launch alert's persisted state); see
+    /// `SessionRecoveryService.recoveredSessionType`.
+    func recoverFromBackup(_ sessionId: UUID, recordedType: SessionType? = nil) async -> HRVSession? {
         if AppDependencies.current.storage.workoutTrackBackup.retrieve(sessionId) != nil {
             return await recoverWorkoutFromBackup(sessionId)
         }
-        let session = await recoverHRVFromBackup(sessionId)
+        let session = await recoverHRVFromBackup(sessionId, recordedType: recordedType)
         if session?.state == .complete {
             await MainActor.run { collector.archiveSignal.notifyChanged() }
         }
         return session
     }
 
-    private func recoverHRVFromBackup(_ sessionId: UUID) async -> HRVSession? {
+    private func recoverHRVFromBackup(_ sessionId: UUID, recordedType: SessionType?) async -> HRVSession? {
         await recoveryService.recoverFromBackup(
             sessionId,
+            recordedType: recordedType,
             analyze: { [self] session, window, flags, capacity in
                 await collector.analyze(session, window: window, flags: flags, peakCapacity: capacity)
             },
@@ -215,9 +224,16 @@ extension SessionRecoveryCoordinator {
     /// An archived session that cannot be read, or a rebuild that fails or
     /// is not archived, leaves the card up and the session unreviewed, so the
     /// trim can be saved again instead of being dropped.
-    func retrimRecoveredWorkout(sessionId: UUID, endSec: Double) async {
-        guard let clipped = archivedBeats(of: sessionId, upTo: endSec) else { return }
-        guard clipped.count >= 30 else { return closeRecoveredWorkoutReview(sessionId) }
+    ///
+    /// True when the card closed (trimmed, or kept untrimmed); false when it
+    /// stays up because nothing was saved, so the card can say so.
+    @discardableResult
+    func retrimRecoveredWorkout(sessionId: UUID, endSec: Double) async -> Bool {
+        guard let clipped = archivedBeats(of: sessionId, upTo: endSec) else { return false }
+        guard clipped.count >= 30 else {
+            closeRecoveredWorkoutReview(sessionId)
+            return true
+        }
         let outcome = await WorkoutRecoveryService.recover(
             sessionId: sessionId, reason: .appCrashed,
             archive: collector.archive, rawBackup: collector.rawBackup, cloudSyncManager: collector.cloudSyncManager,
@@ -226,10 +242,11 @@ extension SessionRecoveryCoordinator {
         )
         guard let outcome, outcome.wasArchived else {
             debugLog("[Recovery] Trim of recovered workout \(sessionId.uuidString.prefix(8)) failed — keeping the review card", level: .error)
-            return
+            return false
         }
         collector.archiveSignal.notifyChanged()
         closeRecoveredWorkoutReview(sessionId)
+        return true
     }
 
     /// The archived workout's beats up to `endSec`: none when the session is
@@ -255,14 +272,16 @@ extension SessionRecoveryCoordinator {
     /// Discard a recovered workout the user rejected from the review card.
     /// Deletes the archived session; the on-disk RR backup survives (marked
     /// archived), so it can still be re-recovered from Lost Sessions if the
-    /// user changes their mind.
-    func discardRecoveredWorkout(sessionId: UUID) {
+    /// user changes their mind. True when it was deleted and the card closed.
+    @discardableResult
+    func discardRecoveredWorkout(sessionId: UUID) -> Bool {
         // A failed delete keeps the card up and the session unreviewed, so
         // the rejected workout is not left in the archive looking accepted
         // and Discard can be tapped again. The RR backup is kept either way.
-        guard attempt("recoveredWorkout.discard", { try collector.archive.delete(sessionId) }) != nil else { return }
+        guard attempt("recoveredWorkout.discard", { try collector.archive.delete(sessionId) }) != nil else { return false }
         collector.archiveSignal.notifyChanged()
         closeRecoveredWorkoutReview(sessionId)
+        return true
     }
 
     enum WatchRouteRecoveryResult {
@@ -593,7 +612,7 @@ extension SessionRecoveryCoordinator {
         // The flagged workout is registered before the backup scan awaits:
         // the launch alert's Save waits on it and must find it running.
         let flagged = flaggedInterruptedWorkoutId(live: liveRecordingIds())
-        if let flagged { InterruptedWorkoutAutoRecovery.begin(flagged) }
+        guard claimFlaggedWorkout(flagged) else { return }
         defer { if let flagged { InterruptedWorkoutAutoRecovery.end(flagged) } }
         guard let sessionId = await findInterruptedWorkoutSessionId() else { return }
         InterruptedWorkoutAutoRecovery.begin(sessionId)
@@ -606,6 +625,18 @@ extension SessionRecoveryCoordinator {
         clearPersistedRecordingState(ifItIs: sessionId)
         AutoRecoveryAttempts.clear(sessionId)
         debugLog("[RRCollector] Auto-recovery: merged strap + streamed and archived interrupted workout")
+    }
+
+    /// Registers the flagged workout for this auto-recovery. False when the
+    /// launch alert's Save or Resume registered it first: that recovery is
+    /// under way, and this one stays out of it. No flagged workout: true.
+    private func claimFlaggedWorkout(_ flagged: UUID?) -> Bool {
+        guard let flagged else { return true }
+        guard InterruptedWorkoutAutoRecovery.claim(flagged) else {
+            debugLog("[RRCollector] Auto-recovery: the interrupted workout is already being recovered from the launch alert")
+            return false
+        }
+        return true
     }
 
     /// The strap is reached, still records, and no new recording took it over
@@ -668,222 +699,6 @@ extension SessionRecoveryCoordinator {
         collector.needsAcceptance = false
         collector.archiveSignal.notifyChanged()
     }
-
-    // MARK: - Merge Data Loss Repair
-
-    /// Rebuilds a child night's beat series by appending it to its parent's,
-    /// time-shifted so the two are continuous.
-    ///
-    /// Repairs sessions affected by the merge data-loss bug where background
-    /// device refinement bypassed `collector.mergeParentSessionData()`, leaving resumed
-    /// sessions with only the child's data instead of parent + child merged.
-    ///
-    /// A v5-corrupted child already contains a copy of the parent's beats at
-    /// its head, so only the tail past `parentBeatCount` is the child's own
-    /// data. The offset takes the LARGER of the parent's recorded duration
-    /// and the wall-clock gap between the two start dates, so a child that
-    /// began after a long pause is not folded back on top of the parent.
-    nonisolated static func mergedRepairPoints(
-        childSeries: RRSeries,
-        parentSeries: RRSeries,
-        childStartDate: Date,
-        parentStartDate: Date,
-        parentBeatCount: Int,
-        isV5Corrupted: Bool,
-        idPrefix: String
-    ) -> [RRPoint] {
-        let childOriginalPoints: [RRPoint]
-        if isV5Corrupted {
-            childOriginalPoints = Array(childSeries.points.suffix(from: parentBeatCount))
-            debugLog("[Recovery] Session \(idPrefix) is v5-corrupted (\(childSeries.points.count) beats) — extracting \(childOriginalPoints.count) child beats")
-        } else {
-            childOriginalPoints = childSeries.points
-        }
-        let parentDurationMs = parentSeries.points.last?.endMs ?? parentSeries.points.last?.t_ms ?? 0
-        let dateOffsetMs = MillisecondOffset.between(childStartDate, and: parentStartDate, fallback: 0)
-        let offsetMs = max(parentDurationMs, dateOffsetMs)
-        let merged = parentSeries.points + childOriginalPoints.map { $0.shifted(by: offsetMs) }
-        debugLog("[Recovery] Session \(idPrefix) merged: \(parentBeatCount) parent + \(childOriginalPoints.count) child (offset \(offsetMs / 60000)min) = \(merged.count) beats")
-        return merged
-    }
-
-    /// Process each linked session inline — at most 2 full sessions (child +
-    /// parent) in memory at a time. A previous implementation accumulated ALL
-    /// candidates into a repairWork array, potentially holding hundreds of MB
-    /// simultaneously.
-    nonisolated func repairMergeDataLoss() async -> MergeRepairOutcome {
-        debugLog("[Recovery] ========== START repairMergeDataLoss ==========")
-        let linkedEntries = await linkedOvernightEntries()
-        var outcome = MergeRepairOutcome()
-        for entry in linkedEntries {
-            switch await repairLinkedSession(entry) {
-            case .repaired: outcome.repaired += 1
-            case .failed: outcome.failed += 1
-            case .unchanged: break
-            }
-        }
-        if outcome.repaired > 0 { await MainActor.run { collector.archiveSignal.notifyChanged() } }
-        debugLog("[Recovery] ========== END repairMergeDataLoss: \(outcome.repaired) repaired, \(outcome.failed) failed ==========")
-        return outcome
-    }
-
-    /// How many linked nights were rewritten, and how many needed it but
-    /// could not be written (those are worth another run).
-    struct MergeRepairOutcome {
-        var repaired = 0
-        var failed = 0
-    }
-
-    /// One linked night: rewritten, left as it was (healthy, unreadable or
-    /// implausible), or needing a repair whose write failed.
-    enum LinkedRepairResult {
-        case repaired
-        case unchanged
-        case failed
-    }
-
-    /// Gather candidates on the main actor (archive access). Pre-filters using
-    /// the index's `linkedSessionIds` — avoids loading sessions from disk just
-    /// to check whether they have links (saves ~700KB per session).
-    nonisolated private func linkedOvernightEntries() async -> [SessionArchiveEntry] {
-        let entries = await MainActor.run { collector.archive.entries }
-        let linkedEntries = entries.filter { entry in
-            entry.sessionType == .overnight &&
-                entry.linkedSessionIds != nil &&
-                !(entry.linkedSessionIds?.isEmpty ?? true)
-        }
-        guard !linkedEntries.isEmpty else { return [] }
-        let skipped = entries.filter { $0.sessionType == .overnight }.count - linkedEntries.count
-        debugLog("[Recovery] Checking \(linkedEntries.count) linked sessions (skipped \(skipped) non-linked)")
-        return linkedEntries
-    }
-
-    /// Load the child + parent, decide whether anything is wrong, and if so
-    /// rebuild and re-archive.
-    nonisolated private func repairLinkedSession(_ entry: SessionArchiveEntry) async -> LinkedRepairResult {
-        guard let parentId = entry.linkedSessionIds?.first else { return .unchanged }
-        // Full load needed for the rrSeries merge.
-        guard let session = await MainActor.run(resultType: HRVSession?.self, body: { collector.archive.retrieveOrLog(entry.sessionId) }),
-              let parent = await MainActor.run(resultType: HRVSession?.self, body: { collector.archive.retrieveOrLog(parentId) }),
-              let parentSeries = parent.rrSeries, !parentSeries.points.isEmpty,
-              let childSeries = session.rrSeries, !childSeries.points.isEmpty
-        else { return .unchanged }
-        let damage = Self.mergeDamage(session: session, parent: parent, childSeries: childSeries, parentSeries: parentSeries)
-        guard damage.needsRepair else { return .unchanged }
-        guard let mergedPoints = Self.repairedPoints(
-            entry: entry, session: session, parent: parent,
-            childSeries: childSeries, parentSeries: parentSeries, damage: damage
-        ) else { return .unchanged }
-        let written = await rebuildAndArchive(session: session, parent: parent, mergedPoints: mergedPoints)
-        return written ? .repaired : .failed
-    }
-
-    /// What (if anything) is wrong with a merged child session.
-    struct MergeDamage {
-        let needsMerge: Bool
-        let isV5Corrupted: Bool
-        let summaryStale: Bool
-        let startDateWrong: Bool
-
-        var needsRepair: Bool { needsMerge || isV5Corrupted || summaryStale || startDateWrong }
-    }
-
-    nonisolated private static func mergeDamage(
-        session: HRVSession, parent: HRVSession,
-        childSeries: RRSeries, parentSeries: RRSeries
-    ) -> MergeDamage {
-        let childBeatCount = childSeries.points.count
-        let parentBeatCount = parentSeries.points.count
-        return MergeDamage(
-            needsMerge: childBeatCount <= parentBeatCount,
-            isV5Corrupted: SessionRecoveryMath.hasV5TimestampDiscontinuity(childSeries: childSeries, parentBeatCount: parentBeatCount),
-            summaryStale: session.dataSourceSummary.map { $0.totalBeats != childBeatCount } ?? false,
-            startDateWrong: session.startDate.timeIntervalSince(parent.startDate) > 1800
-        )
-    }
-
-    /// The beat series the repaired session should carry, or nil when the
-    /// result fails the sanity ceiling.
-    nonisolated private static func repairedPoints(
-        entry: SessionArchiveEntry, session: HRVSession, parent: HRVSession,
-        childSeries: RRSeries, parentSeries: RRSeries, damage: MergeDamage
-    ) -> [RRPoint]? {
-        let parentBeatCount = parentSeries.points.count
-        let mergedPoints: [RRPoint]
-        if damage.needsMerge || damage.isV5Corrupted {
-            mergedPoints = mergedRepairPoints(
-                childSeries: childSeries, parentSeries: parentSeries,
-                childStartDate: session.startDate, parentStartDate: parent.startDate,
-                parentBeatCount: parentBeatCount, isV5Corrupted: damage.isV5Corrupted,
-                idPrefix: String(entry.sessionId.uuidString.prefix(8))
-            )
-        } else {
-            mergedPoints = childSeries.points
-            debugLog("[Recovery] Session \(entry.sessionId.uuidString.prefix(8)) already merged (\(mergedPoints.count) beats) but needs re-analysis (summaryStale=\(damage.summaryStale), startDateWrong=\(damage.startDateWrong))")
-        }
-        let maxReasonableBeats = (parentBeatCount + childSeries.points.count) * 2
-        guard mergedPoints.count <= maxReasonableBeats, mergedPoints.count < 200_000 else {
-            debugLog("[Recovery] ❌ Session \(entry.sessionId.uuidString.prefix(8)) has unreasonable beat count (\(mergedPoints.count)) — skipping")
-            return nil
-        }
-        return mergedPoints
-    }
-
-    /// Re-run the morning pipeline over the repaired beats, carry the user's
-    /// own edits across, then archive and upload. The repaired session is
-    /// anchored to the PARENT's start; only the beat series differs. A child
-    /// with no end ends at its last beat, not at the time the repair runs.
-    nonisolated private func rebuildAndArchive(session: HRVSession, parent: HRVSession, mergedPoints: [RRPoint]) async -> Bool {
-        let lastBeatEnd = mergedPoints.last.map { parent.startDate.addingTimeInterval(Double($0.endMs) / 1000) }
-        let baseSession = HRVSession(
-            id: session.id, startDate: parent.startDate, endDate: session.endDate ?? lastBeatEnd ?? parent.startDate,
-            state: .analyzing, sessionType: .overnight,
-            rrSeries: nil, analysisResult: nil, artifactFlags: nil,
-            deviceProvenance: session.deviceProvenance,
-            linkedSessionIds: session.linkedSessionIds, pausedDate: session.pausedDate
-        )
-        var repaired = await collector.processOvernightData(
-            points: mergedPoints, baseSession: baseSession,
-            dataSource: session.dataSourceSummary?.selectedSource ?? "streaming",
-            reconnectCount: session.dataSourceSummary?.reconnectCount ?? 0,
-            streamingBeats: session.dataSourceSummary?.streamingBeats ?? 0,
-            deviceBeats: session.dataSourceSummary?.deviceBeats,
-            isBackgroundRefinement: true
-        )
-        Self.carryUserEdits(from: session, to: &repaired)
-        return await archiveRepaired(repaired, originalId: session.id, beatCount: mergedPoints.count)
-    }
-
-    /// Tags, notes, and the sleep-adjusted flag are the user's own work — the
-    /// rebuilt session must not lose them. Vitals carry over only when the
-    /// rebuild produced none.
-    nonisolated private static func carryUserEdits(from session: HRVSession, to repaired: inout HRVSession) {
-        repaired.tags = session.tags
-        repaired.notes = session.notes
-        repaired.sleepUserAdjusted = session.sleepUserAdjusted
-        if repaired.vitalsSnapshot == nil, let oldVitals = session.vitalsSnapshot {
-            repaired.vitalsSnapshot = oldVitals
-        }
-    }
-
-    /// Upload immediately instead of accumulating — keeps peak memory low.
-    nonisolated private func archiveRepaired(_ repairedSession: HRVSession, originalId: UUID, beatCount: Int) async -> Bool {
-        do {
-            let sessionToArchive = repairedSession
-            _ = try await MainActor.run { try collector.archive.archive(sessionToArchive) }
-            let syncSession = repairedSession
-            // The sync manager is read on the main actor, so the upload Task
-            // never reaches back through the collector.
-            let cloudSync = await MainActor.run { collector.cloudSyncManager }
-            Task { await cloudSync.forceReuploadSession(syncSession) }
-            debugLog("[Recovery] Repaired session \(originalId.uuidString.prefix(8)): \(beatCount) beats, score \(repairedSession.recoveryScore.map { String(format: "%.1f", $0) } ?? "nil")")
-            return true
-        } catch {
-            debugLog("[Recovery] Failed to archive repaired session: \(error)", level: .error)
-            return false
-        }
-    }
-
 }
 
 // MARK: - File-scope helpers
@@ -959,6 +774,10 @@ enum InterruptedWorkoutAutoRecovery {
     private static let running = OSAllocatedUnfairLock<Set<UUID>>(initialState: [])
 
     static func begin(_ id: UUID) { running.withLock { _ = $0.insert(id) } }
+    /// Registers `id` unless a recovery of it is registered already; true
+    /// when this call registered it. The launch alert and launch
+    /// auto-recovery each claim the workout, so only one rebuilds it.
+    static func claim(_ id: UUID) -> Bool { running.withLock { $0.insert(id).inserted } }
     static func end(_ id: UUID) { running.withLock { _ = $0.remove(id) } }
     static func isRunning(_ id: UUID) -> Bool { running.withLock { $0.contains(id) } }
 

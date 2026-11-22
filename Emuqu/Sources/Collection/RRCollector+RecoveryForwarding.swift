@@ -45,19 +45,23 @@ extension RRCollector {
         await recovery.permanentlyDelete(ids)
     }
 
-    func deleteLostSessions(_ sessionIds: [UUID]) {
+    /// The ids whose deletion mark was stored.
+    @discardableResult
+    func deleteLostSessions(_ sessionIds: [UUID]) -> Set<UUID> {
         recovery.deleteLostSessions(sessionIds)
     }
 
-    func recoverFromBackup(_ sessionId: UUID) async -> HRVSession? {
-        return await recovery.recoverFromBackup(sessionId)
+    func recoverFromBackup(_ sessionId: UUID, recordedType: SessionType? = nil) async -> HRVSession? {
+        return await recovery.recoverFromBackup(sessionId, recordedType: recordedType)
     }
 
-    func retrimRecoveredWorkout(sessionId: UUID, endSec: Double) async {
+    @discardableResult
+    func retrimRecoveredWorkout(sessionId: UUID, endSec: Double) async -> Bool {
         await recovery.retrimRecoveredWorkout(sessionId: sessionId, endSec: endSec)
     }
 
-    func discardRecoveredWorkout(sessionId: UUID) {
+    @discardableResult
+    func discardRecoveredWorkout(sessionId: UUID) -> Bool {
         recovery.discardRecoveredWorkout(sessionId: sessionId)
     }
 

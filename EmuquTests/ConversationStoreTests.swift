@@ -1,5 +1,6 @@
 @testable import Emuqu
 import os
+import UIKit
 import XCTest
 
 /// Unit tests for ConversationStore — the JSON-backed persistence for the
@@ -213,6 +214,115 @@ final class ConversationStoreTests: XCTestCase {
         XCTAssertEqual(makeStore().load().map(\.text), ["turn-0", "turn-1"])
     }
 
+    // MARK: - Summary
+
+    /// A defaults domain of the test's own, so nothing reaches the app's.
+    private func makeDefaults() throws -> UserDefaults {
+        let name = "ConversationStoreTests-\(UUID().uuidString)"
+        addTeardownBlock { @MainActor in UserDefaults.standard.removePersistentDomain(forName: name) }
+        return try XCTUnwrap(UserDefaults(suiteName: name))
+    }
+
+    private var summaryFileURL: URL { tempDir.appendingPathComponent("conversation_summary.json") }
+
+    /// The summary restates the conversation (injuries, medications), so it is
+    /// sealed beside the history like it, not left in plain defaults.
+    func testSummaryIsSealedAtRestAndRoundTrips() throws {
+        let defaults = try makeDefaults()
+        let store = makeStore()
+        store.saveSummary("Runner with a sore left knee, taking ibuprofen.")
+        waitUntil("the summary to be written") { FileManager.default.fileExists(atPath: summaryFileURL.path) }
+
+        let raw = try Data(contentsOf: summaryFileURL)
+        XCTAssertNil(raw.range(of: Data("ibuprofen".utf8)), "The summary must not be readable on disk")
+        XCTAssertEqual(makeStore().loadSummary(migratingFrom: defaults, key: "summary"), "Runner with a sore left knee, taking ibuprofen.")
+    }
+
+    /// A summary an older build left in defaults moves into the sealed file
+    /// and leaves defaults.
+    func testPlainSummaryInDefaultsIsMovedIntoTheSealedFile() throws {
+        let defaults = try makeDefaults()
+        defaults.set("Training for a marathon.", forKey: "summary")
+
+        XCTAssertEqual(makeStore().loadSummary(migratingFrom: defaults, key: "summary"), "Training for a marathon.")
+
+        XCTAssertNil(defaults.string(forKey: "summary"))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: summaryFileURL.path))
+        XCTAssertEqual(makeStore().loadSummary(migratingFrom: defaults, key: "summary"), "Training for a marathon.")
+    }
+
+    /// A plain summary still in defaults beside a sealed file (its move
+    /// failed, and a later summary was sealed) is removed on the next load,
+    /// and the sealed summary is the one returned.
+    func testAPlainSummaryBesideTheSealedFileIsRemoved() throws {
+        let defaults = try makeDefaults()
+        let store = makeStore()
+        store.saveSummary("Sealed summary.")
+        waitUntil("the summary to be written") { FileManager.default.fileExists(atPath: summaryFileURL.path) }
+        defaults.set("Plain summary, taking ibuprofen.", forKey: "summary")
+
+        XCTAssertEqual(makeStore().loadSummary(migratingFrom: defaults, key: "summary"), "Sealed summary.")
+
+        XCTAssertNil(defaults.string(forKey: "summary"), "the plain copy stayed in defaults")
+    }
+
+    /// A sealed summary that cannot be read now (here, a directory where the
+    /// file should be) is flagged for a reload; writing a summary settles it.
+    func testAnUnreadableSummaryIsFlaggedUntilASummaryIsWritten() throws {
+        let defaults = try makeDefaults()
+        try FileManager.default.createDirectory(at: summaryFileURL, withIntermediateDirectories: true)
+        let store = makeStore()
+
+        XCTAssertNil(store.loadSummary(migratingFrom: defaults, key: "summary"))
+        XCTAssertTrue(store.summaryNeedsReload)
+
+        try FileManager.default.removeItem(at: summaryFileURL)
+        store.saveSummary("Later summary.")
+        waitUntil("the summary to be written") { !store.summaryNeedsReload }
+        XCTAssertEqual(store.loadSummary(migratingFrom: defaults, key: "summary"), "Later summary.")
+        XCTAssertFalse(store.summaryNeedsReload)
+    }
+
+    /// A summary unreadable when the assistant was created is read again on
+    /// unlock, so the session's next summary builds on it rather than
+    /// replacing it.
+    @MainActor
+    func testTheAssistantReloadsASummaryThatWasUnreadableWhenItWasCreated() async throws {
+        try FileManager.default.createDirectory(at: summaryFileURL, withIntermediateDirectories: true)
+        let viewModel = AssistantViewModel(
+            store: makeStore(),
+            factsStore: UserFactsStore(fileURL: tempDir.appendingPathComponent("user_facts.json"))
+        )
+        XCTAssertNil(viewModel.priorSummary)
+
+        try FileManager.default.removeItem(at: summaryFileURL)
+        let writer = makeStore()
+        writer.saveSummary("Runner with a sore left knee.")
+        waitUntil("the summary to be written") { FileManager.default.fileExists(atPath: summaryFileURL.path) }
+        NotificationCenter.default.post(name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
+        for _ in 0 ..< 300 where viewModel.priorSummary == nil {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        XCTAssertEqual(viewModel.priorSummary, "Runner with a sore left knee.")
+    }
+
+    /// Clear erases the summary with the history, and the chat only reads as
+    /// gone once both are.
+    func testClearErasesTheSummary() throws {
+        let defaults = try makeDefaults()
+        let store = makeStore()
+        store.saveSummary("Summary text.")
+        waitUntil("the summary to be written") { FileManager.default.fileExists(atPath: summaryFileURL.path) }
+        XCTAssertFalse(store.isEmptyOnDisk(), "A stored summary still holds the conversation")
+
+        XCTAssertTrue(store.clear())
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: summaryFileURL.path))
+        XCTAssertNil(store.loadSummary(migratingFrom: defaults, key: "summary"))
+        XCTAssertTrue(store.isEmptyOnDisk())
+    }
+
     /// A plain history written by a build that did not seal it still loads,
     /// and the next save replaces it sealed.
     func testPlainHistoryLoadsAndIsResealedOnTheNextSave() throws {
@@ -303,10 +413,12 @@ final class ConversationStoreTests: XCTestCase {
         waitForPersistedCount(store, 3)
     }
 
+    /// `isEmptyOnDisk` runs on the store's serial queue, after the retry
+    /// queued before it, so the check below sees whatever the retry wrote.
     func testRetryingWithNothingPendingWritesNothing() {
         let store = makeStore()
         store.retryHeldSave()
-        Thread.sleep(forTimeInterval: 0.1)
+        XCTAssertTrue(store.isEmptyOnDisk())
         XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.path))
     }
 

@@ -388,13 +388,13 @@ extension ReportSectionRenderer {
         noteText.pdfDraw(in: noteRect, withAttributes: noteAttr)
     }
 
-    func drawWindowSelectionSection(result: HRVAnalysisResult, yPosition: CGFloat, in _: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {
+    func drawWindowSelectionSection(result: HRVAnalysisResult, series: RRSeries, yPosition: CGFloat, in _: UIGraphicsPDFRendererContext, pageRect: CGRect) -> CGFloat {
         let contentWidth = pageRect.width - config.margins.left - config.margins.right
         let y = drawSectionHeading(String(localized: "Analysis Window", bundle: LanguageManager.appBundle), yPosition: yPosition, pageRect: pageRect)
         let cardHeight: CGFloat = 70
         drawWindowCardBackground(y: y, height: cardHeight, contentWidth: contentWidth)
         var infoY = y + 10
-        infoY = drawWindowTimeRange(result: result, infoY: infoY)
+        infoY = drawWindowTimeRange(result: result, series: series, infoY: infoY)
         infoY = drawWindowStats(result: result, infoY: infoY)
         drawWindowSelectionReason(result: result, infoY: infoY, contentWidth: contentWidth)
         return y + cardHeight + 10
@@ -406,11 +406,16 @@ extension ReportSectionRenderer {
         UIBezierPath(roundedRect: cardRect, cornerRadius: 8).fill()
     }
 
-    private func drawWindowTimeRange(result: HRVAnalysisResult, infoY: CGFloat) -> CGFloat {
+    /// The window's clock times, read off the series' wall clock as the
+    /// Overnight screen reads them, and its length.
+    private func drawWindowTimeRange(result: HRVAnalysisResult, series: RRSeries, infoY: CGFloat) -> CGFloat {
         var infoY = infoY
         // Time range
         if let startMs = result.windowStartMs, let endMs = result.windowEndMs {
-            let timeStr = "\(formatTimeMs(startMs)) – \(formatTimeMs(endMs)) (\(formatDurationMs(endMs - startMs)))"
+            let clock = LocalizedDateFormat.formatter(template: "jmm")
+            let start = clock.string(from: series.wallClockTime(forTMs: startMs))
+            let end = clock.string(from: series.wallClockTime(forTMs: endMs))
+            let timeStr = "\(start) – \(end) (\(formatDurationMs(endMs - startMs)))"
             let timeAttr: [NSAttributedString.Key: Any] = [
                 .font: config.bodyFont,
                 .foregroundColor: UIColor.black
@@ -467,17 +472,6 @@ extension ReportSectionRenderer {
             let reasonRect = CGRect(x: config.margins.left + 10, y: infoY, width: contentWidth - 20, height: 24)
             reason.pdfDraw(in: reasonRect, withAttributes: reasonAttr)
         }
-    }
-
-    func formatTimeMs(_ ms: Int64) -> String {
-        let totalSeconds = Int(ms / 1000)
-        let hours = totalSeconds / 3600
-        let minutes = (totalSeconds % 3600) / 60
-        let seconds = totalSeconds % 60
-        if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, minutes, seconds)
-        }
-        return String(format: "%d:%02d", minutes, seconds)
     }
 
     func formatDurationMs(_ ms: Int64) -> String {

@@ -1,12 +1,14 @@
 {
  "file": "EmuquTests/TrainingLoadConsistencyTests.swift",
- "hash": "788940f32cf83d1f",
- "role": "XCTest suite pinning one day-load builder and one EWMA for the live training load and the Load & Trajectory series: HeartRateAnchors.resolve precedence, dailyLoad zero-fill/window/cap, exact EWMA step, live point(through:) equals replay every day, and TrainingMetricsCache freshness (needsRebuild, LoadSettings, healthKitFingerprint).",
+ "hash": "9cafef0cdd2fd734",
+ "role": "XCTest suite pinning one day-load builder and one EWMA for the live training load and the Load & Trajectory series: HeartRateAnchors.resolve precedence, dailyLoad zero-fill/window/cap, exact EWMA step, live point(through:) equals replay every day, TrainingMetricsCache freshness (needsRebuild including a day change, LoadSettings, healthKitFingerprint), the sealed snapshot file, and a cache built entirely from fakes (archive, settings, snapshot file, seal).",
  "types": [
-  "TrainingLoadConsistencyTests: class — XCTestCase over TrainingLoadSeries and TrainingMetricsCache freshness"
+  "TrainingLoadConsistencyTests: class — XCTestCase over TrainingLoadSeries and TrainingMetricsCache freshness",
+  "TrainingLoadConsistencyTests.SettingsBox: class (@MainActor final, private) — mutable UserSettings standing in for the settings manager"
  ],
  "state": [
-  "calendar: Calendar.current"
+  "calendar: Calendar.current",
+  "static plainSeal: JSONFileSeal that stores JSON unchanged (no key needed)"
  ],
  "toplevel": "",
  "units": [
@@ -195,13 +197,13 @@
    "does": "Test helper: TrainingMetricsCache.needsRebuild with lastUpdated `age` seconds ago, hasResult true and the given observed/settings flags.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:dayChanged:reference:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)": "99e58b00827618c1"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:dayChanged:reference:)": "6e100ea36811bb0d"
    }
   },
   {
@@ -211,13 +213,13 @@
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.needsRebuild(age:observed:settings:)",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:dayChanged:reference:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)": "99e58b00827618c1",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:dayChanged:reference:)": "6e100ea36811bb0d",
     "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.needsRebuild(age:observed:settings:)": "aba049da61d1dac2"
    }
   },
@@ -228,30 +230,28 @@
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.needsRebuild(age:observed:settings:)",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:dayChanged:reference:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)": "99e58b00827618c1",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:dayChanged:reference:)": "6e100ea36811bb0d",
     "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.needsRebuild(age:observed:settings:)": "aba049da61d1dac2"
    }
   },
   {
-   "key": "func TrainingLoadConsistencyTests.testAWorkoutOrDayChangeRecomputesAfterTheBurstThrottle()",
-   "hash": "8e53abf87425d6d7",
-   "does": "Asserts an observed change 60 s after the last build is throttled, and is rebuilt after burstThrottleSec.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "key": "func TrainingLoadConsistencyTests.testAWorkoutChangeRecomputesAfterTheBurstThrottle()",
+   "hash": "373ae5faf72d76b1",
+   "does": "Asserts an observed workout change 60 s after the last build is throttled, and is rebuilt after burstThrottleSec.",
+   "entry": "XCTest test method, run by the XCTest runner in the Emuqu app host",
    "calls": [
-    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.needsRebuild(age:observed:settings:)",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)"
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.needsRebuild(age:observed:settings:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)": "99e58b00827618c1",
     "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.needsRebuild(age:observed:settings:)": "aba049da61d1dac2"
    }
   },
@@ -261,13 +261,13 @@
    "does": "Asserts needsRebuild is true with lastUpdated nil, and true with hasResult false.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:dayChanged:reference:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)": "99e58b00827618c1"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:dayChanged:reference:)": "6e100ea36811bb0d"
    }
   },
   {
@@ -413,6 +413,101 @@
     "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.snapshot(ctl:)": "68ddbcf56b47cfeb",
     "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.snapshotFile()": "28e90f17f1cc1d1a",
     "EmuquTests/UserSettingsTests.swift::var LockedKeySeal.fileSeal": "ae47c6b747ef2950"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testACacheBuiltFromFakesReadsOnlyWhatItWasGiven()",
+   "hash": "62afa0cdd90c5bdf",
+   "does": "Builds a TrainingMetricsCache from an empty SessionArchive in a temporary directory, a SettingsBox (resting HR 48) and a snapshot file of its own written with the plain seal (CTL 55 today, the empty-archive fingerprint, those load settings); asserts the cache restored that file, needsRebuild is false while the given archive and settings match it, and true once the box's resting HR changes to 52.",
+   "entry": "XCTest test method (@MainActor), run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.snapshotFile()",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::init TrainingMetricsCache.LoadSettings(_:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.writeSnapshot(_:to:seal:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::init TrainingMetricsCache(archive:settings:persistenceURL:seal:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.sampleOn(date:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.needsRebuild(reference:)",
+    "ext:CryptoKit.SHA256"
+   ],
+   "reads": [
+    "file:<tmp>/TrainingSnapshot-<uuid>/TrainingMetricsCache.json"
+   ],
+   "writes": [
+    "file:<tmp>/TrainingSnapshot-<uuid>/TrainingMetricsCache.json"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::init TrainingMetricsCache.LoadSettings(_:)": "b315b321752b0b08",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.needsRebuild(reference:)": "271beece1c5338ca",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.sampleOn(date:)": "9602635ba9e9ebdd",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.writeSnapshot(_:to:seal:)": "23663fe8c1854780",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::init TrainingMetricsCache(archive:settings:persistenceURL:seal:)": "4e7a0aa85073f981",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()": "617bf2c6974d2d39",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
+    "EmuquTests/TrainingLoadConsistencyTests.swift::func TrainingLoadConsistencyTests.snapshotFile()": "28e90f17f1cc1d1a"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testANewDayRecomputesAtOnce()",
+   "hash": "7b02063918561f9f",
+   "does": "Asserts the static needsRebuild rule returns true for a one-minute-old result when the day changed, with no workout or settings change.",
+   "entry": "XCTest test method, run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:dayChanged:reference:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:dayChanged:reference:)": "6e100ea36811bb0d"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testAWorkoutQueryRefusedForAuthorizationReadsAsNoWorkouts()",
+   "hash": "6ebf66b3e0da8f65",
+   "does": "For errorAuthorizationNotDetermined and errorAuthorizationDenied asserts isUnauthorizedAnswer and that workoutSummaries(_:unlessFailed:) returns an empty array, not nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.isUnauthorizedAnswer(_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.workoutSummaries(_:unlessFailed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each authorization code",
+     "effect": "asserts"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.isUnauthorizedAnswer(_:)": "a24fc447d45ac02d",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.workoutSummaries(_:unlessFailed:)": "45f7f29414054334"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testAWorkoutQueryThatFailedOtherwiseStaysUnanswered()",
+   "hash": "be4e943076bd81a7",
+   "does": "Asserts errorDatabaseInaccessible and errorHealthDataUnavailable are not unauthorized answers and give nil, and that a Cocoa error with the not-determined code gives nil too.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.isUnauthorizedAnswer(_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.workoutSummaries(_:unlessFailed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each failure",
+     "effect": "asserts"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.isUnauthorizedAnswer(_:)": "a24fc447d45ac02d",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.workoutSummaries(_:unlessFailed:)": "45f7f29414054334"
    }
   }
  ],

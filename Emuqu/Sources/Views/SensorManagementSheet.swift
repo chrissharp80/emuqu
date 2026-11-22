@@ -15,13 +15,22 @@ import SwiftUI
 struct SensorManagementSheet: View {
     var polarManager: PolarManager
     let onDismiss: () -> Void
+    /// A Disconnect or Forget waiting for the user to confirm, asked only
+    /// while the strap is feeding a recording (`strapIsRecording`).
+    @State private var pendingRelease: StrapRelease?
+
+    /// What dropping the strap's link would do once confirmed.
+    enum StrapRelease {
+        case disconnect
+        case forget(PolarManager.KnownDevice)
+    }
 
     var body: some View {
-        List {
+        withStrapReleaseConfirmation(List {
             polarSection
             footPodSection
             pm5Section
-        }
+        })
         .navigationTitle(String(localized: "Sensors", bundle: LanguageManager.appBundle))
         .accessibilityIdentifier("sensors.root")
         .navigationBarTitleDisplayMode(.inline)
@@ -29,6 +38,21 @@ struct SensorManagementSheet: View {
             ToolbarItem(placement: .confirmationAction) {
                 Button(String(localized: "Done", bundle: LanguageManager.appBundle), action: onDismiss)
             }
+        }
+    }
+
+    /// The confirmation for a Disconnect or Forget asked during a recording;
+    /// dismissing it drops nothing.
+    private func withStrapReleaseConfirmation(_ content: some View) -> some View {
+        content.confirmationDialog(
+            String(localized: "Disconnect the strap during a recording?", bundle: LanguageManager.appBundle),
+            isPresented: Binding(get: { pendingRelease != nil }, set: { if !$0 { pendingRelease = nil } }),
+            titleVisibility: .visible,
+            presenting: pendingRelease
+        ) { release in
+            strapReleaseConfirmButton(release)
+        } message: { _ in
+            Text(String(localized: "The recording stops getting heartbeats from it, and Emuqu won't reconnect to it on its own.", bundle: LanguageManager.appBundle))
         }
     }
 
@@ -107,11 +131,38 @@ struct SensorManagementSheet: View {
         }
     }
 
+    /// Disconnects at once when nothing is recording; during a recording it
+    /// asks first, since the link it drops is that recording's feed.
     private var disconnectPolarButton: some View {
         Button(role: .destructive) {
-            polarManager.disconnect()
+            if strapIsRecording {
+                pendingRelease = .disconnect
+            } else {
+                polarManager.disconnect()
+            }
         } label: {
             Label(String(localized: "Disconnect", bundle: LanguageManager.appBundle), systemImage: "xmark.circle")
+        }
+    }
+
+    /// The strap is feeding a recording: streaming beats (a quick reading, an
+    /// overnight stream or a workout) or running a recording the app drives.
+    private var strapIsRecording: Bool {
+        polarManager.isStreaming || polarManager.recordingState != .idle
+    }
+
+    private func strapReleaseConfirmButton(_ release: StrapRelease) -> some View {
+        Button(role: .destructive) {
+            pendingRelease = nil
+            switch release {
+            case .disconnect: polarManager.disconnect()
+            case let .forget(device): forgetNow(device)
+            }
+        } label: {
+            switch release {
+            case .disconnect: Text(String(localized: "Disconnect", bundle: LanguageManager.appBundle))
+            case .forget: Text(String(localized: "Forget", bundle: LanguageManager.appBundle))
+            }
         }
     }
 
@@ -175,7 +226,17 @@ struct SensorManagementSheet: View {
         }
     }
 
+    /// Forgetting the connected strap drops its link, so during a recording
+    /// it asks first, as Disconnect does.
     private func forget(_ device: PolarManager.KnownDevice) {
+        if strapIsRecording, polarManager.connectionState == .connected, polarManager.connectedDeviceId == device.id {
+            pendingRelease = .forget(device)
+        } else {
+            forgetNow(device)
+        }
+    }
+
+    private func forgetNow(_ device: PolarManager.KnownDevice) {
         if polarManager.connectionState == .connected, polarManager.connectedDeviceId == device.id {
             polarManager.disconnect()
         } else if polarManager.connectionState == .connecting, polarManager.pendingDeviceId == device.id {
@@ -254,8 +315,15 @@ struct SensorManagementSheet: View {
         }
     }
 
+    /// The strap connected (or being connected) now, not merely the first one
+    /// paired; with neither, the first paired strap.
     private var polarTitle: String {
-        polarManager.knownDevices.first?.name ?? String(localized: "Polar Strap", bundle: LanguageManager.appBundle)
+        let fallback = String(localized: "Polar Strap", bundle: LanguageManager.appBundle)
+        if let linkedId = polarManager.connectedDeviceId ?? polarManager.pendingDeviceId {
+            return polarManager.knownDevices.first { $0.id == linkedId }?.name
+                ?? polarManager.connectedDeviceType?.displayName ?? fallback
+        }
+        return polarManager.knownDevices.first?.name ?? fallback
     }
 
     private var polarSubtitle: String {
@@ -320,7 +388,12 @@ private struct FootPodRow: View {
     private var content: AccessorySensorRow.Content {
         AccessorySensorRow.Content(
             icon: "shoeprints.fill",
-            title: manager.knownDevices.first?.name ?? String(localized: "Foot Pod / Bike Trainer", bundle: LanguageManager.appBundle),
+            title: AccessorySensorRow.title(
+                linkedId: manager.linkedDeviceId,
+                known: manager.knownDevices.map { AccessorySensorRow.Device(id: $0.id, name: $0.name) },
+                discovered: manager.discoveredDevices.map { AccessorySensorRow.Device(id: $0.id, name: $0.name) },
+                fallback: String(localized: "Foot Pod / Bike Trainer", bundle: LanguageManager.appBundle)
+            ),
             statusLine: manager.lastStatusLine,
             link: AccessorySensorRow.Link(manager.connectionState),
             hasKnownDevice: !manager.knownDevices.isEmpty,
@@ -352,7 +425,12 @@ private struct PM5Row: View {
     private var content: AccessorySensorRow.Content {
         AccessorySensorRow.Content(
             icon: "figure.rower",
-            title: manager.knownDevices.first?.name ?? String(localized: "Concept2 PM5", bundle: LanguageManager.appBundle),
+            title: AccessorySensorRow.title(
+                linkedId: manager.linkedDeviceId,
+                known: manager.knownDevices.map { AccessorySensorRow.Device(id: $0.id, name: $0.name) },
+                discovered: manager.discoveredDevices.map { AccessorySensorRow.Device(id: $0.id, name: $0.name) },
+                fallback: String(localized: "Concept2 PM5", bundle: LanguageManager.appBundle)
+            ),
             statusLine: manager.lastStatusLine,
             link: AccessorySensorRow.Link(manager.connectionState),
             hasKnownDevice: !manager.knownDevices.isEmpty,
@@ -404,6 +482,16 @@ private struct AccessorySensorRow: View {
     struct Device: Identifiable {
         let id: String
         let name: String
+    }
+
+    /// The row's title: the sensor linked now (paired before, or picked from
+    /// this scan), else the first one paired, else the generic name. The
+    /// same rule as the Polar strap's title.
+    static func title(linkedId: String?, known: [Device], discovered: [Device], fallback: String) -> String {
+        guard let linkedId else { return known.first?.name ?? fallback }
+        return known.first { $0.id == linkedId }?.name
+            ?? discovered.first { $0.id == linkedId }?.name
+            ?? fallback
     }
 
     struct Content {

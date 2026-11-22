@@ -54,8 +54,8 @@
   },
   {
    "key": "func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)",
-   "hash": "224336044af5c9ec",
-   "does": "Decides whether a proactive trigger must wait: in .triggerSpeaking only an in-flight LLM task or synthesizer audio blocks; otherwise an LLM task or streaming response, synthesizer speaking in .speaking, a non-empty partial transcript in .listening, or .thinking state each block; else not busy.",
+   "hash": "148e6fff7bf37b64",
+   "does": "Decides whether a proactive trigger must wait: in .triggerSpeaking only an in-flight LLM task or synthesizer audio (a coach line waiting for the audio session counts, as the controller passes it) blocks; otherwise an LLM task or streaming response, synthesizer speaking in .speaking, or a non-empty partial transcript in .listening each block; else not busy.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -79,12 +79,7 @@
     {
      "at": "+14",
      "cond": "state == .listening && hasPartialTranscript",
-     "effect": "true: busy (protects in-progress dictation from being wiped); false: continue"
-    },
-    {
-     "at": "+15",
-     "cond": "state == .thinking",
-     "effect": "true: busy; false: falls to return false (trigger may play now)"
+     "effect": "true: busy (protects in-progress dictation from being wiped); false: return false (trigger may play now)"
     }
    ],
    "deps": {}

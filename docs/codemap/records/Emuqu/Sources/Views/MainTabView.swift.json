@@ -227,7 +227,7 @@
   },
   {
    "key": "var MainTabView.body",
-   "hash": "b7b5be3b912ae78c",
+   "hash": "cf3f3b04d12a6c32",
    "does": "Emits a keyboard-perf signpost, renders tabsWithObservers with the report mail sheet (its PDF deleted once the sheet goes, discardReportPDF), the 'Couldn't prepare report' alert (shown while reportPrepError is set; OK clears it) and the recovery-detail sheet for selectedReportSession.",
    "entry": "SwiftUI body; sheet/alert closures driven by @State.",
    "calls": [
@@ -237,7 +237,8 @@
     "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportMailSheet(_:)",
     "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportSheet(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.discardReportPDF(_:next:)"
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.discardReportPDF(_:next:)",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.reportPrepErrorBinding"
    ],
    "reads": [],
    "writes": [],
@@ -254,19 +255,41 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.keyboardPerfSignpost": "307d74d767ff8c77",
     "Emuqu/Sources/Utilities/KeyboardPerfSignpost.swift::func KeyboardPerfSignpost.event(_:)": "066d90ca11e8f12b",
     "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.discardReportPDF(_:next:)": "b82b62d3032a197d",
-    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportMailSheet(_:)": "09dba98405966421",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportMailSheet(_:)": "f559375f3dd63a95",
     "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportSheet(_:)": "9c52c06512077acc",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.reportPrepErrorBinding": "b927a70f4e11b94e",
     "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.tabsWithObservers": "efe9548134c6ec8c"
    }
   },
   {
+   "key": "var MainTabView.reportPrepErrorBinding",
+   "hash": "4ca7b6adbd060b30",
+   "does": "Bool binding for the 'Couldn't prepare report' alert: true while reportPrepError is set; setting false clears it.",
+   "entry": "SwiftUI reads/writes it through the alert",
+   "calls": [],
+   "reads": [
+    "mem:MainTabView.reportPrepError"
+   ],
+   "writes": [
+    "mem:MainTabView.reportPrepError"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "set to false",
+     "effect": "reportPrepError = nil"
+    }
+   ],
+   "deps": {}
+  },
+  {
    "key": "func MainTabView.reportMailSheet(_:)",
-   "hash": "3b490227342c6a4f",
-   "does": "Report delivery sheet: Mail composer pre-filled with subject 'Emuqu report', training-email recipient (or the default recipient) and CC, attaching the PDF; falls back to the system share sheet when no mail account is configured.",
+   "hash": "80b31c1b9c7f25a5",
+   "does": "Report delivery sheet: Mail composer pre-filled with subject 'Emuqu report', the workout-report recipient (resolvedTrainingEmailRecipient: training → recovery → general, blank fields skipped) and the general CC, attaching the PDF; falls back to the system share sheet when no mail account is configured.",
    "entry": "SwiftUI .sheet(item: pendingReportMailURL).",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailRecipient",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC",
     "ext:MFMailComposeViewController.canSendMail",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.makeUIViewController(context:)",
@@ -286,13 +309,13 @@
     },
     {
      "at": "+4",
-     "cond": "defaultTrainingEmailRecipient ?? resolvedDefaultEmailRecipient, then .map ?? []",
-     "effect": "training recipient first, else the general default recipient, else no recipient"
+     "cond": "resolvedTrainingEmailRecipient nil",
+     "effect": "no recipient"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "91eeb80e18c9f867",
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient": "41fd2fc8b37365a4",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "dac42d076ea6279c",
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailRecipient": "19fcbec0d072481a",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a",
@@ -398,16 +421,16 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/BaselineTracker.swift::var BaselineTracker.daysCollected": "ea6ad7424667b139",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "69a10b530dba329d",
-    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.rescoreReport(_:method:)": "5568f1332bfb0774",
-    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.rescoreReportAt(_:targetMs:)": "73bdab59c3608238",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::init RecoveryScoreDetailView(session:result:recentSessions:baselineStats:totalSessionCount:onReanalyze:onReanalyzeAt:)": "7b44e54e8cb657d9"
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "d01d388b13fd04b5",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.rescoreReport(_:method:)": "6b148ad56fdfac9b",
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.rescoreReportAt(_:targetMs:)": "c86d9f079584b589",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::init RecoveryScoreDetailView(session:result:recentSessions:baselineStats:totalSessionCount:onReanalyze:onReanalyzeAt:)": "918c7b0844ad58f0"
    }
   },
   {
    "key": "func MainTabView.rescoreReport(_:method:)",
-   "hash": "1f3fc4c90a463411",
-   "does": "Re-analyzes the session with the chosen window method via collector and, if it returns a session, replaces selectedReportSession so the sheet re-renders.",
+   "hash": "7012380408e2d011",
+   "does": "Re-analyzes the session with the chosen window method via collector and, if it returns a session, replaces selectedReportSession so the sheet re-renders and returns true; returns false when nothing came back, so the detail screen can say the re-analysis stored nothing.",
    "entry": "onReanalyze closure from RecoveryScoreDetailView.",
    "calls": [
     "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reanalyzeSession(_:method:)"
@@ -418,19 +441,24 @@
    ],
    "branches": [
     {
-     "at": "+5",
-     "cond": "reanalyzeSession returned a session",
-     "effect": "assign to selectedReportSession; nil: sheet keeps the old copy, no message"
+     "at": "+6",
+     "cond": "reanalyzeSession returned nil",
+     "effect": "returns false; sheet keeps the old copy"
+    },
+    {
+     "at": "+7",
+     "cond": "a session came back",
+     "effect": "selectedReportSession = updated; returns true"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reanalyzeSession(_:method:)": "a69a07bd40986858"
+    "Emuqu/Sources/Views/MainTabView+Tabs.swift::func MainTabView.reanalyzeSession(_:method:)": "e8ad9f5791361164"
    }
   },
   {
    "key": "func MainTabView.rescoreReportAt(_:targetMs:)",
-   "hash": "d7f85a0f03f23f97",
-   "does": "Manual-window reanalysis at targetMs through the reanalysis service: reanalyzeAtPosition then applyManualAnalysis; on success writes the updated session back to the sheet.",
+   "hash": "d9abc4a6ca474a7b",
+   "does": "Manual-window reanalysis at targetMs through the reanalysis service: reanalyzeAtPosition then applyManualAnalysis; on success writes the updated session back to the sheet and returns true, otherwise returns false.",
    "entry": "onReanalyzeAt closure from RecoveryScoreDetailView.",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService",
@@ -446,7 +474,7 @@
     {
      "at": "+2",
      "cond": "both reanalyzeAtPosition and applyManualAnalysis return non-nil",
-     "effect": "selectedReportSession = updated"
+     "effect": "selectedReportSession = updated, true; otherwise false"
     }
    ],
    "deps": {

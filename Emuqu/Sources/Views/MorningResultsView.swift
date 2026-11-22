@@ -26,6 +26,12 @@ struct MorningResultsView: View {
     /// Required callback - either discard (for new sessions) or simple dismiss
     let onDiscard: () -> Void
 
+    /// What the Discard confirmation tells the user they lose. Discard (shown
+    /// when there is no `onDelete`) throws the reading away, so it always
+    /// asks first; each caller states its own consequence (Trash, baseline,
+    /// an import never saved). Nil falls back to a plain "discards" line.
+    let discardMessage: String?
+
     // Optional callbacks for history view features
     var onDelete: (() -> Void)?
     var onReanalyze: ((HRVSession, WindowSelectionMethod) async -> HRVSession?)?
@@ -63,11 +69,18 @@ struct MorningResultsView: View {
     @State var exportURL: IdentifiableURL?
     @State var emailURL: IdentifiableURL?
     @State var showingReanalyzeConfirmation = false
+    /// The window method picked from the Analysis Window menu, waiting for
+    /// the confirmation: picking one re-scores and re-saves the reading.
+    @State var pendingWindowMethod: WindowSelectionMethod?
+    /// The last re-analysis came back with no session (no beat data, or one
+    /// already running): the score is unchanged and the alert says so.
+    @State var reanalysisDeclined = false
     @State var isManualWindowMode = false
     @State var manualResult: HRVAnalysisResult?
     @State var showReportSectionPicker = false
     @State var showEmailSectionPicker = false
     @State var showingDeleteConfirmation = false
+    @State var showingDiscardConfirmation = false
     @State var showingUnlinkConfirmation = false
     @State var pendingUnlinkSegmentId: UUID?
     @State var removedSegmentIds: Set<UUID> = []
@@ -144,6 +157,7 @@ struct MorningResultsView: View {
         result: HRVAnalysisResult,
         recentSessions: [HRVSession] = [],
         onDiscard: @escaping () -> Void,
+        discardMessage: String? = nil,
         onDelete: (() -> Void)? = nil,
         onReanalyze: ((HRVSession, WindowSelectionMethod) async -> HRVSession?)? = nil,
         onUpdateTags: (([ReadingTag], String?) -> Void)? = nil,
@@ -158,6 +172,7 @@ struct MorningResultsView: View {
         self.result = result
         self.recentSessions = recentSessions
         self.onDiscard = onDiscard
+        self.discardMessage = discardMessage
         self.onDelete = onDelete
         self.onReanalyze = onReanalyze
         self.onUpdateTags = onUpdateTags
@@ -442,77 +457,46 @@ struct MorningResultsView: View {
 
     // First-score explainer sheet (surfaces the existing
     // Help article rather than building new copy).
+    //
+    // The PDF preview and the mail composer share ONE `.sheet(item:)`: two
+    // stacked `.sheet(item:)` modifiers on one view can drop the second on
+    // present (see FitnessTabView's summary sheet).
     private func withSheets(_ content: some View) -> some View {
         content
-            .sheet(isPresented: $showingScoreExplainer) { scoreExplainerSheet }
-            .sheet(item: $exportURL) { identifiable in
-                PDFPreviewView(url: identifiable.url)
+            .sheet(isPresented: $showingScoreExplainer) {
+                RecoveryScoreExplainerSheet { showingScoreExplainer = false }
             }
-            .sheet(item: $emailURL) { identifiable in
-                reportMailComposer(identifiable)
+            .sheet(item: reportFileSheetBinding) { sheet in
+                switch sheet {
+                case .preview(let identifiable): PDFPreviewView(url: identifiable.url)
+                case .mail(let identifiable): reportMailComposer(identifiable)
+                }
             }
     }
 
-    @ViewBuilder
-    private var scoreExplainerSheet: some View {
-        if let article = HelpContent.recoveryScore.articles.first(where: { $0.id == "understanding-score" })?.localized {
-            NavigationStack { scoreExplainerArticle(article) }
-        }
-    }
-
-    private func scoreExplainerArticle(_ article: HelpArticle) -> some View {
-        HelpArticleView(article: article)
-            .toolbar { scoreExplainerToolbar }
-    }
-
-    @ToolbarContentBuilder
-    private var scoreExplainerToolbar: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
-            Button(String(localized: "Done", bundle: LanguageManager.appBundle)) {
-                showingScoreExplainer = false
+    /// The export shown, preview first. Dismissing clears the one shown.
+    private var reportFileSheetBinding: Binding<ReportFileSheet?> {
+        Binding(
+            get: { exportURL.map(ReportFileSheet.preview) ?? emailURL.map(ReportFileSheet.mail) },
+            set: { newValue in
+                guard newValue == nil else { return }
+                if exportURL != nil { exportURL = nil } else { emailURL = nil }
             }
-        }
+        )
     }
 
+    /// The report's mail composer, addressed from the user's recovery-report
+    /// defaults (`RecoveryReportMailComposer`).
     private func reportMailComposer(_ identifiable: IdentifiableURL) -> some View {
-        let reportDate = session.endDate ?? session.startDate
-        let dateStr = reportDate.formatted(date: .abbreviated, time: .omitted)
-        return MailComposerView(
-            subject: String(localized: "Recovery Report – \(dateStr)", bundle: LanguageManager.appBundle),
-            recipients: reportRecipients,
-            ccRecipients: reportCCRecipients,
+        RecoveryReportMailComposer(
+            settings: dependencies.app.settingsManager.settings,
+            reportDate: session.endDate ?? session.startDate,
             attachmentURL: identifiable.url
         )
     }
 
-    // Reading `defaultRecoveryEmailRecipient` alone leaves the
-    // field BLANK when the user has only set the legacy generic
-    // `defaultEmailRecipient` ("reports pre-pop email regressed").
-    // So fall back through the same `resolvedDefaultEmailRecipient`
-    // chain that MainTabView's report mailer + AssistantChatView's
-    // per-message mailer use (recovery → training → legacy
-    // generic). Same for the CC list.
-    private var reportRecipients: [String] {
-        let settings = dependencies.app.settingsManager.settings
-        if let recovery = settings.defaultRecoveryEmailRecipient,
-           !recovery.trimmingCharacters(in: .whitespaces).isEmpty {
-            return [recovery]
-        }
-        return settings.resolvedDefaultEmailRecipient.map { [$0] } ?? []
-    }
-
-    private var reportCCRecipients: [String] {
-        let settings = dependencies.app.settingsManager.settings
-        let recoveryCC = (settings.defaultRecoveryEmailCC ?? "")
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-        if !recoveryCC.isEmpty { return recoveryCC }
-        return settings.resolvedDefaultEmailCC
-    }
-
     private func withDialogs(_ content: some View) -> some View {
-        withSegmentUnlinkFailedAlert(content)
+        withDiscardAndRescoreDialogs(withSegmentUnlinkFailedAlert(content))
             .confirmationDialog(
                 Text(String(localized: "Delete Reading", bundle: LanguageManager.appBundle)),
                 isPresented: $showingDeleteConfirmation,
@@ -529,6 +513,39 @@ struct MorningResultsView: View {
                 isPresented: $showingUnlinkConfirmation,
                 titleVisibility: .visible
             ) { removeSegmentActions } message: { removeSegmentMessage }
+    }
+
+    /// The Discard confirmation, which states what the reading's caller
+    /// loses, and the Analysis Window pick's confirmation (it re-scores and
+    /// re-saves the reading).
+    private func withDiscardAndRescoreDialogs(_ content: some View) -> some View {
+        withReanalysisDeclinedAlert(content)
+            .confirmationDialog(
+                Text(String(localized: "Discard this reading?", bundle: LanguageManager.appBundle)),
+                isPresented: $showingDiscardConfirmation,
+                titleVisibility: .visible
+            ) { discardReadingActions } message: { discardReadingMessage }
+            .confirmationDialog(
+                Text(String(localized: "Re-analyze Session", bundle: LanguageManager.appBundle)),
+                isPresented: pendingWindowMethodBinding,
+                titleVisibility: .visible,
+                presenting: pendingWindowMethod
+            ) { method in
+                windowMethodActions(method)
+            } message: { method in
+                windowMethodMessage(method)
+            }
+    }
+
+    /// Raised by `applyReanalyzedSession` when a re-analysis came back with
+    /// no session: the score on screen and on disk is unchanged.
+    private func withReanalysisDeclinedAlert(_ content: some View) -> some View {
+        content.alert(
+            String(localized: "This reading wasn't re-analyzed. Its score is unchanged.", bundle: LanguageManager.appBundle),
+            isPresented: $reanalysisDeclined
+        ) {
+            Button(String(localized: "OK", bundle: LanguageManager.appBundle), role: .cancel) {}
+        }
     }
 
     /// Raised by `unlinkPendingSegment` when the unlink was not stored.
@@ -549,6 +566,23 @@ struct MorningResultsView: View {
         Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
     }
 
+    /// Discard throws the reading away, so its Tags & Notes edits are dropped
+    /// rather than handed to `onUpdateTags` (a save for a reading about to be
+    /// deleted or rejected), and marked handled so the sheet's onDisappear
+    /// does not hand them off either.
+    @ViewBuilder
+    private var discardReadingActions: some View {
+        Button(String(localized: "Discard", bundle: LanguageManager.appBundle), role: .destructive) {
+            savedTagsAndNotes = SavedTagsAndNotes(tags: vm.selectedTags, notes: vm.notes)
+            onDiscard()
+        }
+        Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {}
+    }
+
+    private var discardReadingMessage: some View {
+        Text(discardMessage ?? String(localized: "This discards the reading.", bundle: LanguageManager.appBundle))
+    }
+
     private var deleteReadingMessage: some View {
         Text(String(localized: "This moves the reading to the Trash. You can restore it from Settings → iCloud & Data → Trash.", bundle: LanguageManager.appBundle))
     }
@@ -562,7 +596,34 @@ struct MorningResultsView: View {
     }
 
     private var reanalyzeMessage: some View {
-        Text(String(localized: "This will re-run the analysis algorithms on your existing RR data. Your raw data is safe and will not be modified.", bundle: LanguageManager.appBundle))
+        Text(String(localized: "This re-runs the analysis on this reading's beat data and saves the new score in place of the current one. The beat data itself is not changed.", bundle: LanguageManager.appBundle))
+    }
+
+    private var pendingWindowMethodBinding: Binding<Bool> {
+        Binding(
+            get: { pendingWindowMethod != nil },
+            set: { if !$0 { pendingWindowMethod = nil } }
+        )
+    }
+
+    @ViewBuilder
+    private func windowMethodActions(_ method: WindowSelectionMethod) -> some View {
+        Button(String(localized: "Re-analyze", bundle: LanguageManager.appBundle)) {
+            pendingWindowMethod = nil
+            reanalysis.applyWindowMethod(method)
+        }
+        Button(String(localized: "Cancel", bundle: LanguageManager.appBundle), role: .cancel) {
+            pendingWindowMethod = nil
+        }
+    }
+
+    /// A past night's pick re-scores that night only; tonight's also becomes
+    /// the method new readings start with (`applyWindowMethod`).
+    private func windowMethodMessage(_ method: WindowSelectionMethod) -> some View {
+        let name = method.displayName
+        return Text(vm.isHistoricalSession
+            ? String(localized: "This re-scores this past reading with \(name) and saves the new score in place of the current one. The beat data itself is not changed.", bundle: LanguageManager.appBundle)
+            : String(localized: "This re-scores the reading with \(name) and saves the new score in place of the current one. New readings will also use \(name). The beat data itself is not changed.", bundle: LanguageManager.appBundle))
     }
 
     @ViewBuilder
@@ -676,7 +737,8 @@ struct MorningResultsView: View {
             // right as the view appears. Detach so the user sees the
             // chart skeleton immediately and the points arrive when
             // the disk read finishes.
-            var archive: SessionArchive { dependencies.storage.sessionArchive }
+            // Resolved on the main actor; the detached task reads only the archive.
+            let archive = dependencies.storage.sessionArchive
             let stored = await Task.detached(priority: .userInitiated) {
                 archive.retrieveOrLog(sessionId, caller: "MorningResultsView.hydrate")
             }.value
@@ -690,55 +752,39 @@ struct MorningResultsView: View {
     // Data loading (fetchHealthKitSleep, fetchLiveTrainingContext, fetchDayTrimp)
     // is handled by MorningResultsViewModel.loadInitialData().
 
-    /// Graceful empty/error state for a session that couldn't
-    /// produce a usable analysis (no HRV metrics, no score), instead of
-    /// a row of near-blank "—" cards. Offers a
-    /// re-analyze retry when raw beat data is on disk, and otherwise lets
-    /// the user dismiss/delete. Kept inside the app's card style + the
-    /// shared EmptyState component used elsewhere.
+    /// The screen for a reading with no usable analysis
+    /// (`UnreadableReadingState`): Re-analyze only when raw beat data is on
+    /// disk and the caller can re-analyze, Delete only when it can delete;
+    /// each asks first through this view's confirmation dialogs.
     private var unreadableSessionState: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                unreadableEmptyState
-
-                // Subjective fallback so the morning still has a takeaway
-                // even when the physiological read failed.
-                unreadableFallbackCard
-            }
-            .padding()
-        }
-        .background(AppTheme.background.ignoresSafeArea())
-    }
-
-    private var unreadableEmptyState: some View {
-        EmptyState(
-            glyph: "waveform.path.ecg",
-            headline: String(localized: "This reading didn't process", bundle: LanguageManager.appBundle),
-            message: String(localized: "We couldn't pull usable heart-rate variability from this session — it may have been too short, too noisy, or interrupted before enough clean data was captured. Your raw data is safe.", bundle: LanguageManager.appBundle),
-            primaryLabel: (vm.hasRawData && onReanalyze != nil)
-                ? String(localized: "Re-analyze", bundle: LanguageManager.appBundle)
-                : nil,
-            primaryAction: { showingReanalyzeConfirmation = true },
-            secondaryLabel: onDelete != nil
-                ? String(localized: "Delete reading", bundle: LanguageManager.appBundle)
-                : nil,
-            secondaryAction: { showingDeleteConfirmation = true }
-        )
-        .padding(.top, 40)
-    }
-
-    private var unreadableFallbackCard: some View {
-        SubjectiveReadinessCard(
+        UnreadableReadingState(
+            canReanalyze: vm.hasRawData && onReanalyze != nil,
+            canDelete: onDelete != nil,
             perceivedReadiness: Binding(
                 get: { vm.displaySession.perceivedReadiness },
                 set: { vm.updatePerceivedReadiness($0) }
             ),
-            quality: vm.displaySession.hrvDataQuality ?? .insufficient
+            quality: vm.displaySession.hrvDataQuality ?? .insufficient,
+            onReanalyze: { showingReanalyzeConfirmation = true },
+            onDelete: { showingDeleteConfirmation = true }
         )
     }
 }
 
 // MARK: - Identifiable URL Wrapper
+
+/// What the report's single file sheet shows: the PDF/CSV preview or the
+/// mail composer, each with its file.
+enum ReportFileSheet: Identifiable {
+    case preview(IdentifiableURL)
+    case mail(IdentifiableURL)
+
+    var id: UUID {
+        switch self {
+        case .preview(let file), .mail(let file): file.id
+        }
+    }
+}
 
 struct IdentifiableURL: Identifiable, Equatable {
     let id = UUID()

@@ -29,7 +29,7 @@ extension WorkoutAIContextBuilder {
     }
 
     private func contextInputs() -> ContextInputs {
-        let loc = recorder.location.currentLocation
+        let loc = recorder.startedLocation?.currentLocation
         let userMaxHR = recorder.settingsProvider().effectiveMaxHR
         return ContextInputs(
             userMaxHR: userMaxHR,
@@ -39,10 +39,7 @@ extension WorkoutAIContextBuilder {
             grade: computeCurrentGradePercent(),
             lastSample: recorder.samplesView.last,
             road: AppDependencies.current.location.roadGeocodingService.current,
-            zones: WorkoutZoneBreakdown.compute(
-                samples: recorder.workoutSamples,
-                userMaxHR: userMaxHR
-            )
+            zones: recorder.liveZoneBreakdown()
         )
     }
 
@@ -67,20 +64,22 @@ extension WorkoutAIContextBuilder {
     /// workout start (see `start()`), so the numbers match what the user saw on
     /// the dashboard ring. Days-until-fresh is the rest forecast (zero added
     /// load); steady-state TSB is the "if I do today's load every day" forecast.
+    /// The live trends come from the recorder's tally (`syncedLiveTrends`),
+    /// read after `contextInputs` updated its zone fold.
     func buildContext(sport: Sport) -> WorkoutAIContext {
-        let inputs = contextInputs()
+        let (inputs, trends) = (contextInputs(), recorder.syncedLiveTrends())
         return WorkoutAIContext(
             sport: sport, nowAt: Date(), sessionStart: inputs.startDate, elapsedSeconds: recorder.elapsedSeconds, heartRate: recorder.currentHR, peakHR: recorder.peakHR, userMaxHR: inputs.userMaxHR, hrDriftPercent: nil, alpha1: recorder.dfa.currentAlpha1,
             band: recorder.dfa.currentBand, alpha1FitQuality: recorder.dfa.fitQuality, alpha1Status: recorder.dfa.status, distanceMeters: recorder.distanceMeters, currentPaceSecPerKm: recorder.currentPaceSecPerKm,
             currentSpeedMS: recorder.currentSpeedMS, cadenceStepsPerMin: recorder.cadenceStepsPerMin, powerWatts: recorder.powerWatts, footPodActive: recorder.footPodActive, currentMETs: inputs.lastSample?.mets, recentSplitPaces: recentSplitPacesSecPerKm(),
-            currentLatitude: inputs.loc?.coordinate.latitude, currentLongitude: inputs.loc?.coordinate.longitude, currentAltitudeMeters: inputs.loc?.altitude, currentHeadingDegrees: inputs.heading, gpsAccuracyMeters: recorder.location.lastHorizontalAccuracy,
+            currentLatitude: inputs.loc?.coordinate.latitude, currentLongitude: inputs.loc?.coordinate.longitude, currentAltitudeMeters: inputs.loc?.altitude, currentHeadingDegrees: inputs.heading, gpsAccuracyMeters: recorder.startedLocation?.lastHorizontalAccuracy,
             elevationGainMeters: recorder.elevationGainMeters, currentGradePercent: inputs.grade, upcomingClimb: computeUpcomingClimb(currentLocation: inputs.loc), routeTopology: computeRouteTopology(currentLocation: inputs.loc), weather: AppDependencies.current.location.weatherService.current,
-            strapConnected: recorder.core.polarManager.connectionState == .connected, strapSilentSec: recorder.strapSilentSeconds(), currentRoadName: inputs.road?.road, currentLocality: inputs.road?.locality, currentAdministrativeArea: inputs.road?.administrativeArea,
-            currentCountryCode: inputs.road?.countryCode, currentCompactAddress: inputs.road?.compactAddress, currentNearestCrossStreet: inputs.road?.nearestCrossStreet, currentNearestIntersection: inputs.road?.nearestIntersection, sessionAverageHR: sessionAverageHR(),
-            reverseSplitDeltaSecPerKm: WorkoutLiveTrends.reverseSplitDeltaSecPerKm(samples: recorder.workoutSamples), liveHRDriftPercent: WorkoutLiveTrends.hrDriftPercent(samples: recorder.workoutSamples),
-            recentHRSlopeBpm: WorkoutLiveTrends.recentHRSlopeBpm(samples: recorder.workoutSamples), aerobicDecouplingPercent: WorkoutLiveTrends.aerobicDecouplingPercent(samples: recorder.workoutSamples),
-            cadenceDriftSpm: WorkoutLiveTrends.cadenceDriftSpm(samples: recorder.workoutSamples), gradeAdjustedPaceSecPerKm: WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace: recorder.currentPaceSecPerKm, gradePercent: inputs.grade),
-            recentSplitGradeAdjustedPaces: WorkoutLiveTrends.recentSplitGradeAdjustedPaces(samples: recorder.workoutSamples), projectedMinutesUntilFade: recorder.liveProjectedMinutesUntilFade(), historicalSportAvgPaceSecPerKm: recorder.cachedHistoricalBaselines.avgPaceSecPerKm,
+            strapConnected: recorder.core.polarManager.connectionState == .connected, strapSilentSec: recorder.strapSilentSeconds(), wristHeartRateLive: recorder.ticker.freshWristHR(now: Date()) != nil,
+            currentRoadName: inputs.road?.road, currentLocality: inputs.road?.locality, currentAdministrativeArea: inputs.road?.administrativeArea,
+            currentCountryCode: inputs.road?.countryCode, currentCompactAddress: inputs.road?.compactAddress, currentNearestCrossStreet: inputs.road?.nearestCrossStreet, currentNearestIntersection: inputs.road?.nearestIntersection, sessionAverageHR: trends.sessionAverageHR,
+            reverseSplitDeltaSecPerKm: trends.reverseSplitDeltaSecPerKm, liveHRDriftPercent: trends.hrDriftPercent, recentHRSlopeBpm: trends.recentHRSlopeBpm, aerobicDecouplingPercent: trends.aerobicDecouplingPercent,
+            cadenceDriftSpm: trends.cadenceDriftSpm, gradeAdjustedPaceSecPerKm: WorkoutLiveTrends.gradeAdjustedPaceSecPerKm(pace: recorder.currentPaceSecPerKm, gradePercent: inputs.grade),
+            recentSplitGradeAdjustedPaces: trends.recentSplitGradeAdjustedPaces, projectedMinutesUntilFade: trends.projectedMinutesUntilFade, historicalSportAvgPaceSecPerKm: recorder.cachedHistoricalBaselines.avgPaceSecPerKm,
             historicalSportAvgHR: recorder.cachedHistoricalBaselines.avgHR, historicalSportAvgAlpha1: recorder.cachedHistoricalBaselines.avgAlpha1, historicalSportSampleCount: recorder.cachedHistoricalBaselines.sampleCount,
             todayRecoveryScore: recorder.cachedTodayReadiness.recoveryScore, todayTrainingReadiness: recorder.cachedTodayReadiness.trainingReadiness, todayATL: recorder.cachedTodayReadiness.atl, todayCTL: recorder.cachedTodayReadiness.ctl, todayTSB: recorder.cachedTodayReadiness.tsb,
             projectedDaysUntilFresh: recorder.cachedTrainingProjection.daysUntilFresh, projectedTSBTomorrowSteadyState: recorder.cachedTrainingProjection.tsbTomorrowSteadyState, recoveryHoursNeeded: recorder.liveRecoveryHoursNeeded(), zone1Sec: inputs.zones.z1Sec,
@@ -90,39 +89,28 @@ extension WorkoutAIContextBuilder {
         )
     }
 
-    /// Running session average HR from the live HR
-    /// sample buffer. Computed inline so we don't allocate a
-    /// running-mean accumulator. Cheap (typical session = a few
-    /// hundred samples; even a 6 h ride is ~21 K samples and
-    /// a sum/count is ~50 µs — invisible against the per-tick
-    /// GPS / DFA work `buildContext` already does).
-    private func sessionAverageHR() -> Double? {
-        let hrs = recorder.workoutSamples.compactMap { $0.heartRate }
-        guard !hrs.isEmpty else { return nil }
-        return Double(hrs.reduce(0, +)) / Double(hrs.count)
-    }
-
     /// Recognise a route the user has explicitly saved to their library.
     /// Match is direction-agnostic: a saved "Daily 1" loop matches whether
     /// the user is walking it the same way as the day they saved it OR in
     /// reverse. Sets `recorder.plannedRoute` + the direction flag so the banner +
     /// AI coach speak about it correctly. Runs first at
-    /// `RouteLibrary.detectionTriggerMeters` of track, then, while nothing
-    /// matches, after each further stretch of that length, so a loop joined
-    /// after a warm-up leg is still recognised.
+    /// `RouteLibrary.detectionTriggerMeters` of GPS distance, then, while
+    /// nothing matches, after each further stretch of that length, so a loop
+    /// joined after a warm-up leg is still recognised. The distance is the
+    /// one the location manager keeps as fixes arrive, so the ticks between
+    /// attempts cost nothing; measuring the whole track each second did not.
     ///
     /// We deliberately do NOT auto-mine random history — only the user's
     /// curated saved library. Surprise auto-binds against random old
     /// workouts created false positives in earlier iterations and made
     /// the "what is the app doing right now" question harder to answer.
     func attemptAutoRouteDetection(sport: Sport) {
-        let track = recorder.location.track
-        let traveled = recorder.trackLengthMeters(track)
+        let traveled = recorder.location.distanceMeters
         guard traveled >= max(RouteLibrary.detectionTriggerMeters, recorder.nextRouteDetectionAtMeters) else { return }
 
         recorder.nextRouteDetectionAtMeters = traveled + RouteLibrary.detectionTriggerMeters
         guard let match = RouteLibrary.findMatch(
-            currentTrack: track,
+            currentTrack: recorder.location.track,
             sport: sport,
             store: AppDependencies.current.location.savedRouteStore
         ) else {
@@ -509,10 +497,10 @@ extension WorkoutAIContextBuilder {
     ///
     /// Computed on the fly from the sample stream: the series is divided into
     /// non-overlapping 1 km chunks using cumulative distance, and the average
-    /// pace of the last up-to-3 completed chunks is returned.
+    /// pace of the last up-to-3 completed chunks is returned. The chunks are
+    /// kept as the buffer grows (`WorkoutLiveTrends.Tally.kilometreChunks`).
     func recentSplitPacesSecPerKm() -> [Double] {
-        guard !recorder.workoutSamples.isEmpty else { return [] }
-        return WorkoutGeometry.kilometreChunks(recorder.workoutSamples).suffix(3).reversed().compactMap { chunk in
+        recorder.syncedLiveTrends().kilometreChunks.suffix(3).reversed().compactMap { chunk in
             let dist = chunk.distEnd - chunk.distStart
             let dur = Double(chunk.tEnd - chunk.tStart)
             guard dist > 0, dur > 0 else { return nil }
@@ -528,8 +516,27 @@ extension WorkoutAIContextBuilder {
     /// `track.last` is always non-nil past the count guard.
     /// Optional binding is used for the refactor-spec "zero magic" rule rather
     /// than a force-unwrap.
+    ///
+    /// A tick reads the grade several times (the coach context, the live
+    /// snapshot, the threshold signals, the grade-adjusted pace); it is worked
+    /// out once per new fix or barometer sample (`recorder.gradeMemo`) and
+    /// read back until the next.
     func computeCurrentGradePercent() -> Double? {
-        let track = recorder.location.track
+        guard let location = recorder.startedLocation else { return nil }
+        let key = WorkoutRecorder.GradeMemo.Key(
+            fixCount: location.track.count,
+            lastFixAt: location.track.last?.timestamp,
+            baroCount: location.barometricSamples.count
+        )
+        if let memo = recorder.gradeMemo, memo.key == key { return memo.grade }
+        let grade = gradeFromTrack(location)
+        recorder.gradeMemo = WorkoutRecorder.GradeMemo(key: key, grade: grade)
+        return grade
+    }
+
+    /// The grade over the trailing window of the track as it stands.
+    private func gradeFromTrack(_ location: WorkoutLocationManager) -> Double? {
+        let track = location.track
         guard track.count >= 2 else { return nil }
         let window = WorkoutGeometry.trailingGradeWindow(track: track)
         guard window.meters >= 50 else { return nil }   // too short to trust

@@ -244,19 +244,18 @@ extension MorningResultsView {
         }
     }
 
-    /// Done (a report with Delete, e.g. History) keeps the Tags & Notes edits.
-    /// Discard throws the reading away, so its edits are dropped rather than
-    /// handed to `onUpdateTags` (a save for a reading about to be deleted or
-    /// rejected), and marked handled so the sheet's onDisappear does not hand
-    /// them off either.
+    /// Done (a report with Delete, e.g. History) keeps the Tags & Notes edits
+    /// and closes. Discard throws the reading away, so it only asks: the
+    /// confirmation (`discardReadingActions`) states what is lost and runs
+    /// `onDiscard`.
     private var doneButton: some View {
         Button {
             if onDelete != nil {
                 saveTagsAndNotesIfChanged()
+                onDiscard()
             } else {
-                savedTagsAndNotes = SavedTagsAndNotes(tags: vm.selectedTags, notes: vm.notes)
+                showingDiscardConfirmation = true
             }
-            onDiscard()
         } label: {
             Label(onDelete != nil ? String(localized: "Done", bundle: LanguageManager.appBundle) : String(localized: "Discard", bundle: LanguageManager.appBundle), systemImage: onDelete != nil ? "checkmark" : "xmark")
                 .frame(maxWidth: .infinity)

@@ -407,8 +407,34 @@
   },
   {
    "key": "func RawRRBackup.backup(points:sessionId:deviceId:captureDate:)",
-   "hash": "73b23ba6f649dec9",
-   "does": "One-shot backup: refuses empty points; via replaceableIndexEntry merges an index the launch could not read (throws while unreadable) and refuses to replace an existing backup with more beats; builds the entry (captureDate = caller's, else the existing row's, else now; integrityHash); notes whether the session was queued for re-encryption (RawBackupSealer.isPending); writeOneShot writes it under a never-reused <uuid>_<ms>.json name and replaces and saves the index row (on a failed save the previous row is restored and the new file removed); only then deletes the session's append-only files and the previous one-shot file (sealer.removeReplacedFile, which queues the session again when a possibly-plaintext old file will not go). Returns the entry.",
+   "hash": "3591b7b675662b08",
+   "does": "One-shot backup on appendQueue (sync), so no append, re-seal or discard of the same session's files runs alongside it: runs backupOnAppendQueue and returns or rethrows its result.",
+   "entry": null,
+   "calls": [
+    "ext:DispatchQueue.sync",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backupOnAppendQueue(points:sessionId:deviceId:captureDate:)"
+   ],
+   "reads": [
+    "mem:RawRRBackup.appendQueue"
+   ],
+   "writes": [
+    "file:RRBackup/<uuid>_<ms>.json (via writeOneShot)",
+    "file:RRBackup/<uuid>_<stamp>.json (previous one-shot file, deleted)",
+    "file:RRBackup/<uuid>_header.json (deleted)",
+    "file:RRBackup/<uuid>_points.jsonl (deleted)",
+    "file:RRBackup/backup_index.json",
+    "mem:RawRRBackup.index",
+    "ud:storage.pendingReencryption.rawBackupIDs"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.backupOnAppendQueue(points:sessionId:deviceId:captureDate:)": "6841f4ffdbcb0ec7"
+   }
+  },
+  {
+   "key": "func RawRRBackup.backupOnAppendQueue(points:sessionId:deviceId:captureDate:)",
+   "hash": "c080871905fddd24",
+   "does": "Body of backup, run on appendQueue (the re-seal, already there, calls it directly through SealableBackupStore). Refuses empty points; via replaceableIndexEntry merges an index the launch could not read (throws while unreadable) and refuses to replace an existing backup with more beats; builds the entry (captureDate = caller's, else the existing row's, else now; integrityHash); notes whether the session was queued for re-encryption (RawBackupSealer.isPending); writeOneShot writes it under a never-reused <uuid>_<ms>.json name and replaces and saves the index row (on a failed save the previous row is restored and the new file removed); only then deletes the session's append-only files and the previous one-shot file (sealer.removeReplacedFile, which queues the session again when a possibly-plaintext old file will not go). Returns the entry.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.replaceableIndexEntry(_:newCount:)",
@@ -440,22 +466,22 @@
      "effect": "throws BackupError.noDataToBackup"
     },
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "index unreadable, or existing row holds more beats than points.count",
      "effect": "throws (index error / wouldReplaceLargerBackup); nothing written"
     },
     {
-     "at": "+6",
+     "at": "+7",
      "cond": "captureDate argument / existing?.captureDate",
      "effect": "captureDate ?? existing.captureDate ?? Date(): caller value wins, else the existing row's date, else now"
     },
     {
-     "at": "+11",
+     "at": "+12",
      "cond": "writeOneShot throws (write or index save)",
      "effect": "throws; old files and old row kept and consistent; the new file is removed when only the save failed"
     },
     {
-     "at": "+14",
+     "at": "+15",
      "cond": "points.count < 100",
      "effect": "logs the small backup; otherwise silent"
     }

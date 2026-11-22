@@ -96,11 +96,13 @@ extension WatchConnectivityBridge: WCSessionDelegate {
     /// when the iPhone wasn't reachable at the time. Without this handler,
     /// any Watch tap that arrived during a backgrounded iPhone state was
     /// silently dropped — the user's "Watch did nothing" complaint.
-    /// Dedupes against the last-seen timestamp of the queued channels
+    /// Dedupes against the last-processed timestamp of the queued channels
     /// (`acceptsQueuedIntent`), so a context delivered again doesn't fire its
     /// action twice. The live `didReceiveMessage` path records no timestamp:
-    /// the Watch sends each intent either live or queued, never both
-    /// (`WatchSessionManager`).
+    /// the Watch sends each intent live or queued, and queues one live only
+    /// when the live send reported a failure (`WatchSessionManager`), so the
+    /// rare intent that arrives both ways is a second End, Pause, Resume or
+    /// acknowledge, which finds its work already done.
     ///
     /// An intent older than `maxQueuedIntentAge`, or past its `expiresAt`, is
     /// dropped: the context is delivered whenever the iPhone app next wakes,
@@ -116,14 +118,15 @@ extension WatchConnectivityBridge: WCSessionDelegate {
     }
 
     /// Whether a queued Watch intent should still be acted on. Dropped when it
-    /// was already processed (its `ts` is not newer than the last one seen),
-    /// is older than `maxQueuedIntentAge`, is past its `expiresAt`, or is a
-    /// stop, pause or resume tapped before the workout now recording began:
+    /// was already processed (its `ts` is not newer than the last one acted
+    /// on), is older than `maxQueuedIntentAge`, is past its `expiresAt`, or is
+    /// a stop, pause or resume tapped before the workout now recording began:
     /// that tap was meant for an earlier workout and must not end this one.
+    /// Only an intent that passes moves the last-processed stamp, so the
+    /// stamp means what its name says.
     private func acceptsQueuedIntent(_ snapshot: [String: Any]) -> Bool {
         let ts = (snapshot["ts"] as? Double) ?? 0
         if ts > 0, ts <= lastProcessedContextTimestamp { return false }
-        if ts > 0 { lastProcessedContextTimestamp = ts }
         guard !isStale(snapshot, ts: ts) else {
             debugLog("[WatchBridge] dropped a queued Watch intent from \(Int(Date().timeIntervalSince1970 - ts)) s ago", level: .warning)
             return false
@@ -132,6 +135,7 @@ extension WatchConnectivityBridge: WCSessionDelegate {
             debugLog("[WatchBridge] dropped a queued Watch workout control tapped before this workout started", level: .warning)
             return false
         }
+        if ts > 0 { lastProcessedContextTimestamp = ts }
         return true
     }
 
@@ -418,15 +422,44 @@ extension WatchConnectivityBridge: WCSessionDelegate {
             "ts": Date().timeIntervalSince1970
         ]
         guard session.isReachable else {
-            session.transferUserInfo(payload)
+            Self.transferLatestUserInfo(payload, on: session)
             return
         }
         // `@Sendable`: WatchConnectivity calls the error handler on its own
         // queue, and a closure inheriting this method's main-actor
         // isolation asserts main at entry. A failure is expected when the
-        // Watch app isn't in the foreground; the state is then queued.
+        // Watch app isn't in the foreground; the state is then queued,
+        // replacing an older queued state (`transferLatestUserInfo`).
         session.sendMessage(payload, replyHandler: nil) { @Sendable _ in
-            WCSession.default.transferUserInfo(payload)
+            WatchConnectivityBridge.transferLatestUserInfo(payload, on: WCSession.default)
+        }
+    }
+
+    /// Asks the Watch to play a coach alert's wrist haptic
+    /// (`WorkoutVoiceCoach.dispatch`). Live `sendMessage` when the Watch is
+    /// reachable, else, or when that send fails, one queued
+    /// `transferUserInfo`, so the haptic plays once. The Watch plays it only
+    /// within a few seconds of `firedAt`: a buzz that lands later no longer
+    /// marks the moment it was about. So the queued alert replaces any coach
+    /// alert still queued (`transferLatestUserInfo`): through a long stretch
+    /// out of reach at most one waits, the newest, rather than every alert of
+    /// the stretch reaching the Watch at once, all too old to play.
+    @MainActor
+    func sendCoachAlertHaptic(urgent: Bool) {
+        guard WCSession.isSupported() else { return }
+        let session = WCSession.default
+        guard session.activationState == .activated, session.isPaired, session.isWatchAppInstalled else { return }
+        let payload: [String: any Sendable] = [
+            MessageKey.type.rawValue: MessageType.coachAlert.rawValue,
+            "urgent": urgent,
+            "firedAt": Date().timeIntervalSince1970
+        ]
+        guard session.isReachable else {
+            Self.transferLatestUserInfo(payload, on: session)
+            return
+        }
+        session.sendMessage(payload, replyHandler: nil) { @Sendable _ in
+            WatchConnectivityBridge.transferLatestUserInfo(payload, on: WCSession.default)
         }
     }
 }

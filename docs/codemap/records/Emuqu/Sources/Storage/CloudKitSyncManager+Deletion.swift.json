@@ -39,14 +39,14 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.performDeleteAllRemoteData()": "431df73ec2c6042f",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.performDeleteAllRemoteData()": "8c22f319e9f40749",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)": "c8d3ddb59d2e3d94"
    }
   },
   {
    "key": "func CloudDeletionCoordinator.performDeleteAllRemoteData()",
-   "hash": "c05a4599fcf17961",
-   "does": "Deletes both custom zones under a 30 s timeout race; on success (or zone already gone) resets local sync state, clears the scrub list and the confirmed-tombstones key, logs, returns true; otherwise false.",
+   "hash": "f51cd2bf7f112cd6",
+   "does": "Under a 30 s timeout race: checks that the signed-in account is one this device may delete from (mayDeleteInSignedInAccount), and only then deletes both custom zones. On success (or zone already gone) turns iCloud Sync off, forgets the recorded iCloud account, resets local sync state, clears the scrub list and the confirmed-tombstones key, logs, returns true; otherwise (account refused, failure or timeout) returns false with nothing deleted here. Nothing recreates the zones until the user turns sync on again.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::var CloudDeletionCoordinator.allCustomZoneIDs",
@@ -54,10 +54,17 @@
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.deleteCustomZonesOnce()",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.remoteDeletionSucceeded(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.forget()",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.clearSanitizeDripState()",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.forgetConfirmedTombstones()",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.mayDeleteInSignedInAccount()"
    ],
-   "reads": [],
+   "reads": [
+    "ud:cloudkit.accountIdentity",
+    "ud:cloudkit.syncStoppedReason",
+    "net:CloudKit userRecordID"
+   ],
    "writes": [
     "file:<archiveDir>/sync_state.json (removed)",
     "file:<archiveDir>/pending_uploads.json (removed)",
@@ -72,24 +79,93 @@
     "mem:CloudKitSyncManager.lastSyncDate",
     "mem:CloudKitSyncManager.syncState",
     "ck:zone HRVSessions (deleted)",
-    "ck:zone UserSettings (deleted)"
+    "ck:zone UserSettings (deleted)",
+    "mem:SettingsManager.settings.iCloudSyncEnabled",
+    "ud:cloudkit.accountIdentity (removed)",
+    "ud:cloudkit.settingsZoneCreated (removed)"
    ],
    "branches": [
     {
-     "at": "+5",
-     "cond": "remote deletion not counted as success (false, error, or 30 s timeout)",
+     "at": "+3",
+     "cond": "the signed-in account may not be deleted from",
+     "effect": "false inside the race: no zone deleted"
+    },
+    {
+     "at": "+6",
+     "cond": "remote deletion not counted as success (false, error, or 30 s timeout) or account refused",
      "effect": "returns false; local sync state untouched here (caller surfaces 'retry on network')"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.forget()": "71320cd8cae44080",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.clearSanitizeDripState()": "8bea89edbf885d82",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.deleteCustomZonesOnce()": "0ca9454789a3ebee",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.forgetConfirmedTombstones()": "6e67030078e53c4c",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.mayDeleteInSignedInAccount()": "0e40963c396ef1ac",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.remoteDeletionSucceeded(_:)": "b94d95176527d91f",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::var CloudDeletionCoordinator.allCustomZoneIDs": "9b59a27b5aa83580",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.withTimeoutResult(seconds:operation:)": "785d8d6f1fff3139",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()": "bbe42fe440420a22",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resetLocalSyncState()": "0750c9995bad9e7d",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
+  },
+  {
+   "key": "func CloudDeletionCoordinator.mayDeleteInSignedInAccount()",
+   "hash": "facb4223b0273779",
+   "does": "Runs the account check (confirmAccount, which adopts an unrecorded account as a sync would and resets the bookkeeping for a different one). Confirmed → true. Unavailable or a different account → logged, false. Stopped (no account recorded, sync off) → true unless the app earlier stopped sync because the device was signed into a different account, which is logged and false.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.stopReason",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [
+    "ud:cloudkit.accountIdentity",
+    "ud:cloudkit.syncStoppedReason",
+    "mem:CloudAccountIdentity.launch (confirmed, accountChanged, generation)",
+    "net:CloudKit userRecordID"
+   ],
+   "writes": [
+    "ud:cloudkit.accountIdentity (adopted, or forgotten by a stop)",
+    "mem:CloudAccountIdentity.launch (confirmed, accountChanged, generation)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "confirmed",
+     "effect": "true"
+    },
+    {
+     "at": "+4",
+     "cond": "unavailable or different account",
+     "effect": "logged; false"
+    },
+    {
+     "at": "+7",
+     "cond": "stopped (nothing recorded)",
+     "effect": "true unless stopReason is differentAccount (then logged, false)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "08f434f5bf61f50e",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.stopReason": "51e9a5028ec44682",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard": "165d82ae51eae938",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func CloudDeletionCoordinator.forgetConfirmedTombstones()",
+   "hash": "9f05d6d553505726",
+   "does": "Removes the confirmed-tombstones dictionary from UserDefaults.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "ud:cloudkit.confirmedTombstones"
+   ],
+   "branches": [],
+   "deps": {}
   },
   {
    "key": "func CloudDeletionCoordinator.remoteDeletionSucceeded(_:)",
@@ -229,8 +305,8 @@
   },
   {
    "key": "func CloudDeletionCoordinator.performUploadDeletion(sessionId:)",
-   "hash": "ba7aa3deba9d7277",
-   "does": "Unless schema is flagged unavailable: ensures the zone and flags the remote record deleted (flagRecordDeleted). When a newer restore exists on another device, yieldToRestore (adopted, unless the session was deleted forever here); else noteDeletionConfirmed (confirmation time, sync state, and for a session deleted forever its deletion mark dropped). Schema errors flag the manager; other errors logged, and the deletion stays unconfirmed for the next full sync.",
+   "hash": "8d5f550a69fef334",
+   "does": "Unless schema is flagged unavailable: ensures the zone and flags the remote record deleted (flagRecordDeleted). When a newer restore exists on another device, yieldToRestore (adopted, unless the session was deleted forever here); else noteDeletionConfirmed (confirmation time, sync state, and for a session deleted forever its deletion mark dropped). A zoneNotFound or userDeletedZone means the iCloud data was deleted: logged and handed to CloudAccountGuard.zoneWasDeleted (sync stops; no tombstone written, nothing recreated). Schema errors flag the manager; other errors logged, and the deletion stays unconfirmed for the next full sync.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.ensureZoneExists()",
@@ -239,7 +315,9 @@
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.noteDeletionConfirmed(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.flagSchemaUnavailable(reason:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()"
    ],
    "reads": [
     "mem:CloudKitSyncManager.schemaUnavailable"
@@ -252,7 +330,8 @@
     "file:<archiveDir>/sync_state.json",
     "file:<archiveDir>/record_versions.json",
     "ck:HRVSession/HRVSessions",
-    "archive:deletedIds"
+    "archive:deletedIds",
+    "mem:SettingsManager.settings.iCloudSyncEnabled (when the zone is gone)"
    ],
    "branches": [
     {
@@ -267,22 +346,30 @@
     },
     {
      "at": "+9",
-     "cond": "error thrown",
+     "cond": "CKError zoneNotFound or userDeletedZone",
+     "effect": "log; zoneWasDeleted stops sync"
+    },
+    {
+     "at": "+14",
+     "cond": "any other error thrown",
      "effect": "handle below"
     },
     {
-     "at": "+10",
+     "at": "+15",
      "cond": "permanent schema error",
      "effect": "flagSchemaUnavailable and return; else debug log (retried next full sync since not confirmed)"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()": "733581b41076e82a",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.flagRecordDeleted(_:)": "748de443eb227101",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.noteDeletionConfirmed(_:)": "c4e9fad4178a6565",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.yieldToRestore(_:)": "11942c62f7c61056",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.ensureZoneExists()": "33769eb1794473a5",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.ensureZoneExists()": "abab41edf9cbe471",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.flagSchemaUnavailable(reason:)": "6fe5c2e2d14e16e4",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "74297ef5c534df6c",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard": "165d82ae51eae938",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -359,7 +446,7 @@
     "Emuqu/Sources/Storage/Archive+Trash.swift::var ForgottenSessions.ids": "1c0f4f2c06999790",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.noteTombstoneConfirmed(_:)": "344b8204155ec2fb",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "8a446a48eda5e5d6",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncState()": "9f02f3a5e243f331",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncState()": "09c730da3b3dcafc",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -452,10 +539,12 @@
   },
   {
    "key": "func CloudDeletionCoordinator.reconcileLocalDeletions()",
-   "hash": "b37687cf7cb848ed",
-   "does": "First retries the iCloud live-backup deletes still awaiting deletion for deleted sessions and sessions deleted forever (CloudKitLiveBackupManager.retryAwaitingDeletion). Then takes deletions not confirmed within 24 h (pruning confirmations of no-longer-deleted ids) and runs performUploadDeletion for them with a task group of max 6 concurrent, noting sync progress after each finishes.",
+   "hash": "e0a980d6a4a09a9c",
+   "does": "Writes nothing unless uploads are allowed (sync on, onboarding finished and no Delete All My Data running). First retries the iCloud live-backup deletes still awaiting deletion for deleted sessions, sessions deleted forever, and sessions archived here and already uploaded (CloudKitLiveBackupManager.retryAwaitingDeletion). Then takes deletions not confirmed within 24 h (pruning confirmations of no-longer-deleted ids) and runs performUploadDeletion for them with a task group of max 6 concurrent, noting sync progress after each finishes.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.deletedIds",
     "Emuqu/Sources/Storage/Archive+Trash.swift::var ForgottenSessions.ids",
     "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.retryAwaitingDeletion(among:)",
@@ -468,7 +557,12 @@
     "mem:SessionArchive.deletedSessionIds",
     "ud:cloudkit.confirmedTombstones",
     "ud:sessionRecovery.forgottenBackupIds",
-    "ud:cloudkit.liveBackup.awaitingDeletion"
+    "ud:cloudkit.liveBackup.awaitingDeletion",
+    "mem:UserSettings.iCloudSyncEnabled",
+    "mem:UserSettings.hasCompletedOnboarding",
+    "mem:CloudKitSyncState.uploadedSessionIds",
+    "archive:SessionArchive.index",
+    "mem:PurgeGate.state"
    ],
    "writes": [
     "mem:CloudKitSyncManager.lastSyncProgressAt",
@@ -477,51 +571,63 @@
    ],
    "branches": [
     {
-     "at": "+4",
+     "at": "+1",
+     "cond": "cloudUploadsAllowed false (sync off, onboarding unfinished, or a purge running)",
+     "effect": "returns; nothing written to iCloud"
+    },
+    {
+     "at": "+6",
      "cond": "nothing due",
      "effect": "returns"
     },
     {
-     "at": "+8",
+     "at": "+10",
      "cond": "initial fill loop",
      "effect": "starts up to 6 tasks"
     },
     {
-     "at": "+13",
+     "at": "+15",
      "cond": "each finished task",
      "effect": "notes progress and starts the next"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.deletedIds": "7177e9e74ed5798e",
     "Emuqu/Sources/Storage/Archive+Trash.swift::var ForgottenSessions.ids": "1c0f4f2c06999790",
     "Emuqu/Sources/Storage/CloudKitLiveBackupManager.swift::func CloudKitLiveBackupManager.retryAwaitingDeletion(among:)": "c1d83c956d30d0ed",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.addDeletionTask(to:from:)": "286bef847722bd78",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.addDeletionTask(to:from:)": "64050c114571ded0",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.tombstonesDue(among:)": "40d85bbf53613096",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.noteSyncProgress()": "230cd5464dd541a4",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "c183270cf259e429",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func CloudDeletionCoordinator.addDeletionTask(to:from:)",
-   "hash": "1725b3842a6ed75a",
-   "does": "Adds one performUploadDeletion task for the iterator's next id unless the task is cancelled or ids are exhausted.",
+   "hash": "06d33b22fed85ae3",
+   "does": "Adds one performUploadDeletion task for the iterator's next id unless the task is cancelled, the iCloud account is no longer confirmed, or ids are exhausted.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.deletion",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.performUploadDeletion(sessionId:)"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.performUploadDeletion(sessionId:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed"
    ],
-   "reads": [],
+   "reads": [
+    "mem:CloudAccountIdentity.launch",
+    "ud:cloudkit.accountIdentity"
+   ],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "Task cancelled or iterator exhausted",
+     "cond": "Task cancelled, account not confirmed, or iterator exhausted",
      "effect": "adds nothing"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.performUploadDeletion(sessionId:)": "b74e0f0538e2c2dd",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed": "80bbf49d58eb35ac",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.performUploadDeletion(sessionId:)": "4a085168eb2a07c5",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.deletion": "3b5fbf88f40204e7"
    }
   },

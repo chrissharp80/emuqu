@@ -32,10 +32,10 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindBatteryAndReconnect()": "b3c47cdc5e17c7f6",
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindCloudSyncBaseline()": "be9e52fadf4ffbe9",
-    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindConnectionState()": "9d1e0d0865f9fd48",
-    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindHealthKitSleep()": "0d1817e0201e826f",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindConnectionState()": "90c708ecb1887f38",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindHealthKitSleep()": "82defc160efac1a8",
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindPolarErrorForwarding()": "ba0358c62b60c5a6",
-    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindRecordingStateTracking()": "dd41c106d3ba207b",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindRecordingStateTracking()": "61cc98e20c10588b",
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindSimplePropertyProxies()": "fdf58e6f450bd3d2",
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.bindStreamingState()": "e11653b3888afc27"
    }
@@ -68,15 +68,18 @@
   },
   {
    "key": "func CollectorSessionControl.bindRecordingStateTracking()",
-   "hash": "abeded0b2cd4c60f",
-   "does": "Observes polarManager.isRecordingOnDevice (with initial delivery): mirrors it into DeviceStatus.isRecordingOnDevice and moves the recording phase idle↔deviceRecording. It never sets isCollecting from the strap (a strap recording alone is not a live session of this app, e.g. one left by a crash); when the strap stops while the phase is .deviceRecording it ends that device recording's collection (isCollecting=false) along with the phase.",
+   "hash": "f81033aff4d33271",
+   "does": "Observes polarManager.isRecordingOnDevice (with initial delivery): mirrors it into DeviceStatus.isRecordingOnDevice and moves the recording phase idle↔deviceRecording, except that a live workout's backup recording leaves the phase idle. It never sets isCollecting from the strap (a strap recording alone is not a live session of this app, e.g. one left by a crash); when the strap stops while the phase is .deviceRecording it ends that device recording's collection (isCollecting=false) along with the phase.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)"
+    "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveWorkout"
    ],
    "reads": [
     "mem:PolarManager.isRecordingOnDevice",
-    "mem:SessionState.recordingPhase"
+    "mem:SessionState.recordingPhase",
+    "mem:RecorderBox.recorder"
    ],
    "writes": [
     "mem:DeviceStatus.isRecordingOnDevice",
@@ -86,7 +89,7 @@
    "branches": [
     {
      "at": "+3",
-     "cond": "strap recording AND phase is .idle",
+     "cond": "strap recording AND phase is .idle AND no workout is live",
      "effect": "phase → .deviceRecording (isCollecting untouched)"
     },
     {
@@ -98,6 +101,8 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isCollecting": "f52c78dcfaca1b83",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveWorkout": "d06f4707871366fb",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "d39519f741795634",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
     "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)": "45b1e058ecfcb78e"
    }
@@ -133,8 +138,8 @@
   },
   {
    "key": "func CollectorSessionControl.bindConnectionState()",
-   "hash": "3279ef9d2e321b1b",
-   "does": "Observes polarManager.connectionState (initial delivery): sets DeviceStatus.isDeviceConnected/connectionState and refreshes the cached recent paused session.",
+   "hash": "5597e23d83e88241",
+   "does": "Observes polarManager.connectionState (initial delivery): sets DeviceStatus.isDeviceConnected/connectionState, and when the link comes up or goes down (.connected or .disconnected, not the scanning and connecting steps between) refreshes the cached recent paused session.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)",
@@ -149,7 +154,13 @@
     "mem:DeviceStatus.connectionState",
     "mem:RRCollector.recentPausedSession"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "state is .scanning or .connecting",
+     "effect": "no paused-session refresh"
+    }
+   ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.refreshRecentPausedSession()": "7578817ca9aeab65",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
@@ -387,7 +398,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.handleReconnectExhaustedDuringOvernight()": "f11c96f05498a41b",
-    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()": "e2c2ceb778dab145",
+    "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.finalizeFromPause()": "e43638f1b8611004",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.batteryLevel": "269f485132940e8b",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.control": "0683f5749d445997",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
@@ -454,7 +465,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)": "3d7369730ef4c061",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.rebuildBaselineOffMain(replacing:)": "451afcfb546a3106",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
     "Emuqu/Sources/Utilities/ObservationLoop.swift::func ObservationLoop.observe(_:initial:read:onChange:)": "45b1e058ecfcb78e"
    }
@@ -476,19 +487,20 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.findRecentPausedSessionOffMain(archive:maxGap:)": "fddc6c9730ef95fe",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.findRecentPausedSessionOffMain(archive:maxGap:)": "3b9c61b4ec04d6b3",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.recentPausedSession": "2bc9acb8a50233f0",
     "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.effectiveMergeGapSeconds": "ec9bf42598061022"
    }
   },
   {
    "key": "func CollectorSessionControl.findRecentPausedSessionOffMain(archive:maxGap:)",
-   "hash": "bccd85332e299564",
-   "does": "Pure off-main: among overnight archive entries whose end (entry.endDate, else its start) is within maxGap, returns the first paused session paused within maxGap, else the first complete one ended within maxGap. Filtering by the end, not the start, finds a night paused or finished minutes ago that began hours earlier.",
+   "hash": "5d42170eba34e25a",
+   "does": "Pure off-main: among overnight archive entries whose end (entry.endDate, else its start) is within maxGap, returns the first paused session paused within maxGap that no archived segment was resumed from (wasResumed), else the first complete one ended within maxGap. Filtering by the end, not the start, finds a night paused or finished minutes ago that began hours earlier.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.wasResumed(_:entries:)"
    ],
    "reads": [
     "archive:entries",
@@ -502,30 +514,60 @@
      "effect": "returns nil"
     },
     {
-     "at": "+7",
+     "at": "+8",
      "cond": "entry ended (endDate ?? date) before now - maxGap",
      "effect": "not loaded"
     },
     {
-     "at": "+10",
+     "at": "+11",
      "cond": "paused session pausedDate nil",
      "effect": "treated as distantPast → excluded"
     },
     {
      "at": "+12",
+     "cond": "a segment was resumed from the paused session",
+     "effect": "excluded"
+    },
+    {
+     "at": "+14",
      "cond": "a paused candidate exists",
      "effect": "returns it (paused wins)"
     },
     {
-     "at": "+14",
+     "at": "+16",
      "cond": "complete session endDate nil",
      "effect": "treated as distantPast → excluded; none → nil"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Collection/RRCollector+Bindings.swift::func CollectorSessionControl.wasResumed(_:entries:)": "1a5665c1246695be",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func loaded(_:)": "93a609e81331581b",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweightOrLog(_:caller:)": "22b038917d821ea6"
+   }
+  },
+  {
+   "key": "func CollectorSessionControl.wasResumed(_:entries:)",
+   "hash": "0ee48260991090cf",
+   "does": "Whether any archive entry is a segment resumed from the paused session (SessionRecoveryMath.isResumedSegment, with the entry's end, or its start when it has none).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.isResumedSegment(segmentId:segmentLinks:segmentEnd:parentId:parentLinks:parentPausedAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "entry has no endDate",
+     "effect": "its start stands for its end"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.isResumedSegment(segmentId:segmentLinks:segmentEnd:parentId:parentLinks:parentPausedAt:)": "cb08443c01c4b526",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
    }
   },
   {
@@ -610,7 +652,7 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery",
-    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.repairMergeDataLoss()"
+    "Emuqu/Sources/Collection/RRCollector+MergeRepair.swift::func SessionRecoveryCoordinator.repairMergeDataLoss()"
    ],
    "reads": [
     "ud:UserDefaultsKeys.mergeDataLossRepaired"
@@ -632,7 +674,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.repairMergeDataLoss()": "f310170a7903550f",
+    "Emuqu/Sources/Collection/RRCollector+MergeRepair.swift::func SessionRecoveryCoordinator.repairMergeDataLoss()": "f310170a7903550f",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::var RRCollector.recovery": "d39519f741795634",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }

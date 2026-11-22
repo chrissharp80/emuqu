@@ -20,17 +20,16 @@ extension SessionArchive {
     /// vanish from the user's timeline even though its file was sitting right
     /// there, intact. Only genuinely missing files (no entry to fall back to)
     /// get dropped.
+    ///
+    /// Throws when the directory cannot be listed (nothing was changed) or
+    /// when the rebuilt index cannot be saved (memory holds the rebuilt index,
+    /// the file still holds the old one), so the caller never reports a
+    /// repair that did not land as complete.
     @discardableResult
-    func repairArchive() -> Int {
+    func repairArchive() throws -> Int {
         archiveLock.lock()
         defer { archiveLock.unlock() }
-        let files: [URL]
-        do {
-            files = try fileManager.contentsOfDirectory(at: archiveDirectory, includingPropertiesForKeys: nil)
-        } catch {
-            debugLog("[Archive] Repair: Could not list directory: \(error.localizedDescription)")
-            return 0
-        }
+        let files = try archiveFiles()
         index = rebuiltIndex(from: files).sorted { $0.date > $1.date }
         // Dropped now, not by `saveIndex`: a save that fails before it gets
         // there would leave them serving the index this repair replaced.
@@ -40,8 +39,20 @@ extension SessionArchive {
             try saveIndex()
         } catch {
             debugLog("[Archive] ⚠️ Failed to save index after repair: \(error)")
+            throw error
         }
         return index.count
+    }
+
+    /// The archive directory's entries; a listing that fails is logged and
+    /// rethrown. Caller holds `archiveLock`.
+    private func archiveFiles() throws -> [URL] {
+        do {
+            return try fileManager.contentsOfDirectory(at: archiveDirectory, includingPropertiesForKeys: nil)
+        } catch {
+            debugLog("[Archive] Repair: Could not list directory: \(error.localizedDescription)")
+            throw error
+        }
     }
 
     private func rebuiltIndex(from files: [URL]) -> [SessionArchiveEntry] {

@@ -546,12 +546,10 @@ extension EmuquApp {
     /// only on the coordinator's housekeeping gate (dashboard ready, or 6 s).
     /// Reason: a missing CloudKit zone makes every sync cycle fail with
     /// "Zone does not exist" for each pending session, hammering CPU +
-    /// battery. The zone recreate
-    /// (CloudKitSyncManager.recreateZoneAfterNotFound) needs to
-    /// actually RUN to heal that state. If we skip sync entirely
-    /// in LPM, the zone stays broken forever and the app stays
-    /// slow forever. After the heal, future syncs are cheap (no
-    /// errors to retry).
+    /// battery. The sync that finds it gone
+    /// (`CloudAccountGuard.zoneWasDeleted`) needs to actually RUN to stop
+    /// sync and say why. If we skip sync entirely in LPM, the failures
+    /// repeat forever and the app stays slow forever.
     ///
     /// Not before onboarding is finished: the Backup page is where the user
     /// says whether to sync, and a reinstall would pull its old sessions
@@ -718,7 +716,9 @@ extension EmuquApp {
     /// never bumped `sleepDataVersion`, so the morning sleep didn't
     /// auto-update — the user had to open the Sleep section and tap
     /// "Refresh". Combined with the scenePhase-active re-pull in
-    /// MainTabView, the morning sleep self-corrects.
+    /// MainTabView, the morning sleep self-corrects. The vitals observer
+    /// starts with it, for the same reason: the Watch writes a night's
+    /// vitals hours after wake, whether or not the night was streamed.
     ///
     /// The observer is started before the authorization request as well as
     /// after it. When a release adds read types, the request waits for a
@@ -729,6 +729,7 @@ extension EmuquApp {
     /// sheet grants.
     func requestHealthKitAuthorizationWithRetry(collector: RRCollector) async {
         collector.healthKit.startObservingSleepData()
+        collector.healthKit.startObservingVitalsData()
         for attempt in 1 ... 2 {
             if await authorizeHealthKitOnce(collector: collector, attempt: attempt) { return }
             await sleepQuietly(1_500_000_000, context: "requestHealthKitAuthorizationWithRetry")
@@ -743,6 +744,7 @@ extension EmuquApp {
             try await collector.healthKit.requestAuthorization()
             NSLog("[App][hk] authorization request returned (attempt \(attempt))")
             collector.healthKit.startObservingSleepData()
+            collector.healthKit.startObservingVitalsData()
             return true
         } catch {
             return !Self.isRetryableAuthTimeout(error, attempt: attempt)

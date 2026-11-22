@@ -8,9 +8,12 @@ import Foundation
 // <ele>. Time is ISO-8601 UTC. Name + sport go in <metadata>.
 //
 // Every caller passes a track rebuilt by `decode`, whose fix times are spread
-// evenly over the session because the stored polyline carries none. Importers
-// need a <time> per point to treat the file as an activity, so the times stay,
-// and the <desc> says they are spread evenly (pauses don't show as stops).
+// evenly over the session because the polyline carries none. A workout that
+// stored when each fix was taken (`WorkoutMetadata.gpsFixTimes`) has its
+// points put back at those times (`timedAsRecorded`). Without them, importers
+// still need a <time> per point to treat the file as an activity, so the even
+// times stay, and the <desc> says they are spread evenly (pauses don't show as
+// stops).
 //
 // This is what iSmoothRun / Strava / Garmin Connect / WorkOutDoors all
 // consume natively — the lowest-common-denominator workout format. If the
@@ -23,8 +26,10 @@ enum GPXExporter {
         let started = session.startDate
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime]
-        var xml = header(sport: sport, started: started, summary: summaryDesc(session: session), iso: iso)
-        xml += trackSegment(track, iso: iso)
+        let timed = timedAsRecorded(track, metadata: metadata)
+        let summary = summaryDesc(session: session, timesRecorded: recordedFixTimes(metadata, count: track.count) != nil)
+        var xml = header(sport: sport, started: started, summary: summary, iso: iso)
+        xml += trackSegment(timed, iso: iso)
         xml += """
             </trkseg>
           </trk>
@@ -41,10 +46,53 @@ enum GPXExporter {
     /// goes in the metadata `<desc>` instead: anyone opening the file in a text
     /// editor sees their preferred units at the top, while any downstream
     /// fitness app continues to parse correctly.
-    private static func summaryDesc(session: HRVSession) -> String {
+    private static func summaryDesc(session: HRVSession, timesRecorded: Bool) -> String {
         let imperial = UnitsPreferenceStore.current.resolved == .imperial
         let totals = summaryTotals(session: session, imperial: imperial).map { " \($0)." } ?? ""
-        return "Emuqu export (preferred units: \(imperial ? "imperial" : "metric")).\(totals) Machine-readable payload below is metric per GPX 1.1 spec. Point times are spread evenly across the session, so pauses don't appear as stops."
+        return "Emuqu export (preferred units: \(imperial ? "imperial" : "metric")).\(totals) Machine-readable payload below is metric per GPX 1.1 spec. \(pointTimesNote(recorded: timesRecorded, points: "Point"))"
+    }
+
+    /// What the export says about its point times: recorded, or spread evenly
+    /// (`points` names the points: "Point", "Trackpoint").
+    static func pointTimesNote(recorded: Bool, points: String) -> String {
+        recorded
+            ? "\(points) times are the times the GPS fixes were taken."
+            : "\(points) times are spread evenly across the session, so pauses don't appear as stops."
+    }
+
+    // MARK: - Recorded fix times
+
+    /// The times the workout's GPS fixes were taken
+    /// (`WorkoutMetadata.gpsFixTimes`, written by
+    /// `WorkoutAnalyzer.encodeFixTimes`), one per fix of a `count`-fix track.
+    /// Nil when none were stored, they cannot be read, or their number is not
+    /// the track's.
+    static func recordedFixTimes(_ metadata: WorkoutMetadata?, count: Int) -> [Date]? {
+        guard count > 0, let data = metadata?.gpsFixTimes, let encoded = String(data: data, encoding: .utf8) else { return nil }
+        var index = encoded.startIndex
+        var tenths = 0
+        var times: [Date] = []
+        while index < encoded.endIndex {
+            guard let delta = decodeValue(encoded, &index) else { return nil }
+            let (sum, overflow) = tenths.addingReportingOverflow(delta)
+            guard !overflow else { return nil }
+            tenths = sum
+            times.append(Date(timeIntervalSinceReferenceDate: Double(tenths) / 10))
+        }
+        return times.count == count ? times : nil
+    }
+
+    /// `track` with each fix at the time it was taken when the workout stored
+    /// them (`recordedFixTimes`); unchanged otherwise.
+    static func timedAsRecorded(_ track: [CLLocation], metadata: WorkoutMetadata?) -> [CLLocation] {
+        guard let times = recordedFixTimes(metadata, count: track.count) else { return track }
+        return zip(track, times).map { fix, time in
+            CLLocation(
+                coordinate: fix.coordinate, altitude: fix.altitude,
+                horizontalAccuracy: fix.horizontalAccuracy, verticalAccuracy: fix.verticalAccuracy,
+                timestamp: time
+            )
+        }
     }
 
     /// "Totals: distance 5.20 km, elevation gain 120 m, duration 28:40" with
@@ -109,9 +157,19 @@ enum GPXExporter {
         return xml
     }
 
-    /// Write a GPX export to the app's temporary directory and return the
-    /// resulting file URL. Caller is responsible for presenting a share sheet.
+    /// Write a GPX export to the export folder (`ExportFile`, complete file
+    /// protection) and return the resulting file URL. Caller is responsible
+    /// for presenting a share sheet.
     static func writeToTempFile(session: HRVSession, track: [CLLocation]) throws -> URL {
+        let file = try pendingFile(session: session, track: track)
+        let url = try file.write()
+        debugLog("[GPXExporter] wrote \(file.data.count) bytes to \(url.path) (track=\(track.count) points)")
+        return url
+    }
+
+    /// The GPX export in memory, named `<sport>-<UTC start>.gpx`, for writing
+    /// when the user shares it. Throws when the text cannot be encoded.
+    static func pendingFile(session: HRVSession, track: [CLLocation]) throws -> ExportFile.Pending {
         let gpx = export(session: session, track: track)
         let sport = session.workoutMetadata?.sport.rawValue ?? "workout"
         // Safe filename: YYYYMMDD-HHMMSS, no colons (share-sheet quirks), in
@@ -122,15 +180,12 @@ enum GPXExporter {
         fmt.dateFormat = "yyyyMMdd-HHmmss"
         fmt.timeZone = TimeZone(secondsFromGMT: 0)
         let filename = "\(sport)-\(fmt.string(from: session.startDate)).gpx"
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
         guard let data = gpx.data(using: .utf8) else {
             throw NSError(domain: "GPXExporter", code: -1, userInfo: [
                 NSLocalizedDescriptionKey: String(localized: "Couldn't create the GPX file.", bundle: LanguageManager.appBundle)
             ])
         }
-        try data.write(to: url, options: .atomic)
-        debugLog("[GPXExporter] wrote \(data.count) bytes to \(url.path) (track=\(track.count) points)")
-        return url
+        return ExportFile.Pending(name: filename, data: data)
     }
 
     // MARK: - Polyline decode

@@ -229,12 +229,12 @@ extension WorkoutSessionLifecycle {
     /// Best-effort — if auth isn't granted or the API call fails,
     /// the in-app session is canonical and unaffected.
     private func exportToHealthKitIfAvailable(_ session: HRVSession) {
-        let healthStore = recorder.core.healthKit.healthStore
+        let healthKit = recorder.core.healthKit
         let weight = recorder.settingsProvider().effectiveBodyWeightKg
         let archive = recorder.core.archive
         Task(priority: .utility) {
             await Self.exportWorkoutToHealthKit(
-                session: session, store: healthStore, bodyWeightKg: weight, archive: archive
+                session: session, healthKit: healthKit, bodyWeightKg: weight, archive: archive
             )
         }
     }
@@ -257,7 +257,7 @@ extension WorkoutSessionLifecycle {
     @available(iOS 17.0, *)
     private static func exportWorkoutToHealthKit(
         session: HRVSession,
-        store: HKHealthStore,
+        healthKit: HealthKitManager,
         bodyWeightKg: Double,
         archive: SessionArchive
     ) async {
@@ -265,7 +265,7 @@ extension WorkoutSessionLifecycle {
         defer { HealthExportClaims.release(session.id) }
         do {
             try await HealthKitWorkoutExport.export(
-                session: session, store: store, bodyWeightKg: bodyWeightKg
+                session: session, healthKit: healthKit, bodyWeightKg: bodyWeightKg
             )
             stampHealthKitExport(sessionId: session.id, archive: archive)
         } catch {
@@ -285,7 +285,10 @@ extension WorkoutSessionLifecycle {
         do {
             // In place, under the archive lock: the heart-rate-recovery save
             // runs on another thread, and a read-then-write here could put
-            // back a copy without its samples.
+            // back a copy without its samples. A routine stamp: no re-upload
+            // and no `modifiedAt`, so a copy older than another device's edit
+            // cannot overwrite it in iCloud; the stamp rides the next real
+            // upload, and the sync identifiers stop a duplicate export.
             try archive.update(sessionId, requestingReupload: false) { $0.healthKitExportedAt = Date() }
         } catch {
             debugLog("[WorkoutRecorder] HealthKit export stamp not persisted: \(error.localizedDescription)", level: .warning)
@@ -309,12 +312,20 @@ extension WorkoutSessionLifecycle {
     /// drawing + MKMapSnapshotter are off-main-actor friendly and
     /// pinning UI for a 6-page render was the previous pain point.
     /// The bridge stage call hops back to MainActor at the end.
-    @MainActor
+    ///
+    /// Returns the render task, whose value says whether the staged draft
+    /// carries the PDF: the post-summary button waits on it to show the
+    /// outcome and offer a retry; the auto path ignores it.
     /// `settings` defaults to the shared store so the view call site is
     /// unchanged; the recorder passes its own injected provider.
-    static func scheduleCoachReportEmail(for session: HRVSession, settings: UserSettings = AppDependencies.current.app.settingsManager.settingsSnapshot) {
+    @MainActor
+    @discardableResult
+    static func scheduleCoachReportEmail(
+        for session: HRVSession,
+        settings: UserSettings = AppDependencies.current.app.settingsManager.settingsSnapshot
+    ) -> Task<Bool, Never> {
         let inputs = coachReportInputs(for: session, settings: settings)
-        Task.detached(priority: .userInitiated) {
+        return Task.detached(priority: .userInitiated) {
             await renderAndStageCoachReport(inputs)
         }
     }
@@ -326,7 +337,7 @@ extension WorkoutSessionLifecycle {
         let subject: String
         let recipient: String?
         /// Cc for the staged email: the training-category Cc, else the
-        /// general default (`coachReportCC`).
+        /// recovery and general defaults (`UserSettings.resolvedTrainingEmailCC`).
         let ccRecipients: [String]
         let units: UnitsPreference
         let maxHR: Int
@@ -362,8 +373,9 @@ extension WorkoutSessionLifecycle {
     /// and blocks the AI chat (also on MainActor) for the duration, so the
     /// detached render decodes them.
     ///
-    /// Recipient: the training-category default when set, then the recovery
-    /// and general defaults; Cc from `coachReportCC`.
+    /// Recipient and Cc: the training-category default, then the recovery
+    /// and general defaults, blank fields skipped
+    /// (`UserSettings.resolvedTrainingEmailRecipient` / `resolvedTrainingEmailCC`).
     @MainActor
     private static func coachReportInputs(for session: HRVSession, settings: UserSettings) -> CoachReportInputs {
         let archive = AppDependencies.current.storage.sessionArchive
@@ -371,8 +383,8 @@ extension WorkoutSessionLifecycle {
         let recentOvernight = recentOvernightSessions(archive: archive, reportedNightCutoff: dayCutoff, sleepSchedule: settings.sleepSchedule)
         return CoachReportInputs(
             session: session, subject: coachReportSubject(for: session),
-            recipient: settings.defaultTrainingEmailRecipient ?? settings.defaultRecoveryEmailRecipient ?? settings.defaultEmailRecipient,
-            ccRecipients: coachReportCC(settings),
+            recipient: settings.resolvedTrainingEmailRecipient,
+            ccRecipients: settings.resolvedTrainingEmailCC,
             units: UnitsPreferenceStore.current.resolved, maxHR: settings.effectiveMaxHR,
             restingHR: settings.effectiveRestingHR, lthr: settings.effectiveLTHR,
             temperatureUnit: settings.temperatureUnit, sleepSchedule: settings.sleepSchedule,
@@ -386,17 +398,6 @@ extension WorkoutSessionLifecycle {
                 .map(\.sessionId),
             archive: archive
         )
-    }
-
-    /// The Cc list Settings → Reports gives workout reports: the training
-    /// Cc (comma-separated, trimmed) when set, else `resolvedDefaultEmailCC`
-    /// — the rule `FitnessPostSummaryView.trainingMailCC` uses.
-    private static func coachReportCC(_ settings: UserSettings) -> [String] {
-        let trainingCC = (settings.defaultTrainingEmailCC ?? "")
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-        return trainingCC.isEmpty ? settings.resolvedDefaultEmailCC : trainingCC
     }
 
     /// The reported night (the newest overnight session since
@@ -461,8 +462,10 @@ extension WorkoutSessionLifecycle {
     /// `assumeIsolated` trap. See liveRefreshed() doc-comment.
     ///
     /// The past workouts are decoded on a detached task, off the MainActor;
-    /// the conversational body is then a pure function of them.
-    private static func renderAndStageCoachReport(_ inputs: CoachReportInputs) async {
+    /// the conversational body is then a pure function of them. Returns
+    /// whether the PDF was attached (false: the draft was staged with the
+    /// summary only, because the render failed).
+    private static func renderAndStageCoachReport(_ inputs: CoachReportInputs) async -> Bool {
         let liveLoadSnapshot = await TrainingLoadRegistry.liveRefreshed()
         let (archive, ids) = (inputs.archive, inputs.pastWorkoutIds)
         let pastWorkouts = await Task.detached(priority: .userInitiated) {
@@ -481,6 +484,7 @@ extension WorkoutSessionLifecycle {
             ))
             debugLog("[CoachReport] staged email draft for session \(inputs.session.id.uuidString.prefix(8)) (body \(body.count) chars, pdf=\(attachment != nil ? "yes" : "no"))")
         }
+        return attachment != nil
     }
 
     /// Holistic report (workout + recovery + the loop) when today has an

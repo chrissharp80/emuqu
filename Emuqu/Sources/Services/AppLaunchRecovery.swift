@@ -1,4 +1,5 @@
 import Foundation
+import os
 import SwiftUI
 
 // Interrupted-session recovery: the launch-time "we found an unfinished
@@ -13,23 +14,50 @@ extension EmuquApp {
     /// looking for — they assume the app lost it — so the fact is recorded at
     /// startup where a debug log will always carry it, whether or not anyone
     /// opened the tab.
+    ///
+    /// The scan reads (and decrypts) the file of each short workout, so it
+    /// runs on a detached task (`HealthWorkoutImporter.scanInterruptedSessions`),
+    /// off the main actor, and nothing at launch waits for it.
     private func logRebuildableWorkouts() {
-        let importer = HealthWorkoutImporter(manager: AppDependencies.current.collection.healthKitManager)
-        let stubs = importer.interruptedSessions(archive: collector.archive)
-        guard !stubs.isEmpty else { return }
-        let summary = stubs
-            .prefix(3)
-            .map { "\($0.sport.rawValue) \($0.startDate) (\(Int($0.capturedSeconds))s captured)" }
-            .joined(separator: ", ")
-        debugLog(
-            "[App][launch] \(stubs.count) interrupted recording(s) can be rebuilt from Apple Health: \(summary)",
-            level: .info
-        )
+        let archive = collector.archive
+        Task.detached(priority: .utility) {
+            let stubs = HealthWorkoutImporter.scanInterruptedSessions(archive: archive)
+            guard !stubs.isEmpty else { return }
+            let summary = stubs
+                .prefix(3)
+                .map { "\($0.sport.rawValue) \($0.startDate) (\(Int($0.capturedSeconds))s captured)" }
+                .joined(separator: ", ")
+            debugLog(
+                "[App][launch] \(stubs.count) interrupted recording(s) can be rebuilt from Apple Health: \(summary)",
+                level: .info
+            )
+        }
     }
 
     /// Check if a recording session was in progress when the app was killed.
     /// Persisted state survives crashes — if it exists on launch, the session was interrupted.
     ///
+    /// Runs once the archive's launch boot (`LaunchArchiveBoot`) has adopted
+    /// orphan files: a session whose file was written just before a crash,
+    /// but not yet listed in the index, is archived, and asking about it
+    /// would have offered to rebuild it from its backup over the saved copy.
+    ///
+    /// The alert is raised only with no launch modal on screen; an alert under
+    /// a full-screen cover can be dropped. `EmuquApp.handleLaunchModalChange`
+    /// runs the check again when the cover closes.
+    func checkForInterruptedSession() {
+        let archiveBoot = LaunchArchiveBoot.start(collector.archive)
+        Task { @MainActor in
+            await archiveBoot.value
+            logRebuildableWorkouts()
+            guard activeModal == nil else {
+                debugLog("[App] Interrupted-session check deferred — a launch modal is on screen")
+                return
+            }
+            presentInterruptedSessionAlertIfNeeded()
+        }
+    }
+
     /// Dismiss means "stop re-prompting me." Re-prompting on every launch
     /// (and re-writing the termination report on every launch) is exactly
     /// the loop the user complained about ("discarding for hours"). So
@@ -37,8 +65,7 @@ extension EmuquApp {
     /// termination report are skipped when this session was previously
     /// dismissed. The backup is still recoverable via Settings → iCloud & Data → Recover Lost Sessions
     /// for users who change their mind.
-    func checkForInterruptedSession() {
-        logRebuildableWorkouts()
+    private func presentInterruptedSessionAlertIfNeeded() {
         guard let state = collector.getPersistedRecordingState() else { return }
         // Only alert if the session isn't already archived (e.g. auto-archived on background)
         guard !collector.archive.exists(state.sessionId) else {
@@ -71,10 +98,11 @@ extension EmuquApp {
     /// Launch auto-recovery may have finished and saved this workout; it
     /// isn't paused any more, and saying so is the outcome.
     private func resume(_ info: InterruptedSessionInfo) async {
-        if let saved = await savedByAutoRecovery(info.sessionId) {
+        if let saved = await claimRecovery(info.sessionId) {
             await MainActor.run { recoveryResultMessage = saved }
             return
         }
+        defer { InterruptedWorkoutAutoRecovery.end(info.sessionId) }
         let success = await collector.recoverToPausedState(info.sessionId, sessionType: info.sessionType)
         await MainActor.run { showRecoveryOutcome(success: success) }
     }
@@ -111,7 +139,8 @@ extension EmuquApp {
         // Launch auto-recovery may have this workout already, merged with the
         // strap's own recording. Rebuilding it from the phone's copy would
         // replace that with less.
-        if let saved = await savedByAutoRecovery(info.sessionId) { return saved }
+        if let saved = await claimRecovery(info.sessionId) { return saved }
+        defer { InterruptedWorkoutAutoRecovery.end(info.sessionId) }
         let outcome = await WorkoutRecoveryService.recover(
             sessionId: info.sessionId,
             reason: .userInterrupted,
@@ -135,22 +164,60 @@ extension EmuquApp {
             )
     }
 
+    /// The message to show when launch auto-recovery has saved this session;
+    /// nil when this call claimed the recovery for the alert
+    /// (`InterruptedWorkoutAutoRecovery.claim`), which the caller then runs
+    /// and releases with `end`.
+    ///
+    /// Launch auto-recovery starts only once the tabs are built, so it may
+    /// begin after the alert was answered. Claiming the session first keeps
+    /// it out: two recoveries of one session would each write it, and the
+    /// last one, perhaps the phone-only rebuild, would replace the
+    /// strap-merged one. Auto-recovery that started first is waited for. If
+    /// it claimed the session between the wait and the claim, it is waited
+    /// for again, all within one `autoRecoveryWaitLimit`: once that has
+    /// passed with auto-recovery still holding the session, the user is told
+    /// it is still being recovered rather than kept waiting on it, and
+    /// nothing else rebuilds it.
+    private func claimRecovery(_ sessionId: UUID) async -> String? {
+        let deadline = Date().addingTimeInterval(Self.autoRecoveryWaitLimit)
+        while true {
+            let remaining = max(deadline.timeIntervalSinceNow, 0)
+            if let saved = await savedByAutoRecovery(sessionId, waitingAtMost: remaining) { return saved }
+            if InterruptedWorkoutAutoRecovery.claim(sessionId) { return nil }
+            if Date() >= deadline {
+                return String(
+                    localized: "This workout is still being recovered in the background. It will be in your archive when that finishes. If it is not, recover it from Settings → iCloud & Data → Recover Lost Sessions.",
+                    bundle: languageManager.bundle
+                )
+            }
+        }
+    }
+
+    /// How long Save and Resume wait, in all, for launch auto-recovery of the
+    /// same session.
+    private static let autoRecoveryWaitLimit: TimeInterval = 150
+
     /// The message to show when launch auto-recovery has saved this session,
-    /// after waiting for it to finish; nil when it is still to be recovered.
-    private func savedByAutoRecovery(_ sessionId: UUID) async -> String? {
-        await InterruptedWorkoutAutoRecovery.waitUntilDone(sessionId)
+    /// after waiting up to `limit` for it to finish; nil when it is not saved
+    /// (still to be recovered, or still being recovered when `limit` ran out).
+    private func savedByAutoRecovery(_ sessionId: UUID, waitingAtMost limit: TimeInterval) async -> String? {
+        await InterruptedWorkoutAutoRecovery.waitUntilDone(sessionId, limit: limit)
         guard collector.archive.exists(sessionId) else { return nil }
         collector.clearPersistedRecordingStatePublic()
         return String(localized: "Saved to your archive.", bundle: languageManager.bundle)
     }
 
+    /// The message names the type the session was saved as: a backup of an
+    /// interrupted night too short to be one is saved as a quick reading
+    /// (`SessionRecoveryService.recoveredSessionType`).
     private func recoverInterruptedRecording(_ info: InterruptedSessionInfo) async -> String {
-        let recovered = await collector.recoverFromBackup(info.sessionId)
+        let recovered = await collector.recoverFromBackup(info.sessionId, recordedType: info.sessionType)
         collector.clearPersistedRecordingStatePublic()
-        guard recovered != nil else {
+        guard let recovered else {
             return String(localized: "Could not recover the session. The backup data may be incomplete. Check Settings → iCloud & Data → Recover Lost Sessions for manual recovery.", bundle: languageManager.bundle)
         }
-        return String(localized: "\(info.sessionType.displayName) session saved to your archive.", bundle: languageManager.bundle)
+        return String(localized: "\(recovered.sessionType.displayName) session saved to your archive.", bundle: languageManager.bundle)
     }
 
     func dismissInterruptedSession() {
@@ -269,6 +336,27 @@ extension EmuquApp {
             .urls(for: .documentDirectory, in: .userDomainMask)
             .first?.appendingPathComponent("user_settings.json") {
             _ = attempt("AppLaunchRecovery.remove") { try FileManager.default.removeItem(at: legacy) }
+        }
+    }
+}
+
+/// The launch's one run of `SessionArchive.boot()` (the index retry and the
+/// orphan-file adoption), off the main actor. Whichever needs it first starts
+/// it: `EmuquApp.bootArchiveOffMain` after the first frame, or the
+/// interrupted-recording check, which must not ask the archive whether it
+/// holds a session before the orphans are adopted. Later calls return the
+/// same task. The app has one archive, so the archive passed after the first
+/// call is not used.
+enum LaunchArchiveBoot {
+    private static let boot = OSAllocatedUnfairLock<Task<Void, Never>?>(initialState: nil)
+
+    @discardableResult
+    static func start(_ archive: SessionArchive) -> Task<Void, Never> {
+        boot.withLock { running in
+            if let running { return running }
+            let started = Task.detached(priority: .utility) { archive.boot() }
+            running = started
+            return started
         }
     }
 }

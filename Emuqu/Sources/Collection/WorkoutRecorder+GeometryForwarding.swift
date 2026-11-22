@@ -10,10 +10,6 @@ import Foundation
 // class no test could reach them.
 
 extension WorkoutRecorder {
-    func trackLengthMeters(_ track: [CLLocation]) -> Double {
-        WorkoutGeometry.trackLengthMeters(track)
-    }
-
     func nextIndex(after startIdx: Int, atDistance meters: Double, in dists: [Double]) -> Int? {
         WorkoutGeometry.nextIndex(after: startIdx, atDistance: meters, in: dists)
     }

@@ -442,6 +442,48 @@
    }
   },
   {
+   "key": "func NormalizedPowerTests.testAnIncompleteScanNeverClearsOrLowersTheEstimate()",
+   "hash": "ae1a42508d0f72f9",
+   "does": "Asserts incompleteScanStores is false with no effort or a lower FTP, true for a higher FTP or none cached.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.incompleteScanStores(_:cachedFTP:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/FTPAutoEstimator.swift::func FTPAutoEstimator.incompleteScanStores(_:cachedFTP:)": "3d108f34c9b65e86"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testOnlyAFailureThatMayClearKeepsALaunchScanOpen()",
+   "hash": "2f94c89bbabbd6da",
+   "does": "Asserts ArchiveAccessFailure.mayClear is true for a locked keychain, a Cocoa no-permission read (direct or with POSIX EPERM underneath) and an out-of-space write, and false for hash mismatch, missing file, newer schema, decrypt failure, missing key, a DecodingError and a corrupt-file read.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/ArchiveAccessFailure.swift::func ArchiveAccessFailure.mayClear(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "for each clearing error",
+     "effect": "asserts true"
+    },
+    {
+     "at": "+23",
+     "cond": "for each lasting error",
+     "effect": "asserts false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArchiveAccessFailure.swift::func ArchiveAccessFailure.mayClear(_:)": "178d40e8393fff4f",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb"
+   }
+  },
+  {
    "key": "func NormalizedPowerTests.strokePacket(power:strokes:)",
    "hash": "ab92ffa56a9f248b",
    "does": "Helper: builds a 15-byte synthetic 0x0036 packet with power at bytes 3–4 and stroke count at bytes 7–8 (little-endian).",
@@ -501,6 +543,39 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/Concept2Manager.swift::func Concept2Manager.strokeData(from:)": "c1abfb6bfa147e3e"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testZeroWattsCountsAndAStaleReadingDoesNot()",
+   "hash": "c02a9634fb3d92ec",
+   "does": "Asserts FootPodManager.freshPower keeps 0 W and a 2-second-old reading, drops one older than powerStaleAfter, and returns nil without a reading.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.freshPower(_:measuredAt:now:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/FootPodManager.swift::func FootPodManager.freshPower(_:measuredAt:now:)": "6cf7549cde3fc6fe"
+   }
+  },
+  {
+   "key": "func NormalizedPowerTests.testCoastingAtZeroWattsKeepsTheWindowsWhole()",
+   "hash": "17e03548380ab42a",
+   "does": "Asserts 30 s at 200 W then 30 s coasting at 0 W gives a normalized power (the zeros keep the windows whole) below that of 60 s at 200 W.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.samples(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.computeNormalizedPower(samples:)": "a1ae537db438ff74",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.samples(_:)": "f615b310e85f1887",
+    "EmuquTests/NormalizedPowerTests.swift::func NormalizedPowerTests.steady(_:seconds:from:)": "fc6983bf5ba94746"
    }
   }
  ],

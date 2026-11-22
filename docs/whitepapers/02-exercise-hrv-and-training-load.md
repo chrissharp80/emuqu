@@ -2,13 +2,13 @@
 
 **Gated live α1, window-length ectopic discrimination, route-matched load substitution and a recovery-aware readiness model**
 
-Technical White Paper • v1.3 • 8 October 2026
+Technical White Paper • v1.4 • 22 November 2026
 
 Chris Sharp • github.com/chrissharp80
 
-Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision e028039 (2026-10-07), scoring version v3.1.oct2026. Emuqu is a consumer wellness app, not a medical device.
+Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision 6b195c6 (2026-11-21), scoring version v3.3.nov2026. Emuqu is a consumer wellness app, not a medical device.
 
-Cite as: Sharp C. Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load. Technical White Paper v1.3, 8 October 2026. github.com/chrissharp80/emuqu, docs/whitepapers/02-exercise-hrv-and-training-load.md.
+Cite as: Sharp C. Emuqu — Real-Time DFA α1 and Dropout-Robust Training Load. Technical White Paper v1.4, 22 November 2026. github.com/chrissharp80/emuqu, docs/whitepapers/02-exercise-hrv-and-training-load.md.
 
 ---
 
@@ -18,7 +18,7 @@ Emuqu is an iOS app that records workouts from a Bluetooth chest strap, an Apple
 
 All of these depend on RR intervals (beat-to-beat intervals) that dropouts, lost skin contact, phone–Watch handovers and ectopic beats interrupt. The main methods are:
 
-1. **Gated live α1.** A value is published only when a 120 s window holds at least 64 beats *and* spans at least 118 s on a beat clock that adds dropout time back in. A trailing-median filter interpolates artifacts in place, a window with more than 6% corrected beats is withheld, and a five-state status machine clears any value that is not freshly computed.
+1. **Gated live α1.** A value is published only when a 120 s window holds at least 64 beats *and* spans at least 118 s on a beat clock that adds dropout time back in. A trailing-median filter interpolates artifacts, and beats a dropout lost, in place; a window with more than 6% corrected beats is withheld; and a five-state status machine clears any value that is not freshly computed.
 2. **Ectopic discrimination by window length.** A post-session α1 dip below 0.75 that recovers within one 120 s window is labeled an "ectopic shadow" and excluded from summary statistics; a threshold crossing counts only after 180 s below the threshold.
 3. **A training-load ladder.** Power-based Training Stress Score (TSS), including TSS computed at read time from an automatic functional threshold power (FTP); a route estimate when the heart-rate load looks like a strap dropout; heart-rate TSS (hrTSS); metabolic-equivalent (MET) load; Banister training impulse (TRIMP); and the route estimate as a last resort.
 4. **Route-matched load substitution.** A failed-strap workout's load is rebuilt from the user's own TRIMP per meter on earlier runs of the same saved route, with outlier removal, a blend with the partial recording and an explicit confidence.
@@ -111,16 +111,16 @@ The dual gate is `count ≥ 64 AND span ≥ 118 s`.
 
 #### 3.1.3 Artifact filter (trailing-median relative-deviation filter)
 
-A window of fewer than 8 values is returned unchanged with a count of 0. Otherwise:
+The window's beats are on the beat clock of Section 3.1.1, where a dropout shows as a beat starting later than the previous one ended. First, between consecutive beats with `gap = next.t_ms − (prev.t_ms + prev.rr_ms) > 0`, `⌊gap / ((prev.rr_ms + next.rr_ms)/2) + 0.20⌋` lost beats are put back as placeholders; a shortfall under 0.8 of a beat is batching jitter, not a lost beat. A series of fewer than 8 values is returned uncorrected, with the number of placeholders as its count. Otherwise:
 
-1. **Mark.** Take the beats in order and keep a reference list `recentClean` of at most 5 accepted values.
+1. **Mark.** Every placeholder is marked. Take the beats in order and keep a reference list `recentClean` of at most 5 accepted values.
    - Mark a beat if `rr < 300` or `rr > 2000` ms.
    - Otherwise, if `recentClean` holds at least 3 values, take `med = sorted[⌊count/2⌋]` (the upper middle value for an even count). Mark the beat if `|rr − med| / med > 0.20`.
    - Otherwise accept it. Accepted beats are appended to `recentClean`; artifacts never enter it.
 2. **Interpolate in place.** Each marked beat at i takes `rr[l] + (rr[r] − rr[l]) · (i − l)/(r − l)` from the nearest unmarked neighbors l < i < r; with one neighbor it copies that value; with none it is left unchanged.
-3. **Return** the series (same length) and `correctedCount`, the number of marked beats.
+3. **Return** the series (the window's beats plus the placeholders) and `correctedCount`, the number of marked beats, placeholders included.
 
-**Why it works.** A median of recent beats tracks gradual heart-rate change while ignoring a single outlier, and a relative threshold scales with heart rate. Building the reference only from accepted beats means a premature beat and its compensatory pause cannot pull the reference toward themselves. Interpolating in place keeps length and order, so DFA's boxes are not shifted by deletions. In-place interpolation hides how much was replaced, so the count travels with the values. The 6% refusal follows the published finding that correction bias is minimal below about 3% and small at 6% [4][5].
+**Why it works.** A median of recent beats tracks gradual heart-rate change while ignoring a single outlier, and a relative threshold scales with heart rate. Building the reference only from accepted beats means a premature beat and its compensatory pause cannot pull the reference toward themselves. Interpolating in place keeps length and order, so DFA's boxes are not shifted by deletions; putting back the beats a dropout lost keeps the beat index true across the dropout, and counting them means a window that lost more than 6% of its beats is refused rather than fitted as if it were clean. In-place interpolation hides how much was replaced, so the count travels with the values. The 6% refusal follows the published finding that correction bias is minimal below about 3% and small at 6% [4][5].
 
 #### 3.1.4 Recompute and status machine
 
@@ -176,9 +176,9 @@ Walk the α1 samples in order.
 - **Below 0.75:** open a dip at the sample's offset (`start`) if none is open, and track the deepest point.
 - **At or above 0.75 with a dip open:** let `span = offset − start`. If `0 < span ≤ 120 s`, emit a shadow over `[max(0, start − 60), offset + 120)`, with the deepest point as the chart marker. Close the dip either way.
 
-A dip still open at session end is not labeled. Shadows are drawn with a neutral "beat artifact" marker. Samples inside them are left out of average, maximum and minimum α1 and out of band-time totals.
+A dip still open at session end is not labeled. A candidate during which heart rate climbed by at least 10 bpm (a sample at least 10 bpm above the lowest one before it, from the shadow's start to the deepest point) came with a real effort and is not a shadow; samples without HR are skipped, so a dip with no HR to judge stays a shadow. Shadows are drawn with a neutral "beat artifact" marker. Samples inside them are left out of average, maximum and minimum α1 and out of band-time totals.
 
-**Why window length discriminates.** An isolated bad beat affects α1 only while it is inside the 120 s window. A dip that recovers within one window is therefore consistent with a single artifact, while a real intensity change keeps α1 low as long as the effort lasts. The padding follows the window's geometry. The 60 s before covers the approach, as α1 falls once the beat enters. The 120 s after covers the recovery shoulder, which stays contaminated until the beat leaves. A dip open at the end has unknown duration, so it is not judged.
+**Why window length discriminates.** An isolated bad beat affects α1 only while it is inside the 120 s window. A dip that recovers within one window is therefore consistent with a single artifact, while a real intensity change keeps α1 low as long as the effort lasts. The padding follows the window's geometry. The 60 s before covers the approach, as α1 falls once the beat enters. The 120 s after covers the recovery shoulder, which stays contaminated until the beat leaves. A dip open at the end has unknown duration, so it is not judged. A beat artifact does not raise heart rate, while a surge into a harder effort does, so a dip that came with a heart-rate climb is kept as physiology.
 
 #### 3.2.2 Band totals and the first sustained AT1 crossing
 
@@ -190,7 +190,7 @@ Each sample counts for `dt = min(max(1, offset − previousOffset), 5)` s, or 1 
 
 #### 3.2.3 Crossing list and the LT1 card
 
-A second routine lists AT1 (0.75) and AT2 (0.50) crossings, with one tracker per threshold. It runs over samples from 120 s on (the previous value may precede 120 s), with `dt = max(1, offset − previousOffset)`. This routine counts time without the 5 s cap and arms on the previous sample.
+A second routine lists AT1 (0.75) and AT2 (0.50) crossings, with one tracker per threshold. It walks the same readings as Section 3.2.2 (shadow samples left out, each counting `dt` capped at 5 s), from 120 s on; the first reading after the warm-up only becomes the previous value, so a crossing needs α1 at or above the threshold after the warm-up first. Each tracker arms on the previous reading. Its first AT1 down-crossing is therefore the summary's first sustained crossing.
 - **Below the threshold:** if the previous α1 was at or above it and nothing is pending, create a pending down-crossing with offset, α1, HR and pace. Add `dt`, and emit the pending down-crossing once the counter reaches 180 s.
 - **At or above the threshold:** if a pending down-crossing had reached 180 s, emit an up-crossing with the current HR and pace. Clear the pending crossing and the counter.
 
@@ -225,7 +225,7 @@ The automatic running FTP works as follows.
 1. Over the running-family workouts of the last 90 days, build a per-second power array by sample offset (0 ≤ offset < 24 h). A second is empty unless watts > 0.
 2. Slide a 1200 s window. Where it is full and holds at least ⌈0.9 × 1200⌉ = 1080 readings, take the mean of the readings present.
 3. Take the best window mean across sessions and set `FTP = round(0.95 × best)`. Store it with its source session, or clear it if no window qualifies.
-4. Recompute at most every 7 days unless forced.
+4. Recompute at most every 7 days unless forced. If a workout in the 90 days cannot be read for a reason that may clear (the device locked, the disk full, the keychain refusing the key for now), the scan is not stamped and is retried at the next launch, and the stored FTP changes only if the scan found a higher one. A workout that can never be read as it is (corrupt or undecodable) holds no effort the scan can find, so it does not keep the scan open; the weekly rescan tries it again.
 
 The coverage rule ensures the best 20 minutes is a genuinely continuous effort.
 
@@ -252,6 +252,7 @@ At least 30 beats are required. When HRmax or resting HR is unknown, an Edwards 
 
 **Daily series and the Performance Management Chart (PMC).**
 - A workout figure is capped at 1000. Workouts with no precomputed figure use a summary Banister TRIMP from average HR, else 0.
+- Apple Health workouts that are not in the archive (from the Watch or other apps) join the series. When Apple Health workouts were never authorized, or were denied, the query's answer is read as no workouts, so the series is still built from the archive; a query that fails or times out for any other reason publishes nothing, and the previous load stands until the next refresh asks again.
 - Loads are summed per local day (0 on rest days), and each day is capped at 1200.
 - `X_today = load·(1 − e^(−1/τ)) + X_yesterday·e^(−1/τ)`, with τ = 7 days for ATL and 42 days for CTL; `TSB = CTL − ATL`.
 
@@ -304,7 +305,7 @@ Otherwise D is the recorded distance, so a partial run is credited for the dista
 The estimate, its confidence and the route name are stored on the workout. They are computed at three points:
 - at finalize, as not truncated;
 - in crash recovery, as truncated;
-- in a background backfill, as truncated only for crash-recovered or interrupted sessions.
+- in a background backfill, as truncated only for crash-recovered or interrupted sessions. A workout or prior that cannot be read, or an estimate that cannot be written, for a reason that may clear leaves the backfill unstamped, so the next launch runs it again; one that can never be read as it is is skipped and does not hold the stamp back.
 
 #### 3.4.3 Why route-matched substitution works
 
@@ -375,10 +376,10 @@ ATL_m and CTL_m come from the frozen snapshot, or are 0 if it is missing. The fr
 Each 1 s tick runs three steps in order:
 
 1. **Phone strap.** New beats go to the α1 analyzer. Live HR is `60000 / median(last 8 RR > 0)`, using the middle-pair mean for an even count, and `lastStrapHRAt = now`.
-2. **Watch-relayed strap.** This step runs only if the Watch reported strap data within 10 s.
-   - The relayed RR queue is always drained and filtered to a plausible range.
+2. **Watch-relayed strap.** This step runs once the Watch has reported any strap data.
+   - The relayed RR queue is drained every tick and filtered to a plausible range.
    - The drained beats are **used** only if `lastStrapHRAt` is ≥ 5 s old or absent.
-   - Used beats get wall-clock times on the phone stream's clock, assigned backward from the batch's arrival by the cumulative interval sum. They go to a separate buffer and to the α1 analyzer. The Watch-reported strap HR is shown, and `lastWatchRoutedHRAt` is stamped.
+   - Used beats get wall-clock times on the phone stream's clock, assigned backward from the newest batch's arrival by the cumulative interval sum, and go to a separate buffer. Only when that batch arrived within 10 s do they also go to the α1 analyzer, with the Watch-reported strap HR shown and `lastWatchRoutedHRAt` stamped.
 3. **Arbitration** (a pure function, in strap mode).
    - After more than 10 s of silence on both strap channels, the app shows wrist HR received within the last 30 s. With none, it clears the HR rather than leave it stale.
    - A "strap not connected" or "strap silent" notice appears only after 15 s of recording, and only while both channels are silent.
@@ -493,7 +494,7 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Builds on:* FatMaxxer's previous-beat deviation filter, Watchletic's skipping of windows with too many corrections, AlphaHRV's 5% artifact assumption, HRV Logger's artifact rate (Table 4.2) [21][22][23][24], and Kubios median-referenced threshold correction [25][26]; adds an accepted-only trailing reference, in-place interpolation with a carried count, and refusal above 6%.
 
-*Earliest dated record:* flow-recovery 50da878, 2026-04-21 (first form: filter rules); emuqu-dev 7d6b4a6, 2026-09-03 (current form: corrected count and 6% refusal).
+*Earliest dated record:* flow-recovery 50da878, 2026-04-21 (first form: filter rules); emuqu-dev 7d6b4a6, 2026-09-03 (corrected count and 6% refusal); emuqu 4264ddb, 2026-11-21 (current form: beats lost in a dropout put back and counted).
 
 **N4 (Section 3.1.4). A five-state live α1 status runs the silence check first, and every non-ok state clears the published value, so the per-second sample stream records nil instead of the last α1.** The five states are:
 - warm-up, with a fill fraction;
@@ -506,11 +507,11 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Earliest dated record:* flow-recovery 50da878, 2026-04-21 (first form: warm-up, ok, stalled, fit failed); emuqu 14ecd58, 2026-10-06 (current form: clearing on every non-ok state). The too-many-artifacts state was added in emuqu-dev 7d6b4a6, 2026-09-03.
 
-**N5 (Section 3.2.1). A post-session α1 dip below 0.75 that recovers within one analyzer window (≤ 120 s) is labeled an ectopic "shadow".** An asymmetric span is excluded from α1 summary statistics and band time: from 60 s before the dip to 120 s after recovery. A dip still open at session end is left unlabeled.
+**N5 (Section 3.2.1). A post-session α1 dip below 0.75 that recovers within one analyzer window (≤ 120 s) is labeled an ectopic "shadow".** An asymmetric span is excluded from α1 summary statistics and band time: from 60 s before the dip to 120 s after recovery. A dip still open at session end is left unlabeled, and so is one during which heart rate climbed by at least 10 bpm.
 
 *Builds on:* the general observation that ectopic beats lower α1 [34]; adds a window-length rule that identifies and excludes the affected span.
 
-*Earliest dated record:* flow-recovery 549f747, 2026-04-23 (first form: the same 120 s limit and 60/120 s padding); emuqu-dev 680bbee, 2026-08-25 (current form: shared exclusion for all summary statistics).
+*Earliest dated record:* flow-recovery 549f747, 2026-04-23 (first form: the same 120 s limit and 60/120 s padding); emuqu-dev 680bbee, 2026-08-25 (shared exclusion for all summary statistics). Later: a dip with a heart-rate climb kept as effort, and the crossing list on the same readings, emuqu 946c8b2, 2026-10-11.
 
 **N6 (Section 3.2.2). In the post-session summary statistics, a downward α1 threshold crossing is accepted only after α1 has stayed below the threshold for longer than the analyzer window (180 s against 120 s).** Time is counted per sample, capped at 5 s. Counting starts only after a 120 s warm-up, and only once α1 has first been seen at or above the threshold. The HR at the start of that sustained run is reported.
 
@@ -717,7 +718,7 @@ Neither Substack article disclosed any method in this paper.
 Chris Sharp is the sole author of these papers and of the design, and the only person who commits to the repositories above. The code was written by AI coding assistants under his direction, and some commits carry "Claude" as author or co-author; he supplied the requirements, design direction, review, testing and acceptance, and wrote no code by hand. He developed the methods described here independently and did not learn them from anyone.
 
 ### 8.6 Document history
-v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims).
+v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims). v1.4, published 2026-11-22, describes source revision 6b195c6 (2026-11-21) and scoring version v3.3.nov2026. Changes from v1.3: the live and offline α1 cleaner puts back and counts beats lost in a dropout (Section 3.1.3); an auto-FTP scan that cannot read a workout for a reason that may clear is retried and only raises the estimate, while a workout that can never be read does not hold the scan open (Section 3.3.2); Apple Health workouts that were never authorized read as none, and a failed workout query leaves the previous load standing (Section 3.3.4); the route-estimate backfill is held open only by failures that may clear (Section 3.4.2); a dip with a 10 bpm heart-rate climb is not a shadow, and the crossing list walks the summary's readings (Sections 3.2.1, 3.2.3); the readiness acute term counts workouts since the start of the morning reading's day, and the narrative compares with the morning-anchor readiness (Sections 3.5.1–3.5.2); Watch-relayed strap beats are drained every tick, with only a batch under 10 s old feeding α1 and live HR (Section 3.6.1); and the port-fidelity counts are stated per suite (Section 6).
 
 ---
 
@@ -773,7 +774,8 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 | minBeatsForFit | 64 | beats | Beat gate (live and offline) |
 | windowSpanSlackSec | 2 | s | Span gate = 118 s |
 | stalled threshold | 40 (2 × cadence) | s | Silence before α1 is cleared |
-| cleaner minimum length | 8 | beats | Shorter series are returned unchanged |
+| cleaner minimum length | 8 | beats | Shorter series are returned uncorrected |
+| lost-beat jitter allowance | 0.20 | beat | A gap is a lost beat from 0.8 of the neighbours' mean RR |
 | minRR / maxRR | 300 / 2000 | ms | Implausible-beat bounds |
 | ectopicRatio | 0.20 | fraction | Relative deviation from the trailing median |
 | trailing reference | ≤ 5 (≥ 3 to judge) | beats | Accepted beats used for the median |
@@ -792,7 +794,7 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 | approachPad / recoveryPad | 60 / 120 | s | Shadow padding |
 | maxSampleGapSec | 5 | s | Per-sample time cap in band totals |
 | live HR median | 8 | beats | Display smoothing |
-| Watch strap freshness | 10 | s | Relay considered at all |
+| Watch strap freshness | 10 | s | Relayed beats feed α1 and live HR |
 | phone strap live | < 5 | s | Watch relay ignored while live |
 | wristFallbackSilenceSec | 10 | s | Fall through to wrist HR |
 | wristHRMaxAgeSec | 30 | s | Wrist HR freshness |
@@ -875,7 +877,7 @@ gate(): |buf| >= 64 and span >= 118
 
 recompute(now):
   if not gate(): refresh(now); return
-  (vals, k) = clean([b.rr for b in buf]); frac = k/|vals| (0 if empty)
+  (vals, k) = clean(buf); frac = k/|vals| (0 if empty)
   if frac > 0.06: status = TOO_MANY_ARTIFACTS(frac); clear(); return
   r = dfa(vals)
   if r == nil: status = FIT_FAILED; clear(); return
@@ -887,11 +889,18 @@ refresh(now):
   if alpha1 != nil: status = OK
   elif status is STALLED: status = WARMUP(fill)
 
-clean(rr):
-  if |rr| < 8: return (rr, 0)
+clean(pts):                         # pts on the beat clock (B1) or the gap-corrected timeline (B10)
+  rr = []; lost = []
+  for k, p in enumerate(pts):
+    if k > 0:
+      gap = p.t - (pts[k-1].t + pts[k-1].rr)
+      n = floor(gap / ((pts[k-1].rr + p.rr)/2) + 0.20) if gap > 0 else 0
+      rr += [0]*n; lost += [true]*n
+    rr.append(p.rr); lost.append(false)
+  if |rr| < 8: return (rr, count(lost))
   mask = []; recent = []
-  for x in rr:
-    bad = x < 300 or x > 2000
+  for i, x in enumerate(rr):
+    bad = lost[i] or x < 300 or x > 2000
     if not bad and |recent| >= 3:
       s = sorted(recent); med = s[floor(|s|/2)]
       bad = abs(x - med)/med > 0.20
@@ -917,6 +926,7 @@ for s in samples with s.alpha1 != nil:
       if 0 < span <= 120: shadows.append([max(0, dip.start-60), s.t+120), dip.deepT, dip.deepA)
       dip = nil
 # an open dip at the end is discarded
+shadows = [sh for sh in shadows if not hrRose(sh)]   # HR >= 10 bpm above an earlier sample in [sh.start, sh.deepT]
 
 # B4 First sustained AT1 crossing for summary statistics (N6)
 prev = nil; armed = false; pend = nil; sus = 0; first = nil
@@ -1010,12 +1020,13 @@ frozen(Rrec, ATL, CTL) = readiness(Rrec, 0, CTL, ATL, ATL, ATL/CTL if CTL>0 else
 # B9 Dual-path strap fusion (N13)
 tick():
   if new phone beats: dfa.ingest(new); hr = 60000/median(last 8 rr); lastStrapAt = now
-  if watchStrapAt != nil and now - watchStrapAt < 10:
+  if watchStrapAt != nil:
     q = drain(watchQueue)
     if q nonempty and not (lastStrapAt != nil and now - lastStrapAt < 5):
       wallClockMs = watchStrapAt - sum(q) (on phone stream clock)
       pts = [] ; for rr in q: pts.append(rr, wallClockMs); wallClockMs += rr
-      watchBuf += pts; dfa.ingest(pts); show watch strap HR; lastWatchAt = now
+      watchBuf += pts
+      if now - watchStrapAt < 10: dfa.ingest(pts); show watch strap HR; lastWatchAt = now
   arbitrate(silences, wristHR fresh <= 30 s)
 merge(source, phone, watch):
   base = phone if source == STRAP else []
@@ -1029,7 +1040,7 @@ merge(source, phone, watch):
 tl = gapCorrected(rr)   # t_ms + running max((wallClockMs - originWall) - (t_ms - originT))
 for t in 120, 140, ... <= duration:
   w = [b in tl where t-120 <= b.t/1000 < t]
-  if |w| >= 64: (v,k) = clean(w.rr); if k/|v| <= 0.06 and (r = dfa(v)): emit(t, r)
+  if |w| >= 64: (v,k) = clean(w); if k/|v| <= 0.06 and (r = dfa(v)): emit(t, r)
 for sample s: r = latest reading with r.t <= s.t
   s.alpha1 = r.alpha1 if r and s.t - r.t < 20 else nil
 ```
@@ -1038,7 +1049,7 @@ for sample s: r = latest reading with r.t <= s.t
 
 **Table C.1.** Source files for each method.
 
-| Method | Files (repository paths at e028039) |
+| Method | Files (repository paths at 6b195c6) |
 |---|---|
 | Live α1, beat clock, filter, status | `Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift` |
 | DFA core | `Emuqu/Sources/Analysis/DFAAnalysis.swift`; constants in `Emuqu/Sources/Utilities/Constants.swift` (`HRVConstants.DFA`) |
@@ -1047,11 +1058,11 @@ for sample s: r = latest reading with r.t <= s.t
 | Crossing list, LT1 card | `Emuqu/Sources/Views/ThresholdCards+Cards.swift` |
 | Load ladder | `Emuqu/Sources/Collection/TrainingLoadPrecedence.swift`; `Emuqu/Sources/Models/WorkoutMetadata.swift` |
 | TRIMP, hrTSS, splits, decoupling | `Emuqu/Sources/Analysis/WorkoutAnalyzer.swift` |
-| Auto-FTP | `Emuqu/Sources/Analysis/FTPAutoEstimator.swift` |
+| Auto-FTP | `Emuqu/Sources/Analysis/FTPAutoEstimator.swift`; failures that may clear `Emuqu/Sources/Analysis/ArchiveAccessFailure.swift` |
 | METs | `Emuqu/Sources/Models/WorkoutMetadata.swift`; `Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift` |
 | Route matching | `Emuqu/Sources/Analysis/RouteLibrary.swift` |
 | Route load estimate | `Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift`; callers in `Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift`, `Emuqu/Sources/Services/WorkoutRecoveryService.swift`, `Emuqu/Sources/Analysis/WorkoutLoadBackfill.swift` |
-| PMC / daily load | `Emuqu/Sources/Analysis/TrainingLoadSeries.swift`; `Emuqu/Sources/Collection/HealthDataTypes.swift` |
+| PMC / daily load | `Emuqu/Sources/Analysis/TrainingLoadSeries.swift`; `Emuqu/Sources/Collection/HealthDataTypes.swift`; Apple Health workouts `Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift`, `Emuqu/Sources/Analysis/TrainingMetricsCache.swift` |
 | Readiness | `Emuqu/Sources/Analysis/ReadinessScoring.swift`; `Emuqu/Sources/Utilities/Constants+RecoveryScore.swift` |
 | Live and frozen readiness | `Emuqu/Sources/Analysis/LiveReadiness.swift`; `Emuqu/Sources/Services/ReanalysisService.swift` |
 | Strap fusion and arbitration | `Emuqu/Sources/Collection/WorkoutRecorder+Ticker.swift` |

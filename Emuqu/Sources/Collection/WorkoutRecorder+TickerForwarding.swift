@@ -16,8 +16,9 @@ extension WorkoutRecorder {
     func stopTicker() { ticker.stopTicker() }
     func observeHeartRate() { ticker.observeHeartRate() }
     func strapSilentSeconds() -> Double? { ticker.strapSilentSeconds() }
-    func liveProjectedMinutesUntilFade() -> Double? { ticker.liveProjectedMinutesUntilFade() }
     func liveRecoveryHoursNeeded() -> Double? { ticker.liveRecoveryHoursNeeded() }
+    func liveZoneBreakdown() -> WorkoutZoneBreakdown { ticker.liveZoneBreakdown() }
+    func syncedLiveTrends() -> WorkoutLiveTrends.Tally { ticker.syncedLiveTrends() }
 
     /// The HR-source arbitration moved with the ticker; this keeps
     /// `WorkoutRecorder.HRArbitration` resolving for its tests and call sites.

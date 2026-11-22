@@ -42,7 +42,7 @@
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.childrensPrivacySection": "e66a73ee541e6dc9",
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.contactSection": "c9b025b9c2efb2ae",
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.dataCollectionSection": "e45eb8a29a52f542",
-    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.dataSharingSection": "53d80a38760d7c63",
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.dataSharingSection": "c7a7ff6cfb9ea3b0",
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.dataStorageSection": "e327305f695dd880",
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.introSection": "0c6347ce7c5e202c",
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.noCollectionSection": "3196c6b6a762b819",
@@ -266,6 +266,21 @@
    }
   },
   {
+   "key": "var PrivacyPolicyView.broadcastBlock",
+   "hash": "9c3a91c5d9957a9d",
+   "does": "PolicyBlock 'Bluetooth Sensor Broadcast': when Broadcast as BLE sensor is on in Settings → Wearables and its explanation accepted on that device, the iPhone sends live heart rate and power over Bluetooth during workouts for apps such as Zwift; any Bluetooth device in range (about 10 m) can read them; no HRV, location, identity or Apple Health data; off by default and stops when the workout ends.",
+   "entry": "SwiftUI view-body evaluation (composed into PrivacyPolicyView.dataSharingSection)",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+   }
+  },
+  {
    "key": "var PrivacyPolicyView.thirdPartyBlock",
    "hash": "95cdf74048242d87",
    "does": "PolicyBlock 'How These Services Treat Your Data': names each service, data only when its feature is used, AI/Tavily only after a key and consent, each under its own policy; lists which publish policies.",
@@ -389,8 +404,8 @@
   },
   {
    "key": "var PrivacyPolicyView.dataSharingSection",
-   "hash": "977d8e801f4934a6",
-   "does": "Section 'Data Sharing' with no-selling, AI, other services and third-party blocks plus the service policy links.",
+   "hash": "1c126977cbea52f3",
+   "does": "Section 'Data Sharing' with no-selling, AI, other services and third-party blocks, the service policy links, then the Bluetooth sensor broadcast block.",
    "entry": "SwiftUI view-body evaluation (composed into PrivacyPolicyView.body)",
    "calls": [
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::func PrivacyPolicyView.policyBlock(_:)",
@@ -399,6 +414,7 @@
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.otherServicesBlock",
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.thirdPartyBlock",
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.servicePolicyLinks",
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.broadcastBlock",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -408,6 +424,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::func PrivacyPolicyView.policyBlock(_:)": "1b01d280772150c6",
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.aiBlock": "b43cb4f7075ea00d",
+    "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.broadcastBlock": "10035e0ab970f759",
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.noSellingBlock": "b502e412722c48ad",
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.otherServicesBlock": "2617c48df2d34499",
     "Emuqu/Sources/Views/PrivacyPolicyView.swift::var PrivacyPolicyView.servicePolicyLinks": "c0e27327ee8c895a",

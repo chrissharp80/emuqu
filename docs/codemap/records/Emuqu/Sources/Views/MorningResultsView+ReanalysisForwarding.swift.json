@@ -10,8 +10,8 @@
  "units": [
   {
    "key": "var MorningResultsView.reanalysis",
-   "hash": "6da68485c0608823",
-   "does": "Constructs MorningReanalysisControls with vm, session, result, recentSessions, collector, the app's saved-session reanalysis (dependencies.collection.sessionReanalysis), the three reanalysis callbacks and bindings to exportURL/emailURL/isManualWindowMode/manualResult/manualPickMessage/strapMergeWorking/strapMergeMessage.",
+   "hash": "238b8fab5df6c897",
+   "does": "Constructs MorningReanalysisControls with vm, session, result, recentSessions, collector, the app's saved-session reanalysis (dependencies.collection.sessionReanalysis), the three reanalysis callbacks and bindings to exportURL/emailURL/isManualWindowMode/manualResult/manualPickMessage/strapMergeWorking/strapMergeMessage/pendingWindowMethod/reanalysisDeclined.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.sessionReanalysis",
@@ -83,13 +83,13 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.availableReportSections"
+    "Emuqu/Sources/Views/MorningResultsView+Export.swift::var MorningReanalysisControls.availableReportSections"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.availableReportSections": "521bd62e77f3d87d",
+    "Emuqu/Sources/Views/MorningResultsView+Export.swift::var MorningReanalysisControls.availableReportSections": "521bd62e77f3d87d",
     "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis": "e56b31a11b591c02"
    }
   },
@@ -100,7 +100,7 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.exportPDF(style:sections:onFailure:)"
+    "Emuqu/Sources/Views/MorningResultsView+Export.swift::func MorningReanalysisControls.exportPDF(style:sections:onFailure:)"
    ],
    "reads": [],
    "writes": [
@@ -108,7 +108,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.exportPDF(style:sections:onFailure:)": "7641fc89807ccee7",
+    "Emuqu/Sources/Views/MorningResultsView+Export.swift::func MorningReanalysisControls.exportPDF(style:sections:onFailure:)": "7641fc89807ccee7",
     "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis": "e56b31a11b591c02"
    }
   },
@@ -119,7 +119,7 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.emailReport(style:sections:onFailure:)"
+    "Emuqu/Sources/Views/MorningResultsView+Export.swift::func MorningReanalysisControls.emailReport(style:sections:onFailure:)"
    ],
    "reads": [],
    "writes": [
@@ -127,7 +127,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.emailReport(style:sections:onFailure:)": "75563d040b5f62e5",
+    "Emuqu/Sources/Views/MorningResultsView+Export.swift::func MorningReanalysisControls.emailReport(style:sections:onFailure:)": "75563d040b5f62e5",
     "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis": "e56b31a11b591c02"
    }
   },
@@ -172,7 +172,7 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.exportRRData(onFailure:)"
+    "Emuqu/Sources/Views/MorningResultsView+Export.swift::func MorningReanalysisControls.exportRRData(onFailure:)"
    ],
    "reads": [],
    "writes": [
@@ -180,8 +180,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.exportRRData(onFailure:)": "c64042aac0b80037",
-    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis": "e56b31a11b591c02"
+    "Emuqu/Sources/Views/MorningResultsView+Export.swift::func MorningReanalysisControls.exportRRData(onFailure:)": "2398681b4289c07d",
+    "Emuqu/Sources/Views/MorningResultsView+ReanalysisForwarding.swift::var MorningResultsView.reanalysis": "32535d7fdbfce72c"
    }
   }
  ],

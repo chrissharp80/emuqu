@@ -2,13 +2,13 @@
 
 **Typed fact catalog, runtime number verification, and one 17-language vocabulary enforced at input, output and build time**
 
-Technical White Paper • v1.3 • 8 October 2026
+Technical White Paper • v1.4 • 22 November 2026
 
 Chris Sharp • github.com/chrissharp80
 
-Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision e028039 (2026-10-07), scoring version v3.1.oct2026. Emuqu is a consumer wellness app, not a medical device.
+Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision 6b195c6 (2026-11-21), scoring version v3.3.nov2026. Emuqu is a consumer wellness app, not a medical device.
 
-Cite as: Sharp C. Emuqu — A Measurement-Grounded Assistant with a Multilingual Regulated-Claim Perimeter. Technical White Paper v1.3, 8 October 2026. github.com/chrissharp80/emuqu, docs/whitepapers/03-grounded-health-assistant.md.
+Cite as: Sharp C. Emuqu — A Measurement-Grounded Assistant with a Multilingual Regulated-Claim Perimeter. Technical White Paper v1.4, 22 November 2026. github.com/chrissharp80/emuqu, docs/whitepapers/03-grounded-health-assistant.md.
 
 ---
 
@@ -19,10 +19,10 @@ Emuqu is an iOS heart-rate-variability (HRV) and training app with a conversatio
 Emuqu handles both with deterministic, on-device mechanisms rather than instructions to the model:
 
 1. **A typed fact catalog.** Every fact the model can read is one declarative entry that binds a key grammar, a description, a value type, an availability check and the resolver, so no resolver exists outside the catalog. Results share one JSON (JavaScript Object Notation) envelope with a closed, nine-value absence taxonomy across all six providers.
-2. **A compact tool layer.** 21 polymorphic read tools and 18 allow-listed action tools, deduplicated and sorted for byte-stable schemas, with a capability index generated from the same list.
-3. **Runtime number verification.** Claims about a metric's present value are checked against app state with per-metric tolerances, after spelled-out numbers are normalized. Only the claimed number is replaced, and the correction is fed into the next turn's prompt.
+2. **A compact tool layer.** 21 polymorphic read tools and 19 allow-listed action tools, deduplicated and sorted for byte-stable schemas, with a capability index generated from the same list. Actions that delete, or that write a value the user did not state, run only after the user's own explicit "yes".
+3. **Runtime number verification.** Claims about a metric's present value are checked against app state with per-metric tolerances, after spelled-out numbers are normalized. Only the claimed number is replaced, and the correction is fed into the next prompt until a reply to it has been checked.
 4. **Structural conflict resolution.** When the user contradicts cached numbers, the stale dashboard block is removed from the prompt rather than argued with.
-5. **One multilingual regulated-claim lexicon.** 29 concepts in 17 languages drive three checks: a pre-send input guard that answers locally with fixed, localized replies; a sentence-level, negation-neutral output guard applied before display and speech; and a build-time linter over Swift source and every locale of the string catalogs. A continuous-integration (CI) gate checks, with one synthesized witness string per pattern, that the runtime lexicon covers the build-time list.
+5. **One multilingual regulated-claim lexicon.** 29 concepts in 17 languages drive three checks: a pre-send input guard that answers locally with fixed, localized replies; a sentence-level, negation-neutral output guard applied before display and speech, which passes the app's own canned safety replies unchanged; and a build-time linter over Swift source and every locale of the string catalogs. A continuous-integration (CI) gate checks, with one synthesized witness string per pattern, that the runtime lexicon covers the build-time list.
 
 Section 5 states what is new as fourteen specific statements, each with the public work it builds on and its earliest dated record. The author developed the methods between April and October 2026; Section 8 gives commit-level dates. Section 6 lists the unit tests and CI gates that fix their behavior.
 
@@ -61,15 +61,15 @@ Table 2.1 shows one user turn on the text path. The voice path is the same up to
 
 | Step | Operation | Purpose |
 |---|---|---|
-| 1 | Trim input; reject empty | — |
+| 1 | Trim input; reject empty, or reject while Flo is switched off or its notice is unaccepted | — |
 | 2 | **Input guard**: classify the current message against the lexicon's refusal group in safety order | Answer emergencies, injuries, self-harm and rhythm questions locally; nothing is sent |
-| 3 | Consent check for the active hosted provider (Appendix A) | No health data goes to an unconsented provider |
-| 4 | History assembly: drop `localOnly` turns, truncate to the provider budget, summarize dropped turns | Guarded turns never leave the device later |
+| 3 | Provider check: the selected provider can answer and is switched on in Settings; then consent for the active hosted provider (Appendix A) | No turn goes to a switched-off provider; no health data goes to an unconsented one |
+| 4 | History assembly: drop `localOnly`, empty and incomplete assistant turns, truncate to the provider budget, summarize dropped turns (the summary is sealed on disk beside the history) | Guarded turns never leave the device later |
 | 5 | Build or reuse the fact registry (the runtime form of the catalog); reset per-turn rate-limit counters | One address space for all facts |
 | 6 | Compose tool list: 21 read tools + allow-listed actions, deduplicated and sorted | Byte-stable schema |
 | 7 | Compose system prompt: stable prefix (rules, tool overlay, capability index) + variable sections (time, user-stated values, dashboard cache unless suppressed, live-workout marker, pending corrections, summary) | Grounding, conflict resolution, correction loop |
-| 8 | Stream the provider round; tool calls go router → registry → envelope, at most 8 per turn | Retrieval with uniform absence semantics |
-| 9 | **Output guard, streaming**: publish only complete sentences, each scrubbed | Sentences matching the lexicon are not displayed |
+| 8 | Stream the provider round; tool calls go router → registry → envelope, at most 8 per turn; only advertised tools run | Retrieval with uniform absence semantics |
+| 9 | **Output guard, streaming**: publish only complete sentences, each scrubbed; the app's canned safety reply passes unchanged when it is given as the reply | Sentences matching the lexicon are not displayed |
 | 10 | **Output guard, speech**: scrub each utterance before text-to-speech (TTS) | No lexicon match is spoken |
 | 11 | **Number verification** at each round end (chat) / per spoken chunk, after the speech scrub (voice) | Replace contradicted spans; record corrections |
 | 12 | **Output guard, final pass** on the whole message | Covers text assembled outside the stream |
@@ -110,7 +110,7 @@ A fact is a value of `FactEntry`, a type with exactly four cases (Table 3.1).
 
 Each entry also carries an `availability` closure (Section 3.1.4), which defaults to "always available" so a declaration is one expression. A namespace resolver exposes only `namespace: String` and `entries: [FactEntry]`. The registry derives the model-facing schema from `entries`, and the default resolve walks the same array to dispatch a key.
 
-At e028039, 26 namespace resolvers are registered: 16 for health data, 9 for app and device state and actions, and a composites namespace registered last. Five share the head `app` and two share `workout`. They declare **238 entries**: 149 `fixed` synchronous, 8 `fixed` awaitable, 56 `parameterized`, 6 `composite` and 19 `action`.
+At 6b195c6, 26 namespace resolvers are registered: 16 for health data, 9 for app and device state and actions, and a composites namespace registered last. Five share the head `app`, three share `workout` and two share `hrv`. They declare **239 entries**: 146 `fixed` synchronous, 11 `fixed` awaitable, 56 `parameterized`, 6 `composite` and 20 `action`.
 
 **Why it works.** Because the resolver closure is a field of the declared entry, there is no second table to drift: a fact that can be resolved is a fact declared in the catalog, and the reverse. Adding a metric is one reviewed declaration that every provider sees on the next schema build.
 
@@ -122,12 +122,12 @@ token    := name | name "(" argument ")"
 ```
 
 1. Trim whitespace; reject empty input.
-2. Scan characters, tracking parenthesis depth. A `.` at depth 0 ends a token. A `)` that would make the depth negative, a non-zero final depth, or an empty token (`a..b`, leading dot) is an error.
+2. Scan characters, tracking parenthesis depth. A `.` at depth 0 ends a token. A `)` that would make the depth negative, a non-zero final depth, or an empty token (`a..b`, a leading or trailing dot) is an error.
 3. A token ending in `)` and containing `(` splits into name and argument; an empty name is an error.
 
 Dots inside arguments survive (`session.by_date(2026.04.21)` is valid).
 
-**Pattern matching.** The pattern is parsed with the same grammar. Token by token, names must be equal. A pattern argument beginning with `$` captures the key's argument (a key with no argument fails); otherwise both arguments must be equal or both absent. The pattern may not be longer than the key, remaining key tokens become `tail`, and at least one capture must occur.
+**Pattern matching.** The pattern is parsed with the same grammar. Token by token, names must be equal. A pattern argument beginning with `$` captures the key's argument (a key with no argument fails); otherwise both arguments must be equal or both absent. The pattern may not be longer than the key, remaining key tokens become `tail`, and at least one capture must occur. A parameterized composite matches only a key with no tail.
 
 **Dispatch.** The registry tries every namespace whose `namespace` equals the key's head token, in registration order, then all other namespaces. This is how composites resolve under keys such as `user.profile.snapshot`. No match returns `missing(notRecorded, "no such key")`.
 
@@ -205,28 +205,30 @@ Five rails apply to every call. Each answers in the same envelope.
 
 1. **Required action arguments** (before the action runs). A missing one returns `invalidParameter` naming it; unknown keys are dropped.
 2. **Numeric range checks** (when a resolver parses its arguments, before it reads data). Each numeric parameter is declared once with a closed range, an optional excluded lower bound and an integer flag. Only a finite in-range number (whole where flagged) is accepted. Anything else, including "inf", "nan" and "1e20", returns `invalidParameter` stating the requirement, e.g. "ordinal must be a whole number from 0 to 100000, got '-1'". Comma-separated blobs must have exactly the expected field count, empty fields counted (`60,,5` has three).
-3. **Time budget** (during resolution). On the per-entry path, resolution over 2.0 s is discarded as `missing(internalError, "resolver timed out…")`; over 0.5 s logs a warning, and over 4.0 s on an action logs a watchdog warning. On the compact read-tool path the budget only logs, because legitimate HealthKit and network waits can exceed 2 s.
-4. **Repeat-miss limit** (on the result). The signature is `toolName + "::" + argsJSON`. Each *missing* result increments a per-turn counter; above 2, the result becomes `missing(rateLimited, "Same tool+args returned missing 2 times this turn. Stop retrying…")`. Successful results do not count, and counters reset each user turn.
+3. **Time budget** (during resolution). Resolution is timed on both the per-entry and the compact read-tool path: over 0.5 s logs a warning, over 2.0 s a louder one, and over 4.0 s on an action a watchdog warning. The value is kept either way, because legitimate HealthKit and network waits can exceed 2 s and a finished answer is worth more than a discarded one; per-wait timeouts live inside the awaitable resolvers.
+4. **Repeat-miss limit** (on the result). The signature is `toolName + "::" + argsJSON`. Each *missing* result increments a per-turn counter; above 2, the result becomes `missing(rateLimited, "Same tool+args returned missing 2 times this turn. Stop retrying…")`. The limiter runs after the resolver, so the call still does its work; it is the envelope that stops the loop. Successful results do not count, and counters reset each user turn.
 5. **Size cap** (on the result). A non-missing result whose envelope exceeds 80,000 UTF-8 bytes becomes `missing(tooMuchData, "… Ask a narrower query…")`.
 
 **Why it works.** Every rail answers in the same envelope, so the model is steered rather than stopped: it stops retrying, narrows a query or fixes an argument, and the turn still ends in a useful reply. Counting only misses per exact signature targets the loop that wastes a turn without penalizing legitimate repeated reads. Stating the accepted range in words lets the model correct the call on the next round.
 
 ### 3.2 Compact tool layer
 
-The model sees 39 tools, not 238:
+The model sees 40 tools, not 239:
 
 - **21 read tools** with fixed names and string parameters, most taking a selector (`which`, `field`, `metric` or `aspect`) that routes to catalog keys: `get_today`, `get_session`, `get_recovery`, `get_hrv`, `get_sleep`, `get_vitals`, `get_workout`, `list_workouts`, `get_walks`, `get_baseline`, `get_user`, `get_app_state`, `get_training_load`, `get_score_meta`, `get_breadcrumbs`, `get_routes`, `get_tags`, `get_workout_live`, `get_assistant_state`, `get_healthkit`, and `lookup_fact` for any raw catalog key.
-- **18 action tools** under their catalog names (e.g. `assistant_email_compose`, `routes_library_rename`, `web_search`, `directions_routeTo`), taken from the availability-filtered per-entry schema through an explicit allow-list. Of the 19 declared actions, `location.roads_ahead` is not allow-listed.
+- **19 action tools** under their catalog names (e.g. `assistant_email_compose`, `routes_library_rename`, `web_search`, `directions_routeTo`), taken from the availability-filtered per-entry schema through an explicit allow-list. Of the 20 declared actions, `location.roads_ahead` is not allow-listed. The same list gates dispatch: a call to an action outside it, or to a per-entry tool name, is answered `missing(invalidParameter, "unknown tool …")` even if a provider emits it.
 
 Read tools are appended first, then actions. Duplicates by name are dropped (first wins, with a warning, because one provider rejects duplicates), and the list is sorted by name. Action schemas list `required` sorted; every property is a string and the resolver converts types.
 
 **Capability index.** The read-tool list also generates a system-prompt section: each tool's name and the first sentence of its description, capped at 170 characters, with an instruction to call the matching tool before answering any question about the user's own data.
 
-**Ranking.** A BM25 ranker [21] (k1 = 1.5, b = 0.75) filters the schema only above 40 tools, so at 39 it passes the list unchanged. The on-device provider ranks tools with the same scorer and keeps the highest-ranked ones that fit its context token budget.
+**Ranking.** A BM25 ranker [21] (k1 = 1.5, b = 0.75) filters the schema only above 40 tools, so at 40 it passes the list unchanged. The on-device provider ranks tools with the same scorer and keeps the highest-ranked ones that fit its context token budget.
 
 **Per-turn budget.** When `callsSoFar + callsThisRound > 8`, the calls in that round that still fit under 8 resolve and each one past it gets `missing(rateLimited, "tool budget exceeded for this turn")`. The model has one more round to answer in text, and further tool calls are dropped. The on-device dispatcher enforces the same constant.
 
-**Why it works.** A few polymorphic read tools are easier for every provider to choose among than hundreds of narrow ones, and they fit the on-device context. Catalog names keep every side effect identifiable in audit logs. Sorting and deduplication make the schema bytes a pure function of the catalog, so the stable prefix caches well, and generating the index from the same list means the prompt always describes the tools that exist.
+**Confirmation of destructive and model-supplied writes.** Removing a memory fact, clearing memory and removing a contact never run on the model's first call. That call records the request and returns `{status: "confirmation_required", executed: false, ask_user: <question the app wrote>}`. The action runs when the model repeats the same call and the user's very next message is a short, explicit yes: at most five words, opening with an affirmation in one of the app's languages, with no negation or hedge. A different reply, a later turn or ten minutes lapse the request, and one request is pending at a time. Adding a memory fact or a contact, renaming a saved route and setting the saved address take the same step whenever a value they would write is not in the user's own latest message, since a web page, an email or a search result can steer the model into any of those calls. An email draft, like a contact save or removal, is refused unless the `user_quote` the model passes appears in the user's latest message, and the draft opens in the system mail composer for the user to review and send.
+
+**Why it works.** A few polymorphic read tools are easier for every provider to choose among than hundreds of narrow ones, and they fit the on-device context. Catalog names keep every side effect identifiable in audit logs, and a confirmation that only the user's own next message can give keeps text the model read from turning into an action. Sorting and deduplication make the schema bytes a pure function of the catalog, so the stable prefix caches well, and generating the index from the same list means the prompt always describes the tools that exist.
 
 ### 3.3 Runtime number verification
 
@@ -238,39 +240,39 @@ Two families of metrics are checked (Table 3.3). ATL and CTL are acute and chron
 
 | Family | Metrics | Source of truth | Where applied |
 |---|---|---|---|
-| Live workout | HR, power, DFA α1, HR drift | Live workout snapshot | Chat, every tool-loop round end, before the app-state pass; voice, each chunk before speech |
-| App state | TSB, ATL, CTL, ACWR, RMSSD, recovery score, last night's sleep duration and efficiency | Training-load registry (same accessor as dashboard and tools); latest reliable overnight session; latest overnight with sleep | Chat, every tool-loop round end; voice, each chunk before speech |
+| Live workout | HR, power, DFA α1; HR drift in voice | Live workout snapshot (chat: the live-workout broker's, nothing while no workout records; voice: the recorder's) | Chat, every tool-loop round end, before the app-state pass; voice, each chunk before speech |
+| App state | TSB, ATL, CTL, ACWR, RMSSD, recovery score, last night's sleep duration and efficiency | Training-load registry (same accessor as dashboard and tools), skipped while training load is paused; today's reliable overnight, the night the prompt's `recovery_score_today` names; the night `get_sleep` "latest" answers about, only when it holds frozen sleep | Chat, every tool-loop round end; voice, each chunk before speech |
 
 **Table 3.4.** Claim shapes and tolerances.
 
 | Metric | Claim shape (case-insensitive, simplified) | Tolerance | Replacement |
 |---|---|---|---|
-| HR | "your [current/live] HR/heart rate [is/'s]…" or "HR right now/currently/now", filler, `\d{2,3} bpm` | 5 bpm | `N bpm` |
-| Power | same shape, "power/wattage", `\d{2,4} W/watts` | 15 W | `N W` |
+| HR | "your [current/live] HR/heart rate [is/'s]…" or "HR right now/currently/now", filler, `\d{2,3}` with optional `bpm`/"beats per minute" | 5 bpm | `N bpm` |
+| Power | same shape, "power/wattage", `\d{2,4}` with optional `W`/`watts` | 15 W | `N W` |
 | DFA α1 | same shape, "α1/alpha 1", optional "DFA", decimal only | 0.10 | `%.2f` |
 | HR drift | same shape, "[HR] drift", number + `%` | 1.5 percentage points | `%.1f%` |
-| TSB | `TSB` + optional "negative" + signed number | 2.0 | `%+.1f` |
-| ATL / CTL | label + number | 3.0 | `%.1f` |
-| ACWR | label + number | 0.15 | `%.2f` |
-| RMSSD | `RMSSD [of] N [ms]` | 8.0 ms | `%.0f ms` |
-| Recovery | `recovery N` | 4.0 on 0–100; a claim ≤ 10 within 1.0 of the 0–10 score is accepted | on the claim's scale |
+| TSB | `TSB` + optional connector + optional "negative" + signed number | 2.0 | `%+.1f` |
+| ATL / CTL | label + optional connector + number | 3.0 | `%.1f` |
+| ACWR | label + optional connector + number | 0.15 | `%.2f` |
+| RMSSD | `RMSSD` + optional connector + `N [ms]` | 8.0 ms | `%.0f ms` |
+| Recovery | `recovery [score]` + optional connector + `N` | 4.0 on 0–100; a claim ≤ 10 within 1.0 of the 0–10 score is accepted | on the claim's scale; on 0–100, the integer the dashboard shows |
 | Sleep duration | "slept [for] [about] Nh [M m]", "sleep [duration] was …", "… of sleep" | 5 min if minutes or decimal hours given; 30 min for whole hours | "6h 55m" or "6 hours and 55 minutes", matching the claim |
 | Sleep efficiency | "[sleep] efficiency [of/was/…] N%", "N% [sleep] efficient/efficiency", in a sentence mentioning sleep | 1.0 percentage point | `N%` |
 
-The TSB, ATL, CTL, ACWR, RMSSD and recovery patterns reject a number followed by a time or count unit (`days`, `h`, `weeks`, `nights`, `minutes`, `sessions`, `workouts`), by `%`, or by more digits, so "CTL 42-day window" is not a claim.
+The connector is any run of `is`, `of`, `at`, `now`, `currently`, `today`, `sitting`, `sits`, `reads`, `stands at`, `right now`, then a space, `:` or `=`, so the prompt's own phrasings ("TSB is -8.8", "TSB: -8.8") are checked. The TSB, ATL, CTL, ACWR, RMSSD and recovery patterns reject a number followed by a time or count unit (`days`, `h`, `weeks`, `nights`, `minutes`, `sessions`, `workouts`), by `%`, or by more digits, so "CTL 42-day window" is not a claim. The HR and power patterns likewise reject a number followed by `%`, a range dash, a slash, a decimal or a time unit.
 
 #### 3.3.2 Algorithm (app-state family)
 
-1. **Normalize spelled numbers.** Match `\b(negative\s+)?(ones-or-teen | tens([-\s]+digit)?)(\s+point\s+digit)?\b`, alternations longest first, and replace with digits ("negative thirty-one point seven" → `-31.7`), recording `(originalRange, normalizedRange)` rewrites. Range 0–99, at most one decimal digit, English words.
+1. **Normalize spelled numbers.** Match `\b(negative\s+)?(hundreds | one-or-two "-" tens[-digit] | tens([-\s]+digit)? | ones-or-teen)(\s+point(\s+digit)+)?\b`, where `hundreds` is `(a|digit)[-\s]+hundred`, optionally followed by `[and]` and a number below a hundred, and the alternatives run longest first. Replace each match with digits ("negative thirty-one point seven" → `-31.7`, "one hundred and sixty" and the spoken heart-rate form "one-sixty" → `160`, "point seven five" → `.75`), recording `(originalRange, normalizedRange)` rewrites. Range 0–999, any number of decimal digits, English words.
 2. Run the metric regexes on the normalized text. Each names a `value` group and a `claim` group (number plus unit, the span to replace); the metric label is never in the replaced span.
-3. Find each match's sentence (the enumerator does not split "17.2"). Discard it if the sentence has a **time marker** (ago, yesterday, last week/month/…/weekday, previous(ly), earlier, before, on <weekday>) or a **target/comparison marker** (average, mean, baseline, typical, usual, target, goal, keep, stay, peak, max, min, trend, would, could, if, should, threshold, under, below, above, over, between, range, higher, lower, than, and similar).
+3. Find each match's sentence (the enumerator does not split "17.2") and read it from its start to the end of the claim's own clause, the first clause separator after the claim (`,` `;` `(` `—` `–`, a spaced hyphen, *vs*, *versus*, *compared*, *but*, *while*, *whereas*, *from*). Discard the match if that span has a **time marker** (ago, yesterday, last week/month/year/time/weekday, previous(ly), earlier, before, on <weekday>) or a **target/comparison marker** (average, avg, mean, baseline, typical(ly), usual(ly), normally, target, goal, aim, keep, stay, peak, max(imum), min(imum), lowest, highest, best, worst, trend, would, could, if, should, threshold, under, below, above, over, between, range, higher, lower, than). A marker in a later clause is about another number, so "Recovery 72, slightly down from 76 yesterday" is still checked; one before the claim ("Yesterday, recovery was 55") still applies.
 4. Negate a "negative N" claim. Keep the match only if `|claimed − actual|` exceeds the tolerance.
-5. Recovery: drop a claim ≤ 10 if `|claimed − score10| ≤ 1.0`, where `score10` is the score on the 0–10 scale; report a remaining claim ≤ 10 on that scale.
-6. Sleep: drop matches in sentences with general-norm markers ("need", "recommended", "adults", "per night", ranges such as "7-9") or other-night markers (month and weekday names, "nights", "weeks", dates); drop overlaps.
+5. Recovery: drop a claim if `|claimed − score10| ≤ 1.0`, where `score10` is the score on the 0–10 scale; report a remaining claim ≤ 10 on that scale, and a larger one against the integer the dashboard shows.
+6. Sleep: checked only when the text mentions sleep (`sleep`, `slept`, `asleep`, `efficien…`). Drop matches in sentences with general-norm markers ("need", "recommended", "adults", "per night", ranges such as "7-9") or other-night markers (month and weekday names, "nights", "weeks", dates); drop overlaps.
 7. **Remap** ranges to the original text. An offset inside a rewritten span snaps to the rewrite's original start or end, so "negative thirty-one point seven" is replaced whole.
-8. Replace claimed spans back-to-front. Every other word, including unrelated spelled numbers ("two sessions"), is unchanged.
+8. Replace claimed spans back-to-front, skipping a span that overlaps one already replaced. Every other word, including unrelated spelled numbers ("two sessions"), is unchanged.
 
-The live-workout family runs steps 2–4 without normalization and requires the "your X is" / "X right now" shape, because a bare "150 bpm" is usually a target or a different metric.
+The live-workout family runs steps 1–4 and 7, so a spoken "one hundred sixty" is checked like `160`, and requires the "your X is" / "X right now" shape, because a bare "150 bpm" is usually a target or a different metric. Its unit is optional after that shape, since the prompt's own example is "Your HR is 150".
 
 #### 3.3.3 Where verification runs
 
@@ -280,18 +282,20 @@ In chat, live-workout verification and then app-state verification run at the en
 
 #### 3.3.4 Correction loop
 
-Each discrepancy enters a process-wide, lock-guarded buffer, deduplicated by `(metric, claimed, actual)` (voice sees the same claim in the spoken chunk and the saved turn) and capped at the 4 most recent. The next system prompt reads and clears it into a variable section outside the cached prefix:
+Each discrepancy enters a process-wide, lock-guarded buffer, deduplicated by `(metric, claimed, actual)` (voice sees the same claim in the spoken chunk and the saved turn) and capped at the 4 most recent. Every system prompt composed from then on carries it in a variable section outside the cached prefix. Composing does not retire a correction: it moves to a delivered list (at most 4 shown), so a prompt re-composed for a fallback provider carries it again. The next reply's app-state verification, which every reply path runs, retires the delivered ones. Clearing the conversation empties the buffer, and it does not survive a relaunch.
 
 ```
 # Last turn correction — DO NOT FABRICATE
 Your previous response contained numbers that contradicted live data. The saved reply was
 corrected, but the user may already have read or heard the wrong number — if it matters,
-correct it briefly. For any of these metrics next turn, CALL the appropriate tool (...) and
-quote what comes back — never estimate or interpolate.
+correct it briefly. For any of these metrics next turn, CALL the appropriate tool (get_workout_live
+for HR / pace / location, get_training_load for TSB / ATL / CTL / ACWR, get_sleep for sleep
+duration / efficiency, lookup_fact for resting HR / HRV) and quote what comes back — never
+estimate or interpolate.
 • You said TSB=-29.0 — actual was -15.5.
 ```
 
-**Why it works.** Each discrepancy yields one reminder line on the next turn, naming the metric, both values and the tool to call, so the next answer is grounded without regenerating the current one. Consume-once and the cap keep the prompt short, and placing the section outside the prefix keeps the cache intact.
+**Why it works.** Each discrepancy yields one reminder line on the next turn, naming the metric, both values and the tool to call, so the next answer is grounded without regenerating the current one. Retiring a line once a reply to it has come back, rather than when it is composed, means a failed send does not lose it, while a single fabrication still produces one reminder, not a perpetual one. The cap keeps the prompt short, and placing the section outside the prefix keeps the cache intact.
 
 ### 3.4 Structural resolution of user-asserted values
 
@@ -299,7 +303,7 @@ Before the variable prompt sections are built, the user-assertion detector takes
 
 1. Normalize spelled numbers (Section 3.3.2, step 1).
 2. Remove every sentence ending in `?` or `？`; questions assert nothing.
-3. For each known metric name, find the *last* `\bmetric\b\s*[connector]\s*number`. The names cover training-load, HRV, heart-rate, recovery, sleep, workout and vitals terms, tried longest first so "max hr 190" is not read as "hr 190". The connector is optional except for `sleep` and `recovery`, which need one of `is/of/=/:/was/being`. Clock times (`5 am`, `11 pm`, `5:30`, `o'clock`) are excluded.
+3. For each known metric name, find the *last* `\bmetric\b\s*[connector]\s*number`. The names cover training-load, HRV, heart-rate, recovery, sleep, workout and vitals terms, tried longest first so "max hr 190" is not read as "hr 190". The connector is optional except for `sleep` and `recovery`, which need one of `is/of/=/:/was/being`. Clock times (`5 am`, `11 pm`, `5:30`, `o'clock`) are excluded, except that `pace` takes a min:sec value ("pace was 5:30" is 5.5 minutes). Names that double as units (`hr`, `bpm`, `watts`, `calories`) count as a metric only when no number comes just before them, so in "slept 7 hr 30 min" the 30 is not a heart rate.
 4. Blank each match after use, so the newest assertion per metric wins. Transcription variants (`bsb`, `tsp`, `tbs` → `tsb`, …) fold into the canonical key only if the canonical spelling gave no value.
 5. Set `dashboardContradicted` on a contradiction phrase ("the dashboard says", "real numbers are", "you're wrong", "wrong number", …) or on a sentence opening "no/actually, it's/it is" followed by a number or a word such as not/different/wrong/higher/lower/more/less.
 6. Set `explicitOverrideRequested` on phrases such as "stop calling tools", "use these numbers", "I don't care what the dashboard…", "stop saying".
@@ -357,7 +361,7 @@ Eight concepts are **input-only**:
 - Danger judgement, because its bare adjectives (`dangerous`, `gefährlich`) appear in the app's own negating educational copy ("not because the number is dangerous in itself"). Assertion-shaped danger framing is covered on output by risk-zone framing.
 - Acute cardiac event, a strict subset of the already-scrubbed named cardiac condition. It exists so the input guard can refuse "am I having a heart attack?" without refusing "is my resting HR bradycardia?", an ordinary endurance-athlete question.
 
-Every concept is in the input group, the output group, or both (rhythm and neurovascular event). `neverInStaticCopy` excludes concepts the app's copy uses on purpose. The localized redirect "Consult a doctor if consistently low" matches `medicalReferral`, and the whole lexicon produced 45 such matches over the string catalogs. The 12 selected concepts matched nothing in any locale, so the group can act as a hard gate.
+Every concept is in the input group, the output group, or both (rhythm and neurovascular event). `neverInStaticCopy` excludes concepts the app's copy uses on purpose: its own safety replies say "talk to your doctor", which matches `medicalReferral`, and it names its own Diagnostics feature, a form of the `diagnosis` concept. The 12 selected concepts appear in no locale's copy outside the allow-listed disclaimers (the linter runs clean at 6b195c6), so the group can act as a hard gate.
 
 **Why it works.** One vocabulary consumed at three points means a term forbidden in shipped copy is also handled at input and in model output, in every language, and one edit reaches all three. Splitting by script gives each language the boundary rule that fits it, and matching on the original text keeps replacement ranges exact. Per-language exclusions at the qualifier's natural position let normal physiology, software terms and sports vocabulary through. Per-concept group membership lets each enforcement point act without rewriting the app's own safety language.
 
@@ -365,7 +369,7 @@ Every concept is in the input group, the output group, or both (rhythm and neuro
 
 **Prompt rules.** The system prompt carries four medical-boundary rules, which the guards back up deterministically: A, no personal diagnosis; B, fixed replies for severe red-flag symptoms, self-harm and injury; C, rhythm questions answered with the app's limits and a pointer to a clinically validated electrocardiogram (ECG) feature; D, medications discussed only as general information, with no dosing or personal prescription.
 
-**Order** (first match wins): 1. self-harm → crisis reply; 2. emergency → symptom reply; 3. injury → injury reply; 4. rhythm → rhythm reply; 5. danger judgement → symptom reply; 6. none → proceed.
+**Order** (first match wins), on the trimmed message with typographic apostrophes folded to `'` (iOS types "can’t"): 1. self-harm → crisis reply; 2. emergency → symptom reply; 3. injury → injury reply; 4. rhythm → rhythm reply; 5. danger judgement → symptom reply; 6. none → proceed.
 
 **Replies** are fixed catalog strings, localized into all 17 languages:
 
@@ -374,11 +378,11 @@ Every concept is in the input group, the output group, or both (rhythm and neuro
 - Injury: stop, call the local emergency number if serious, the app cannot assess injuries, otherwise see a clinician.
 - Rhythm: the app does not detect atrial fibrillation (AFib) or arrhythmia and is not a medical device; talk to your doctor; a clinically validated ECG feature exists for that purpose.
 
-**On a refusal**, the guard (1) appends the user turn and the canned reply, both flagged `localOnly`, and persists them; and (2) returns without calling any provider, including the on-device one, and before the consent check. The flag lives on the stored turn. History assembly withholds such turns before budgeting (they are never counted as "dropped"), summarization filters them again, and the user-assertion detector skips them. A guarded message therefore cannot reach a provider later as history.
+**On a refusal**, the guard (1) appends the user turn and the canned reply, both flagged `localOnly`, and persists them; and (2) returns without calling any provider, including the on-device one, before the provider and consent checks. The flag lives on the stored turn. History assembly withholds such turns before budgeting (they are never counted as "dropped"), summarization filters them again, and the user-assertion detector skips them. A guarded message therefore cannot reach a provider later as history.
 
 **Feature flag.** The guard defaults on; the self-harm branch runs even when it is off: `if flagOn || classify(text) == selfHarm`.
 
-**Prompt parity.** Rule B asks the model to reply exactly with the symptom, self-harm and injury texts. Unit tests check that the symptom and injury replies appear verbatim (after whitespace collapse) in both the cloud and on-device prompts.
+**Prompt parity.** Rule B asks the model to reply exactly with the symptom, self-harm and injury texts. Unit tests check that the symptom and injury replies appear verbatim (after whitespace collapse) in both the cloud and on-device prompts. The output guard passes these replies through unchanged when the model gives one as its reply (Section 3.7).
 
 **Voice echo trap.** The spoken rhythm refusal itself contains "AFib" and "arrhythmia". A transcript is therefore dropped as an echo when it would trigger the refusal that is already the last assistant turn and at least 40% of its tokens overlap that reply.
 
@@ -390,26 +394,44 @@ Every concept is in the input group, the output group, or both (rhythm and neuro
 
 **Negation-neutral deflections.** Each deflection is true whether the replaced sentence affirmed or denied the term, e.g. "Emuqu measures beat-to-beat timing; it doesn't assess heart rhythm. A clinician or a clinically validated ECG is the right place for that question." Deflections are catalog strings in the in-app language, and a test checks that none trips any rule. There are 13 medical deflections (9 concept-specific, 4 shared: rhythm, load, out-of-scope, observation fallback) plus one offensive-language line.
 
+**The app's own safety copy.** The input guard's four canned replies (Section 3.6) contain words the output rules match ("talk to your doctor"), and rule B tells the model to give three of them word for word. Without an exception the scrub would turn the emergency answer to chest pain into a deflection. A sentence passes unchanged when it is a canned reply's opening sentence, or the next sentence of a canned reply whose earlier sentences came straight before it, compared after removing emphasis markers, folding typographic apostrophes, collapsing whitespace and ignoring case. The comparison covers the replies in the in-app language and in English, since rule B quotes the English text. The same sentence after the model's own reasoning ("Your HRV has dropped three days running. Talk to your doctor about that.") is not the canned reply and is scrubbed. Text that reaches the guard in pieces (stream flushes, spoken chunks) carries its progress through the reply from piece to piece, so every piece goes through the guard, clean ones too.
+
 **Offensive-language entries.** One offensive-language concept runs on every reply. A second, English-only concept holds entries that are ordinary words or names in another shipped language. It applies only when the reply is recognized as English: the language recognizer's top hypothesis must reach a confidence of 0.6 on a text of at least 3 words, and otherwise the in-app language decides.
 
 ```
-scrub(text):
+scrub(text, progress = fresh):            # progress carries over between pieces of one reply
   active = medicalRules + offensiveRule (+ englishOnlyRule when it matches and the reply is English)
+  if text empty: return text
+  out = ""; run = ""
+  for each segment of split(text):         # concat(segments) == text exactly
+      if continuesSafetyCopy(key(segment), progress):
+          out += scrubRun(run, active) + segment     # canned safety copy, byte-identical
+          run = ""
+      else: run += segment
+  return out + scrubRun(run, active)
+
+continuesSafetyCopy(k, progress):         # replies = canned replies, in-app language and English,
+  next = [r in progress.candidates          #           each as its sentence keys in order
+          where r[progress.matched] == k]
+  if next empty: progress.candidates = [r in replies where r[0] == k]; progress.matched = 1 or 0
+  else:          progress.candidates = next; progress.matched += 1
+  return progress.candidates nonempty
+
+scrubRun(text, active):
   r = firstMatch(text, active)
   if text empty or r is none: return text unchanged
-  segments = split(text) so that concat(segments) == text exactly
   rebuilt = ""
-  for each segment:
+  for each segment of split(text):
       core = segment without leading/trailing whitespace
       rule = firstMatch(core, active)
-      if rule: rebuilt += leadingWS + rule.deflection + trailingWS; record (rule.reason, core)
+      if rule: rebuilt += tidy(leadingWS + rule.deflection + trailingWS); record (rule.reason, core)
       else:    rebuilt += segment              # byte-identical
   if nothing was replaced:                     # the match straddles a terminator
       m = r.regex.firstMatch(text)
       straddled = text with every segment overlapping m collapsed into ONE r.deflection
-      if m found and firstMatch(straddled, active) is none: return tidy(straddled)
+      if m found and firstMatch(straddled, active) is none: return straddled
       return r.deflection                      # whole message
-  return tidy(rebuilt)                         # "  "->" ", " ."->".", " ,"->","
+  return rebuilt                               # tidy: "  "->" ", " ."->".", " ,"->","
 
 firstMatch(t, rules):
   r = first rule whose regex matches t
@@ -418,15 +440,15 @@ firstMatch(t, rules):
   return plain != t ? first rule matching plain : none
 ```
 
-**Segmentation.** A segment runs through a terminator from `{. ! ? \n 。 ！ ？ ، ؟ …}`, any further terminators (`?!`, `...`), then whitespace. A `.` after a digit is a decimal point when a digit follows; at the end of the text it is undecided and does not split. A sentence is rewritten at most once and rewritten text is never re-scanned, so the pass is linear with no iteration cap. The markdown retry catches emphasis inside a term (`You may have *atrial* fibrillation.`). A caller that needs the match's range re-runs the regex on the original text and deflects the whole message if it cannot locate it.
+**Segmentation.** A segment runs through a terminator from `{. ! ? \n 。 ！ ？ ، ؟ …}`, any further terminators (`?!`, `...`), then whitespace. A `.` after a digit is a decimal point when a digit follows; at the end of the text it is undecided and does not split. A sentence is rewritten at most once and rewritten text is never re-scanned, so the pass is linear with no iteration cap. Only a rewritten sentence is tidied; every other byte is returned as written. The markdown retry catches emphasis inside a term (`You may have *atrial* fibrillation.`). A caller that needs the match's range re-runs the regex on the original text and deflects the whole message if it cannot locate it.
 
 **Where it runs.**
 
-1. **Streaming buffer** (chat and the voice cursor). Deltas publish at most every 33 ms. Each publish splits at the last terminator, scrubs only the complete part and holds the tail back, so a matched phrase does not render, even partially. The voice "speakable cursor" advances only over published text. At round end and on every exit path, including errors and Stop, the tail is force-published, scrubbed.
-2. **Speech.** Every utterance (streamed chunks, completed turns, error lines, wake-word acknowledgements) passes one function, scrub → number verification → preamble, before the synthesizer.
-3. **Final pass** over the whole message after the stream ends.
+1. **Streaming buffer** (chat and the voice cursor). Deltas publish at most every 33 ms. Each publish splits at the last terminator, scrubs only the complete part and holds the tail back, so a matched phrase does not render, even partially. When the text ends in a run of soft terminators only (a line break or the Arabic comma, which can fall inside a phrase such as `see a\ndoctor`), the line they close waits for the next sentence. The voice "speakable cursor" advances only over published text. At round end and on every exit path, including errors and Stop, the tail is force-published, scrubbed. A pre-tool-call rewind restarts the round's safety-copy progress.
+2. **Speech.** Every utterance (streamed chunks, completed turns, error lines, wake-word acknowledgements) passes one function, scrub → number verification → preamble (Flo's replies only), before the synthesizer. The chunker that feeds it holds the reply's safety-copy progress and starts it afresh for each reply.
+3. **Final pass** over the whole message after the stream ends, which starts with no canned reply under way.
 
-**Why it works.** A denial is a finding too ("This isn't AFib" rules a condition out), and negation is spread across sentences in ways one pattern cannot follow in 17 languages (sentence-final in Japanese and Korean, split in French, a negative verb in Finnish). Deflections true in both readings remove the need to decide which reading applies, so the replacement is true in either reading, in every language, without a negation model. Whole-sentence replacement keeps replies grammatical, and holding back tails keeps a matched phrase off screen even for a frame. One speech function leaves no path to the speaker that skips the guard, and the straddle rule makes the boundary case fail closed.
+**Why it works.** A denial is a finding too ("This isn't AFib" rules a condition out), and negation is spread across sentences in ways one pattern cannot follow in 17 languages (sentence-final in Japanese and Korean, split in French, a negative verb in Finnish). Deflections true in both readings remove the need to decide which reading applies, so the replacement is true in either reading, in every language, without a negation model. Whole-sentence replacement keeps replies grammatical, and holding back tails keeps a matched phrase off screen even for a frame. One speech function leaves no path to the speaker that skips the guard, and the straddle rule makes the boundary case fail closed. Matching the canned copy sentence by sentence, in order and from its opening, keeps the app's own safety answer intact without letting one of its sentences excuse a referral the model composed itself.
 
 ### 3.8 Build-time copy linter
 
@@ -442,15 +464,17 @@ Each of the following exits with code 2: a missing scan path, an unreadable file
 
 ### 3.9 Coverage gate
 
-The CI gate checks that the runtime lexicon recognizes a concrete example of every build-time pattern:
+The CI gate checks that the runtime lexicon recognizes every spelling of every build-time pattern:
 
 1. Extract every literal from every `latin:`/`unbounded:` array in all lexicon files (a glob, so a file split hides nothing). Bracket matching skips string literals, so a `]` inside a character class does not close the array. Compile each, word-bounding `latin` alternatives.
-2. **Fail (exit 2)** if any alternative matches the empty string or fewer than 100 were extracted; either means the parser is broken. At e028039 there are 985.
-3. For each build-time pattern, **synthesize a witness**: remove `(?i)` and lookarounds; `\s+` → space; remove `\s*` and `\b`; reduce character classes to one member (`\s` → space, `\x` → `x`); drop leftover quantifiers; repeatedly reduce `(a|b)?` → "", `(a|b)` → `a`, `(a)?` → "", `(a)` → `a`; remove `?`. A pattern whose witness reduces to the empty string is skipped and not counted; at e028039 all 62 patterns produce a witness.
-4. **Fail (exit 2)** if the witness does not match its own pattern.
-5. **Fail (exit 1)** if no lexicon alternative matches the witness, listing each gap.
+2. **Fail (exit 2)** if any alternative does not compile, matches the empty string, or fewer than 100 were extracted; any of these means the parser or the lexicon is broken. At 6b195c6 there are 989.
+3. For each build-time pattern, **expand every spelling** it matches: each alternation branch, each optional part present and absent, each character-class member; `*` and `{m,n}` take their minimum, `+` one repetition, `\s` a space, `\w` a placeholder word, `\d` a digit; `(?i)`, `\b` and lookarounds are dropped, and doubled or edge spaces are collapsed.
+4. **Fail (exit 2)** if a pattern cannot be expanded, expands to more than 5,000 spellings or to none, or if a spelling does not match its own pattern.
+5. **Fail (exit 1)** if no lexicon alternative matches a spelling, listing each gap.
 
-**Why it works.** Two hand-kept vocabularies drift. A witness turns each build-time pattern into a concrete example the runtime lexicon must recognize, so a term added to only one list fails CI. The self-check and the vacuity guards ensure the gate cannot pass because its own parser broke.
+At 6b195c6 the 62 build-time patterns expand to 590 spellings, all matched.
+
+**Why it works.** Two hand-kept vocabularies drift. Expanding each build-time pattern into the spellings it matches turns it into concrete examples the runtime lexicon must recognize, so a term added to only one list fails CI. One example per pattern was not enough: reducing `(a|b)` to `a` checked one spelling per pattern, and forms such as *undiagnosed*, *curing*, *curative*, *pathological* and *ischaemic* went unmatched while the gate printed clean. The self-check and the vacuity guards ensure the gate cannot pass because its own parser broke.
 
 ---
 
@@ -475,7 +499,7 @@ Product and library facts are limited to their public documentation, code or fil
 | Myra crisis protocol | Every message screened before the AI (phrase list + classifier); fixed message plus region-localized crisis lines | N11 | No ordered multi-class refusal, local-only history persistence or prompt-parity test documented | [26] |
 | Keyword crisis gate (Hugging Face Space) | Fixed crisis message on a keyword match | N11 | English keyword list | [27] |
 | NegEx-style rules | Negation detection in clinical notes | — (not presented as new) | Emuqu does not use negation detection | [18] |
-| exrex; Hypothesis `from_regex` | Generate strings matching a regex | N14 witness step | No cross-vocabulary coverage check or vacuity guards | [28][29] |
+| exrex; Hypothesis `from_regex` | Generate strings matching a regex | N14 spelling expansion | No cross-vocabulary coverage check or vacuity guards | [28][29] |
 | WHOOP Coach | GPT-4 "fine-tuned with anonymized member data and proprietary WHOOP algorithms"; zero retention | Health-data coach | Nothing public on number verification, guardrails or languages | [30] |
 | Oura Advisor | LLM with Oura's algorithms; inputs include scores, contributors, tags, profile and past interactions; "not a medical device"; medical questions can be routed to Counsel Health's clinicians | Health-data coach; medical boundary | Nothing public on number verification or output filtering | [31][32][33] |
 | **Emuqu (this paper)** | **Typed catalog with closed absence taxonomy; present-value verifier with span correction and next-turn feedback; one 17-language lexicon at input, output and build time** | **—** | **Regex on device, no model call; regulated-claim guard before display and speech; number check before speech (voice) and at round end (chat)** | **—** |
@@ -516,23 +540,23 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Earliest dated record:* flow-recovery c63d56c, 2026-04-23 (first form, present/missing records); emuqu 554540f, 2026-10-03 (current form, scoped prefetch).
 
-**N6 (Section 3.2). A two-tier tool surface: 21 fixed polymorphic read tools plus 18 allow-listed actions taken from the availability-filtered catalog under their original names.** The list is deduplicated by name (first wins) and sorted for byte stability, and a system-prompt capability index is generated from the same read-tool list (first sentence, capped at 170 characters).
+**N6 (Section 3.2). A two-tier tool surface: 21 fixed polymorphic read tools plus 19 allow-listed actions taken from the availability-filtered catalog under their original names.** The list is deduplicated by name (first wins) and sorted for byte stability, and a system-prompt capability index is generated from the same read-tool list (first sentence, capped at 170 characters).
 
 *Builds on:* tool calling [5][6][22] and BM25 ranking [21]; no specific prior art was found for the two-tier surface. Adds the fixed read tier over a catalog, audit-preserving action names and a generated index.
 
 *Earliest dated record:* flow-recovery d5d6180, 2026-05-06 (first form, compact router); emuqu-dev 680bbee, 2026-08-25 (current form, deduplication and sorting). The capability index is present at emuqu-dev d4e5cf8, 2026-08-16, a squashed import, so that date is an upper bound.
 
-**N7 (Section 3.3). A free-text numeric verifier for present-value claims.** It (a) checks only present-value claims, discarding a match whose sentence has a time or target/comparison marker or whose number is followed by a time or count unit; (b) normalizes English spelled numbers (0–99, one decimal, optional "negative") and maps offsets back, snapping to rewritten spans so "negative thirty-one point seven" is replaced whole; (c) replaces only the number-and-unit span; (d) checks recovery on both scales (a claim ≤ 10 within 1.0 of the 0–10 score is accepted); (e) sets sleep-duration tolerance by claim precision (5 min, or 30 min for whole hours); and (f) runs on each voice chunk before speech and at every chat tool-loop round end. Tolerance checks against structured values and correction before the reply is returned are not presented as new.
+**N7 (Section 3.3). A free-text numeric verifier for present-value claims.** It (a) checks only present-value claims, discarding a match whose sentence, up to the end of the claim's clause, has a time or target/comparison marker, or whose number is followed by a time or count unit; (b) normalizes English spelled numbers (0–999, any number of decimal digits, optional "negative") and maps offsets back, snapping to rewritten spans so "negative thirty-one point seven" is replaced whole; (c) replaces only the number-and-unit span; (d) checks recovery on both scales (a claim ≤ 10 within 1.0 of the 0–10 score is accepted); (e) sets sleep-duration tolerance by claim precision (5 min, or 30 min for whole hours); and (f) runs on each voice chunk before speech and at every chat tool-loop round end. Tolerance checks against structured values and correction before the reply is returned are not presented as new.
 
 *Builds on:* Proof-Carrying Numbers [9] (claim-bound tokens verified under a tolerance policy, fail-closed); US Patent 12,670,149 [10] (detecting and correcting inaccurate numeric comparisons); PHIA [25] (code-computed answers from wearable data). Adds spelled-number parsing in free speech, present-value scoping by sentence markers and span-only replacement before speech.
 
-*Earliest dated record:* flow-recovery 1b5ad2a, 2026-05-02 (first form, "hallucination guard": live voice chunks, tolerances, span replacement); emuqu 554540f, 2026-10-03 (current form, time and target markers). Intermediate: app-state claims flow-recovery 10fc926, 2026-05-17; spelled numbers flow-recovery e8ca54a, 2026-06-02.
+*Earliest dated record:* flow-recovery 1b5ad2a, 2026-05-02 (first form, "hallucination guard": live voice chunks, tolerances, span replacement); emuqu 946c8b2, 2026-10-11 (current form: clause-scoped markers, numbers to 999 and spelled live claims). Intermediate: app-state claims flow-recovery 10fc926, 2026-05-17; spelled numbers flow-recovery e8ca54a, 2026-06-02; time and target markers emuqu 554540f, 2026-10-03.
 
-**N8 (Section 3.3.4). A correction loop that feeds discrepancies into the next turn's prompt.** Discrepancies are deduplicated by `(metric, claimed, actual)`, capped at four, and consumed exactly once into a variable section of the *next* turn's prompt outside the cached prefix, telling the model the user may have seen the wrong number and to call the named tool; the reply is not regenerated.
+**N8 (Section 3.3.4). A correction loop that feeds discrepancies into the next turn's prompt.** Discrepancies are deduplicated by `(metric, claimed, actual)`, capped at four, and carried in a variable section of each prompt composed after them, outside the cached prefix, until a reply to one of those prompts has been verified, telling the model the user may have seen the wrong number and to call the named tool; the reply is not regenerated.
 
-*Builds on:* US Patent 12,670,149, which re-prompts to fix a detected numeric error [10]; adds consume-once, deduplicated next-turn feedback outside the cache.
+*Builds on:* US Patent 12,670,149, which re-prompts to fix a detected numeric error [10]; adds deduplicated next-turn feedback outside the cache, retired once answered.
 
-*Earliest dated record:* flow-recovery 68f32e5, 2026-05-08 (first form, "hallucination feedback": cap 4, consume once); emuqu 5c4a23d, 2026-10-04 (current form, deduplication).
+*Earliest dated record:* flow-recovery 68f32e5, 2026-05-08 (first form, "hallucination feedback": cap 4, consume once); emuqu 946c8b2, 2026-10-11 (current form, retired when a reply has been verified). Intermediate: deduplication emuqu 5c4a23d, 2026-10-04. Later: cleared with the conversation, emuqu 1d6460b, 2026-11-21.
 
 **N9 (Section 3.4). Structural resolution of user-versus-cache conflicts by prompt construction.** Statements (not questions) in the user turns among the last six turns, excluding local-only turns, that assert metric values inject a user-stated block. Statements that contradict the cache or request an override also remove the cached training-load block, instead of instructing the model to prefer the user.
 
@@ -556,7 +580,7 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Builds on:* NeMo Guardrails streaming output rails, server-side [17], and NegEx [18]. Adds negation-neutral sentence deflection on the device before display and speech.
 
-*Earliest dated record:* flow-recovery 0a3972d, 2026-05-03 (first form, English sentence deflection); emuqu 5c4a23d, 2026-10-04 (current form, decimal-aware split). Intermediate: negation-neutral multilingual form emuqu-dev 8c3999d, 2026-08-26.
+*Earliest dated record:* flow-recovery 0a3972d, 2026-05-03 (first form, English sentence deflection); emuqu 5c4a23d, 2026-10-04 (current form, decimal-aware split). Intermediate: negation-neutral multilingual form emuqu-dev 8c3999d, 2026-08-26. Later: soft-terminator hold-back emuqu 946c8b2, 2026-10-11; the app's canned safety replies passed unchanged, in order (Section 3.7), emuqu 419b34f, 2026-11-21. The canned-reply exception is described in Section 3.7 and not presented as new.
 
 **N13 (Section 3.8). A build-time copy linter with a Swift lexical scanner (nested comments, multi-line and raw literals, blanked interpolations).** It evaluates a prohibition exemption on comment-stripped source within the prohibiting sentence only, allow-lists at the key level so translations are covered, applies multilingual patterns parsed from the runtime lexicon source to every locale, and fails closed on bad input.
 
@@ -564,11 +588,11 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Earliest dated record:* flow-recovery 0a3972d, 2026-05-03 (first form: Swift string scanner, comment stripping, string catalogs); emuqu-dev 8c3999d, 2026-08-26 (current form, multilingual patterns). Intermediate: prohibition context emuqu-dev 59ce5da, 2026-08-26.
 
-**N14 (Section 3.9). A coverage gate that synthesizes a witness for each build-time regex, verifies it against its own pattern, and requires a runtime-lexicon alternative to match it.** It refuses to pass when any alternative matches the empty string or fewer than one hundred were extracted.
+**N14 (Section 3.9). A coverage gate that expands each build-time regex into the spellings it matches, verifies each against its own pattern, and requires a runtime-lexicon alternative to match each.** It refuses to pass when any alternative matches the empty string or fewer than one hundred were extracted.
 
 *Builds on:* regex string generation (exrex [28]; Hypothesis `from_regex` [29]); adds its use to check that one vocabulary covers another, with self-check and vacuity guards.
 
-*Earliest dated record:* emuqu-dev 8c3999d, 2026-08-26 (first form); the same commit carries the current form.
+*Earliest dated record:* emuqu-dev 8c3999d, 2026-08-26 (first form, one witness per pattern); emuqu 946c8b2, 2026-10-11 (current form, every spelling).
 
 **Prior work used, not presented as new.**
 
@@ -586,31 +610,33 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 - Clinical negation detection [18].
 - Generating strings from a regular expression [28][29].
 - Multi-provider fallback and per-vendor consent prompts.
+- Asking the user to confirm an agent's destructive or unrequested action before it runs.
 - Instruction hierarchies [13][34].
 
 ---
 
 ## 6. Verification
 
-These methods are software controls, not physiological measurements. The science register (`Tools/science_register/register.json`, scoring version v3.1.oct2026) classifies the app's physiological heuristics; none of its entries covers a method in this paper. Test results for the physiological methods of Paper 1, *Overnight Recovery Measurement from Raw Beat Intervals* ([link](01-overnight-recovery-measurement.md)), and Paper 2, *Real-Time DFA α1 and Dropout-Robust Training Load* ([link](02-exercise-hrv-and-training-load.md)), come from the cross-implementation scripts in `Tools/validation/`. Verifier tolerances are set from dashboard rounding and metric noise; detection rates on real model output are not claimed.
+These methods are software controls, not physiological measurements. The science register (`Tools/science_register/register.json`, scoring version v3.3.nov2026) classifies the app's physiological heuristics; none of its entries covers a method in this paper. Test results for the physiological methods of Paper 1, *Overnight Recovery Measurement from Raw Beat Intervals* ([link](01-overnight-recovery-measurement.md)), and Paper 2, *Real-Time DFA α1 and Dropout-Robust Training Load* ([link](02-exercise-hrv-and-training-load.md)), come from the cross-implementation scripts in `Tools/validation/`. Verifier tolerances are set from dashboard rounding and metric noise; detection rates on real model output are not claimed.
 
-Behavior is fixed by unit tests in `EmuquTests` (Table 6.1; test-function counts at e028039) and by CI gates.
+Behavior is fixed by unit tests in `EmuquTests` (Table 6.1; test-function counts at 6b195c6) and by CI gates.
 
 **Table 6.1.** Unit-test suites.
 
 | Suite | Tests | Establishes |
 |---|---|---|
-| `EmuquTests/CoachVoiceGuardTests.swift` | 44 | 200 identical prohibited sentences all rewritten; 100 clean sentences byte-identical among 100 prohibited; "you may have atrial fibrillation" intercepted in all 16 non-English locales; sinus arrhythmia passes in every locale; straddles fail closed; decimals do not split; nothing matched is published mid-stream |
+| `EmuquTests/CoachVoiceGuardTests.swift` | 50 | 200 identical prohibited sentences all rewritten; 100 clean sentences byte-identical among 100 prohibited; "you may have atrial fibrillation" intercepted in all 16 non-English locales; sinus arrhythmia passes in every locale; straddles fail closed; decimals do not split; nothing matched is published mid-stream; every canned safety reply passes unchanged, also inside a reply and streamed sentence by sentence, but only in order and not after a model sentence |
 | `EmuquTests/CoachVoiceGuardNegationTests.swift` | 4 | Denial and assertion of a term get the same neutral line; every translated deflection exists and passes |
 | `EmuquTests/MedicalQueryGuardTests.swift` | 29 | Rhythm and symptom questions refused in every locale; crisis reply for self-harm in every locale; "suicide sprints" proceed; symptom outranks rhythm; rule B quotes the reply verbatim; every `refuseBeforeSending` concept refused, with lexicon-derived probes |
 | `EmuquTests/MedicalQueryGuardTests+Injury.swift` | 6 | Injury class and reply |
 | `EmuquTests/LocalOnlyTurnTests.swift` | 7 | `localOnly` persists; refused turns withheld from history, not counted as dropped, also under truncation |
-| `EmuquTests/HallucinationFeedbackTests.swift` | 15 | Buffer caps at four, clears on consume; wrong current HR, duration, efficiency corrected without the label; targets, norms, other nights, averages ignored; spelled durations checked; right or rounded values kept |
+| `EmuquTests/HallucinationFeedbackTests.swift` | 16 | Buffer caps at four, clears on consume and when the conversation is cleared; wrong current HR, duration, efficiency corrected without the label; targets, norms, other nights, averages ignored; spelled durations checked; right or rounded values kept |
 | `EmuquTests/FactValueTests.swift` | 41 | No `missingReason` on success; non-finite nulls only its field; nested missing envelopes; sorted keys; valid JSON |
 | `EmuquTests/FactCatalogValidationTests.swift` | 8 | Unique, provider-valid tool names; valid placeholders; real composite dependencies; fast availability; deterministic schema; every key round-trips |
 | `EmuquTests/FactNumericArgumentTests.swift` | 9 | Hostile numeric values and field counts rejected with the range named, without trapping |
+| `EmuquTests/AssistantActionConfirmationTests.swift` | 22 | Destructive actions wait for an explicit yes in the user's next message; other replies, a later turn or expiry cancel; a fact or contact the user did not state waits for the same yes; affirmations in several languages |
 
-`Tools/copy_linter/lint.py` and `scripts/check_perimeter_sync.sh` run in CI. `scripts/verify_gates_fail.sh` plants a violation for each and requires failure: a localized "This can diagnose your arrhythmia." and a malformed catalog for the linter, and a term added to only one list for the coverage gate. At e028039 the coverage gate probes 62 patterns against 985 alternatives, with no gaps.
+`Tools/copy_linter/lint.py` and `scripts/check_perimeter_sync.sh` run in CI. `scripts/verify_gates_fail.sh` plants a violation for each and requires failure: a localized "This can diagnose your arrhythmia." and a malformed catalog for the linter, and a term added to only one list for the coverage gate. At 6b195c6 the coverage gate probes 590 spellings of 62 patterns against 989 alternatives, with no gaps.
 
 ---
 
@@ -623,9 +649,12 @@ Behavior is fixed by unit tests in `EmuquTests` (Table 6.1; test-function counts
 - Number verification covers present-value claims for the 11 metrics in Table 3.4, in English, so historical values, averages and non-English replies are not corrected.
 - In chat the correction lands at the end of the round, after its text may have been displayed; the next-turn reminder addresses that.
 - The 21 compact read tools are static for byte stability, so availability gating applies to the per-entry schema and the action tools.
+- A destructive action, or a write of a value the user did not state, costs the user one extra "yes" message; a reply that is longer than five words or hedges cancels it rather than guessing.
 - The 8-call budget is per turn: in the round that crosses it, the calls that still fit run and only the ones past it are refused, and the model then gets one more pass to answer, in which any further tool calls are dropped. That bounds a turn's latency, at the cost of an answer that may lack what the refused calls would have fetched.
 - The coverage gate is one-directional: build-time terms must be covered at runtime, while the runtime lexicon may be broader.
 - Model-drafted email bodies go to the system mail composer for the user to review and send, and auto-extracted memories are written by a background model call; both sit outside the output guard.
+- The output guard passes the app's canned safety replies unchanged only as whole replies given from their opening sentence; a model that paraphrases one, or quotes one sentence after its own reasoning, is scrubbed like any other reply.
+- A provider failure falls back to another model only when Apple Intelligence was selected and the routing mode allows it, and never after the turn ran a mutating tool, so a failed cloud pick shows its error rather than an answer from a model the user did not choose.
 
 ---
 
@@ -679,7 +708,9 @@ Chris Sharp is the sole author of these papers and of the design, and the only p
 
 ### 8.6 Document history
 
-v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims). This paper (v1.3) describes source revision e028039 (2026-10-07).
+v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims) and described source revision e028039 (2026-10-07).
+
+v1.4, published 2026-11-22, brings the paper to source revision 6b195c6 (2026-11-21) and scoring version v3.3.nov2026. Changed: catalog counts (239 entries, 20 actions; a third `workout` and a second `hrv` namespace head) and the trailing-dot and no-tail composite rules (Section 3.1); the time budget, which now only logs (Section 3.1.6, Appendix A, B.1); 19 allow-listed actions, the allow-list as a dispatch gate, and confirmation of destructive and model-supplied writes (Section 3.2); claim shapes with connectors and optional live units, the 0–999 normalizer applied to live claims too, clause-scoped markers, today's overnight as the RMSSD and recovery source, paused training load and the dashboard's integer recovery score (Section 3.3, B.3); corrections retired once a reply has been verified (Section 3.3.4); unit-like names and min:sec pace in the user-assertion detector (Section 3.4); the neverInStaticCopy rationale (Section 3.5); the apostrophe fold and the provider check before the turn is sent (Section 3.6, Table 2.1); the canned-safety-copy exception, soft-terminator hold-back and tidying of rewritten sentences only (Section 3.7, B.6); every-spelling expansion in the coverage gate (Section 3.9, B.7); N6, N7, N8, N12 and N14 and their records (Section 5); test counts and the confirmation suite (Section 6); four tradeoffs (Section 7); routing-mode limits on fallback (Appendix A).
 
 ---
 
@@ -726,25 +757,25 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 
 ## Appendix A: Parameters
 
-**Table A.1.** Parameters at e028039.
+**Table A.1.** Parameters at 6b195c6.
 
 | Name | Value | Unit | Role |
 |---|---|---|---|
 | Registered namespace resolvers | 26 | count | Registry address space |
-| Declared catalog entries | 238 (149 fixed sync, 8 fixed async, 56 parameterized, 6 composite, 19 action) | count | Catalog size |
+| Declared catalog entries | 239 (146 fixed sync, 11 fixed async, 56 parameterized, 6 composite, 20 action) | count | Catalog size |
 | Absence reasons | 9 | count | Closed taxonomy |
 | `rateLimitMissRetries` | 2 | misses | Third identical miss per turn → `rateLimited` |
 | `outputSizeCapBytes` | 80,000 | bytes | Per-result cap → `tooMuchData` |
-| `defaultResolveBudgetSec` | 2.0 | s | Per-entry path: overrun discards value |
+| `defaultResolveBudgetSec` | 2.0 | s | Slow-resolver warning; value kept |
 | `resolveWarnBudgetSec` | 0.5 | s | Slow-resolver warning |
 | `watchdogWarnSec` | 4.0 | s | Action main-thread warning |
 | Valid-range text granularity | month of lower bound | — | Parameter description |
 | Compact read tools | 21 | count | Model-facing schema |
-| Allow-listed action tools | 18 | count | Model-facing schema |
+| Allow-listed action tools | 19 | count | Model-facing schema and dispatch |
 | Capability-index purpose cap | 170 | characters | Per tool line |
 | BM25 k1, b | 1.5, 0.75 | — | Tool ranking |
 | BM25 target K | 40 | tools | Ranker filters only above this |
-| xAI Grok schema cap | 110 | tools | Per-provider cap; does not bind at 39 tools |
+| xAI Grok schema cap | 110 | tools | Per-provider cap; does not bind at 40 tools |
 | `maxToolCallsPerTurn` | 8 | calls | Calls past it in a turn → `rateLimited` |
 | Stream publish interval | 33 | ms | Throttle; sentence-complete publishing |
 | HR tolerance | 5 | bpm | Verifier |
@@ -758,8 +789,10 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 | Recovery tolerance | 4.0 (0–100) / 1.0 (0–10) | points | Verifier, scale disambiguation |
 | Sleep duration tolerance | 5 (precise) / 30 (whole hours) | min | Verifier |
 | Sleep efficiency tolerance | 1.0 | percentage points | Verifier |
-| Spelled-number range | 0–99, one decimal digit | — | Normalizer |
+| Spelled-number range | 0–999, any number of decimal digits | — | Normalizer |
 | Pending corrections cap | 4 | entries | Next-turn reminder |
+| Confirmation reply length | 5 | words | Explicit yes |
+| Confirmation lifetime | 10 | min | Pending destructive action |
 | User-assertion detector window | last 6 turns, filtered to non-local user turns | turns | Assertion detection |
 | Numeric arg: `starting_atl`, `starting_ctl`, `daily_trimp` | 0–10,000 | TRIMP (training impulse) | Range check |
 | Numeric arg: `gap_trimp` | (0, 10,000] | TRIMP | Range check |
@@ -780,11 +813,12 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 | Linter prohibition window | 3 lines (match line and 2 above) | lines | Exemption |
 | Linter snippet fragment | first 40 characters, at least 3 | characters | Exemption |
 | Build-time English patterns | 62 | count | `user_facing_prohibited` |
-| Coverage-gate minimum alternatives | 100 (985 at e028039) | count | Vacuity guard |
+| Coverage-gate minimum alternatives | 100 (989 at 6b195c6) | count | Vacuity guard |
+| Coverage-gate spelling limit | 5,000 per pattern (590 in all at 6b195c6) | count | Expansion guard |
 | Consent schema version | 8 | — | Per-provider consent |
 | Request audit size | 10 | entries | In-memory first-in-first-out (FIFO) log |
 
-**Context: consent and provider fallback (not presented as new).** Each hosted provider needs its own consent before its first send. The consent key includes a schema version (currently 8) that is bumped when the disclosure changes, and removing an application programming interface (API) key revokes consent. The on-device provider is exempt. On failure, the fallback chain holds only other enabled, available, consented hosted providers, then the on-device provider. When the on-device model refuses a request on safety grounds, the refusal is shown and the request is not retried with another provider. Each outbound request is recorded, before provider-specific transforms, in an in-memory FIFO log of 10 entries.
+**Context: consent and provider fallback (not presented as new).** Each hosted provider needs its own consent before its first send. The consent key includes a schema version (currently 8) that is bumped when the disclosure changes, and removing an application programming interface (API) key revokes consent. The on-device provider is exempt. A turn is sent only to a provider that can answer and is switched on in Settings. On a failure that says nothing about the content (context overflow, model unavailable, network, authentication, credit), the fallback chain holds only other enabled, available, consented hosted providers, then the on-device provider, and the routing mode cuts it: with a cloud model selected, or in Manual mode, there is no fallback and the error names the model that failed; in Quick mode only the on-device provider may step in; in Auto and Deep the whole chain may. A turn that has already run a tool that changes something is never handed on, because a fallback starts the turn over and would run that tool again. When the on-device model or a cloud vendor refuses a request on safety grounds, the refusal is shown and the request is not retried with another provider. Each outbound request is recorded, before provider-specific transforms, in an in-memory FIFO log of 10 entries.
 
 ---
 
@@ -804,7 +838,7 @@ resolveTool(name, argsJSON):
   key = entry.key, or entry.pattern with "$param" replaced by args[param]
         (missing/bad arg -> missing(invalidParameter))
   t0 = now; v = await resolveAsync(key); dt = now - t0   # range checks run inside the resolver
-  if dt > 2.0: v = missing(internalError, "timed out")
+  log if dt > 0.5 (louder if > 2.0); v is kept
   return gate(name, argsJSON, v)
 
 gate(name, argsJSON, v):
@@ -836,19 +870,20 @@ verifyAppState(text):
   found = []
   for (pattern, actual, tol, fmt, negateOnWord) in metricChecks:
       for m in pattern.matches(norm):
-          s = sentenceAround(m, norm)
+          s = sentenceAround(m, norm) up to the end of m's clause
           if s matches timeMarkers or targetMarkers: continue
           c = number(m.value); if negateOnWord and m.claim contains "negative": c = -|c|
           if |c - actual| > tol: found += (metric, fmt(c), fmt(actual), m.claimRange)
   apply recovery-scale rule and sleep sentence filters
   mapped = [remap(d.range, norm -> text, rewrites) for d in found]
-  corrected = replace mapped ranges back-to-front in text with d.actual
+  corrected = replace mapped ranges back-to-front in text with d.actual (skip overlaps)
   recordCorrections(mapped)              # deduplicate (metric, claimed, actual); keep last 4
   return corrected
+# at the start of every verifyAppState call: delivered = []   (a reply has come back)
 
 nextPromptVariableSections():
-  block = takeAndClear(pendingCorrections)
-  if block nonempty: append "# Last turn correction — DO NOT FABRICATE" + one line per entry
+  delivered = last4(delivered + pending); pending = []
+  if delivered nonempty: append "# Last turn correction — DO NOT FABRICATE" + one line per entry
 ```
 
 **B.4 User-assertion detector**
@@ -876,7 +911,7 @@ onSend(text):
   if trig and (flagOn or trig == selfHarm):
       store(userTurn(t, localOnly=true), assistantTurn(replyFor(trig, appLanguage), localOnly=true))
       return                              # no provider, no consent prompt
-  continue to consent check and provider send
+  continue to provider check, consent check and provider send
 history(turns) = turns.filter(not localOnly and not emptyAssistant)
 ```
 
@@ -886,27 +921,29 @@ history(turns) = turns.filter(not localOnly and not emptyAssistant)
 onDelta(chunk):
   buf += chunk
   if now - lastPublish < 33ms: return
-  (complete, tail) = splitAtLastTerminator(buf)   # decimal-aware
+  (complete, tail) = splitAtLastSafeCut(buf)   # decimal-aware; a trailing run of soft terminators waits
   if complete empty: return
   buf = tail
-  visible += scrub(complete)
+  visible += scrub(complete, progress)          # progress: this round's safety-copy position
   if roundHasNoToolCall and published text has terminator: speakableCursor = len(visible)
 onRoundEnd / onError / onStop:
-  visible += scrub(buf); buf = ""
+  visible += scrub(buf, progress); buf = ""
+onRewind: progress = fresh
 speak(utterance):
-  synthesize(preamble + verify(scrub(utterance)))
+  synthesize(preamble + verify(scrub(utterance, chunker.progress)))
 ```
 
 **B.7 Coverage gate**
 
 ```
 alts = [compile(latin ? "\b(?:"+a+")\b" : a) for a in literals(latin/unbounded arrays of lexicon*)]
-fail(2) if any alt matches "" or len(alts) < 100
+fail(2) if any alt fails to compile or matches "", or len(alts) < 100
 for p in buildTimePatterns:
-  w = witness(p)                          # see Section 3.9, step 3
-  if w == "": continue                    # skipped, not counted; none at e028039
-  fail(2) if not p matches w
-  gaps += p if no alt matches w
+  spellings = expand(p)                   # see Section 3.9, step 3
+  fail(2) if p cannot be expanded, or spellings empty, or more than 5000
+  for w in spellings:
+      fail(2) if not p matches w
+      gaps += (p, w) if no alt matches w
 fail(1) if gaps else pass
 ```
 
@@ -928,7 +965,9 @@ fail(1) if gaps else pass
 | Compact tools, allow-list, capability index | `Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift`, `Emuqu/Sources/Assistant/Facts/CompactToolRouter+Resolvers.swift` |
 | BM25 ranking | `Emuqu/Sources/Assistant/Facts/ToolRetriever.swift` |
 | xAI Grok schema cap | `Emuqu/Sources/Assistant/Providers/GrokProvider.swift` |
-| Tool loop, call budget, chat verification, fallback | `Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift` |
+| Tool loop, call budget, chat verification, fallback, mutating-tool rule | `Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift`; routing-mode fallback limits `Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift` |
+| Provider check (available and switched on) | `Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift` |
+| Action confirmation | `Emuqu/Sources/Assistant/Chat/AssistantActionConfirmations.swift`, `Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift` |
 | On-device dispatcher | `Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift` |
 | Number verifier, correction buffer | `Emuqu/Sources/Assistant/MetricsVerifier.swift` |
 | Voice verification and scrub order | `Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift` |
@@ -939,9 +978,10 @@ fail(1) if gaps else pass
 | `localOnly` turns | `Emuqu/Sources/Assistant/Providers/AIProvider.swift` (ChatTurn); `Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift` |
 | Output guard, offensive-language lists | `Emuqu/Sources/Assistant/CoachVoiceGuard.swift` |
 | Streaming buffer | `Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift` (StreamTextBuffer) |
+| Spoken chunks and their safety-copy progress | `Emuqu/Sources/Assistant/SpokenTextChunker.swift` |
 | Final pass | `Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift` |
 | Copy linter and configuration | `Tools/copy_linter/lint.py`, `Tools/copy_linter/prohibited_terms.json` |
 | Coverage gate; gate failure check | `scripts/check_perimeter_sync.sh`; `scripts/verify_gates_fail.sh` |
 | Consent | `Emuqu/Sources/Assistant/ProviderConsentTracker.swift` |
-| Tests cited | the nine suites in Table 6.1 |
+| Tests cited | the ten suites in Table 6.1 |
 | Science register | `Tools/science_register/register.json` |

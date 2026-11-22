@@ -383,4 +383,61 @@ final class ArchivePolicyTests: XCTestCase {
         XCTAssertEqual(target.notes, "keep")
         XCTAssertEqual(target.tags.map(\.id), [ReadingTag.morning.id])
     }
+
+    // MARK: - Duplicate keeper choice and carried content
+
+    /// Two copies of one recording with the same start, score and RMSSD:
+    /// every device must keep the same one, whatever order its index lists
+    /// them in. Keeping different copies tombstoned both, everywhere.
+    func testTheKeeperOfTiedDuplicatesDoesNotDependOnOrder() {
+        let start = date(day: 10, hour: 22)
+        let end = date(day: 11, hour: 6)
+        let first = entry(id: UUID(uuidString: "00000000-0000-0000-0000-000000000001") ?? UUID(), date: start, endDate: end, recoveryScore: 7)
+        let second = entry(id: UUID(uuidString: "00000000-0000-0000-0000-000000000002") ?? UUID(), date: start, endDate: end, recoveryScore: 7)
+
+        XCTAssertEqual(quarantine([first, second]), [second.sessionId])
+        XCTAssertEqual(quarantine([second, first]), [second.sessionId])
+    }
+
+    /// What the user added to a retired copy goes into the keeper: missing
+    /// tags, the notes, the morning feeling and the perceived readiness.
+    func testARetiredCopysContentIsCarriedIntoTheKeeper() {
+        var keeper = makeSession(points: nil, tags: [ReadingTag.morning], notes: "kept")
+        var loser = makeSession(points: nil, tags: [ReadingTag.morning, ReadingTag.alcohol], notes: "late dinner")
+        loser.morningFeeling = 2
+        loser.morningFeelingTags = []
+        loser.perceivedReadiness = 0.4
+
+        XCTAssertTrue(ArchiveMigrations.carryUserContent(from: loser, into: &keeper))
+
+        XCTAssertEqual(keeper.tags.map(\.id), [ReadingTag.morning.id, ReadingTag.alcohol.id])
+        XCTAssertEqual(keeper.notes, "kept\n\nlate dinner")
+        XCTAssertEqual(keeper.morningFeeling, 2)
+        XCTAssertEqual(keeper.perceivedReadiness, 0.4)
+        XCTAssertFalse(ArchiveMigrations.carryUserContent(from: loser, into: &keeper), "carried twice")
+    }
+
+    /// The keeper's own answers stay; a copy with nothing new changes nothing.
+    func testTheKeepersOwnContentIsNotReplaced() {
+        var keeper = makeSession(points: nil, notes: "same")
+        keeper.morningFeeling = 4
+        var loser = makeSession(points: nil, notes: "same")
+        loser.morningFeeling = 1
+
+        XCTAssertFalse(ArchiveMigrations.carryUserContent(from: loser, into: &keeper))
+        XCTAssertEqual(keeper.morningFeeling, 4)
+        XCTAssertEqual(ArchiveMigrations.mergedNotes(nil, "only"), "only")
+        XCTAssertEqual(ArchiveMigrations.mergedNotes("mine", nil), "mine")
+        XCTAssertEqual(ArchiveMigrations.mergedNotes("mine", ""), "mine")
+    }
+
+    /// A copy whose file could not be moved is carried again on the next
+    /// pass: notes the keeper already holds as whole paragraphs are not
+    /// appended again, while text that only appears inside a paragraph is.
+    func testNotesAlreadyCarriedAreNotAppendedAgain() {
+        XCTAssertEqual(ArchiveMigrations.mergedNotes("A\n\nB", "B"), "A\n\nB")
+        XCTAssertEqual(ArchiveMigrations.mergedNotes("B\n\nA", "B"), "B\n\nA")
+        XCTAssertEqual(ArchiveMigrations.mergedNotes("A\n\nB\n\nC", "B\n\nC"), "A\n\nB\n\nC")
+        XCTAssertEqual(ArchiveMigrations.mergedNotes("AB", "B"), "AB\n\nB")
+    }
 }

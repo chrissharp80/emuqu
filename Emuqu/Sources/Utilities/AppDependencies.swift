@@ -887,7 +887,10 @@ extension AppDependencies {
             breadcrumbRecorder: { location.breadcrumbRecorder },
             activeRouteSession: { location.activeRouteSession },
             savedRouteStore: { location.savedRouteStore },
-            ambientLocationService: { location.ambientLocationService }
+            ambientLocationService: { location.ambientLocationService },
+            roadGeocodingService: { location.roadGeocodingService },
+            weatherService: { location.weatherService },
+            surroundingsPOIService: { location.surroundingsPOIService }
         )
     }
 

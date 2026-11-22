@@ -13,12 +13,12 @@
   "ud via SettingsManager.settings: defaultTrainingEmailRecipient, defaultTrainingEmailCC, resolved default email chain",
   "ud:fitness.unitsPreference (App Group) via UnitsPreferenceStore.current"
  ],
- "toplevel": "File-scope private helpers recapDistance, recapVerdict, shareRowCaption at the end of the file.",
+ "toplevel": "File-scope private helpers recapDistance, recapVerdict, shareRowCaption and removeClosedSummaryPDF at the end of the file.",
  "units": [
   {
    "key": "func FitnessSummaryCards.generateRecapCard()",
-   "hash": "0a311ab989ca6f5b",
-   "does": "Guards against re-entry, renders the route map (MapKit snapshot, overlay on the main actor), builds the RecapCard .workout variant via recapCard(meta:routeMap:), renders it to UIImage on the main actor (ImageRenderer), writes a named PNG to tmp, and presents the share sheet; a nil render sets reportShare.error (\"Couldn't build recap card. Try again.\", shown in the 'Export failed' alert).",
+   "hash": "44f4f46969030fe2",
+   "does": "Guards against re-entry, renders the route map (MapKit snapshot, overlay on the main actor), returns without writing anything when the summary closed meanwhile, builds the RecapCard .workout variant via recapCard(meta:routeMap:), renders it to UIImage on the main actor (ImageRenderer), writes a named PNG to tmp, and presents the share sheet; a nil render sets reportShare.error (\"Couldn't build recap card. Try again.\", shown in the 'Export failed' alert).",
    "entry": "Recap Card share button tap (FitnessPostSummaryView+Cards.swift recapCardShareButton).",
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.renderTrackImage()",
@@ -27,7 +27,9 @@
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.writeRecapPNG(_:meta:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [],
+   "reads": [
+    "mem:FitnessSummaryCards.reportShare.summaryOnScreen"
+   ],
    "writes": [
     "mem:FitnessSummaryCards.recapGenerating (binding)",
     "mem:FitnessSummaryCards.recapImage (binding)",
@@ -44,6 +46,11 @@
     },
     {
      "at": "+7",
+     "cond": "summary closed while the map rendered",
+     "effect": "return; no PNG written"
+    },
+    {
+     "at": "+9",
      "cond": "renderImage() returned nil",
      "effect": "reportShare.error set; return"
     }
@@ -72,38 +79,36 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.recapDuration()": "bef8f59ce959b30a",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.recapPace(meta:)": "87abf9f2beaaa498",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.recapDuration()": "31e7329b129bb273",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.recapPace(meta:)": "3275b3390117acc4",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.recapSummary(meta:)": "488598e6a7503d59",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func recapDistance(meta:)": "c7cd0043b23d9864",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func recapVerdict(meta:)": "e1a15dcf6a57288f"
    }
   },
   {
-   "key": "var FitnessSummaryCards.recapElapsedSeconds",
-   "hash": "0149335275edb162",
-   "does": "Elapsed seconds endDate (or startDate) minus startDate, floored at 0.",
+   "key": "var FitnessSummaryCards.recapActiveSeconds",
+   "hash": "442950462e8837bc",
+   "does": "Active (un-paused) workout seconds as WorkoutActiveTime gives them (last sample offset, else wall-clock duration), floored at zero; 0 with neither.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func WorkoutActiveTime.seconds(samples:wallClock:)"
+   ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "endDate nil",
-     "effect": "`??` startDate -> 0 s"
-    }
-   ],
-   "deps": {}
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func WorkoutActiveTime.seconds(samples:wallClock:)": "2ab0c1cf6cea2ea6"
+   }
   },
   {
    "key": "func FitnessSummaryCards.recapDuration()",
-   "hash": "032cb0acbf788627",
-   "does": "Elapsed time as localized hours/minutes, '—' when zero.",
+   "hash": "a2f11731711c0397",
+   "does": "Active (un-paused) time as localized hours/minutes, the summary hero's figure; '—' when zero.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.recapElapsedSeconds",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.recapActiveSeconds",
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)"
    ],
    "reads": [],
    "writes": [],
@@ -115,17 +120,17 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.recapElapsedSeconds": "f1931bc214bed285",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.recapActiveSeconds": "56b9ccf1eac97b56",
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
    }
   },
   {
    "key": "func FitnessSummaryCards.recapPace(meta:)",
-   "hash": "834d2419df216fd7",
-   "does": "Pace from elapsed seconds / distance in the user's units; '—' without distance/time or when formatting fails.",
+   "hash": "e3907934c18d6fe1",
+   "does": "Pace from active (un-paused) seconds / distance in the user's units, as the summary hero computes it; '—' without distance/time or when formatting fails.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.recapElapsedSeconds",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.recapActiveSeconds",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)"
    ],
@@ -148,7 +153,7 @@
    "deps": {
     "Emuqu/Sources/Models/UnitsPreference.swift::func UnitsPreference.formatPace(secondsPerMeter:)": "9b9d31a85c0528f0",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.recapElapsedSeconds": "f1931bc214bed285"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.recapActiveSeconds": "56b9ccf1eac97b56"
    }
   },
   {
@@ -328,9 +333,9 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.pdfMailSubject": "5c0d2031045ce376",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.trainingMailCC": "ab549c69588f39e6",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.trainingMailRecipients": "a14d4ac26c6e7e75"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.pdfMailSubject": "3c271c3121f7b09e",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.trainingMailCC": "55af846f29395d31",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.trainingMailRecipients": "7bbbf68bb23a5230"
    }
   },
   {
@@ -386,7 +391,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.generateAndShowPDFShare()": "c8af917075d9d202",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.generateAndShowPDFShare()": "fc72af90acafb7d3",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.sharePDFLabel": "7292478c1b76275e"
    }
   },
@@ -481,7 +486,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.generateAndShowPDFMail()": "c859590b5c51e03b",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.generateAndShowPDFMail()": "d08be75d4df53bf0",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.emailPDFLabel": "68ea0fc6c1f1659f"
    }
   },
@@ -540,17 +545,17 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.trainingMailCC": "ab549c69588f39e6",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.trainingMailRecipients": "a14d4ac26c6e7e75"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.trainingMailCC": "55af846f29395d31",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.trainingMailRecipients": "7bbbf68bb23a5230"
    }
   },
   {
    "key": "var FitnessSummaryCards.trainingMailRecipients",
-   "hash": "75153c8733d5b7a9",
-   "does": "Training default recipient when non-blank, else the generic resolved chain (resolvedDefaultEmailRecipient: recovery → training → legacy generic); [] when none.",
+   "hash": "a256e99f14166ed7",
+   "does": "UserSettings.resolvedTrainingEmailRecipient as a one-element list (training → recovery → legacy generic, blank fields skipped); [] when none.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailRecipient"
    ],
    "reads": [
     "mem:SettingsManager.settings.defaultTrainingEmailRecipient"
@@ -558,55 +563,41 @@
    "writes": [],
    "branches": [
     {
-     "at": "+7",
-     "cond": "training recipient non-nil and not whitespace-only",
-     "effect": "[to]"
-    },
-    {
-     "at": "+11",
-     "cond": "resolvedDefaultEmailRecipient nil",
+     "at": "+1",
+     "cond": "no recipient",
      "effect": "`??` []"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient": "41fd2fc8b37365a4"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailRecipient": "19fcbec0d072481a"
    }
   },
   {
    "key": "var FitnessSummaryCards.trainingMailCC",
-   "hash": "9543e1eddcc51cc3",
-   "does": "Training CC list (comma-split, trimmed) when non-empty, else resolvedDefaultEmailCC.",
+   "hash": "aa5a5b356678ed99",
+   "does": "UserSettings.resolvedTrainingEmailCC (training → recovery → legacy generic, blank fields skipped).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailCC"
    ],
    "reads": [
     "mem:SettingsManager.settings.defaultTrainingEmailCC"
    ],
    "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "defaultTrainingEmailCC nil",
-     "effect": "`??` ''"
-    },
-    {
-     "at": "+5",
-     "cond": "trainingCC non-empty",
-     "effect": "returned; else resolved chain"
-    }
-   ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "94f7651b9cad60c1"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailCC": "c4c996f8ca2bbd96"
    }
   },
   {
    "key": "var FitnessSummaryCards.pdfMailSubject",
-   "hash": "10fbeefe74e51ca4",
-   "does": "'Emuqu — <sport>, <abbreviated date>' mail subject.",
+   "hash": "183cea78313e62dd",
+   "does": "'Emuqu — <sport>, <abbreviated date in the app language>' mail subject.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName"
+    "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [],
@@ -614,18 +605,20 @@
     {
      "at": "+2",
      "cond": "workoutMetadata nil",
-     "effect": "`??` 'Workout'"
+     "effect": "`??` localized 'Workout'"
     }
    ],
    "deps": {
     "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName": "7ee167777e5501ae",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },
   {
    "key": "func FitnessSummaryCards.generateAndShowPDFMail()",
-   "hash": "2a90e6a3d65d5021",
-   "does": "Fails with an alert when Mail isn't configured; otherwise gets the cached-or-rendered PDF, records it as reportShare.presentedURL and opens the mail composer, or sets pdfMailError.",
+   "hash": "2809bbf5068b5102",
+   "does": "Fails with an alert when Mail isn't configured; otherwise gets the cached-or-rendered PDF and, unless the summary closed during the render (nil: nothing shown), records it as reportShare.presentedURL and opens the mail composer, or sets pdfMailError.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.cachedOrRenderedPDF()",
@@ -645,6 +638,11 @@
      "effect": "pdfMailError set, return"
     },
     {
+     "at": "+5",
+     "cond": "summary closed during the render",
+     "effect": "return; nothing presented"
+    },
+    {
      "at": "+7",
      "cond": "success",
      "effect": "presentedURL set, composer presented"
@@ -657,13 +655,13 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.cachedOrRenderedPDF()": "e3d5de75df5f431d"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.cachedOrRenderedPDF()": "c4c06bd2f0314464"
    }
   },
   {
    "key": "func FitnessSummaryCards.generateAndShowPDFShare()",
-   "hash": "4c42d9f3451cf358",
-   "does": "Gets the cached-or-rendered PDF, records it as reportShare.presentedURL and presents the share sheet; a failure goes to reportShare.error ('Export failed' alert), which export rebuilds do not touch.",
+   "hash": "c967bd7713882d38",
+   "does": "Gets the cached-or-rendered PDF and, unless the summary closed during the render (nil: nothing shown), records it as reportShare.presentedURL and presents the share sheet; a failure goes to reportShare.error ('Export failed' alert), which export rebuilds do not touch.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.cachedOrRenderedPDF()",
@@ -677,6 +675,11 @@
    ],
    "branches": [
     {
+     "at": "+1",
+     "cond": "summary closed during the render",
+     "effect": "return; nothing presented"
+    },
+    {
      "at": "+3",
      "cond": "success",
      "effect": "presentedURL set, sheet presented"
@@ -689,25 +692,28 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.cachedOrRenderedPDF()": "e3d5de75df5f431d"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.cachedOrRenderedPDF()": "c4c06bd2f0314464"
    }
   },
   {
    "key": "func FitnessSummaryCards.cachedOrRenderedPDF()",
-   "hash": "2f98fa8687155194",
-   "does": "The cached pdfURL when its file still exists; otherwise renders the PDF (pdfGenerating on meanwhile) and caches it in pdfURL only if reportShare.cacheGeneration is unchanged — a render that an archive refresh overtook is returned for this one share but never reused.",
+   "hash": "9a90552bfe6007b0",
+   "does": "The cached pdfURL when its file still exists; otherwise renders the PDF (pdfGenerating on meanwhile). When the summary closed during the render it deletes the new file (removeClosedSummaryPDF) and returns nil; else it caches the file in pdfURL only if reportShare.cacheGeneration is unchanged — a render that an archive refresh overtook is returned for this one share but never reused.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.renderWorkoutPDF()",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func removeClosedSummaryPDF(_:)",
     "ext:FileManager.fileExists"
    ],
    "reads": [
     "mem:FitnessSummaryCards.pdfURL",
-    "mem:FitnessSummaryCards.reportShare.cacheGeneration"
+    "mem:FitnessSummaryCards.reportShare.cacheGeneration",
+    "mem:FitnessSummaryCards.reportShare.summaryOnScreen"
    ],
    "writes": [
     "mem:FitnessSummaryCards.pdfURL",
-    "mem:FitnessSummaryCards.pdfGenerating"
+    "mem:FitnessSummaryCards.pdfGenerating",
+    "file:tmp/emuqu-workout-<startEpoch>.pdf (deleted when the summary closed meanwhile)"
    ],
    "branches": [
     {
@@ -717,12 +723,18 @@
     },
     {
      "at": "+8",
+     "cond": "summary no longer on screen",
+     "effect": "delete the rendered file, return nil"
+    },
+    {
+     "at": "+12",
      "cond": "rendered and no invalidation during the render",
      "effect": "cache in pdfURL; else not cached"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.renderWorkoutPDF()": "734c70ecdad98774"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.renderWorkoutPDF()": "734c70ecdad98774",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func removeClosedSummaryPDF(_:)": "abb2c8c785420e06"
    }
   },
   {
@@ -763,27 +775,32 @@
    }
   },
   {
-   "key": "func FitnessSummaryCards.shareRow(icon:title:subtitle:url:)",
-   "hash": "2753506b542404bb",
-   "does": "ShareLink with SharePreview titled 'Emuqu · sport · distance · title' when the export URL exists; otherwise the label dimmed to 40%.",
+   "key": "func FitnessSummaryCards.shareRow(icon:title:subtitle:export:)",
+   "hash": "e879913a85323f1d",
+   "does": "When the export was built: a FileShareButton (plain style) over the row label that writes the export to tmp/Exports when tapped and shares it under the title 'Emuqu · sport · distance · title' with the row's icon, deleting the file when the sheet closes; otherwise the label dimmed to 40%.",
    "entry": "Rendered by gpx/csv/tcx share rows in +Cards.swift.",
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.previewTitle(title:)",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.shareRowLabel(icon:title:subtitle:)",
-    "ext:ShareLink"
+    "Emuqu/Sources/Views/Utilities/FileShareButton.swift::init FileShareButton(title:iconName:makeFile:label:)",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.Pending.write()"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "file:tmp/Exports/<sport>-<date>.gpx|csv|tcx (written on tap, deleted when the sheet closes)"
+   ],
    "branches": [
     {
      "at": "+2",
-     "cond": "url non-nil",
-     "effect": "ShareLink; else dimmed non-interactive label"
+     "cond": "export built",
+     "effect": "FileShareButton; else dimmed non-interactive label"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.Pending.write()": "1dc5315527542820",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.previewTitle(title:)": "c45cb7d3176e172a",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.shareRowLabel(icon:title:subtitle:)": "be882e04bd96f5d2"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.shareRowLabel(icon:title:subtitle:)": "be882e04bd96f5d2",
+    "Emuqu/Sources/Views/Utilities/FileShareButton.swift::init FileShareButton(title:iconName:makeFile:label:)": "8dd01e57f3094370"
    }
   },
   {
@@ -1073,6 +1090,30 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
+   }
+  },
+  {
+   "key": "func removeClosedSummaryPDF(_:)",
+   "hash": "a31e7c252de57de2",
+   "does": "Deletes the PDF a successful render wrote (failure logged through attempt); a failed render has no file and nothing happens.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/emuqu-workout-<startEpoch>.pdf (deleted)"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "outcome is a failure",
+     "effect": "return"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   }
  ],

@@ -1,14 +1,15 @@
 {
  "file": "Emuqu/Sources/Collection/HealthExportIdentity.swift",
- "hash": "9c66dc37d9e9240e",
- "role": "The HKMetadataKeyExternalUUID naming scheme for samples the app writes to Apple Health and the exact/prefix predicates re-exports use to delete their own prior samples; plus RRPoint.exportTimeMs (wall clock or beat-sum).",
+ "hash": "e5dbf35af0d3670e",
+ "role": "The HKMetadataKeyExternalUUID naming scheme for samples and workouts the app writes to Apple Health and the exact/prefix predicates re-exports use to delete their own prior samples; the metadata every export carries (the identity again as HKMetadataKeySyncIdentifier, with a monotonic HKMetadataKeySyncVersion) so HealthKit replaces a re-exported object instead of keeping both; plus RRPoint.exportTimeMs (wall clock or beat-sum).",
  "types": [
-  "HealthExportIdentity: enum — ID builders and match predicates",
-  "HealthExportIdentity.Metric: enum (String, CaseIterable) — hr, rhr, sdnn, rmssd, sleep",
+  "HealthExportIdentity: enum — ID builders, match predicates, export metadata and sync versions",
+  "HealthExportIdentity.Metric: enum (String, CaseIterable) — hr, rhr, sdnn, rmssd, sleep, workout",
   "RRPoint: extension — exportTimeMs"
  ],
  "state": [
-  "ExternalUUID formats: '<uuid>-<metric>' (summary), '<uuid>-<metric>-<n|suffix>' (series)"
+  "ExternalUUID formats: '<uuid>-<metric>' (summary), '<uuid>-<metric>-<n|suffix>' (series); the same string is the sync identifier",
+  "mem:HealthExportIdentity.lastSyncVersion (OSAllocatedUnfairLock<Int>, last sync version handed out)"
  ],
  "toplevel": "",
  "units": [
@@ -110,6 +111,56 @@
     "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSeriesMember(_:sessionId:metric:)": "dfc4221bee8720ff",
     "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.isSummary(_:sessionId:metric:)": "30167c2c525d7d30"
    }
+  },
+  {
+   "key": "func HealthExportIdentity.metadata(_:version:_:)",
+   "hash": "3685803cba661eab",
+   "does": "Builds the metadata of one exported object: `extra`, then Source='Emuqu', HKMetadataKeyExternalUUID and HKMetadataKeySyncIdentifier both set to the identity, and HKMetadataKeySyncVersion set to `version`.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthExportIdentity.syncIdentifier(of:)",
+   "hash": "ef39ac6788788f51",
+   "does": "Returns the HKMetadataKeySyncIdentifier string in an object's metadata, or nil when it has none (written before the app set one).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthExportIdentity.syncVersion(of:)",
+   "hash": "7813ce0feeaae459",
+   "does": "The HKMetadataKeySyncVersion an object the app wrote carries; nil for one written before the app gave one.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func HealthExportIdentity.nextSyncVersion(now:)",
+   "hash": "6a153ac152f5e914",
+   "does": "Returns the sync version for an export starting `now`: milliseconds since 1970, raised to one above the last version handed out when it is not already higher, and records it under the lock; so versions only go up within the process, even within one millisecond or after the clock is set back.",
+   "entry": null,
+   "calls": [
+    "ext:OSAllocatedUnfairLock.withLock"
+   ],
+   "reads": [
+    "mem:HealthExportIdentity.lastSyncVersion"
+   ],
+   "writes": [
+    "mem:HealthExportIdentity.lastSyncVersion"
+   ],
+   "branches": [],
+   "deps": {}
   },
   {
    "key": "var RRPoint.exportTimeMs",

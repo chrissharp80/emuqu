@@ -21,10 +21,27 @@ final class RedactionPatternTests: XCTestCase {
     /// `testEveryLivePatternIsCoveredHere` below rather than a silent gap.
     private static let patterns: [String] = [
         #"(?i)(\b(?:lat|lon|latitude|longitude|coord(?:inate)?)\s*[:=]?\s*)[-+]?\d+\.\d+"#,
-        #"(?:RMSSD|SDNN|pNN50|HRV|RHR|resting\s*HR|heart\s*rate|HR|alpha1|DFA|SpO2|respiratory\s*rate|respiration|temperature|wrist\s*temp|breath|composite|recovery\s*score|readiness|sleep\s*score|\w*score|baseline|TSB|ATL|CTL|hrTSS|TRIMP)"#,
         #"(?:\s*(?:ms|bpm|BPM|%|°[CF]|min|h|points?))?"#,
-        #"\s*(?:[:=]|->|→|<|>)?\s*"#
+        #"\s*(?:[:=]|->|→|<|>)?\s*"#,
+        #"(?<![\w.])([A-Za-z_][A-Za-z0-9_]*)\s*[:=]\s*(?:Optional\()?\[?([-+]?\d+(?:\.\d+)?[A-Za-z%°]*)(?![\w]|\.\d|-[0-9A-Fa-f]{4}-)"#,
+        #"(?<![\w.])[-+]?\d+(?:\.\d+)?(?:\s*[-–]\s*\d+(?:\.\d+)?)?(\s*(?:bpm|BPM))\b"#
+    ] + metricNames + ["(?:" + metricNames.joined(separator: "|") + ")"]
+
+    /// The metric names `DebugLogger.metricNames` joins into its metric
+    /// alternation, verbatim and in order.
+    private static let metricNames: [String] = [
+        #"RMSSD"#, #"SDNN"#, #"pNN50"#, #"HRV"#, #"RHR"#, #"resting\s*HR"#, #"heart\s*rate"#, #"HR"#,
+        #"alpha1"#, #"DFA"#, #"SpO2"#, #"respiratory\s*rate"#, #"respiration"#, #"temperature"#,
+        #"wrist\s*temp"#, #"breath"#, #"composite"#, #"recovery\s*score"#, #"readiness"#, #"sleep\s*score"#,
+        #"\w*score"#, #"baseline"#, #"TSB"#, #"ATL"#, #"CTL"#, #"hrTSS"#, #"TRIMP"#, #"RR"#, #"nadir"#,
+        #"sleep"#, #"deep"#, #"REM"#, #"weight"#, #"VO2\s*max"#, #"FTP"#, #"LTHR"#, #"calories"#
     ]
+
+    /// The names are joined into one pattern at runtime; pin the order too,
+    /// since an earlier alternative wins at the same position.
+    func testMetricNamesMatchTheLiveListInOrder() {
+        XCTAssertEqual(DebugLogger.metricNames, Self.metricNames)
+    }
 
     // MARK: - Compilation
 
@@ -62,6 +79,61 @@ final class RedactionPatternTests: XCTestCase {
         XCTAssertEqual(DebugLogger.scrubPHI("frozenScore=55.20"), "frozenScore=<redacted>")
         XCTAssertEqual(DebugLogger.scrubPHI("lat=37.1234 lon=-122.4567"), "lat=<redacted> lon=<redacted>")
         XCTAssertEqual(DebugLogger.scrubPHI("session 3 started"), "session 3 started")
+    }
+
+    /// Named values are redacted unless the key is on the allow-list: no one
+    /// has to add `nadir`, `perceivedReadiness` or `total` (sleep minutes)
+    /// for them to be covered. These lines all passed through unchanged
+    /// before the allow-list.
+    func testScrubPHIRedactsUnlistedNamedValues() {
+        XCTAssertEqual(
+            DebugLogger.scrubPHI("[PDF] Using HealthKit HR: nadir=48.0, max=61.0"),
+            "[PDF] Using HealthKit HR: nadir=<redacted>, max=<redacted>"
+        )
+        XCTAssertEqual(DebugLogger.scrubPHI("Persisted perceivedReadiness=0.70"), "Persisted perceivedReadiness=<redacted>")
+        XCTAssertEqual(DebugLogger.scrubPHI("night total=412min"), "night total=<redacted>")
+        XCTAssertEqual(
+            DebugLogger.scrubPHI("recoveryScore=7.1 frozenReadiness=6.2"),
+            "recoveryScore=<redacted> frozenReadiness=<redacted>"
+        )
+        XCTAssertEqual(
+            DebugLogger.scrubPHI("restingHR=54 maxHR=180 bodyWeightKg=72.5"),
+            "restingHR=<redacted> maxHR=<redacted> bodyWeightKg=<redacted>"
+        )
+        XCTAssertEqual(DebugLogger.scrubPHI("values=[42, 51, 60]"), "values=[<redacted>, <redacted>, <redacted>]")
+        XCTAssertEqual(DebugLogger.scrubPHI("x: Optional(42.0)"), "x: Optional(<redacted>)")
+    }
+
+    /// Counts and identifiers stay, so the log still triages: a key whose
+    /// last word is allow-listed, a UUID and a timestamp prefix.
+    func testScrubPHIKeepsCountsAndIdentifiers() {
+        let line = "[2026-11-21 06:30:00.123] [Cat] [123] beatCount=40000 attempt=2 schemaVersion=3 code=-1009"
+        XCTAssertEqual(DebugLogger.scrubPHI(line), line)
+        let ids = "session=12345678-ABCD-1234-ABCD-1234567890AB id=3F2A"
+        XCTAssertEqual(DebugLogger.scrubPHI(ids), ids)
+    }
+
+    /// Prose values: a number in beats per minute whatever names it, and the
+    /// metric names added for prose.
+    func testScrubPHIRedactsProseHeartRateAndSleep() {
+        XCTAssertEqual(DebugLogger.scrubPHI("HR dropped to 52 bpm"), "HR dropped to <redacted> bpm")
+        XCTAssertEqual(DebugLogger.scrubPHI("zone 60-70 bpm"), "zone <redacted> bpm")
+        XCTAssertEqual(DebugLogger.scrubPHI("RR 850ms"), "RR <redacted>")
+        XCTAssertEqual(DebugLogger.scrubPHI("weight 72 kg"), "weight <redacted> kg")
+    }
+
+    func testLastKeyWordSplitsCamelAndSnakeCase() {
+        XCTAssertEqual(DebugLogger.lastKeyWord("beatCount"), "count")
+        XCTAssertEqual(DebugLogger.lastKeyWord("rr_points"), "points")
+        XCTAssertEqual(DebugLogger.lastKeyWord("maxHR"), "hr")
+        XCTAssertEqual(DebugLogger.lastKeyWord("count"), "count")
+    }
+
+    /// The key/value and unit patterns are composed into the scrub at
+    /// runtime; compile them as the scrub does.
+    func testKeyValueAndUnitPatternsCompile() {
+        XCTAssertNoThrow(try NSRegularExpression(pattern: DebugLogger.keyValuePattern, options: []))
+        XCTAssertNoThrow(try NSRegularExpression(pattern: DebugLogger.heartRateUnitPattern, options: []))
     }
 
     /// `DebugLogger.compiledPattern` returns nil rather than trapping on a bad

@@ -1,12 +1,17 @@
 {
  "file": "EmuquTests/Helpers/TestHelpers.swift",
- "hash": "48d6bb33700c685c",
- "role": "Shared test fixtures: deterministic RR point generators (sine-varying and uniform), clean artifact flags, and XCTestCase.pinEnglishLanguage which forces the app language to English for one test and restores it in teardown.",
+ "hash": "80e77165a2ff55cb",
+ "role": "Shared test fixtures: deterministic RR point generators (sine-varying and uniform), clean artifact flags, XCTestCase.pinEnglishLanguage (English for one test, restored in teardown) and requireEncryptionKey (fails the test when the app's key is out of reach), HostDefaults (sets the host's own standard-defaults keys aside for a test and puts them back) with the recording-state and sync-bookkeeping key lists, and CloudKitSyncManager.isolated (a sync manager of the test's own).",
  "types": [
-  "XCTestCase: extension — adds pinEnglishLanguage()"
+  "XCTestCase: extension — adds pinEnglishLanguage() and requireEncryptionKey(file:line:)",
+  "HostDefaults: struct — a set of standard-defaults keys and the host's values of them, set aside and restored",
+  "CloudKitSyncManager: extension — adds isolated(archive:directory:settings:)"
  ],
- "state": [],
- "toplevel": "Three free functions and one XCTestCase extension; no stored state.",
+ "state": [
+  "mem:HostDefaults.recordingState (the PersistedRecordingState keys)",
+  "mem:HostDefaults.cloudSyncBookkeeping (the sync keys resetLocalSyncState and boot clear in standard defaults)"
+ ],
+ "toplevel": "Three free functions, two XCTestCase helpers, the HostDefaults struct with two static key lists, and one CloudKitSyncManager factory; no stored state beyond the key lists.",
  "units": [
   {
    "key": "func createRealisticPoints(count:meanRR:startMs:)",
@@ -89,6 +94,108 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
     "Emuqu/Sources/Views/SettingsView+Appearance.swift::func AppLanguage.apply()": "88c930a700ca5930",
     "Emuqu/Sources/Views/SettingsView+Appearance.swift::var AppLanguage.current": "f757a06ccf19fb1d"
+   }
+  },
+  {
+   "key": "func XCTestCase.requireEncryptionKey(file:line:)",
+   "hash": "5e2cf7b55e6b29ab",
+   "does": "Fails the calling test at the caller's line and throws (XCTUnwrap of nil) when EncryptionManager.shared.isAvailable is false; returns when the key can be read or made. A failure, not a skip, so a key-dependent assertion can never pass silently.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable",
+    "ext:XCTest.XCTUnwrap"
+   ],
+   "reads": [
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "key unavailable",
+     "effect": "XCTUnwrap fails the test and throws; else returns"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::var EncryptionManager.isAvailable": "293d00b425d37802"
+   }
+  },
+  {
+   "key": "func HostDefaults.setAside(_:)",
+   "hash": "4c6d55de41f61dd1",
+   "does": "For each key, keeps the host's value from UserDefaults.standard (when there is one) and removes the key; returns a HostDefaults holding the keys and the kept values.",
+   "entry": null,
+   "calls": [
+    "ext:UserDefaults.object(forKey:)",
+    "ext:UserDefaults.removeObject(forKey:)"
+   ],
+   "reads": [
+    "ud:<the given keys>"
+   ],
+   "writes": [
+    "ud:<the given keys> (removed)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "the host has a value for the key",
+     "effect": "kept for restore()"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func HostDefaults.restore()",
+   "hash": "762444e6cb96d16b",
+   "does": "For each key set aside, writes the host's kept value back to UserDefaults.standard, or removes the key when the host had none (so whatever a test left is dropped).",
+   "entry": null,
+   "calls": [
+    "ext:UserDefaults.set(_:forKey:)",
+    "ext:UserDefaults.removeObject(forKey:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:<the keys set aside>"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "a value was kept for the key",
+     "effect": "written back; else the key is removed"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func CloudKitSyncManager.isolated(archive:directory:settings:)",
+   "hash": "7c052a9fb923fc58",
+   "does": "Builds a CloudKitSyncManager over `archive` with the given settings (else a fresh-install SettingsManager on directory/user_settings.json) and its bookkeeping at directory/sync_state.json, boots it (loads the empty state) and returns it. Nothing it records reaches CloudKitSyncManager.shared; what it keeps in standard defaults is HostDefaults.cloudSyncBookkeeping.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::init CloudKitSyncManager(settingsManager:archive:syncStateURL:)",
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:seal:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.boot()"
+   ],
+   "reads": [
+    "file:<directory>/sync_state.json",
+    "file:<directory>/user_settings.json",
+    "ud:UserDefaultsKeys.cloudKitLastSyncDate"
+   ],
+   "writes": [
+    "ud:UserDefaultsKeys.cloudKitChangeToken (removed by the state load)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "settings given",
+     "effect": "used; else a fresh SettingsManager in directory"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SettingsManager.swift::init SettingsManager(settingsURL:read:seal:)": "ede9ffb941ebbf43",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.boot()": "b2eb3b0dc1c2a2ef",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::init CloudKitSyncManager(settingsManager:archive:syncStateURL:)": "b946da40d88f3af4",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.settings": "2b1092edf8100687"
    }
   }
  ],

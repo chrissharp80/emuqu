@@ -9,8 +9,8 @@ import SwiftUI
 /// [RecoveryScoreCharts] and [FitnessStrapSection].
 ///
 /// Wide initialiser, honestly: these surfaces drive two dozen pieces of view
-/// state between them — the refreshed session, the export URLs and their
-/// readiness, the recap image and its share sheet, the route-save sheet and
+/// state between them — the refreshed session, the in-memory exports and
+/// their readiness, the recap image and its share sheet, the route-save sheet and
 /// route history, reanalysis and elevation re-smoothing, and the PDF report's
 /// file, sheets and errors. Every one travels back through a binding rather
 /// than being duplicated here.
@@ -29,9 +29,9 @@ struct FitnessSummaryCards {
     let settingsManager: SettingsManager
 
     @Binding var refreshedSession: HRVSession?
-    @Binding var gpxURL: URL?
-    @Binding var csvURL: URL?
-    @Binding var tcxURL: URL?
+    @Binding var gpxExport: ExportFile.Pending?
+    @Binding var csvExport: ExportFile.Pending?
+    @Binding var tcxExport: ExportFile.Pending?
     @Binding var exportsReady: Bool
     @Binding var exportError: String?
     @Binding var recapImage: UIImage?
@@ -66,5 +66,13 @@ struct FitnessSummaryCards {
         /// A failed PDF or recap-card render, shown in its own alert so an
         /// export-file rebuild (which rewrites `exportError`) cannot erase it.
         var error: String?
+        /// True while the summary is on screen. A PDF or recap render that
+        /// lands after it closed deletes its file instead of keeping it.
+        var summaryOnScreen = false
+        /// Where the coach report the button asked for is. While it is being
+        /// prepared the button shows that and does nothing more, so repeated
+        /// taps cannot stage several email drafts; once the draft is staged
+        /// the button works again and says how it went.
+        var coachReport = CoachReportProgress.idle
     }
 }

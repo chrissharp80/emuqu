@@ -1,0 +1,345 @@
+{
+ "file": "EmuquTests/CloudPullRecordTests.swift",
+ "hash": "ef2f0c5602289eb0",
+ "role": "XCTest suite for what the pull does with each listed record (CloudPullCoordinator.processRemoteRecord) on a sync manager of the test's own over a temporary archive: a tombstone removes the local copy without the Trash, deletes nothing it does not hold, spares a session restored here and not yet uploaded, sends a copy with an unsynced change to the Trash, and when the copy cannot be removed keeps it with its bookkeeping and reports the failure; a kept-on-device record leaves the local copy; a live record is imported unless the session was deleted forever. Records are built in memory; nothing reaches iCloud.",
+ "types": [
+  "CloudPullRecordTests: class — @MainActor XCTestCase over CloudKitSyncManager.isolated"
+ ],
+ "state": [
+  "directory: <tmp>/CloudPullRecordTests-<uuid> (created in setUp, removed in tearDown)",
+  "archiveDirectory/archive: lazy SessionArchive in directory/Archive",
+  "manager: lazy CloudKitSyncManager.isolated over archive and directory",
+  "zone: CKRecordZone.ID CloudPullRecordTests (records are never saved)",
+  "hostDefaults: HostDefaults of HostDefaults.cloudSyncBookkeeping and cloudkit.restoredFromTrash"
+ ],
+ "toplevel": "Lazy archive and manager built on first use in a test, after setUp has created the directory and set the host's defaults aside.",
+ "units": [
+  {
+   "key": "func CloudPullRecordTests.setUp()",
+   "hash": "06bcbdb12f6344fe",
+   "does": "Creates the test's directory and sets aside the host's sync bookkeeping and Trash-restore list (cloudkit.restoredFromTrash) in standard defaults.",
+   "entry": "XCTest runner: per-test setUp",
+   "calls": [
+    "ext:FileManager.createDirectory(at:withIntermediateDirectories:)",
+    "EmuquTests/Helpers/TestHelpers.swift::func HostDefaults.setAside(_:)"
+   ],
+   "reads": [
+    "ud:HostDefaults.cloudSyncBookkeeping",
+    "ud:cloudkit.restoredFromTrash"
+   ],
+   "writes": [
+    "ud:HostDefaults.cloudSyncBookkeeping (removed)",
+    "ud:cloudkit.restoredFromTrash (removed)",
+    "file:<tmp>/CloudPullRecordTests-<uuid>/ (created)"
+   ],
+   "branches": [],
+   "deps": {
+    "EmuquTests/Helpers/TestHelpers.swift::func HostDefaults.setAside(_:)": "7fdeccb8d06ee6ee"
+   }
+  },
+  {
+   "key": "func CloudPullRecordTests.tearDown()",
+   "hash": "3c4b5c65e2c1ebf6",
+   "does": "Puts the host's defaults back (dropping the test's) and removes the test's directory (a failure fails the test).",
+   "entry": "XCTest runner: per-test tearDown",
+   "calls": [
+    "EmuquTests/Helpers/TestHelpers.swift::func HostDefaults.restore()",
+    "ext:FileManager.removeItem(at:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:HostDefaults.cloudSyncBookkeeping (restored)",
+    "ud:cloudkit.restoredFromTrash (restored)",
+    "file:<tmp>/CloudPullRecordTests-<uuid>/ (removed)"
+   ],
+   "branches": [],
+   "deps": {
+    "EmuquTests/Helpers/TestHelpers.swift::func HostDefaults.restore()": "1d370b6a567ac8ba"
+   }
+  },
+  {
+   "key": "func CloudPullRecordTests.night(startingAt:)",
+   "hash": "72050616fe6704c4",
+   "does": "A complete eight-hour overnight with a fresh id starting at the given time (default 1_790_000_000) and no RR series.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161"
+   }
+  },
+  {
+   "key": "func CloudPullRecordTests.record(of:isDeleted:)",
+   "hash": "28983c2ee7a5cdc9",
+   "does": "An in-memory HRVSession CKRecord named by the id in the test zone, with isDeleted set to the given marker.",
+   "entry": null,
+   "calls": [
+    "ext:CloudKit.CKRecord"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func CloudPullRecordTests.liveRecord(of:)",
+   "hash": "ee64ef0e869e76a7",
+   "does": "Stands in for a confirmed iCloud account, seals the session's ISO-8601 JSON compressed as the upload does (CloudPayloadCodec.sealForUpload), writes it to a file in the test directory and returns a live record (isDeleted 0) carrying it as its sessionData asset.",
+   "entry": null,
+   "calls": [
+    "EmuquTests/CloudPayloadCodecTests.swift::func XCTestCase.standInForConfirmedICloudAccount()",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)",
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:mayCreateKey:in:)",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.record(of:isDeleted:)",
+    "ext:CloudKit.CKAsset"
+   ],
+   "reads": [
+    "kc:CloudPayloadCodec cloud key"
+   ],
+   "writes": [
+    "file:<tmp>/CloudPullRecordTests-<uuid>/<id>.asset",
+    "mem:CloudAccountIdentity.launch (stand-in, revoked by its teardown block)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:mayCreateKey:in:)": "1b9b10fca04d42bf",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "b4d5293d92fd3be4",
+    "EmuquTests/CloudPayloadCodecTests.swift::func XCTestCase.standInForConfirmedICloudAccount()": "fe57f6fa0a25fa72",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.record(of:isDeleted:)": "1feae5e941ed5de6"
+   }
+  },
+  {
+   "key": "func CloudPullRecordTests.testATombstoneRemovesTheLocalCopyWithoutTheTrash()",
+   "hash": "835ad39e8f0b9f2a",
+   "does": "Archives a night, marks it uploaded, processes its tombstone and asserts one deletion, the session gone and marked deleted, no Trash copy, out of the uploaded and pending lists, and no pull error.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.night(startingAt:)",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.record(of:isDeleted:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.trashedSession(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)"
+   ],
+   "reads": [
+    "archive:<tmp>/CloudPullRecordTests-<uuid>/Archive",
+    "mem:CloudKitSyncState (the test's)"
+   ],
+   "writes": [
+    "archive:<tmp>/CloudPullRecordTests-<uuid>/Archive",
+    "mem:CloudKitSyncState (the test's)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.trashedSession(_:)": "ea6c25378b23ce0c",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)": "0fcaeb8ff266a299",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)": "df67e29f7a5a8f92",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull": "7cdf1d4648fc6bf2",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "98960771cca73957",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.night(startingAt:)": "57ac47d098c877a2",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.record(of:isDeleted:)": "1feae5e941ed5de6"
+   }
+  },
+  {
+   "key": "func CloudPullRecordTests.testATombstoneForASessionNotHeldDeletesNothing()",
+   "hash": "d8e63f41e63ea4c4",
+   "does": "Archives a night, processes a tombstone for another id and asserts no deletion was counted and the night is still there.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.night(startingAt:)",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.record(of:isDeleted:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)"
+   ],
+   "reads": [
+    "archive:<tmp>/CloudPullRecordTests-<uuid>/Archive",
+    "mem:CloudKitSyncState (the test's)"
+   ],
+   "writes": [
+    "archive:<tmp>/CloudPullRecordTests-<uuid>/Archive",
+    "mem:CloudKitSyncState (the test's)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)": "df67e29f7a5a8f92",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull": "7cdf1d4648fc6bf2",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.night(startingAt:)": "57ac47d098c877a2",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.record(of:isDeleted:)": "1feae5e941ed5de6"
+   }
+  },
+  {
+   "key": "func CloudPullRecordTests.testASessionRestoredHereIsNotDeletedByItsOldTombstone()",
+   "hash": "a678c4a33a2ee654",
+   "does": "Archives a night, notes it restored from the Trash on this device (TrashRestoreCoordinator.noteRestored), processes its tombstone and asserts nothing was deleted and the night is not marked deleted.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.night(startingAt:)",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.record(of:isDeleted:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.noteRestored(_:)",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.isRestored(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore"
+   ],
+   "reads": [
+    "archive:<tmp>/CloudPullRecordTests-<uuid>/Archive",
+    "mem:CloudKitSyncState (the test's)"
+   ],
+   "writes": [
+    "archive:<tmp>/CloudPullRecordTests-<uuid>/Archive",
+    "mem:CloudKitSyncState (the test's)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)": "df67e29f7a5a8f92",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull": "7cdf1d4648fc6bf2",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "846eb44c87bef476",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.isRestored(_:)": "7e1c3c567d6e2222",
+    "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.noteRestored(_:)": "4bdf4fa00c128c28",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.night(startingAt:)": "57ac47d098c877a2",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.record(of:isDeleted:)": "1feae5e941ed5de6"
+   }
+  },
+  {
+   "key": "func CloudPullRecordTests.testATombstoneSendsACopyWithAnUnsyncedChangeToTheTrash()",
+   "hash": "a48e68fc587bda30",
+   "does": "Archives a night with a change queued for upload (markRemoved), processes its tombstone and asserts one deletion, the night out of the archive but in this device's Trash, and no longer pending.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.night(startingAt:)",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.record(of:isDeleted:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.trashedSession(_:)"
+   ],
+   "reads": [
+    "archive:<tmp>/CloudPullRecordTests-<uuid>/Archive",
+    "mem:CloudKitSyncState (the test's)"
+   ],
+   "writes": [
+    "archive:<tmp>/CloudPullRecordTests-<uuid>/Archive",
+    "mem:CloudKitSyncState (the test's)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.trashedSession(_:)": "ea6c25378b23ce0c",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)": "df67e29f7a5a8f92",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull": "7cdf1d4648fc6bf2",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "271213db35c3c82e",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.night(startingAt:)": "57ac47d098c877a2",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.record(of:isDeleted:)": "1feae5e941ed5de6"
+   }
+  },
+  {
+   "key": "func CloudPullRecordTests.testATombstoneThatCannotBeAppliedKeepsTheSessionAndReportsIt()",
+   "hash": "1b2dbee123b33e8a",
+   "does": "Archives a night marked uploaded, makes the archive folder read-only (0o555, restored in defer), processes its tombstone and asserts no deletion was counted, the night is still archived and not marked deleted, still marked uploaded, and lastPullErrorMessage is set.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.night(startingAt:)",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.record(of:isDeleted:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)",
+    "ext:FileManager.setAttributes(_:ofItemAtPath:)"
+   ],
+   "reads": [
+    "archive:<tmp>/CloudPullRecordTests-<uuid>/Archive",
+    "mem:CloudKitSyncState (the test's)"
+   ],
+   "writes": [
+    "archive:<tmp>/CloudPullRecordTests-<uuid>/Archive",
+    "mem:CloudKitSyncState (the test's)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)": "df67e29f7a5a8f92",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull": "7cdf1d4648fc6bf2",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "98960771cca73957",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.night(startingAt:)": "57ac47d098c877a2",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.record(of:isDeleted:)": "1feae5e941ed5de6"
+   }
+  },
+  {
+   "key": "func CloudPullRecordTests.testARecordKeptOnAnotherDeviceLeavesTheLocalCopy()",
+   "hash": "8f944878e6e5f828",
+   "does": "Archives a night, processes a record carrying keptOnDeviceMarker and asserts nothing new or deleted, the night still there and marked uploaded.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.night(startingAt:)",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.record(of:isDeleted:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)"
+   ],
+   "reads": [
+    "archive:<tmp>/CloudPullRecordTests-<uuid>/Archive",
+    "mem:CloudKitSyncState (the test's)"
+   ],
+   "writes": [
+    "archive:<tmp>/CloudPullRecordTests-<uuid>/Archive",
+    "mem:CloudKitSyncState (the test's)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)": "df67e29f7a5a8f92",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull": "7cdf1d4648fc6bf2",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.night(startingAt:)": "57ac47d098c877a2",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.record(of:isDeleted:)": "1feae5e941ed5de6"
+   }
+  },
+  {
+   "key": "func CloudPullRecordTests.testALiveRecordIsImportedUnlessTheSessionWasDeletedForever()",
+   "hash": "e35e36dd4b1552e0",
+   "does": "Processes a live record of a night this device does not hold and asserts it is imported (one new, its backfill id), archived and marked uploaded; processes a live record of another night with that night in `forgotten` and asserts nothing is imported, archived or marked uploaded.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.night(startingAt:)",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.record(of:isDeleted:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.liveRecord(of:)",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)"
+   ],
+   "reads": [
+    "archive:<tmp>/CloudPullRecordTests-<uuid>/Archive",
+    "mem:CloudKitSyncState (the test's)"
+   ],
+   "writes": [
+    "archive:<tmp>/CloudPullRecordTests-<uuid>/Archive",
+    "mem:CloudKitSyncState (the test's)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)": "df67e29f7a5a8f92",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull": "7cdf1d4648fc6bf2",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.liveRecord(of:)": "2569cf72febc2c22",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.night(startingAt:)": "57ac47d098c877a2",
+    "EmuquTests/CloudPullRecordTests.swift::func CloudPullRecordTests.record(of:isDeleted:)": "1feae5e941ed5de6"
+   }
+  }
+ ],
+ "deps": {}
+}

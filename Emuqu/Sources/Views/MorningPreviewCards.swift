@@ -15,7 +15,7 @@ enum MorningPreviewCards {
                 Text(String(localized: "Analysis Ready", bundle: LanguageManager.appBundle))
                     .font(.headline)
                     .foregroundStyle(AppTheme.primaryGradient)
-                Text(session.startDate, style: .date)
+                Text(session.startDate.formatted(Date.FormatStyle(date: .long, time: .omitted).locale(LanguageManager.appLocale)))
                     .font(.caption)
                     .foregroundColor(AppTheme.textSecondary)
             }

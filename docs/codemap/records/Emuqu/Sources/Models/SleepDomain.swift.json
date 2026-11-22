@@ -15,6 +15,17 @@
  "toplevel": "Type declarations with synthesized Codable; SleepStageInterval has explicit CodingKeys and decoder.",
  "units": [
   {
+   "key": "init SleepBoundarySource(from:)",
+   "hash": "1f134189910ed48c",
+   "does": "Single-value decode of the raw string; a source this build does not know reads as .recordingBounds.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
    "key": "init SleepStageInterval(stage:start:end:provenance:)",
    "hash": "8f7d72336c72520a",
    "does": "Creates an interval with a new UUID and the given stage, start, end and provenance (default .watch).",
@@ -27,8 +38,23 @@
   },
   {
    "key": "var SleepStageInterval.durationMinutes",
-   "hash": "8c6e9f822f844af6",
-   "does": "Duration in whole minutes, rounded from seconds.",
+   "hash": "aae26c95c994123e",
+   "does": "Whole minutes the interval spans on the clock: minuteMark(end) − minuteMark(start), each end rounded to the nearest minute since the reference date, so back-to-back intervals add up to their whole span rounded once.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SleepDomain.swift::func SleepStageInterval.minuteMark(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/SleepDomain.swift::func SleepStageInterval.minuteMark(_:)": "ada7b690bd3245bb"
+   }
+  },
+  {
+   "key": "func SleepStageInterval.minuteMark(_:)",
+   "hash": "34cf5225e3b6e1f9",
+   "does": "The nearest whole minute to the date, counted from the reference date (timeIntervalSinceReferenceDate / 60, rounded half away from zero).",
    "entry": null,
    "calls": [],
    "reads": [],

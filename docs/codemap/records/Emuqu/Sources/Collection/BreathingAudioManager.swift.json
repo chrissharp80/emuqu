@@ -39,7 +39,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.start()": "dbfc96e8ad39986f",
+    "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.start()": "78bf1e28a5aa20d3",
     "Emuqu/Sources/Collection/BreathingAudioManager.swift::func BreathingAudioManager.stop()": "67cd21b128a084a5"
    }
   },
@@ -155,13 +155,13 @@
   },
   {
    "key": "func BreathingAudioManager.start()",
-   "hash": "ae8aabb352b76bbc",
-   "does": "Prewarms the voice for the app language, claims .breathingGuide playback via the coordinator, activates the session (error logged), marks active and resets lastSpokenCue.",
+   "hash": "19342ffefaf8bd09",
+   "does": "Prewarms the voice for the app language, claims .breathingGuide playback via the coordinator, queues the session's activation on the cue manager's transition queue (BackgroundAudioManager.activateForClaimant; its error logged there), marks active and resets lastSpokenCue. The main actor never waits on setActive.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.prewarm(forLanguage:)",
     "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)",
-    "ext:AVAudioSession.setActive",
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.activateForClaimant(completion:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -175,15 +175,17 @@
      "effect": "prewarms 'en'"
     },
     {
-     "at": "+5",
-     "cond": "setActive(true) throws",
-     "effect": "logged and swallowed; guide still marked active and speaks into whatever session state exists"
+     "at": "+4",
+     "cond": "the queued activation fails",
+     "effect": "logged; guide still marked active and speaks into whatever session state exists"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.activateForClaimant(completion:)": "8137754cb0ce563f",
     "Emuqu/Sources/Collection/WorkoutStartCue.swift::func WorkoutStartCue.prewarm(forLanguage:)": "4fcf7e9af3f6bbf2",
     "Emuqu/Sources/Services/AudioSessionCoordinator.swift::func AudioSessionCoordinator.claim(_:mode:)": "3ff6db18fe48072d",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"

@@ -43,6 +43,16 @@ extension HealthWorkoutImporter {
         days: Int = 30,
         now: Date = Date()
     ) -> [InterruptedSession] {
+        Self.scanInterruptedSessions(archive: archive, days: days, now: now)
+    }
+
+    /// `interruptedSessions`, callable off the main actor: it reads each
+    /// candidate's file, so a screen runs it on a detached task.
+    nonisolated static func scanInterruptedSessions(
+        archive: SessionArchive,
+        days: Int = 30,
+        now: Date = Date()
+    ) -> [InterruptedSession] {
         let start = Calendar.current.date(byAdding: .day, value: -days, to: now) ?? now
         let workouts = archive.entries(from: start, to: now).filter { $0.sessionType == .workout }
         let stubs = workouts

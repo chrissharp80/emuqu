@@ -142,6 +142,47 @@ final class NormalizedPowerTests: XCTestCase {
         XCTAssertNil(FTPAutoEstimator.bestEffort(in: []))
     }
 
+    /// Before, a scan whose workouts failed to decode found nothing, cleared
+    /// the cached FTP and was stamped, so no re-scan ran for a week. An
+    /// incomplete scan now never clears or lowers the estimate; it stores
+    /// only a better effort.
+    func testAnIncompleteScanNeverClearsOrLowersTheEstimate() {
+        let effort = FTPAutoEstimator.Effort(meanPowerWatts: 300, sessionId: UUID())
+        XCTAssertFalse(FTPAutoEstimator.incompleteScanStores(nil, cachedFTP: 280))
+        XCTAssertFalse(FTPAutoEstimator.incompleteScanStores(effort, cachedFTP: 290))
+        XCTAssertTrue(FTPAutoEstimator.incompleteScanStores(effort, cachedFTP: 280))
+        XCTAssertTrue(FTPAutoEstimator.incompleteScanStores(effort, cachedFTP: nil))
+    }
+
+    /// Before, any workout that could not be read kept the FTP scan (and the
+    /// workout-load backfill) from being stamped, so one corrupt file reran
+    /// both scans on every launch for good. Only a failure that clears once
+    /// the device is unlocked or space is freed keeps a scan open now.
+    func testOnlyAFailureThatMayClearKeepsALaunchScanOpen() {
+        let lockedFile = NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoPermissionError)
+        let lockedUnderneath = NSError(
+            domain: NSCocoaErrorDomain, code: NSFileReadUnknownError,
+            userInfo: [NSUnderlyingErrorKey: NSError(domain: NSPOSIXErrorDomain, code: Int(EPERM))]
+        )
+        let clearing: [any Error] = [
+            EncryptionManager.EncryptionError.keychainError(-25_308), lockedFile, lockedUnderneath,
+            NSError(domain: NSCocoaErrorDomain, code: NSFileWriteOutOfSpaceError)
+        ]
+        for error in clearing {
+            XCTAssertTrue(ArchiveAccessFailure.mayClear(error), "\(error)")
+        }
+        let corrupt = DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "corrupt"))
+        let lasting: [any Error] = [
+            SessionArchive.ArchiveError.hashMismatch, SessionArchive.ArchiveError.fileNotFound,
+            SessionArchive.ArchiveError.newerSchemaVersion(99), EncryptionManager.EncryptionError.decryptionFailed,
+            EncryptionManager.EncryptionError.keyNotFound, corrupt,
+            NSError(domain: NSCocoaErrorDomain, code: NSFileReadCorruptFileError)
+        ]
+        for error in lasting {
+            XCTAssertFalse(ArchiveAccessFailure.mayClear(error), "\(error)")
+        }
+    }
+
     // MARK: - Concept2 PM5 stroke power (Additional Stroke Data 0x0036)
 
     private func strokePacket(power: UInt16, strokes: UInt16) -> Data {
@@ -164,5 +205,27 @@ final class NormalizedPowerTests: XCTestCase {
 
     func testAShortStrokePacketIsIgnored() {
         XCTAssertNil(Concept2Manager.strokeData(from: Data([0, 0, 0, 1, 0])))
+    }
+
+    // MARK: - Foot pod and trainer power
+
+    /// Coasting reads 0 W and is a reading; a meter that has gone quiet
+    /// without dropping the link has no current reading, rather than its
+    /// last watts counted every second.
+    func testZeroWattsCountsAndAStaleReadingDoesNot() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        XCTAssertEqual(FootPodManager.freshPower(0, measuredAt: now, now: now), 0)
+        XCTAssertEqual(FootPodManager.freshPower(240, measuredAt: now.addingTimeInterval(-2), now: now), 240)
+        XCTAssertNil(FootPodManager.freshPower(240, measuredAt: now.addingTimeInterval(-(FootPodManager.powerStaleAfter + 1)), now: now))
+        XCTAssertNil(FootPodManager.freshPower(nil, measuredAt: now, now: now))
+    }
+
+    /// A coasting stretch of 0 W rows stays one run for the 30-second
+    /// windows, so normalized power counts the easy seconds as easy.
+    func testCoastingAtZeroWattsKeepsTheWindowsWhole() {
+        let np = WorkoutRecorder.computeNormalizedPower(samples: samples(Array(repeating: 200, count: 30) + Array(repeating: 0, count: 30)))
+        let steady = WorkoutRecorder.computeNormalizedPower(samples: samples(Array(repeating: 200, count: 60)))
+        XCTAssertNotNil(np)
+        XCTAssertLessThan(np ?? .infinity, steady ?? 0)
     }
 }

@@ -1,14 +1,17 @@
+import AudioToolbox
 import AVFoundation
 import Combine
 import CoreLocation
 import Foundation
+import UIKit
 
 // MARK: - Workout Voice Coach
 //
 // Sits above the trigger engine and owns the output side: a fired `.spoken`
 // event, a mile marker or a route line goes to the voice conversation, which
-// speaks it over AirPods; `.haptic` and `.silent` events stay quiet (there is
-// no Watch haptic handler yet). Also tracks the in-session mute.
+// speaks it over AirPods; a `.haptic` or urgent event is felt as a phone and
+// a Watch haptic (an urgent `.haptic` one is spoken too); `.silent` events
+// stay quiet. Also tracks the in-session mute.
 //
 // The coach is observer-shaped: it's handed a WorkoutAIContext snapshot from
 // the recorder's tick loop and decides what (if anything) to do with it.
@@ -70,22 +73,35 @@ final class WorkoutVoiceCoach {
     /// value means a new route, which resets both route-engine states.
     private var routeEngagedAt: Date?
 
-    init(engine: WorkoutTriggerEngine? = nil, watchBridge: WatchConnectivityBridge? = nil) {
+    /// Plays one alert haptic; `true` for an urgent alert. Defaults to the
+    /// phone's haptic plus a wrist haptic sent to the Watch.
+    private let playAlertHaptic: @MainActor (_ urgent: Bool) -> Void
+
+    init(
+        engine: WorkoutTriggerEngine? = nil,
+        watchBridge: WatchConnectivityBridge? = nil,
+        alertHaptic: (@MainActor (_ urgent: Bool) -> Void)? = nil
+    ) {
         self.engine = engine ?? WorkoutTriggerEngine()
         self.watchBridge = watchBridge
+        self.playAlertHaptic = alertHaptic ?? { [weak watchBridge] urgent in
+            CoachAlertHaptic.playOnPhone(urgent: urgent)
+            watchBridge?.sendCoachAlertHaptic(urgent: urgent)
+        }
     }
 
     // MARK: - Evaluate
 
     /// Push a context snapshot through the engine and handle any events.
     ///
-    /// Alert speaking is gated on BOTH the in-session `isMuted` toggle AND
-    /// the persistent `coachAlertsEnabled` setting. The engines evaluate
-    /// either way, so their per-workout state keeps moving while muted:
-    /// unmuting at mile 4.2 doesn't announce a "split" that covers the
-    /// two miles run in silence. A `.spoken` rule's own cooldown is the
-    /// exception: the trigger engine doesn't fire it while it can't be
-    /// heard (`canSpeak`), so a threshold still breached at unmute speaks.
+    /// Alerts, spoken and haptic, are gated on BOTH the in-session `isMuted`
+    /// toggle AND the persistent `coachAlertsEnabled` setting. The engines
+    /// evaluate either way, so their per-workout state keeps moving while
+    /// muted: unmuting at mile 4.2 doesn't announce a "split" that covers the
+    /// two miles run in silence. A `.spoken` or `.haptic` rule's own cooldown
+    /// is the exception: the trigger engine doesn't fire it while it can't
+    /// be delivered (`canAlert`), so a threshold still breached at unmute
+    /// speaks.
     ///
     /// Tier 2 mile-marker notifications run independently of alerts —
     /// they have their own toggle (`enableMileMarkerNotifications`,
@@ -94,8 +110,9 @@ final class WorkoutVoiceCoach {
     /// announces the next marker with its own split rather than one
     /// spanning the workout so far. Both share the in-session `isMuted`
     /// button (one place to silence everything in flight). Routine
-    /// trigger-engine events are dropped while an AI conversation turn is
-    /// in flight (`dispatch`); everything else that is said goes through
+    /// trigger-engine lines are not spoken while an AI conversation turn is
+    /// in flight (`dispatch`; their haptic still plays); everything else
+    /// that is said goes through
     /// `conversation.handleTrigger`, which queues a routine line while the
     /// user is mid-utterance or the AI is busy, and plays an urgent one now.
     ///
@@ -107,9 +124,9 @@ final class WorkoutVoiceCoach {
     /// walk through their state machines.
     func tick(context: WorkoutAIContext) {
         let settings = AppDependencies.current.app.settingsManager.settings
-        let canSpeak = settings.coachAlertsEnabled && !isMuted
-        let events = engine.evaluate(context: context, canSpeak: canSpeak)
-        if canSpeak {
+        let canAlert = settings.coachAlertsEnabled && !isMuted
+        let events = engine.evaluate(context: context, canAlert: canAlert)
+        if canAlert {
             for event in events {
                 dispatch(event: event)
             }
@@ -209,12 +226,14 @@ final class WorkoutVoiceCoach {
     }
 
     /// Hand one route line to the conversation's trigger queue, so it
-    /// respects the in-progress-user-utterance guard. An empty body is a
+    /// respects the in-progress-user-utterance guard. Marked a route line:
+    /// queued behind a reply, a newer one replaces it and it expires, so a
+    /// turn alert never plays after the turn has passed. An empty body is a
     /// no-op — the formatters return "" when a payload has nothing worth
     /// saying.
     private func announceRouteLine(_ body: String) {
         guard !isMuted, !body.isEmpty, let conversation else { return }
-        conversation.handleTrigger(message: body)
+        conversation.handleTrigger(message: body, isRouteLine: true)
     }
 
     /// Reset cooldowns and the event log — called when a new session starts.
@@ -237,25 +256,28 @@ final class WorkoutVoiceCoach {
 
     // MARK: - Dispatch
 
-    /// When the user is mid-AI-
-    /// voice-conversation, suppress routine triggers entirely so the
-    /// coach doesn't crash / kill the AI session. Urgent triggers
-    /// (strap dropped, user-declared threshold breach) still fire —
-    /// the user opted into those alerts explicitly. Suppressed triggers
-    /// still sit in the engine's in-memory history, as do `.silent` ones.
+    /// Delivers one fired event. A `.haptic` or urgent event plays the alert
+    /// haptic on the phone and the Watch. A `.spoken` event, and an urgent
+    /// `.haptic` one (the strap drop), is then spoken with the rule's
+    /// message. `.silent` events are only kept in the engine's history.
     ///
-    /// `.haptic` is a no-op: nothing sends a trigger to the Watch and the
-    /// Watch has no handler for one. Once the Watch grows a trigger UI,
-    /// wire it here.
-    private func dispatch(event: WorkoutTriggerEngine.Event) {
-        if event.urgency == .routine, conversation?.isAIInFlight == true {
+    /// When the user is mid-AI-voice-conversation, a routine line is not
+    /// spoken, so the coach doesn't cut the AI's reply; its haptic, which
+    /// interrupts no audio, still plays. Urgent lines (strap dropped,
+    /// user-declared threshold breach) are spoken anyway — the user opted
+    /// into those alerts explicitly. Suppressed lines still sit in the
+    /// engine's in-memory history.
+    ///
+    /// Called by `tick` only while alerts can be delivered (`canAlert`).
+    func dispatch(event: WorkoutTriggerEngine.Event) {
+        let urgent = event.urgency == .urgent
+        if event.tier == .haptic || urgent { playAlertHaptic(urgent) }
+        guard event.tier == .spoken || (event.tier == .haptic && urgent) else { return }
+        if !urgent, conversation?.isAIInFlight == true {
             debugLog("[WorkoutVoiceCoach] suppressing routine trigger '\(event.ruleID)' — AI conversation active")
             return
         }
-        switch event.tier {
-        case .silent, .haptic: break
-        case .spoken: dispatchSpoken(event)
-        }
+        dispatchSpoken(event)
     }
 
     /// Prefix automated alerts with "Coach alert —"
@@ -329,5 +351,22 @@ final class WorkoutVoiceCoach {
         WorkoutStartCue.cachedCompactVoiceIfReady(
             forLanguage: LanguageManager.appLocale.language.languageCode?.identifier ?? "en"
         )
+    }
+}
+
+// MARK: - Alert haptic
+
+/// The phone side of a coach alert's haptic. In the foreground the
+/// pre-warmed notification generator plays it; in the background, where a
+/// feedback generator plays nothing, the system vibration does, so an alert
+/// is felt through a pocket during a workout with the screen locked.
+enum CoachAlertHaptic {
+    @MainActor
+    static func playOnPhone(urgent: Bool) {
+        guard UIApplication.shared.applicationState == .active else {
+            AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+            return
+        }
+        WorkoutStartCue.notificationFeedback.notificationOccurred(urgent ? .error : .warning)
     }
 }

@@ -106,15 +106,25 @@ extension FitnessPostSummaryView {
     ///
     /// The build and the archive read-modify-write both run detached, like
     /// the feeling save, so the archiveLock never blocks the main thread.
+    /// The built snapshot lands in `builtAnalysis` (newest build only) whether
+    /// or not it was written, so `displayedAnalysis` never builds in `body`.
+    /// A session without samples gets its snapshot built but not written.
     func backfillAnalysisSnapshotIfNeeded() async {
         let stored = session.workoutMetadata?.analysisSnapshot
         let needsRebuild = stored?.needsRebuild ?? true
-        guard needsRebuild, let inputs = snapshotInputs(), !inputs.samples.isEmpty else { return }
+        guard needsRebuild, let inputs = snapshotInputs() else { return }
         let archive = dependencies.storage.sessionArchive
         let id = session.id
-        let updated = await Task.detached(priority: .userInitiated) {
-            Self.persistAnalysisSnapshot(WorkoutAnalysisSnapshotBuilder.build(inputs), builtFrom: inputs, id: id, archive: archive)
+        let persist = !inputs.samples.isEmpty
+        analysisGeneration += 1
+        let generation = analysisGeneration
+        let (snapshot, updated) = await Task.detached(priority: .userInitiated) { () -> (WorkoutAnalysisSnapshot, HRVSession?) in
+            let snapshot = WorkoutAnalysisSnapshotBuilder.build(inputs)
+            let updated = persist ? Self.persistAnalysisSnapshot(snapshot, builtFrom: inputs, id: id, archive: archive) : nil
+            return (snapshot, updated)
         }.value
+        guard generation == analysisGeneration else { return }
+        builtAnalysis = snapshot
         guard let updated else { return }
         refreshedSession = updated
         collector.notifyArchiveChanged()
@@ -231,13 +241,13 @@ extension FitnessPostSummaryView {
     }
 
     /// The analysis the summary shows: the stored snapshot, or — for a
-    /// session saved before snapshots existed, until the backfill lands — one
-    /// built on the fly by `WorkoutAnalysisSnapshotBuilder`, so the hero and
-    /// "how you did" text read the same before and after the backfill. Nil
-    /// without workout metadata or a duration.
+    /// session saved before snapshots existed — the one the backfill built
+    /// off the main actor (`builtAnalysis`), so the hero and "how you did"
+    /// text read the same before and after the write. Nil without workout
+    /// metadata or a duration, and until that build lands. Never builds here:
+    /// this is read twice per render.
     var displayedAnalysis: WorkoutAnalysisSnapshot? {
-        if let stored = session.workoutMetadata?.analysisSnapshot { return stored }
-        return snapshotInputs().map { WorkoutAnalysisSnapshotBuilder.build($0) }
+        session.workoutMetadata?.analysisSnapshot ?? builtAnalysis
     }
 
     // MARK: - Hero (new, morning-parity)
@@ -341,7 +351,13 @@ extension FitnessPostSummaryView {
     func partialBannerExplainer(reason: PartialDataReason, recoveredAt: Date?) -> String {
         switch reason {
         case .appCrashed:
-            let when = recoveredAt.map { " " + $0.formatted(date: .omitted, time: .shortened) } ?? ""
+            // The day too unless it was today: a workout opened days later
+            // otherwise reads "recovered … 08:13" with no date.
+            let when = recoveredAt.map { date in
+                " " + date.formatted(Date.FormatStyle(
+                    date: Calendar.current.isDateInToday(date) ? .omitted : .abbreviated, time: .shortened
+                ).locale(LanguageManager.appLocale))
+            } ?? ""
             return String(localized: "Recovered from on-device backup\(when). Metrics cover only the captured portion of the workout.", bundle: LanguageManager.appBundle)
         case .strapDisconnected:
             return String(localized: "Heart-rate strap dropped out before the end. TRIMP and zones are computed only from the beats that were recorded.", bundle: LanguageManager.appBundle)

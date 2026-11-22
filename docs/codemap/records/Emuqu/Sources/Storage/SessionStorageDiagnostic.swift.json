@@ -1,27 +1,26 @@
 {
  "file": "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift",
- "hash": "eefe5ea4178e7130",
- "role": "Read-only 'RR Storage Audit': for every archived session reports whether raw beats exist in the archive file, the RawRRBackup index, both or neither, plus sizes and orphaned backup ids. Run from ExportAndArchiveViews (Settings → Archive diagnostics). Also adds RawRRBackup.allBackupIds.",
+ "hash": "b1884c6ad5a726ca",
+ "role": "Read-only 'RR Storage Audit': for every archived session reports whether raw beats exist in the archive file, the RawRRBackup index, both or neither, plus sizes and the orphaned backup ids (never marked archived, and neither in the archive nor deleted). Run from ExportAndArchiveViews (Settings → Archive diagnostics).",
  "types": [
   "SessionStorageDiagnostic: enum — audit namespace",
   "SessionStorageDiagnostic.RRStatus: enum — archivedFull/backupOnly/bothPresent/neither/unreadable",
   "SessionStorageDiagnostic.SessionReport: struct — per-session row",
-  "SessionStorageDiagnostic.Report: struct — totals + rows + orphans",
-  "RawRRBackup: extension — allBackupIds()"
+  "SessionStorageDiagnostic.Report: struct — totals + rows + orphans"
  ],
  "state": [],
  "toplevel": "",
  "units": [
   {
    "key": "func SessionStorageDiagnostic.run(archive:backup:)",
-   "hash": "ea65cc61c14348a7",
-   "does": "Builds the audit Report: snapshots archive entries, collects every backup id (allBackupIds), inspects every archived session (full decrypt+decode), counts statuses, computes archive dir size and backup size, lists backup ids absent from the archive index as orphans sorted by uuid string.",
+   "hash": "271ccf25ab86a20c",
+   "does": "Builds the audit Report: snapshots archive entries, inspects every archived session (full decrypt+decode), counts statuses, computes archive dir size and backup size, and lists the orphaned backups (orphanedBackupIds: never marked archived, and neither in the archive index nor deleted).",
    "entry": "Called from ExportAndArchiveViews.swift:862 (RR Storage Audit button) in a background task",
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
-    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func RawRRBackup.allBackupIds()",
     "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.inspectSession(entry:archive:backup:)",
     "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.statusCounts(in:)",
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.orphanedBackupIds(archivedIds:archive:backup:)",
     "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.directorySize(at:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::var RawRRBackup.totalBackupSize"
    ],
@@ -35,38 +34,59 @@
    "writes": [],
    "branches": [
     {
-     "at": "+10",
+     "at": "+7",
      "cond": "counts[.archivedFull] missing",
      "effect": "?? 0"
     },
     {
-     "at": "+11",
+     "at": "+8",
      "cond": "counts[.backupOnly] missing",
      "effect": "?? 0"
     },
     {
-     "at": "+12",
+     "at": "+9",
      "cond": "counts[.bothPresent] missing",
      "effect": "?? 0"
     },
     {
-     "at": "+13",
+     "at": "+10",
      "cond": "counts[.neither] missing",
      "effect": "?? 0"
     },
     {
-     "at": "+14",
+     "at": "+11",
      "cond": "counts[.unreadable] missing",
      "effect": "?? 0"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
     "Emuqu/Sources/Storage/RawRRBackup.swift::var RawRRBackup.totalBackupSize": "37e205ab3e848422",
-    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func RawRRBackup.allBackupIds()": "0eadeb25efeba005",
     "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.directorySize(at:)": "5fdc647eaa1eba03",
-    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.inspectSession(entry:archive:backup:)": "7c6b1d2f7fe73fed",
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.inspectSession(entry:archive:backup:)": "d6bf7ceb2173323e",
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.orphanedBackupIds(archivedIds:archive:backup:)": "79b131012865dd6a",
     "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.statusCounts(in:)": "a3488a96ee84f605"
+   }
+  },
+  {
+   "key": "func SessionStorageDiagnostic.orphanedBackupIds(archivedIds:archive:backup:)",
+   "hash": "f751d741250f3fa0",
+   "does": "The backups never marked archived (RawRRBackup.unarchivedSessionIds) whose id is not in archivedIds and was not intentionally deleted, sorted by uuid string. A backup marked archived under an id the index lacks was folded into another session and is not counted.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/RawRRBackup.swift::var RawRRBackup.unarchivedSessionIds",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)"
+   ],
+   "reads": [
+    "mem:RawRRBackup.index",
+    "mem:SessionArchive.deletedSessionIds"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)": "0fcaeb8ff266a299",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::var RawRRBackup.unarchivedSessionIds": "7ba9734539de9ba7"
    }
   },
   {
@@ -84,8 +104,8 @@
   },
   {
    "key": "func SessionStorageDiagnostic.inspectSession(entry:archive:backup:)",
-   "hash": "67948c0bafe15214",
-   "does": "Per archived session: file size of its archive file and the backup index beat count (looked up first), then full retrieveOrLog decode; unreadable when decode fails (still reporting the backup beats, so a recoverable session shows them), else beats in archive vs backup → status and analysis summary.",
+   "hash": "29dbe11fd7e7c8b3",
+   "does": "Per archived session: file size of its archive file (resolveFileURL, so a legacy absolute path is found) and the backup index beat count (looked up first), then full retrieveOrLog decode; unreadable when decode fails (still reporting the backup beats, so a recoverable session shows them), else beats in archive vs backup → status and analysis summary.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
@@ -93,10 +113,11 @@
     "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.report(for:fileSize:archiveBeats:backupBeats:status:analysisSummary:)",
     "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)",
     "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.analysisSummary(for:)",
-    "ext:FileManager.attributesOfItem"
+    "ext:FileManager.attributesOfItem",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)"
    ],
    "reads": [
-    "file:HRVArchive/<entry.filePath>",
+    "file:HRVArchive/<entry.filePath> (or its legacy absolute path)",
     "archive:retrieve",
     "mem:RawRRBackup.index"
    ],
@@ -124,9 +145,11 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "245124c441f7143c",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96",
     "Emuqu/Sources/Storage/RawRRBackup+Reconciliation.swift::func RawRRBackup.backedUpBeatCount(_:)": "874b09505f026a95",
-    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.analysisSummary(for:)": "444a70f3e822581d",
+    "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.analysisSummary(for:)": "5caa18df8bc6547a",
     "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.report(for:fileSize:archiveBeats:backupBeats:status:analysisSummary:)": "a4db2f2e34d08fef",
     "Emuqu/Sources/Storage/SessionStorageDiagnostic.swift::func SessionStorageDiagnostic.status(archiveBeats:backupBeats:)": "0fdc43eeb1737d7c"
    }
@@ -258,19 +281,6 @@
    "deps": {
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.fileSize(at:)": "2e79f7c35c887bbe"
    }
-  },
-  {
-   "key": "func RawRRBackup.allBackupIds()",
-   "hash": "393a2937aee2b483",
-   "does": "RawRRBackup.allBackupIds: every id in the in-memory backup index under indexLock.",
-   "entry": null,
-   "calls": [],
-   "reads": [
-    "mem:RawRRBackup.index"
-   ],
-   "writes": [],
-   "branches": [],
-   "deps": {}
   }
  ],
  "deps": {}
