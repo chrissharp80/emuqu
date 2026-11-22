@@ -1,13 +1,14 @@
 {
  "file": "EmuquWatch Watch App/WatchSessionManager.swift",
- "hash": "42dd6a4ce19529ad",
- "role": "Watch-side WCSession view-model: activates WCSession, decodes iPhone pushes (liveState ticks, strap state, voice-chat state, start/stop commands, current-state replies) into @Published UI state, plays a coach alert's wrist haptic, drives the Watch's keep-alive HKWorkoutSession off isRecording, and sends Watch→iPhone control requests (start/stop/pause/resume/acknowledge, voice chat, state pull) with reply handling, queueing and timeouts.",
+ "hash": "2af06a01224ed024",
+ "role": "Watch-side WCSession view-model: activates WCSession, decodes iPhone pushes (liveState ticks, strap state, voice-chat state, start/stop commands, current-state replies) into @Published UI state, plays a coach alert's wrist haptic, drives the Watch's keep-alive HKWorkoutSession off isRecording, and sends Watch→iPhone requests (start workout, voice chat, state pull) with reply handling and timeouts; End/Pause/Resume/acknowledge and the shared control send-or-queue path are in WatchSessionManager+Controls.swift.",
  "types": [
   "WatchSessionManager: class (NSObject, ObservableObject, main-actor by target default) — view-model + WCSessionDelegate",
   "WatchSessionManager.DisplayedHRSource: enum — directStrap/iPhoneRelay/none",
   "WatchSessionManager.InboundMessage: struct (Sendable) — decoded update + command + sorted keys",
   "WatchSessionManager: extension — derived display strings",
-  "WatchSessionManager: extension (WCSessionDelegate) — activation/reachability/inbound callbacks"
+  "WatchSessionManager: extension (WCSessionDelegate) — activation/reachability/inbound callbacks",
+  "WatchSessionManager: extension (WatchSessionManager+Controls.swift) — the workout controls other than Start"
  ],
  "state": [
   "mem:WatchSessionManager.shared (static singleton)",
@@ -24,14 +25,14 @@
   "mem:WatchSessionManager.controlStatusHold = 8 s",
   "mem:WatchSessionManager.startWorkoutTimeoutTask/voiceChatTimeoutTask (private Tasks)",
   "mem:WatchSessionManager.lastRecordingStateSentAt (private, in-memory)",
-  "mem:WatchSessionManager.workoutManager (weakly-owned reference set by attach)",
+  "mem:WatchSessionManager.workoutManager (private(set): set once by attach, read by the controls in WatchSessionManager+Controls.swift)",
   "mem:Logger subsystem com.chrissharp.flowrecovery category WatchSessionManager",
   "wc out: startVoiceChat, startWorkoutFromWatch, stopWorkoutFromWatch, pauseWorkoutFromWatch, resumeWorkoutFromWatch, acknowledgeFinishedFromWatch, requestCurrentState, requestStrapState, applicationContext(queued intent + expiresAt)",
   "mem:WatchSessionManager.directStrapFreshness = 4 s",
   "mem:WatchSessionManager.directStrapExpiryTask (private Task)",
   "mem:WatchSessionManager.currentStateRequestInFlight (private)"
  ],
- "toplevel": "Stored-property initializers: statusLine starts \"Starting…\", sportLabel \"Workout\", band \"—\", unitsPreference \"metric\", voiceChatStateLabel \"idle\"; displayOnlyMode initializer reads UserDefaults (default true). WCSessionDelegate conformance in the extension at 907.",
+ "toplevel": "Stored-property initializers: statusLine starts \"Starting…\", sportLabel \"Workout\", band \"—\", unitsPreference \"metric\", voiceChatStateLabel \"idle\"; displayOnlyMode initializer reads UserDefaults (default true). WCSessionDelegate conformance in the extension at 803. phoneUnreachableStatus, showControlStatus, clearStartWorkoutRequest and the workoutManager getter are internal because WatchSessionManager+Controls.swift uses them.",
  "units": [
   {
    "key": "var WatchSessionManager.displayOnlyMode",
@@ -213,7 +214,7 @@
     }
    ],
    "deps": {
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.start(sportRaw:)": "30f5d1bceda22e77"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.start(sportRaw:)": "5442dd346fcec65a"
    }
   },
   {
@@ -261,7 +262,7 @@
   },
   {
    "key": "var WatchSessionManager.phoneUnreachableStatus",
-   "hash": "b80b0fb643d87857",
+   "hash": "c334eacabd0bb391",
    "does": "Localized \"iPhone not reachable\" status string.",
    "entry": null,
    "calls": [],
@@ -272,7 +273,7 @@
   },
   {
    "key": "func WatchSessionManager.showControlStatus(_:)",
-   "hash": "f8a2142a6e79817e",
+   "hash": "747352efa3ed0daa",
    "does": "Sets statusLine to status and holds it for controlStatusHold (8 s) so per-message \"Connected\" does not overwrite it.",
    "entry": null,
    "calls": [],
@@ -444,7 +445,7 @@
    "calls": [
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)",
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.beginStartWorkoutRequest()",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)"
+    "EmuquWatch Watch App/WatchSessionManager+Controls.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)"
    ],
    "reads": [],
    "writes": [
@@ -471,7 +472,7 @@
    ],
    "deps": {
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.beginStartWorkoutRequest()": "f784af71986617ca",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)": "0d50a3545915f4ec",
+    "EmuquWatch Watch App/WatchSessionManager+Controls.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)": "0d50a3545915f4ec",
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "4b0f746ac9e507bd",
     "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.phoneUnreachableStatus": "048749fd401dde5b"
    }
@@ -532,272 +533,6 @@
    ],
    "deps": {
     "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "4b0f746ac9e507bd"
-   }
-  },
-  {
-   "key": "func WatchSessionManager.requestStopWorkout()",
-   "hash": "8e4d28af49a99d63",
-   "does": "End handler: sends {type: WatchMessageDecoding.stopIntentType (stopWorkoutFromWatch)} via sendControlMessage (pending \"Stopping on iPhone…\", success \"Workout stopped\").",
-   "entry": null,
-   "calls": [
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)"
-   ],
-   "reads": [],
-   "writes": [
-    "wc:stopWorkoutFromWatch"
-   ],
-   "branches": [],
-   "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)": "0d50a3545915f4ec"
-   }
-  },
-  {
-   "key": "func WatchSessionManager.requestPauseWorkout()",
-   "hash": "20930083a69d1cdd",
-   "does": "Pause handler: sends {type: pauseWorkoutFromWatch} via sendControlMessage (\"Pausing…\" / \"Paused\").",
-   "entry": null,
-   "calls": [
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)"
-   ],
-   "reads": [],
-   "writes": [
-    "wc:pauseWorkoutFromWatch"
-   ],
-   "branches": [],
-   "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)": "0d50a3545915f4ec"
-   }
-  },
-  {
-   "key": "func WatchSessionManager.requestResumeWorkout()",
-   "hash": "ad185656a659a936",
-   "does": "Resume handler: sends {type: resumeWorkoutFromWatch} via sendControlMessage (\"Resuming…\" / \"Resumed\").",
-   "entry": null,
-   "calls": [
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)"
-   ],
-   "reads": [],
-   "writes": [
-    "wc:resumeWorkoutFromWatch"
-   ],
-   "branches": [],
-   "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)": "0d50a3545915f4ec"
-   }
-  },
-  {
-   "key": "func WatchSessionManager.requestAcknowledgeFinished()",
-   "hash": "d2829dd7a09d99eb",
-   "does": "Save & Done handler: clears justCompleted locally, then sends {type: acknowledgeFinishedFromWatch} via sendControlMessage (\"Saving…\" / \"Saved\").",
-   "entry": null,
-   "calls": [
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:WatchSessionManager.justCompleted",
-    "wc:acknowledgeFinishedFromWatch"
-   ],
-   "branches": [],
-   "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)": "0d50a3545915f4ec"
-   }
-  },
-  {
-   "key": "func WatchSessionManager.sendControlMessage(payload:pendingStatus:successStatus:)",
-   "hash": "ae6173f196afce12",
-   "does": "Common control sender: stamps ts, shows the pending status for 8 s, then sends live with reply handling when the iPhone is reachable, otherwise hands the intent to queueUnlessStart (queued in the application context, or refused when it is a start).",
-   "entry": null,
-   "calls": [
-    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.phoneUnreachableStatus",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.queueUnlessStart(_:on:pendingStatus:)",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendLiveControlMessage(_:on:pendingStatus:successStatus:)"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:WatchSessionManager.statusLine",
-    "wc:<control type> (+ts)"
-   ],
-   "branches": [
-    {
-     "at": "+6",
-     "cond": "WCSession.isSupported()",
-     "effect": "false: statusLine = \"iPhone not reachable\", return (nothing sent)"
-    },
-    {
-     "at": "+18",
-     "cond": "session.isReachable",
-     "effect": "false: queueUnlessStart and return; true: sendLiveControlMessage"
-    }
-   ],
-   "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.queueUnlessStart(_:on:pendingStatus:)": "ee2d35b4d5eca3d8",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.sendLiveControlMessage(_:on:pendingStatus:successStatus:)": "81b09e3b03185d23",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "4b0f746ac9e507bd",
-    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.phoneUnreachableStatus": "048749fd401dde5b"
-   }
-  },
-  {
-   "key": "func WatchSessionManager.queueUnlessStart(_:on:pendingStatus:)",
-   "hash": "23bdf7954bf9cdaa",
-   "does": "The iPhone is unreachable: a startWorkoutFromWatch payload is never queued, so it ends the request with finishControlRequest(\"iPhone not reachable\", isStart: true); any other control goes to queueControlMessage.",
-   "entry": null,
-   "calls": [
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.finishControlRequest(status:isStart:)",
-    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.phoneUnreachableStatus",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.queueControlMessage(_:on:pendingStatus:)"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:WatchSessionManager.statusLine",
-    "mem:WatchSessionManager.startWorkoutRequestInFlight",
-    "wc:applicationContext {type, ts, expiresAt}"
-   ],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "payload type == startWorkoutFromWatch",
-     "effect": "true: finishControlRequest(unreachable, isStart: true), nothing queued; false: queueControlMessage"
-    }
-   ],
-   "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.finishControlRequest(status:isStart:)": "2b602dbc24423b68",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.queueControlMessage(_:on:pendingStatus:)": "ce73f2c31868ea35",
-    "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.phoneUnreachableStatus": "048749fd401dde5b"
-   }
-  },
-  {
-   "key": "func WatchSessionManager.queueControlMessage(_:on:pendingStatus:)",
-   "hash": "99181173390939d1",
-   "does": "Queues a control intent for an unreachable iPhone via updateApplicationContext with withQueueExpiry's expiresAt (12 h for an End, 60 s otherwise); refuses (status \"Stopping on iPhone… (open iPhone)\") when WatchMessageDecoding.wouldDisplaceQueuedStop says it would replace an unexpired queued End while the iPhone is last known recording; a thrown update shows \"Couldn't reach iPhone: <error>\".",
-   "entry": null,
-   "calls": [
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.wouldDisplaceQueuedStop(payloadType:pending:phoneRecording:now:)",
-    "EmuquWatch Watch App/WatchSessionManager+RequestHelpers.swift::func WatchSessionManager.withQueueExpiry(_:)",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)",
-    "ext:WCSession.updateApplicationContext"
-   ],
-   "reads": [
-    "wc:applicationContext (this Watch's last queued intent)",
-    "mem:WatchSessionManager.isRecording"
-   ],
-   "writes": [
-    "wc:applicationContext {type, ts, expiresAt}",
-    "mem:WatchSessionManager.statusLine"
-   ],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "wouldDisplaceQueuedStop(type, pending, phoneRecording: isRecording, now)",
-     "effect": "true: show stopping-status and return without queuing; false: queue"
-    },
-    {
-     "at": "+11",
-     "cond": "catch from updateApplicationContext",
-     "effect": "error shown in status line; intent not queued"
-    }
-   ],
-   "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.wouldDisplaceQueuedStop(payloadType:pending:phoneRecording:now:)": "855877be04fea476",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "4b0f746ac9e507bd",
-    "EmuquWatch Watch App/WatchSessionManager+RequestHelpers.swift::func WatchSessionManager.withQueueExpiry(_:)": "115fe68087597ea9"
-   }
-  },
-  {
-   "key": "func WatchSessionManager.sendLiveControlMessage(_:on:pendingStatus:successStatus:)",
-   "hash": "0205662923e3cf3e",
-   "does": "sendMessage with @Sendable reply and error handlers. The reply is worded by WatchMessageDecoding.controlReplyStatus and ends the request (finishControlRequest, clearing the start wait for a start). A send error hops to the main actor with the intent's type, ts and pending status and the localized \"Couldn't reach iPhone: <error>\" line, and calls failLiveControlRequest.",
-   "entry": null,
-   "calls": [
-    "ext:WCSession.sendMessage(_:replyHandler:errorHandler:)",
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.controlReplyStatus(_:sport:successStatus:)",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.finishControlRequest(status:isStart:)",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.failLiveControlRequest(type:sentAt:pendingStatus:failure:)"
-   ],
-   "reads": [],
-   "writes": [
-    "wc:<control type> (+ts) live message"
-   ],
-   "branches": [
-    {
-     "at": "+9",
-     "cond": "reply received (replyHandler)",
-     "effect": "finishControlRequest(worded reply, isStart)"
-    },
-    {
-     "at": "+13",
-     "cond": "send error (errorHandler)",
-     "effect": "failLiveControlRequest(type, ts, pendingStatus, failure)"
-    }
-   ],
-   "deps": {
-    "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.controlReplyStatus(_:sport:successStatus:)": "976ea31b2b6582c7",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.failLiveControlRequest(type:sentAt:pendingStatus:failure:)": "2ff11c3dea0e4a80",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.finishControlRequest(status:isStart:)": "2b602dbc24423b68"
-   }
-  },
-  {
-   "key": "func WatchSessionManager.failLiveControlRequest(type:sentAt:pendingStatus:failure:)",
-   "hash": "f62abeca06c7c2bb",
-   "does": "A live control send failed. A start (or a payload missing its type or ts) ends with the failure line via finishControlRequest (clearing the start wait for a start); any other control is rebuilt as {type, ts} and queued through queueControlMessage on WCSession.default, and an End also calls workoutManager.noteWristStop(phoneReachable: false) so the Watch's own session ends as for an unreachable wrist End.",
-   "entry": null,
-   "calls": [
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.finishControlRequest(status:isStart:)",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.queueControlMessage(_:on:pendingStatus:)",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.noteWristStop(phoneReachable:)"
-   ],
-   "reads": [
-    "mem:WatchSessionManager.workoutManager"
-   ],
-   "writes": [
-    "mem:WatchSessionManager.statusLine",
-    "mem:WatchSessionManager.startWorkoutRequestInFlight",
-    "wc:applicationContext {type, ts, expiresAt}",
-    "hk:HKWorkoutSession (via WatchWorkoutManager)"
-   ],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "type and ts present and type != startWorkoutFromWatch",
-     "effect": "false: finishControlRequest(failure, isStart: type is a start), return; true: queue"
-    },
-    {
-     "at": "+5",
-     "cond": "type == stopWorkoutFromWatch",
-     "effect": "true: workoutManager?.noteWristStop(phoneReachable: false)"
-    }
-   ],
-   "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.finishControlRequest(status:isStart:)": "2b602dbc24423b68",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.queueControlMessage(_:on:pendingStatus:)": "ce73f2c31868ea35",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.noteWristStop(phoneReachable:)": "1a8e7d13d882e979"
-   }
-  },
-  {
-   "key": "func WatchSessionManager.finishControlRequest(status:isStart:)",
-   "hash": "486a1a6432123913",
-   "does": "Ends a control request: clears the start in-flight state when it was a start, then shows the status for 8 s.",
-   "entry": null,
-   "calls": [
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.clearStartWorkoutRequest()",
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:WatchSessionManager.statusLine",
-    "mem:WatchSessionManager.startWorkoutRequestInFlight"
-   ],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "isStart",
-     "effect": "true: clearStartWorkoutRequest(); false: skip"
-    }
-   ],
-   "deps": {
-    "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.clearStartWorkoutRequest()": "c46ed5137f755145",
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.showControlStatus(_:)": "4b0f746ac9e507bd"
    }
   },
@@ -1300,14 +1035,14 @@
    ],
    "deps": {
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.recordingTransition(wasRecording:update:)": "082bb2af258f89df",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.notePhoneNotRecording()": "d13fc846543a624e",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.start(sportRaw:)": "30f5d1bceda22e77",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()": "6a7c44545c6397cd"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.notePhoneNotRecording()": "e37efe7ea2804ac9",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.start(sportRaw:)": "5442dd346fcec65a",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()": "1873be1a9e68f0da"
    }
   },
   {
    "key": "func WatchSessionManager.clearStartWorkoutRequest()",
-   "hash": "0ca01d770fa8bab2",
+   "hash": "6a3082dad97928f6",
    "does": "If a start request is in flight, clears the flag and cancels the start timeout task.",
    "entry": null,
    "calls": [],
@@ -1408,7 +1143,7 @@
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.noteUnrecognisedCommand(_:)": "d6a7381cfea4f3c5",
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.playCoachAlert(urgent:firedAt:)": "10e7a618864b5b4b",
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.startWorkoutIfAllowed(_:)": "627d3a29c18068dd",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()": "6a7c44545c6397cd"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.stop()": "1873be1a9e68f0da"
    }
   },
   {
@@ -1463,7 +1198,7 @@
    "deps": {
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.shouldStartWorkout(for:displayOnlyMode:)": "702537be9e120fc4",
     "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "707e23d10870b03d",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.start(sportRaw:)": "30f5d1bceda22e77"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.start(sportRaw:)": "5442dd346fcec65a"
    }
   },
   {

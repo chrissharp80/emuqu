@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Services/WatchConnectivityBridge.swift",
- "hash": "febbefaaad564b93",
- "role": "iOS side of the iPhone<->Apple Watch WatchConnectivity link: a process-wide @Observable @MainActor singleton that pushes live workout ticks, strap state, start/stop commands and coach-alert haptics to the Watch, caches the last live snapshot for Watch relaunch restoration, and holds wrist-HR / Watch-strap samples received from the Watch (delegate callbacks and the voice-chat and coach-alert pushes live in WatchConnectivityBridge+Session.swift).",
+ "hash": "aae12bd65c97202c",
+ "role": "iOS side of the iPhone<->Apple Watch WatchConnectivity link: a process-wide @Observable @MainActor singleton that pushes live workout ticks, strap state, start/stop commands and coach-alert haptics to the Watch, caches the last live snapshot for Watch relaunch restoration, and holds wrist-HR / Watch-strap samples received from the Watch (delegate callbacks and the voice-chat and coach-alert pushes live in WatchConnectivityBridge+Session.swift; the user-info queueing rule, WatchControlRefusal and WatchSendTimeoutBreaker in WatchConnectivityBridge+Transport.swift).",
  "types": [
   "Notification.Name: extension — five Watch control notification names",
   "WatchConnectivityBridge: class — WCSession owner/delegate singleton, outbound transport and inbound sample store",
@@ -9,9 +9,7 @@
   "WatchConnectivityBridge.MessageType: enum — wire message types",
   "WatchConnectivityBridge.LiveState: struct — one live tick parameter object",
   "WatchConnectivityBridge.LiveTotals: struct — elapsed/distance/elevation totals",
-  "WatchConnectivityBridge.StrapSnapshot: struct (private) — connected/name/battery read from PolarManager",
-  "WatchControlRefusal: enum — reason codes for refusing Watch control messages",
-  "WatchSendTimeoutBreaker: struct (Sendable) — send-timeout circuit-breaker state: opens at 3 timeouts for a 30 s cooldown"
+  "WatchConnectivityBridge.StrapSnapshot: struct (private) — connected/name/battery read from PolarManager"
  ],
  "state": [
   "notif:FlowRecoveryWatchRequestedWorkoutStart (watchRequestedWorkoutStart)",
@@ -36,7 +34,7 @@
   "wc:type/liveState/strapState/startWorkout/stopWorkout/coachAlert and all MessageKey keys plus 'ts'",
   "mem:WatchConnectivityBridge.heldUntilActivation (static lock [[String: any Sendable]], dual-channel commands issued before activation, last 8)"
  ],
- "toplevel": "Declares five Notification.Name statics (lines 12-29) and the two message enums (MessageType includes coachAlert, sent by +Session's sendCoachAlertHaptic); stored-property initialisers create the serial wcQueue (282-285), the didActivate lock (364), and static locks timeoutBreaker, lastContextErrorMessage, liveStateCache, heldUntilActivation and cachedWatchDisplayOnlyMode initial true. `static let shared` (53) lazily runs init on first access. WatchControlRefusal is a String-raw enum whose raw values travel as `errorCode`. WatchSendTimeoutBreaker is a file-level struct with static threshold = 3 and cooldown = 30 s.",
+ "toplevel": "Declares five Notification.Name statics (lines 12-29) and the two message enums (MessageType includes coachAlert, sent by +Session's sendCoachAlertHaptic); stored-property initialisers create the serial wcQueue, the didActivate lock, and static locks timeoutBreaker (a WatchSendTimeoutBreaker, declared in +Transport), lastContextErrorMessage, liveStateCache, heldUntilActivation and cachedWatchDisplayOnlyMode initial true. `static let shared` (53) lazily runs init on first access.",
  "units": [
   {
    "key": "var WatchConnectivityBridge.isWatchPaired",
@@ -495,12 +493,29 @@
    }
   },
   {
+   "key": "var WatchConnectivityBridge.isCircuitOpen",
+   "hash": "d4f16980eaf978a6",
+   "does": "True while the send-timeout breaker is open now (WatchSendTimeoutBreaker.isOpen(at: Date()) under the timeoutBreaker lock).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Transport.swift::func WatchSendTimeoutBreaker.isOpen(at:)"
+   ],
+   "reads": [
+    "mem:WatchConnectivityBridge.timeoutBreaker"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Transport.swift::func WatchSendTimeoutBreaker.isOpen(at:)": "e41941deed03eb57"
+   }
+  },
+  {
    "key": "func WatchConnectivityBridge.bumpTimeoutCount()",
    "hash": "47837540de3e0714",
    "does": "Records one send timeout on the breaker (noteTimeout(at: now), which may open it) under its lock and returns the new timeout count.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchSendTimeoutBreaker.noteTimeout(at:)"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Transport.swift::func WatchSendTimeoutBreaker.noteTimeout(at:)"
    ],
    "reads": [
     "mem:WatchConnectivityBridge.timeoutBreaker"
@@ -510,7 +525,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchSendTimeoutBreaker.noteTimeout(at:)": "d8c1ebe910981ad8"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Transport.swift::func WatchSendTimeoutBreaker.noteTimeout(at:)": "d8c1ebe910981ad8"
    }
   },
   {
@@ -899,7 +914,7 @@
    "calls": [
     "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.logSendFailure(_: String)",
     "ext:WCSession.sendMessage",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.transferLatestUserInfo(_:on:)"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Transport.swift::func WatchConnectivityBridge.transferLatestUserInfo(_:on:)"
    ],
    "reads": [],
    "writes": [
@@ -919,8 +934,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.logSendFailure(_: String)": "44864806d1219420",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.transferLatestUserInfo(_:on:)": "f576289459eed74f"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Transport.swift::func WatchConnectivityBridge.transferLatestUserInfo(_:on:)": "5e2282d2c0cf5298",
+    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.logSendFailure(_: String)": "44864806d1219420"
    }
   },
   {
@@ -991,163 +1006,6 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
-   }
-  },
-  {
-   "key": "func WatchControlRefusal.phoneText(sport:)",
-   "hash": "3e500b8055cffa5b",
-   "does": "Returns the refusal text in the phone's app language for each WatchControlRefusal case (unknownSport quotes the sport string or '').",
-   "entry": "Called by +Session refusalReply (273) and by EmuquTests/WatchMessageDecodingTests.swift:404,406.",
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "case .phoneNotReady",
-     "effect": "'Phone not ready'"
-    },
-    {
-     "at": "+4",
-     "cond": "case .unknownMessage",
-     "effect": "'Unknown message'"
-    },
-    {
-     "at": "+5",
-     "cond": "case .unknownSport (sport ?? '')",
-     "effect": "'Unknown sport: <sport>' with empty string when sport is nil"
-    },
-    {
-     "at": "+6",
-     "cond": "case .needsUnlock",
-     "effect": "'Open Emuqu on your iPhone to start your free trial or unlock.'"
-    },
-    {
-     "at": "+7",
-     "cond": "case .strapBusy",
-     "effect": "'The strap is currently used by another session. Stop it first.'"
-    },
-    {
-     "at": "+8",
-     "cond": "case .workoutInProgress",
-     "effect": "'A workout is already recording on your iPhone.'"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
-   }
-  },
-  {
-   "key": "var WatchConnectivityBridge.isCircuitOpen",
-   "hash": "d4f16980eaf978a6",
-   "does": "True while the send-timeout breaker is open now (WatchSendTimeoutBreaker.isOpen(at: Date()) under the timeoutBreaker lock).",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchSendTimeoutBreaker.isOpen(at:)"
-   ],
-   "reads": [
-    "mem:WatchConnectivityBridge.timeoutBreaker"
-   ],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchSendTimeoutBreaker.isOpen(at:)": "e41941deed03eb57"
-   }
-  },
-  {
-   "key": "func WatchConnectivityBridge.transferLatestUserInfo(_:on:)",
-   "hash": "71c1f6f2dd12f60a",
-   "does": "Cancels every outstanding user-info transfer whose type the new payload's type supersedes (userInfoSupersedes), then queues the payload with transferUserInfo, so the Watch receives at most the newest workout start/stop, strap state and voice-chat state when it next runs.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.userInfoSupersedes(_:queued:)",
-    "ext:WCSession.outstandingUserInfoTransfers",
-    "ext:WCSessionUserInfoTransfer.cancel",
-    "ext:WCSession.transferUserInfo"
-   ],
-   "reads": [
-    "wc:outstandingUserInfoTransfers"
-   ],
-   "writes": [
-    "wc:transferUserInfo",
-    "wc:outstandingUserInfoTransfers (superseded ones cancelled)"
-   ],
-   "branches": [
-    {
-     "at": "+3",
-     "cond": "userInfoSupersedes(new type, queued type)",
-     "effect": "true: cancel that queued transfer"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.userInfoSupersedes(_:queued:)": "9a1b05ebd33122a5"
-   }
-  },
-  {
-   "key": "func WatchConnectivityBridge.userInfoSupersedes(_:queued:)",
-   "hash": "6c15aee8c360c54f",
-   "does": "Pure rule: false when either type is nil; a startWorkout or stopWorkout supersedes a queued startWorkout or stopWorkout; a strapState or voiceChatState supersedes a queued one of the same type; any other type supersedes nothing.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "type or queued is nil",
-     "effect": "false"
-    },
-    {
-     "at": "+3",
-     "cond": "type is startWorkout/stopWorkout",
-     "effect": "queued is startWorkout/stopWorkout"
-    },
-    {
-     "at": "+5",
-     "cond": "otherwise",
-     "effect": "type is strapState/voiceChatState and queued == type"
-    }
-   ],
-   "deps": {}
-  },
-  {
-   "key": "func WatchSendTimeoutBreaker.isOpen(at:)",
-   "hash": "787b302cc3377ef1",
-   "does": "True when the timeout count has reached threshold (3), the breaker has an openedAt, and less than cooldown (30 s) has passed since it.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "timeouts >= threshold and openedAt set",
-     "effect": "false: false; true: now - openedAt < cooldown"
-    }
-   ],
-   "deps": {}
-  },
-  {
-   "key": "func WatchSendTimeoutBreaker.noteTimeout(at:)",
-   "hash": "afda5388a6f08947",
-   "does": "Counts one timeout; when the count is at or past threshold and the breaker is not open at `now`, (re)opens it at `now`. A timeout while open does not move openedAt.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchSendTimeoutBreaker.isOpen(at:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "timeouts >= threshold and not open now",
-     "effect": "true: openedAt = now"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchSendTimeoutBreaker.isOpen(at:)": "e41941deed03eb57"
    }
   }
  ],

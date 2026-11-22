@@ -1,0 +1,213 @@
+{
+ "file": "Emuqu/Sources/Services/RescoreWrite.swift",
+ "hash": "495d6f70b498b01e",
+ "role": "Split out of ReanalysisService.swift: RescoreWrite, the optimistic write a rescore uses to reach the archive — under SessionArchive.update it compares the stored copy's inputs with the copy the rescore read and, when they match, sets only the fields that kind of rescore computes; when they differ it writes nothing and the caller reruns from the stored copy.",
+ "types": [
+  "RescoreWrite: enum (file scope, nonisolated) — the optimistic rescore write: Kind, Outcome, the input comparison and the per-kind computed fields",
+  "RescoreWrite.Inputs: struct (private, Encodable) — what a rescore is computed from"
+ ],
+ "state": [
+  "RescoreWrite.runs (static let = 3); RescoreWrite.computedFields / storedFields: Set<String> — every stored HRVSession field, classified"
+ ],
+ "toplevel": "File-scope enum, not actor-isolated; ReanalysisService (rescore and score-only paths) and SessionAcceptanceService.reArchive use it.",
+ "units": [
+  {
+   "key": "var RescoreWrite.Outcome.written",
+   "hash": "76f67cff5faa7e71",
+   "does": "The written session for .written; nil for .inputsChanged.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "not .written",
+     "effect": "nil"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func RescoreWrite.write(_:readFrom:kind:to:)",
+   "hash": "e0db6f0c642ef5bd",
+   "does": "Writes a rescore computed from `read` onto the archived copy. A rescore never creates a session: when the archive does not hold the id (never archived, or deleted or purged while it ran) logs and returns .notArchived with nothing written. Otherwise inside SessionArchive.update (requestingReupload false): when the stored copy's inputs differ from the read copy's (inputsMatch) returns .inputsChanged with the stored copy, which goes back unchanged; else sets only this kind's computed fields on the stored copy (applyComputedFields) and returns .written with it. Throws what the archive throws (PurgeGate.Refused while Delete All My Data runs).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.inputsMatch(_:_:kind:)",
+    "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.applyComputedFields(from:to:kind:)"
+   ],
+   "reads": [
+    "archive:SessionArchive"
+   ],
+   "writes": [
+    "archive:SessionArchive.update",
+    "notif:.flowRecoveryArchiveChanged"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "id not in the archive",
+     "effect": "log, return .notArchived; nothing written"
+    },
+    {
+     "at": "+7",
+     "cond": "inputs differ",
+     "effect": ".inputsChanged(stored), stored written back unchanged"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.applyComputedFields(from:to:kind:)": "81a27e6f21e44194",
+    "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.inputsMatch(_:_:kind:)": "ec64c644c8dc41cf",
+    "Emuqu/Sources/Services/RescoreWrite.swift::var RescoreWrite.Outcome.written": "499b7125039fedf8",
+    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func RescoreWrite.applyComputedFields(from:to:kind:)",
+   "hash": "f81cbe43a99c7824",
+   "does": "Sets recoveryScore, scoreBreakdown and frozenReadiness from the rescored session. Reanalysis also sets analysisResult, artifactFlags, windowUserAdjusted and hrvDataQuality, and trainingSnapshot only when healed. Score-only sets trainingSnapshot and analysisResult.trainingContext only when healed, and nothing else.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "kind",
+     "effect": "reanalysis: the window fields; scoreOnly: only the healed training"
+    },
+    {
+     "at": "+10",
+     "cond": "reanalysis and healed",
+     "effect": "trainingSnapshot set"
+    },
+    {
+     "at": "+12",
+     "cond": "scoreOnly and not healed",
+     "effect": "return"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445"
+   }
+  },
+  {
+   "key": "func RescoreWrite.reanalysisRerun(read:stored:run:)",
+   "hash": "c06de08c2422c5e3",
+   "does": "For a reanalysis whose inputs changed: nil (logged) when the stored copy has a manual window the read copy had not, when this was the last run, or when the stored copy has no beats; otherwise the stored copy to run again from.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "manual window picked meanwhile",
+     "effect": "log, nil"
+    },
+    {
+     "at": "+5",
+     "cond": "run == runs",
+     "effect": "log, nil"
+    },
+    {
+     "at": "+9",
+     "cond": "stored copy has no beats",
+     "effect": "log, nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "func RescoreWrite.heals(_:over:)",
+   "hash": "27c6e1d174d2254e",
+   "does": "True when the training context's ATL or CTL differs from the candidate's (or there is no candidate).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
+   }
+  },
+  {
+   "key": "func RescoreWrite.inputsMatch(_:_:kind:)",
+   "hash": "af7e7def4cdf8ea2",
+   "does": "Compares the two copies' encoded inputs for this kind (encodedInputs); false when either cannot be encoded.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.encodedInputs(of:kind:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "an encoding failed",
+     "effect": "false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.encodedInputs(of:kind:)": "4414551f314ee3cd"
+   }
+  },
+  {
+   "key": "func RescoreWrite.encodedInputs(of:kind:)",
+   "hash": "0a281e80a6753b1d",
+   "does": "JSON-encodes the session's Inputs with sorted keys (non-finite numbers as strings); nil and a warning log when encoding throws.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/RescoreWrite.swift::init RescoreWrite.Inputs(of:kind:)",
+    "ext:JSONEncoder.encode",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "encode throws",
+     "effect": "log, nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/RescoreWrite.swift::init RescoreWrite.Inputs(of:kind:)": "a7a54b8326e2f04d",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "init RescoreWrite.Inputs(of:kind:)",
+   "hash": "4aefd5de864204f3",
+   "does": "Captures what a rescore is computed from: beat count and first/last t_ms, sleepStartMs/EndMs, sleepSegments, sleepSnapshot, vitalsSnapshot, perceivedReadiness, trainingSnapshot; for a reanalysis also windowUserAdjusted, for a score-only pass also analysisResult.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+12",
+     "cond": "kind",
+     "effect": "reanalysis: windowUserAdjusted; scoreOnly: analysisResult"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.trainingSnapshot(session:fallback:)": "17877eae6dbfa445",
+    "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696"
+   }
+  }
+ ],
+ "deps": {}
+}

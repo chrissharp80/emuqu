@@ -440,7 +440,10 @@ extension WatchConnectivityBridge: WCSessionDelegate {
     /// reachable, else, or when that send fails, one queued
     /// `transferUserInfo`, so the haptic plays once. The Watch plays it only
     /// within a few seconds of `firedAt`: a buzz that lands later no longer
-    /// marks the moment it was about.
+    /// marks the moment it was about. So the queued alert replaces any coach
+    /// alert still queued (`transferLatestUserInfo`): through a long stretch
+    /// out of reach at most one waits, the newest, rather than every alert of
+    /// the stretch reaching the Watch at once, all too old to play.
     @MainActor
     func sendCoachAlertHaptic(urgent: Bool) {
         guard WCSession.isSupported() else { return }
@@ -452,11 +455,11 @@ extension WatchConnectivityBridge: WCSessionDelegate {
             "firedAt": Date().timeIntervalSince1970
         ]
         guard session.isReachable else {
-            session.transferUserInfo(payload)
+            Self.transferLatestUserInfo(payload, on: session)
             return
         }
         session.sendMessage(payload, replyHandler: nil) { @Sendable _ in
-            WCSession.default.transferUserInfo(payload)
+            WatchConnectivityBridge.transferLatestUserInfo(payload, on: WCSession.default)
         }
     }
 }

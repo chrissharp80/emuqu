@@ -10,7 +10,7 @@
   "mem:WatchDependencies.current (static var, the container in force; the app never assigns it)",
   "mem:WatchDependencies.overrides (let, one Overrides box per container)"
  ],
- "toplevel": "Declares the container, its static `current` (initialised to a fresh WatchDependencies on first access) and the Overrides class whose two optional properties start nil. Read by WatchApp's stored-property initializers and init. Enforced as the Watch root by scripts/check_no_shared_outside_root.sh.",
+ "toplevel": "Declares the container, its static `current` (initialised to a fresh WatchDependencies on first access) and the Overrides class whose two optional properties start nil. Read by WatchApp's stored-property initializers and init, and by WatchAppDelegate.handleActiveWorkoutRecovery (same file) for a recovery relaunch before any view. Enforced as the Watch root by scripts/check_no_shared_outside_root.sh.",
  "units": [
   {
    "key": "var WatchDependencies.sessionManager",

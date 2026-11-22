@@ -72,6 +72,22 @@ final class WatchSendTransportTests: XCTestCase {
         XCTAssertFalse(WatchConnectivityBridge.userInfoSupersedes("voiceChatState", queued: strapType))
     }
 
+    /// A coach alert plays only near the moment it fired, so a new one
+    /// replaces a queued one; it never replaces another type, and no other
+    /// type replaces it.
+    @MainActor
+    func testACoachAlertSupersedesOnlyAQueuedCoachAlert() {
+        let alertType = WatchConnectivityBridge.MessageType.coachAlert.rawValue
+        let strapType = WatchConnectivityBridge.MessageType.strapState.rawValue
+        let stopType = WatchConnectivityBridge.MessageType.stopWorkout.rawValue
+        XCTAssertTrue(WatchConnectivityBridge.userInfoSupersedes(alertType, queued: alertType))
+        XCTAssertFalse(WatchConnectivityBridge.userInfoSupersedes(alertType, queued: strapType))
+        XCTAssertFalse(WatchConnectivityBridge.userInfoSupersedes(alertType, queued: stopType))
+        XCTAssertFalse(WatchConnectivityBridge.userInfoSupersedes(strapType, queued: alertType))
+        XCTAssertFalse(WatchConnectivityBridge.userInfoSupersedes(stopType, queued: alertType))
+        XCTAssertFalse(WatchConnectivityBridge.userInfoSupersedes("voiceChatState", queued: alertType))
+    }
+
     /// A type this rule does not know, or a transfer with no type, is never
     /// cancelled: nothing says it carries a whole state.
     @MainActor
