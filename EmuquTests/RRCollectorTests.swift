@@ -12,76 +12,74 @@ import XCTest
 /// integration tests that need a real or mock Polar device connection.
 @MainActor
 final class RRCollectorTests: XCTestCase {
-    /// `lazy`, not an inline initialiser: `setUp` clears persisted state first,
-    /// and a stored property would be constructed before that runs — handing the
-    /// collector the very state the test just asked to be rid of. Deferring to
-    /// first use inside the test body keeps the original ordering.
-    lazy var collector = RRCollector()
+    /// Over a temporary archive, raw-backup folder and baseline file, never the
+    /// host app's own. `lazy` so it is built after `setUp` has set the host's
+    /// recording state aside.
+    lazy var collector = makeCollector()
 
-    private func clearPersistedState() {
-        PersistedRecordingState.clear()
-        UserDefaults.standard.removeObject(forKey: "RRCollector.activeRecordingStartTime")
-        UserDefaults.standard.removeObject(forKey: "RRCollector.activeRecordingSessionId")
-        UserDefaults.standard.removeObject(forKey: "RRCollector.activeRecordingSessionType")
+    nonisolated private let storageDirectory = FileManager.default.temporaryDirectory
+        .appendingPathComponent("RRCollectorTests-\(UUID().uuidString)", isDirectory: true)
+
+    /// The host's recording state, put back in `tearDown`.
+    private var hostRecordingState: HostDefaults?
+
+    private func makeCollector() -> RRCollector {
+        RRCollector(
+            polarManager: PolarManager(), healthKit: HealthKitManager(),
+            archive: SessionArchive(directory: storageDirectory.appendingPathComponent("Archive", isDirectory: true)),
+            rawBackup: RawRRBackup(directory: storageDirectory.appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true)),
+            baselineTracker: BaselineTracker(baselineFile: storageDirectory.appendingPathComponent("HRVBaseline.json"))
+        )
     }
 
     override func setUp() async throws {
         try await super.setUp()
-        clearPersistedState()
+        hostRecordingState = HostDefaults.setAside(HostDefaults.recordingState)
         pinEnglishLanguage()
     }
 
     override func tearDown() async throws {
-        // Clean up any sessions created during tests
-        if let session = collector.currentSession {
-            try? collector.archive.delete(session.id)
+        hostRecordingState?.restore()
+        do {
+            try FileManager.default.removeItem(at: storageDirectory)
+        } catch {
+            // swallow-ok: a test that built no collector wrote nothing here.
         }
-        clearPersistedState()
         try await super.tearDown()
     }
 
     // MARK: - Persisted State Tests
 
-    /// Test persisted recording state round-trip
-    func testPersistedRecordingStateSaved() {
+    /// What recording start writes (`persistRecordingState`, the one atomic
+    /// record) reads back whole, and nothing goes under the legacy keys.
+    func testPersistedRecordingStateSaved() throws {
         let sessionId = UUID()
-        let startTime = Date()
-        let sessionType = SessionType.overnight
+        let startTime = Date(timeIntervalSince1970: 1_790_000_000)
 
-        // Simulate starting a session
-        UserDefaults.standard.set(startTime, forKey: "RRCollector.activeRecordingStartTime")
-        UserDefaults.standard.set(sessionId.uuidString, forKey: "RRCollector.activeRecordingSessionId")
-        UserDefaults.standard.set(sessionType.rawValue, forKey: "RRCollector.activeRecordingSessionType")
+        collector.persistRecordingState(sessionId: sessionId, startTime: startTime, sessionType: .overnight)
 
-        // Retrieve persisted state
-        let retrieved = collector.getPersistedRecordingState()
-
-        XCTAssertNotNil(retrieved, "Should retrieve persisted state")
-        XCTAssertEqual(retrieved?.sessionId, sessionId)
-        XCTAssertEqual(retrieved?.sessionType, sessionType)
+        let retrieved = try XCTUnwrap(collector.getPersistedRecordingState(), "Should retrieve persisted state")
+        XCTAssertEqual(retrieved.sessionId, sessionId)
+        XCTAssertEqual(retrieved.sessionType, .overnight)
+        XCTAssertEqual(retrieved.startTime.timeIntervalSince1970, startTime.timeIntervalSince1970, accuracy: 0.001)
+        XCTAssertNotNil(UserDefaults.standard.object(forKey: UserDefaultsKeys.persistedRecordingState))
+        XCTAssertNil(UserDefaults.standard.object(forKey: UserDefaultsKeys.activeRecordingSessionId),
+                     "the current save wrote the legacy keys")
     }
 
     /// Test persisted state detection and clearing
     func testPersistedStateCleared() {
-        let sessionId = UUID()
-        let startTime = Date()
-
-        // Set persisted state
-        UserDefaults.standard.set(startTime, forKey: "RRCollector.activeRecordingStartTime")
-        UserDefaults.standard.set(sessionId.uuidString, forKey: "RRCollector.activeRecordingSessionId")
-        UserDefaults.standard.set("overnight", forKey: "RRCollector.activeRecordingSessionType")
-
-        // Verify it exists
+        collector.persistRecordingState(sessionId: UUID(), startTime: Date(), sessionType: .overnight)
         XCTAssertTrue(collector.hasPersistedRecordingState)
 
-        // Clear it
-        clearPersistedState()
+        collector.clearPersistedRecordingStatePublic()
 
-        // Verify it's cleared
         XCTAssertFalse(collector.hasPersistedRecordingState)
     }
 
-    /// Test recovery from persisted state after app restart
+    /// A build from before the atomic record left three separate keys. A
+    /// fresh collector (an app restart) still finds the recording, and the
+    /// load moves it into the atomic record and removes the legacy keys.
     func testRecoveryFromPersistedState() throws {
         let sessionId = UUID()
         let startTime = Date().addingTimeInterval(-3600) // 1 hour ago
@@ -93,7 +91,7 @@ final class RRCollectorTests: XCTestCase {
         UserDefaults.standard.set(sessionType.rawValue, forKey: "RRCollector.activeRecordingSessionType")
 
         // Create a fresh collector (simulating app restart)
-        let freshCollector = RRCollector()
+        let freshCollector = makeCollector()
 
         // Should detect persisted state
         XCTAssertTrue(freshCollector.hasPersistedRecordingState)
@@ -106,6 +104,11 @@ final class RRCollectorTests: XCTestCase {
         // Start time should match
         let timeDiff = try abs(XCTUnwrap(recovered?.startTime.timeIntervalSince(startTime)))
         XCTAssertLessThan(timeDiff, 1.0, "Start time should match persisted value")
+
+        XCTAssertNotNil(UserDefaults.standard.object(forKey: UserDefaultsKeys.persistedRecordingState),
+                        "the legacy state was not moved into the atomic record")
+        XCTAssertNil(UserDefaults.standard.object(forKey: "RRCollector.activeRecordingSessionId"),
+                     "the legacy keys stayed after the migration")
     }
 }
 

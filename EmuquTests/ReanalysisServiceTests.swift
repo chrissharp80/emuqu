@@ -8,17 +8,13 @@ final class ReanalysisServiceTests: XCTestCase {
     // `compositeScore` is the 0-100 recovery score; the result is on the
     // 0-10 scale.
 
+    /// With no training context ATL and CTL are 0: no load leaves full
+    /// capacity (100), and with no fitness base the model earns no trust, so
+    /// the recovery modulation hands the whole say to the recovery score:
+    /// readiness is the composite on the 0-10 scale.
     func testComputeFrozenReadiness_withNilTrainingContext() {
-        // When training context is nil, ATL and CTL default to 0
-        let readiness = ReanalysisService.computeFrozenReadiness(
-            compositeScore: 75,
-            trainingContext: nil
-        )
-        // Should return a valid 0-10 scale score
-        XCTAssertFalse(readiness.isNaN)
-        XCTAssertFalse(readiness.isInfinite)
-        XCTAssertGreaterThanOrEqual(readiness, 0)
-        XCTAssertLessThanOrEqual(readiness, 10)
+        let readiness = ReanalysisService.computeFrozenReadiness(compositeScore: 75, trainingContext: nil)
+        XCTAssertEqual(readiness, 7.5, accuracy: 1e-9)
     }
 
     func testComputeFrozenReadiness_deterministic() {
@@ -35,33 +31,33 @@ final class ReanalysisServiceTests: XCTestCase {
     }
 
     func testComputeFrozenReadiness_higherCompositeScoreYieldsHigherReadiness() {
-        let low = ReanalysisService.computeFrozenReadiness(
-            compositeScore: 30,
-            trainingContext: nil
-        )
-        let high = ReanalysisService.computeFrozenReadiness(
-            compositeScore: 90,
-            trainingContext: nil
-        )
-        XCTAssertGreaterThan(high, low)
+        let low = ReanalysisService.computeFrozenReadiness(compositeScore: 30, trainingContext: nil)
+        let high = ReanalysisService.computeFrozenReadiness(compositeScore: 90, trainingContext: nil)
+        XCTAssertEqual(low, 3.0, accuracy: 1e-9)
+        XCTAssertEqual(high, 9.0, accuracy: 1e-9)
     }
 
     func testComputeFrozenReadiness_zeroCompositeScore() {
-        let readiness = ReanalysisService.computeFrozenReadiness(
-            compositeScore: 0,
-            trainingContext: nil
-        )
-        XCTAssertFalse(readiness.isNaN)
-        XCTAssertGreaterThanOrEqual(readiness, 0)
+        let readiness = ReanalysisService.computeFrozenReadiness(compositeScore: 0, trainingContext: nil)
+        XCTAssertEqual(readiness, 0, accuracy: 1e-9)
     }
 
     func testComputeFrozenReadiness_maxCompositeScore() {
-        let readiness = ReanalysisService.computeFrozenReadiness(
-            compositeScore: 100,
-            trainingContext: nil
-        )
-        XCTAssertFalse(readiness.isNaN)
-        XCTAssertLessThanOrEqual(readiness, 10)
+        let readiness = ReanalysisService.computeFrozenReadiness(compositeScore: 100, trainingContext: nil)
+        XCTAssertEqual(readiness, 10, accuracy: 1e-9)
+    }
+
+    /// ATL 40 on CTL 40: a capacity ratio of 1.0, which maps to 70; the
+    /// acute:chronic ratio of 1.0 is under the 1.3 damper and the morning ATL
+    /// is the current one, so no bonus. CTL 40 earns the model its full
+    /// trust (0.55). Against a recovery score of 50 the model is higher and
+    /// keeps 55 % of its lead: 50 + 0.55 x 20 = 61. Against 90 it is lower
+    /// and the score lifts it by 30 % of the gap: 70 + 0.3 x 20 = 76.
+    func testComputeFrozenReadiness_withTrainingLoad() {
+        let load = TrainingContext(atl: 40, ctl: 40, tsb: 0, yesterdayTrimp: 0, vo2Max: nil,
+                                   daysSinceHardWorkout: nil, recentWorkouts: nil)
+        XCTAssertEqual(ReanalysisService.computeFrozenReadiness(compositeScore: 50, trainingContext: load), 6.1, accuracy: 1e-9)
+        XCTAssertEqual(ReanalysisService.computeFrozenReadiness(compositeScore: 90, trainingContext: load), 7.6, accuracy: 1e-9)
     }
 
     // MARK: - Sleep that arrives after the morning

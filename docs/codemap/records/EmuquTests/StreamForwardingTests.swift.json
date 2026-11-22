@@ -94,8 +94,8 @@
   },
   {
    "key": "func StreamForwardingTests.testCancellationStopsDelivery()",
-   "hash": "5a63b026503f0bac",
-   "does": "Drains an endless 2 ms producer on a MainActor task, waits (≤5 s) for the first element, cancels the feed task, then asserts no further element is delivered within 100 ms; finally cancels the producer.",
+   "hash": "ab4dc0b1f3a5cfd5",
+   "does": "Drains an endless 2 ms producer on a MainActor task, waits (≤5 s) for the first element, cancels the feed task, then waits until the producer has yielded 20 more values (≤10 s) and asserts it did and that none was delivered after the cancellation; finally cancels the producer.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Collection/StrapHeartRateFeed.swift::func StrapHeartRateFeed.drain(_:_:)"
@@ -104,14 +104,19 @@
    "writes": [],
    "branches": [
     {
-     "at": "+8",
+     "at": "+11",
      "cond": "while producer task not cancelled",
-     "effect": "yields an incrementing value every 2 ms; finishes the stream once cancelled"
+     "effect": "yields an incrementing value every 2 ms and counts it; finishes the stream once cancelled"
     },
     {
-     "at": "+19",
+     "at": "+21",
      "cond": "received.isEmpty in the handler",
      "effect": "true on the first element: fulfils the 'delivery started' expectation; false afterwards"
+    },
+    {
+     "at": "+32",
+     "cond": "fewer than 20 values produced since the cancellation and the deadline not passed",
+     "effect": "sleeps 2 ms and checks again"
     }
    ],
    "deps": {

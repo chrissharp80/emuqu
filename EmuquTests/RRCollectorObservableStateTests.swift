@@ -12,20 +12,22 @@ import XCTest
 /// property lives on a sub-object rather than the collector.
 @MainActor
 final class RRCollectorObservableStateTests: XCTestCase {
-    /// `lazy`, not an inline initialiser: `setUp` clears persisted state first,
-    /// and a stored property would be constructed before that runs — handing the
-    /// collector the very state the test just asked to be rid of. Deferring to
-    /// first use inside the test body keeps the original ordering.
+    /// `lazy`, not an inline initialiser: `setUp` sets the host's persisted
+    /// state aside first, and a stored property would be constructed before
+    /// that runs — handing the collector the very state the test just asked
+    /// to be rid of. Deferring to first use inside the test body keeps the
+    /// original ordering.
     ///
-    /// Wired like the app's own collector, except that the archive and the
-    /// baseline tracker live in this test's temporary directory instead of the
-    /// host app's App Group container. The settings manager is still the
+    /// Wired like the app's own collector, except that the archive, the raw
+    /// backups and the baseline tracker live in this test's temporary
+    /// directory instead of the host app's App Group container. The settings manager is still the
     /// host's: `SettingsManager` cannot be made a second time, so the ANS tests
     /// restore what they change.
     lazy var collector = RRCollector(
         polarManager: PolarManager(),
         healthKit: AppDependencies.current.collection.healthKitManager,
         archive: SessionArchive(directory: storageDirectory),
+        rawBackup: RawRRBackup(directory: storageDirectory.appendingPathComponent(AppConfig.backupDirectoryName, isDirectory: true)),
         baselineTracker: BaselineTracker(baselineFile: storageDirectory.appendingPathComponent("HRVBaseline.json"))
     )
     var cancellables: Set<AnyCancellable> = []
@@ -33,16 +35,14 @@ final class RRCollectorObservableStateTests: XCTestCase {
     nonisolated private let storageDirectory = FileManager.default.temporaryDirectory
         .appendingPathComponent("RRCollectorObservableState-\(UUID().uuidString)", isDirectory: true)
 
-    private func clearPersistedState() {
-        PersistedRecordingState.clear()
-        UserDefaults.standard.removeObject(forKey: "RRCollector.activeRecordingStartTime")
-        UserDefaults.standard.removeObject(forKey: "RRCollector.activeRecordingSessionId")
-        UserDefaults.standard.removeObject(forKey: "RRCollector.activeRecordingSessionType")
-    }
+    /// The host's persisted recording state, set aside for the test and put
+    /// back in `tearDown`, so a recording the host was interrupted in keeps
+    /// its recovery marker.
+    private var hostRecordingState: HostDefaults?
 
     override func setUp() async throws {
         try await super.setUp()
-        clearPersistedState()
+        hostRecordingState = HostDefaults.setAside(HostDefaults.recordingState)
         cancellables = []
         try FileManager.default.createDirectory(at: storageDirectory, withIntermediateDirectories: true)
     }
@@ -52,7 +52,7 @@ final class RRCollectorObservableStateTests: XCTestCase {
         if let session = collector.currentSession {
             try? collector.archive.delete(session.id)
         }
-        clearPersistedState()
+        hostRecordingState?.restore()
         try FileManager.default.removeItem(at: storageDirectory)
         try await super.tearDown()
     }

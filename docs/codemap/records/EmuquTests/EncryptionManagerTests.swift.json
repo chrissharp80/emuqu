@@ -1,7 +1,7 @@
 {
  "file": "EmuquTests/EncryptionManagerTests.swift",
- "hash": "33eae49d23122cc4",
- "role": "XCTest suite for EncryptionManager (AES-GCM at-rest encryption of sessions/backups): round trips (text, ~50 KB, empty, 4 KB binary), wire format ('FR' magic + version byte), ciphertext growth, random nonce, isAvailable, reEncryptIfNeeded at current version, error descriptions.",
+ "hash": "15ffc614657d66ed",
+ "role": "XCTest suite for EncryptionManager (AES-GCM at-rest encryption of sessions/backups): round trips (text, ~50 KB, empty, 4 KB binary), wire format ('FR' magic + version byte), ciphertext growth, random nonce, isAvailable, reEncryptIfNeeded at current version, error descriptions; the older formats on disk (a v1 version-prefixed blob, a bare blob whatever its first byte reads as), tampered ciphertext, an unknown key version (no key created), the key's backup-eligible Keychain class, and which errors read as a locked key.",
  "types": [
   "EncryptionManagerTests: class (XCTestCase)"
  ],
@@ -395,6 +395,164 @@
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openSealed(_:version:)": "d8c98cac26eff591",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.retrieveKeyFromKeychain(account:)": "6fb7272cbaa2c234"
    }
+  },
+  {
+   "key": "func EncryptionManagerTests.sealedBox(of:)",
+   "hash": "12b0f4c117d04948",
+   "does": "Encrypts `original` with the current format, asserts its first three bytes are \"FR\" and the current version, and returns the AES-GCM box after them (what an older build wrote after its version byte, or bare).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)"
+   ],
+   "reads": [
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1"
+   }
+  },
+  {
+   "key": "func EncryptionManagerTests.testAVersionPrefixedLegacyBlobDecrypts()",
+   "hash": "d34c529e45e1d486",
+   "does": "Asserts a v1 blob (version byte 1 + AES-GCM box, no frame) decrypts to the original.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/EncryptionManagerTests.swift::func EncryptionManagerTests.sealedBox(of:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.legacyVersionPrefixed(_:)"
+   ],
+   "reads": [
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "0da96942872536de",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.legacyVersionPrefixed(_:)": "8cd1311d2fa505f4",
+    "EmuquTests/EncryptionManagerTests.swift::func EncryptionManagerTests.sealedBox(of:)": "54580dbd5579f993"
+   }
+  },
+  {
+   "key": "func EncryptionManagerTests.testABareLegacyBlobDecryptsWhateverItsFirstByteReadsAs()",
+   "hash": "a4e47877367dbdf1",
+   "does": "Makes up to 200 bare blobs and asserts each decrypts to its original, until both kinds have been seen: one whose first (nonce) byte reads as a version (1-127, so the framed reading fails and the whole blob is opened as bare) and one read as bare at once; asserts both kinds were seen.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/EncryptionManagerTests.swift::func EncryptionManagerTests.sealedBox(of:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openAsBare(_:otherwise:)"
+   ],
+   "reads": [
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "for each of up to 200 blobs while a kind is unseen",
+     "effect": "decrypts and classifies its first byte"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "0da96942872536de",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.openAsBare(_:otherwise:)": "ca6b1a77384a1d1d",
+    "EmuquTests/EncryptionManagerTests.swift::func EncryptionManagerTests.sealedBox(of:)": "54580dbd5579f993"
+   }
+  },
+  {
+   "key": "func EncryptionManagerTests.testTamperedCiphertextIsRejected()",
+   "hash": "10f5051b40cd0213",
+   "does": "Flips a bit of a framed blob's tag and of a bare blob's middle and asserts decrypt throws for both (authentication fails in every reading).",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
+    "EmuquTests/EncryptionManagerTests.swift::func EncryptionManagerTests.sealedBox(of:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)"
+   ],
+   "reads": [
+    "kc:EncryptionManager archive key"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "0da96942872536de",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1",
+    "EmuquTests/EncryptionManagerTests.swift::func EncryptionManagerTests.sealedBox(of:)": "54580dbd5579f993"
+   }
+  },
+  {
+   "key": "func EncryptionManagerTests.testReEncryptionOfOlderFormatsAndOfAnUnknownVersion()",
+   "hash": "6d17b62d67880cf6",
+   "does": "Asserts reEncryptIfNeeded returns nil for a v1 blob and a bare blob (both use the current v1 key), and that a frame naming version 126 throws from reEncryptIfNeeded and decrypt and leaves no Keychain item for that version (decryption never creates a key).",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/EncryptionManagerTests.swift::func EncryptionManagerTests.sealedBox(of:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.reEncryptIfNeeded(_:)",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)",
+    "EmuquTests/EncryptionManagerTests.swift::func EncryptionManagerTests.keychainStatus(account:)"
+   ],
+   "reads": [
+    "kc:EncryptionManager archive key",
+    "kc:com.chrissharp.flowrecovery.encryption/session-encryption-key-v126"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.decrypt(_:)": "0da96942872536de",
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.reEncryptIfNeeded(_:)": "163b9699a2fa48c3",
+    "EmuquTests/EncryptionManagerTests.swift::func EncryptionManagerTests.keychainStatus(account:)": "f6993e45d523e0b0",
+    "EmuquTests/EncryptionManagerTests.swift::func EncryptionManagerTests.sealedBox(of:)": "54580dbd5579f993"
+   }
+  },
+  {
+   "key": "func EncryptionManagerTests.testTheKeyIsStoredSoItMovesWithTheDeviceBackup()",
+   "hash": "6bfdcc82efced5f3",
+   "does": "Requires the encryption key, reads the attributes of the v1 key item (service AppConfig.keychainService, account session-encryption-key) and asserts its accessibility is kSecAttrAccessibleAfterFirstUnlock, not ThisDeviceOnly.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.requireEncryptionKey(file:line:)",
+    "ext:Security.SecItemCopyMatching"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.encryption/session-encryption-key"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.requireEncryptionKey(file:line:)": "c0cfdc825868f52c"
+   }
+  },
+  {
+   "key": "func EncryptionManagerTests.testOnlyAKeychainErrorReadsAsALockedKey()",
+   "hash": "d3a8e243c6fc0de1",
+   "does": "Asserts JSONFileSeal.isKeyLocked is true for EncryptionError.keychainError and false for keyNotFound, decryptionFailed and a CryptoKit authentication failure.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.isKeyLocked(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func JSONFileSeal.isKeyLocked(_:)": "7c29c0d5a06f281b"
+   }
+  },
+  {
+   "key": "func EncryptionManagerTests.keychainStatus(account:)",
+   "hash": "c6835e7238796133",
+   "does": "SecItemCopyMatching status for the generic-password item under AppConfig.keychainService and `account` (no data returned).",
+   "entry": null,
+   "calls": [
+    "ext:Security.SecItemCopyMatching"
+   ],
+   "reads": [
+    "kc:com.chrissharp.flowrecovery.encryption/<account>"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {}
   }
  ],
  "deps": {}

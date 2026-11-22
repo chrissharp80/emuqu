@@ -86,7 +86,7 @@
     "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "34f839cb7108e6e5",
     "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "0f292fcd0854ad9c",
     "Emuqu/Sources/Collection/StrapRecording.swift::init StrapDownloadLedger(defaults:)": "9cb9ba5d8e0feee5",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func RRCollector.withoutCloudAcceptance(polarManager:archive:)": "dae6d5ccaeda3f81"
+    "EmuquTests/StrapRecoveryFlowTests.swift::func RRCollector.withoutCloudAcceptance(polarManager:archive:)": "9ea4a2d76b8c514c"
    }
   },
   {
@@ -156,6 +156,33 @@
     "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "0fa4565bfc7dfaf3",
     "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "3fb4d4e80b6b8d32",
     "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.fetched(_:)": "adb0819deb357507",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "5e851ed84205d2e6"
+   }
+  },
+  {
+   "key": "func StrapRecoveryFlowTests.testStopFilesTheRecordingUnderOnlyAStrapRecordingSession()",
+   "hash": "dfe2be0d8f4b1619",
+   "does": "Asserts resolveBaseSession passes over a quick reading on screen (nil with no marker or placeholder) and returns a session with device-internal provenance.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.resolveBaseSession()",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.deviceRecordingProvenance()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SessionState.currentSession"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.deviceRecordingProvenance()": "8ad396ecbfecacf4",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.resolveBaseSession()": "026c81562857e3cb",
+    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording": "e742334bd5b0e8b1",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "07ffebce6a868a6a",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
     "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "5e851ed84205d2e6"
    }
   },
@@ -295,6 +322,34 @@
    }
   },
   {
+   "key": "func StrapRecoveryFlowTests.testALateArmedRecordingFiledIntoItsNightIsSaved()",
+   "hash": "5ffc950a4251915b",
+   "does": "A recording armed two hours into a night and marked downloaded: asserts it is not saved before the night is archived and is saved once the night spanning it is.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.markDownloaded(recordingStartedAt:)",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.isStrapRecordingSaved(startedAt:)",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.completeNight(startingAt:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)"
+   ],
+   "reads": [
+    "archive:test archive (temporary directory)"
+   ],
+   "writes": [
+    "archive:test archive (temporary directory)",
+    "ud:test-only download ledger suite"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.isStrapRecordingSaved(startedAt:)": "a7dfc68d0fe7076c",
+    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.markDownloaded(recordingStartedAt:)": "317a2b3db49e257b",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.completeNight(startingAt:)": "9d24dab38d41daf0",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "5e851ed84205d2e6"
+   }
+  },
+  {
    "key": "func StrapRecoveryFlowTests.testANightAlreadyArchivedIsNotMarkedForDiscard()",
    "hash": "ef63f56e76ae2176",
    "does": "Asserts that when the night is already archived (skipSameNightMerge) before archiveForReview, reviewArchivedSessionId stays nil (not Discard's to remove).",
@@ -380,6 +435,60 @@
     "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "3fb4d4e80b6b8d32",
     "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "5e851ed84205d2e6",
     "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.streamWithGap(minutes:)": "5da55a646e4ae792"
+   }
+  },
+  {
+   "key": "func StrapRecoveryFlowTests.testANightThatNeverArmedTheStrapIsNotDownloaded()",
+   "hash": "2afaf7a12b3e2c59",
+   "does": "With backup mode on, the night never armed and the strap holding only last night's recording: asserts fetchNightFromStrap returns nil without fetching or stopping the strap and sets no error.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.streamWithGap(minutes:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.fetched(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)": "2f699405c9e324fe",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "0f40f13f892158e2",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "0fa4565bfc7dfaf3",
+    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "4da066d93ac45dca",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "3fb4d4e80b6b8d32",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.fetched(_:)": "adb0819deb357507",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "5e851ed84205d2e6",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.streamWithGap(minutes:)": "5da55a646e4ae792"
+   }
+  },
+  {
+   "key": "func StrapRecoveryFlowTests.testTheGateClearsTheNightsArming()",
+   "hash": "303a4c0414b3ad9e",
+   "does": "With the night marked armed and Skip tapped, runs fetchNightFromStrap and asserts overnightDeviceBackupActive is cleared.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
+   ],
+   "reads": [
+    "mem:RRCollector.overnightDeviceBackupActive"
+   ],
+   "writes": [
+    "mem:RRCollector.overnightDeviceBackupActive"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)": "2f699405c9e324fe",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "0f40f13f892158e2",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
+    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "5e851ed84205d2e6"
    }
   },
   {
@@ -502,137 +611,29 @@
   },
   {
    "key": "func RRCollector.withoutCloudAcceptance(polarManager:archive:)",
-   "hash": "02d23922944a229e",
-   "does": "Builds an RRCollector over the given PolarManager and archive with a fresh HealthKitManager, a RawRRBackup in a new folder of its own under the temporary directory (RRBackup-<UUID>, so backups other tests left in the shared folder are never listed in it), a fresh BaselineTracker, and a SessionAcceptanceService on the same archive/backup/tracker whose onCloudSync and onCloudDelete do nothing; the collector's other dependencies default.",
+   "hash": "abec0ecc09d7b876",
+   "does": "Builds an RRCollector over the given PolarManager and archive with a fresh HealthKitManager, a RawRRBackup in a new folder of its own under the temporary directory (RRBackup-<UUID>, so backups other tests left in the shared folder are never listed in it), a BaselineTracker on a file of its own beside that folder (HRVBaseline-RRBackup-<UUID>.json, never the host's baseline), and a SessionAcceptanceService on the same archive/backup/tracker whose onCloudSync and onCloudDelete do nothing; the collector's other dependencies default.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:sampleStore:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::init SessionAcceptanceService(archive:healthKit:baselineTracker:rawBackup:onCloudSync:onCloudDelete:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:scoring:)"
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:scoring:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)"
    ],
    "reads": [],
    "writes": [
-    "file:<tmp>/RRBackup-<UUID>/ (created by RawRRBackup(directory:))"
+    "file:<tmp>/RRBackup-<UUID>/ (created by RawRRBackup(directory:))",
+    "file:<tmp>/HRVBaseline-RRBackup-<UUID>.json (when the tracker saves)"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "a5f6a55fc002c5dc",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)": "a41f1bac098eee8d",
     "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:sampleStore:)": "d9768b730a189edf",
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:scoring:)": "1eba2516dc6628c1",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::init SessionAcceptanceService(archive:healthKit:baselineTracker:rawBackup:onCloudSync:onCloudDelete:)": "955073b942718ab5",
-    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)": "21d7d6755a44a229",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)": "fdbbc520aa4c0476",
     "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
-   }
-  },
-  {
-   "key": "func StrapRecoveryFlowTests.testStopFilesTheRecordingUnderOnlyAStrapRecordingSession()",
-   "hash": "dfe2be0d8f4b1619",
-   "does": "Asserts resolveBaseSession passes over a quick reading on screen (nil with no marker or placeholder) and returns a session with device-internal provenance.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording",
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.resolveBaseSession()",
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.deviceRecordingProvenance()"
-   ],
-   "reads": [],
-   "writes": [
-    "mem:SessionState.currentSession"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.deviceRecordingProvenance()": "8ad396ecbfecacf4",
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.resolveBaseSession()": "026c81562857e3cb",
-    "Emuqu/Sources/Collection/RRCollector+DeviceRecordingForwarding.swift::var RRCollector.deviceRecording": "e742334bd5b0e8b1",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func DeviceProvenance.current(deviceId:deviceModel:firmwareVersion:recordingMode:)": "07ffebce6a868a6a",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "5e851ed84205d2e6"
-   }
-  },
-  {
-   "key": "func StrapRecoveryFlowTests.testALateArmedRecordingFiledIntoItsNightIsSaved()",
-   "hash": "5ffc950a4251915b",
-   "does": "A recording armed two hours into a night and marked downloaded: asserts it is not saved before the night is archived and is saved once the night spanning it is.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)",
-    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.markDownloaded(recordingStartedAt:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.isStrapRecordingSaved(startedAt:)",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.completeNight(startingAt:)",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)"
-   ],
-   "reads": [
-    "archive:test archive (temporary directory)"
-   ],
-   "writes": [
-    "archive:test archive (temporary directory)",
-    "ud:test-only download ledger suite"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.isStrapRecordingSaved(startedAt:)": "a7dfc68d0fe7076c",
-    "Emuqu/Sources/Collection/StrapRecording.swift::func StrapDownloadLedger.markDownloaded(recordingStartedAt:)": "317a2b3db49e257b",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.completeNight(startingAt:)": "9d24dab38d41daf0",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "5e851ed84205d2e6"
-   }
-  },
-  {
-   "key": "func StrapRecoveryFlowTests.testANightThatNeverArmedTheStrapIsNotDownloaded()",
-   "hash": "2afaf7a12b3e2c59",
-   "does": "With backup mode on, the night never armed and the strap holding only last night's recording: asserts fetchNightFromStrap returns nil without fetching or stopping the strap and sets no error.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.streamWithGap(minutes:)",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.fetched(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)": "2f699405c9e324fe",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "0f40f13f892158e2",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
-    "EmuquTests/FakeStrapRadio.swift::func FakeStrapRadio.addExercise(entryId:path:date:rrMs:)": "0fa4565bfc7dfaf3",
-    "EmuquTests/FakeStrapRadio.swift::var FakeStrapRadio.calls": "4da066d93ac45dca",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.exerciseId(_:)": "3fb4d4e80b6b8d32",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.fetched(_:)": "adb0819deb357507",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "5e851ed84205d2e6",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.streamWithGap(minutes:)": "5da55a646e4ae792"
-   }
-  },
-  {
-   "key": "func StrapRecoveryFlowTests.testTheGateClearsTheNightsArming()",
-   "hash": "303a4c0414b3ad9e",
-   "does": "With the night marked armed and Skip tapped, runs fetchNightFromStrap and asserts overnightDeviceBackupActive is cleared.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)"
-   ],
-   "reads": [
-    "mem:RRCollector.overnightDeviceBackupActive"
-   ],
-   "writes": [
-    "mem:RRCollector.overnightDeviceBackupActive"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)": "2f699405c9e324fe",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "0f40f13f892158e2",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)": "e782e63fc960b90a",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func StrapRecoveryFlowTests.makeCollector(_:)": "5e851ed84205d2e6"
    }
   }
  ],
