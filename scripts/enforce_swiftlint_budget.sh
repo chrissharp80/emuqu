@@ -11,8 +11,8 @@ if [[ ! -f "$BUDGET_FILE" ]]; then
 fi
 
 budget="$(tr -d '[:space:]' < "$BUDGET_FILE")"
-if [[ -z "$budget" ]]; then
-    echo "SwiftLint budget file is empty: $BUDGET_FILE" >&2
+if [[ ! "$budget" =~ ^[0-9]+$ ]]; then
+    echo "SwiftLint budget file is not a whole number: $BUDGET_FILE" >&2
     exit 65
 fi
 
@@ -25,7 +25,7 @@ import json
 import sys
 
 report_path = sys.argv[1]
-budget = int(float(sys.argv[2]))
+budget = int(sys.argv[2])
 
 with open(report_path, "r", encoding="utf-8") as fh:
     violations = json.load(fh)

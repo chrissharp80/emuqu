@@ -118,6 +118,7 @@
    "deps": {
     ".github/workflows/security.yml::step dependency-review/Checkout": "57ae64dd67f0fa19",
     ".github/workflows/security.yml::step dependency-review/Refuse an empty comparison": "01899b05cb6168ed",
+    ".github/workflows/security.yml::step dependency-review/Require the Swift packages in the dependency graph": "8b05cdb3a8f6d6ea",
     ".github/workflows/security.yml::step dependency-review/Review dependencies": "0879a4916a66beb0"
    }
   },
@@ -176,6 +177,35 @@
      "at": "+18",
      "cond": "base and head are the same commit",
      "effect": "explains the empty comparison, exit 1"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "step dependency-review/Require the Swift packages in the dependency graph",
+   "hash": "ad0e6e141cb5745a",
+   "does": "Fetches the repository's dependency-graph SBOM with `gh api repos/$GITHUB_REPOSITORY/dependency-graph/sbom` (GH_TOKEN = github.token) and, for every pin in the Xcode project's Package.resolved (location with scheme and .git stripped, read by an inline python3), requires a `pkg:swift/<location>@` or `pkg:swift/<location>\"` entry (case-insensitive); any missing package is listed and the step exits 1, so the review cannot report success for Swift packages it does not compare.",
+   "entry": "GitHub Actions step in security.yml's dependency-review job (workflow_dispatch), after 'Refuse an empty comparison'; a failure skips the review.",
+   "calls": [
+    "ext:gh api",
+    "ext:python3",
+    "ext:grep"
+   ],
+   "reads": [
+    "net:api.github.com dependency-graph/sbom",
+    "file:Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+8",
+     "cond": "a pinned package's purl is not in the SBOM",
+     "effect": "added to missing"
+    },
+    {
+     "at": "+15",
+     "cond": "missing non-empty",
+     "effect": "print the list and exit 1; else print success"
     }
    ],
    "deps": {}

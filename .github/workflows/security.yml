@@ -135,6 +135,35 @@ jobs:
           fi
           echo "Reviewing dependency changes from $base to $head."
 
+      # The review reads GitHub's dependency graph. The only Swift manifest here
+      # is the Package.resolved inside the Xcode project, and if the graph does
+      # not index it, the review sees no Swift packages at all and reports
+      # success, Zip included. So every package pinned there must appear in the
+      # repository's dependency-graph SBOM, or the run fails instead of
+      # reporting a review that left the Swift packages out.
+      - name: Require the Swift packages in the dependency graph
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sbom="$(gh api "repos/${GITHUB_REPOSITORY}/dependency-graph/sbom")"
+          missing=()
+          while IFS= read -r package; do
+            grep -qiE "pkg:swift/${package//./\\.}(@|\")" <<<"$sbom" || missing+=("$package")
+          done < <(python3 -c '
+          import json, re, sys
+          pins = json.load(open(sys.argv[1]))["pins"]
+          for pin in pins:
+              print(re.sub(r"^https?://|\.git$", "", pin["location"]))
+          ' Emuqu.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved)
+          if (( ${#missing[@]} > 0 )); then
+            echo "These pinned Swift packages are not in the dependency graph:" >&2
+            printf '  %s\n' "${missing[@]}" >&2
+            echo "A dependency review would not compare them, so it cannot pass for them." >&2
+            exit 1
+          fi
+          echo "Every pinned Swift package is in the dependency graph."
+
       # This job is `workflow_dispatch`-only, and on a manual run the action
       # cannot derive either ref from the event payload: `getRefs` throws when
       # neither is supplied and neither a pull_request nor a push context

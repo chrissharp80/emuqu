@@ -345,7 +345,7 @@ extension VitalsHealthQueries {
         manager.vitalsObserverQueries.append(query)
         manager.healthStore.execute(query)
         let typeName = type.identifier
-        manager.healthStore.disableBackgroundDelivery(for: type) { success, error in
+        manager.healthStore.disableBackgroundDelivery(for: type) { @Sendable success, error in
             guard !success else { return }
             debugLog("[HealthKitManager] Background delivery for \(typeName) not turned off: \(error?.localizedDescription ?? "no error given")")
         }

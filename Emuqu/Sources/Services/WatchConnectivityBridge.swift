@@ -576,36 +576,39 @@ final class WatchConnectivityBridge: NSObject {
     }
 
     /// Queue-isolated transport. Running on `wcQueue`, never main.
-    /// Consecutive sendMessage timeouts trip a short-term
-    /// circuit breaker. iOS occasionally reports `isReachable = true` for
-    /// a fraction of a second when the Watch is actually unreachable
-    /// (during init, after wake, when the Watch app was force-quit). Each
-    /// `sendMessage` then waits the framework's full timeout and fires
-    /// `WCErrorCodeTransferTimedOut` — visible in the user's console as
-    /// 5–10 timeout pairs in a row, plus the framework's own internal
-    /// logs we can't suppress. After `circuitBreakerThreshold` consecutive
-    /// timeouts we skip `sendMessage` entirely until reachability flips
-    /// back to true (delegate callback resets the counter); the fallback
-    /// `updateApplicationContext` path still gets the latest snapshot.
+    /// Repeated sendMessage timeouts trip a short-term circuit breaker
+    /// (`WatchSendTimeoutBreaker`). iOS occasionally reports
+    /// `isReachable = true` for a fraction of a second when the Watch is
+    /// actually unreachable (during init, after wake, when the Watch app was
+    /// force-quit). Each `sendMessage` then waits the framework's full timeout
+    /// and fires `WCErrorCodeTransferTimedOut` — visible in the user's console
+    /// as 5–10 timeout pairs in a row, plus the framework's own internal logs
+    /// we can't suppress. While the breaker is open we skip `sendMessage`
+    /// entirely; the fallback `updateApplicationContext` path still gets the
+    /// latest snapshot. It closes when reachability flips back to true
+    /// (delegate callback resets it) or when its cooldown runs out, so a Watch
+    /// that stays reachable through a long workout gets live updates again
+    /// after a few scattered timeouts.
     /// Wrapped in `OSAllocatedUnfairLock` so concurrent
-    /// `transportLiveStatePayload` invocations can't race on the counter.
-    /// A per-process static counter; `bumpTimeoutCount` returns the new value
-    /// for logging.
-    nonisolated private static let timeoutCounter = OSAllocatedUnfairLock<Int>(initialState: 0)
-    nonisolated private static let circuitBreakerThreshold = 3
+    /// `transportLiveStatePayload` invocations can't race on it.
+    /// A per-process static; `bumpTimeoutCount` returns the new count for
+    /// logging.
+    nonisolated private static let timeoutBreaker = OSAllocatedUnfairLock(initialState: WatchSendTimeoutBreaker())
 
-    nonisolated private static var currentConsecutiveSendTimeouts: Int {
-        timeoutCounter.withLock { $0 }
+    nonisolated private static var isCircuitOpen: Bool {
+        let now = Date()
+        return timeoutBreaker.withLock { $0.isOpen(at: now) }
     }
     @discardableResult
     nonisolated private static func bumpTimeoutCount() -> Int {
-        timeoutCounter.withLock { count in
-            count += 1
-            return count
+        let now = Date()
+        return timeoutBreaker.withLock { breaker in
+            breaker.noteTimeout(at: now)
+            return breaker.timeouts
         }
     }
     nonisolated static func resetTimeoutCount() {
-        timeoutCounter.withLock { $0 = 0 }
+        timeoutBreaker.withLock { $0 = WatchSendTimeoutBreaker() }
     }
 
     /// While a workout is recording, ALWAYS persist the snapshot
@@ -633,8 +636,7 @@ final class WatchConnectivityBridge: NSObject {
         Self.cacheLiveState(payload)
         guard canTransport(session) else { return }
         let isRecording = (payload[MessageKey.isRecording.rawValue] as? Bool) ?? false
-        let circuitOpen = Self.currentConsecutiveSendTimeouts >= Self.circuitBreakerThreshold
-        let canSend = session.isReachable && !circuitOpen
+        let canSend = session.isReachable && !Self.isCircuitOpen
         if isRecording || !canSend {
             updateLiveStateContextIfLatest(payload)
         }
@@ -898,7 +900,35 @@ final class WatchConnectivityBridge: NSObject {
         if session.isReachable {
             session.sendMessage(payload, replyHandler: nil, errorHandler: logSendFailure(label))
         }
+        transferLatestUserInfo(payload, on: session)
+    }
+
+    /// Queues `payload` with `transferUserInfo`, first cancelling any queued
+    /// transfer it supersedes (`userInfoSupersedes`). User-info transfers are
+    /// all delivered, in order, when the Watch app next runs; without this, a
+    /// Watch app that had not run for many workouts received every start and
+    /// stop since and replayed them, starting and stopping workout sessions
+    /// for workouts long over, with a lone start able to leave one running.
+    nonisolated static func transferLatestUserInfo(_ payload: [String: any Sendable], on session: WCSession) {
+        let type = payload[MessageKey.type.rawValue] as? String
+        for transfer in session.outstandingUserInfoTransfers
+        where userInfoSupersedes(type, queued: transfer.userInfo[MessageKey.type.rawValue] as? String) {
+            transfer.cancel()
+        }
         session.transferUserInfo(payload)
+    }
+
+    /// Whether a new user-info transfer of type `type` makes a queued one of
+    /// type `queued` pointless. Each of these carries the whole current state
+    /// of one thing, so only the newest matters: the workout (a start or a
+    /// stop), the strap, and the voice chat. Any other type, or none, is
+    /// never superseded.
+    nonisolated static func userInfoSupersedes(_ type: String?, queued: String?) -> Bool {
+        guard let type, let queued else { return false }
+        let workout: Set<String> = [MessageType.startWorkout.rawValue, MessageType.stopWorkout.rawValue]
+        if workout.contains(type) { return workout.contains(queued) }
+        let wholeState: Set<String> = [MessageType.strapState.rawValue, "voiceChatState"]
+        return wholeState.contains(type) && queued == type
     }
 
     /// Dual-channel commands issued before activation, oldest first; the
@@ -955,6 +985,8 @@ enum WatchControlRefusal: String, Sendable {
     /// The strap is recording on its own (an overnight session, or one
     /// started on the device), and a workout would preempt it.
     case strapBusy
+    /// A workout is already recording (or being saved) on the phone.
+    case workoutInProgress
 
     /// The refusal in the phone's app language. `sport` is the Watch's
     /// `Sport` raw value, quoted by `unknownSport`.
@@ -966,6 +998,32 @@ enum WatchControlRefusal: String, Sendable {
         case .unknownSport: return String(localized: "Unknown sport: \(sport ?? "")", bundle: bundle)
         case .needsUnlock: return String(localized: "Open Emuqu on your iPhone to start your free trial or unlock.", bundle: bundle)
         case .strapBusy: return String(localized: "The strap is currently used by another session. Stop it first.", bundle: bundle)
+        case .workoutInProgress: return String(localized: "A workout is already recording on your iPhone.", bundle: bundle)
         }
+    }
+}
+
+/// The send-timeout circuit breaker's state (`WatchConnectivityBridge`'s
+/// live-state transport). `timeouts` counts send timeouts since reachability
+/// last came back. The breaker opens when the count reaches `threshold` and
+/// stays open for `cooldown`; after that sends are tried again, and with the
+/// count still at the threshold, the next timeout opens it again at once.
+/// `sendMessage` without a reply handler reports failures only, so a cooldown,
+/// not a successful send, is what closes it short of reachability returning.
+struct WatchSendTimeoutBreaker: Sendable, Equatable {
+    static let threshold = 3
+    static let cooldown: TimeInterval = 30
+
+    private(set) var timeouts = 0
+    private(set) var openedAt: Date?
+
+    func isOpen(at now: Date) -> Bool {
+        guard timeouts >= Self.threshold, let openedAt else { return false }
+        return now.timeIntervalSince(openedAt) < Self.cooldown
+    }
+
+    mutating func noteTimeout(at now: Date) {
+        timeouts += 1
+        if timeouts >= Self.threshold, !isOpen(at: now) { openedAt = now }
     }
 }

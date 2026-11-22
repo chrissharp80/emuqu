@@ -1316,13 +1316,13 @@
     }
    ],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquApp.watchStartRefusal(sportRaw:)": "f366deb9f9325a94"
+    "Emuqu/EmuquApp.swift::func EmuquApp.watchStartRefusal(sportRaw:)": "c6531027a7b7a454"
    }
   },
   {
    "key": "func EmuquApp.watchStartRefusal(sportRaw:)",
-   "hash": "0b68c28c8ef456f3",
-   "does": "Pre-start refusal for a Watch Start: .unknownSport if sportRaw is not a Sport, .needsUnlock if paywalled, .strapBusy if the Polar strap is recording on-device or a workout is already recording/finalizing on the phone (isWorkoutInProgress, the case startWorkoutFromWatch would ignore), else nil.",
+   "hash": "9407b11cde2f655c",
+   "does": "Pre-start refusal for a Watch Start: .unknownSport if sportRaw is not a Sport, .needsUnlock if paywalled, .strapBusy if the Polar strap is recording on-device, .workoutInProgress if a workout is already recording/finalizing on the phone (isWorkoutInProgress, the case startWorkoutFromWatch would ignore), else nil.",
    "entry": null,
    "calls": [
     "Emuqu/EmuquApp.swift::func EmuquApp.watchAccessRefusal()",
@@ -1346,8 +1346,13 @@
     },
     {
      "at": "+3",
-     "cond": "polarManager.isRecordingOnDevice || isWorkoutInProgress",
-     "effect": "returns .strapBusy; else nil"
+     "cond": "polarManager.isRecordingOnDevice",
+     "effect": "returns .strapBusy"
+    },
+    {
+     "at": "+4",
+     "cond": "isWorkoutInProgress",
+     "effect": "returns .workoutInProgress; else nil"
     }
    ],
    "deps": {

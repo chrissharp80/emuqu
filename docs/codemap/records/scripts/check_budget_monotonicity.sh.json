@@ -1,6 +1,6 @@
 {
  "file": "scripts/check_budget_monotonicity.sh",
- "hash": "46a68ce57864f287",
+ "hash": "b439c53306fb3e9c",
  "role": "CI gate: compares every numeric (whole or decimal) value in .ci/*.txt against a baseline git ref and fails when a ceiling rises, a min_* floor falls, or a numeric budget is deleted or stops being a number, unless a `budget-raise-ok:` commit trailer names the file.",
  "types": [],
  "state": [
@@ -11,7 +11,7 @@
   "env:BUDGET_REQUIRE_BASELINE",
   "git:commit trailers budget-raise-ok"
  ],
- "toplevel": "set -euo pipefail; no cd (relies on being run from repo root). BASE_REF=$1; CI_DIR env default .ci; no CI dir -> exit 0; not a git repo -> exit 0. Baseline resolution: $1, else origin/$GITHUB_BASE_REF, else $BUDGET_BASE_REF, else no_baseline. Null SHA or unresolvable ref -> no_baseline. allowed_changes = paths after `budget-raise-ok:` trailers in `git log BASE..HEAD`. Loop over budget_files (tree plus baseline): file absent at baseline -> skip (new budget); baseline value not a number -> collected in not_budgets (e.g. scoring_constants_hash.txt) and skipped; compared++; file deleted -> report_loosened '(deleted)'; current not a number -> report_loosened '(not a number)'; loosens -> report_loosened; tightened -> 'ratcheted'; equal -> nothing. Prints the not-compared list. Any violation -> exit 1, else 'clean. N budgets compared'. Wired: gates.yml (PR: origin/base; push: github.event.before, else HEAD~1; all with BUDGET_REQUIRE_BASELINE=1), ci.yml, Makefile budget-monotonicity (baseline HEAD).",
+ "toplevel": "set -euo pipefail; no cd (relies on being run from repo root). BASE_REF=$1; CI_DIR env default .ci; no CI dir -> exit 0; not a git repo -> exit 0. Baseline resolution: $1, else origin/$GITHUB_BASE_REF, else $BUDGET_BASE_REF, else no_baseline. Null SHA or unresolvable ref -> no_baseline. allowed_changes = paths after `budget-raise-ok:` trailers in `git log BASE..HEAD`. Loop over budget_files (tree plus baseline): file absent at baseline -> skip (new budget); baseline value not a number -> collected in not_budgets (e.g. scoring_constants_hash.txt) and skipped; compared++; file deleted -> report_loosened '(deleted)'; current not a number -> report_loosened '(not a number)'; a ceiling (not min_*) whole at the baseline and no longer whole -> report_loosened '(no longer a whole number)'; loosens -> report_loosened; tightened -> 'ratcheted'; equal -> nothing. Prints the not-compared list. Any violation -> exit 1, else 'clean. N budgets compared'. Wired: gates.yml (PR: origin/base; push: github.event.before, else HEAD~1; all with BUDGET_REQUIRE_BASELINE=1), ci.yml, Makefile budget-monotonicity (baseline HEAD).",
  "units": [
   {
    "key": "fn no_baseline",
@@ -126,6 +126,7 @@
  ],
  "deps": {
   "scripts/check_budget_monotonicity.sh::fn budget_files": "79b550d9544b839d",
+  "scripts/check_budget_monotonicity.sh::fn is_floor": "e077302680bcc6ab",
   "scripts/check_budget_monotonicity.sh::fn loosens": "6e4cf57505a00a2b",
   "scripts/check_budget_monotonicity.sh::fn no_baseline": "fc658970d2a0e744",
   "scripts/check_budget_monotonicity.sh::fn read_number": "80dfd43a50d50f4a",

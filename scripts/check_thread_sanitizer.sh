@@ -24,6 +24,27 @@ source "$(dirname "$0")/lib/xcodebuild.sh"
 #
 # This is slow — a full instrumented build plus an instrumented test run. It is
 # its own CI job, and `make ci` runs it after the static gates.
+#
+# ## Why a clean result here means something
+#
+# TSan prints its reports on the test host's stderr, and by default a race does
+# not fail the test that hit it. Two settings carry the gate:
+#
+#   * `-parallel-testing-enabled NO`. `Emuqu.xctestplan` marks EmuquTests
+#     parallelizable, and with parallel testing on, xcodebuild runs the host in
+#     simulator clones whose stderr goes to per-clone logs in the result bundle,
+#     not to the output this script reads. A race there leaves no line here.
+#   * `TSAN_OPTIONS=halt_on_error=1`, passed to the test host as
+#     `TEST_RUNNER_TSAN_OPTIONS` (xcodebuild hands `TEST_RUNNER_`-prefixed
+#     variables to the host without the prefix). A race then ends the host, so
+#     the run fails even if its report were lost.
+#
+# Neither is taken on trust. Before the suite, the script runs
+# `ThreadSanitizerCanaryTests`, a test that races on purpose when
+# `EMUQU_TSAN_CANARY=1`, and requires both a race report in the log and a failed
+# run. If either is missing, this setup cannot see races, and the gate fails
+# instead of reporting a clean suite. `verify_gates_fail.sh` plants each of
+# those two regressions against a stand-in xcodebuild.
 
 SCHEME="${SCHEME:-Emuqu}"
 PROJECT="${PROJECT:-Emuqu.xcodeproj}"
@@ -34,6 +55,7 @@ if [[ -z "${DESTINATION:-}" ]]; then
 fi
 
 log="$(gate_mktemp tsan)" || exit $?
+canary_log=""
 heartbeat=""
 stop_heartbeat() {
     [[ -n "$heartbeat" ]] || return 0
@@ -43,9 +65,50 @@ stop_heartbeat() {
     wait "$heartbeat" 2>/dev/null || true
     heartbeat=""
 }
-trap 'stop_heartbeat; rm -f "$log"' EXIT
+trap 'stop_heartbeat; rm -f "$log" ${canary_log:+"$canary_log"}' EXIT
+canary_log="$(gate_mktemp tsan-canary)" || exit $?
+
+# run_sanitized <log> <test selector> [NAME=value ...]
+#
+# One instrumented `xcodebuild test` run of <test selector> into <log>: serial,
+# with a race ending the test host. Each NAME=value is added to xcodebuild's
+# environment. Returns xcodebuild's status.
+run_sanitized() {
+    local out="$1" selector="$2"
+    shift 2
+    env TEST_RUNNER_TSAN_OPTIONS=halt_on_error=1 "$@" \
+        xcodebuild test \
+        "$XCODEBUILD_PINNED" \
+        -project "$PROJECT" \
+        -scheme "$SCHEME" \
+        -destination "$DESTINATION" \
+        -derivedDataPath "$DERIVED" \
+        -enableThreadSanitizer YES \
+        -parallel-testing-enabled NO \
+        "-only-testing:$selector" > "$out" 2>&1
+}
 
 echo "Running the unit suite under Thread Sanitizer (20 to 40 minutes on a CI runner)…"
+
+# The canary: a planted race that must be reported in the log and fail the run.
+# This run also does the instrumented build that the suite run below reuses.
+set +e
+run_sanitized "$canary_log" EmuquTests/ThreadSanitizerCanaryTests TEST_RUNNER_EMUQU_TSAN_CANARY=1
+canary_status=$?
+set -e
+gate_require_nonempty "$canary_log" "the canary xcodebuild log"
+canary_races="$(grep -c 'WARNING: ThreadSanitizer' "$canary_log" || true)"
+if (( canary_races == 0 || canary_status == 0 )); then
+    echo >&2
+    echo "ERROR: the planted race in ThreadSanitizerCanaryTests was not caught" >&2
+    echo "(race reports in the log: ${canary_races}; exit status of the run: ${canary_status})." >&2
+    echo "A race has to print 'WARNING: ThreadSanitizer' to this log and fail the run;" >&2
+    echo "while it does not, a clean suite run would be evidence of nothing." >&2
+    echo "--- last 40 lines of the canary xcodebuild log ---" >&2
+    tail -40 "$canary_log" >&2
+    exit 1
+fi
+echo "Canary: the planted race was reported and failed the run."
 
 # xcodebuild writes only to the log, so without this the step prints nothing
 # for half an hour and a slow run looks the same as a hung one. Once a minute,
@@ -59,27 +122,21 @@ started="$(date +%s)"
 ) 2>/dev/null &
 heartbeat=$!
 
+# Without EMUQU_TSAN_CANARY the canary test returns at once, so the suite run
+# includes it harmlessly.
 set +e
-xcodebuild test \
-    "$XCODEBUILD_PINNED" \
-    -project "$PROJECT" \
-    -scheme "$SCHEME" \
-    -destination "$DESTINATION" \
-    -derivedDataPath "$DERIVED" \
-    -enableThreadSanitizer YES \
-    -only-testing:EmuquTests > "$log" 2>&1
+run_sanitized "$log" EmuquTests
 status=$?
 set -e
 stop_heartbeat
-echo "Sanitized build and test run took $(( ($(date +%s) - started) / 60 )) min."
+echo "Sanitized suite run took $(( ($(date +%s) - started) / 60 )) min."
 
 # An empty log would read as zero races and zero failures.
 gate_require_nonempty "$log" "the xcodebuild log"
 
 # Test CASES, not suites: a `Test Suite '…' passed` line is not a test that ran.
-# xcodebuild writes `Test Case '-[EmuquTests.Foo testBar]' passed (…)` serially
-# and `Test case 'Foo.testBar()' passed on 'Clone 1 of …'` from parallel
-# workers; both are counted.
+# Serial runs write `Test Case '-[EmuquTests.Foo testBar]' passed (…)`; the
+# `Test case 'Foo.testBar()' passed on …` form is counted too.
 races="$(grep -c 'WARNING: ThreadSanitizer' "$log" || true)"
 passed="$(grep -cE "Test [Cc]ase '[^']+' passed" "$log" || true)"
 failed="$(grep -cE "Test [Cc]ase '[^']+' failed" "$log" || true)"

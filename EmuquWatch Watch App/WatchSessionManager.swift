@@ -472,10 +472,21 @@ final class WatchSessionManager: NSObject, ObservableObject {
         showControlStatus(pendingStatus)
 
         guard session.isReachable else {
-            queueControlMessage(enriched, on: session, pendingStatus: pendingStatus)
-            return
+            return queueUnlessStart(enriched, on: session, pendingStatus: pendingStatus)
         }
-        sendLiveControlMessage(enriched, on: session, successStatus: successStatus)
+        sendLiveControlMessage(enriched, on: session, pendingStatus: pendingStatus, successStatus: successStatus)
+    }
+
+    /// The iPhone is not reachable. A start is never queued
+    /// (`requestStartWorkout`), and reachability can drop between that
+    /// method's check and `sendControlMessage`'s, so a start is refused here;
+    /// any other control is queued.
+    @MainActor
+    private func queueUnlessStart(_ payload: [String: Any], on session: WCSession, pendingStatus: String) {
+        guard payload["type"] as? String != "startWorkoutFromWatch" else {
+            return finishControlRequest(status: Self.phoneUnreachableStatus, isStart: true)
+        }
+        queueControlMessage(payload, on: session, pendingStatus: pendingStatus)
     }
 
     /// The iPhone is not reachable: queue the intent via applicationContext so
@@ -505,12 +516,16 @@ final class WatchSessionManager: NSObject, ObservableObject {
     }
 
     /// `@Sendable` handlers: WatchConnectivity runs them on its own queue (see
-    /// `sendLiveVoiceChatRequest`). Only the decoded status line crosses the
-    /// hop. Any answer to a start, refusal or error included, ends the
-    /// "Starting…" wait: the iPhone's reason is the message to show, not a
-    /// later "didn't acknowledge".
-    private func sendLiveControlMessage(_ payload: [String: Any], on session: WCSession, successStatus: String) {
-        let isStart = payload["type"] as? String == "startWorkoutFromWatch"
+    /// `sendLiveVoiceChatRequest`). Only the decoded status line and the
+    /// intent's type and stamp cross the hop. Any answer to a start, refusal
+    /// or error included, ends the "Starting…" wait: the iPhone's reason is
+    /// the message to show, not a later "didn't acknowledge".
+    private func sendLiveControlMessage(
+        _ payload: [String: Any], on session: WCSession, pendingStatus: String, successStatus: String
+    ) {
+        let type = payload["type"] as? String
+        let sentAt = payload["ts"] as? Double
+        let isStart = type == "startWorkoutFromWatch"
         let sport = payload["sport"] as? String
         session.sendMessage(
             payload,
@@ -519,10 +534,27 @@ final class WatchSessionManager: NSObject, ObservableObject {
                 Task { @MainActor in self?.finishControlRequest(status: status, isStart: isStart) }
             },
             errorHandler: { @Sendable [weak self] err in
-                let status = String(localized: "Couldn't reach iPhone: \(err.localizedDescription)")
-                Task { @MainActor in self?.finishControlRequest(status: status, isStart: isStart) }
+                let failure = String(localized: "Couldn't reach iPhone: \(err.localizedDescription)")
+                Task { @MainActor in
+                    self?.failLiveControlRequest(type: type, sentAt: sentAt, pendingStatus: pendingStatus, failure: failure)
+                }
             }
         )
+    }
+
+    /// The live send failed: reachability was stale, or the send timed out. A
+    /// start is reported and dropped, as it is never queued. Every other
+    /// control is queued as it would have been with the iPhone out of reach,
+    /// so an End is not lost, and an End also ends the Watch's own session, as
+    /// the wrist End does with the iPhone unreachable. The iPhone acting on
+    /// one that did arrive and is then queued as well is harmless: a second
+    /// End, Pause, Resume or acknowledge finds it already done.
+    private func failLiveControlRequest(type: String?, sentAt: Double?, pendingStatus: String, failure: String) {
+        guard let type, let sentAt, type != "startWorkoutFromWatch" else {
+            return finishControlRequest(status: failure, isStart: type == "startWorkoutFromWatch")
+        }
+        queueControlMessage(["type": type, "ts": sentAt], on: WCSession.default, pendingStatus: pendingStatus)
+        if type == WatchMessageDecoding.stopIntentType { workoutManager?.noteWristStop(phoneReachable: false) }
     }
 
     private func finishControlRequest(status: String, isStart: Bool) {
@@ -776,11 +808,15 @@ final class WatchSessionManager: NSObject, ObservableObject {
     /// `requestCurrentState` reply carries `isRecording: true` and lands here. The session is discarded on stop and
     /// never finalized into a saved workout, so it cannot duplicate the
     /// iPhone's. Runs in both display-only and legacy modes.
+    ///
+    /// The iPhone reporting it is not recording, with no transition, lets go
+    /// of a session watchOS handed back after a relaunch that the iPhone never
+    /// asked for (`WatchWorkoutManager.notePhoneNotRecording`).
     private func driveKeepAliveSession(wasRecording: Bool, update: WatchMessageDecoding.StateUpdate) {
         switch WatchMessageDecoding.recordingTransition(wasRecording: wasRecording, update: update) {
         case .started: workoutManager?.start(sportRaw: sportRaw)
         case .stopped: workoutManager?.stop()
-        case .none: break
+        case .none: if update.isRecording == false { workoutManager?.notePhoneNotRecording() }
         }
     }
 

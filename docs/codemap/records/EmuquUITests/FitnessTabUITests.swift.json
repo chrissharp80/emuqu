@@ -40,11 +40,12 @@
   },
   {
    "key": "func FitnessTabUITests.navigateToFitness()",
-   "hash": "559eaf770c2b7ae2",
-   "does": "Asserts the tab bar exists, skips the test if the Fitness tab button does not appear in 6s, then plain-taps it and returns it.",
+   "hash": "48215cb74a40533e",
+   "does": "Asserts the tab bar exists and that the Fitness tab button appears in 3s (a fresh install shows it, so a missing tab fails the test with the on-screen dump; continueAfterFailure is false), then plain-taps it and returns it.",
    "entry": null,
    "calls": [
     "EmuquUITests/EmuquUITests.swift::func UITestFind.tabButton(in:identifier:title:)",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)"
    ],
    "reads": [],
@@ -52,13 +53,14 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "a044cbc5d334763f",
     "EmuquUITests/EmuquUITests.swift::func UITestFind.tabButton(in:identifier:title:)": "be282b6b9770776e",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd"
    }
   },
   {
    "key": "func FitnessTabUITests.testFitnessTabRenders()",
-   "hash": "2f91191a93d61ae1",
+   "hash": "79d006790fd5f5d9",
    "does": "Asserts fitness.root appears within 20s; if none of the sport/Start/Get Me Back/Discover affordances appear, asserts no alert is up.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
@@ -81,13 +83,13 @@
     "EmuquUITests/EmuquUITests.swift::func UITestFind.anyElement(in:identifier:)": "3afc95d3936f4933",
     "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "a044cbc5d334763f",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd",
-    "EmuquUITests/FitnessTabUITests.swift::func FitnessTabUITests.navigateToFitness()": "cdef994eaa46bd74"
+    "EmuquUITests/FitnessTabUITests.swift::func FitnessTabUITests.navigateToFitness()": "f3ec9b057d9fab2b"
    }
   },
   {
    "key": "func FitnessTabUITests.testRoutePickerReachableForGPSSports()",
-   "hash": "689bef293ef31360",
-   "does": "Skips unless fitness.sport.run appears in 30s; taps it; if fitness.findTrail is not visible taps a hittable button containing 'route'; asserts fitness.findTrail exists and is enabled.",
+   "hash": "12360e2a2245c021",
+   "does": "Asserts fitness.sport.run appears within 15s (the tab binds the recorder on first appearance, so a pre-flight that never comes up fails the test); taps it; if fitness.findTrail is not visible taps a hittable button containing 'route'; asserts fitness.findTrail exists and is enabled.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquUITests/FitnessTabUITests.swift::func FitnessTabUITests.navigateToFitness()",
@@ -99,27 +101,27 @@
    "writes": [],
    "branches": [
     {
-     "at": "+15",
-     "cond": "findTrail not visible in 6s",
+     "at": "+18",
+     "cond": "findTrail not visible in 3s",
      "effect": "open the route disclosure"
     },
     {
-     "at": "+19",
+     "at": "+22",
      "cond": "route disclosure exists and safely hittable",
      "effect": "tap it; else no tap"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
-    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)": "9dbb37297908f3b2",
+    "EmuquUITests/EmuquUITests.swift::func UITestFind.isSafelyHittable(_:in:)": "0c9ccc799aa11008",
     "EmuquUITests/EmuquUITests.swift::func UITestFind.onScreen(_:limit:)": "a044cbc5d334763f",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd",
-    "EmuquUITests/FitnessTabUITests.swift::func FitnessTabUITests.navigateToFitness()": "cdef994eaa46bd74"
+    "EmuquUITests/FitnessTabUITests.swift::func FitnessTabUITests.navigateToFitness()": "f3ec9b057d9fab2b"
    }
   },
   {
    "key": "func FitnessTabUITests.testFitnessTabNoHardwareDoesNotBlockInteraction()",
-   "hash": "63fb5667269685ed",
+   "hash": "c8902af21dedf63e",
    "does": "Opens Fitness and asserts no alert appears within 4s and the tab bar exists.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
@@ -132,7 +134,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.firstMatch(in:among:)": "9192bbfde7a631d6",
     "EmuquUITests/EmuquUITests.swift::func UITestTiming.s(_:)": "90d550648902e5cd",
-    "EmuquUITests/FitnessTabUITests.swift::func FitnessTabUITests.navigateToFitness()": "cdef994eaa46bd74"
+    "EmuquUITests/FitnessTabUITests.swift::func FitnessTabUITests.navigateToFitness()": "f3ec9b057d9fab2b"
    }
   }
  ],

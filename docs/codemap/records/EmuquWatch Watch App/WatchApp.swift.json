@@ -1,18 +1,33 @@
 {
  "file": "EmuquWatch Watch App/WatchApp.swift",
- "hash": "efd23d041eb0178f",
- "role": "@main entry of the watchOS app: holds the session manager and strap connector it takes from WatchDependencies.current, and a fresh workout manager, as @StateObjects, wires them together and builds the WatchLiveView scene.",
+ "hash": "277d0133782463b6",
+ "role": "@main entry of the watchOS app: holds the session manager and strap connector it takes from WatchDependencies.current as @StateObjects, reads the workout manager from its app delegate (WatchAppDelegate, which also hands a recovered workout session to it), wires them together and builds the WatchLiveView scene.",
  "types": [
-  "WatchApp: struct (App, @main) — Watch app entry; its services come from the Watch composition root, WatchDependencies"
+  "WatchApp: struct (App, @main) — Watch app entry; its services come from the Watch composition root, WatchDependencies, and its app delegate",
+  "WatchAppDelegate: class (NSObject, WKApplicationDelegate; MainActor by target default) — owns the WatchWorkoutManager and receives watchOS's active-workout recovery call"
  ],
  "state": [
   "mem:WatchApp.sessionManager (@StateObject = WatchDependencies.current.sessionManager)",
-  "mem:WatchApp.workoutManager (@StateObject WatchWorkoutManager())",
+  "mem:WatchApp.appDelegate (@WKApplicationDelegateAdaptor WatchAppDelegate)",
   "mem:WatchApp.strapConnector (@StateObject = WatchDependencies.current.strapConnector)",
-  "mem:WatchApp.scenePhase (@Environment)"
+  "mem:WatchApp.scenePhase (@Environment)",
+  "mem:WatchAppDelegate.workoutManager (let WatchWorkoutManager())"
  ],
- "toplevel": "Stored-property initializers read WatchDependencies.current.sessionManager and .strapConnector (the process-wide instances unless a substitute is set) and construct a fresh WatchWorkoutManager. The file reads no `.shared` instance; WatchDependencies.swift is the Watch target's only root file in scripts/check_no_shared_outside_root.sh.",
+ "toplevel": "Stored-property initializers read WatchDependencies.current.sessionManager and .strapConnector (the process-wide instances unless a substitute is set); the delegate adaptor creates WatchAppDelegate, whose stored initializer constructs the one WatchWorkoutManager. The file reads no `.shared` instance; WatchDependencies.swift is the Watch target's only root file in scripts/check_no_shared_outside_root.sh.",
  "units": [
+  {
+   "key": "var WatchApp.workoutManager",
+   "hash": "c57385d9c38b6884",
+   "does": "The workout manager the app delegate owns (appDelegate.workoutManager), passed to WatchLiveView and wired up in wireUp.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:WatchAppDelegate.workoutManager"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
   {
    "key": "init WatchApp()",
    "hash": "ba91caa05ef54944",
@@ -53,6 +68,7 @@
    "deps": {
     "EmuquWatch Watch App/WatchApp.swift::func WatchApp.followScenePhase(_:)": "b5771b7720475746",
     "EmuquWatch Watch App/WatchApp.swift::func WatchApp.wireUp()": "6819dac39ce53af4",
+    "EmuquWatch Watch App/WatchApp.swift::var WatchApp.workoutManager": "7f46b8b9d533f394",
     "EmuquWatch Watch App/WatchSessionManager.swift::var WatchSessionManager.displayOnlyMode": "707e23d10870b03d",
     "EmuquWatch Watch App/WatchStrapConnector.swift::func WatchStrapConnector.setAutoReconnect(_:)": "bc98e78cf0dab290"
    }
@@ -105,10 +121,27 @@
    ],
    "branches": [],
    "deps": {
+    "EmuquWatch Watch App/WatchApp.swift::var WatchApp.workoutManager": "7f46b8b9d533f394",
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.attach(workoutManager:)": "edef00cecb0b8ad5",
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.requestCurrentStateFromPhone()": "f310532499ce3701",
     "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.followPhoneMessages(of:)": "299a5690f80c0332",
     "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.requestAuthorizationIfNeeded()": "f8c9538d39f28688"
+   }
+  },
+  {
+   "key": "func WatchAppDelegate.handleActiveWorkoutRecovery()",
+   "hash": "913146c875c1a6c4",
+   "does": "Hands the recovery to the workout manager: workoutManager.recoverActiveSession().",
+   "entry": "WKApplicationDelegate: watchOS calls it after relaunching the app to recover the workout session that was active when the app was ended.",
+   "calls": [
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.recoverActiveSession()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquWatch Watch App/WatchApp.swift::var WatchApp.workoutManager": "7f46b8b9d533f394",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.recoverActiveSession()": "1a75076b5065267c"
    }
   }
  ],

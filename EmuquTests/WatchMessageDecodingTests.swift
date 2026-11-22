@@ -450,7 +450,7 @@ final class WatchMessageDecodingTests: XCTestCase {
     /// Every refusal the phone can send is one the Watch can word itself.
     @MainActor
     func testEveryPhoneRefusalIsWordedOnTheWatch() throws {
-        let refusals: [WatchControlRefusal] = [.phoneNotReady, .unknownMessage, .unknownSport, .needsUnlock]
+        let refusals: [WatchControlRefusal] = [.phoneNotReady, .unknownMessage, .unknownSport, .needsUnlock, .strapBusy, .workoutInProgress]
         for refusal in refusals {
             let reply = WatchConnectivityBridge.refusalReply(refusal, sport: "kayak")
             XCTAssertEqual(reply["ok"] as? Bool, false)

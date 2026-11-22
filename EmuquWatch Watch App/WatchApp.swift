@@ -1,4 +1,5 @@
 import SwiftUI
+import WatchKit
 
 // Watch target entry point.
 @main
@@ -9,11 +10,14 @@ struct WatchApp: App {
     // tree observes; `@StateObject` gives SwiftUI ownership of the lifetime
     // of that one object.
     @StateObject private var sessionManager = WatchDependencies.current.sessionManager
-    @StateObject private var workoutManager = WatchWorkoutManager()
+    /// Owns the workout manager (see `WatchAppDelegate`).
+    @WKApplicationDelegateAdaptor(WatchAppDelegate.self) private var appDelegate
     /// The direct-BLE strap connector, handed to the view tree through the
     /// environment.
     @StateObject private var strapConnector = WatchDependencies.current.strapConnector
     @Environment(\.scenePhase) private var scenePhase
+
+    private var workoutManager: WatchWorkoutManager { appDelegate.workoutManager }
 
     init() {
         // The connector publishes direct-strap heart rate into the session
@@ -68,5 +72,21 @@ struct WatchApp: App {
         workoutManager.followPhoneMessages(of: sessionManager)
         Task { await workoutManager.requestAuthorizationIfNeeded() }
         sessionManager.requestCurrentStateFromPhone()
+    }
+}
+
+/// The app delegate, for the one thing only a delegate is told: watchOS
+/// relaunched the app to hand back a workout session that was running when
+/// the app was ended (a crash, memory pressure).
+///
+/// It owns the workout manager rather than `WatchApp` because that relaunch
+/// can happen in the background, before any view exists, and the recovered
+/// session has to reach the same manager the views and the session manager
+/// use afterwards.
+final class WatchAppDelegate: NSObject, WKApplicationDelegate {
+    let workoutManager = WatchWorkoutManager()
+
+    func handleActiveWorkoutRecovery() {
+        workoutManager.recoverActiveSession()
     }
 }
