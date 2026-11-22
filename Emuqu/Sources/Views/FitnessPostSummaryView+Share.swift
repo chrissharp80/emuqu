@@ -408,9 +408,9 @@ extension FitnessSummaryCards {
             // dance. The title is what shows at the top of the system sheet;
             // keeping it short + recognisable ("Emuqu · Walk · 2.3 mi")
             // reads better than the raw filename.
-            FileShareButton(title: previewTitle(title: title), iconName: icon, makeFile: { try export.write() }) {
+            FileShareButton(title: previewTitle(title: title), iconName: icon, makeFile: { try export.write() }, label: {
                 shareRowLabel(icon: icon, title: title, subtitle: subtitle)
-            }
+            })
             .buttonStyle(.plain)
         } else {
             shareRowLabel(icon: icon, title: title, subtitle: subtitle)

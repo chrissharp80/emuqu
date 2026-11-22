@@ -502,7 +502,7 @@
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.headline": "66e2f0cdd4cc27e0",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.locationDenied": "7698590f7618c971",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.locationDeniedBanner": "7d52631ceaa4ef76",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.settingsPanel": "d5046012f3f1e4cb",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.settingsPanel": "cb7d82d09bdab8a5",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trailToolbar": "2a0d3a1fb190e9d2"
    }
   },
@@ -1356,49 +1356,34 @@
   },
   {
    "key": "var GetMeBackView.settingsPanel",
-   "hash": "379e66fcb38808b3",
-   "does": "Settings panel with 'Screen brightness' title, slider row and explanatory caption.",
+   "hash": "8de11e1284c7c7a7",
+   "does": "GetMeBackBrightnessPanel bound to brightnessOverride, its setter going through applyBrightness.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.brightnessSliderRow",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Views/GetMeBackBrightnessPanel.swift::var GetMeBackBrightnessPanel.body",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.applyBrightness(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.brightnessSliderRow": "5812d727e8690977",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
+    "Emuqu/Sources/Views/GetMeBackBrightnessPanel.swift::var GetMeBackBrightnessPanel.body": "f4a089a2b56baa11",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.applyBrightness(_:)": "b2b5281bc8818de9"
    }
   },
   {
-   "key": "var GetMeBackView.brightnessSliderRow",
-   "hash": "75f5d40dd998a7ab",
-   "does": "Row with sun icons around the brightness slider.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.brightnessSlider"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.brightnessSlider": "63f59c204d1dbcb2",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
-   }
-  },
-  {
-   "key": "var GetMeBackView.brightnessSlider",
-   "hash": "60983015e45f5eba",
-   "does": "Slider (0.05…1.0) whose setter writes UIScreen.main.brightness live and marks didSetBrightnessOverride, so it is restored on disappear and on backgrounding (handleScenePhase) and re-applied on return.",
-   "entry": "Slider binding set (user drag)",
+   "key": "func GetMeBackView.applyBrightness(_:)",
+   "hash": "f4ba90613426e5e7",
+   "does": "Sets brightnessOverride, writes UIScreen.main.brightness live and marks didSetBrightnessOverride, so it is restored on disappear and on backgrounding (handleScenePhase) and re-applied on return.",
+   "entry": "Brightness panel slider drag (through settingsPanel's binding)",
    "calls": [
     "ext:UIScreen.brightness"
    ],
    "reads": [],
    "writes": [
-    "mem:UIScreen.main.brightness"
+    "mem:GetMeBackView.brightnessOverride",
+    "mem:UIScreen.main.brightness",
+    "mem:GetMeBackView.didSetBrightnessOverride"
    ],
    "branches": [],
    "deps": {

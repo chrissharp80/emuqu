@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Views/MorningResultsView.swift",
  "hash": "4590c49a39249ebb",
- "role": "The Recovery Report screen for one session (morning results / history detail): hero score, readiness, HRV/sleep cards, training load, overnight charts with the window picker, data-source card, summary, tags and actions; sheets for score explainer, PDF preview and mail; delete/discard/reanalyze/window-method/unlink dialogs and the declined-reanalysis alert; lifecycle hydration and archive/sleep refresh.",
+ "role": "The Recovery Report screen for one session (morning results / history detail): hero score, readiness, HRV/sleep cards, training load, overnight charts with the window picker, data-source card, summary, tags and actions; sheets for score explainer (RecoveryScoreExplainerSheet), PDF preview and mail (RecoveryReportMailComposer); the unreadable-reading state (UnreadableReadingState); delete/discard/reanalyze/window-method/unlink dialogs and the declined-reanalysis alert; lifecycle hydration and archive/sleep refresh.",
  "types": [
   "LinkedSegmentInfo: struct — id/start/end of one split-night segment",
   "MorningResultsView: struct View — the report screen; owns @State MorningResultsViewModel and UI state",
@@ -78,7 +78,7 @@
     "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.withDialogs(_:)": "e0f4aa6e6aa82983",
     "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.withExportHandling(_:)": "07e7edc631ad05e2",
     "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.withLifecycle(_:)": "380290b19461d550",
-    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.withSheets(_:)": "a6ff970408a6dd40"
+    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.withSheets(_:)": "8481c06a75acc6db"
    }
   },
   {
@@ -151,7 +151,7 @@
    "deps": {
     "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.resultsSections(_:)": "aeeb6ab4fbd1ff80",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.sessionIsUnreadable": "f91f7602bd251309",
-    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.unreadableSessionState": "516bf3df14481fe9",
+    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.unreadableSessionState": "e2119943ac33ad1e",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
    }
   },
@@ -503,27 +503,29 @@
   },
   {
    "key": "func MorningResultsView.withSheets(_:)",
-   "hash": "165ac1b836032cf9",
-   "does": "Attaches two sheets: the score explainer, and ONE item sheet for the report's files (reportFileSheetBinding) showing the PDF/CSV preview for .preview or the mail composer for .mail, since two stacked item sheets can drop the second.",
+   "hash": "906ba395e0f1580d",
+   "does": "Attaches two sheets: the score explainer (RecoveryScoreExplainerSheet, whose Done clears showingScoreExplainer), and ONE item sheet for the report's files (reportFileSheetBinding) showing the PDF/CSV preview for .preview or the mail composer for .mail, since two stacked item sheets can drop the second.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.scoreExplainerSheet",
+    "Emuqu/Sources/Views/RecoveryScoreExplainerSheet.swift::var RecoveryScoreExplainerSheet.body",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reportFileSheetBinding",
     "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.reportMailComposer(_:)"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:MorningResultsView.showingScoreExplainer (false on the explainer's Done)"
+   ],
    "branches": [
     {
-     "at": "+5",
+     "at": "+6",
      "cond": "sheet is .preview",
      "effect": "PDFPreviewView; .mail → reportMailComposer"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.reportMailComposer(_:)": "d2f296827623ba71",
+    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.reportMailComposer(_:)": "a3b9fd4931167a93",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reportFileSheetBinding": "7cb156c149231c6d",
-    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.scoreExplainerSheet": "262be2e7981c51fa"
+    "Emuqu/Sources/Views/RecoveryScoreExplainerSheet.swift::var RecoveryScoreExplainerSheet.body": "63004ce41ef8e32c"
    }
   },
   {
@@ -555,140 +557,27 @@
    "deps": {}
   },
   {
-   "key": "var MorningResultsView.scoreExplainerSheet",
-   "hash": "3602455fb2ccaf74",
-   "does": "Finds the 'understanding-score' article in HelpContent.recoveryScore, localizes it and shows it in a NavigationStack.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/HelpLocalization.swift::var HelpArticle.localized",
-    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.scoreExplainerArticle(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "article with id 'understanding-score' exists",
-     "effect": "true: show it; false: empty sheet with no Done button (id exists at HelpContent+Science.swift:299)"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/HelpLocalization.swift::var HelpArticle.localized": "44c597504e4fb34e",
-    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.scoreExplainerArticle(_:)": "75f93abf56588e51"
-   }
-  },
-  {
-   "key": "func MorningResultsView.scoreExplainerArticle(_:)",
-   "hash": "8e4d5b80174c60e7",
-   "does": "HelpArticleView with the Done toolbar.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.scoreExplainerToolbar"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.scoreExplainerToolbar": "d3a913c6217d88f8"
-   }
-  },
-  {
-   "key": "var MorningResultsView.scoreExplainerToolbar",
-   "hash": "c5ff1454c6b18be7",
-   "does": "Toolbar 'Done' button that sets showingScoreExplainer = false.",
-   "entry": "Toolbar button.",
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
-   }
-  },
-  {
    "key": "func MorningResultsView.reportMailComposer(_:)",
-   "hash": "0c688715c61271af",
-   "does": "MailComposerView with subject 'Recovery Report – <date in the app language>' (endDate ?? startDate), recipients, CC and the PDF attachment.",
+   "hash": "06ee426a3dcfc675",
+   "does": "RecoveryReportMailComposer for the report file, with the current settings and the session's endDate ?? startDate as the report date.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reportRecipients",
-    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reportCCRecipients",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Views/RecoveryReportMailComposer.swift::var RecoveryReportMailComposer.body"
    ],
-   "reads": [],
+   "reads": [
+    "mem:SettingsManager.settings"
+   ],
    "writes": [],
    "branches": [
     {
-     "at": "+1",
+     "at": "+3",
      "cond": "session.endDate == nil",
-     "effect": "use startDate for the subject date"
+     "effect": "use startDate as the report date"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
-    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reportCCRecipients": "1d6c05ad04502131",
-    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reportRecipients": "decebf4e8a122104"
-   }
-  },
-  {
-   "key": "var MorningResultsView.reportRecipients",
-   "hash": "c1f0194bb5ad2f3b",
-   "does": "Recipient list: the recovery-report default when non-blank, else UserSettings.resolvedDefaultEmailRecipient (training -> legacy), else empty.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient"
-   ],
-   "reads": [
-    "mem:SettingsManager.settings.defaultRecoveryEmailRecipient"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "defaultRecoveryEmailRecipient non-nil and non-blank",
-     "effect": "return [recovery]; else fall through"
-    },
-    {
-     "at": "+6",
-     "cond": "resolvedDefaultEmailRecipient == nil",
-     "effect": "return []"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient": "659b64b5b07e9608",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b"
-   }
-  },
-  {
-   "key": "var MorningResultsView.reportCCRecipients",
-   "hash": "2554733236ee58a5",
-   "does": "CC list: comma-split, trimmed recovery CC; falls back to resolvedDefaultEmailCC when empty.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC"
-   ],
-   "reads": [
-    "mem:SettingsManager.settings.defaultRecoveryEmailCC"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "defaultRecoveryEmailCC == nil",
-     "effect": "treat as empty string"
-    },
-    {
-     "at": "+6",
-     "cond": "recoveryCC non-empty",
-     "effect": "return it; else resolvedDefaultEmailCC"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "94f7651b9cad60c1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Views/RecoveryReportMailComposer.swift::var RecoveryReportMailComposer.body": "9f993355205bb13d"
    }
   },
   {
@@ -1192,73 +1081,43 @@
   },
   {
    "key": "var MorningResultsView.unreadableSessionState",
-   "hash": "44adb350d2c2467f",
-   "does": "ScrollView with the unreadable empty state and a subjective-readiness fallback card.",
+   "hash": "0b9a4331de9a37c5",
+   "does": "UnreadableReadingState with Re-analyze offered when vm.hasRawData and onReanalyze is set, Delete when onDelete is set (their actions open the reanalyze / delete confirmation dialogs), perceivedReadiness bound through vm.updatePerceivedReadiness, and the displayed session's quality (.insufficient when nil).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.unreadableEmptyState",
-    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.unreadableFallbackCard"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.unreadableEmptyState": "a9a6143c288b6a27",
-    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.unreadableFallbackCard": "c24e788af4079fb0",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
-   }
-  },
-  {
-   "key": "var MorningResultsView.unreadableEmptyState",
-   "hash": "e7a760a1932ee280",
-   "does": "EmptyState 'This reading didn't process' with Re-analyze (when raw data and onReanalyze) and Delete reading (when onDelete) actions that open the confirmation dialogs.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.hasRawData"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "vm.hasRawData && onReanalyze != nil",
-     "effect": "primary label 'Re-analyze' else nil (no button)"
-    },
-    {
-     "at": "+9",
-     "cond": "onDelete != nil",
-     "effect": "secondary 'Delete reading' else nil"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.hasRawData": "8a0220387434a45f"
-   }
-  },
-  {
-   "key": "var MorningResultsView.unreadableFallbackCard",
-   "hash": "df24cda8b0df7fc5",
-   "does": "SubjectiveReadinessCard bound to perceivedReadiness via vm.updatePerceivedReadiness, with the displayed session's quality (.insufficient when nil).",
-   "entry": null,
-   "calls": [
+    "Emuqu/Sources/Views/UnreadableReadingState.swift::var UnreadableReadingState.body",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.hasRawData",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.updatePerceivedReadiness(_:)"
    ],
    "reads": [],
    "writes": [
+    "mem:MorningResultsView.showingReanalyzeConfirmation / showingDeleteConfirmation (true on the actions)",
     "mem:MorningResultsViewModel.reanalyzedSession",
     "archive:perceivedReadiness (via updatePerceivedReadiness)"
    ],
    "branches": [
     {
-     "at": "+6",
+     "at": "+2",
+     "cond": "vm.hasRawData && onReanalyze != nil",
+     "effect": "canReanalyze"
+    },
+    {
+     "at": "+3",
+     "cond": "onDelete != nil",
+     "effect": "canDelete"
+    },
+    {
+     "at": "+8",
      "cond": "displaySession.hrvDataQuality == nil",
      "effect": "pass .insufficient"
     }
    ],
    "deps": {
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.updatePerceivedReadiness(_:)": "6fab2703fc822321",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "7e00ddacb825aef1"
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "7e00ddacb825aef1",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.hasRawData": "8a0220387434a45f",
+    "Emuqu/Sources/Views/UnreadableReadingState.swift::var UnreadableReadingState.body": "e4b7ecc406d16810"
    }
   },
   {
