@@ -503,10 +503,12 @@
   },
   {
    "key": "var RecordView.verificationSectionIfPending",
-   "hash": "a6686ae3ecba70f6",
-   "does": "Shows RecordVerificationSection with the verification result and recovery window when a verification result exists.",
+   "hash": "b3683e6a6ef2e5e4",
+   "does": "Shows RecordVerificationSection with the verification result, the recovery window and the limits that result was verified against (verificationLimits) when a verification result exists.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.verificationLimits"
+   ],
    "reads": [
     "mem:SessionState.verificationResult",
     "mem:SessionState.recoveryWindow"
@@ -520,7 +522,31 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.verificationResult": "c178ef092653f880"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.verificationResult": "c178ef092653f880",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.verificationLimits": "d2e350d2cfdea74e"
+   }
+  },
+  {
+   "key": "var RecordView.verificationLimits",
+   "hash": "7be319819bbc2d66",
+   "does": "The Verification.Config the shown result was verified against: the collector's relaxed streaming verifier's config for a quick reading (only quick streaming verifies .quick sessions, RRCollector+Streaming), otherwise the overnight verifier's config.",
+   "entry": "SwiftUI evaluates it as part of verificationSectionIfPending",
+   "calls": [],
+   "reads": [
+    "mem:SessionState.currentSession",
+    "mem:RRCollector.streamingVerification",
+    "mem:RRCollector.verification"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "currentSession?.sessionType == .quick",
+     "effect": "true: streamingVerification.config (120 beats, warn 10%); false: verification.config (default, 300 beats, warn 5%)"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def"
    }
   },
   {
@@ -592,8 +618,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)": "1d40c0a9ed870882",
-    "Emuqu/Sources/Views/RecordView.swift::init RecordView.ResultsPresentation(session:result:)": "2323d5ad61702ff5"
+    "Emuqu/Sources/Collection/RRCollector+PriorSessions.swift::func RRCollector.recentSessionsAsync(limit:before:type:)": "01350655a5b18c85",
+    "Emuqu/Sources/Views/RecordView.swift::init RecordView.ResultsPresentation(session:result:linkedSegments:)": "0c00ff399835e907"
    }
   },
   {
@@ -691,8 +717,8 @@
   },
   {
    "key": "func RecordView.morningResults(_:)",
-   "hash": "007c80a035395dfb",
-   "does": "Builds MorningResultsView for the presentation with cached recent sessions and callbacks: discard, reanalyze (the saved-session reanalysis), the report's Tags & Notes edits (saveReportTags: onto the in-memory reading and its archived copy), reanalyze at position, apply manual result, update sleep and unlink segment (the reanalysis service), adjust sleep (with failure alert), and the archive's linked segments.",
+   "hash": "b47d0241df19e7a5",
+   "does": "Builds MorningResultsView for the presentation with cached recent sessions and callbacks: discard, reanalyze (the saved-session reanalysis), the report's Tags & Notes edits (saveReportTags: onto the in-memory reading and its archived copy), reanalyze at position, apply manual result, update sleep and unlink segment (the reanalysis service), adjust sleep (with failure alert), and the linked segments read off-main when the report was presented (presentation.linkedSegments).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection",
@@ -706,12 +732,9 @@
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
     "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.adjustMorningSleep(_:for:)",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.unlinkSegment(segmentId:fromSession:)",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)",
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.saveReportTags(_:notes:sessionId:)"
    ],
-   "reads": [
-    "archive:SessionArchive.linkedSegments"
-   ],
+   "reads": [],
    "writes": [
     "archive:session (via reanalysis callbacks)",
     "archive:session tags/notes (via saveReportTags)"
@@ -722,7 +745,6 @@
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.reanalyzeAtPosition(_:targetMs:)": "6d9db5d724cc59d1",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.unlinkSegment(segmentId:fromSession:)": "a1614ff522bce952",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "c11d10dab10551e5",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.linkedSegments(for:)": "083d7e30ca95aee7",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService": "66fe82646a7ded58",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.sessionReanalysis": "7e7eff2d9ea401f1",

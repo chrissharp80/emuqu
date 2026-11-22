@@ -397,7 +397,9 @@ After recording completes, shows:
 **If your device has stored data from a previous session:**
 - "Data Found on [Device Name]" alert appears
 - **"Recover Data"**: Downloads and analyzes the stored session
-- **"Discard & Start Fresh"**: Clears device memory to start new recording
+- **"Delete from [Device Name]"**: Deletes the recording from the device, after
+  you confirm. The app never saved it, so this removes the only copy; a
+  recording still running is stopped first.
 
 **If fetch fails:**
 - "Data Fetch Failed" alert
@@ -1152,7 +1154,8 @@ suggestions ("you're already 80 % VO2max in 92 °F heat, ease back").
 ### Zwift / TrainerRoad / Rouvy broadcaster
 
 When the `enableZwiftBroadcast` toggle is on (**Settings → Wearables**, with a first-enable explainer
-sheet), Emuqu advertises itself as a standard Heart Rate Service +
+sheet that each device has to accept: a setting restored from iCloud on a new
+device stays off there until you accept it), Emuqu advertises itself as a standard Heart Rate Service +
 Cycling Power Service peripheral. Lets a user who's already paired their strap
 + Stryd / bike trainer to Emuqu share that data with their
 indoor-trainer game without re-pairing each device. Off by default —

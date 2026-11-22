@@ -230,6 +230,25 @@ final class UserSettingsDecodeContractTests: XCTestCase {
         XCTAssertEqual(restored.profileFieldsFromHealth, [.birthday])
     }
 
+    /// A broadcast setting restored from the iCloud backup comes back on, but
+    /// a device that never accepted the broadcaster disclosure does not
+    /// broadcast: the acceptance is this device's and is not in the backup.
+    func testARestoredBroadcastSettingNeedsThisDevicesAcceptance() throws {
+        var backedUp = UserSettings()
+        backedUp.enableZwiftBroadcast = true
+        let restored = try JSONDecoder().decode(UserSettings.self, from: JSONEncoder().encode(backedUp))
+        XCTAssertTrue(restored.enableZwiftBroadcast)
+
+        let suiteName = "UserSettingsDecodeContractTests-\(UUID().uuidString)"
+        let newDevice = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { newDevice.removePersistentDomain(forName: suiteName) }
+        XCTAssertFalse(BroadcasterDisclosure.allowsBroadcast(settingEnabled: restored.enableZwiftBroadcast, defaults: newDevice))
+
+        newDevice.set(true, forKey: BroadcasterDisclosure.acceptedKey)
+        XCTAssertTrue(BroadcasterDisclosure.allowsBroadcast(settingEnabled: restored.enableZwiftBroadcast, defaults: newDevice))
+        XCTAssertFalse(BroadcasterDisclosure.allowsBroadcast(settingEnabled: false, defaults: newDevice))
+    }
+
     /// The fields where the decoder deliberately disagrees with `init()`.
     ///
     /// Each is a documented decision in `UserSettings+Codable`, and each is

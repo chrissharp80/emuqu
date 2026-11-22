@@ -488,8 +488,12 @@ extension WorkoutSessionLifecycle {
     /// so it can't block the start path even when the radio is wedged. A
     /// workout stopped before the deferred task runs has already stopped the
     /// broadcast, so the task re-checks that the workout is still recording.
+    ///
+    /// The setting alone is not enough: it comes back from the iCloud settings
+    /// backup on a new device, where the disclosure was never shown. Only a
+    /// device that accepted it (`BroadcasterDisclosure`) broadcasts.
     private func deferZwiftBroadcast() {
-        guard recorder.settingsProvider().enableZwiftBroadcast else { return }
+        guard BroadcasterDisclosure.allowsBroadcast(settingEnabled: recorder.settingsProvider().enableZwiftBroadcast) else { return }
         debugLog("[Recorder.start] step=zwiftBroadcaster.start (deferred)")
         Task { @MainActor [weak recorder] in
             guard let recorder, case .recording = recorder.lifecycle.phase else { return }

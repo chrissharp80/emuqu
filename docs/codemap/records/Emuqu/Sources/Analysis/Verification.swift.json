@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Analysis/Verification.swift",
- "hash": "b332b87f1e315e80",
+ "hash": "00fdd4b3204db340",
  "role": "Verification: per-session data-quality report (point count, duration, max gap, RR drift, artifact %, ectopy %, out-of-range %) producing pass/fail, rejection reasons, localized errors/warnings and metrics. A report, not a gate: analysis runs regardless; the result is stored on SessionState.verificationResult for the record view's badge and its summary goes to the diagnostic log.",
  "types": [
   "Verification: struct — verifier with Config",
@@ -14,7 +14,7 @@
   "mem:Verification.Config.default",
   "mem:Verification.Config.strict"
  ],
- "toplevel": "Config.default (minPoints 300, 0.083 h, max artifact 15%, warn 5%) and Config.strict (4 h). RRCollector.swift:239 builds a relaxed streaming config (120 pts, 0.025 h, 20%/10%).",
+ "toplevel": "Config.default (minPoints 300, 0.083 h, max artifact 15%, warn 5%) and Config.strict (4 h). RRCollector.swift:239 builds a relaxed streaming config (120 pts, 0.025 h, 20%/10%). The stored `config` is internal (read-only), so the Record tab's Data Quality card can judge a result by the limits of the verifier that produced it (RecordView.verificationLimits).",
  "units": [
   {
    "key": "func Verification.Result.isRejectedFor(_:)",

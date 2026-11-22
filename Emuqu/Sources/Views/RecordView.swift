@@ -54,14 +54,21 @@ struct RecordView: View {
     /// Captures session + result at presentation time so the fullScreenCover content
     /// never reads a stale/nil sessionState.currentSession. Eliminates the race condition
     /// where currentSession becomes nil between trigger and SwiftUI content evaluation.
+    ///
+    /// `linkedSegments` is read once, off the main actor, before the report is
+    /// presented: reading it retrieves (reads, decrypts, decodes) every linked
+    /// session, which the cover's content would otherwise repeat on the main
+    /// thread each time this view re-renders.
     struct ResultsPresentation: Identifiable {
         let id: UUID
         let session: HRVSession
         let result: HRVAnalysisResult
-        init(session: HRVSession, result: HRVAnalysisResult) {
+        let linkedSegments: [LinkedSegmentInfo]?
+        init(session: HRVSession, result: HRVAnalysisResult, linkedSegments: [LinkedSegmentInfo]? = nil) {
             id = session.id
             self.session = session
             self.result = result
+            self.linkedSegments = linkedSegments
         }
     }
 

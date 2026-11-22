@@ -332,6 +332,24 @@
    }
   },
   {
+   "key": "func UserSettingsDecodeContractTests.testARestoredBroadcastSettingNeedsThisDevicesAcceptance()",
+   "hash": "2fd8888bde817d57",
+   "does": "Round-trips settings with enableZwiftBroadcast on and checks it comes back on; with a fresh test-owned UserDefaults suite (a new device) allowsBroadcast is false, true once the acceptance key is set, and false again with the setting off. Removes the suite afterwards.",
+   "entry": "XCTest",
+   "calls": [
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func BroadcasterDisclosure.allowsBroadcast(settingEnabled:defaults:)"
+   ],
+   "reads": [],
+   "writes": [
+    "ud:UserSettingsDecodeContractTests-<uuid> suite (removed)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/UserSettings+Model.swift::init UserSettings()": "1c099582675121a6",
+    "Emuqu/Sources/Views/WearablesSettingsPage.swift::func BroadcasterDisclosure.allowsBroadcast(settingEnabled:defaults:)": "cf774c1bba4c4382"
+   }
+  },
+  {
    "key": "func UserSettingsDecodeContractTests.differingFields(_:_:)",
    "hash": "1c124a9966ef5746",
    "does": "Helper: zips Mirror children of two UserSettings by index and returns the labels whose String(describing:) values differ.",

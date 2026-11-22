@@ -1,10 +1,10 @@
 {
  "file": "Emuqu/Sources/Views/RecordView.swift",
- "hash": "637a397fd996f525",
+ "hash": "95f44a4dafd08c3e",
  "role": "The Record tab's root SwiftUI view: owns all Record-tab @State, lays out the section stack, presents tag picker / pre-score prompt / morning and quick results covers, routes errors and overnight auto-acceptance, and hosts the interrupted-workout strap-recovery card.",
  "types": [
   "RecordView: struct (View) — Record tab root; observes DeviceStatus/StreamingLifecycle/SessionState/MorningCoordination/SettingsManager from the environment",
-  "RecordView.ResultsPresentation: struct (Identifiable) — session+result snapshot captured at presentation time, id = session.id",
+  "RecordView.ResultsPresentation: struct (Identifiable) — session+result snapshot captured at presentation time, id = session.id, plus the split night's linked segments read off-main before presenting (nil by default)",
   "RecordView.ExtendedCaptureMode: enum (String, CaseIterable, Identifiable) — streaming / internalCapture / both capture choice for overnight recording"
  ],
  "state": [
@@ -20,9 +20,9 @@
  "toplevel": "Stored-property initializers: selectedSessionType defaults to .overnight, extendedCaptureMode defaults to .both (overwritten onAppear by restoreCaptureMode), breathingAudio is a fresh BreathingAudioManager per view identity. Comment RecordView.swift:6-10 says recording-state reads go through the observed sub-objects (a read through an RRCollector forwarder is tracked too but hides the dependency). Environment reads: \\.dependencies (the reanalysis service and saved-session reanalysis the morning and quick result sheets call), RRCollector and the observed sub-objects.",
  "units": [
   {
-   "key": "init RecordView.ResultsPresentation(session:result:)",
-   "hash": "49d7c208eb02f107",
-   "does": "Memberwise-style init for ResultsPresentation: copies session and result, sets id = session.id so morning and pending presentations of the same session share identity.",
+   "key": "init RecordView.ResultsPresentation(session:result:linkedSegments:)",
+   "hash": "6a9c0c9f96a8285a",
+   "does": "Captures the session, its result and the linked segments (default nil), with id = session.id so the cover is keyed to the session.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -205,7 +205,7 @@
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.recoverableDataSection": "6d1d05e5e1a7ff9a",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.selectedSessionSection": "97d7b0873184de5f",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.sessionTypeSection": "545ea28f7b3651ed",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.verificationSectionIfPending": "4067683cf08fce31",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.verificationSectionIfPending": "79760f93bab24a04",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.workoutRecoverySection": "9e4d85e2821d1b10"
    }
   },

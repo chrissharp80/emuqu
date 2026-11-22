@@ -1,17 +1,18 @@
 {
  "file": "Emuqu/Sources/Views/WearablesSettingsPage.swift",
- "hash": "0e19118cb6a9ca1f",
+ "hash": "5dedcd565c81d378",
  "role": "Settings > Wearables page: BLE foot-pod scan/pair/reconnect/forget, Apple Health access re-request + help sheet, BLE broadcaster (Zwift) toggle with first-enable disclosure, Apple Health export toggles, and a user-triggered delete of all app-written sleep samples in Apple Health.",
  "types": [
   "WearablesSettingsPage: struct (View) — the Wearables settings page, pushed from SettingsView.swift:211 and SettingsSearchIndex.swift:113",
-  "WearablesSettingsPage: extension — 'Apple Health access is already set' alert, its actions and openAppSettings"
+  "WearablesSettingsPage: extension — 'Apple Health access is already set' alert, its actions and openAppSettings",
+  "BroadcasterDisclosure: enum — this device's acceptance of the broadcaster disclosure: the UserDefaults key and allowsBroadcast(settingEnabled:defaults:)"
  ],
  "state": [
-  "ud:settings.broadcaster.acknowledged (@AppStorage, standard suite, WearablesSettingsPage.swift:49) — set true once the broadcaster disclosure is accepted; read only in this file",
-  "mem:WearablesSettingsPage.fastestAnsweredPrompt (static let 1.5 s, line 610)",
+  "ud:settings.broadcaster.acknowledged (BroadcasterDisclosure.acceptedKey; @AppStorage, standard suite) — set true once the broadcaster disclosure is accepted on this device; outside UserSettings, so never in the iCloud settings backup; read here, by WorkoutSessionLifecycle.deferZwiftBroadcast and by the app.settings.zwift_broadcast_on fact",
+  "mem:WearablesSettingsPage.fastestAnsweredPrompt (static let 1.5 s)",
   "@State view-local: isCleaningSleepWrites, showingSleepCleanupConfirm, showingSleepCleanupResult, sleepCleanupMessage, isReprompting, showingHKHelpSheet, showingHealthAlreadyDecided, showingBroadcastExplainer"
  ],
- "toplevel": "Environment reads: dependencies, accessibilityReduceTransparency, SettingsManager, RRCollector, LanguageManager (languageManager is declared at line 22 but never used in the file). @State flags default false/''; @AppStorage broadcastAcknowledged defaults false. Extension at 595 declares static fastestAnsweredPrompt = 1.5.",
+ "toplevel": "Environment reads: dependencies, accessibilityReduceTransparency, SettingsManager, RRCollector, LanguageManager (languageManager is declared but never used in the file). @State flags default false/''; @AppStorage broadcastAcknowledged defaults false. The extension declares static fastestAnsweredPrompt = 1.5. BroadcasterDisclosure.acceptedKey = \"settings.broadcaster.acknowledged\".",
  "units": [
   {
    "key": "var WearablesSettingsPage.footPod",
@@ -1119,6 +1120,19 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/Onboarding/OnboardingHealthPage.swift::func openAppSettings()": "cde8d68dbe0b80ac"
    }
+  },
+  {
+   "key": "func BroadcasterDisclosure.allowsBroadcast(settingEnabled:defaults:)",
+   "hash": "b3077eb4cd385e86",
+   "does": "True only when the broadcast setting is on and `defaults` (standard by default) holds this device's acceptance of the broadcaster disclosure (settings.broadcaster.acknowledged).",
+   "entry": "Called by WorkoutSessionLifecycle.deferZwiftBroadcast, the app.settings.zwift_broadcast_on fact and UserSettingsDecodeContractTests",
+   "calls": [],
+   "reads": [
+    "ud:settings.broadcaster.acknowledged"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {}
   }
  ],
  "deps": {}
