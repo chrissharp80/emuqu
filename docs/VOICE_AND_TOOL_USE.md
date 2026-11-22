@@ -34,6 +34,12 @@ Routing acts only while **Apple Intelligence is the selected model**.
 With any other model selected, every turn goes to that model and the
 routing picker is disabled (`TurnRouter.preTierDecision`).
 
+A provider switched off in Settings is never sent a turn: routing, the
+composer, the send path and fact extraction all ask
+`ProviderRegistry.canSend(to:)` (key present and provider enabled).
+Switching off the selected provider moves the selection to a working
+provider, or to Apple when none is left (`ProviderRegistry.keysChanged`).
+
 With Apple selected the chat has **no text composer**: the input is the
 suggestion chips (`PrefabQuestionChips`) and voice. So the "typed turn"
 routing below applies to a question sent from a chip; free-typed text
@@ -287,7 +293,11 @@ Apple's tool-use lives behind a thin adapter:
   recursively calling Apple to compress its own context.
 - **Session cache** — `AppleFoundationProvider.SessionCache` reuses
   one `LanguageModelSession` across multiple sends as long as the
-  instructions and tool-catalog hash haven't changed. Sessions
+  instructions and tool-catalog hash haven't changed and the question and
+  reply just before the new question are the exchange the session itself
+  last answered (`AppleExchange`). A regenerated question, another
+  provider's reply, or a reply the app rewrote afterwards (scrub, number
+  check, cap) gets a fresh session built from the transcript as shown. Sessions
   rotate after 20 turns to bound KV-cache drift, and also whenever the
   session's running token estimate says a follow-up (prompt, one capped
   tool result, the 512-token reply reserve and a margin) would not fit
@@ -558,6 +568,19 @@ but the contract is stricter:
    pasted email can make the model quote any span of the user's message.
    `assistant.memory.restore` undoes the last confirmed wipe until the app
    quits.
+7. **What the user did not say is confirmed first.** `assistant.memory.add`,
+   `assistant.contacts.add`, `location.set_address` and
+   `routes.library.rename` change nothing on the first call, and answer
+   `confirmation_required` the same way, whenever a value they would write
+   is not, as whole words, in the user's own latest message
+   (`DestructiveActionContext.gateUnlessUserStated`). A value the model
+   took from a web page, an email or a tool result is shown to the user
+   before it is saved. `assistant.email.compose` stages a draft only when
+   its `user_quote` appears in the user's latest message.
+8. **No retry elsewhere after a change.** Once a mutating tool
+   (`AssistantToolRunner.mutatingToolNames`) has run in a turn, a provider
+   failure ends the turn instead of handing it to another model, so the
+   action is not repeated.
 
 The action entries the model can call are listed in
 `CompactToolRouter.allowedActionNames`: artifacts add / update_status,
@@ -945,6 +968,9 @@ model never has to guess or deny them:
   `fragmentation_index`, `awakening_count`, `sleep_cycles`,
   `architecture_score`, `deep_front_loaded`, `rem_back_loaded`,
   `enhanced_sleep_score`, and age-adjusted range flags (SleepScienceAnalyzer).
+- **Score age** — `recovery.score.latest` (and `get_today` /
+  `recovery.today.full`, which read it) carries `days_ago` and `is_today`,
+  so the model calls it this morning's score only when `is_today` is true.
 - **Morning subjective + score internals** — `recovery.score.*` include
   `morning_feeling` (1–5) + `morning_feeling_tags`, `notes`,
   `training_readiness`, `data_quality` (good/preSleep/insufficient — so the

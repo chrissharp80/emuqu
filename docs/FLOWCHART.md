@@ -71,6 +71,9 @@ Enables trend computation and filtering without loading full sessions from disk.
 ### Start: `startOvernightStreaming()`
 ```
 User taps Record
+  → refuseWhileEndingInProgress(): a night still being ended (its ending
+    claim younger than 30 min) refuses the start (alreadyRecording);
+    an older claim is dropped with a warning
   → Creates HRVSession(sessionType: .overnight)
   → session.startDate = Date()  [wall clock NOW]
   → Starts BLE streaming via PolarManager
@@ -106,16 +109,18 @@ User taps Pause
   → processOvernightData(merged)    ← full analysis pipeline
   → session.state = .paused
   → session.pausedDate = Date()
-  → Archives paused session
+  → Archives paused session (re-upload requested)
   → Persists paused session ID to UserDefaults
 ```
 
 ### Resume: `resumeOvernightStreaming(linkedSessionId:)`
 ```
 User taps Resume
+  → refuseWhileEndingInProgress() (as at Start)
   → Creates NEW HRVSession
   → newSession.linkedSessionIds = [parentId]
-  → Updates parent session in archive: parent.linkedSessionIds.append(childId)
+  → Updates the parent's archived copy in place (archive.update, re-upload
+    requested): parent.linkedSessionIds.append(childId)
   → Starts fresh streaming (streamingCumulativeMs resets to 0!)
   → collectedPoints = []
   → pausedBeatCount = parent's beat count (for UI display only)
@@ -127,8 +132,9 @@ wall-clock time. The parent's data is in the archive with its own t_ms timeline.
 ### Finalize: `finalizeFromPause()`
 ```
 User taps Done (without resuming)
-  → session.state = .complete
-  → Re-archives
+  → archive.update(pausedId, requestingReupload: true) { state = .complete }
+    — the archive's copy, so a rewrite made since the pause is kept
+  → that copy is published
   → needsAcceptance = true
 ```
 
@@ -147,6 +153,10 @@ User taps Stop (or morning auto-stop)
         mergeParentSessionData() → processOvernightData()
   → Otherwise: fallbackToDeviceFetch() — the strap recording is primary;
       the session fails if the fetch is barred or returns < 120 beats
+  → The strap download is barred (nightFetchAllowed) by Skip, a
+    streaming-only capture mode, a Verity Sense, or a night that never
+    armed the strap while the strap reports no recording; the gate then
+    clears the night's arming flag (closeNightGate)
 ```
 
 ### gatherOvernightData() (pause path, `RRCollector+PauseResume.swift`)
@@ -240,7 +250,7 @@ STEP 6: Get sleep boundaries and classify sleep stages
 
   fetchSleepData internally goes cache-first:
     1. SleepDataCache.read(coveringRecordingStart:) — persistent UserDefaults
-       cache keyed by sleep-night startOfDay (14-entry max, count-pruned;
+       cache, sealed with the app's key (JSONFileSeal.app), keyed by sleep-night startOfDay (14-entry max, count-pruned;
        ±1-day read tolerance). The HK sleep observer
        (HealthKitManager+SleepTrends.startObservingSleepData) warms this cache as
        Apple Watch syncs new samples overnight, so on most mornings morning
@@ -646,6 +656,10 @@ Each migration uses 3-phase locking to avoid blocking the main thread:
       └→ migrateSleepIndexFields() — backfill sleepEnd / sleepSegmentCount on the index
       └→ migrateLegacyEliteImportIndex()
       └→ removeDuplicates()        — delete same-night duplicate overnight sessions
+                                     (keeper of a tie picked by session id; the
+                                     loser's tags, notes, morning feeling and
+                                     perceived readiness carried into the keeper,
+                                     which is re-uploaded)
       └→ relinkSameNightSessions() — fix unlinked same-night split-sleep segments
 
 And `reanalysis.runDeferredSessionMigrationsIfNeeded()` (the app's `SessionReanalysisCoordinator`)
@@ -685,6 +699,10 @@ And `reanalysis.runDeferredSessionMigrationsIfNeeded()` (the app's `SessionReana
       stored time in bed back to sleep plus awake where it was counted
       from the sleep search window's start, recomputes its efficiency
       and rescores the nights it changed.
+
+NapRepair, TimeInBedRepair and WorkoutSleepCleanup write with archive.update on
+the archive's copy and leave their flag unset when any write failed, so the
+next launch tries again.
 
 InsufficientData, TrimpRepair and WorkoutSleepCleanup have parity tests in
 `EmuquTests/CollectorMigrationParityTests.swift`. The Archive-level migrations are covered by
@@ -912,6 +930,11 @@ AnalysisSummaryGenerator.feelBadAdvice(hrvGood:tags:feeling:)
 
 ```
 App launch (EmuquApp interruptedSessionAlerts, AppLaunchRecovery)
+  The check runs after the archive's launch boot (LaunchArchiveBoot) and
+  raises the alert only with no launch modal on screen; it runs again when
+  the score-architecture cover closes (handleLaunchModalChange). Save and
+  Resume claim the session (InterruptedWorkoutAutoRecovery.claim), so launch
+  auto-recovery leaves it alone.
   └─ "Session Interrupted" alert (no dashboard banner)
       Resumable: Resume / Save as Complete / Dismiss.
       Not resumable: Save to Archive / Dismiss.
@@ -1021,10 +1044,32 @@ each gated by its own export setting
   ├─ Per-metric failures are isolated — a single failed write does
   │  not abort the remaining metrics.
   └─ Every write replaces through HealthSampleReplacer: read the
-     session's earlier samples, save the new ones, delete those read.
-     A failed save leaves the earlier export; replacements for the
-     same session (exports and delete-forever) run one at a time, and
-     each read, save and delete is bounded by the replacement's timeout.
+     session's earlier samples, save the new ones, delete those read
+     that the save did not already replace by sync identifier
+     (notReplacedBySync). A failed save leaves the earlier export;
+     replacements for the same session (exports and delete-forever) run
+     one at a time, and each read, save and delete is bounded by the
+     replacement's timeout (writeTimeout, 30 s, for HR, HRV and sleep
+     saves and deletes).
+
+Every sample and workout carries its session identity as both
+HKMetadataKeyExternalUUID and HKMetadataKeySyncIdentifier, with a rising
+HKMetadataKeySyncVersion (HealthExportIdentity.metadata), so HealthKit
+replaces a re-export from this or another device instead of keeping both.
+
+HealthKitWorkoutExport (workouts):
+  ├─ find earlier exports: own-source workouts with the session's
+  │  <uuid>-workout identity, or an identity-less one starting in the
+  │  same second, plus the samples and route saved with them
+  ├─ save the new workout (active energy net of rest: METs − 1, ≥ 0)
+  └─ delete the earlier ones per type, workouts last; a failure throws,
+     the session stays unstamped and the next export cleans up
+  A trimmed or rebuilt workout drops its Emuqu export stamp, so the next
+  backfill exports it again and replaces the copy in Health.
+
+Delete forever (RRCollector+BackupRecovery.permanentlyDelete)
+  └─ HealthWriteAndObserve.removeExports: HRV, heart rate, resting HR,
+     sleep, workouts; every removal tried, the first error thrown.
 ```
 
 ---
@@ -1065,7 +1110,9 @@ Live workout:
     ├─ watchBridge.startWatchWorkoutSession(sport:)     (Watch parallel)
     ├─ dfa.reset(sessionStart:)                         (live α1 analyzer)
     ├─ voiceCoach.reset()                               (trigger history)
-    ├─ ZwiftPeripheralBroadcaster.shared.start()        (if enableZwiftBroadcast)
+    ├─ ZwiftPeripheralBroadcaster.shared.start()        (if enableZwiftBroadcast AND
+    │                                                    this device accepted the
+    │                                                    disclosure: BroadcasterDisclosure)
     └─ startTicker()  ─ 1 Hz incremental-backup loop
 
 Per tick (WorkoutRecorder.incrementalBackupTick):
@@ -1124,7 +1171,7 @@ Per tick (WorkoutRecorder.incrementalBackupTick):
     │     └─ weather (temp, apparent temp, wind, humidity, conditions)
     ├─ watchBridge.sendLiveState(...)                   (Watch complication)
     ├─ ZwiftPeripheralBroadcaster.shared.update(heartRate:powerWatts:)
-    │     (only when enableZwiftBroadcast; broadcasts HRS+CPS to Zwift et al.)
+    │     (only while advertising; broadcasts HRS+CPS to Zwift et al.)
     ├─ voiceCoach.tick(context: WorkoutAIContext)       (rule engine)
     │     WorkoutTriggerEngine.evaluate()
     │     ├─ α1 below AeT rule
@@ -1138,7 +1185,10 @@ Per tick (WorkoutRecorder.incrementalBackupTick):
     │     ├─ user.threshold.breach rule (fires when any threshold's
     │     │     breach counter ≥ debounceSec, respects cooldownSec)
     │     └─ Strap dropped rule
-    │     Fired events dispatched to TTS / haptics, ≥ 10-min cooldowns.
+    │     Fired events dispatched, ≥ 10-min cooldowns: a .haptic or urgent
+    │     event plays the alert haptic on the phone and the Watch
+    │     (sendCoachAlertHaptic); a .spoken one, or an urgent .haptic one,
+    │     is spoken. During an AI voice turn a routine line is not spoken.
     ├─ TurnAlertEngine.evaluate() / TurnMarkerEngine.evaluate()
     │     Tier-3 route awareness layer. Requires an active
     │     ActiveRouteSession AND user toggles (enableTurnByTurnAlerts /
@@ -1167,7 +1217,8 @@ Per tick (WorkoutRecorder.incrementalBackupTick):
     └─ intervalController.tick(totalDistanceMeters:)    (structured plan)
 
 User taps Stop → WorkoutRecorder.stop():
-  ┌─ Snapshot polarManager.streamedRRPoints (RR points)
+  ┌─ An open pause is closed at the stop time (saved in pauseSpans)
+  ├─ Snapshot polarManager.streamedRRPoints (RR points)
   ├─ NOTE: we do NOT stopStreaming() yet; HRR Tier-1 needs the strap
   │         still broadcasting for the next 120 s.
   ├─ location.stopTracking(), pedometer.stop(), watchBridge.stop()
@@ -1461,7 +1512,8 @@ trimmed = text.trimmingCharacters(.whitespacesAndNewlines)
   ├─ empty                         → .rejectedEmpty
   ├─ Flo off / notice not accepted → .rejectedNoProvider
   ├─ medical guard fires           → local answer, .dispatched
-  └─ active provider unavailable   → errorMessage, .rejectedNoProvider
+  └─ active provider can't take a turn (ProviderRegistry.canSend: no key,
+     Apple unavailable, or switched off) → errorMessage, .rejectedNoProvider
   ↓
 [fast path, voice only, no stream in flight]
 servedDeterministically(trimmed) → DeterministicIntent.tryMatch(trimmed, ctx) → String?
@@ -1606,9 +1658,13 @@ AppleFoundationProvider.runStream(...)
       conversationLength: compactedMsgs.count
   )
    • fresh if: cache empty, instructions changed, tool-hash changed,
-                turnsSinceCreation >= 20, conversationLength <= 1, or the
+                turnsSinceCreation >= 20, conversationLength <= 1, the
                 session's running token estimate + next turn would not
-                fit the 4 K window
+                fit the 4 K window, or the exchange before the new
+                question is not the one the session last answered, word
+                for word (AppleExchange: another provider answered it, it
+                was regenerated, or the reply was rewritten after it was
+                generated)
    • on hit  : reuse session, send only latest user turn
    • on miss : create LanguageModelSession(tools: appleTools, instructions:),
                 send full compacted transcript
@@ -1670,6 +1726,8 @@ provider.send(messages, model, contextRendered, systemPrompt, tools, toolRounds)
           factValue = registry.resolveTool(name, argsJSON)
           continuation.append(tool_result, content: factValue.toToolResultJSON())
       stream next round
+  a fallbackable failure after a mutating tool ran this turn
+  (mutatingToolNames) → PickedModelFailure: shown, not handed to a fallback
   ↓
 [stream loop]
   for try await event in stream:
