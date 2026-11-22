@@ -608,13 +608,13 @@
    "does": "Builds {ok:false, errorCode: refusal.rawValue, error: refusal.phoneText(sport:)}.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Transport.swift::func WatchControlRefusal.phoneText(sport:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchControlRefusal.phoneText(sport:)": "e3f4efb247943cfd"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Transport.swift::func WatchControlRefusal.phoneText(sport:)": "e3f4efb247943cfd"
    }
   },
   {
@@ -847,7 +847,7 @@
    "entry": null,
    "calls": [
     "ext:WCSession.sendMessage",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.transferLatestUserInfo(_:on:)"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Transport.swift::func WatchConnectivityBridge.transferLatestUserInfo(_:on:)"
    ],
    "reads": [],
    "writes": [
@@ -871,23 +871,24 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.transferLatestUserInfo(_:on:)": "f576289459eed74f"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Transport.swift::func WatchConnectivityBridge.transferLatestUserInfo(_:on:)": "5e2282d2c0cf5298"
    }
   },
   {
    "key": "func WatchConnectivityBridge.sendCoachAlertHaptic(urgent:)",
-   "hash": "1fbf734095863ee3",
-   "does": "Asks the Watch to play a coach alert's wrist haptic: when WC is supported, activated, paired and the Watch app installed, builds a coachAlert message with `urgent` and `firedAt` (now, seconds since 1970) and sends it once — sendMessage when reachable, falling back to one transferUserInfo when that send fails; transferUserInfo alone when unreachable. The Watch drops a delivery that lands long after firedAt.",
+   "hash": "58330e63f7565712",
+   "does": "Asks the Watch to play a coach alert's wrist haptic: when WC is supported, activated, paired and the Watch app installed, builds a coachAlert message with `urgent` and `firedAt` (now, seconds since 1970) and sends it once — sendMessage when reachable, falling back to one queued transfer when that send fails; the queued transfer alone when unreachable. The queued transfer goes through transferLatestUserInfo, which cancels a coach alert still queued, so at most the newest alert waits for the Watch. The Watch drops a delivery that lands long after firedAt.",
    "entry": "Called by WorkoutVoiceCoach's default alert-haptic closure (WorkoutVoiceCoach.dispatch(event:)).",
    "calls": [
-    "ext:WCSession.sendMessage",
-    "ext:WCSession.transferUserInfo"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Transport.swift::func WatchConnectivityBridge.transferLatestUserInfo(_:on:)",
+    "ext:WCSession.sendMessage"
    ],
    "reads": [
     "ext:WCSession activationState / isPaired / isWatchAppInstalled / isReachable"
    ],
    "writes": [
-    "wc:coachAlert (type, urgent, firedAt)"
+    "wc:coachAlert (type, urgent, firedAt)",
+    "wc:outstandingUserInfoTransfers (a queued coachAlert cancelled)"
    ],
    "branches": [
     {
@@ -901,12 +902,14 @@
      "effect": "returns; no haptic is sent"
     },
     {
-     "at": "+10",
+     "at": "+9",
      "cond": "Watch not reachable",
-     "effect": "transferUserInfo, return; else sendMessage whose error handler queues transferUserInfo"
+     "effect": "transferLatestUserInfo, return; else sendMessage whose error handler queues it with transferLatestUserInfo"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Transport.swift::func WatchConnectivityBridge.transferLatestUserInfo(_:on:)": "5e2282d2c0cf5298"
+   }
   },
   {
    "key": "func WatchConnectivityBridge.plistData(_:)",

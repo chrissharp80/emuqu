@@ -206,12 +206,23 @@ enum EntitlementAnchor {
     // MARK: - Public API
 
     /// Fast, synchronous read of the UserDefaults cache only — no keychain
-    /// round trip. Every reader of the anchor goes through it. The launch
-    /// path does make one keychain pass before the gate reads it, the
-    /// history check (`recordHistoryCheck`), because a beta tester restored
-    /// onto a new phone carries the status only in the keychain; every other
-    /// keychain pass runs off the main actor (`StoreKitManager.boot`).
-    /// Callers that need the authoritative answer use `resolve(wallClock:)`.
+    /// round trip. Every reader of the anchor goes through it. Callers that
+    /// need the authoritative answer use `resolve(wallClock:)`.
+    ///
+    /// Each update (`update`) reads and writes the keychain. The one that
+    /// runs at every launch, the reconcile (`resolve`), runs off the main
+    /// actor (`StoreKitManager.boot`). These run on the main actor:
+    /// - before the launch gate reads the anchor, the history check
+    ///   (`recordHistoryCheck`, every non-Debug launch), because a beta
+    ///   tester restored onto a new phone carries the status only in the
+    ///   keychain, and the legacy TestFlight migration (`recordBetaTester`,
+    ///   only while the legacy flag is set and the anchor does not yet say
+    ///   beta tester);
+    /// - a trial start, the App Store's after a purchase
+    ///   (`recordStoreTrialStart`) or one adopted from the synced settings
+    ///   (`adoptTrialStart`).
+    /// Updates take turns (`updateLock`), so a main-actor update that comes
+    /// while the background reconcile runs waits for its keychain pass.
     static func cached() -> Record {
         readDefaults().storedRecord ?? .empty
     }
@@ -332,9 +343,10 @@ enum EntitlementAnchor {
     /// `change` and the result after it.
     ///
     /// One update at a time (`updateLock`): the background resolve and a
-    /// main-actor update (a trial start, the history check) each read, merge
-    /// and write every tier, and interleaved, the later write put back what
-    /// the other had replaced.
+    /// main-actor update (a trial start, the history check, the legacy
+    /// TestFlight migration) each read, merge and write every tier, and
+    /// interleaved, the later write put back what the other had replaced.
+    /// A main-actor update therefore waits while the resolve holds the lock.
     @discardableResult
     private static func update(wallClock: Date, _ change: (Record) -> Record) -> (resolved: Record, updated: Record) {
         updateLock.lock()
