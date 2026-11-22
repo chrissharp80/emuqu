@@ -1,10 +1,10 @@
 {
  "file": "Emuqu/Sources/Analysis/Verification.swift",
- "hash": "37e6948fc6bf3e53",
+ "hash": "f043663e38a43d3c",
  "role": "Verification: per-session data-quality report (point count, duration, max gap, RR drift, artifact %, ectopy %, out-of-range %) producing pass/fail (RR drift only ever warns), rejection reasons, localized errors/warnings and metrics. A report, not a gate: analysis runs regardless; the result is stored on SessionState.verificationResult for the record view's badge and its summary goes to the diagnostic log.",
  "types": [
   "Verification: struct — verifier with Config",
-  "Verification.RejectionReason: enum String Codable — the seven failure modes the checks produce",
+  "Verification.RejectionReason: enum String Codable — seven cases; the checks produce six of them (excessiveDrift is no longer produced and is kept so stored results still decode)",
   "Verification.Result: struct Codable",
   "Verification.Metrics: struct Codable",
   "Verification.Config: struct — thresholds (default, strict)",
