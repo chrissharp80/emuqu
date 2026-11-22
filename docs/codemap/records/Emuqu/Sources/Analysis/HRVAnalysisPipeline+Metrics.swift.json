@@ -69,6 +69,23 @@
    }
   },
   {
+   "key": "func HRVAnalysisPipeline.cleanBeatTimes(series:flags:windowStart:windowEnd:)",
+   "hash": "3e269866fb984839",
+   "does": "The start time in seconds on the session clock (t_ms / 1000) of each non-artifact beat in windowStart..<windowEnd, parallel to extractCleanRRs.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+6",
+     "cond": "beat flagged as an artifact",
+     "effect": "left out"
+    }
+   ],
+   "deps": {}
+  },
+  {
    "key": "func HRVAnalysisPipeline.computeTimeDomain(series:flags:start:end:)",
    "hash": "75e94775d52d60ae",
    "does": "Delegates to TimeDomainAnalyzer.computeTimeDomain.",
@@ -95,7 +112,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)": "ddb723904f5b5a39"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)": "1179a6bd23d3077b"
    }
   },
   {
@@ -146,8 +163,8 @@
   },
   {
    "key": "func HRVAnalysisPipeline.computeANSMetrics(series:flags:windowStart:windowEnd:timeDomain:nonlinear:daytimeRestingHR:config:)",
-   "hash": "ad291f5d16d1a6cf",
-   "does": "Assembles ANSMetrics: from the window's clean RR the Baevsky stress index, PNS index, SNS index (only when stress index exists), readiness score (config optional: none means no baseline) and respiration rate; from every clean beat of the series (as attachOvernightHRStats) the nocturnal median HR and the dip against daytime resting HR.",
+   "hash": "45bf0c227b7effc1",
+   "does": "Assembles ANSMetrics: from the window's clean RR the Baevsky stress index, PNS index, SNS index (only when stress index exists), readiness score (config optional: none means no baseline) and respiration rate, the latter timed by the clean beats' own session-clock times (cleanBeatTimes) so removed beats keep their time; from every clean beat of the series (as attachOvernightHRStats) the nocturnal median HR and the dip against daytime resting HR.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.extractCleanRRs(series:flags:windowStart:windowEnd:)",
@@ -156,18 +173,20 @@
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeSNSIndex(meanHR:stressIndex:sd2:)",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.readinessScore(timeDomain:nonlinear:pnsIndex:snsIndex:config:)",
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)",
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:beatTimes:fs:)",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.cleanBeatTimes(series:flags:windowStart:windowEnd:)",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalDip(daytimeRestingHR:nocturnalMedian:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.cleanBeatTimes(series:flags:windowStart:windowEnd:)": "b46f363aeef016b9",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.extractCleanRRs(series:flags:windowStart:windowEnd:)": "f80dc2891d57d84b",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalDip(daytimeRestingHR:nocturnalMedian:)": "3c778830b66b9a88",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.nocturnalMedianHR(from:)": "e8b3695acf042272",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline+Metrics.swift::func HRVAnalysisPipeline.readinessScore(timeDomain:nonlinear:pnsIndex:snsIndex:config:)": "bc17c9a723c713f4",
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e944405d115f7a98",
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:beatTimes:fs:)": "fad16c4a23cec6e3",
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computePNSIndex(meanRR:rmssd:sd1:)": "8ec7e57287d48b7b",
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeSNSIndex(meanHR:stressIndex:sd2:)": "9ea3043650467420",
     "Emuqu/Sources/Analysis/StressAnalysis.swift::func StressAnalyzer.computeStressIndex(_:)": "f347839814e54106"

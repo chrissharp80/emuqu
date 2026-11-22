@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Models/SessionMetadata.swift",
- "hash": "b651a34b1b238c3a",
- "role": "Core session data model: DeviceProvenance, SessionType, HRVDataQuality, HRVSession (40+ fields with hand-written Codable), and the lightweight SessionArchiveEntry index record.",
+ "hash": "8636ba25519a9642",
+ "role": "Core session data model: DeviceProvenance, SessionType, HRVDataQuality and HRVSession (40+ fields with hand-written Codable), the session's moving time (activeWorkoutSeconds), and the lenient enum-decoding helpers; the index record SessionArchiveEntry is in SessionMetadata+ArchiveEntry.swift.",
  "types": [
   "DeviceProvenance: struct — source device/firmware/mode/app+OS version",
   "DeviceProvenance.RecordingMode: enum — device_internal|streaming|imported; an unknown case decodes as .streaming",
@@ -12,18 +12,16 @@
   "HRVSession.SleepSegmentMs: struct",
   "HRVSession.SessionState: enum — collecting|analyzing|complete|paused|failed",
   "HRVSession.ImportedMetrics: struct",
-  "HRVSession.CodingKeys: enum; HRVSession.NestedCaseKey: private enum — recordingMode/boundarySource keys the schema check reads inside nested values",
-  "SessionArchiveEntry: struct — index row with mirrored metrics/sleep fields and the transient sourceSchemaVersion it was decoded with",
-  "SessionArchiveEntry.CodingKeys: enum",
+  "HRVSession.CodingKeys: enum; HRVSession.NestedCaseKey: private enum — recordingMode/boundarySource/factors/impact keys the schema check reads inside nested values",
+  "HRVSession: extension — activeWorkoutSeconds (moving time)",
   "KeyedDecodingContainer: extension — decodeKnown / decodeKnownIfPresent / holdsUnknownCase, lenient String-backed enum decoding"
  ],
  "state": [
   "mem:HRVSession.currentSchemaVersion = 1",
   "mem:HRVSession.healthKitExportRetryCeiling = 5",
-  "mem:SessionArchiveEntry.currentSchemaVersion = 1",
   "mem:HRVSession.ImportedMetrics.eliteHRVSource = \"Elite HRV\""
  ],
- "toplevel": "Static lets above; HRVSession and SessionArchiveEntry have custom init(from:)/encode(to:); DeviceProvenance, DataSourceSummary, SleepSegmentMs and ImportedMetrics use synthesized Codable. HRVSession.sourceSchemaVersion and SessionArchiveEntry.sourceSchemaVersion are transient (decoded, never encoded). The KeyedDecodingContainer extension at the end gives both decoders (and SleepStageInterval's) lenient enum reads.",
+ "toplevel": "Static lets above; HRVSession has a custom init(from:)/encode(to:); DeviceProvenance, DataSourceSummary, SleepSegmentMs and ImportedMetrics use synthesized Codable. HRVSession.sourceSchemaVersion is transient (decoded, never encoded). The KeyedDecodingContainer extension at the end gives HRVSession's, SessionArchiveEntry's and SleepStageInterval's decoders lenient enum reads.",
  "units": [
   {
    "key": "init DeviceProvenance.RecordingMode(from:)",
@@ -331,8 +329,8 @@
   },
   {
    "key": "init HRVSession(from:)",
-   "hash": "d2769546b81b8735",
-   "does": "Decodes an HRVSession: required id/startDate/state, sessionType defaulting to .overnight, tags to [], sourceSchemaVersion from payloadSchemaVersion (stated version, or newer than this build when an enum case is unknown), skips rrSeries when decoder.userInfo[.skipRRSeries]==true, reads SessionState/SessionType/HRVDataQuality leniently (unknown case → .complete / .quick / .insufficient), marks a legacy Elite HRV import's analysis (analysisResult.withLegacyImportProvenance(source: importedMetrics?.source): estimated metrics named, fabricated ANS metrics dropped) and drops such a session's recoveryScore, frozenReadiness and scoreBreakdown (an RMSSD-made readiness, never a score the app computed), migrates trainingSnapshot from analysisResult.trainingContext, validates perceivedReadiness, decodes morningFeelingTags via MorningFeelingTagArray; any other field's decode error throws.",
+   "hash": "b816cc234d1db03c",
+   "does": "Decodes an HRVSession: required id/startDate/state, sessionType defaulting to .overnight, tags to [], sourceSchemaVersion from payloadSchemaVersion (stated version, or newer than this build when an enum case is unknown) and raised to newer than this build too when a decoded artifact flag holds an unknown type (ArtifactFlags.holdsUnknownType), skips rrSeries when decoder.userInfo[.skipRRSeries]==true, reads SessionState/SessionType/HRVDataQuality leniently (unknown case → .complete / .quick / .insufficient), marks a legacy Elite HRV import's analysis (analysisResult.withLegacyImportProvenance(source: importedMetrics?.source): estimated metrics named, fabricated ANS metrics dropped) and drops such a session's recoveryScore, frozenReadiness and scoreBreakdown (an RMSSD-made readiness, never a score the app computed), migrates trainingSnapshot from analysisResult.trainingContext, validates perceivedReadiness, decodes morningFeelingTags via MorningFeelingTagArray; any other field's decode error throws.",
    "entry": "Decodable synthesis use by JSONDecoder in SessionArchive/CloudKit paths",
    "calls": [
     "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.payloadSchemaVersion(in:)",
@@ -367,27 +365,32 @@
      "effect": "true: rrSeries nil (lightweight decode via SessionArchive.lightweightSessionDecoder); false: decodes rrSeries"
     },
     {
-     "at": "+20",
+     "at": "+18",
+     "cond": "an artifact flag holds an unknown type",
+     "effect": "sourceSchemaVersion raised to at least currentSchemaVersion+1"
+    },
+    {
+     "at": "+23",
      "cond": "tags absent ?? []",
      "effect": "empty tags"
     },
     {
-     "at": "+25",
+     "at": "+28",
      "cond": "analysisResult nil (?.) / isLegacyEliteImport",
      "effect": "nothing to mark; a legacy Elite result is remembered, gains estimatedMetrics and loses ansMetrics"
     },
     {
-     "at": "+41",
+     "at": "+45",
      "cond": "trainingSnapshot absent ?? analysisResult?.trainingContext",
      "effect": "legacy sessions take training context from the analysis result"
     },
     {
-     "at": "+48",
+     "at": "+51",
      "cond": "hrvDataQuality unknown",
      "effect": ".insufficient (excluded from HRV aggregates)"
     },
     {
-     "at": "+51",
+     "at": "+54",
      "cond": "isLegacyEliteImport",
      "effect": "recoveryScore, frozenReadiness and scoreBreakdown set to nil"
     }
@@ -396,7 +399,7 @@
     "Emuqu/Sources/Models/MorningFeelingTag.swift::init MorningFeelingTagArray(from:)": "bc02b75234c663d6",
     "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isLegacyEliteImport(source:)": "41bb01e173ce8025",
     "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.withLegacyImportProvenance(source:)": "cc64885d0b69f322",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.payloadSchemaVersion(in:)": "2744f9593e81a313",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.payloadSchemaVersion(in:)": "19ef39043a0484b6",
     "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.validPerceivedReadiness(_:)": "05392db9102760f0",
     "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnown(_:forKey:unknown:)": "5f530a3867203acd",
     "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnownIfPresent(_:forKey:unknown:)": "4f735db783adbd32"
@@ -404,23 +407,25 @@
   },
   {
    "key": "func HRVSession.payloadSchemaVersion(in:)",
-   "hash": "6902d45308aadee1",
-   "does": "Reads the payload's schemaVersion (0 when absent); when state, sessionType or hrvDataQuality, or deviceProvenance.recordingMode or sleepSnapshot.boundarySource, holds a case this build does not know, returns max(stated, currentSchemaVersion + 1) so the session reads as newer-format and SessionArchive refuses to re-write the lossy decode.",
+   "hash": "8b38e6686399655d",
+   "does": "Reads the payload's schemaVersion (0 when absent); when state, sessionType or hrvDataQuality, or deviceProvenance.recordingMode or sleepSnapshot.boundarySource, or the impact of a scoreBreakdown factor (breakdownHoldsUnknownImpact), holds a case this build does not know, returns max(stated, currentSchemaVersion + 1) so the session reads as newer-format and SessionArchive refuses to re-write the lossy decode.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.holdsUnknownCase(_:forKey:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.nestedHoldsUnknownCase(_:in:field:of:)"
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.nestedHoldsUnknownCase(_:in:field:of:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.breakdownHoldsUnknownImpact(in:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+11",
+     "at": "+8",
      "cond": "an unknown enum case was found",
      "effect": "newer than this build; otherwise the stated version"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.breakdownHoldsUnknownImpact(in:)": "777020b5584d70fc",
     "Emuqu/Sources/Models/SessionMetadata.swift::func HRVSession.nestedHoldsUnknownCase(_:in:field:of:)": "f2f99e53bab48aee",
     "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.holdsUnknownCase(_:forKey:)": "d9a7b18c284cc9ca"
    }
@@ -441,6 +446,37 @@
      "at": "+3",
      "cond": "key absent or null",
      "effect": "false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.holdsUnknownCase(_:forKey:)": "d9a7b18c284cc9ca"
+   }
+  },
+  {
+   "key": "func HRVSession.breakdownHoldsUnknownImpact(in:)",
+   "hash": "55683c95ef0b1b1b",
+   "does": "Walks the stored scoreBreakdown's factors array and returns true at the first factor whose impact string is not a ScoreFactor.Impact case; false when there is no breakdown or no factors (absent or null). Throws when the breakdown or a factor is not an object.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.holdsUnknownCase(_:forKey:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no breakdown or null",
+     "effect": "false"
+    },
+    {
+     "at": "+3",
+     "cond": "no factors or null",
+     "effect": "false"
+    },
+    {
+     "at": "+7",
+     "cond": "a factor's impact is unknown",
+     "effect": "true"
     }
    ],
    "deps": {
@@ -617,171 +653,32 @@
    "deps": {}
   },
   {
-   "key": "var SessionArchiveEntry.displayDate",
-   "hash": "a0aaa768cffea12d",
-   "does": "History display date: for overnight sessions sleepEnd, else endDate; otherwise (or when both nil) start date.",
+   "key": "var HRVSession.activeWorkoutSeconds",
+   "hash": "2fb869bd74c51267",
+   "does": "The workout's moving time in seconds: workoutMetadata.movingSeconds(wallClockDuration: duration) (the last per-second sample's offset, else the duration less the recorded pauses) when the session has workout metadata; otherwise the duration when positive; nil when neither is known.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.movingSeconds(wallClockDuration:)",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "sessionType == .overnight",
-     "effect": "false → date"
+     "cond": "workout metadata present",
+     "effect": "its movingSeconds"
     },
     {
      "at": "+2",
-     "cond": "sleepEnd non-nil",
-     "effect": "returns sleepEnd"
-    },
-    {
-     "at": "+3",
-     "cond": "endDate non-nil",
-     "effect": "returns endDate; else falls through to date"
-    }
-   ],
-   "deps": {}
-  },
-  {
-   "key": "var SessionArchiveEntry.isReliableForHRVAggregates",
-   "hash": "ae4fed21d70b9389",
-   "does": "Index-side mirror of HRVSession.isReliableForHRVAggregates through the same HRVDataQuality.allowsHRVAggregates rule.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVDataQuality.allowsHRVAggregates(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::func HRVDataQuality.allowsHRVAggregates(_:)": "e3b8279aa42f24f4"
-   }
-  },
-  {
-   "key": "init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)",
-   "hash": "4cf151b500fc95ea",
-   "does": "Memberwise initializer for all 23 SessionArchiveEntry fields.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "7126e79a187bd556",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423"
-   }
-  },
-  {
-   "key": "init SessionArchiveEntry(from:)",
-   "hash": "e54d209c2304387d",
-   "does": "Decodes an index entry; sourceSchemaVersion from entrySchemaVersion (schemaVersion, 0 when absent, or newer than this build when sessionType or hrvDataQuality holds an unknown case); sessionType defaults to .overnight (an unknown case reads as .quick), tags to []; hrvDataQuality reads an unknown case as .insufficient; other optional fields nil when absent; wrong types throw.",
-   "entry": "Decodable use by SessionArchive.loadIndex (Archive+IndexIO.swift:129)",
-   "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::func SessionArchiveEntry.entrySchemaVersion(in:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnownIfPresent(_:forKey:unknown:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+13",
-     "cond": "tags absent ?? []",
-     "effect": "empty"
-    },
-    {
-     "at": "+16",
-     "cond": "sessionType absent / unknown",
-     "effect": "absent → .overnight; unknown → .quick"
-    },
-    {
-     "at": "+27",
-     "cond": "hrvDataQuality unknown",
-     "effect": ".insufficient"
+     "cond": "no positive duration",
+     "effect": "nil; else the duration"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.decodeKnownIfPresent(_:forKey:unknown:)": "4f735db783adbd32",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func SessionArchiveEntry.entrySchemaVersion(in:)": "c2fcb26bd21a3768",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "7126e79a187bd556",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "1c67a4466d2d6f0e",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.movingSeconds(wallClockDuration:)": "7ba0583eb19458f3"
    }
-  },
-  {
-   "key": "func SessionArchiveEntry.entrySchemaVersion(in:)",
-   "hash": "692e4ed0e78e5043",
-   "does": "The entry's schemaVersion (0 when absent), or max(stated, currentSchemaVersion + 1) when sessionType or hrvDataQuality holds a case this build does not know, so the index writes the entry back as it was read instead of the lossy decode.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.holdsUnknownCase(_:forKey:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "an unknown case",
-     "effect": "newer than this build; otherwise the stated version"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::func KeyedDecodingContainer.holdsUnknownCase(_:forKey:)": "d9a7b18c284cc9ca"
-   }
-  },
-  {
-   "key": "func SessionArchiveEntry.encode(to:)",
-   "hash": "b8abe85b0c6cbf01",
-   "does": "Encodes the entry via three group encoders.",
-   "entry": "Encodable use by SessionArchive.saveIndex",
-   "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::func SessionArchiveEntry.encodeIdentity(into:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func SessionArchiveEntry.encodeMetrics(into:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func SessionArchiveEntry.encodeSleepSummary(into:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::func SessionArchiveEntry.encodeIdentity(into:)": "abf6f5ae9df36966",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func SessionArchiveEntry.encodeMetrics(into:)": "e56d7e65150e95b1",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func SessionArchiveEntry.encodeSleepSummary(into:)": "ff010ba084eeed50"
-   }
-  },
-  {
-   "key": "func SessionArchiveEntry.encodeIdentity(into:)",
-   "hash": "92b4698fbff264c3",
-   "does": "Writes schemaVersion=1, sessionId, date, endDate, fileHash, filePath.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {}
-  },
-  {
-   "key": "func SessionArchiveEntry.encodeMetrics(into:)",
-   "hash": "0147b985da30b00a",
-   "does": "Writes recoveryScore, meanRMSSD, meanHR, stressIndex, meanSDNN, tags, notes.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "7126e79a187bd556",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423"
-   }
-  },
-  {
-   "key": "func SessionArchiveEntry.encodeSleepSummary(into:)",
-   "hash": "66d764287507bea5",
-   "does": "Writes sessionType, linked ids, sleepEnd, segment count, stage minutes, nocturnal dip, hrvDataQuality, modifiedAt.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {}
   },
   {
    "key": "func KeyedDecodingContainer.decodeKnown(_:forKey:unknown:)",

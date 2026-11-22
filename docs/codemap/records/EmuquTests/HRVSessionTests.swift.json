@@ -330,9 +330,9 @@
    "does": "Round-trips a SessionArchiveEntry through ISO8601 JSON and asserts id, recoveryScore 8, meanRMSSD 45 and type .overnight survive.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func SessionArchiveEntry.encode(to:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(from:)"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::func SessionArchiveEntry.encode(to:)",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(from:)"
    ],
    "reads": [],
    "writes": [],
@@ -340,9 +340,10 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
-    "Emuqu/Sources/Models/SessionMetadata.swift::func SessionArchiveEntry.encode(to:)": "c70379e32a76e7ad",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(from:)": "3a580e4117024fad",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)": "a8931f1f0477a31d"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::func SessionArchiveEntry.encode(to:)": "c70379e32a76e7ad",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(from:)": "63cfbee8fbd51a33",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)": "a8931f1f0477a31d",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
    }
   },
   {
@@ -351,15 +352,15 @@
    "does": "Asserts SessionArchiveEntry.displayDate is endDate for overnights and startDate for naps.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.displayDate"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)": "a8931f1f0477a31d",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.displayDate": "754c8c3bf69f57cc"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(sessionId:date:endDate:fileHash:filePath:recoveryScore:meanRMSSD:meanHR:stressIndex:meanSDNN:tags:notes:sessionType:linkedSessionIds:sleepEnd:sleepSegmentCount:deepSleepMinutes:remSleepMinutes:coreSleepMinutes:awakeMinutes:nocturnalDipPercent:hrvDataQuality:modifiedAt:)": "a8931f1f0477a31d",
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.displayDate": "754c8c3bf69f57cc"
    }
   },
   {
@@ -368,7 +369,7 @@
    "does": "Decodes legacy SessionArchiveEntry JSON (no type/tags/score) and asserts defaults .overnight, empty tags, nil recoveryScore.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(from:)"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(from:)"
    ],
    "reads": [],
    "writes": [],
@@ -376,7 +377,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init SessionArchiveEntry(from:)": "3a580e4117024fad"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::init SessionArchiveEntry(from:)": "63cfbee8fbd51a33"
    }
   },
   {
@@ -459,7 +460,7 @@
     "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.withLegacyImportProvenance(source:)": "cc64885d0b69f322",
     "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredPNN50": "afa703aacc2a5146",
     "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "1fac8fed8eddf554",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "9b1e36ffcc006241",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "48d7ca8eb570c1af",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423",
     "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.importedSession(source:result:)": "8be0fa8b82f795d7",
     "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.roundTrip(_:)": "603c1a5c5332375b",
@@ -502,7 +503,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.withLegacyImportProvenance(source:)": "cc64885d0b69f322",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "9b1e36ffcc006241",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "48d7ca8eb570c1af",
     "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.importedSession(source:result:)": "8be0fa8b82f795d7",
     "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.roundTrip(_:)": "603c1a5c5332375b",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.legacyEliteImportResult(beats:minHR:maxHR:)": "84963dca14540033"
@@ -525,7 +526,7 @@
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.ansMetrics(session:series:flags:start:end:domains:config:)": "57a5b2e29ce6e24f",
     "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.withLegacyImportProvenance(source:)": "cc64885d0b69f322",
     "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "1fac8fed8eddf554",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "9b1e36ffcc006241",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "48d7ca8eb570c1af",
     "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.importedSession(source:result:)": "8be0fa8b82f795d7",
     "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.roundTrip(_:)": "603c1a5c5332375b",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "aef292316c7c5c6f"
@@ -547,7 +548,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isLegacyEliteImport(source:)": "41bb01e173ce8025",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "9b1e36ffcc006241",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "48d7ca8eb570c1af",
     "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.importedSession(source:result:)": "8be0fa8b82f795d7",
     "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.roundTrip(_:)": "603c1a5c5332375b",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.legacyEliteImportResult(beats:minHR:maxHR:)": "84963dca14540033"
@@ -569,7 +570,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.isLegacyEliteImport(source:)": "41bb01e173ce8025",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "9b1e36ffcc006241",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "48d7ca8eb570c1af",
     "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.importedSession(source:result:)": "8be0fa8b82f795d7",
     "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.roundTrip(_:)": "603c1a5c5332375b",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.analysisResult()": "aef292316c7c5c6f"
@@ -593,7 +594,7 @@
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.withLegacyImportProvenance(source:)": "cc64885d0b69f322",
     "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "1fac8fed8eddf554",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "9b1e36ffcc006241",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "48d7ca8eb570c1af",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423",
     "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.importedSession(source:result:)": "8be0fa8b82f795d7",
     "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.roundTrip(_:)": "603c1a5c5332375b",
@@ -618,7 +619,7 @@
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::func HRVAnalysisResult.withLegacyImportProvenance(source:)": "cc64885d0b69f322",
     "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.measuredSDNN": "1fac8fed8eddf554",
-    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "9b1e36ffcc006241",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(from:)": "48d7ca8eb570c1af",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.stressIndex": "cd535f50216e8423",
     "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.importedSession(source:result:)": "8be0fa8b82f795d7",
     "EmuquTests/HRVSessionTests.swift::func HRVSessionTests.roundTrip(_:)": "603c1a5c5332375b",

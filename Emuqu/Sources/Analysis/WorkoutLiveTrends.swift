@@ -320,18 +320,6 @@ struct WorkoutZoneBreakdown: Equatable {
     }
 }
 
-extension HRVSession {
-    /// The workout's moving time in seconds: its wall-clock duration less
-    /// the pauses it recorded (`WorkoutMetadata.pauseSpans`). Pace
-    /// comparisons and race predictions read this, so a coffee stop mid-run
-    /// is not counted as running. Nil without a duration.
-    var activeWorkoutSeconds: Double? {
-        guard let duration, duration > 0 else { return nil }
-        let paused = workoutMetadata?.pauseSpans?.reduce(0.0) { $0 + $1.seconds } ?? 0
-        return max(duration - paused, 0)
-    }
-}
-
 /// Riegel race-time predictions. Given one of the user's efforts at
 /// one distance, predict their time at another using
 /// `T2 = T1 × (D2 / D1)^1.06`. The 1.06 exponent is the commonly-used

@@ -60,8 +60,10 @@ enum RecoveryScoreCalculator {
             case positive, neutral, negative
 
             /// An impact a newer build added reads as `.neutral` instead of
-            /// failing the breakdown and the session holding it; the next
-            /// re-score writes it again.
+            /// failing the breakdown and the session holding it. The session
+            /// then reads as newer than this build
+            /// (`HRVSession.sourceSchemaVersion`), so the archive refuses a
+            /// re-save that would write `.neutral` over it.
             init(from decoder: Decoder) throws {
                 let raw = try decoder.singleValueContainer().decode(String.self)
                 self = Impact(rawValue: raw) ?? .neutral

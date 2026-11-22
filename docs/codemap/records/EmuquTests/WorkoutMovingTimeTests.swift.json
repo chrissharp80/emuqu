@@ -57,6 +57,28 @@
    }
   },
   {
+   "key": "func WorkoutMovingTimeTests.testOneMovingTimeForEveryReader()",
+   "hash": "06c9718c49ee05ea",
+   "does": "A 60-minute 6 km run with a 20-minute stop: asserts activeWorkoutSeconds equals movingSeconds(wallClockDuration:) (2400), the history baseline pace is 400 s/km, and without workout metadata the duration (3600) is the moving time.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/WorkoutMovingTimeTests.swift::func WorkoutMovingTimeTests.runWithStop()",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.activeWorkoutSeconds",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.movingSeconds(wallClockDuration:)",
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutHistoryBaselines.compute(from:sport:limit:)": "5d7b3f88af576812",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.activeWorkoutSeconds": "a956dd2ca4347410",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.movingSeconds(wallClockDuration:)": "7ba0583eb19458f3",
+    "EmuquTests/WorkoutMovingTimeTests.swift::func WorkoutMovingTimeTests.runWithStop()": "b517b975ad34955e"
+   }
+  },
+  {
    "key": "func WorkoutMovingTimeTests.testSplitsFromSamplesUseMovingTime()",
    "hash": "1b5a197c22e7466d",
    "does": "Asserts six 1 km splits of 400 s and 400 s/km at 150 bpm, indexed 1–6.",

@@ -247,15 +247,8 @@ extension WorkoutPDFRenderer {
     /// Distance over moving time, so a stop mid-run does not slow the pace.
     func avgPaceString() -> String {
         guard let dist = report.session.workoutMetadata?.distanceMeters, dist > 100,
-              let dur = movingSeconds(), dur > 10 else { return "—" }
+              let dur = report.session.activeWorkoutSeconds, dur > 10 else { return "—" }
         return report.units.formatPace(elapsedSec: Int(dur), distanceMeters: dist) ?? "—"
-    }
-
-    /// The workout's moving seconds (`WorkoutMetadata.movingSeconds`), or the
-    /// wall-clock duration for a session without workout metadata.
-    func movingSeconds() -> Double? {
-        let session = report.session
-        return session.workoutMetadata?.movingSeconds(wallClockDuration: session.duration) ?? session.duration
     }
 
     func peakHRString() -> String {
@@ -268,7 +261,7 @@ extension WorkoutPDFRenderer {
     /// were recorded in; paused time burns nothing here.
     func calorieString() -> String {
         guard let samples = report.session.workoutMetadata?.samples,
-              let duration = movingSeconds() else { return "—" }
+              let duration = report.session.activeWorkoutSeconds else { return "—" }
         let mets = samples.compactMap(\.mets)
         guard !mets.isEmpty else { return "—" }
         let avgMETs = mets.reduce(0, +) / Double(mets.count)

@@ -66,7 +66,7 @@
    "calls": [
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDay(of:)",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDuration(_:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.isReliableForHRVAggregates"
    ],
    "reads": [],
    "writes": [],
@@ -76,7 +76,7 @@
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDay(of:)": "56a93496adff6b14",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDuration(_:)": "3b1791ac9b8ef920",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "b5f328ec30e3b34a"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "b5f328ec30e3b34a"
    }
   },
   {
@@ -159,7 +159,7 @@
    "calls": [
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDay(of:)",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDuration(_:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.isReliableForHRVAggregates"
    ],
    "reads": [],
    "writes": [],
@@ -175,7 +175,7 @@
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDay(of:)": "56a93496adff6b14",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.entryDuration(_:)": "3b1791ac9b8ef920",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "b5f328ec30e3b34a"
+    "Emuqu/Sources/Models/SessionMetadata+ArchiveEntry.swift::var SessionArchiveEntry.isReliableForHRVAggregates": "b5f328ec30e3b34a"
    }
   },
   {
@@ -296,6 +296,50 @@
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "9202ea99d230a550",
     "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.isDayCandidate(_:on:calendar:)": "c9099971de376132"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicy.oneOvernightPerNight(_:calendar:)",
+   "hash": "59cec28a89981e7f",
+   "does": "Keeps, of the overnights that land on the same day (nightDay), only the longest (duration; the first of equals), and every non-overnight session, in input order.",
+   "entry": "Called by TrendAnalyzer.filteredDataPoints and MetricBasedCauseDetector.detectIllnessPattern.",
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.nightDay(of:calendar:)",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "for each overnight",
+     "effect": "kept for its night unless one kept there is at least as long"
+    },
+    {
+     "at": "+8",
+     "cond": "non-overnight or the kept overnight of its night",
+     "effect": "kept; else dropped"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.duration(of:)": "9202ea99d230a550",
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.nightDay(of:calendar:)": "7259294a51f79088"
+   }
+  },
+  {
+   "key": "func DashboardSessionPolicy.nightDay(of:calendar:)",
+   "hash": "a6d7aac7b5dee032",
+   "does": "Start of the calendar day a session counts on: dayOf (an overnight's sleep end or wake time, else endDate ?? startDate).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/DashboardSessionPolicy.swift::func DashboardSessionPolicy.dayOf(_:)": "5e659817dff279d9"
    }
   },
   {

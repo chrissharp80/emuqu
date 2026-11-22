@@ -14,11 +14,28 @@
  "units": [
   {
    "key": "func RespirationAnalyzer.estimateRespirationRate(_:fs:)",
-   "hash": "39745895c2aaf5c0",
-   "does": "Estimates breaths/min from RR (ms): requires >=60 intervals and >=32 resampled points, gets the respiratory-band PSD peak when it is a breathing peak, returns peak*60 if within 6-40, else nil.",
+   "hash": "435870e7d5d2a59d",
+   "does": "Breaths/min from a gapless RR series (ms): times each beat by the sum of the intervals before it (cumulativeTimeAxis) and returns estimateRespirationRate(_:beatTimes:fs:).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.resampleRR(_:fs:)",
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.cumulativeTimeAxis(_:)",
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:beatTimes:fs:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.cumulativeTimeAxis(_:)": "4e6095ff2e1d8581",
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:beatTimes:fs:)": "fad16c4a23cec6e3"
+   }
+  },
+  {
+   "key": "func RespirationAnalyzer.estimateRespirationRate(_:beatTimes:fs:)",
+   "hash": "e63327f2da424c82",
+   "does": "Estimates breaths/min from RR (ms) at the given beat times (s): requires >=60 intervals with one time each and >=32 resampled points (resampleRR over those times, so a beat left out keeps its time and is interpolated across), gets the respiratory-band PSD peak when it is a breathing peak, returns peak*60 if within 6-40, else nil.",
+   "entry": "Called by HRVAnalysisPipeline.computeANSMetrics and estimateRespirationRate(_:fs:); tests call it directly.",
+   "calls": [
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.resampleRR(_:t:fs:)",
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.meanRemovedHannWindow(_:)",
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.powerSpectrum(_:)",
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.respiratoryPeakFrequency(psd:fs:fftN:)"
@@ -28,7 +45,7 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "rr.count >= 60",
+     "cond": "rr.count >= 60 and one time per interval",
      "effect": "false returns nil"
     },
     {
@@ -55,7 +72,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.meanRemovedHannWindow(_:)": "b149e89e209ea71f",
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.powerSpectrum(_:)": "ad569e81bc337c07",
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.resampleRR(_:fs:)": "8471ae7fa21e950a",
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.resampleRR(_:t:fs:)": "1ef3a85851e4ed0b",
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.respiratoryPeakFrequency(psd:fs:fftN:)": "aff704b13501e769"
    }
   },
@@ -129,13 +146,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.isBreathingPeak(psd:peakBin:band:freqRes:)": "3e7400a426a1bdcf"
+    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.isBreathingPeak(psd:peakBin:band:freqRes:)": "dee086d74f5472c5"
    }
   },
   {
    "key": "func RespirationAnalyzer.isBreathingPeak(psd:peakBin:band:freqRes:)",
-   "hash": "6d98252f20c81e48",
-   "does": "Whether the band's largest bin is breathing: the bins within ±peakHalfWidthHz (0.02 Hz, at least one bin) of it hold at least peakConcentrationMinimum (40 %) of the band's power, and it is at least peakHeightMinimum (5 %) of the strongest bin from 0.04 Hz to the band's top. Rejects white or 1/f noise (power spread over the band) and leakage from a slower rhythm (a band peak a millionth of the slow peak). Thresholds from synthetic five-minute windows: 95-100 % of breathing kept, 0-3 % of noise passed.",
+   "hash": "e36bc8ec19351886",
+   "does": "Whether the band's largest bin is breathing: the bins within ±peakHalfWidthHz (0.02 Hz, at least one bin) of it hold at least peakConcentrationMinimum (40 %) of the band's power, and it is at least peakHeightMinimum (5 %) of the strongest bin from 0.04 Hz up to the Nyquist frequency. Rejects white or 1/f noise (power spread over the band) and leakage from a slower or faster rhythm (breathing above 30/min leaves only its leakage in the band). Thresholds from synthetic five-minute windows: 95-100 % of breathing kept, 0-3 % of noise passed.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -143,19 +160,18 @@
    "branches": [
     {
      "at": "+6",
-     "cond": "near-peak power >= 40 % of band power AND peak >= 5 % of the strongest bin above 0.04 Hz",
+     "cond": "near-peak power >= 40 % of band power AND peak >= 5 % of the strongest bin from 0.04 Hz to Nyquist",
      "effect": "true; else false"
     }
    ],
    "deps": {}
   },
   {
-   "key": "func RespirationAnalyzer.resampleRR(_:fs:)",
-   "hash": "d1c7fde8d1dc807f",
-   "does": "Resamples RR onto a uniform fs grid by linear interpolation over cumulative beat times; returns rr unchanged when <4 intervals or <4 samples.",
+   "key": "func RespirationAnalyzer.resampleRR(_:t:fs:)",
+   "hash": "b0c338d5f10d212a",
+   "does": "Resamples RR onto a uniform fs grid by linear interpolation over the beat times `t`; returns rr unchanged when <4 intervals or <4 samples.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.cumulativeTimeAxis(_:)",
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.interpolated(_:t:at:index:)"
    ],
    "reads": [],
@@ -167,28 +183,27 @@
      "effect": "false returns rr as-is"
     },
     {
-     "at": "+3",
+     "at": "+2",
      "cond": "time axis has first and last",
-     "effect": "false returns rr (unreachable for non-empty)"
+     "effect": "false returns rr"
     },
     {
-     "at": "+5",
+     "at": "+4",
      "cond": "sampleCount >= 4",
      "effect": "false returns rr"
     },
     {
-     "at": "+8",
+     "at": "+7",
      "cond": "for each output sample",
      "effect": "interpolates value"
     },
     {
-     "at": "+11",
+     "at": "+10",
      "cond": "while next beat time < target",
      "effect": "advances beat index"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.cumulativeTimeAxis(_:)": "4e6095ff2e1d8581",
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.interpolated(_:t:at:index:)": "6d9406c451af12f3"
    }
   },

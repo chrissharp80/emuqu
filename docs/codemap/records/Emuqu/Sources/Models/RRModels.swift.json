@@ -1,12 +1,13 @@
 {
  "file": "Emuqu/Sources/Models/RRModels.swift",
- "hash": "af4297fadfed244b",
+ "hash": "335d491ff9cba4c1",
  "role": "Core RR-interval and HRV-result model types: the beat point/series with timing helpers, artifact flags, time/frequency/nonlinear/ANS metric structs, training-context snapshot, the persisted HRVAnalysisResult, and localisation of its stored English window classification/selection-reason strings.",
  "types": [
   "RRPoint: struct — one RR beat (t_ms cumulative start, rr_ms, optional wallClockMs and device HR), Codable/Equatable",
   "RRSeries: struct — ordered RRPoints + sessionId + startDate with duration, gap and time-conversion helpers",
-  "ArtifactFlags: struct — per-beat artifact classification (isArtifact, ArtifactType, confidence, corrected)",
+  "ArtifactFlags: struct — per-beat artifact classification (isArtifact, ArtifactType, confidence, corrected) and the transient holdsUnknownType mark",
   "ArtifactFlags.ArtifactType: enum — none/ectopic/missed/extra/technical",
+  "ArtifactFlags.CodingKeys: private enum — isArtifact, type, confidence, corrected (holdsUnknownType is not coded)",
   "TimeDomainMetrics: struct — meanRR, SDNN, RMSSD, pNN50, SDSD, HR stats (with hrRangeIsApproximate marking a mean ± SD stand-in range), triangular index; custom Codable with schemaVersion",
   "FrequencyDomainMetrics: struct — VLF/LF/HF/LF:HF/total power + normalized units",
   "NonlinearMetrics: struct — SD1/SD2, entropies, DFA α1/α2/R²",
@@ -438,8 +439,8 @@
   },
   {
    "key": "init ArtifactFlags(isArtifact:type:confidence:)",
-   "hash": "4b704c8ea225b99c",
-   "does": "Legacy ArtifactFlags init: sets isArtifact/type/confidence, corrected=false.",
+   "hash": "0b8b1776693cd94c",
+   "does": "Legacy ArtifactFlags init: sets isArtifact/type/confidence, corrected=false, holdsUnknownType=false.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -449,8 +450,8 @@
   },
   {
    "key": "init ArtifactFlags(isArtifact:type:confidence:corrected:)",
-   "hash": "c1f6e513084a017f",
-   "does": "Full ArtifactFlags init including corrected.",
+   "hash": "71e3ac51baa67bf3",
+   "does": "Full ArtifactFlags init including corrected; holdsUnknownType=false.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -460,13 +461,19 @@
   },
   {
    "key": "init ArtifactFlags(from:)",
-   "hash": "45990e9dcc279f1a",
-   "does": "Decodes isArtifact, confidence and corrected as stored, and type as a string read through ArtifactType(rawValue:): a type a newer build added reads as nil (unclassified) instead of failing the flag array and the session.",
+   "hash": "7090259863913183",
+   "does": "Decodes isArtifact, confidence and corrected as stored, and type as a string read through ArtifactType(rawValue:): a type a newer build added reads as nil (unclassified) instead of failing the flag array and the session, and sets holdsUnknownType (true only when a type string was stored and is not a known case).",
    "entry": null,
    "calls": [],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "a type string was stored and is not a known case",
+     "effect": "type nil, holdsUnknownType true"
+    }
+   ],
    "deps": {}
   },
   {

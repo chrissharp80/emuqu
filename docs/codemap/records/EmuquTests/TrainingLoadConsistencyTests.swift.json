@@ -1,6 +1,6 @@
 {
  "file": "EmuquTests/TrainingLoadConsistencyTests.swift",
- "hash": "745393a066fb0722",
+ "hash": "9cafef0cdd2fd734",
  "role": "XCTest suite pinning one day-load builder and one EWMA for the live training load and the Load & Trajectory series: HeartRateAnchors.resolve precedence, dailyLoad zero-fill/window/cap, exact EWMA step, live point(through:) equals replay every day, TrainingMetricsCache freshness (needsRebuild including a day change, LoadSettings, healthKitFingerprint), the sealed snapshot file, and a cache built entirely from fakes (archive, settings, snapshot file, seal).",
  "types": [
   "TrainingLoadConsistencyTests: class — XCTestCase over TrainingLoadSeries and TrainingMetricsCache freshness",
@@ -462,6 +462,52 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:dayChanged:reference:)": "6e100ea36811bb0d"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testAWorkoutQueryRefusedForAuthorizationReadsAsNoWorkouts()",
+   "hash": "6ebf66b3e0da8f65",
+   "does": "For errorAuthorizationNotDetermined and errorAuthorizationDenied asserts isUnauthorizedAnswer and that workoutSummaries(_:unlessFailed:) returns an empty array, not nil.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.isUnauthorizedAnswer(_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.workoutSummaries(_:unlessFailed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each authorization code",
+     "effect": "asserts"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.isUnauthorizedAnswer(_:)": "a24fc447d45ac02d",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.workoutSummaries(_:unlessFailed:)": "45f7f29414054334"
+   }
+  },
+  {
+   "key": "func TrainingLoadConsistencyTests.testAWorkoutQueryThatFailedOtherwiseStaysUnanswered()",
+   "hash": "be4e943076bd81a7",
+   "does": "Asserts errorDatabaseInaccessible and errorHealthDataUnavailable are not unauthorized answers and give nil, and that a Cocoa error with the not-determined code gives nil too.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.isUnauthorizedAnswer(_:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.workoutSummaries(_:unlessFailed:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each failure",
+     "effect": "asserts"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.isUnauthorizedAnswer(_:)": "a24fc447d45ac02d",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.workoutSummaries(_:unlessFailed:)": "45f7f29414054334"
    }
   }
  ],

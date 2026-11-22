@@ -1,9 +1,10 @@
 {
  "file": "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift",
- "hash": "a7e79a43fa1de514",
- "role": "Frequency-domain HRV: resamples clean RR to 4 Hz with a natural cubic spline, runs Welch PSD (256-sample Hann segments, 50% overlap, per-segment linear detrend) for LF/HF, a separate 1024-sample pass for VLF when the window is >=10 min, falls back to a single zero-padded periodogram for short signals, and integrates band powers. Also owns the process-wide vDSP DFT setup cache.",
+ "hash": "0ca12faa6e610593",
+ "role": "Frequency-domain HRV: resamples clean RR to 4 Hz with a natural cubic spline, runs Welch PSD (256-sample Hann segments, 50% overlap, per-segment linear detrend) for LF/HF, a separate 1024-sample pass for VLF when the window is >=10 min, falls back to a single zero-padded periodogram for short signals, and integrates band powers. A window with recording breaks is split into runs and no Welch segment spans a break. Also owns the process-wide vDSP DFT setup cache.",
  "types": [
   "FrequencyDomainAnalyzer: enum — namespace for spectral analysis and DFT-setup cache",
+  "FrequencyDomainAnalyzer.CleanRun: struct — clean beats (mid-beat times s, RR ms) between two recording breaks",
   "FrequencyDomainAnalyzer.SplineKnots: struct (private) — solved spline coefficients"
  ],
  "state": [
@@ -59,11 +60,12 @@
   },
   {
    "key": "func FrequencyDomainAnalyzer.computeFrequencyDomain(_:flags:windowStart:windowEnd:)",
-   "hash": "67fe96fba01b04c4",
-   "does": "Frequency metrics for series[windowStart..<windowEnd]: validates bounds against points and flags, needs >=120 points and >=60 non-artifact beats, then hands (beat midpoint seconds = (t_ms + rr/2)/1000, RR ms) pairs to computeFromCleanPairs.",
+   "hash": "85deef226a3af0f8",
+   "does": "Frequency metrics for series[windowStart..<windowEnd]: validates bounds against points and flags, needs >=120 points; collects the non-artifact beats into runs split at recording breaks (cleanRuns), needs >=60 clean beats in all, and hands the runs to computeFromCleanRuns.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.cleanRuns(_:flags:range:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanRuns(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -71,26 +73,155 @@
     {
      "at": "+10",
      "cond": "0 <= start <= end <= points.count && end <= flags.count",
-     "effect": "false: nil (stale/invalid window); true: slices"
+     "effect": "false: nil (stale/invalid window)"
+    },
+    {
+     "at": "+12",
+     "cond": "fewer than 120 points",
+     "effect": "nil"
     },
     {
      "at": "+14",
-     "cond": "windowPoints.count >= 120",
-     "effect": "false: nil; true: collects clean beats"
-    },
-    {
-     "at": "+17",
-     "cond": "for each point where !isArtifact",
-     "effect": "appends its midpoint time and RR; artifact beats dropped (spline bridges the gap)"
-    },
-    {
-     "at": "+21",
-     "cond": "clean beats >= 60",
-     "effect": "false: nil; true: computes"
+     "cond": "fewer than 60 clean beats",
+     "effect": "nil; else computeFromCleanRuns"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)": "4554c37c79ea0219"
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.cleanRuns(_:flags:range:)": "579053200512a21c",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanRuns(_:)": "b25107bab84f4212"
+   }
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.cleanRuns(_:flags:range:)",
+   "hash": "9210963b35a1422a",
+   "does": "The non-artifact beats of `range` as CleanRuns of (mid-beat seconds = (t_ms + rr/2)/1000, RR ms): a new run starts at the first kept beat and after every recording break (TimeDomainAnalyzer.beatsAfterRecordingBreak) between a kept beat and the previous kept one (spansBreak), also one falling on a removed beat.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.spansBreak(_:after:upTo:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "for each non-artifact beat",
+     "effect": "appended to the current run (artifact beats dropped; the spline bridges them inside a run)"
+    },
+    {
+     "at": "+6",
+     "cond": "first kept beat, or a break since the previous kept beat",
+     "effect": "starts a new run"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.spansBreak(_:after:upTo:)": "3f3326dbfbc316b2",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.beatsAfterRecordingBreak(in:range:)": "bad10396fbecce5a"
+   }
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.spansBreak(_:after:upTo:)",
+   "hash": "5561a2dd644c34fe",
+   "does": "Whether any index after `kept` up to `index` is in `breaks` (a beat that follows a recording break).",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.computeFromCleanRuns(_:)",
+   "hash": "02cda91b450aae09",
+   "does": "Metrics from clean beats split into runs at recording breaks. One run (or none) is computeFromCleanPairs on it. With more, each run is resampled on its own (centeredResample); LF/HF come from the Welch periodogram pooled over every 256-sample segment that fits inside a run (pooledWelchPSD); VLF from the 1024-sample segments pooled the same way, once the runs add up to vlfMinDuration; when no run holds a 256-sample segment, the longest run (>= 64 samples) alone goes through computePSD as one window.",
+   "entry": "Called by computeFrequencyDomain; tests call it directly.",
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.centeredResample(_:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.pooledWelchPSD(_:segLen:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.bandPowers(psd:fs:fftN:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.metrics(vlf:lf:hf:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "at most one run",
+     "effect": "computeFromCleanPairs on it (nil without one)"
+    },
+    {
+     "at": "+4",
+     "cond": "no run holds a 256-sample segment",
+     "effect": "the longest run as one window, or nil when it is under 64 samples"
+    },
+    {
+     "at": "+10",
+     "cond": "runs total >= vlfMinDuration",
+     "effect": "pooled 1024-sample VLF (nil when no run holds one); else VLF nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.bandPowers(psd:fs:fftN:)": "cf6fa552329ebdca",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.centeredResample(_:)": "bf9067ca2eb939df",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeFromCleanPairs(times:rrValues:)": "4554c37c79ea0219",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computePSD(signal:fs:segmentLength:usableWindowMin:)": "cf6258a520d687cc",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.metrics(vlf:lf:hf:)": "c3c93382ad34146a",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.pooledWelchPSD(_:segLen:)": "d463af31f0a08986"
+   }
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.centeredResample(_:)",
+   "hash": "b9bbb1b2ca780527",
+   "does": "One run cubic-spline resampled at 4 Hz from its first to its last beat, with its mean removed; nil for fewer than 2 beats or no elapsed time.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.cubicSplineResample(t:values:fs:sampleCount:tStart:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "fewer than 2 beats or no elapsed time",
+     "effect": "nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.cubicSplineResample(t:values:fs:sampleCount:tStart:)": "952c9ae354f512d0"
+   }
+  },
+  {
+   "key": "func FrequencyDomainAnalyzer.pooledWelchPSD(_:segLen:)",
+   "hash": "db5b815439bd476b",
+   "does": "Welch's averaged periodogram (computeWelchPSD, 50% overlap) over every segLen segment that fits inside one of the signals, each signal's average weighted by its number of segments; nil when no signal is that long or no DFT setup exists for segLen.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.getDFTSetup(size:)",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeWelchPSD(data:fs:segLen:stepSize:numSegments:dftSetup:)"
+   ],
+   "reads": [
+    "mem:FrequencyDomainAnalyzer.dftSetupCache"
+   ],
+   "writes": [
+    "mem:FrequencyDomainAnalyzer.dftSetupCache"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "no signal holds a segment, or no DFT setup",
+     "effect": "nil"
+    },
+    {
+     "at": "+6",
+     "cond": "for each usable signal",
+     "effect": "its Welch average added, weighted by its segment count"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.computeWelchPSD(data:fs:segLen:stepSize:numSegments:dftSetup:)": "c4df26e859d2e264",
+    "Emuqu/Sources/Analysis/FrequencyDomainAnalysis.swift::func FrequencyDomainAnalyzer.getDFTSetup(size:)": "7c343b7d83be2af8"
    }
   },
   {
