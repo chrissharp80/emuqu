@@ -194,7 +194,7 @@ enum RouteTRIMPEstimator {
         let hasTrustworthyLoad: Bool
         let luciaTRIMP: Double?
         let distanceMeters: Double?
-        let gpsPolyline: String?
+        let gpsPolyline: Data?
 
         /// Nil for a session that is not a workout.
         init?(session: HRVSession) {
