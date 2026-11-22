@@ -528,8 +528,37 @@
   },
   {
    "key": "func SessionArchive.update(_:requestingReupload:_:)",
-   "hash": "cba7fd5ae4f05079",
-   "does": "Read-modify-write under one lock: retrieves the full session (hash-verified), applies the closure, optionally stamps modifiedAt, writes it with skipSameNightMerge: true; then posts flowRecoveryArchiveChanged and, if requestingReupload (default true), the re-upload request.",
+   "hash": "7fc112cce002877e",
+   "does": "Read-modify-write under one lock that always writes: updateIfChanged with a closure that applies the change and reports it changed, so it retrieves the full session (hash-verified), applies the closure, optionally stamps modifiedAt, writes it with skipSameNightMerge: true, then posts flowRecoveryArchiveChanged and, if requestingReupload (default true), the re-upload request.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.updateIfChanged(_:requestingReupload:_:)"
+   ],
+   "reads": [
+    "file:<archiveDir>/<id>.json",
+    "mem:SessionArchive.index"
+   ],
+   "writes": [
+    "file:<archiveDir>/<id>.json",
+    "file:<archiveDir>/index.json",
+    "notif:flowRecoveryArchiveChanged",
+    "notif:flowRecoveryArchiveSessionsNeedReupload"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "updateIfChanged throws (session not found, or the write fails)",
+     "effect": "rethrows"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.updateIfChanged(_:requestingReupload:_:)": "8c13e357c9a15fb0"
+   }
+  },
+  {
+   "key": "func SessionArchive.updateIfChanged(_:requestingReupload:_:)",
+   "hash": "e6b676229abc941e",
+   "does": "Read-modify-write under one lock: retrieves the full session (hash-verified) and applies the closure, which returns whether it changed the session. When it returns false nothing is written, modifiedAt keeps its value, no notification is posted and it returns false. Otherwise it optionally stamps modifiedAt, writes it with skipSameNightMerge: true, posts flowRecoveryArchiveChanged and, if requestingReupload (default true), the re-upload request, and returns true.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive._retrieve(_:)",
@@ -554,19 +583,24 @@
      "effect": "throws ArchiveError.fileNotFound (lock released in catch)"
     },
     {
-     "at": "+5",
+     "at": "+4",
+     "cond": "closure returns false",
+     "effect": "unlocks and returns false: nothing written, stamped or posted"
+    },
+    {
+     "at": "+8",
      "cond": "requestingReupload",
      "effect": "stamps modifiedAt = now; else untouched"
     },
     {
-     "at": "+7",
+     "at": "+10",
      "cond": "retrieve/closure/write throws",
      "effect": "unlocks and rethrows"
     },
     {
-     "at": "+13",
-     "cond": "requestingReupload false",
-     "effect": "returns after the change notification; true → posts re-upload request"
+     "at": "+16",
+     "cond": "requestingReupload",
+     "effect": "posts the re-upload request; returns true"
     }
    ],
    "deps": {

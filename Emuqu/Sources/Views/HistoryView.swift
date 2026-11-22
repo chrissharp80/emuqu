@@ -558,10 +558,15 @@ struct HistoryView: View {
 
     /// The save runs off the main actor; the failure shows once it reports
     /// that nothing was stored.
+    /// Only the user's own timeline edit reports a failure. An automatic
+    /// update (fresher Apple Health sleep) is declined whenever the stored
+    /// timeline should be kept, which is not a failure the user caused or
+    /// can retry, so its result is not shown, as on the sleep detail screen.
     private func saveSleep(_ session: HRVSession, sleepData: SleepData, isUserAdjustment: Bool) {
         let save = dependencies.collection.reanalysisService.updateSessionSleepBoundaries(
             sessionId: session.id, sleepData: sleepData, isUserAdjustment: isUserAdjustment
         )
+        guard isUserAdjustment else { return }
         Task {
             guard await !save.value else { return }
             failureMessage = String(localized: "Your timeline change couldn't be stored. Please try again.", bundle: LanguageManager.appBundle)

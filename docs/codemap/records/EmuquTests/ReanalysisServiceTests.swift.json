@@ -376,8 +376,8 @@
   },
   {
    "key": "func ReanalysisServiceTests.testAStaleSleepEditIsRefused()",
-   "hash": "b033453c62b15904",
-   "does": "Archives a night, then saves a 300-min sleep snapshot to it; writes a 420-min user edit decided on the earlier copy and asserts the outcome is .inputsChanged carrying the stored 300-min copy and the archive is unchanged (300 min, no offsets, not user-adjusted).",
+   "hash": "785c55a6ab84014a",
+   "does": "Archives a night, then saves a 300-min sleep snapshot to it; writes a 420-min user edit decided on the earlier copy and asserts the outcome is .inputsChanged carrying the stored 300-min copy, the archive is unchanged (300 min, no offsets, not user-adjusted, modifiedAt as before) and no re-upload request is posted.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()",
@@ -399,11 +399,12 @@
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.nightSleepMinutes": "51a9592b52543bbb",
-    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.write(_:readFrom:inputs:to:)": "1690d85f4141cc0b",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.write(_:readFrom:inputs:to:)": "fce749cb526b6ad8",
     "Emuqu/Sources/Services/SleepBoundaryWrite.swift::init SleepBoundaryWrite.Edit(sleepData:isUserAdjustment:)": "c7a037bece589cdd",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "2eca9f3f414ea24c",
+    "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.modifiedAt(of:)": "df1d678233d38c99",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.sleepInputs()": "04e13a7e84a686e6",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.watchNight(minutes:)": "615d50c08c15ebf4"
@@ -467,7 +468,7 @@
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)": "d173acbc448c38ce",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "2eca9f3f414ea24c",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e"
    }
   },
@@ -551,7 +552,7 @@
     "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.write(_:readFrom:kind:to:)": "bced01524c9dd590",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "2eca9f3f414ea24c",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e"
    }
   },
@@ -818,7 +819,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.sleepSnapshot(for:)": "eb9d08e39c9069bb",
     "Emuqu/Sources/Models/SleepData.swift::init SleepData(date:inBedStart:sleepStart:sleepEnd:totalSleepMinutes:inBedMinutes:deepSleepMinutes:remSleepMinutes:napSleepMinutes:awakeMinutes:sleepEfficiency:boundarySource:segments:stageIntervals:boundaryValidation:hrSleepQuality:splitGapMinutes:edits:)": "6199d540a4502925",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "2eca9f3f414ea24c"
    }
   },
   {
@@ -843,7 +844,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "2eca9f3f414ea24c"
    }
   },
   {

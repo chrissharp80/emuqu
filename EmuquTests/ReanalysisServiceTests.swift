@@ -213,9 +213,13 @@ final class ReanalysisServiceTests: XCTestCase {
         try archive.archive(read)
         let savedMeanwhile = watchNight(minutes: 300)
         try archive.update(read.id, requestingReupload: false) { $0.sleepSnapshot = savedMeanwhile }
+        let modifiedBefore = try XCTUnwrap(try archive.retrieve(read.id)).modifiedAt
         let edit = try XCTUnwrap(SleepBoundaryWrite.Edit(sleepData: watchNight(minutes: 420), isUserAdjustment: true))
+        let reuploadRequested = expectation(forNotification: .flowRecoveryArchiveSessionsNeedReupload, object: nil)
+        reuploadRequested.isInverted = true
 
         let outcome = try SleepBoundaryWrite.write(edit, readFrom: read, inputs: sleepInputs(), to: archive)
+        wait(for: [reuploadRequested], timeout: 0.2)
 
         guard case .inputsChanged(let stored) = outcome else { return XCTFail("expected a refusal, got \(outcome)") }
         XCTAssertEqual(stored.sleepSnapshot?.nightSleepMinutes, 300, "the refusal hands back the stored copy")
@@ -223,6 +227,7 @@ final class ReanalysisServiceTests: XCTestCase {
         XCTAssertEqual(archived.sleepSnapshot?.nightSleepMinutes, 300)
         XCTAssertNil(archived.sleepStartMs)
         XCTAssertNil(archived.sleepUserAdjusted)
+        XCTAssertEqual(archived.modifiedAt, modifiedBefore, "a refused edit writes nothing, so iCloud sees no newer copy")
     }
 
     /// Through the service, edits made one after another land in that order

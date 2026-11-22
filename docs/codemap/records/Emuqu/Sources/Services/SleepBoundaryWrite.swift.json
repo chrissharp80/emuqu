@@ -48,14 +48,14 @@
   },
   {
    "key": "func SleepBoundaryWrite.write(_:readFrom:inputs:to:)",
-   "hash": "c4ef9aa13902a95c",
-   "does": "Logs the edit against the copy it read (logBoundaryUpdate); for an automatic update, declines it when shouldApplyAutomaticUpdate rejects it on that copy; returns notArchived (logged) when the archive no longer holds the session; otherwise, under SessionArchive.update (requestingReupload = isUserAdjustment, which stamps modifiedAt and asks iCloud to upload again), refuses with inputsChanged(stored) and leaves the stored copy as it was when readIsCurrent fails, else applies the edit to the stored copy (apply) and returns written(stored). Rethrows an archive error.",
+   "hash": "8c9b7e1135b07ea3",
+   "does": "Logs the edit against the copy it read (logBoundaryUpdate); for an automatic update, declines it when shouldApplyAutomaticUpdate rejects it on that copy; returns notArchived (logged) when the archive no longer holds the session; otherwise, under SessionArchive.updateIfChanged (requestingReupload = isUserAdjustment, which stamps modifiedAt and asks iCloud to upload again when it writes), refuses with inputsChanged(stored) and writes nothing when readIsCurrent fails (no stamp, no re-upload), else applies the edit to the stored copy (apply) and returns written(stored). Rethrows an archive error.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.logBoundaryUpdate(_:on:)",
     "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.shouldApplyAutomaticUpdate(_:to:)",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.updateIfChanged(_:requestingReupload:_:)",
     "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.readIsCurrent(_:stored:)",
     "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.apply(_:to:inputs:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
@@ -65,9 +65,9 @@
     "archive:session file (under the lock)"
    ],
    "writes": [
-    "archive:session sleepStartMs/sleepEndMs/sleepSegments/sleepSnapshot/sleepUserAdjusted, hrvDataQuality, recoveryScore, scoreBreakdown, frozenReadiness (and modifiedAt for a user edit)",
-    "notif:flowRecoveryArchiveChanged (SessionArchive.update)",
-    "notif:flowRecoveryArchiveSessionsNeedReupload (user edit)"
+    "archive:session sleepStartMs/sleepEndMs/sleepSegments/sleepSnapshot/sleepUserAdjusted, hrvDataQuality, recoveryScore, scoreBreakdown, frozenReadiness (and modifiedAt for a user edit), only when written",
+    "notif:flowRecoveryArchiveChanged (when written)",
+    "notif:flowRecoveryArchiveSessionsNeedReupload (user edit, when written)"
    ],
    "branches": [
     {
@@ -87,15 +87,14 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/RescoreWrite.swift::var RescoreWrite.Outcome.written": "499b7125039fedf8",
     "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.apply(_:to:inputs:)": "f538df1ff760d809",
     "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.logBoundaryUpdate(_:on:)": "709df01c67f66086",
     "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.readIsCurrent(_:stored:)": "4cdbe840f13118f0",
     "Emuqu/Sources/Services/SleepBoundaryWrite.swift::func SleepBoundaryWrite.shouldApplyAutomaticUpdate(_:to:)": "c87d8ceb44d7b5b5",
+    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::var SleepBoundaryWrite.Outcome.written": "cdb307e93a07200a",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Services/SleepBoundaryWrite.swift::var SleepBoundaryWrite.Outcome.written": "cdb307e93a07200a"
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.updateIfChanged(_:requestingReupload:_:)": "8c13e357c9a15fb0",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {

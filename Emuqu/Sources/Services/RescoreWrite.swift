@@ -59,13 +59,14 @@ enum RescoreWrite {
             return .notArchived
         }
         var outcome = Outcome.written(rescored)
-        try archive.update(rescored.id, requestingReupload: false) { stored in
+        try archive.updateIfChanged(rescored.id, requestingReupload: false) { stored in
             guard inputsMatch(stored, read, kind: kind) else {
                 outcome = .inputsChanged(stored)
-                return
+                return false
             }
             applyComputedFields(from: rescored, to: &stored, kind: kind)
             outcome = .written(stored)
+            return true
         }
         return outcome
     }

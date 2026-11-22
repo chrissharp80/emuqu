@@ -30,13 +30,13 @@
   },
   {
    "key": "func RescoreWrite.write(_:readFrom:kind:to:)",
-   "hash": "e0db6f0c642ef5bd",
-   "does": "Writes a rescore computed from `read` onto the archived copy. A rescore never creates a session: when the archive does not hold the id (never archived, or deleted or purged while it ran) logs and returns .notArchived with nothing written. Otherwise inside SessionArchive.update (requestingReupload false): when the stored copy's inputs differ from the read copy's (inputsMatch) returns .inputsChanged with the stored copy, which goes back unchanged; else sets only this kind's computed fields on the stored copy (applyComputedFields) and returns .written with it. Throws what the archive throws (PurgeGate.Refused while Delete All My Data runs).",
+   "hash": "98996a1fa1f6f975",
+   "does": "Writes a rescore computed from `read` onto the archived copy. A rescore never creates a session: when the archive does not hold the id (never archived, or deleted or purged while it ran) logs and returns .notArchived with nothing written. Otherwise inside SessionArchive.updateIfChanged (requestingReupload false): when the stored copy's inputs differ from the read copy's (inputsMatch) returns .inputsChanged with the stored copy and writes nothing; else sets only this kind's computed fields on the stored copy (applyComputedFields) and returns .written with it. Throws what the archive throws (PurgeGate.Refused while Delete All My Data runs).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.updateIfChanged(_:requestingReupload:_:)",
     "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.inputsMatch(_:_:kind:)",
     "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.applyComputedFields(from:to:kind:)"
    ],
@@ -44,8 +44,8 @@
     "archive:SessionArchive"
    ],
    "writes": [
-    "archive:SessionArchive.update",
-    "notif:.flowRecoveryArchiveChanged"
+    "archive:SessionArchive.updateIfChanged (only when the inputs match)",
+    "notif:.flowRecoveryArchiveChanged (when written)"
    ],
    "branches": [
     {
@@ -64,7 +64,7 @@
     "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.inputsMatch(_:_:kind:)": "ec64c644c8dc41cf",
     "Emuqu/Sources/Services/RescoreWrite.swift::var RescoreWrite.Outcome.written": "499b7125039fedf8",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.updateIfChanged(_:requestingReupload:_:)": "8c13e357c9a15fb0",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },

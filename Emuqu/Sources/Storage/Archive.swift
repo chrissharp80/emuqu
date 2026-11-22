@@ -535,10 +535,23 @@ final class SessionArchive: @unchecked Sendable {
     /// (the HealthKit snapshots), or a routine stamp. `true` also stamps
     /// `modifiedAt`, as `archive(_:skipSameNightMerge:requestingReupload:)` does.
     func update(_ id: UUID, requestingReupload: Bool = true, _ change: (inout HRVSession) -> Void) throws {
+        try updateIfChanged(id, requestingReupload: requestingReupload) { change(&$0); return true }
+    }
+
+    /// `update`, for a change that can decide, on the stored copy, to change
+    /// nothing: `change` returns whether it changed the session. When it
+    /// returns false nothing is written, `modifiedAt` keeps its value and no
+    /// re-upload is asked for, so a refused write cannot make an unchanged
+    /// copy look like the newest edit to iCloud. Returns whether it wrote.
+    @discardableResult
+    func updateIfChanged(_ id: UUID, requestingReupload: Bool = true, _ change: (inout HRVSession) -> Bool) throws -> Bool {
         archiveLock.lock()
         do {
             guard var session = try _retrieve(id) else { throw ArchiveError.fileNotFound }
-            change(&session)
+            guard change(&session) else {
+                archiveLock.unlock()
+                return false
+            }
             if requestingReupload { session.modifiedAt = CloudKitSessionFreshness.stamp() }
             _ = try _archive(session, skipSameNightMerge: true)
         } catch {
@@ -547,8 +560,8 @@ final class SessionArchive: @unchecked Sendable {
         }
         archiveLock.unlock()
         NotificationCenter.default.post(name: .flowRecoveryArchiveChanged, object: id)
-        guard requestingReupload else { return }
-        postReuploadRequest(for: id)
+        if requestingReupload { postReuploadRequest(for: id) }
+        return true
     }
 
     /// Ask CloudKit sync to upload this session again.

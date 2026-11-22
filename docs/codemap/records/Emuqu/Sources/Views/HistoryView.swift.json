@@ -964,7 +964,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailContent(session:result:)": "5966eba117260034",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.sessionDetailContent(session:result:)": "74ae332a5f828780",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.workoutSummarySheet(_:)": "158baf0a247587b7",
     "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.noAnalysisPlaceholder": "ec7f7c0e8e0c33cf"
    }
@@ -1009,7 +1009,7 @@
   {
    "key": "func HistoryView.sessionDetailContent(session:result:)",
    "hash": "dcb17f4de26e33be",
-   "does": "Builds MorningResultsView for a past session, wiring discard, delete (deleteAndDismiss), reanalyze (parent closure), tag save (saveTags), reanalyze-at-position, manual-analysis apply and segment unlink to the reanalysis service (dependencies.collection.reanalysisService), and sleep update and adjustment to saveSleep (which reports a failed save).",
+   "does": "Builds MorningResultsView for a past session, wiring discard, delete (deleteAndDismiss), reanalyze (parent closure), tag save (saveTags), reanalyze-at-position, manual-analysis apply and segment unlink to the reanalysis service (dependencies.collection.reanalysisService), and sleep update and adjustment to saveSleep (which reports a failed adjustment).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService",
@@ -1038,7 +1038,7 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService": "66fe82646a7ded58",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteAndDismiss(_:)": "19a4d22f33b305a0",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveSleep(_:sleepData:isUserAdjustment:)": "e86288bef5f450c3",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveSleep(_:sleepData:isUserAdjustment:)": "09a79457d05ce4cd",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveTags(_:tags:notes:)": "50102bad52c0b92c",
     "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:discardMessage:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "5d56309a54e28237"
    }
@@ -1128,8 +1128,8 @@
   },
   {
    "key": "func HistoryView.saveSleep(_:sleepData:isUserAdjustment:)",
-   "hash": "339baf340f94fee4",
-   "does": "Starts storing the sleep boundaries through ReanalysisService.updateSessionSleepBoundaries (automatic measured-sleep update or user adjustment; it runs off the main actor in the order saves are made); once its task reports false, sets failureMessage \"Your timeline change couldn't be stored. Please try again.\".",
+   "hash": "29f42a3bee62790e",
+   "does": "Starts storing the sleep boundaries through ReanalysisService.updateSessionSleepBoundaries (automatic measured-sleep update or user adjustment; it runs off the main actor in the order saves are made). For a user adjustment, once its task reports false, sets failureMessage \"Your timeline change couldn't be stored. Please try again.\"; an automatic update's result is not shown.",
    "entry": "closures: MorningResultsView.onUpdateSleep / onAdjustSleep",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService",
@@ -1145,8 +1145,13 @@
    ],
    "branches": [
     {
-     "at": "+5",
-     "cond": "update reported true",
+     "at": "+4",
+     "cond": "automatic update (isUserAdjustment false)",
+     "effect": "returns without waiting for the result"
+    },
+    {
+     "at": "+6",
+     "cond": "user adjustment reported true",
      "effect": "returns; else sets failureMessage"
     }
    ],
