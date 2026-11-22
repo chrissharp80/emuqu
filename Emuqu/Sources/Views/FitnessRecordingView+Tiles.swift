@@ -723,7 +723,6 @@ extension FitnessRecordingView {
         case .idle: "mic.circle.fill"
         case .starting: "ellipsis.circle.fill"
         case .listening: "waveform.circle.fill"
-        case .thinking: "ellipsis.circle.fill"
         case .speaking: "speaker.wave.3.fill"
         case .triggerSpeaking: "exclamationmark.circle.fill"
         }
@@ -734,7 +733,6 @@ extension FitnessRecordingView {
         case .idle: String(localized: "Talk", bundle: LanguageManager.appBundle)
         case .starting: String(localized: "Connecting…", bundle: LanguageManager.appBundle)
         case .listening: String(localized: "Listening…", bundle: LanguageManager.appBundle)
-        case .thinking: String(localized: "Thinking…", bundle: LanguageManager.appBundle)
         case .speaking: String(localized: "Tap to interrupt", bundle: LanguageManager.appBundle)
         case .triggerSpeaking: String(localized: "Alert", bundle: LanguageManager.appBundle)
         }
@@ -745,7 +743,6 @@ extension FitnessRecordingView {
         case .idle: AppTheme.primary
         case .starting: AppTheme.mist
         case .listening: AppTheme.sage
-        case .thinking: AppTheme.mist
         case .speaking: AppTheme.dustyRose
         case .triggerSpeaking: AppTheme.fitnessAccent
         }

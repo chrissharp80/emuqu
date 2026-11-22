@@ -2,6 +2,7 @@ import Combine
 import Foundation
 import os
 @preconcurrency import WatchConnectivity
+import WatchKit
 
 // Watch-side counterpart to iOS `WatchConnectivityBridge`. Receives the live
 // state snapshot, unpacks it for the UI, and forwards workout-control
@@ -813,8 +814,20 @@ final class WatchSessionManager: NSObject, ObservableObject {
         case .stopWorkout: workoutManager?.stop()
         case let .strapState(connected, deviceName): applyStrapState(connected, name: deviceName)
         case .liveState, .voiceChatState: break
+        case let .coachAlert(urgent, firedAt): playCoachAlert(urgent: urgent, firedAt: firedAt)
         case let .unknown(raw): noteUnrecognisedCommand(raw)
         }
+    }
+
+    /// The wrist haptic for a coach alert the iPhone fired (a strap drop, a
+    /// user-set threshold, a heart-rate spike or cadence drop): `.failure`
+    /// for an urgent one, `.notification` otherwise. One that arrives too
+    /// late to mean anything (`WatchMessageDecoding.playsCoachAlert`) plays
+    /// nothing. The iPhone decides whether alerts are on; the Watch only
+    /// plays what it is sent.
+    private func playCoachAlert(urgent: Bool, firedAt: Double?) {
+        guard WatchMessageDecoding.playsCoachAlert(firedAt: firedAt, now: Date().timeIntervalSince1970) else { return }
+        WKInterfaceDevice.current().play(urgent ? .failure : .notification)
     }
 
     /// The `startWorkout` command starts the keep-alive session only in legacy

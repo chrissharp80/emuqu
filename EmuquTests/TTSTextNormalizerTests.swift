@@ -171,6 +171,19 @@ final class TTSTextNormalizerTests: XCTestCase {
         XCTAssertEqual(TTSTextNormalizer.expandYears("Since 2019 you've run"), "Since twenty nineteen you've run")
     }
 
+    /// A bare quantity whose unit was left out is not a year: only a number
+    /// in a year's place (after "in", "since", "the", a month, a date's day
+    /// or a range dash) is read as one.
+    func testABareQuantityIsNotReadAsAYear() {
+        XCTAssertEqual(TTSTextNormalizer.expandYears("You burned 1450 today"), "You burned 1450 today")
+        XCTAssertEqual(TTSTextNormalizer.expandYears("TRIMP 1200 this month"), "TRIMP 1200 this month")
+        XCTAssertEqual(TTSTextNormalizer.expandYears("March 3, 2026"), "March 3, twenty twenty-six")
+        XCTAssertEqual(
+            TTSTextNormalizer.expandYears("from 2019–2026"),
+            "from twenty nineteen–twenty twenty-six"
+        )
+    }
+
     /// Years EMBEDDED in numeric / financial context must NOT be
     /// transformed. "$1990" or "1990.5" or "12:1990" stays intact.
     func testYearInsideNumericContextIsUntouched() {

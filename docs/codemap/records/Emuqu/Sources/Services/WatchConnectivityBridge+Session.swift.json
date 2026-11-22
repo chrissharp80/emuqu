@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift",
  "hash": "f3df39b5173da3d5",
- "role": "iOS-side WCSessionDelegate for the Watch link: activation/reachability, inbound message routing (HR samples, strap samples, workout controls, voice chat, state requests), queued-intent staleness filtering, reply construction, voice-chat state push, and plist round-tripping of payloads to the main actor.",
+ "role": "iOS-side WCSessionDelegate for the Watch link: activation/reachability, inbound message routing (HR samples, strap samples, workout controls, voice chat, state requests), queued-intent staleness filtering, reply construction, voice-chat state and coach-alert haptic pushes, and plist round-tripping of payloads to the main actor.",
  "types": [
   "WatchConnectivityBridge: extension — WCSessionDelegate conformance and message handling",
   "WatchConnectivityBridge: extension — plistData/plistDictionary helpers",
@@ -781,7 +781,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::var AssistantViewModel.hasAcceptedDisclaimer": "7b0cb0f1c0ee5aac",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.State.watchLabel": "ef5f5c32f78e25ec",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.State.watchLabel": "1fbceb827fbcf9b1",
     "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.refusalReply(_:sport:)": "b24d9a08b2997d74",
     "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.voiceChatReply(refusal:hasAcceptedDisclaimer:stateLabel:)": "0b79374d47e93c70",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
@@ -863,6 +863,40 @@
      "at": "+4",
      "cond": "session not activated",
      "effect": "returns"
+    },
+    {
+     "at": "+10",
+     "cond": "Watch not reachable",
+     "effect": "transferUserInfo, return; else sendMessage whose error handler queues transferUserInfo"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func WatchConnectivityBridge.sendCoachAlertHaptic(urgent:)",
+   "hash": "1fbf734095863ee3",
+   "does": "Asks the Watch to play a coach alert's wrist haptic: when WC is supported, activated, paired and the Watch app installed, builds a coachAlert message with `urgent` and `firedAt` (now, seconds since 1970) and sends it once — sendMessage when reachable, falling back to one transferUserInfo when that send fails; transferUserInfo alone when unreachable. The Watch drops a delivery that lands long after firedAt.",
+   "entry": "Called by WorkoutVoiceCoach's default alert-haptic closure (WorkoutVoiceCoach.dispatch(event:)).",
+   "calls": [
+    "ext:WCSession.sendMessage",
+    "ext:WCSession.transferUserInfo"
+   ],
+   "reads": [
+    "ext:WCSession activationState / isPaired / isWatchAppInstalled / isReachable"
+   ],
+   "writes": [
+    "wc:coachAlert (type, urgent, firedAt)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "WCSession unsupported",
+     "effect": "returns"
+    },
+    {
+     "at": "+4",
+     "cond": "session not activated, no paired Watch, or Watch app not installed",
+     "effect": "returns; no haptic is sent"
     },
     {
      "at": "+10",

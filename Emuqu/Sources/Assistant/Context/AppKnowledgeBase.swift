@@ -207,14 +207,17 @@ enum AppKnowledgeBase {
     Training break: user-settable range, hides load.
     Stryd / foot-pod power, FTMS cycling power and structured intervals are supported. AI can inform but not change settings.
     For app-feature, metric-explanation, or navigation questions (e.g. "what does DFA mean", \
-    "where's the export option", "what's TRIMP"), call `app.help.lookup(topic:)` — the full \
-    reference lives there. Valid topics: \(helpTopics.filter { $0 != "all" }.joined(separator: ", ")).
+    "where's the export option", "what's TRIMP"), call `lookup_fact` with key `app.help.lookup(<topic>)`, \
+    e.g. `app.help.lookup(navigation)` — the full reference lives there. \
+    Valid topics: \(helpTopics.filter { $0 != "all" }.joined(separator: ", ")).
     """
 
     /// Available topics for `lookup(topic:)`. Stable identifiers that
     /// match the section headers in `reference`. Interpolated into the
-    /// `app.help.lookup` tool description and into `referenceCompact`, so
-    /// the model is told exactly this list.
+    /// `app.help.lookup` fact description and into `referenceCompact`, so
+    /// the model is told exactly this list. The model reaches the fact
+    /// through the compact schema's `lookup_fact` tool, which
+    /// `referenceCompact` names: there is no tool named for it.
     static let helpTopics: [String] = [
         "tabs",
         "recovery_score",

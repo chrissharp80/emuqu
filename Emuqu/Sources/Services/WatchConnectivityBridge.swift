@@ -123,6 +123,7 @@ final class WatchConnectivityBridge: NSObject {
         case acknowledgeFinishedFromWatch // Watch → iOS "user tapped Save & Done on the Watch summary"
         case requestStrapState     // Watch → iOS "send me the current strap status now" (Watch fires on activation so it never has to wait for the next iOS-pushed change)
         case requestCurrentState   // Watch → iOS "send me the current live workout snapshot now" (Watch fires on activation / foreground so a relaunch mid-workout restores the live session instead of offering a new one). Reply IS the liveState payload.
+        case coachAlert            // iOS → Watch "play a wrist haptic for a coach alert" (`urgent`, `firedAt`); a late one is dropped on the Watch
         // There is no voice-trigger (iOS → Watch) or stop-voice-chat
         // (Watch → iOS) message: the Watch has no UI for either. Add them
         // with both a sender and a handler if it grows one.

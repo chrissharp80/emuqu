@@ -40,8 +40,8 @@
   },
   {
    "key": "func VoiceTurnPolicyTests.testOnlyListeningRestarts()",
-   "hash": "3b41e109add751cb",
-   "does": "Asserts kLSRErrorDomain:301 does not restart in idle, starting, thinking, speaking, triggerSpeaking.",
+   "hash": "9fab0b9142e10624",
+   "does": "Asserts kLSRErrorDomain:301 does not restart in idle, starting, speaking, triggerSpeaking.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.shouldRestartRecognition(errorDomain:errorCode:state:)"
@@ -101,7 +101,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "04fa02618d4f2262"
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "365fc1eb65e709d7"
    }
   },
   {
@@ -117,7 +117,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "04fa02618d4f2262",
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "365fc1eb65e709d7",
     "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)": "2fd4e555fee16ff1"
    }
   },
@@ -134,14 +134,14 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "04fa02618d4f2262",
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "365fc1eb65e709d7",
     "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)": "2fd4e555fee16ff1"
    }
   },
   {
    "key": "func VoiceTurnPolicyTests.testAnInFlightResponseIsBusy()",
-   "hash": "19b5bf2e11537094",
-   "does": "Asserts an in-flight LLM task (thinking or listening) or streaming while listening is busy.",
+   "hash": "c6e84626b895331b",
+   "does": "Asserts an in-flight LLM task (speaking or listening) or streaming while listening is busy.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)",
@@ -151,24 +151,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "04fa02618d4f2262",
-    "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)": "2fd4e555fee16ff1"
-   }
-  },
-  {
-   "key": "func VoiceTurnPolicyTests.testThinkingIsBusyEvenWithNoTaskHandle()",
-   "hash": "4876499c0744461e",
-   "does": "Asserts .thinking with no flags is busy.",
-   "entry": "XCTest runner: test method on an XCTestCase subclass",
-   "calls": [
-    "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)",
-    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "04fa02618d4f2262",
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "365fc1eb65e709d7",
     "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)": "2fd4e555fee16ff1"
    }
   },
@@ -185,7 +168,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "04fa02618d4f2262",
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "365fc1eb65e709d7",
     "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)": "2fd4e555fee16ff1"
    }
   },
@@ -202,7 +185,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "04fa02618d4f2262",
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "365fc1eb65e709d7",
     "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)": "2fd4e555fee16ff1"
    }
   },
@@ -219,7 +202,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "04fa02618d4f2262",
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "365fc1eb65e709d7",
     "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)": "2fd4e555fee16ff1"
    }
   },
@@ -236,13 +219,13 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "04fa02618d4f2262",
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "365fc1eb65e709d7",
     "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)": "2fd4e555fee16ff1"
    }
   },
   {
    "key": "func VoiceTurnPolicyTests.testEveryStateIsBusyWhileWorkIsInFlight()",
-   "hash": "ac660c71a7ae5529",
+   "hash": "2999abf56d149aaf",
    "does": "Asserts every state is busy with llm and streaming both true.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
@@ -254,12 +237,12 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "for each of six states",
+     "cond": "for each of five states",
      "effect": "one XCTAssertTrue per state"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "04fa02618d4f2262",
+    "Emuqu/Sources/Assistant/VoiceTurnPolicy.swift::func VoiceTurnPolicy.isBusyWithUserResponse(state:hasInFlightLLMTask:isStreamingResponse:synthesizerIsSpeaking:hasPartialTranscript:)": "365fc1eb65e709d7",
     "EmuquTests/VoiceTurnPolicyTests.swift::func VoiceTurnPolicyTests.busy(_:llm:streaming:speaking:partial:)": "2fd4e555fee16ff1"
    }
   },

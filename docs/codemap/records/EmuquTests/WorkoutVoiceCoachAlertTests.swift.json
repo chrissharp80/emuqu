@@ -1,0 +1,131 @@
+{
+ "file": "EmuquTests/WorkoutVoiceCoachAlertTests.swift",
+ "hash": "df15f504980f9422",
+ "role": "Tests of how WorkoutVoiceCoach delivers trigger-engine events (a .haptic or urgent event plays the alert haptic, urgent flagged; routine spoken and silent events play none) and of WorkoutTriggerEngine's canAlert gate (.haptic and .spoken rules keep their cooldown while alerts are off; .silent rules still fire). The coach's alert haptic is injected as a recorder, with no conversation set, so nothing plays or speaks.",
+ "types": [
+  "WorkoutVoiceCoachAlertTests: class (@MainActor XCTestCase)"
+ ],
+ "state": [],
+ "toplevel": "",
+ "units": [
+  {
+   "key": "func WorkoutVoiceCoachAlertTests.testAHapticEventPlaysTheAlertHaptic()",
+   "hash": "6b1447c8240f4534",
+   "does": "A routine .haptic event plays one non-urgent alert haptic.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::init WorkoutVoiceCoach(engine:watchBridge:alertHaptic:)",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatch(event:)",
+    "EmuquTests/WorkoutVoiceCoachAlertTests.swift::func WorkoutVoiceCoachAlertTests.event(tier:urgency:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine(rules:settingsProvider:)": "ee975218d86a22ee",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatch(event:)": "f61db63d73e6b0a7",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::init WorkoutVoiceCoach(engine:watchBridge:alertHaptic:)": "ed9e0513661eccd4",
+    "EmuquTests/WorkoutVoiceCoachAlertTests.swift::func WorkoutVoiceCoachAlertTests.event(tier:urgency:)": "1d529a45dae593d0"
+   }
+  },
+  {
+   "key": "func WorkoutVoiceCoachAlertTests.testAnUrgentEventPlaysTheUrgentHapticWhateverItsTier()",
+   "hash": "04ee171f09e31344",
+   "does": "Urgent .haptic and urgent .spoken events each play the urgent alert haptic.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::init WorkoutVoiceCoach(engine:watchBridge:alertHaptic:)",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatch(event:)",
+    "EmuquTests/WorkoutVoiceCoachAlertTests.swift::func WorkoutVoiceCoachAlertTests.event(tier:urgency:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine(rules:settingsProvider:)": "ee975218d86a22ee",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatch(event:)": "f61db63d73e6b0a7",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::init WorkoutVoiceCoach(engine:watchBridge:alertHaptic:)": "ed9e0513661eccd4",
+    "EmuquTests/WorkoutVoiceCoachAlertTests.swift::func WorkoutVoiceCoachAlertTests.event(tier:urgency:)": "1d529a45dae593d0"
+   }
+  },
+  {
+   "key": "func WorkoutVoiceCoachAlertTests.testRoutineSpokenAndSilentEventsPlayNoHaptic()",
+   "hash": "1023f0ce468a63c4",
+   "does": "Routine .spoken and .silent events play no haptic.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::init WorkoutVoiceCoach(engine:watchBridge:alertHaptic:)",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatch(event:)",
+    "EmuquTests/WorkoutVoiceCoachAlertTests.swift::func WorkoutVoiceCoachAlertTests.event(tier:urgency:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine(rules:settingsProvider:)": "ee975218d86a22ee",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatch(event:)": "f61db63d73e6b0a7",
+    "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::init WorkoutVoiceCoach(engine:watchBridge:alertHaptic:)": "ed9e0513661eccd4",
+    "EmuquTests/WorkoutVoiceCoachAlertTests.swift::func WorkoutVoiceCoachAlertTests.event(tier:urgency:)": "1d529a45dae593d0"
+   }
+  },
+  {
+   "key": "func WorkoutVoiceCoachAlertTests.testOnlySilentRulesFireWhileAlertsAreOff()",
+   "hash": "f0985772f658bf86",
+   "does": "With canAlert false only the .silent rule fires; with it true the .haptic and .spoken rules fire and the .silent one is in its cooldown.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine(rules:settingsProvider:)",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.evaluate(context:now:canAlert:)",
+    "EmuquTests/WorkoutVoiceCoachAlertTests.swift::func WorkoutVoiceCoachAlertTests.alertRule(_:_:)",
+    "EmuquTests/WorkoutVoiceCoachAlertTests.swift::func WorkoutVoiceCoachAlertTests.makeContext()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::func WorkoutTriggerEngine.evaluate(context:now:canAlert:)": "08ff05f0ef9bb4ed",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine(rules:settingsProvider:)": "ee975218d86a22ee",
+    "EmuquTests/WorkoutVoiceCoachAlertTests.swift::func WorkoutVoiceCoachAlertTests.alertRule(_:_:)": "c84a9ffe840e7c91",
+    "EmuquTests/WorkoutVoiceCoachAlertTests.swift::func WorkoutVoiceCoachAlertTests.makeContext()": "67866991e2b97564"
+   }
+  },
+  {
+   "key": "func WorkoutVoiceCoachAlertTests.event(tier:urgency:)",
+   "hash": "9d0bd7e8cc65d135",
+   "does": "Helper: a fired Event of the given tier and urgency.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func WorkoutVoiceCoachAlertTests.alertRule(_:_:)",
+   "hash": "620aa5526e0adcf0",
+   "does": "Helper: an always-true rule of the given id and tier with a 60 s cooldown.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)": "09b6f76261f356b0"
+   }
+  },
+  {
+   "key": "func WorkoutVoiceCoachAlertTests.makeContext()",
+   "hash": "c2b6018f5c13020a",
+   "does": "Helper: a ten-minute run WorkoutAIContext with no readings, which the always-true test rules ignore.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  }
+ ],
+ "deps": {}
+}

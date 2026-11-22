@@ -1,14 +1,14 @@
 {
  "file": "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift",
  "hash": "75421d9eb49e888a",
- "role": "Second half of the `assistant` fact namespace: the address-book actions (assistant.contacts.list/add/remove; remove runs only after the user confirms, via DestructiveActionContext.gate, and add asks first whenever the name or address is not in the user's own latest message, via gateUnlessUserStated) and the assistant.email.compose action that resolves names/category defaults into recipients and stages a draft on AssistantEmailBridge for the mail composer.",
+ "role": "Second half of the `assistant` fact namespace: the address-book actions (assistant.contacts.list/add/remove; remove runs only after the user confirms, via DestructiveActionContext.gate, and add asks first whenever the name or address is not in the user's own latest message, via gateUnlessUserStated) and the assistant.email.compose action that, only when the user's latest message asked for it (user_quote), resolves names/category defaults into recipients and stages a draft on AssistantEmailBridge for the mail composer.",
  "types": [
   "AssistantMemoryNamespace: extension (struct declared in AppFactResolver+AssistantMemory.swift) — contacts + email-compose entries"
  ],
  "state": [
   "static let assistantContactsAddDescription (AI tool description text; says a contact whose name or email is not in the user's latest message needs a plain-yes confirmation first)",
-  "static let assistantEmailComposeParameters ([ActionParam] subject/body/category/to/cc)",
-  "static let assistantEmailComposeDescription (says the draft is staged on the email bridge, which the root view observes)"
+  "static let assistantEmailComposeParameters ([ActionParam] subject/body/category/to/cc/user_quote)",
+  "static let assistantEmailComposeDescription (says the draft is staged on the email bridge, which the root view observes, and only on the user's own request with their words as user_quote)"
  ],
  "toplevel": "Three static string/array constants used as tool descriptions/parameters; no other top-level code.",
  "units": [
@@ -360,19 +360,23 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantEmailCompose(_:)": "e3536ec4defb060d",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.resolveAssistantEmailCompose(_:)": "76e7bdead6bd3111",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)": "96217c66f5b84d41"
    }
   },
   {
    "key": "func AssistantMemoryNamespace.resolveAssistantEmailCompose(_:)",
-   "hash": "66954effff137fd8",
-   "does": "Validates non-empty trimmed subject and body, then delegates to stagedEmail.",
+   "hash": "77bfdb743eae77a5",
+   "does": "Validates non-empty trimmed subject and body, then requires the user's own request: user_quote must appear in the user's latest message (latestUserMessageContains), so an instruction in a web page, pasted email or tool result can't stage a draft of the user's data to an address the model picked; then delegates to stagedEmail.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.stagedEmail(subject:body:args:)"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.stagedEmail(subject:body:args:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)"
    ],
-   "reads": [],
+   "reads": [
+    "mem:AssistantViewModel.turns (latest user message, via latestUserMessageContains)"
+   ],
    "writes": [],
    "branches": [
     {
@@ -383,11 +387,18 @@
     {
      "at": "+6",
      "cond": "body present and non-empty",
-     "effect": "calls stagedEmail; else returns missing invalidParameter 'body is required'"
+     "effect": "continues; else returns missing invalidParameter 'body is required'"
+    },
+    {
+     "at": "+15",
+     "cond": "user_quote found in the user's latest message",
+     "effect": "calls stagedEmail; else returns userRequestRequired(\"draft an email\") and stages nothing"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.stagedEmail(subject:body:args:)": "74213f24c15b29fa"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantEmail.swift::func AssistantMemoryNamespace.stagedEmail(subject:body:args:)": "74213f24c15b29fa",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.latestUserMessageContains(_:)": "37d7f0088e388109",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantMemory.swift::func AssistantMemoryNamespace.userRequestRequired(_:)": "a2b5550709809fa9"
    }
   },
   {

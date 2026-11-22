@@ -386,6 +386,35 @@ final class RouteNavigationEnginesTests: XCTestCase {
         ActiveRouteSession.shared.disengage()
     }
 
+    /// An assistant read (`peekStep`) answers for the position it is given
+    /// but leaves the route where the coach's own fixes put it: a coarse or
+    /// stale fix near a later step must not skip the coach past a turn.
+    func testPeekingAStepDoesNotMoveTheRoute() {
+        let stepA = [CLLocationCoordinate2D(latitude: 35.000, longitude: -89.650),
+                     CLLocationCoordinate2D(latitude: 35.000, longitude: -89.64950)]
+        let stepB = [CLLocationCoordinate2D(latitude: 35.000, longitude: -89.64950),
+                     CLLocationCoordinate2D(latitude: 35.00045, longitude: -89.64950)]
+        let stepC = [CLLocationCoordinate2D(latitude: 35.00045, longitude: -89.64950),
+                     CLLocationCoordinate2D(latitude: 35.00045, longitude: -89.64900)]
+        ActiveRouteSession.shared.disengage()
+        defer { ActiveRouteSession.shared.disengage() }
+        ActiveRouteSession.shared.engageSyntheticRoute(
+            steps: [
+                ActiveRouteSession.InternalStep(instructions: "Head east", distance: 46, polyline: makePolyline(stepA)),
+                ActiveRouteSession.InternalStep(instructions: "Turn left", distance: 50, polyline: makePolyline(stepB)),
+                ActiveRouteSession.InternalStep(instructions: "Arrive", distance: 46, polyline: makePolyline(stepC))
+            ],
+            totalDistance: 142, totalDuration: 100, destinationLabel: "home", destinationCoord: stepC[1]
+        )
+        let start = CLLocation(latitude: 35.000, longitude: -89.650)
+        XCTAssertEqual(ActiveRouteSession.shared.currentStep(for: start)?.currentStepIndex, 0)
+
+        let peeked = ActiveRouteSession.shared.peekStep(for: CLLocation(latitude: 35.00040, longitude: -89.64950))
+        XCTAssertEqual(peeked?.currentStepIndex, 1, "the read answers for the position it was given")
+        XCTAssertEqual(ActiveRouteSession.shared.snapshot()?.currentStepIndex, 0, "the read must not move the route")
+        XCTAssertEqual(ActiveRouteSession.shared.currentStep(for: start)?.currentStepIndex, 0)
+    }
+
     /// Snapshot is nil before engage, populated after, nil again
     /// after disengage.
     func testActiveRouteSessionSnapshotLifecycle() {

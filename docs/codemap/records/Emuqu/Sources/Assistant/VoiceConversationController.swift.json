@@ -1,12 +1,12 @@
 {
  "file": "Emuqu/Sources/Assistant/VoiceConversationController.swift",
- "hash": "32af6255200f4669",
+ "hash": "7ce231b6658a8047",
  "role": "Declares the @Observable @MainActor VoiceConversationController singleton that runs hands-free voice chat (STT -> shared AssistantViewModel -> streaming TTS) during workouts, its typed errors, its State enum (mirrored to the Watch), all its stored tuning constants and state, and the thin forwarding wrappers into VoiceAudioPipeline; also recognizer construction (boot/refreshLanguageForSession).",
  "types": [
   "VoiceConversationController: class (@Observable @MainActor, NSObject) — voice chat state machine singleton; extended by +Control/+Pipeline(via VoiceAudioPipeline)/+Speech/+Audio",
   "VoiceConversationController.VoiceError: enum (LocalizedError) — recognizer/audio-session/audio-input startup failures with localized copy",
-  "VoiceConversationController.State: enum — idle/starting/listening/thinking/speaking/triggerSpeaking with watchLabel strings",
-  "VoiceTriggerQueue: struct — the coach triggers queued behind the conversation (capacity 8, oldest dropped); Trigger enum spokenLiteral(String) / aiPrompt(String)"
+  "VoiceConversationController.State: enum — idle/starting/listening/speaking/triggerSpeaking with watchLabel strings",
+  "VoiceTriggerQueue: struct — the coach triggers queued behind the conversation (capacity 8, oldest scripted line dropped first; a route line replaces a queued one and expires after 10 s); Trigger enum spokenLiteral(String) / aiPrompt(String, fallback: String?); private Entry struct (trigger, isRouteLine, queuedAt)"
  ],
  "state": [
   "mem:VoiceConversationController.shared (static singleton)",
@@ -22,6 +22,7 @@
   "mem:VoiceConversationController.lastRecognitionRestartAt",
   "recognitionRestartCooldownSec=1.5",
   "mem:VoiceConversationController.synthesizer (lazy AVSpeechSynthesizer; its initializer sets the delegate to self)",
+  "mem:VoiceConversationController.coachCue (lazy CoachCueSpeech over the synthesizer: coach lines' cue-session holds and the interjection fallback)",
   "mem:VoiceConversationController.bestVoice",
   "mem:VoiceConversationController.bestVoiceLanguage",
   "mem:VoiceConversationController.recognizer",
@@ -46,10 +47,10 @@
   "barge-in constants: bargeInRMSThreshold=0.018, bargeInSustainedSec=0.3, bargeInMinNewWords=2, bargeInGracePeriodSec=0.6 (var)",
   "mem:VoiceConversationController.lastSubBargeInRMSAt/bargeInBaselineLength/bargeInBaselineWordCount",
   "mem:VoiceConversationController.interruptionObserver (NotificationCenter token for AVAudioSession.interruptionNotification)",
-  "VoiceTriggerQueue.capacity=8",
+  "VoiceTriggerQueue.capacity=8, routeLineMaxAge=10 s",
   "mem:VoiceTriggerQueue.items (private)"
  ],
- "toplevel": "Stored-property initializers: shared singleton built on first access; synthesizer and audioEngine are lazy (synthesizer's closure initializer wires its delegate to self, so construction builds neither); textChunker = SpokenTextChunker() at construction. No explicit init: NSObject's init() is inherited. State conforms to Equatable. The class is @Observable so the UI and the Watch mirror observe state/partialTranscript/currentResponseText/permissionError. VoiceTriggerQueue (declared after the class) holds the queue's array and its cap, so the controller and its extensions go through enqueue/popFirst/removeAll/discardSpokenLines.",
+ "toplevel": "Stored-property initializers: shared singleton built on first access; synthesizer, coachCue and audioEngine are lazy (synthesizer's closure initializer wires its delegate to self, coachCue wraps the synthesizer, so construction builds none of them); textChunker = SpokenTextChunker() at construction. No explicit init: NSObject's init() is inherited. State conforms to Equatable. The class is @Observable so the UI and the Watch mirror observe state/partialTranscript/currentResponseText/permissionError. VoiceTriggerQueue (declared after the class) holds the queue's array and its cap, so the controller and its extensions go through enqueue/popFirst/removeAll/discardSpokenLines.",
  "units": [
   {
    "key": "var VoiceConversationController.VoiceError.errorDescription",
@@ -94,7 +95,7 @@
   },
   {
    "key": "var VoiceConversationController.State.watchLabel",
-   "hash": "aec5e17c3e109c53",
+   "hash": "349f9b3dace039ef",
    "does": "Returns the stable string label for each State that is pushed to the Watch ('alert' for triggerSpeaking).",
    "entry": null,
    "calls": [],
@@ -118,16 +119,11 @@
     },
     {
      "at": "+5",
-     "cond": "case .thinking",
-     "effect": "'thinking' (never reached at runtime: .thinking is never assigned)"
-    },
-    {
-     "at": "+6",
      "cond": "case .speaking",
      "effect": "'speaking'"
     },
     {
-     "at": "+7",
+     "at": "+6",
      "cond": "case .triggerSpeaking",
      "effect": "'alert'"
     }
@@ -157,8 +153,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.State.watchLabel": "ef5f5c32f78e25ec",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.pushVoiceChatState(_:)": "47d2c9478f11a1ef",
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.State.watchLabel": "1fbceb827fbcf9b1",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.pushVoiceChatState(_:)": "029f480b22ef3605",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f"
    }
@@ -382,7 +378,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceTriggerQueue.discardSpokenLines()": "c718555ba9b176d2"
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceTriggerQueue.discardSpokenLines()": "dd484bd6cc298b15"
    }
   },
   {
@@ -537,6 +533,23 @@
    "deps": {}
   },
   {
+   "key": "var VoiceTriggerQueue.Entry.isScriptedLine",
+   "hash": "1cc01caeab2eb0f2",
+   "does": "True for a queued .spokenLiteral line, false for an .aiPrompt.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "trigger is .spokenLiteral",
+     "effect": "true; else false"
+    }
+   ],
+   "deps": {}
+  },
+  {
    "key": "var VoiceTriggerQueue.isEmpty",
    "hash": "b2108bd9266acc6e",
    "does": "True when no trigger is queued.",
@@ -563,9 +576,9 @@
    "deps": {}
   },
   {
-   "key": "func VoiceTriggerQueue.enqueue(_:)",
-   "hash": "cbac36512509f50c",
-   "does": "Appends the trigger, then drops the oldest entries beyond capacity (8: by drain time anything older is stale, and each entry holds a full prompt string); returns how many were dropped.",
+   "key": "func VoiceTriggerQueue.enqueue(_:isRouteLine:now:)",
+   "hash": "1d368dbd509d7d90",
+   "does": "Queues a trigger stamped with `now`. A route line first removes every route line already queued (the newest describes where the user is). Then, while over capacity (8), drops the oldest scripted line, or the oldest entry when only AI prompts are left (a queued prompt is the only copy of its call). Returns how many entries were removed, replaced route lines included.",
    "entry": null,
    "calls": [],
    "reads": [
@@ -576,17 +589,24 @@
    ],
    "branches": [
     {
-     "at": "+3",
+     "at": "+2",
+     "cond": "isRouteLine",
+     "effect": "queued route lines removed (counted as dropped)"
+    },
+    {
+     "at": "+5",
      "cond": "count > capacity",
-     "effect": "removeFirst(count - capacity); 0 dropped otherwise"
+     "effect": "remove the first scripted line, else index 0; repeat"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceTriggerQueue.Entry.isScriptedLine": "bddb699898f60282"
+   }
   },
   {
-   "key": "func VoiceTriggerQueue.popFirst()",
-   "hash": "74d2b00f7bc99529",
-   "does": "Removes and returns the oldest queued trigger; nil when empty.",
+   "key": "func VoiceTriggerQueue.popFirst(now:)",
+   "hash": "0f66541a5cfec42d",
+   "does": "Drops queued route lines older than routeLineMaxAge (10 s) at `now`, then removes and returns the oldest remaining trigger; nil when none is left.",
    "entry": null,
    "calls": [],
    "reads": [
@@ -598,8 +618,13 @@
    "branches": [
     {
      "at": "+1",
+     "cond": "route line queued longer than routeLineMaxAge",
+     "effect": "removed unplayed"
+    },
+    {
+     "at": "+2",
      "cond": "queue empty",
-     "effect": "nil; else removeFirst"
+     "effect": "nil; else removeFirst().trigger"
     }
    ],
    "deps": {}
@@ -619,10 +644,12 @@
   },
   {
    "key": "func VoiceTriggerQueue.discardSpokenLines()",
-   "hash": "c115f858ff865be0",
-   "does": "Removes every queued .spokenLiteral line; queued .aiPrompt entries (workout start readout, post-workout summary) stay.",
+   "hash": "074cc0b9399235b4",
+   "does": "Removes every queued .spokenLiteral line; queued .aiPrompt entries (interval calls, post-workout summary) stay.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceTriggerQueue.Entry.isScriptedLine"
+   ],
    "reads": [
     "mem:VoiceTriggerQueue.items (the VoiceConversationController.pendingTriggers value)"
    ],
@@ -631,12 +658,14 @@
    ],
    "branches": [
     {
-     "at": "+2",
-     "cond": "entry is .spokenLiteral",
+     "at": "+1",
+     "cond": "entry is a scripted line",
      "effect": "removed; .aiPrompt kept"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceTriggerQueue.Entry.isScriptedLine": "bddb699898f60282"
+   }
   }
  ],
  "deps": {}
