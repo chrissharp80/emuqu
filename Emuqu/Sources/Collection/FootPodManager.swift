@@ -147,6 +147,10 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
     }
     /// Known / remembered devices — shown as "Reconnect to X" in UI.
     private(set) var knownDevices: [KnownFootPod] = []
+    /// The peripheral id of the sensor connected or being connected now; nil
+    /// while none is. The sensor sheet titles the row with it, so the row
+    /// names the linked sensor rather than the first one paired.
+    private(set) var linkedDeviceId: String?
     /// Devices seen during the current scan window.
     private(set) var discoveredDevices: [DiscoveredFootPod] = []
     /// Latest human-readable status for UI diagnostics.
@@ -323,6 +327,7 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
 
     func attach(peripheral: CBPeripheral) {
         activePeripheral = peripheral
+        linkedDeviceId = peripheral.identifier.uuidString
         peripheral.delegate = self
         connectionState = .connecting
         let name = peripheral.name ?? String(localized: "foot pod", bundle: LanguageManager.appBundle)
@@ -336,6 +341,7 @@ final class FootPodManager: NSObject, BLEPeripheralConnecting {
     /// session's reading as its starting point.
     private func cleanupAfterDisconnect() {
         activePeripheral = nil
+        linkedDeviceId = nil
         rscMeasurementChar = nil
         powerMeasurementChar = nil
         indoorBikeDataChar = nil

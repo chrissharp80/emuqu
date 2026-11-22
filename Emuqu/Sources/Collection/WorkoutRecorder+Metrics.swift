@@ -312,12 +312,20 @@ extension WorkoutSessionLifecycle {
     /// drawing + MKMapSnapshotter are off-main-actor friendly and
     /// pinning UI for a 6-page render was the previous pain point.
     /// The bridge stage call hops back to MainActor at the end.
-    @MainActor
+    ///
+    /// Returns the render task, whose value says whether the staged draft
+    /// carries the PDF: the post-summary button waits on it to show the
+    /// outcome and offer a retry; the auto path ignores it.
     /// `settings` defaults to the shared store so the view call site is
     /// unchanged; the recorder passes its own injected provider.
-    static func scheduleCoachReportEmail(for session: HRVSession, settings: UserSettings = AppDependencies.current.app.settingsManager.settingsSnapshot) {
+    @MainActor
+    @discardableResult
+    static func scheduleCoachReportEmail(
+        for session: HRVSession,
+        settings: UserSettings = AppDependencies.current.app.settingsManager.settingsSnapshot
+    ) -> Task<Bool, Never> {
         let inputs = coachReportInputs(for: session, settings: settings)
-        Task.detached(priority: .userInitiated) {
+        return Task.detached(priority: .userInitiated) {
             await renderAndStageCoachReport(inputs)
         }
     }
@@ -464,8 +472,10 @@ extension WorkoutSessionLifecycle {
     /// `assumeIsolated` trap. See liveRefreshed() doc-comment.
     ///
     /// The past workouts are decoded on a detached task, off the MainActor;
-    /// the conversational body is then a pure function of them.
-    private static func renderAndStageCoachReport(_ inputs: CoachReportInputs) async {
+    /// the conversational body is then a pure function of them. Returns
+    /// whether the PDF was attached (false: the draft was staged with the
+    /// summary only, because the render failed).
+    private static func renderAndStageCoachReport(_ inputs: CoachReportInputs) async -> Bool {
         let liveLoadSnapshot = await TrainingLoadRegistry.liveRefreshed()
         let (archive, ids) = (inputs.archive, inputs.pastWorkoutIds)
         let pastWorkouts = await Task.detached(priority: .userInitiated) {
@@ -484,6 +494,7 @@ extension WorkoutSessionLifecycle {
             ))
             debugLog("[CoachReport] staged email draft for session \(inputs.session.id.uuidString.prefix(8)) (body \(body.count) chars, pdf=\(attachment != nil ? "yes" : "no"))")
         }
+        return attachment != nil
     }
 
     /// Holistic report (workout + recovery + the loop) when today has an

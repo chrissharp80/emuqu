@@ -42,7 +42,10 @@ struct ImportedWorkoutTrack {
     }
 }
 
-@MainActor
+/// Nonisolated: the build reads nothing but its arguments (plus the app's
+/// language bundle for the labels and `DeviceProvenance.current`, both
+/// readable from any isolation), so a GPX file can be rebuilt off the main
+/// actor and a Health import keeps calling it from the main actor.
 enum ImportedWorkoutBuilder {
     /// Where an imported workout came from, in the two ways that matter: what
     /// to show the user, and whether Apple Health already has a copy.

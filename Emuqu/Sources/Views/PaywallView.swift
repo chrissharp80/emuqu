@@ -89,10 +89,14 @@ struct PaywallView: View {
             .sheet(isPresented: $showYourData) { yourDataSheet }
             .alert(
                 pendingMessage?.title ?? "",
-                isPresented: Binding(get: { pendingMessage != nil }, set: { if !$0 { dismissMessage() } }),
+                // The setter does nothing: SwiftUI writes `false` here on
+                // every button dismissal, and the OK button already clears
+                // the message it showed. Clearing here as well would clear
+                // the next message in line before it was seen.
+                isPresented: Binding(get: { pendingMessage != nil }, set: { _ in }),
                 presenting: pendingMessage
-            ) { _ in
-                Button(String(localized: "OK", bundle: LanguageManager.appBundle), action: dismissMessage)
+            ) { shown in
+                Button(String(localized: "OK", bundle: LanguageManager.appBundle)) { dismiss(shown) }
             } message: { Text($0.text) }
     }
 
@@ -106,8 +110,8 @@ struct PaywallView: View {
     /// can show only one: a purchase that sets both an error and a notice
     /// lost one. And `bottomSection` can hold two copies of the buttons
     /// (`ViewThatFits`), each carrying its own alert. Messages show one at a
-    /// time, the StoreKit error first, and each is cleared as it is
-    /// dismissed, which presents the next.
+    /// time, the StoreKit error first, and each is cleared by its OK
+    /// button, which presents the next.
     private enum PaywallMessage {
         case error(String), purchase(String), restore(String)
 
@@ -132,12 +136,14 @@ struct PaywallView: View {
         return restoreNotice.map(PaywallMessage.restore)
     }
 
-    private func dismissMessage() {
-        switch pendingMessage {
-        case .error: storeKit.errorMessage = nil
-        case .purchase: storeKit.purchaseNotice = nil
-        case .restore: restoreNotice = nil
-        case nil: break
+    /// Clears the message the alert showed, and only that one: a field that
+    /// has since been given a new text keeps it, so it is shown next.
+    private func dismiss(_ shown: PaywallMessage) {
+        switch shown {
+        case let .error(text) where storeKit.errorMessage == text: storeKit.errorMessage = nil
+        case let .purchase(text) where storeKit.purchaseNotice == text: storeKit.purchaseNotice = nil
+        case let .restore(text) where restoreNotice == text: restoreNotice = nil
+        case .error, .purchase, .restore: break
         }
     }
 

@@ -564,10 +564,7 @@ private var thresholdRules: some ChartContent {
 
     private func alpha1RouteMap(segments: [Alpha1Segment], coords allCoords: [CLLocationCoordinate2D]) -> some View {
         Map(initialPosition: .region(alpha1RegionForTrack(allCoords))) {
-            ForEach(Array(segments.enumerated()), id: \.offset) { _, seg in
-                MapPolyline(coordinates: seg.coordinates)
-                    .stroke(seg.color, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
-            }
+            alpha1RouteLines(segments)
             if let start = allCoords.first {
                 Marker(String(localized: "Start", bundle: LanguageManager.appBundle), coordinate: start).tint(AppTheme.sage)
             }
@@ -580,11 +577,26 @@ private var thresholdRules: some ChartContent {
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
+    /// Each band over its black casing (`Alpha1RouteColors`). Every casing
+    /// first, then every band, so a casing never covers the end of the band
+    /// before it.
+    @MapContentBuilder
+    private func alpha1RouteLines(_ segments: [Alpha1Segment]) -> some MapContent {
+        ForEach(Array(segments.enumerated()), id: \.offset) { _, seg in
+            MapPolyline(coordinates: seg.coordinates)
+                .stroke(Alpha1RouteColors.casing, style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round))
+        }
+        ForEach(Array(segments.enumerated()), id: \.offset) { _, seg in
+            MapPolyline(coordinates: seg.coordinates)
+                .stroke(seg.color, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+        }
+    }
+
     private var alpha1BandLegend: some View {
         HStack(spacing: 14) {
-            bandLegend(color: AppTheme.sage, label: String(localized: "Easy (≥0.75)", bundle: LanguageManager.appBundle))
-            bandLegend(color: .yellow, label: String(localized: "Threshold", bundle: LanguageManager.appBundle))
-            bandLegend(color: .orange, label: String(localized: "Hard (<0.50)", bundle: LanguageManager.appBundle))
+            bandLegend(color: Alpha1RouteColors.easy, label: String(localized: "Easy (≥0.75)", bundle: LanguageManager.appBundle))
+            bandLegend(color: Alpha1RouteColors.threshold, label: String(localized: "Threshold", bundle: LanguageManager.appBundle))
+            bandLegend(color: Alpha1RouteColors.hard, label: String(localized: "Hard (<0.50)", bundle: LanguageManager.appBundle))
         }
         .font(.caption2)
         .foregroundStyle(AppTheme.textSecondary)
@@ -634,11 +646,11 @@ private var thresholdRules: some ChartContent {
             let mid = (low + high) / 2
             if readings[mid].offset <= offsetSec { low = mid + 1 } else { high = mid }
         }
-        guard low > 0 else { return AppTheme.textTertiary }
+        guard low > 0 else { return Alpha1RouteColors.noReading }
         let a = readings[low - 1].alpha1
-        if a >= HRVConstants.DFA.alpha1AerobicThreshold { return AppTheme.sage }
-        if a >= HRVConstants.DFA.alpha1AnaerobicThreshold { return .yellow }
-        return .orange
+        if a >= HRVConstants.DFA.alpha1AerobicThreshold { return Alpha1RouteColors.easy }
+        if a >= HRVConstants.DFA.alpha1AnaerobicThreshold { return Alpha1RouteColors.threshold }
+        return Alpha1RouteColors.hard
     }
 
     /// Accumulates coordinates into runs of one colour. Each boundary fix is
@@ -675,6 +687,25 @@ private var thresholdRules: some ChartContent {
     fileprivate func alpha1RegionForTrack(_ coordinates: [CLLocationCoordinate2D]) -> MKCoordinateRegion {
         MapBoundsHelper.region(for: coordinates)
     }
+}
+
+// MARK: - Route colours
+
+/// The α1 route's colours. Each band line is drawn over a black casing, so
+/// its contrast is taken against black whatever the map shows beneath it, in
+/// light or dark appearance. Wong's colour-blind-safe trio, already the
+/// app's status palette, clears the WCAG 2.2 3:1 floor for graphics against
+/// black: easy #009E73 at 6.1:1, threshold #E69F00 at 9.2:1, hard #D55E00 at
+/// 5.5:1; the grey of a stretch with no reading yet is 11:1. The black casing
+/// is far above 3:1 on the light map, and the bands themselves are bright on
+/// the dark one. (Yellow on the light map, the colour this replaced, was
+/// barely visible.)
+private enum Alpha1RouteColors {
+    static let easy = AppTheme.wongOptimal
+    static let threshold = AppTheme.wongCaution
+    static let hard = AppTheme.wongAttention
+    static let noReading = Color(white: 0.75)
+    static let casing = Color.black
 }
 
 // MARK: - File-scope helpers

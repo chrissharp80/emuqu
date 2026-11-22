@@ -305,8 +305,8 @@
   },
   {
    "key": "func WorkoutSessionLifecycle.scheduleCoachReportEmail(for:settings:)",
-   "hash": "5b16d5bece55510d",
-   "does": "Snapshots coach-report inputs on the main actor and launches a detached userInitiated task that renders and stages the Coach Report email.",
+   "hash": "cc2b406f3dada602",
+   "does": "Main actor: snapshots coach-report inputs, launches a detached userInitiated task that renders and stages the Coach Report email, and returns that task (discardable); its value is whether the staged draft carries the PDF.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.coachReportInputs(for:settings:)",
@@ -318,8 +318,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.coachReportInputs(for:settings:)": "dc313bd9ce0b4821",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.renderAndStageCoachReport(_:)": "20e32aabdf294708",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.coachReportInputs(for:settings:)": "618167aec91a2a30",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Metrics.swift::func WorkoutSessionLifecycle.renderAndStageCoachReport(_:)": "792f5ed281d6c5f9",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1"
    }
@@ -507,8 +507,8 @@
   },
   {
    "key": "func WorkoutSessionLifecycle.renderAndStageCoachReport(_:)",
-   "hash": "806fdf11a8926ec4",
-   "does": "Detached: refreshes live training load, decodes past workouts lightweight off-main, renders the conversational summary, renders the PDF (holistic or standalone), then on the main actor stages an AssistantEmailDraft (body + PDF footnote when attached, the inputs' recipient and Cc list) on the AssistantEmailBridge and logs.",
+   "hash": "e8b83d92f91739b4",
+   "does": "Detached: refreshes live training load, decodes past workouts lightweight off-main, renders the conversational summary, renders the PDF (holistic or standalone; nil on a render failure), then on the main actor stages an AssistantEmailDraft (body + PDF footnote when attached, the inputs' recipient and Cc list) on the AssistantEmailBridge and logs. Returns whether the PDF was attached.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TrainingLoadRegistry.swift::func TrainingLoadRegistry.liveRefreshed()",
@@ -536,6 +536,11 @@
      "at": "+17",
      "cond": "attachment != nil (log)",
      "effect": "logs pdf=yes/no"
+    },
+    {
+     "at": "+19",
+     "cond": "attachment != nil",
+     "effect": "returned: true when the PDF was attached"
     }
    ],
    "deps": {
