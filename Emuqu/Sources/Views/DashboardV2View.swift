@@ -503,13 +503,16 @@ struct DashboardV2View: View {
 
     /// Surface persist failure rather than letting
     /// the edit die in a debugLog while the
-    /// editor confirms success.
+    /// editor confirms success. The save runs off the main actor; the alert
+    /// shows once it reports that nothing was stored.
     private func saveSleepBoundaries(_ adjusted: SleepData, for session: HRVSession) {
-        if !dependencies.collection.reanalysisService.updateSessionSleepBoundaries(
+        let save = dependencies.collection.reanalysisService.updateSessionSleepBoundaries(
             sessionId: session.id,
             sleepData: adjusted,
             isUserAdjustment: true
-        ) {
+        )
+        Task {
+            guard await !save.value else { return }
             sleepEditSaveFailed = true
         }
     }

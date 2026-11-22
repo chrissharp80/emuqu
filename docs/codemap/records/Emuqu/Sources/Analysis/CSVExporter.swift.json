@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Analysis/CSVExporter.swift",
  "hash": "818dd18a9a8a272e",
- "role": "Builds the flat CSV workout export (#-comment metadata preamble, per-GPS-fix rows joined to the nearest 1 Hz WorkoutSample, indoor per-second table when there is no track, per-split table) in the user's unit system and writes it to the temp directory for the share sheet.",
+ "role": "Builds the flat CSV workout export (#-comment metadata preamble, per-GPS-fix rows joined to the nearest 1 Hz WorkoutSample, indoor per-second table when there is no track, per-split table) in the user's unit system, and hands it to the share sheet as an in-memory ExportFile.Pending that is written only when shared.",
  "types": [
   "CSVExporter: enum — namespace of static CSV builders",
   "CSVExporter.Units: struct — resolved metric/imperial converters and column-unit labels"
@@ -431,22 +431,18 @@
    "deps": {}
   },
   {
-   "key": "func CSVExporter.writeToTempFile(session:track:)",
-   "hash": "c099a6517e1882e2",
-   "does": "Renders the CSV, names it '<sport>-<UTC yyyyMMdd-HHmmss>.csv' and writes it to the export folder through ExportFile.write (atomic, complete file protection; the same session's file is overwritten on the next export), logs the byte count and returns the URL; throws an NSError if UTF-8 encoding fails, and rethrows a write failure.",
+   "key": "func CSVExporter.pendingFile(session:track:)",
+   "hash": "eec152393451dcac",
+   "does": "Renders the CSV in memory and names it '<sport>-<UTC yyyyMMdd-HHmmss>.csv' (POSIX, Gregorian), returning it as an ExportFile.Pending that is written only when shared; throws an NSError if UTF-8 encoding fails.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)",
-    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
     "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup; legacy UserDefaults.standard fallback, migrated on read)"
    ],
-   "writes": [
-    "file:tmp/Exports/<sport>-<yyyyMMdd-HHmmss>.csv"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+2",
@@ -456,14 +452,12 @@
     {
      "at": "+11",
      "cond": "UTF-8 encoding nil",
-     "effect": "throws NSError (cannot happen for a Swift String); otherwise writes"
+     "effect": "throws NSError (cannot happen for a Swift String); otherwise returns the pending export"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/CSVExporter.swift::func CSVExporter.export(session:track:)": "97b9326a421f6d5f",
-    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   }
  ],

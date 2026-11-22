@@ -775,13 +775,14 @@
   },
   {
    "key": "func DashboardV2View.saveSleepBoundaries(_:for:)",
-   "hash": "1e2903ffa131103d",
-   "does": "Persists a user sleep-boundary edit through the reanalysis service (dependencies.collection.reanalysisService.updateSessionSleepBoundaries); on false sets sleepEditSaveFailed to show the alert.",
+   "hash": "169c4f97fe576f01",
+   "does": "Starts persisting a user sleep-boundary edit through the reanalysis service (updateSessionSleepBoundaries, which runs off the main actor in the order edits are made); once its task reports false, sets sleepEditSaveFailed to show the alert.",
    "entry": "SleepDetailV2View onAdjust closure",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)"
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
+    "ext:Task"
    ],
    "reads": [],
    "writes": [
@@ -789,13 +790,13 @@
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "update returned false",
-     "effect": "sleepEditSaveFailed = true"
+     "at": "+7",
+     "cond": "update reported false",
+     "effect": "sleepEditSaveFailed = true; else nothing"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "c11d10dab10551e5",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "bdc8d0383e8b6150",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService": "66fe82646a7ded58"
    }

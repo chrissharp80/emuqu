@@ -56,7 +56,7 @@ final class ReanalysisService {
     /// The dashboard's live path (forMorningReading=false) applies the
     /// step, giving the dissipation bonus and a higher readiness as the
     /// day progresses on rest days.
-    static func computeFrozenReadiness(compositeScore: Double, trainingContext: TrainingContext?) -> Double {
+    nonisolated static func computeFrozenReadiness(compositeScore: Double, trainingContext: TrainingContext?) -> Double {
         let atl = trainingContext?.atl ?? 0
         let ctl = trainingContext?.ctl ?? 0
         let acr: Double? = ctl > 0 ? atl / ctl : nil
@@ -109,6 +109,12 @@ final class ReanalysisService {
 
     /// Drops a rewritten session's cached chart zones (`OrganizedZonesCache`).
     let onZonesStale: (UUID) -> Void
+
+    // MARK: - State
+
+    /// The last sleep-boundary edit started, which the next one waits for
+    /// (`updateSessionSleepBoundaries`). Set only there.
+    var pendingSleepEdit: Task<Bool, Never>?
 
     // MARK: - Initialization
 
@@ -378,15 +384,8 @@ final class ReanalysisService {
     /// acceptance would classify it now. Every path that changes the window
     /// result or the sleep calls it before re-scoring.
     func reclassifyHRVQuality(of session: inout HRVSession, result: HRVAnalysisResult) {
-        let previous = session.hrvDataQuality
-        session.hrvDataQuality = SessionAcceptanceService.classifyHRVQuality(
-            result: result, sleepData: session.sleepSnapshot, baselineStats: scoringBaseline(for: session),
-            recordingStart: session.startDate, recordingEnd: session.endDate ?? session.startDate
-        ).dataQuality
-        guard session.hrvDataQuality != previous else { return }
-        // Health values (RMSSD, baseline) are PHI and debugLog is
-        // user-exportable — log the transition without the numeric values.
-        debugLog("[ReanalysisService] HRV data quality \(previous?.rawValue ?? "unset") → \(session.hrvDataQuality?.rawValue ?? "unset")")
+        let baselineStats = scoringBaseline(for: session)
+        Self.reclassifyHRVQuality(of: &session, result: result, baselineStats: baselineStats)
     }
 
     /// Re-score against the wake-time training context, then label which sleep
@@ -645,7 +644,7 @@ final class ReanalysisService {
     /// made a re-score drift by the HRV-factor's ANS adjustment (up to ~4
     /// composite points) for a reason unrelated to what changed. The one
     /// copy every re-score and acceptance read.
-    static func ansBalance(of result: HRVAnalysisResult) -> Double? {
+    nonisolated static func ansBalance(of result: HRVAnalysisResult) -> Double? {
         guard let pns = result.ansMetrics?.pnsIndex, let sns = result.ansMetrics?.snsIndex else { return nil }
         return pns - sns
     }
@@ -660,7 +659,7 @@ final class ReanalysisService {
     /// the same night scored differently on each device. Applying the swap
     /// here makes every re-score read the same physiology whichever path
     /// wrote the snapshot; on a snapshot that already has it, it is a no-op.
-    static func scoringVitals(of session: HRVSession, result: HRVAnalysisResult) -> RecoveryVitals? {
+    nonisolated static func scoringVitals(of session: HRVSession, result: HRVAnalysisResult) -> RecoveryVitals? {
         session.vitalsSnapshot?.withStrapNocturnalRHR(result.timeDomain.meanHR)
     }
 
@@ -675,19 +674,8 @@ final class ReanalysisService {
     func rescoredBreakdown(
         of session: HRVSession, result: HRVAnalysisResult, training: TrainingContext?, referenceDate: Date
     ) -> RecoveryScoreCalculator.ScoreBreakdown {
-        RecoveryScoreCalculator.calculateWithBreakdown(
-            RecoveryScoreCalculator.ScoreInputs(
-                hrvReadiness: result.ansMetrics?.readinessScore, rmssd: result.timeDomain.rmssd,
-                meanHR: result.timeDomain.meanHR, dfaAlpha1: result.nonlinear.dfaAlpha1,
-                baselineStats: scoringBaseline(for: session), sleepData: session.sleepSnapshot,
-                vitals: Self.scoringVitals(of: session, result: result), typicalSleepHours: settingsProvider().typicalSleepHours
-            ),
-            trainingContext: training,
-            config: scoringConfigProvider(),
-            useBaselineHRV: !session.isReliableForHRVAggregates,
-            perceivedReadiness: session.perceivedReadiness,
-            ansBalance: Self.ansBalance(of: result),
-            referenceDate: referenceDate
+        Self.rescoredBreakdown(
+            of: session, result: result, training: training, referenceDate: referenceDate, context: rescoreContext(for: session)
         )
     }
 
@@ -803,5 +791,58 @@ final class ReanalysisService {
 
         debugLog("[ReanalysisService] Re-analyzed \(successCount)/\(filtered.count) sessions, \(skippedCount) manual windows preserved\(Task.isCancelled ? " (cancelled)" : "")")
         return (updated: successCount, skipped: skippedCount)
+    }
+}
+
+// MARK: - Re-score arithmetic, callable off the main actor
+
+extension ReanalysisService {
+    /// What a re-score of `session` reads from the main actor besides the
+    /// session: the nights before it (`scoringBaseline`), the user's typical
+    /// sleep and the current scoring config.
+    func rescoreContext(for session: HRVSession) -> RescoreContext {
+        RescoreContext(
+            baselineStats: scoringBaseline(for: session),
+            typicalSleepHours: settingsProvider().typicalSleepHours,
+            scoringConfig: scoringConfigProvider()
+        )
+    }
+
+    /// The re-score itself, from `context` captured on the main actor
+    /// (`rescoredBreakdown(of:result:training:referenceDate:)` documents it).
+    nonisolated static func rescoredBreakdown(
+        of session: HRVSession, result: HRVAnalysisResult, training: TrainingContext?, referenceDate: Date,
+        context: RescoreContext
+    ) -> RecoveryScoreCalculator.ScoreBreakdown {
+        RecoveryScoreCalculator.calculateWithBreakdown(
+            RecoveryScoreCalculator.ScoreInputs(
+                hrvReadiness: result.ansMetrics?.readinessScore, rmssd: result.timeDomain.rmssd,
+                meanHR: result.timeDomain.meanHR, dfaAlpha1: result.nonlinear.dfaAlpha1,
+                baselineStats: context.baselineStats, sleepData: session.sleepSnapshot,
+                vitals: scoringVitals(of: session, result: result), typicalSleepHours: context.typicalSleepHours
+            ),
+            trainingContext: training,
+            config: context.scoringConfig,
+            useBaselineHRV: !session.isReliableForHRVAggregates,
+            perceivedReadiness: session.perceivedReadiness,
+            ansBalance: ansBalance(of: result),
+            referenceDate: referenceDate
+        )
+    }
+
+    /// The classification itself, against `baselineStats` captured on the
+    /// main actor (`reclassifyHRVQuality(of:result:)` documents it).
+    nonisolated static func reclassifyHRVQuality(
+        of session: inout HRVSession, result: HRVAnalysisResult, baselineStats: BaselineTracker.RecoveryBaselineStats?
+    ) {
+        let previous = session.hrvDataQuality
+        session.hrvDataQuality = SessionAcceptanceService.classifyHRVQuality(
+            result: result, sleepData: session.sleepSnapshot, baselineStats: baselineStats,
+            recordingStart: session.startDate, recordingEnd: session.endDate ?? session.startDate
+        ).dataQuality
+        guard session.hrvDataQuality != previous else { return }
+        // Health values (RMSSD, baseline) are PHI and debugLog is
+        // user-exportable — log the transition without the numeric values.
+        debugLog("[ReanalysisService] HRV data quality \(previous?.rawValue ?? "unset") → \(session.hrvDataQuality?.rawValue ?? "unset")")
     }
 }

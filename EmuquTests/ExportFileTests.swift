@@ -27,4 +27,25 @@ final class ExportFileTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: first.path))
         XCTAssertTrue(FileManager.default.fileExists(atPath: second.path))
     }
+
+    /// A workout summary builds its exports when it opens but writes nothing
+    /// to disk until one is shared: the in-memory export puts no file in the
+    /// folder, and writing it lands its bytes under its own name there.
+    func testAPendingExportIsOnDiskOnlyOnceWritten() throws {
+        let start = Date(timeIntervalSince1970: 4_102_444_800) // 2100-01-01T00:00:00Z
+        let session = HRVSession(
+            id: UUID(), startDate: start, endDate: start.addingTimeInterval(1800),
+            state: .complete, sessionType: .workout, rrSeries: nil, analysisResult: nil, artifactFlags: nil
+        )
+        let pending = try CSVExporter.pendingFile(session: session, track: [])
+        let target = ExportFile.directory.appendingPathComponent(pending.name)
+
+        XCTAssertEqual(pending.name, "workout-21000101-000000.csv")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: target.path), "building the export wrote a file")
+
+        let url = try pending.write()
+        addTeardownBlock { try FileManager.default.removeItem(at: url) }
+        XCTAssertEqual(url.standardizedFileURL, target.standardizedFileURL)
+        XCTAssertEqual(try Data(contentsOf: url), pending.data)
+    }
 }

@@ -1038,7 +1038,7 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService": "66fe82646a7ded58",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteAndDismiss(_:)": "19a4d22f33b305a0",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveSleep(_:sleepData:isUserAdjustment:)": "89ea900a59853a23",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveSleep(_:sleepData:isUserAdjustment:)": "e86288bef5f450c3",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveTags(_:tags:notes:)": "50102bad52c0b92c",
     "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:discardMessage:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "5d56309a54e28237"
    }
@@ -1128,14 +1128,15 @@
   },
   {
    "key": "func HistoryView.saveSleep(_:sleepData:isUserAdjustment:)",
-   "hash": "d360aa35fdeda574",
-   "does": "Stores the sleep boundaries through ReanalysisService.updateSessionSleepBoundaries (automatic measured-sleep update or user adjustment); when it returns false sets failureMessage \"Your timeline change couldn't be stored. Please try again.\".",
+   "hash": "339baf340f94fee4",
+   "does": "Starts storing the sleep boundaries through ReanalysisService.updateSessionSleepBoundaries (automatic measured-sleep update or user adjustment; it runs off the main actor in the order saves are made); once its task reports false, sets failureMessage \"Your timeline change couldn't be stored. Please try again.\".",
    "entry": "closures: MorningResultsView.onUpdateSleep / onAdjustSleep",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "ext:Task"
    ],
    "reads": [],
    "writes": [
@@ -1144,14 +1145,14 @@
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "update returned true",
+     "at": "+5",
+     "cond": "update reported true",
      "effect": "returns; else sets failureMessage"
     }
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "c11d10dab10551e5",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "bdc8d0383e8b6150",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService": "66fe82646a7ded58"
    }

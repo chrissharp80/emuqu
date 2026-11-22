@@ -1,13 +1,13 @@
 {
  "file": "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift",
- "hash": "4bb9d8ecbed71274",
- "role": "Action half of TroubleshootingPage (export/copy/clear logs, persistent-logging toggle, reanalyze UI, advanced diagnostics toggle, debug tools, archive/training repair, training-load rebuild) plus the DiagnosticLogExport Transferable used by ShareLink.",
+ "hash": "a2d6c74943bfd14d",
+ "role": "Action half of TroubleshootingPage (export/copy/clear logs, persistent-logging toggle, reanalyze UI, advanced diagnostics toggle, debug tools, archive/training repair, training-load rebuild) plus DiagnosticLogExport, the log file writer the Export Diagnostic Log buttons share through FileShareButton.",
  "types": [
   "TroubleshootingPage: extension — action sections",
-  "DiagnosticLogExport: struct (Transferable) — lazily writes the debug log to tmp for ShareLink"
+  "DiagnosticLogExport: enum — sheet title and makeFile(), which writes the scrubbed log to tmp/Exports"
  ],
  "state": [],
- "toplevel": "DiagnosticLogExport conforms to Transferable; ShareLink in this file and SettingsSubviews.swift:82 construct it.",
+ "toplevel": "DiagnosticLogExport is a namespace; the FileShareButtons in this file and SettingsSubviews.swift (DebugLogView) call it.",
  "units": [
   {
    "key": "var TroubleshootingPage.actionSections",
@@ -54,26 +54,28 @@
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.clearCrashReportButton": "6b117c3506992cce",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.clearProblemsButton": "7109263a016f7430",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.copyLogButton": "0e2e2dc0a5eb3b50",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.exportLogButton": "4253edeec26ecd94"
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.exportLogButton": "2752bc3b61037cf3"
    }
   },
   {
    "key": "var TroubleshootingPage.exportLogButton",
-   "hash": "d7a429ddcd58d60f",
-   "does": "ShareLink of DiagnosticLogExport (file built lazily) labelled \"Export Diagnostic Log\".",
-   "entry": null,
+   "hash": "74db2e7739bee056",
+   "does": "FileShareButton labelled \"Export Diagnostic Log\" (with its accessibility hint): on tap writes the log (DiagnosticLogExport.makeFile) and shares it under that title, deleting the file when the sheet closes.",
+   "entry": "SwiftUI button tap",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var DiagnosticLogExport.preview",
-    "ext:SwiftUI.ShareLink",
-    "dyn:Transferable.transferRepresentation → Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift:411"
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var DiagnosticLogExport.title",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::func DiagnosticLogExport.makeFile()",
+    "Emuqu/Sources/Views/Utilities/FileShareButton.swift::init FileShareButton(title:iconName:makeFile:label:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var DiagnosticLogExport.preview": "11e7276c8b0751bc"
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::func DiagnosticLogExport.makeFile()": "a24dfb2646373757",
+    "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var DiagnosticLogExport.title": "0124e0bbbdbfaf68",
+    "Emuqu/Sources/Views/Utilities/FileShareButton.swift::init FileShareButton(title:iconName:makeFile:label:)": "8dd01e57f3094370"
    }
   },
   {
@@ -153,6 +155,34 @@
    }
   },
   {
+   "key": "var TroubleshootingPage.clearProblemsAlertActions",
+   "hash": "a2b8dbcd8c433fc5",
+   "does": "Cancel, and destructive 'Clear N Errors' that clears the debug logger's error catalog.",
+   "entry": "Alert buttons",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clearErrorCatalog()",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger"
+   ],
+   "reads": [
+    "mem:DebugLogger.errorCatalog"
+   ],
+   "writes": [
+    "mem:DebugLogger.errorCatalog"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "daa043f0af306c2c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger": "7a67c7397d8585c2",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clearErrorCatalog()": "17d3df8b6493db40",
+    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger": "3f764ad9025fc5f1"
+   }
+  },
+  {
    "key": "var TroubleshootingPage.clearCrashReportButton",
    "hash": "a72c6bb6adaa4ca6",
    "does": "Destructive \"Clear Crash Report\" button shown while hasCrashReport. A tap asks first with the Crash Report screen's wording ('Delete Crash Report?'); its Delete deletes previous_crash.txt and sets crashReportCleared so the button and the Crash Report section disappear at once.",
@@ -180,6 +210,31 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/SettingsPages+DiagnosticActions.swift::var TroubleshootingPage.clearCrashReportAlertActions": "8498e1f21a8e6b30",
     "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.hasCrashReport": "f6ab44db9fa9cb0f"
+   }
+  },
+  {
+   "key": "var TroubleshootingPage.clearCrashReportAlertActions",
+   "hash": "181fca7d857d0755",
+   "does": "Cancel, and destructive Delete that deletes previous_crash.txt and sets crashReportCleared.",
+   "entry": "Alert buttons",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.clearPreviousCrash()"
+   ],
+   "reads": [],
+   "writes": [
+    "file:previous_crash.txt",
+    "mem:TroubleshootingPage.crashReportCleared"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "daa043f0af306c2c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager": "d874529ff05bd756",
+    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.clearPreviousCrash()": "d266947c5401e5ec"
    }
   },
   {
@@ -736,9 +791,9 @@
    }
   },
   {
-   "key": "var DiagnosticLogExport.preview",
-   "hash": "a3d8cdf7d2b1c2dd",
-   "does": "Static SharePreview titled \"Export Diagnostic Log\".",
+   "key": "var DiagnosticLogExport.title",
+   "hash": "6c78409662d60e0b",
+   "does": "The share sheet header, localized \"Export Diagnostic Log\".",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -751,87 +806,31 @@
    }
   },
   {
-   "key": "var DiagnosticLogExport.transferRepresentation",
-   "hash": "697ec4d88049ab4e",
-   "does": "FileRepresentation (.plainText) that, when a share destination asks, writes the log to tmp via DebugLogger.exportToFileAsync and returns it.",
-   "entry": "Transferable protocol witness; invoked by the system share sheet when ShareLink destination requests the file",
+   "key": "func DiagnosticLogExport.makeFile()",
+   "hash": "6542f23e4837e927",
+   "does": "Writes the scrubbed diagnostic log to tmp/Exports (DebugLogger.exportToFileAsync, off the main thread) and returns its URL; throws CocoaError(.fileWriteUnknown) when it could not be written.",
+   "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportToFileAsync()",
-    "ext:FileRepresentation",
-    "ext:SentTransferredFile"
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportToFileAsync()"
    ],
    "reads": [
-    "file:debug_log.txt (App Group)"
+    "file:DebugLogger log file"
    ],
    "writes": [
-    "file:tmp/log-export/hrv_debug_log_<ts>.txt"
+    "file:tmp/Exports/hrv_debug_log_<epoch>.txt"
    ],
    "branches": [
     {
-     "at": "+2",
-     "cond": "exportToFileAsync returns nil (UTF-8 conversion or write failed)",
-     "effect": "throws CocoaError(.fileWriteUnknown) to the share sheet; else returns SentTransferredFile(url)"
+     "at": "+1",
+     "cond": "export returned nil",
+     "effect": "throws"
     }
    ],
    "deps": {
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger": "7a67c7397d8585c2",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportToFileAsync()": "387ef887798c24ed"
-   }
-  },
-  {
-   "key": "var TroubleshootingPage.clearProblemsAlertActions",
-   "hash": "a2b8dbcd8c433fc5",
-   "does": "Cancel, and destructive 'Clear N Errors' that clears the debug logger's error catalog.",
-   "entry": "Alert buttons",
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clearErrorCatalog()",
-    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger"
-   ],
-   "reads": [
-    "mem:DebugLogger.errorCatalog"
-   ],
-   "writes": [
-    "mem:DebugLogger.errorCatalog"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "daa043f0af306c2c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.debugLogger": "7a67c7397d8585c2",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.clearErrorCatalog()": "17d3df8b6493db40",
-    "Emuqu/Sources/Views/SettingsPages+Diagnostics.swift::var TroubleshootingPage.logger": "3f764ad9025fc5f1"
-   }
-  },
-  {
-   "key": "var TroubleshootingPage.clearCrashReportAlertActions",
-   "hash": "181fca7d857d0755",
-   "does": "Cancel, and destructive Delete that deletes previous_crash.txt and sets crashReportCleared.",
-   "entry": "Alert buttons",
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.clearPreviousCrash()"
-   ],
-   "reads": [],
-   "writes": [
-    "file:previous_crash.txt",
-    "mem:TroubleshootingPage.crashReportCleared"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var EnvironmentValues.dependencies": "daa043f0af306c2c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.crashLogManager": "d874529ff05bd756",
-    "Emuqu/Sources/Utilities/CrashLogManager.swift::func CrashLogManager.clearPreviousCrash()": "d266947c5401e5ec"
    }
   }
  ],
