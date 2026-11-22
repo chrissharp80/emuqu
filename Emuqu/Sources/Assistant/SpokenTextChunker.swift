@@ -102,6 +102,12 @@ final class SpokenTextChunker {
     /// Reads back from `index` only as far as it needs (the start of the
     /// current token, the last "["), rather than splitting the whole buffer
     /// for every candidate ender.
+    ///
+    /// A "[" that never closes is not a link: a "[1" citation or a "[note"
+    /// aside would otherwise hold back every later sentence until the reply
+    /// ends. So a label still open past `maxLinkLabelLength` characters is
+    /// taken as plain text, and so is a "(url" part that has reached a space,
+    /// which no link address contains.
     private func isInsideLinkOrURL(at index: String.Index) -> Bool {
         let before = pendingBuffer[..<index]
         let tokenStart = before.lastIndex(where: \.isWhitespace).map { before.index(after: $0) } ?? before.startIndex
@@ -109,9 +115,14 @@ final class SpokenTextChunker {
         if token.contains("://") || token.hasPrefix("www.") { return true }
         guard let open = before.lastIndex(of: "[") else { return false }
         let link = before[open...]
-        guard let close = link.firstIndex(of: "]") else { return true }
-        return link[close...].hasPrefix("](") && !link[close...].contains(")")
+        guard let close = link.firstIndex(of: "]") else { return link.count <= Self.maxLinkLabelLength }
+        let address = link[close...]
+        return address.hasPrefix("](") && !address.contains(")") && !address.contains(where: \.isWhitespace)
     }
+
+    /// The longest "[label" still read as a link being streamed. Link labels
+    /// in replies are a few words ("[Polar's page]").
+    private static let maxLinkLabelLength = 80
 
     /// Strip markdown syntax that `AVSpeechSynthesizer` would otherwise
     /// read aloud as literal punctuation.
