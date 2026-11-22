@@ -1,7 +1,7 @@
 {
  "file": "EmuquTests/SnapshotTesting.swift",
- "hash": "945bf6a577e6bc3c",
- "role": "In-repo snapshot harness: renders a SwiftUI view to RGBA via ImageRenderer at fixed size/scale/light/en_US/America-Chicago time zone, rejects blank renders, and compares against gzipped raw references in EmuquTests/__Snapshots__ with per-channel and drawn-fraction tolerances; SNAPSHOT_RECORD=1 rewrites references and fails.",
+ "hash": "e83905a3c4cb46d5",
+ "role": "In-repo snapshot harness: renders a SwiftUI view to RGBA via ImageRenderer at fixed size/scale/light/en_US/America-Chicago time zone, rejects blank renders, and compares against gzipped raw references in EmuquTests/__Snapshots__ with a per-channel tolerance and a fixed changed-pixel allowance; SNAPSHOT_RECORD=1 rewrites references and fails.",
  "types": [
   "SnapshotTesting: enum — harness constants",
   "SnapshotTesting: extension — render/isBlank",
@@ -13,7 +13,7 @@
   "SnapshotTesting.defaultSize = 402x874",
   "SnapshotTesting.scale = 1",
   "SnapshotTesting.channelTolerance = 8",
-  "SnapshotTesting.drawnFractionTolerance = 0.02",
+  "SnapshotTesting.maxChangedPixels = 24",
   "SnapshotTesting.timeZone = America/Chicago (.gmt if the identifier fails to resolve)",
   "file:EmuquTests/__Snapshots__/<name>.raw (\"WxH\\n\" header + zlib RGBA)",
   "env:SNAPSHOT_RECORD"
@@ -167,8 +167,8 @@
   },
   {
    "key": "func XCTestCase.assertSnapshot(of:named:size:file:line:)",
-   "hash": "3099715c21b5974e",
-   "does": "Pins English, renders the view, fails on render failure or blank image, encodes 'WxH\\n'+zlib pixels; when SNAPSHOT_RECORD=1 or no reference exists writes the reference and fails; otherwise reads the reference, checks dims, decompresses, compares, and fails when changed/drawn fraction > 2%.",
+   "hash": "61026f9965aa80f1",
+   "does": "Pins English, renders the view, fails on render failure or blank image, encodes 'WxH\\n'+zlib pixels; when SNAPSHOT_RECORD=1 or no reference exists writes the reference and fails; otherwise reads the reference, checks dims, decompresses, compares, and fails when more than maxChangedPixels (24) pixels changed, whatever the view's size.",
    "entry": null,
    "calls": [
     "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()",
@@ -248,8 +248,8 @@
     },
     {
      "at": "+100",
-     "cond": "diff.fraction > 0.02",
-     "effect": "true: XCTFail with changed count and percent; false: passes silently"
+     "cond": "diff.changedPixels > maxChangedPixels (24)",
+     "effect": "true: XCTFail with the changed count, its share of the drawn pixels and the allowance; false: passes silently"
     }
    ],
    "deps": {

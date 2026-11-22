@@ -164,8 +164,8 @@
   },
   {
    "key": "func PaywallGatePolicyTests.testPermanentFreeAccessIsOfferedTheUnlockButNotTheTrial()",
-   "hash": "942b335b9717420b",
-   "does": "Asserts permanent access never can start a trial for nil/false/true StoreKit answers, and the offer is then .unlockOnly.",
+   "hash": "e95785a6cd4a2767",
+   "does": "For nil/false/true StoreKit trial answers with permanent access, asserts canStartTrial is false and that offer(hasPurchasedProduct: false, canStartTrial:) fed that result is .unlockOnly.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Services/PaywallGatePolicy.swift::func PaywallGatePolicy.canStartTrial(storeKitHasTrialTransaction:hasLocalTrialStart:hasPermanentAccess:)",
@@ -177,7 +177,7 @@
     {
      "at": "+1",
      "cond": "for each StoreKit answer nil/false/true",
-     "effect": "asserts canStartTrial is false with permanent access"
+     "effect": "asserts no trial and an unlock-only offer"
     }
    ],
    "deps": {

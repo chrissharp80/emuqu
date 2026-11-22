@@ -1,9 +1,9 @@
 {
  "file": "Emuqu/Sources/Storage/CloudKitSyncManager.swift",
- "hash": "4106e0e7213b5644",
+ "hash": "57eaef4f864b95ec",
  "role": "Main-actor singleton that owns CloudKit session sync state, account-change handling, the direct per-recording upload path, forwarders to the pull/deletion/scrub/trash-restore coordinators, and the full-sync orchestration with stuck-sync recovery and no-progress watchdog.",
  "types": [
-  "CloudKitSyncManager: class (@Observable @MainActor final) — CloudKit HRV session sync manager singleton",
+  "CloudKitSyncManager: class (@Observable @MainActor final) — CloudKit HRV session sync manager; `shared` is the app's",
   "CloudKitSyncManager.SyncState: enum — idle / syncing / error(String) shown by the sync status UI"
  ],
  "state": [
@@ -35,7 +35,7 @@
   "mem:CloudKitSyncManager.fullSyncsAdmitted (@ObservationIgnored Int: full syncs admitted and not finished)",
   "mem:CloudAccountIdentity (the confirmed iCloud account every read and write waits for; see CloudAccountIdentity.swift)"
  ],
- "toplevel": "static let shared = CloudKitSyncManager() builds the singleton lazily with defaults from AppDependencies.current (settingsManager, sessionArchive). Stored initializers: syncState .idle, schemaUnavailable false, lastSyncProgressAt .distantPast, pullVersion 0, container CKContainer(identifier: AppConfig.iCloudContainerIdentifier), recordType \"HRVSession\", zoneID HRVSessions/current user, syncSerializer SyncSerializer(), observers NotificationTokens(), didBootSyncState lock(false). liveBackup is a lazy CloudKitLiveBackupManager whose ensureZone closure calls ensureZoneExists on the manager and whose confirmAccount closure is accountGuard.confirmAccount() == .confirmed. fullSyncsAdmitted starts at 0. No deinit: the private-init singleton is never released, so the observer token in `observers` is kept for the process.",
+ "toplevel": "static let shared = CloudKitSyncManager(syncStateURL: resolveSyncStateURL()) builds the app's manager lazily with defaults from AppDependencies.current (settingsManager, sessionArchive) and its bookkeeping at the App Group sync_state.json; a test builds its own over its archive, settings and sync-state file. Stored initializers: syncState .idle, schemaUnavailable false, lastSyncProgressAt .distantPast, pullVersion 0, container CKContainer(identifier: AppConfig.iCloudContainerIdentifier), recordType \"HRVSession\", zoneID HRVSessions/current user, syncSerializer SyncSerializer(), observers NotificationTokens(), didBootSyncState lock(false). liveBackup is a lazy CloudKitLiveBackupManager whose ensureZone closure calls ensureZoneExists on the manager and whose confirmAccount closure is accountGuard.confirmAccount() == .confirmed. fullSyncsAdmitted starts at 0. No deinit: `shared` is never released, so its observer token in `observers` is kept for the process; a test's manager leaves its observers registered, and their closures hold it weakly.",
  "units": [
   {
    "key": "func CloudKitSyncManager.isPermanentSchemaError(_:)",
@@ -278,41 +278,6 @@
    "deps": {
     "Emuqu/Sources/Services/PurgeGate.swift::var PurgeGate.isPurging": "e50d4ba69a9f521d",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.settings": "2b1092edf8100687"
-   }
-  },
-  {
-   "key": "init CloudKitSyncManager(settingsManager:archive:)",
-   "hash": "fa29b666e93e4448",
-   "does": "Private init: stores settingsManager and archive (defaults from AppDependencies.current), creates an unloaded CloudKitSyncState at resolveSyncStateURL(), registers the re-upload notification observer and a .CKAccountChanged observer that first marks the account unconfirmed (CloudAccountIdentity.noteAccountChanged) and then schedules handleAccountChange on the MainActor.",
-   "entry": "Invoked once by the static let shared initializer on first access of CloudKitSyncManager.shared",
-   "calls": [
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::init CloudKitSyncState(syncStateURL:)",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resolveSyncStateURL()",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.observeReuploadSignals()",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.observeAccountChanges(_:)",
-    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.handleAccountChange()",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.noteAccountChanged()"
-   ],
-   "reads": [
-    "notif:.CKAccountChanged",
-    "notif:.flowRecoveryArchiveSessionsNeedReupload"
-   ],
-   "writes": [
-    "mem:CloudAccountIdentity.launch (on account change)"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.noteAccountChanged()": "7b24435bef3aa51d",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.handleAccountChange()": "f692b1cbd43d2380",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.observeAccountChanges(_:)": "f7c0071d78038531",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.observeReuploadSignals()": "5159a736b427e58b",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resolveSyncStateURL()": "e94598d512d6bd7b",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::init CloudKitSyncState(syncStateURL:)": "87152d1641176798",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
-    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "443c12d5227f3e97"
    }
   },
   {
@@ -609,7 +574,7 @@
   },
   {
    "key": "func CloudKitSyncManager.uploadSession(_:)",
-   "hash": "878df23a40831b7c",
+   "hash": "c25d6bd1839ce8b2",
    "does": "Direct per-recording upload: skips unless uploads allowed, schema available, session complete (or a workout with metadata) and not HealthKit-sourced. Then, serialized behind other sync work, checks again that uploads are allowed (sync turned off or a purge started while it waited stops it), the schema available and the iCloud account confirmed (returning when any fails); resolves the id the archive stored the recording under (archivedId(of:): a same-night session it was folded into), marks that target for upload again when it differs, and uploads it unless already marked uploaded.",
    "entry": null,
    "calls": [
@@ -646,33 +611,32 @@
      "effect": "return"
     },
     {
-     "at": "+7",
+     "at": "+6",
      "cond": "state is not .complete and not a workout with workoutMetadata",
      "effect": "return (batch push uploads it later anyway)"
     },
     {
-     "at": "+10",
+     "at": "+6",
      "cond": "session is HealthKit-sourced",
      "effect": "return (batch push will mark it local-only)"
     },
     {
-     "at": "+12",
+     "at": "+8",
      "cond": "inside serializer: uploads no longer allowed (sync off or a purge started), schema paused, or account not confirmed",
      "effect": "return; nothing uploaded"
     },
     {
-     "at": "+14",
+     "at": "+10",
      "cond": "the recording was folded into another session",
      "effect": "that session is marked for upload again"
     },
     {
-     "at": "+16",
+     "at": "+12",
      "cond": "id already in uploadedSessionIds",
      "effect": "return; else uploadOne"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archivedId(of:)": "c3d7b32f9870de81",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "08f434f5bf61f50e",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadOne(_:)": "2dc66a05014ab1e1",
@@ -680,7 +644,8 @@
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "c183270cf259e429",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "271213db35c3c82e",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)": "c8d3ddb59d2e3d94",
-    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a"
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.takesDirectUpload(_:)": "0a5a1ef9bcc97c83"
    }
   },
   {
@@ -1509,6 +1474,66 @@
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "2d613940641c274b",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.settings": "2b1092edf8100687",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+   }
+  },
+  {
+   "key": "init CloudKitSyncManager(settingsManager:archive:syncStateURL:)",
+   "hash": "13e4c9deb3690f60",
+   "does": "Stores settingsManager and archive (defaults from AppDependencies.current), creates an unloaded CloudKitSyncState at `syncStateURL` (the app's resolveSyncStateURL() for `shared`, a test's own file otherwise), registers the re-upload notification observer and a .CKAccountChanged observer that first marks the account unconfirmed (CloudAccountIdentity.noteAccountChanged) and then schedules handleAccountChange on the MainActor.",
+   "entry": "static let shared initializer (first access); tests through CloudKitSyncManager.isolated",
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.observeReuploadSignals()",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.observeAccountChanges(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::init CloudKitSyncState(syncStateURL:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.noteAccountChanged()",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.handleAccountChange()",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)"
+   ],
+   "reads": [
+    "notif:.CKAccountChanged",
+    "notif:.flowRecoveryArchiveSessionsNeedReupload"
+   ],
+   "writes": [
+    "mem:CloudAccountIdentity.launch"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.noteAccountChanged()": "7b24435bef3aa51d",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.handleAccountChange()": "f692b1cbd43d2380",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.observeAccountChanges(_:)": "f7c0071d78038531",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.observeReuploadSignals()": "5159a736b427e58b",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::init CloudKitSyncState(syncStateURL:)": "87152d1641176798",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
+    "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "443c12d5227f3e97"
+   }
+  },
+  {
+   "key": "func CloudKitSyncManager.takesDirectUpload(_:)",
+   "hash": "ea3f372e30d59ef7",
+   "does": "Whether uploadSession takes the session at all: true for a .complete session or a workout carrying workoutMetadata in any state, and false for a session read out of Apple Health whole (CloudPayloadCodec isHealthKitSourced: a breathe session or a HealthKit device id).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "workout with workoutMetadata",
+     "effect": "counts as taken whatever its state"
+    },
+    {
+     "at": "+2",
+     "cond": "neither complete nor a workout with data, or HealthKit-sourced",
+     "effect": "false; else true"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a"
    }
   }
  ],

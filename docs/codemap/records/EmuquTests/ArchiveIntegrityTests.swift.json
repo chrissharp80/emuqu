@@ -1044,32 +1044,40 @@
   },
   {
    "key": "func ArchiveIntegrityTests.testAForgottenSessionIsNotReimportedOnPull()",
-   "hash": "85ac792e940dca87",
-   "does": "Builds an iCloud record holding a live sealed copy of a session (liveRecord) and runs CloudKitSyncManager.shared.pull.processRemoteRecord with the session in forgotten: asserts nothing new is imported, the shared archive does not hold it and it is not marked uploaded. A teardown removes the session from the shared archive if it was imported.",
+   "hash": "98e95e3e828b62ba",
+   "does": "Sets the host's sync bookkeeping in standard defaults aside, builds a sync manager of the test's own over this test's archive (CloudKitSyncManager.isolated) and an iCloud record holding a live sealed copy of a session (liveRecord); with the session in forgotten asserts processRemoteRecord imports nothing, the archive does not hold it and it is not marked uploaded; then, as a positive control, processes the same record with nothing forgotten and asserts it is imported. Restores the defaults and removes the sync folder at the end.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.liveRecord(of:)",
     "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
+    "EmuquTests/Helpers/TestHelpers.swift::func HostDefaults.setAside(_:)",
+    "EmuquTests/Helpers/TestHelpers.swift::func HostDefaults.restore()",
+    "EmuquTests/Helpers/TestHelpers.swift::func CloudKitSyncManager.isolated(archive:directory:settings:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.deleteWithoutTrash(_:)",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)"
    ],
    "reads": [
-    "mem:CloudKitSyncState.uploadedSessionIds",
-    "archive:entries (shared archive)"
+    "mem:CloudKitSyncState.uploadedSessionIds (the test's manager)",
+    "archive:entries (the test's archive)"
    ],
-   "writes": [],
+   "writes": [
+    "file:<tmp>/ArchiveIntegritySync-<uuid>/ (the test manager's sync state)",
+    "ud:HostDefaults.cloudSyncBookkeeping (set aside and restored)"
+   ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.deleteWithoutTrash(_:)": "7f526b7970e30e76",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)": "df67e29f7a5a8f92",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull": "7cdf1d4648fc6bf2",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
     "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d",
-    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.liveRecord(of:)": "874c0780f1699c5c"
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.liveRecord(of:)": "874c0780f1699c5c",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439",
+    "EmuquTests/Helpers/TestHelpers.swift::func CloudKitSyncManager.isolated(archive:directory:settings:)": "275c9957e967f794",
+    "EmuquTests/Helpers/TestHelpers.swift::func HostDefaults.restore()": "1d370b6a567ac8ba",
+    "EmuquTests/Helpers/TestHelpers.swift::func HostDefaults.setAside(_:)": "7fdeccb8d06ee6ee"
    }
   },
   {

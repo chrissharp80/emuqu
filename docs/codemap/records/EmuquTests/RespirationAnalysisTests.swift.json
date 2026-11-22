@@ -25,8 +25,8 @@
   },
   {
    "key": "func RespirationAnalysisTests.testExactMinimumDataProcesses()",
-   "hash": "188672c14a3df807",
-   "does": "Calls estimateRespirationRate on 60 constant samples and discards the result; asserts nothing.",
+   "hash": "d6f656a5c64c4865",
+   "does": "Feeds exactly 60 beats (the minimum) carrying a 15 breaths/min modulation and asserts a rate comes back within 3 of 15.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)"
@@ -125,26 +125,15 @@
   },
   {
    "key": "func RespirationAnalysisTests.testRejectsImplausiblyHighRate()",
-   "hash": "bc1cff6c1a7081cd",
-   "does": "Feeds 300 RR values with 0.8 Hz modulation and asserts that if a rate is returned it is <= 40 br/min.",
+   "hash": "3ec0519d33e5f1a8",
+   "does": "Feeds 300 beats with a 0.8 Hz modulation sampled every 0.8 s, which aliases into the 9-30 breaths/min search band; unwraps the rate and asserts it lies in 9...30 (never a rate above the band or the 40 backstop).",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "for each of 300 samples",
-     "effect": "appends one modulated RR value"
-    },
-    {
-     "at": "+13",
-     "cond": "result non-nil",
-     "effect": "asserts rate <= 40; nil passes with no assertion"
-    }
-   ],
+   "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/RespirationAnalysis.swift::func RespirationAnalyzer.estimateRespirationRate(_:fs:)": "e944405d115f7a98"
    }

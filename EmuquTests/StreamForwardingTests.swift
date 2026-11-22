@@ -76,16 +76,22 @@ final class StreamForwardingTests: XCTestCase {
 
     /// A cancelled feed must stop delivering: a link that dropped or a
     /// subscription being re-opened must not keep writing beats.
+    ///
+    /// The check waits for the producer to yield 20 more values after the
+    /// cancellation, rather than for a fixed time, so a delivery that kept
+    /// going would have had those values to deliver.
     func testCancellationStopsDelivery() async throws {
         var received: [Int] = []
         let started = expectation(description: "delivery started")
         let producer = OSAllocatedUnfairLock<Task<Void, Never>?>(initialState: nil)
+        let produced = OSAllocatedUnfairLock(initialState: 0)
 
         let endless = AsyncThrowingStream<Int, Error> { continuation in
             let task = Task {
                 var i = 0
                 while !Task.isCancelled {
                     continuation.yield(i)
+                    produced.withLock { $0 += 1 }
                     i += 1
                     try? await Task.sleep(nanoseconds: 2_000_000)
                 }
@@ -105,7 +111,12 @@ final class StreamForwardingTests: XCTestCase {
         _ = await feed.value
 
         let settled = received.count
-        try await Task.sleep(nanoseconds: 100_000_000)
+        let target = produced.withLock { $0 } + 20
+        let deadline = Date().addingTimeInterval(10)
+        while produced.withLock({ $0 }) < target, Date() < deadline {
+            try await Task.sleep(nanoseconds: 2_000_000)
+        }
+        XCTAssertGreaterThanOrEqual(produced.withLock { $0 }, target, "The producer stopped, so nothing was left to deliver")
         XCTAssertEqual(received.count, settled, "Delivery continued after cancellation")
         producer.withLock { $0?.cancel() }
     }

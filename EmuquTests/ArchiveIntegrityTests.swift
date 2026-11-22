@@ -780,23 +780,37 @@ extension ArchiveIntegrityTests {
     }
 
     /// A session deleted forever is not brought back by a pull, even when
-    /// iCloud still holds a live copy of it.
+    /// iCloud still holds a live copy of it. The same record, once the
+    /// session is not on the deleted-forever list, is imported: so the
+    /// refusal is the list's, not a record the pull could not read. The pull
+    /// runs on a sync manager of the test's own over this test's archive,
+    /// never the host's.
     @MainActor
     func testAForgottenSessionIsNotReimportedOnPull() async throws {
-        let manager = CloudKitSyncManager.shared
-        let session = createTestSession()
-        let record = try liveRecord(of: session)
-        addTeardownBlock { @MainActor in
-            guard manager.archive.exists(session.id) else { return }
-            attempt("test.removePulled") { try manager.archive.deleteWithoutTrash(session.id) }
+        let syncDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ArchiveIntegritySync-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: syncDirectory, withIntermediateDirectories: true)
+        let host = HostDefaults.setAside(HostDefaults.cloudSyncBookkeeping)
+        defer {
+            host.restore()
+            attempt("test.removeSyncDirectory") { try FileManager.default.removeItem(at: syncDirectory) }
         }
+        let manager = CloudKitSyncManager.isolated(archive: archive, directory: syncDirectory)
+        let session = createTestSession()
+        testSessionIds.append(session.id)
+        let record = try liveRecord(of: session)
 
         let outcome = await manager.pull.processRemoteRecord(record, forgotten: [session.id])
 
         XCTAssertEqual(outcome.new, 0)
         XCTAssertNil(outcome.backfillId)
-        XCTAssertFalse(manager.archive.exists(session.id))
+        XCTAssertFalse(archive.exists(session.id))
         XCTAssertFalse(manager.state.uploadedSessionIds.contains(session.id))
+
+        let imported = await manager.pull.processRemoteRecord(record, forgotten: [])
+
+        XCTAssertEqual(imported.new, 1, "the record itself could not be imported")
+        XCTAssertTrue(archive.exists(session.id))
     }
 
     // MARK: Sealed index

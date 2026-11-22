@@ -455,8 +455,8 @@
   },
   {
    "key": "func DFAAnalysisTests.testDFAWithConstantRR()",
-   "hash": "89347ad0c57117cc",
-   "does": "100 constant 850 ms samples: if a result is returned, asserts α1 is neither NaN nor infinite. Integrated series is all zero, every fluctuation is 0, logLogRegression maps each to the -10 sentinel and the regression slope is 0, so α1 = 0.",
+   "hash": "a0cba5fc282e0125",
+   "does": "Asserts DFA over 100 constant 850 ms samples returns nil: the integrated series is all zero, every box's fluctuation is 0, logLogRegression has no positive fluctuation to fit, so there is no α1 rather than a NaN or infinite one.",
    "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
    "calls": [
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)",
@@ -473,13 +473,7 @@
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+6",
-     "cond": "result non-nil",
-     "effect": "true: asserts α1 finite; false: test passes with no assertion (cannot happen: 100 ≥ 64)"
-    }
-   ],
+   "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.alpha2Exponent(integrated:sizes:segments:)": "7f2d390349670a5f",
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "db17965893eacc09",
