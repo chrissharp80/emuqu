@@ -321,7 +321,7 @@
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.fetchSleepData(for:recordingEnd:rrPoints:autoSleepExtension:rrStart:)": "43099365020dbe02",
     "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.startObservingSleepData()": "dbe0c557f3eac42d",
     "Emuqu/Sources/Collection/RRCollector+DeviceRecording.swift::func DeviceRecordingSession.fetchTrainingLoadIfEnabled()": "572b016e5f9b6784",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.buildMergedSeries(points:baseSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)": "53b9c4f3159ed360",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.buildMergedSeries(points:baseSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)": "a7ccd22b8a4ca368",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.computeRecoveryScore(for:analysisResult:trainingContext:baselineTracker:settings:cachedTrainingLoad:)": "7f441983b399c499",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.segmentsWithinGap(_:gap:)": "a644cb81f019ea3b",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.supersedeSameNightSession(newSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)": "2d5616b0193482db",
@@ -329,7 +329,7 @@
     "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollHealthKitSleep(series:effectiveStartDate:recordingEnd:totalBeats:isBackgroundRefinement:statusCallback:)": "696706af855ce8ec",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.finishSession(_:phase:settings:trainingContext:cachedTrainingLoad:isBackgroundRefinement:)": "2604de6eb9fdeb00",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.processOvernightData(_:)": "20ef34428b773f36",
-    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.run(_:)": "d6f74d74f59e2ca3",
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.run(_:)": "4efda53e781606e1",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.runAnalysisPhase(series:analyzingSession:effectiveStartDate:totalBeats:isBackgroundRefinement:settings:trainingContext:prefetchedSleepData:statusCallback:)": "86c4760980cf47bb",
     "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.read(coveringRecordingStart:)": "b50ff8b96d8c5f03"
    }
@@ -483,8 +483,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.buildMergedSeries(points:baseSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)": "53b9c4f3159ed360",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.sameNightSegments(baseSession:points:sleepSchedule:mergeGap:)": "b70004b39f7abeb1"
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.buildMergedSeries(points:baseSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)": "a7ccd22b8a4ca368",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.sameNightSegments(baseSession:points:sleepSchedule:mergeGap:)": "5ea0543e954f1a8b"
    }
   },
   {
@@ -698,19 +698,17 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+Analysis.swift::func MorningSessionPipeline.computeRecoveryScore(for:from:)": "4a5ceb4ba655d800",
     "Emuqu/Sources/Collection/RRCollector+PauseResume.swift::func CollectorSessionControl.resumeOvernightStreaming(linkedSessionId:)": "0740b26b052a6720",
-    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.applyManualAnalysis(_:result:)": "c73d348dbd48051f",
-    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.autoRefreshTodaysSleepIfImproved()": "59e03c563fc5e5eb",
-    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.handleRescoreRequest(sessionId:reason:)": "57e1588b3f1259db",
-    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.installRescoreListener()": "69827b82f3a3b98d",
-    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()": "3dd378db89335e05",
-    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)": "5739f13875226ec6",
-    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)": "407d7a2fb0f9bc29",
-    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.repairTrainingSnapshots(progress:)": "f57c7007a40c61a7",
-    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.retroApplySleepSettings(progress:)": "d0a87cf67cb95395",
-    "Emuqu/Sources/Collection/RRCollector+Reanalysis.swift::func SessionReanalysisCoordinator.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "dc3b029c1abe4a1d",
-    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func postSleepRescoreRequest(sessionId:fresh:verdict:)": "e78b61406e6798cc",
     "Emuqu/Sources/Collection/SessionDataMigrations+InsufficientDataMigration.swift::func SessionDataMigrations.runInsufficientDataMigrationIfNeeded()": "beaafa1b2a7ae497",
     "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.runAllIfNeeded()": "935aa07e49488122",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.autoRefreshTodaysSleepIfImproved()": "de4cbdf433e33511",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.handleRescoreRequest(sessionId:reason:)": "bbeb7ba3fd95df10",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.installRescoreListener()": "64e2ca63340dcbb0",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.performAutoRefreshTodaysSleepIfImproved()": "256742f47fea5811",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func SessionReanalysisCoordinator.recordPendingScoreChangeIfMeaningful(sessionId:prior:updated:reason:)": "0027892fb9448542",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator+Listeners.swift::func postSleepRescoreRequest(sessionId:fresh:verdict:)": "3d4664c0028b9917",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.reanalyzeSession(_:method:)": "22355b317aa90b2b",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.repairTrainingSnapshots(progress:)": "f57c7007a40c61a7",
+    "Emuqu/Sources/Collection/SessionReanalysisCoordinator.swift::func SessionReanalysisCoordinator.retroApplySleepSettings(progress:)": "d0a87cf67cb95395",
     "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyAutoRefresh(_:to:)": "b170cf5d249adeeb",
     "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyFreshSleep(_:to:)": "8f9178cd1d775e49",
     "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.applyPulledSleep(_:to:)": "08fb02a1f8e571fd",
@@ -718,9 +716,10 @@
     "Emuqu/Sources/Collection/SleepRefreshPolicy.swift::func SleepRefreshPolicy.sleepRefreshVerdict(session:fresh:)": "26cb9251401b7661",
     "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "5fa896ef88ba9fda",
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.scoringHealthData(for:result:)": "6233dd6d8bf3eef8",
+    "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applyManualAnalysis(_:result:)": "a33c0cff3e7e52a8",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "c11d10dab10551e5",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.reanalyzeSession(_:method:preserveManualWindows:)": "1af065c739ef1b58",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.analyzeSession(_:series:flags:analyze:analyzeWithCapacity:)": "4c65637004b180d0",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.analyzeSession(_:series:flags:analyze:analyzeWithCapacity:)": "2946d11423fd9c0d",
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.persistMergedVitals(_:)": "d63c7977d1dc38e7",
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryScoreDetailView.refreshVitals(referenceDate:)": "4cd280f6d60dd2cd",
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::func RecoveryVitalsBackfill.store(_:id:archive:)": "1f6fe067107e1103",
@@ -929,8 +928,8 @@
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 16. Archive Status Visibility > Morning notification scheduling",
-   "hash": "d40d81d8213c8447",
-   "does": "Claims a repeating UNCalendarNotificationTrigger at dailyReportFixedTime plus, in Smart delivery, an immediate push from the sleep observer when the freshest sleep end is within 90 min and none sent today (UserDefaults date flag). Code matches and additionally requires the wake to fall within 7 h before the schedule's morning cutoff (isMorningWake) and notification authorization.",
+   "hash": "99851e3ad25d2667",
+   "does": "Claims a repeating UNCalendarNotificationTrigger at dailyReportFixedTime plus, in Smart delivery, an immediate push from the sleep observer when the freshest sleep end is within 90 min and today's push is not settled (UserDefaults date and settled flags; a number-free push sent before the night was scored is replaced once when the score exists). Code matches and additionally requires the wake to fall within 7 h before the schedule's morning cutoff (isMorningWake) and notification authorization.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()",
@@ -943,26 +942,26 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.startObservingSleepData()": "2541e915583705b5",
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.claimWakePush(today:sleepEnd:)": "bc47f60bbf466cfc",
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.deliverWakeTriggeredPushIfAppropriate(sleepEnd:)": "57c941475999bb86",
+    "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.startObservingSleepData()": "dbe0c557f3eac42d",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.claimWakePush(today:sleepEnd:)": "1289ca413004b5b4",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.deliverWakeTriggeredPushIfAppropriate(sleepEnd:)": "cc848d4c5e8a0ca0",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.isMorningWake(_:schedule:)": "efb8145f19ecd943",
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "62bd5275ef3f248f"
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "4e8514ceace2cec7"
    }
   },
   {
    "key": "§ Emuqu — Complete Data Flow Reference > 16. Archive Status Visibility > Known Deferred",
-   "hash": "30a82caeb195b2c1",
-   "does": "Lists deferred features: a 14-day re-engagement push (lastOvernightSessionDate not implemented — grep finds no such field) and A/B push format beyond 'Auto = teaser for first 30 sessions, full readout from 31+'.",
+   "hash": "0852f9eae4d8d0a6",
+   "does": "Lists deferred features: a 14-day re-engagement push (lastOvernightSessionDate not implemented — grep finds no such field) and A/B push format beyond 'Auto = teaser for the first 30 nights, then the full readout while notification previews are hidden on the locked screen'.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:)"
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:previewsHiddenWhileLocked:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:)": "d55df80abffb0043"
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:previewsHiddenWhileLocked:)": "f4505584aeb01ebd"
    }
   },
   {
@@ -1064,7 +1063,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.start(sport:source:intervalPlan:thresholds:route:)": "6ef658b176509f08",
     "Emuqu/Sources/Models/SavedRoute.swift::func SavedRouteStore.enrichWithRoadNames(routeID:)": "f91e54d315319ac0",
     "Emuqu/Sources/Services/RoadGeocodingService.swift::func RoadGeocodingService.refreshIfNeeded(for:enrichCrossStreet:)": "a4c3b987ae29dd27",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.refreshIfNeeded(for:)": "de72c50325c28f39"
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.refreshIfNeeded(for:)": "e83fa708149f613c"
    }
   },
   {

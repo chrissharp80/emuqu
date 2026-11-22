@@ -466,8 +466,8 @@ final class SessionAcceptanceService {
         )
         debugLog("[SessionAcceptanceService] Updating archived recovery score for \(session.id.uuidString.prefix(8))")
         applyFrozenScore(breakdown, to: &updated, training: trainingContext)
-        guard reArchive(updated) else { return false }
-        exportToHealthIfEnabled(updated, enabled: exportMetrics && enableHealthKitExport)
+        guard let stored = reArchive(updated, scoredFrom: session) else { return false }
+        exportToHealthIfEnabled(stored, enabled: exportMetrics && enableHealthKitExport)
         return true
     }
 
@@ -484,17 +484,60 @@ final class SessionAcceptanceService {
         return applyHRVQuality(to: &session, result: result, baselineStats: baselineStats)
     }
 
-    /// Re-archive with a re-upload request (stamps `modifiedAt`), so a session
-    /// iCloud already holds is pushed again and other devices get the new
-    /// score, quality and snapshots.
-    private func reArchive(_ updated: HRVSession) -> Bool {
+    /// Write the update onto the archived copy, in place (`SessionArchive.update`),
+    /// with a re-upload request (stamps `modifiedAt`), so a session iCloud
+    /// already holds is pushed again and other devices get the new score,
+    /// quality and snapshots. Returns the session as stored, or nil when
+    /// nothing was written: the archive does not hold it (deleted or purged
+    /// while the score was computed; it is never created here) or the write
+    /// failed.
+    ///
+    /// The score was computed over the HealthKit fetch, which can take up to
+    /// ten seconds, from `read`. Writing the whole of `updated` back would
+    /// put every other field back as `read` held it, undoing a sleep edit, a
+    /// window pick or a rescore saved meanwhile, and the re-upload would push
+    /// that older copy to iCloud as the newest. So only what this update sets
+    /// is written (`applyUpdate`).
+    private func reArchive(_ updated: HRVSession, scoredFrom read: HRVSession) -> HRVSession? {
+        var stored: HRVSession?
         do {
-            try archive.archive(updated, skipSameNightMerge: false, requestingReupload: true)
-            return true
+            try archive.update(updated.id, requestingReupload: true) { archived in
+                Self.applyUpdate(updated, scoredFrom: read, to: &archived)
+                stored = archived
+            }
         } catch {
             debugLog("[SessionAcceptanceService] Failed to re-archive with updated score: \(error)")
-            return false
+            return nil
         }
+        return stored
+    }
+
+    /// What `updateCompositeRecoveryScore` sets on the archived copy.
+    ///
+    /// The tags and notes the caller carried (the auto-accept's pre-night
+    /// choice) are always kept: tags it added join the stored ones, and its
+    /// notes, when it has any, replace them. The score, its breakdown, the
+    /// frozen readiness, the training context, the quality class and the
+    /// sleep and vitals snapshots are set only while the inputs they were
+    /// computed from are still the archive's (`RescoreWrite.inputsMatch`). An
+    /// edit that changed them meanwhile scored the night itself, and that
+    /// newer score stays.
+    nonisolated static func applyUpdate(_ updated: HRVSession, scoredFrom read: HRVSession, to archived: inout HRVSession) {
+        let added = updated.tags.filter { !archived.tags.contains($0) }
+        archived.tags += added
+        if let notes = updated.notes, !notes.isEmpty { archived.notes = notes }
+        guard RescoreWrite.inputsMatch(archived, read, kind: .scoreOnly(healedTraining: false)) else {
+            debugLog("[SessionAcceptanceService] The night changed while its score was computed — keeping the stored score")
+            return
+        }
+        archived.recoveryScore = updated.recoveryScore
+        archived.scoreBreakdown = updated.scoreBreakdown
+        archived.frozenReadiness = updated.frozenReadiness
+        archived.analysisResult?.trainingContext = updated.analysisResult?.trainingContext
+        if archived.trainingSnapshot == nil { archived.trainingSnapshot = updated.trainingSnapshot }
+        archived.hrvDataQuality = updated.hrvDataQuality
+        archived.sleepSnapshot = updated.sleepSnapshot
+        archived.vitalsSnapshot = updated.vitalsSnapshot
     }
 
     /// Fetch and snapshot sleep + vitals for an already-archived session,

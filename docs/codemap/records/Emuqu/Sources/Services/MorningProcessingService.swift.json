@@ -95,7 +95,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.run(_:)": "d6f74d74f59e2ca3",
+    "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.run(_:)": "4efda53e781606e1",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()": "12e7c44b52c0986c",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::init BackgroundTaskAssertion(name:onExpire:)": "b9d2438378adf1ed"
    }
@@ -113,8 +113,8 @@
   },
   {
    "key": "func MorningProcessingService.run(_:)",
-   "hash": "c6cb241bbfa81694",
-   "does": "Steps 1-7: awaits the off-thread raw RR backup, builds the merged same-night series, builds the analyzing session, runs the analysis phase, and assembles the result.",
+   "hash": "74b30c38ef310676",
+   "does": "Steps 1-7: awaits the off-thread raw RR backup, awaits the merged same-night series (archived segments read off the main actor), builds the analyzing session, runs the analysis phase, and assembles the result.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.backupRawDataAsync(points:sessionId:deviceId:dataSource:)",
@@ -128,7 +128,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.backupRawDataAsync(points:sessionId:deviceId:dataSource:)": "a9c8a494a32ca51d",
-    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.buildMergedSeries(points:baseSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)": "53b9c4f3159ed360",
+    "Emuqu/Sources/Services/MorningProcessingService+Merging.swift::func MorningProcessingService.buildMergedSeries(points:baseSession:sleepSchedule:sessionMergeMode:mergeGapSeconds:)": "a7ccd22b8a4ca368",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.analysisPhase(request:merged:analyzingSession:)": "44f601dbc6d946c3",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.assembleResult(request:merged:analyzingSession:phase:)": "6010fdb6de550204",
     "Emuqu/Sources/Services/MorningProcessingService.swift::func MorningProcessingService.makeAnalyzingSession(request:merged:)": "d8fca15630b6fbf1",

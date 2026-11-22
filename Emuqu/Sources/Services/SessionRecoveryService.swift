@@ -410,7 +410,10 @@ final class SessionRecoveryService {
         let endDate: Date?
     }
 
-    func retrieveBackupWithParentMerge(_ sessionId: UUID) -> BackupData? {
+    /// Artifact detection runs off the main actor: it walks every beat of
+    /// the night (28,000 and more), and recovery runs it from the launch
+    /// alert and for each backup "Recover All" goes through.
+    func retrieveBackupWithParentMerge(_ sessionId: UUID) async -> BackupData? {
         guard let backup = storedBackup(sessionId) else { return nil }
         var allPoints = backup.points
         var sessionStart = backup.captureDate
@@ -427,10 +430,18 @@ final class SessionRecoveryService {
         return BackupData(
             backup: backup,
             series: series,
-            flags: artifactDetector.detectArtifacts(in: series),
+            flags: await detectedArtifacts(in: series),
             sessionStart: sessionStart,
             endDate: Self.backupEndDate(backup)
         )
+    }
+
+    /// The series' artifact flags, detected off the main actor.
+    private func detectedArtifacts(in series: RRSeries) async -> [ArtifactFlags] {
+        let detector = artifactDetector
+        return await Task.detached(priority: .userInitiated) {
+            detector.detectArtifacts(in: series)
+        }.value
     }
 
     /// The parent's beats followed by the child's, re-based onto the
@@ -485,6 +496,12 @@ final class SessionRecoveryService {
     }
 
     /// Run windowed analysis on a session, updating its analysisResult in place.
+    ///
+    /// Window selection, the heaviest pass over the night, runs off the main
+    /// actor, as the morning and reanalysis paths run it. When no window
+    /// qualifies (a short, noisy or pre-sleep backup), the whole series is
+    /// analysed, as those paths fall back; without it such a backup could
+    /// never be recovered and stayed listed in Lost Sessions for good.
     func analyzeSession(
         _ session: inout HRVSession,
         series: RRSeries,
@@ -493,12 +510,19 @@ final class SessionRecoveryService {
         analyzeWithCapacity: (_ session: HRVSession, _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?
     ) async {
         let baseline = windowBaselineStats(for: session)
-        if let windowResult = windowSelector.findBestWindowWithCapacity(in: series, flags: flags, baselineStats: baseline) {
-            if let recoveryWindow = windowResult.recoveryWindow {
-                session.analysisResult = await analyze(session, recoveryWindow, flags, windowResult.peakCapacity)
-            } else {
-                session.analysisResult = await analyzeWithCapacity(session, windowResult.peakCapacity)
-            }
+        let selector = windowSelector
+        let selection = await Task.detached(priority: .userInitiated) {
+            selector.findBestWindowWithCapacity(in: series, flags: flags, baselineStats: baseline)
+        }.value
+        guard let windowResult = selection else {
+            debugLog("[SessionRecoveryService] No qualifying window in the backup — falling back to full-session analysis")
+            session.analysisResult = await analyzeWithCapacity(session, nil)
+            return
+        }
+        if let recoveryWindow = windowResult.recoveryWindow {
+            session.analysisResult = await analyze(session, recoveryWindow, flags, windowResult.peakCapacity)
+        } else {
+            session.analysisResult = await analyzeWithCapacity(session, windowResult.peakCapacity)
         }
     }
 }

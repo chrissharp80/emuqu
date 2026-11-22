@@ -18,14 +18,16 @@
   "ud:telemetry.modeActivationsByKind",
   "ud:telemetry.methodologyViews"
  ],
- "toplevel": "Type doc points the reset at Settings → Advanced → Diagnostics → Usage counts → Reset usage counts. Keys.retiredTimestamps lists the two last-event timestamp keys earlier builds wrote; only reset removes them.",
+ "toplevel": "Type doc points the reset at Settings → Advanced → Diagnostics → Usage counts → Reset usage counts, and says each record call counts on from the stored value so a sweep of the keys (Delete All My Data) is not undone. Keys.retiredTimestamps lists the two last-event timestamp keys earlier builds wrote; only reset removes them.",
  "units": [
   {
    "key": "init ValidationTelemetry(defaults:)",
-   "hash": "4e3f36c727fb6f1c",
-   "does": "Loads counters and per-key dictionaries from UserDefaults.",
+   "hash": "89d26687cae806d2",
+   "does": "Loads counters and per-key dictionaries (tally) from the given UserDefaults (.standard for the shared instance; tests pass a throwaway suite).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.tally(_:_:)"
+   ],
    "reads": [
     "ud:telemetry.dashboardOpens",
     "ud:telemetry.chipDrillInsByKey",
@@ -34,27 +36,20 @@
     "ud:telemetry.methodologyViews"
    ],
    "writes": [],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "chipDrillIns dictionary absent or not [String:Int]",
-     "effect": "uses [:]"
-    },
-    {
-     "at": "+6",
-     "cond": "modeActivations dictionary absent or not [String:Int]",
-     "effect": "uses [:]"
-    }
-   ],
-   "deps": {}
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.tally(_:_:)": "ffb6cf448ffeff58"
+   }
   },
   {
    "key": "func ValidationTelemetry.recordDashboardOpen()",
-   "hash": "8b2a437f27b1372e",
-   "does": "Increments dashboardOpens and stores it. Called from DashboardV2View.",
+   "hash": "29f7f3b7391d83ad",
+   "does": "Counts on from the stored dashboardOpens (not the in-memory copy), keeps the result in memory and stores it. Called from DashboardV2View.",
    "entry": null,
    "calls": [],
-   "reads": [],
+   "reads": [
+    "ud:telemetry.dashboardOpens"
+   ],
    "writes": [
     "ud:telemetry.dashboardOpens"
    ],
@@ -63,16 +58,22 @@
   },
   {
    "key": "func ValidationTelemetry.recordChipTap(_:)",
-   "hash": "20d3767091f653a9",
-   "does": "Increments the per-chip drill-in count and stores the dictionary. Called from DashboardV2View+Chips.",
+   "hash": "c4e4ca8daa0b75d7",
+   "does": "Counts the chip on from the stored per-chip dictionary (tally), keeps it in memory and stores it. Called from DashboardV2View+Chips.",
    "entry": null,
-   "calls": [],
-   "reads": [],
+   "calls": [
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.tally(_:_:)"
+   ],
+   "reads": [
+    "ud:telemetry.chipDrillInsByKey"
+   ],
    "writes": [
     "ud:telemetry.chipDrillInsByKey"
    ],
    "branches": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.tally(_:_:)": "ffb6cf448ffeff58"
+   }
   },
   {
    "key": "var ValidationTelemetry.totalDrillIns",
@@ -87,11 +88,13 @@
   },
   {
    "key": "func ValidationTelemetry.recordTrajectoryVisit()",
-   "hash": "608603d8e8005cc9",
-   "does": "Increments trajectoryVisits and stores it. Called from LoadTrajectoryLoader.",
+   "hash": "c63876f1d15cada4",
+   "does": "Counts on from the stored trajectoryVisits, keeps it in memory and stores it. Called from LoadTrajectoryLoader.",
    "entry": null,
    "calls": [],
-   "reads": [],
+   "reads": [
+    "ud:telemetry.trajectoryVisits"
+   ],
    "writes": [
     "ud:telemetry.trajectoryVisits"
    ],
@@ -100,28 +103,56 @@
   },
   {
    "key": "func ValidationTelemetry.recordModeActivation(_:)",
-   "hash": "9f6d9054dfa1e890",
-   "does": "Increments the per-mode activation count and stores it. Called from ModesSettingsPage.",
+   "hash": "a5e27497cce51b2d",
+   "does": "Counts the mode on from the stored per-mode dictionary (tally), keeps it in memory and stores it. Called from ModesSettingsPage.",
    "entry": null,
-   "calls": [],
-   "reads": [],
+   "calls": [
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.tally(_:_:)"
+   ],
+   "reads": [
+    "ud:telemetry.modeActivationsByKind"
+   ],
    "writes": [
     "ud:telemetry.modeActivationsByKind"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.tally(_:_:)": "ffb6cf448ffeff58"
+   }
+  },
+  {
+   "key": "func ValidationTelemetry.recordMethodologyView()",
+   "hash": "394d3a6d6264e404",
+   "does": "Counts on from the stored methodologyViews, keeps it in memory and stores it. Called from RecoveryMethodologyView .task.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "ud:telemetry.methodologyViews"
+   ],
+   "writes": [
+    "ud:telemetry.methodologyViews"
    ],
    "branches": [],
    "deps": {}
   },
   {
-   "key": "func ValidationTelemetry.recordMethodologyView()",
-   "hash": "177462c25eba9c5a",
-   "does": "Increments methodologyViews and stores it. Called from RecoveryMethodologyView .task.",
+   "key": "func ValidationTelemetry.tally(_:_:)",
+   "hash": "51fd2cbef76eeb6b",
+   "does": "The [String: Int] dictionary stored under the key, or [:] when it is missing or holds something else.",
    "entry": null,
    "calls": [],
-   "reads": [],
-   "writes": [
-    "ud:telemetry.methodologyViews"
+   "reads": [
+    "ud:telemetry.chipDrillInsByKey",
+    "ud:telemetry.modeActivationsByKind"
    ],
-   "branches": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "absent or not [String: Int]",
+     "effect": "[:]"
+    }
+   ],
    "deps": {}
   },
   {
@@ -152,7 +183,9 @@
    "reads": [],
    "writes": [],
    "branches": [],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Services/ValidationTelemetry.swift::func ValidationTelemetry.tally(_:_:)": "ffb6cf448ffeff58"
+   }
   },
   {
    "key": "func ValidationTelemetry.reset()",

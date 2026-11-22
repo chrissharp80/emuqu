@@ -32,13 +32,13 @@
    }
   },
   {
-   "key": "func SessionRecoveryClassificationTests.classify(beats:durationSec:)",
-   "hash": "a610542211f047d7",
-   "does": "Classifies a fixture backup via recoveredSessionType with a fresh session id.",
+   "key": "func SessionRecoveryClassificationTests.classify(beats:durationSec:recordedType:)",
+   "hash": "44ecfd5a95eeb8d7",
+   "does": "Classifies a fixture backup via recoveredSessionType with a fresh session id and the given recorded type (nil by default).",
    "entry": null,
    "calls": [
     "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.backup(beats:durationSec:)",
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:recordedType:)",
     "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.describeSeconds(_:)"
    ],
    "reads": [],
@@ -46,8 +46,78 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.describeSeconds(_:)": "10b4287879e96cb2",
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)": "1539e384a536d37d",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:recordedType:)": "806f91f0d3b009d3",
     "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.backup(beats:durationSec:)": "845ef9d580abad96"
+   }
+  },
+  {
+   "key": "func SessionRecoveryClassificationTests.testABackupWithNoQualifyingWindowIsAnalysedWhole()",
+   "hash": "2d8ac387fbe86931",
+   "does": "Builds a SessionRecoveryService on a temporary archive, raw backup and baseline (removed on exit) and runs analyzeSession over a 150-beat backup (below a window); asserts the windowed closure is never called and the whole-series closure is called with no capacity.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::init SessionRecoveryService(archive:rawBackup:artifactDetector:windowSelector:cloudSyncManager:baselineTracker:)",
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.backup(beats:durationSec:)",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.analyzeSession(_:series:flags:analyze:analyzeWithCapacity:)",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.waitForQueuedWork()"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/RecoveryFallback-<uuid>"
+   ],
+   "branches": [
+    {
+     "at": "+29",
+     "cond": "the windowed closure is called",
+     "effect": "test fails"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArtifactDetection.swift::init ArtifactDetector(config:)": "30cd3e6093580ceb",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)": "a41f1bac098eee8d",
+    "Emuqu/Sources/Analysis/WindowSelection.swift::init WindowSelector(config:)": "b5a517742df2a0c2",
+    "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.analyzeSession(_:series:flags:analyze:analyzeWithCapacity:)": "2946d11423fd9c0d",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::init SessionRecoveryService(archive:rawBackup:artifactDetector:windowSelector:cloudSyncManager:baselineTracker:)": "cf74d2dace4470e3",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.waitForQueuedWork()": "f7b072a559ef78a5",
+    "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)": "fdbbc520aa4c0476",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.flags(count:flagged:)": "644bfb993c7bd1d9",
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.backup(beats:durationSec:)": "845ef9d580abad96"
+   }
+  },
+  {
+   "key": "func SessionRecoveryClassificationTests.testALongNapKeepsItsType()",
+   "hash": "d1d36af23dd336db",
+   "does": "Asserts a 90-minute, 6,000-beat backup recorded as a nap is classified .nap.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:recordedType:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:recordedType:)": "4d4cb472a52d1e91"
+   }
+  },
+  {
+   "key": "func SessionRecoveryClassificationTests.testAShortInterruptedNightIsStillDowngraded()",
+   "hash": "bc8f728df9ab70f2",
+   "does": "Asserts a 20-minute, 500-beat backup recorded as an overnight is classified .quick, and an 8-hour, 20,000-beat one stays .overnight.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:recordedType:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:recordedType:)": "4d4cb472a52d1e91"
    }
   },
   {
@@ -56,15 +126,15 @@
    "does": "Asserts 20,000 beats over 8 h → .overnight.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:)",
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)"
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:recordedType:)",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:recordedType:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)": "1539e384a536d37d",
-    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:)": "a5e3748f291a4cd8"
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:recordedType:)": "806f91f0d3b009d3",
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:recordedType:)": "4d4cb472a52d1e91"
    }
   },
   {
@@ -73,8 +143,8 @@
    "does": "Asserts 500 beats over 8 h → .quick.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:)",
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)",
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:recordedType:)",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:recordedType:)",
     "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.describeSeconds(_:)"
    ],
    "reads": [],
@@ -82,8 +152,8 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.describeSeconds(_:)": "10b4287879e96cb2",
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)": "1539e384a536d37d",
-    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:)": "a5e3748f291a4cd8"
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:recordedType:)": "806f91f0d3b009d3",
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:recordedType:)": "4d4cb472a52d1e91"
    }
   },
   {
@@ -92,8 +162,8 @@
    "does": "Asserts 20,000 beats over 10 min → .quick.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:)",
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)",
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:recordedType:)",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:recordedType:)",
     "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.describeSeconds(_:)"
    ],
    "reads": [],
@@ -101,8 +171,8 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.describeSeconds(_:)": "10b4287879e96cb2",
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)": "1539e384a536d37d",
-    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:)": "a5e3748f291a4cd8"
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:recordedType:)": "806f91f0d3b009d3",
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:recordedType:)": "4d4cb472a52d1e91"
    }
   },
   {
@@ -111,8 +181,8 @@
    "does": "Asserts 100 beats over 2 min → .quick.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:)",
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)",
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:recordedType:)",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:recordedType:)",
     "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.describeSeconds(_:)"
    ],
    "reads": [],
@@ -120,8 +190,8 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.describeSeconds(_:)": "10b4287879e96cb2",
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)": "1539e384a536d37d",
-    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:)": "a5e3748f291a4cd8"
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:recordedType:)": "806f91f0d3b009d3",
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:recordedType:)": "4d4cb472a52d1e91"
    }
   },
   {
@@ -130,15 +200,15 @@
    "does": "Asserts exactly 4,000 beats and 3,600 s → .overnight (>=).",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:)",
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)"
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:recordedType:)",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:recordedType:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)": "1539e384a536d37d",
-    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:)": "a5e3748f291a4cd8"
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:recordedType:)": "806f91f0d3b009d3",
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:recordedType:)": "4d4cb472a52d1e91"
    }
   },
   {
@@ -147,8 +217,8 @@
    "does": "Asserts 3,999 beats over 1 h → .quick.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:)",
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)",
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:recordedType:)",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:recordedType:)",
     "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.describeSeconds(_:)"
    ],
    "reads": [],
@@ -156,8 +226,8 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.describeSeconds(_:)": "10b4287879e96cb2",
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)": "1539e384a536d37d",
-    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:)": "a5e3748f291a4cd8"
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:recordedType:)": "806f91f0d3b009d3",
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:recordedType:)": "4d4cb472a52d1e91"
    }
   },
   {
@@ -166,8 +236,8 @@
    "does": "Asserts 4,000 beats over 3,599 s → .quick.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:)",
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)",
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:recordedType:)",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:recordedType:)",
     "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.describeSeconds(_:)"
    ],
    "reads": [],
@@ -175,8 +245,8 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.describeSeconds(_:)": "10b4287879e96cb2",
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)": "1539e384a536d37d",
-    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:)": "a5e3748f291a4cd8"
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:recordedType:)": "806f91f0d3b009d3",
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:recordedType:)": "4d4cb472a52d1e91"
    }
   },
   {
@@ -185,8 +255,8 @@
    "does": "Asserts an empty backup of 0 s → .quick.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
-    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:)",
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)",
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:recordedType:)",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:recordedType:)",
     "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.describeSeconds(_:)"
    ],
    "reads": [],
@@ -194,8 +264,8 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.describeSeconds(_:)": "10b4287879e96cb2",
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)": "1539e384a536d37d",
-    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:)": "a5e3748f291a4cd8"
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:recordedType:)": "806f91f0d3b009d3",
+    "EmuquTests/SessionRecoveryClassificationTests.swift::func SessionRecoveryClassificationTests.classify(beats:durationSec:recordedType:)": "4d4cb472a52d1e91"
    }
   },
   {

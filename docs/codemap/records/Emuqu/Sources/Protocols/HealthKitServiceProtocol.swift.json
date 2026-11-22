@@ -97,8 +97,8 @@
   },
   {
    "key": "requirement HealthKitServiceProtocol.estimateSleepFromRR(rrPoints:recordingStart:)",
-   "hash": "e43bf8bd1a7fe73a",
-   "does": "Requirement: sleep boundaries inferred from the strap's RR series (the fallback when HealthKit has no sleep). Implemented by the protocol-extension default; a mock may override.",
+   "hash": "67db64fb32fc8b76",
+   "does": "Requirement (async): sleep boundaries inferred from the strap's RR series (the fallback when HealthKit has no sleep). Implemented by the protocol-extension default, which runs off the main actor; a mock may override.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.estimateSleepFromRR(rrPoints:recordingStart:)"
@@ -107,7 +107,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.estimateSleepFromRR(rrPoints:recordingStart:)": "b4b2021c391da46e"
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::func HealthKitServiceProtocol.estimateSleepFromRR(rrPoints:recordingStart:)": "bcd44c4a7f228021"
    }
   },
   {
@@ -212,8 +212,8 @@
   },
   {
    "key": "func HealthKitServiceProtocol.estimateSleepFromRR(rrPoints:recordingStart:)",
-   "hash": "25c98ee0ca1ea5e9",
-   "does": "Default implementation: HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:) (pure, no manager state).",
+   "hash": "a57b5e27c78ddb59",
+   "does": "Default implementation: HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:) (pure, no manager state) on a detached user-initiated task, awaited; it walks every beat of the night.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)"

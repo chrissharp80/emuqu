@@ -153,7 +153,7 @@ final class RoadGeocodingService {
         // `runWithTimeout` swallows CLGeocoder errors and timeouts,
         // returning nil for both — so there's no throwing path here.
         let placemarks: [CLPlacemark]? = await queuedGeocoderCall {
-            await runWithTimeout(seconds: 5.0) {
+            await self.geocoderRequest {
                 try await self.geocoder.reverseGeocodeLocation(location)
             }
         }
@@ -172,7 +172,7 @@ final class RoadGeocodingService {
     /// `DirectionsService` for "take me to <X>" routing.
     func forwardGeocodeQueued(_ query: String) async -> [CLPlacemark]? {
         let placemarks: [CLPlacemark]? = await queuedGeocoderCall(honoringBackoff: false) {
-            await runWithTimeout(seconds: 5.0) {
+            await self.geocoderRequest {
                 try await self.geocoder.geocodeAddressString(query)
             }
         }
@@ -183,6 +183,20 @@ final class RoadGeocodingService {
             backoffStartedAt = nil
         }
         return placemarks
+    }
+
+    /// One CLGeocoder request, given up on after 5 s (`runWithTimeout`).
+    /// Giving up stops the waiting but not the request, and a CLGeocoder
+    /// serves one request at a time: the next queued call, a second later,
+    /// failed against the one still running and counted toward the backoff.
+    /// So a request still running when it is given up on is cancelled here,
+    /// before the queue's next turn. Nil on a timeout or an error.
+    func geocoderRequest<T: Sendable>(_ request: @Sendable @escaping () async throws -> T) async -> T? {
+        let result = await runWithTimeout(seconds: 5.0, operation: request)
+        if result == nil, geocoder.isGeocoding {
+            geocoder.cancelGeocode()
+        }
+        return result
     }
 
     /// Sleep just enough to honor the cross-call floor + active
@@ -524,6 +538,19 @@ final class RoadGeocodingService {
         inflightTask = nil
         consecutiveFailures = 0
         backoffStartedAt = nil
+    }
+
+    /// Delete All My Data: drop the road context (street, postcode,
+    /// neighbourhood) and the coordinate and time it was looked up for, and
+    /// stop a lookup in flight from publishing a new one, so
+    /// `cachedIfCloseTo` cannot hand the assistant the purged location. The
+    /// failure state goes with it (`reset()`).
+    func forgetAfterPurge() {
+        reset()
+        current = nil
+        lastLookupCoord = nil
+        lastLookupAt = nil
+        lastNoCrossStreetRoad = nil
     }
 
     // MARK: - One-shot lookups (route through the shared queued

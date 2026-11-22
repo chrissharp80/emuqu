@@ -60,31 +60,40 @@
   },
   {
    "key": "func writeArchiveBytes(_:to:format:sessionID:)",
-   "hash": "1dae9cf765be8d67",
-   "does": "Writes archive bytes with the protection class their format demands (archiveWriteOptions, which records/clears the ledger first); if the write throws, puts the id's PendingEncryptionLedger entry back as it was before (record when it was queued, clear when not) and rethrows.",
+   "hash": "3fa8dfd9dd3067af",
+   "does": "Writes archive bytes through PurgeGate.admitWrite with the protection class their format demands (archiveWriteOptions, which records/clears the ledger first). While Delete All My Data runs the write is refused: PurgeGate.Refused is rethrown and neither the file nor the ledger is touched. If the write itself throws, puts the id's PendingEncryptionLedger entry back as it was before (record when it was queued, clear when not) and rethrows.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::var PendingEncryptionLedger.pending",
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)",
     "ext:Data.write(to:options:)"
    ],
    "reads": [
-    "ud:storage.pendingReencryption.sessionIDs"
+    "ud:storage.pendingReencryption.sessionIDs",
+    "mem:PurgeGate.state"
    ],
    "writes": [
     "file:<archive bytes at url>",
-    "ud:storage.pendingReencryption.sessionIDs"
+    "ud:storage.pendingReencryption.sessionIDs",
+    "mem:PurgeGate.state"
    ],
    "branches": [
     {
-     "at": "+8",
+     "at": "+10",
+     "cond": "refused: a purge runs",
+     "effect": "rethrow PurgeGate.Refused; nothing written, ledger untouched"
+    },
+    {
+     "at": "+12",
      "cond": "write throws",
      "effect": "restore the ledger entry (wasPending → record, else clear) and rethrow"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)": "332fae95769af5cb",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "d11072f0ae247cd7",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "d45edfb391017e71",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:)": "e211f6c61a83cb74",

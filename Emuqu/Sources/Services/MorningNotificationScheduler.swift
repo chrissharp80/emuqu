@@ -22,7 +22,10 @@ import UserNotifications
 ///     granted authorization. It carries this morning's score when one
 ///     is archived, with a short prescription from the verdict bands.
 ///   • Auto format: teaser ("Your recovery is in.") until 30 nights of
-///     reliable overnight readings, the full readout after.
+///     reliable overnight readings, the full readout after, and only while
+///     iOS hides notification previews on the locked screen. The score is
+///     health data; Auto is the default, so it never puts it on a Lock
+///     Screen that shows previews. Full readout is the explicit choice.
 ///   • Authorization request flow: caller (Settings page or
 ///     scheduler call site) invokes `requestAuthorizationIfNeeded`
 ///     before scheduling.
@@ -87,11 +90,16 @@ final class MorningNotificationScheduler {
     /// than queueing a stale one alongside a new one. Also run at launch, so
     /// settings that changed without the Notifications page (a CloudKit
     /// pull, Delete All My Data) take effect.
+    ///
+    /// The settings are read again after the authorization check awaits: a
+    /// report turned off, or a `cancelAll` with it (Delete All My Data),
+    /// while it waited is not undone by adding the request it had prepared.
     func rescheduleIfNeeded() async {
-        let settings = AppDependencies.current.app.settingsManager.settings
-        guard settings.dailyReportEnabled else { cancelAll(); return }
+        guard AppDependencies.current.app.settingsManager.settings.dailyReportEnabled else { cancelAll(); return }
         let auth = await center.notificationSettings().authorizationStatus
         guard auth == .authorized || auth == .provisional || auth == .ephemeral else { cancelAll(); return }
+        let settings = AppDependencies.current.app.settingsManager.settings
+        guard settings.dailyReportEnabled else { cancelAll(); return }
         let time = Calendar.current.dateComponents([.hour, .minute], from: settings.dailyReportFixedTime)
         let request = UNNotificationRequest(
             identifier: Self.notificationIdentifier,
@@ -142,6 +150,12 @@ final class MorningNotificationScheduler {
     /// has already received the morning notification.
     private static let wakeTriggeredFiredDateKey = "MorningNotificationScheduler.wakeFiredDate.v1"
 
+    /// Whether today's wake push is settled: it went out carrying this
+    /// morning's reading (score or teaser), or a call is building one now.
+    /// A push sent before the night was scored is not settled, and one more
+    /// may follow that day, replacing it, once the score exists.
+    private static let wakeTriggeredSettledKey = "MorningNotificationScheduler.wakeSettled.v1"
+
     /// Called from the sleep observer in `HealthKitManager+SleepTrends` when a fresh
     /// sleep-end sample arrives. Delivers a one-shot morning push within
     /// seconds of detected wake — far closer to the user's actual wake
@@ -156,17 +170,34 @@ final class MorningNotificationScheduler {
     /// "Open Emuqu for this morning's recovery score."); the alternative —
     /// removing today's daily occurrence — would risk dropping the fallback
     /// entirely.
+    ///
+    /// The settings are read after the authorization check awaits, so a
+    /// report turned off meanwhile sends nothing.
     func deliverWakeTriggeredPushIfAppropriate(sleepEnd: Date) async {
-        let settings = AppDependencies.current.app.settingsManager.settings
         // Fixed means the set time and nothing else.
-        guard settings.dailyReportEnabled, settings.dailyReportDelivery == .smart else { return }
-        let auth = await center.notificationSettings().authorizationStatus
+        guard Self.sendsWakePush(AppDependencies.current.app.settingsManager.settings) else { return }
+        let notificationSettings = await center.notificationSettings()
+        let auth = notificationSettings.authorizationStatus
         guard auth == .authorized || auth == .provisional || auth == .ephemeral else { return }
+        let settings = AppDependencies.current.app.settingsManager.settings
+        guard Self.sendsWakePush(settings) else { return }
         let today = Calendar.current.startOfDay(for: Date())
         guard Self.isMorningWake(sleepEnd, schedule: settings.sleepSchedule),
-              Self.claimWakePush(today: today, sleepEnd: sleepEnd) else { return }
-        let (title, body) = await buildPayloadFromArchive(settings: settings)
-        await deliverImmediately(title: title, body: body, today: today, sleepEnd: sleepEnd)
+              let claim = Self.claimWakePush(today: today, sleepEnd: sleepEnd) else { return }
+        let payload = buildPayloadFromArchive(
+            settings: settings, previewsHiddenWhileLocked: notificationSettings.showPreviewsSetting != .always
+        )
+        if claim == .replacingUnscored, !payload.hasReading {
+            // Still no score: the number-free push already sent stands.
+            Self.settleWakePush(false)
+            return
+        }
+        Self.settleWakePush(payload.hasReading)
+        await deliverImmediately(title: payload.title, body: payload.body, today: today, sleepEnd: sleepEnd)
+    }
+
+    private static func sendsWakePush(_ settings: UserSettings) -> Bool {
+        settings.dailyReportEnabled && settings.dailyReportDelivery == .smart
     }
 
     /// A wake from 3 hours before the schedule's expected wake to 4 hours
@@ -179,23 +210,40 @@ final class MorningNotificationScheduler {
         return sleepEnd >= cutoff.addingTimeInterval(-7 * 3600) && sleepEnd <= cutoff
     }
 
-    /// One wake-triggered push per calendar day, for a fresh wake only. The
-    /// day is claimed here, before the caller's next await: each batch of
-    /// Watch sleep samples starts its own call, and two close together both
-    /// passed the check and both sent the alert.
+    /// What a claimed wake push is.
+    private enum WakeClaim {
+        /// The day's first.
+        case first
+        /// A second one, replacing the number-free push sent before the
+        /// night was scored; sent only if the score now exists.
+        case replacingUnscored
+    }
+
+    /// One wake-triggered push per calendar day, for a fresh wake only, and
+    /// at most one more that day when the first went out before the night
+    /// was scored. The day is claimed here, settled included, so a call
+    /// already building one turns the others away: each batch of Watch sleep
+    /// samples starts its own call, and two close together both passed the
+    /// check and both sent the alert. Nil when the day is taken.
     ///
     /// Freshness: Apple Watch occasionally back-syncs sleep samples from
     /// previous nights when the user opens the Health app — those carry an
     /// old endDate we don't want firing a notification for.
-    private static func claimWakePush(today: Date, sleepEnd: Date) -> Bool {
-        if let last = UserDefaults.standard.object(forKey: wakeTriggeredFiredDateKey) as? Date,
-           Calendar.current.isDate(last, inSameDayAs: today) {
-            return false
-        }
+    private static func claimWakePush(today: Date, sleepEnd: Date) -> WakeClaim? {
+        let defaults = UserDefaults.standard
+        let claimedToday = (defaults.object(forKey: wakeTriggeredFiredDateKey) as? Date)
+            .map { Calendar.current.isDate($0, inSameDayAs: today) } ?? false
+        if claimedToday, defaults.bool(forKey: wakeTriggeredSettledKey) { return nil }
         let ageSeconds = Date().timeIntervalSince(sleepEnd)
-        guard ageSeconds >= 0, ageSeconds <= 90 * 60 else { return false } // 90 min window
-        UserDefaults.standard.set(today, forKey: wakeTriggeredFiredDateKey)
-        return true
+        guard ageSeconds >= 0, ageSeconds <= 90 * 60 else { return nil } // 90 min window
+        defaults.set(today, forKey: wakeTriggeredFiredDateKey)
+        defaults.set(true, forKey: wakeTriggeredSettledKey)
+        return claimedToday ? .replacingUnscored : .first
+    }
+
+    /// Records whether today's wake push carries this morning's reading.
+    private static func settleWakePush(_ hasReading: Bool) {
+        UserDefaults.standard.set(hasReading, forKey: wakeTriggeredSettledKey)
     }
 
     private func deliverImmediately(title: String, body: String, today: Date, sleepEnd: Date) async {
@@ -218,36 +266,50 @@ final class MorningNotificationScheduler {
         }
     }
 
+    /// A wake push's text, and whether it carries this morning's reading
+    /// (the score or the teaser) rather than the number-free nudge.
+    private struct WakePayload {
+        let title: String
+        let body: String
+        let hasReading: Bool
+    }
+
     /// Variant of `buildPayload` that doesn't require an RRCollector —
     /// reads directly from `AppDependencies.current.storage.sessionArchive`. Used by the sleep
     /// observer's wake-triggered push path, where no collector
     /// reference is in scope.
-    private func buildPayloadFromArchive(settings: UserSettings) async -> (String, String) {
+    private func buildPayloadFromArchive(settings: UserSettings, previewsHiddenWhileLocked: Bool) -> WakePayload {
         let title = "Emuqu"
         let archive = AppDependencies.current.storage.sessionArchive
         // The score is looked for first: the teaser said "Your recovery is
         // in." on mornings with no reading at all.
         guard let scoreInt = Self.todaysScore(in: archive) else {
-            return (title, String(localized: "Open Emuqu for this morning's recovery score.", bundle: LanguageManager.appBundle))
+            return WakePayload(title: title, body: String(localized: "Open Emuqu for this morning's recovery score.", bundle: LanguageManager.appBundle), hasReading: false)
         }
-        guard Self.resolvedFormat(settings.dailyReportFormat, archive: archive) == .full else {
-            return (title, String(localized: "Your recovery is in.", bundle: LanguageManager.appBundle))
+        let format = Self.resolvedFormat(settings.dailyReportFormat, archive: archive, previewsHiddenWhileLocked: previewsHiddenWhileLocked)
+        guard format == .full else {
+            return WakePayload(title: title, body: String(localized: "Your recovery is in.", bundle: LanguageManager.appBundle), hasReading: true)
         }
         let prescription = shortPrescription(for: ScoreVerdict(score: Double(scoreInt)))
-        return (title, String(localized: "Recovery \(scoreInt) · \(prescription)", bundle: LanguageManager.appBundle))
+        return WakePayload(title: title, body: String(localized: "Recovery \(scoreInt) · \(prescription)", bundle: LanguageManager.appBundle), hasReading: true)
     }
 
     /// `.auto` shows the full number once there are 30 nights of overnight
     /// readings, one per day, not 30 archive entries of any kind (workouts and
-    /// naps counted). The count comes off a lock-safe snapshot —
+    /// naps counted), and only when iOS hides notification previews until
+    /// the phone is unlocked (`previewsHiddenWhileLocked`: Show Previews set
+    /// to When Unlocked or Never). The score is health data and Auto is the
+    /// default, which the user never chose; with previews shown on the Lock
+    /// Screen it stays a teaser. `.full` is the user's explicit choice and
+    /// shows the number regardless. The count comes off a lock-safe snapshot —
     /// raw `index` reads outside `archiveLock` race locked mutations.
     static func resolvedFormat(
-        _ format: UserSettings.DailyReportFormat, archive: SessionArchive
+        _ format: UserSettings.DailyReportFormat, archive: SessionArchive, previewsHiddenWhileLocked: Bool
     ) -> UserSettings.DailyReportFormat {
         switch format {
         case .full: .full
         case .teaser: .teaser
-        case .auto: overnightNights(in: archive) >= 30 ? .full : .teaser
+        case .auto: previewsHiddenWhileLocked && overnightNights(in: archive) >= 30 ? .full : .teaser
         }
     }
 
