@@ -540,7 +540,7 @@
   {
    "key": "func CloudDeletionCoordinator.reconcileLocalDeletions()",
    "hash": "e0a980d6a4a09a9c",
-   "does": "Writes nothing unless uploads are allowed (sync on and onboarding finished). First retries the iCloud live-backup deletes still awaiting deletion for deleted sessions, sessions deleted forever, and sessions archived here and already uploaded (CloudKitLiveBackupManager.retryAwaitingDeletion). Then takes deletions not confirmed within 24 h (pruning confirmations of no-longer-deleted ids) and runs performUploadDeletion for them with a task group of max 6 concurrent, noting sync progress after each finishes.",
+   "does": "Writes nothing unless uploads are allowed (sync on, onboarding finished and no Delete All My Data running). First retries the iCloud live-backup deletes still awaiting deletion for deleted sessions, sessions deleted forever, and sessions archived here and already uploaded (CloudKitLiveBackupManager.retryAwaitingDeletion). Then takes deletions not confirmed within 24 h (pruning confirmations of no-longer-deleted ids) and runs performUploadDeletion for them with a task group of max 6 concurrent, noting sync progress after each finishes.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed",
@@ -561,7 +561,8 @@
     "mem:UserSettings.iCloudSyncEnabled",
     "mem:UserSettings.hasCompletedOnboarding",
     "mem:CloudKitSyncState.uploadedSessionIds",
-    "archive:SessionArchive.index"
+    "archive:SessionArchive.index",
+    "mem:PurgeGate.state"
    ],
    "writes": [
     "mem:CloudKitSyncManager.lastSyncProgressAt",
@@ -571,7 +572,7 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "cloudUploadsAllowed false",
+     "cond": "cloudUploadsAllowed false (sync off, onboarding unfinished, or a purge running)",
      "effect": "returns; nothing written to iCloud"
     },
     {
@@ -598,7 +599,7 @@
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.addDeletionTask(to:from:)": "64050c114571ded0",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.tombstonesDue(among:)": "40d85bbf53613096",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.noteSyncProgress()": "230cd5464dd541a4",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "4262f41e6c652648",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "c183270cf259e429",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
