@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift",
- "hash": "5af8c69cce65958d",
+ "hash": "f4b995c6e6572b74",
  "role": "@Observable @MainActor view model behind MorningResultsView (the Recovery Report sheet): resolves the displayed session (input or re-analysed/archived copy), computes the frozen-or-live composite recovery score and its breakdown, generates and memoises the narrative summary, loads sleep (frozen snapshot or live HealthKit/estimate) and persists the perceived-readiness answer for unreliable nights.",
  "types": [
   "MorningResultsViewModel: class (@Observable, @MainActor, final) — presentation state + scoring/sleep loading for MorningResultsView"
@@ -10,6 +10,7 @@
   "mem:MorningResultsViewModel.selectedTags (Set<ReadingTag>, seeded from session.tags)",
   "mem:MorningResultsViewModel.notes (seeded from session.notes)",
   "mem:MorningResultsViewModel.reanalyzedSession (HRVSession?, replaces session for display)",
+  "mem:MorningResultsViewModel.perceivedReadinessWrite (@ObservationIgnored Task?, the latest perceived-readiness archive write; the next waits for it)",
   "mem:MorningResultsViewModel.selectedMethod (WindowSelectionMethod, seeded from settings.defaultWindowSelectionMethod)",
   "mem:MorningResultsViewModel.isReanalyzing/isGeneratingPDF/isGeneratingEmailPDF (Bool flags, set by view extensions)",
   "mem:MorningResultsViewModel.healthKitSleep (SleepData?)",
@@ -210,7 +211,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.applyPerceivedReadinessScore(to:)": "2202e2e3ef25b2e1",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.persistPerceivedReadiness(_:scored:revertTo:)": "610a4360f1e10850",
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.persistPerceivedReadiness(_:scored:revertTo:)": "0f58aeaff93d7b88",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "7e00ddacb825aef1"
    }
   },
@@ -273,8 +274,8 @@
   },
   {
    "key": "func MorningResultsViewModel.persistPerceivedReadiness(_:scored:revertTo:)",
-   "hash": "9f1cadb42bdfede3",
-   "does": "Main-actor Task: reads the archived copy off main (loadArchived), applies the rating to it and re-scores it from its own inputs (falls back to the in-memory scored copy when the session is not archived), then off main writes only the rating and score fields (writePerceivedReadiness: SessionArchive.update under the archive lock, or a whole archive when not archived). If the user has not changed the rating meanwhile, a successful write adopts the written copy for display and a failed read or write restores the session shown before the change.",
+   "hash": "da46e879c1d719e9",
+   "does": "Main-actor Task chained after the previous rating write (perceivedReadinessWrite), so writes reach the archive in the order they were made: reads the archived copy off main (loadArchived), applies the rating to it and re-scores it from its own inputs (falls back to the in-memory scored copy when the session is not archived), then off main writes only the rating and score fields (writePerceivedReadiness: SessionArchive.update under the archive lock, or a whole archive when not archived). If the user has not changed the rating meanwhile, a successful write adopts the written copy for display and a failed read or write restores the session shown before the change.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.loadArchived(_:)",
@@ -283,33 +284,40 @@
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.adoptArchivedSession(_:)"
    ],
    "reads": [
-    "archive:SessionArchive.retrieve"
+    "archive:SessionArchive.retrieve",
+    "mem:MorningResultsViewModel.perceivedReadinessWrite"
    ],
    "writes": [
     "archive:SessionArchive.update(requestingReupload:true)",
     "archive:SessionArchive.archive(skipSameNightMerge:false, requestingReupload:true)",
     "mem:MorningResultsViewModel.reanalyzedSession",
     "mem:MorningResultsViewModel.healthKitSleep",
-    "mem:MorningResultsViewModel.recoveryVitals"
+    "mem:MorningResultsViewModel.recoveryVitals",
+    "mem:MorningResultsViewModel.perceivedReadinessWrite"
    ],
    "branches": [
     {
      "at": "+4",
+     "cond": "a previous write is running",
+     "effect": "waits for it first"
+    },
+    {
+     "at": "+6",
      "cond": "archived.session ?? scored",
      "effect": "archived copy when present (its inputs are re-scored); the in-memory scored copy when the session is not archived (or could not be read)"
     },
     {
-     "at": "+11",
+     "at": "+13",
      "cond": "archive unreadable",
      "effect": "no write attempted; saved = false"
     },
     {
-     "at": "+13",
+     "at": "+15",
      "cond": "reanalyzedSession's rating no longer equals value (a newer edit)",
      "effect": "leaves the screen alone"
     },
     {
-     "at": "+14",
+     "at": "+16",
      "cond": "write saved",
      "effect": "adopts the written copy (rating, score, snapshots); else reverts reanalyzedSession to the pre-change session"
     }
@@ -318,7 +326,7 @@
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.adoptArchivedSession(_:)": "ba43a85cdf512817",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.applyPerceivedReadinessScore(to:)": "2202e2e3ef25b2e1",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.loadArchived(_:)": "b9543ca3d18e7cc0",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.writePerceivedReadiness(_:isArchived:)": "f2df85436f777c93"
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.writePerceivedReadiness(_:isArchived:)": "adcb522a9012287d"
    }
   },
   {

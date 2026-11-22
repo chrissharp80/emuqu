@@ -1,0 +1,94 @@
+{
+ "file": "EmuquTests/WorkoutMovingTimeTests.swift",
+ "hash": "43153036cb5163ae",
+ "role": "XCTest suite: WorkoutMetadata.movingSeconds (last sample offset, else wall clock less pauses) and WorkoutPDFRenderer.splitsFromSamples (moving-time splits, no partial tail).",
+ "types": [
+  "WorkoutMovingTimeTests: class (XCTestCase)"
+ ],
+ "state": [],
+ "toplevel": "",
+ "units": [
+  {
+   "key": "func WorkoutMovingTimeTests.runWithStop()",
+   "hash": "5cc84df1f3d7c0e4",
+   "does": "Metadata of a run with 2401 one-second samples at 2.5 m/s and a 20-minute pause span.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b"
+   }
+  },
+  {
+   "key": "func WorkoutMovingTimeTests.testMovingSecondsIsTheLastSampleOffsetNotTheWallClock()",
+   "hash": "d002bcb620d5a8c3",
+   "does": "Asserts movingSeconds is 2400 for a 3600 s wall clock.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.movingSeconds(wallClockDuration:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.movingSeconds(wallClockDuration:)": "7ba0583eb19458f3",
+    "EmuquTests/WorkoutMovingTimeTests.swift::func WorkoutMovingTimeTests.runWithStop()": "b517b975ad34955e"
+   }
+  },
+  {
+   "key": "func WorkoutMovingTimeTests.testMovingSecondsWithoutSamplesTakesThePausesOffTheWallClock()",
+   "hash": "f5725f69c428b360",
+   "does": "Asserts 3600 s less a 900 s pause is 2700, and nil without a wall clock.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.movingSeconds(wallClockDuration:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.movingSeconds(wallClockDuration:)": "7ba0583eb19458f3",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95"
+   }
+  },
+  {
+   "key": "func WorkoutMovingTimeTests.testSplitsFromSamplesUseMovingTime()",
+   "hash": "1b5a197c22e7466d",
+   "does": "Asserts six 1 km splits of 400 s and 400 s/km at 150 bpm, indexed 1–6.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.splitsFromSamples(_:startDate:splitDistanceMeters:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Collection/StrapExerciseDecoder.swift::func StrapExerciseDecoder.durationSeconds(of:)": "651b546e1fa68836",
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.splitsFromSamples(_:startDate:splitDistanceMeters:)": "f2776413ea5a1a1d",
+    "EmuquTests/WorkoutMovingTimeTests.swift::func WorkoutMovingTimeTests.runWithStop()": "b517b975ad34955e"
+   }
+  },
+  {
+   "key": "func WorkoutMovingTimeTests.testSplitsFromSamplesWithoutDistanceAreEmpty()",
+   "hash": "d720a16e5a98478a",
+   "does": "Asserts no splits from samples without distance.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.splitsFromSamples(_:startDate:splitDistanceMeters:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Export/WorkoutPDFReport+Pages.swift::func WorkoutPDFRenderer.splitsFromSamples(_:startDate:splitDistanceMeters:)": "f2776413ea5a1a1d",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutSample(offsetSec:heartRate:distanceMeters:paceSecPerKm:cadenceStepsPerMin:altitudeMeters:alpha1:mets:powerWatts:)": "5acf471294ebaa8b"
+   }
+  }
+ ],
+ "deps": {}
+}

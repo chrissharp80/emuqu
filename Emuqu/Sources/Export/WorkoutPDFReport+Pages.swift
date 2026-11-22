@@ -57,7 +57,7 @@ extension WorkoutPDFRenderer {
         return true
     }
 
-    /// Resolved splits — re-bucketed from the GPS report.track when the stored splits
+    /// Resolved splits — re-bucketed from the per-second samples when the stored splits
     /// do not match the user's current unit preference, so an old km-recorded
     /// report.session renders as mile splits for an imperial user. A table
     /// that runs past the page continues on the next with its header row.
@@ -244,10 +244,18 @@ extension WorkoutPDFRenderer {
         PDFPagePrimitives.formatDuration(sec)
     }
 
+    /// Distance over moving time, so a stop mid-run does not slow the pace.
     func avgPaceString() -> String {
         guard let dist = report.session.workoutMetadata?.distanceMeters, dist > 100,
-              let dur = report.session.duration, dur > 10 else { return "—" }
+              let dur = movingSeconds(), dur > 10 else { return "—" }
         return report.units.formatPace(elapsedSec: Int(dur), distanceMeters: dist) ?? "—"
+    }
+
+    /// The workout's moving seconds (`WorkoutMetadata.movingSeconds`), or the
+    /// wall-clock duration for a session without workout metadata.
+    func movingSeconds() -> Double? {
+        let session = report.session
+        return session.workoutMetadata?.movingSeconds(wallClockDuration: session.duration) ?? session.duration
     }
 
     func peakHRString() -> String {
@@ -256,9 +264,11 @@ extension WorkoutPDFRenderer {
         return "—"
     }
 
+    /// Mean METs of the per-second samples over the moving minutes they
+    /// were recorded in; paused time burns nothing here.
     func calorieString() -> String {
         guard let samples = report.session.workoutMetadata?.samples,
-              let duration = report.session.duration else { return "—" }
+              let duration = movingSeconds() else { return "—" }
         let mets = samples.compactMap(\.mets)
         guard !mets.isEmpty else { return "—" }
         let avgMETs = mets.reduce(0, +) / Double(mets.count)
@@ -295,11 +305,13 @@ extension WorkoutPDFRenderer {
         }
     }
 
-    /// Return the splits array the PDF should render. Same logic the
-    /// on-screen summary uses: prefer stored splits when they match the
-    /// user's unit preference; otherwise recompute from the GPS report.track
-    /// so old km-recorded sessions display as mile splits for imperial
-    /// users. Falls back to the stored values when no report.track is available.
+    /// Return the splits array the PDF should render: the stored splits when
+    /// they match the user's unit preference; otherwise re-bucketed from the
+    /// per-second samples (`splitsFromSamples`), so an old km-recorded
+    /// session displays as mile splits for an imperial user. Never from the
+    /// decoded GPS track, whose fix times are spread evenly over the session
+    /// and would smear every pause across every split. Falls back to the
+    /// stored values when no sample carries a distance.
     func resolvedSplitsForPDF() -> [Split] {
         let stored = report.session.workoutMetadata?.splits ?? []
         let wantsMile = report.units.resolved == .imperial
@@ -307,15 +319,59 @@ extension WorkoutPDFRenderer {
         if !stored.isEmpty, storedIsMile == wantsMile {
             return stored
         }
-        guard !report.track.isEmpty else { return stored }
-        let bucket: Double = wantsMile ? 1609.344 : 1000.0
-        let recomputed = WorkoutAnalyzer.computeSplits(
-            track: report.track,
-            rrPoints: report.session.rrSeries?.points ?? [],
+        let recomputed = Self.splitsFromSamples(
+            report.session.workoutMetadata?.samples ?? [],
             startDate: report.session.startDate,
-            splitDistanceMeters: bucket
+            splitDistanceMeters: wantsMile ? 1609.344 : 1000.0
         )
         return recomputed.isEmpty ? stored : recomputed
+    }
+
+    /// Full splits of `splitDistanceMeters` from the per-second samples: each
+    /// carries the cumulative distance and the pause-excluded second it was
+    /// recorded at, so a split's time is moving time and its heart rate the
+    /// mean of the readings inside it. A partial tail is left out, as
+    /// `WorkoutAnalyzer.computeSplits` leaves it out. Empty when no sample
+    /// carries a distance.
+    nonisolated static func splitsFromSamples(
+        _ samples: [WorkoutSample], startDate: Date, splitDistanceMeters: Double
+    ) -> [Split] {
+        let rows = samples.filter { $0.distanceMeters != nil }.sorted { $0.offsetSec < $1.offsetSec }
+        guard var first = rows.first, splitDistanceMeters > 0 else { return [] }
+        var splits: [Split] = []
+        var window: [WorkoutSample] = [first]
+        for row in rows.dropFirst() {
+            window.append(row)
+            guard (row.distanceMeters ?? 0) - (first.distanceMeters ?? 0) >= splitDistanceMeters else { continue }
+            splits.append(sampleSplit(index: splits.count + 1, window: window, startDate: startDate))
+            first = row
+            window = [row]
+        }
+        return splits
+    }
+
+    /// One split over `window`, its first and last samples the split's ends.
+    /// Elevation goes through the same smoothed filter as the session total
+    /// (`BarometricAltitudeProcessor`) when there are enough altitude readings.
+    nonisolated private static func sampleSplit(index: Int, window: [WorkoutSample], startDate: Date) -> Split {
+        let start = window.first, end = window.last
+        let distance = (end?.distanceMeters ?? 0) - (start?.distanceMeters ?? 0)
+        let seconds = Double((end?.offsetSec ?? 0) - (start?.offsetSec ?? 0))
+        let heartRates = window.dropFirst().compactMap(\.heartRate).map { Double($0) }
+        let altitudes = window.compactMap { sample in
+            sample.altitudeMeters.map { (timestamp: startDate.addingTimeInterval(Double(sample.offsetSec)), altitudeMeters: $0) }
+        }
+        return Split(
+            index: index,
+            distanceMeters: distance,
+            durationSeconds: seconds,
+            averageHR: heartRates.isEmpty ? nil : heartRates.reduce(0, +) / Double(heartRates.count),
+            averagePaceSecPerKm: seconds > 0 && distance > 0 ? seconds / (distance / 1_000) : nil,
+            elevationGainMeters: altitudes.count >= 3
+                ? BarometricAltitudeProcessor.process(samples: altitudes, smootherWindow: min(15, altitudes.count)).gainMeters
+                : nil,
+            averageAlpha1: nil
+        )
     }
 
     func hrZoneSeconds() -> [Int] {

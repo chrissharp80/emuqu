@@ -377,6 +377,9 @@ final class PDFReportGenerator {
 // its parts across every file, so code that does not need the type inflates
 // that number without making the type do more.
 
+/// The load frozen with the night is the session's snapshot, which a
+/// reanalysis leaves alone, before the result's copy; the training-load
+/// section and "What This Means" read the same one.
 private func reportInputs(
     session: HRVSession, result: HRVAnalysisResult, flags: [ArtifactFlags]?,
     health: PDFReportGenerator.ReportHealthContext,
@@ -385,6 +388,7 @@ private func reportInputs(
 ) -> PDFReportGenerator.ReportInputs {
     let series = session.rrSeries // Optional - may be nil for imported data
     let isToday = Calendar.current.isDateInToday(session.endDate ?? session.startDate)
+    let frozenLoad = session.trainingSnapshot ?? result.trainingContext
     return PDFReportGenerator.ReportInputs(
         session: session,
         result: result,
@@ -397,8 +401,8 @@ private func reportInputs(
         compositeRecoveryScore: health.compositeRecoveryScore,
         scoreBreakdown: health.scoreBreakdown,
         baselineStats: health.baselineStats,
-        trainingContext: mergedTrainingContext(frozen: result.trainingContext, live: liveLoadSnapshot, session: session),
-        frozenTrainingContext: session.trainingSnapshot ?? result.trainingContext,
+        trainingContext: mergedTrainingContext(frozen: frozenLoad, live: liveLoadSnapshot, session: session),
+        frozenTrainingContext: frozenLoad,
         adviceLiveLoad: isToday ? liveLoadSnapshot : nil,
         style: style, sections: sections
     )
