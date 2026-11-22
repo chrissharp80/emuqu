@@ -242,10 +242,11 @@ final class AssistantViewModel {
         wireComposerState(resolvedRegistry)
     }
 
-    /// The history and the remembered facts cannot be read while the phone is
-    /// locked. When this view model was created in that state, both started
-    /// empty; the stores hold their writes until they can merge, and this puts
-    /// the full history back on screen the moment the phone is unlocked.
+    /// The history, the summary and the remembered facts cannot be read while
+    /// the phone is locked. When this view model was created in that state,
+    /// all started empty; the stores hold their writes until they can merge,
+    /// and this puts the full history and the summary back the moment the
+    /// phone is unlocked.
     /// Becoming active is watched too: a suspended app can miss the unlock
     /// notification itself.
     private func wireProtectedDataRecovery() {
@@ -263,8 +264,14 @@ final class AssistantViewModel {
         }
     }
 
+    /// The summary is read again only while none is held and the store says
+    /// the sealed one was unreadable, so a summary written since, or a
+    /// cleared conversation, is never replaced.
     private func recoverAfterUnlock() {
         factsStore.recoverAfterUnlock()
+        if priorSummary == nil, store.summaryNeedsReload {
+            priorSummary = store.loadSummary(migratingFrom: UserDefaults.standard, key: Self.summaryKey)
+        }
         guard store.needsReloadFromDisk, let merged = store.mergedWithDisk(turns, acknowledging: true) else { return }
         turns = merged
         store.save(turns)

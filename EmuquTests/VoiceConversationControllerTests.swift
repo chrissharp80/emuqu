@@ -138,8 +138,12 @@ final class CoachCueSpeechTests: XCTestCase {
     /// A line stopped while its session claim came up is never spoken, and
     /// its hold is given back, so the session is deactivated again. Handing
     /// over the line also retires the fallback: something was said.
+    ///
+    /// The session's activation is held open until the line has been
+    /// stopped, so `stopAll()` lands while the claim is in flight.
     func testALineStoppedWhileClaimingGivesItsHoldBack() async {
-        let session = CountingCueSession()
+        let session = CountingCueSession(holdsActivation: true)
+        defer { session.releaseActivation() }
         let manager = BackgroundAudioManager(session: session, observesInterruptions: false)
         let synthesizer = AVSpeechSynthesizer()
         let cue = CoachCueSpeech(synthesizer: synthesizer, audio: { manager })
@@ -147,9 +151,15 @@ final class CoachCueSpeechTests: XCTestCase {
         cue.speak(AVSpeechUtterance(string: "Coach alert")) {}
         XCTAssertNil(cue.fallback)
         XCTAssertTrue(cue.isBusy, "a line waiting for the session counts as speech")
+        for _ in 0 ..< 500 where session.activations == 0 {
+            await sleepQuietly(10_000_000, context: "CoachCueSpeechTests")
+        }
+        XCTAssertEqual(session.activations, 1, "the claim never reached the session")
+        XCTAssertEqual(session.deactivations, 0)
         cue.stopAll()
         XCTAssertFalse(cue.isBusy)
-        for _ in 0 ..< 200 where session.deactivations == 0 {
+        session.releaseActivation()
+        for _ in 0 ..< 500 where session.deactivations == 0 {
             await sleepQuietly(10_000_000, context: "CoachCueSpeechTests")
             manager.waitForPendingTransitions()
         }
@@ -159,15 +169,24 @@ final class CoachCueSpeechTests: XCTestCase {
     }
 }
 
-/// Counts activations and deactivations of a stand-in session.
+/// Counts activations and deactivations of a stand-in session. With
+/// `holdsActivation`, `activate()` counts the activation and then blocks,
+/// off the main actor, until `releaseActivation()`, so a test can act while
+/// a cue's claim is still coming up.
 private final class CountingCueSession: CueAudioSession {
     private struct State {
         var cueClaimed = false
         var activations = 0
         var deactivations = 0
+        var activationReleased: Bool
     }
 
-    private let state = OSAllocatedUnfairLock(initialState: State())
+    private let state: OSAllocatedUnfairLock<State>
+    private let activationGate = DispatchSemaphore(value: 0)
+
+    init(holdsActivation: Bool = false) {
+        state = OSAllocatedUnfairLock(initialState: State(activationReleased: !holdsActivation))
+    }
 
     var activations: Int { state.withLock { $0.activations } }
     var deactivations: Int { state.withLock { $0.deactivations } }
@@ -175,6 +194,24 @@ private final class CountingCueSession: CueAudioSession {
     func claimCuePlayback() { state.withLock { $0.cueClaimed = true } }
     func releaseCuePlayback() { state.withLock { $0.cueClaimed = false } }
     var hasActiveClaims: Bool { state.withLock { $0.cueClaimed } }
-    func activate() throws { state.withLock { $0.activations += 1 } }
+
+    func activate() throws {
+        let blocks = state.withLock { (state: inout State) -> Bool in
+            state.activations += 1
+            return !state.activationReleased
+        }
+        if blocks { _ = activationGate.wait(timeout: .now() + 10) }
+    }
+
     func deactivate() throws { state.withLock { $0.deactivations += 1 } }
+
+    /// Lets a held `activate()` return, and every later one return at once.
+    /// Calling it again does nothing.
+    func releaseActivation() {
+        let wasHeld = state.withLock { (state: inout State) -> Bool in
+            defer { state.activationReleased = true }
+            return !state.activationReleased
+        }
+        if wasHeld { activationGate.signal() }
+    }
 }
