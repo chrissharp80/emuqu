@@ -161,6 +161,24 @@ struct FitnessPostSummaryView: View {
             // refresh here propagates everywhere.
             .onChange(of: archiveSignal.version) { _, _ in reloadFromArchive() }
             .onAppear { primeSummary() }
+            .onDisappear { removeTemporaryExports() }
+    }
+
+    /// The GPX / CSV / TCX / PDF / recap files are plaintext health data (GPS
+    /// and heart rate) in tmp. They go when the summary closes, and the state
+    /// that pointed at them is reset, so a summary shown again rebuilds them
+    /// (`applyReload` treats it as a first build).
+    private func removeTemporaryExports() {
+        for url in [gpxURL, csvURL, tcxURL, pdfURL, recapImageURL].compactMap({ $0 }) {
+            attempt("FitnessPostSummaryView.removeTemporaryExport") { try FileManager.default.removeItem(at: url) }
+        }
+        gpxURL = nil
+        csvURL = nil
+        tcxURL = nil
+        pdfURL = nil
+        recapImageURL = nil
+        exportsReady = false
+        summaryPrepared = false
     }
 
     private var summaryScroll: some View {

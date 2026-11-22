@@ -457,15 +457,30 @@ struct MorningResultsView: View {
 
     // First-score explainer sheet (surfaces the existing
     // Help article rather than building new copy).
+    //
+    // The PDF preview and the mail composer share ONE `.sheet(item:)`: two
+    // stacked `.sheet(item:)` modifiers on one view can drop the second on
+    // present (see FitnessTabView's summary sheet).
     private func withSheets(_ content: some View) -> some View {
         content
             .sheet(isPresented: $showingScoreExplainer) { scoreExplainerSheet }
-            .sheet(item: $exportURL) { identifiable in
-                PDFPreviewView(url: identifiable.url)
+            .sheet(item: reportFileSheetBinding) { sheet in
+                switch sheet {
+                case .preview(let identifiable): PDFPreviewView(url: identifiable.url)
+                case .mail(let identifiable): reportMailComposer(identifiable)
+                }
             }
-            .sheet(item: $emailURL) { identifiable in
-                reportMailComposer(identifiable)
+    }
+
+    /// The export shown, preview first. Dismissing clears the one shown.
+    private var reportFileSheetBinding: Binding<ReportFileSheet?> {
+        Binding(
+            get: { exportURL.map(ReportFileSheet.preview) ?? emailURL.map(ReportFileSheet.mail) },
+            set: { newValue in
+                guard newValue == nil else { return }
+                if exportURL != nil { exportURL = nil } else { emailURL = nil }
             }
+        )
     }
 
     @ViewBuilder
@@ -491,7 +506,7 @@ struct MorningResultsView: View {
 
     private func reportMailComposer(_ identifiable: IdentifiableURL) -> some View {
         let reportDate = session.endDate ?? session.startDate
-        let dateStr = reportDate.formatted(date: .abbreviated, time: .omitted)
+        let dateStr = reportDate.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(LanguageManager.appLocale))
         return MailComposerView(
             subject: String(localized: "Recovery Report – \(dateStr)", bundle: LanguageManager.appBundle),
             recipients: reportRecipients,
@@ -768,7 +783,8 @@ struct MorningResultsView: View {
             // right as the view appears. Detach so the user sees the
             // chart skeleton immediately and the points arrive when
             // the disk read finishes.
-            var archive: SessionArchive { dependencies.storage.sessionArchive }
+            // Resolved on the main actor; the detached task reads only the archive.
+            let archive = dependencies.storage.sessionArchive
             let stored = await Task.detached(priority: .userInitiated) {
                 archive.retrieveOrLog(sessionId, caller: "MorningResultsView.hydrate")
             }.value
@@ -831,6 +847,19 @@ struct MorningResultsView: View {
 }
 
 // MARK: - Identifiable URL Wrapper
+
+/// What the report's single file sheet shows: the PDF/CSV preview or the
+/// mail composer, each with its file.
+enum ReportFileSheet: Identifiable {
+    case preview(IdentifiableURL)
+    case mail(IdentifiableURL)
+
+    var id: UUID {
+        switch self {
+        case .preview(let file), .mail(let file): file.id
+        }
+    }
+}
 
 struct IdentifiableURL: Identifiable, Equatable {
     let id = UUID()

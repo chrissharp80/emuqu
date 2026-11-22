@@ -326,7 +326,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.pdfMailSubject": "5c0d2031045ce376",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.pdfMailSubject": "3c271c3121f7b09e",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.trainingMailCC": "ab549c69588f39e6",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.trainingMailRecipients": "a14d4ac26c6e7e75"
    }
@@ -600,11 +600,13 @@
   },
   {
    "key": "var FitnessSummaryCards.pdfMailSubject",
-   "hash": "10fbeefe74e51ca4",
-   "does": "'Emuqu — <sport>, <abbreviated date>' mail subject.",
+   "hash": "183cea78313e62dd",
+   "does": "'Emuqu — <sport>, <abbreviated date in the app language>' mail subject.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName"
+    "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [],
@@ -612,11 +614,13 @@
     {
      "at": "+2",
      "cond": "workoutMetadata nil",
-     "effect": "`??` 'Workout'"
+     "effect": "`??` localized 'Workout'"
     }
    ],
    "deps": {
     "Emuqu/Sources/Models/Sport.swift::var Sport.localizedName": "7ee167777e5501ae",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },

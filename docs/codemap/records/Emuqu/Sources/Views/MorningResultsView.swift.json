@@ -1,12 +1,13 @@
 {
  "file": "Emuqu/Sources/Views/MorningResultsView.swift",
- "hash": "c295677d32482162",
+ "hash": "4590c49a39249ebb",
  "role": "The Recovery Report screen for one session (morning results / history detail): hero score, readiness, HRV/sleep cards, training load, overnight charts with the window picker, data-source card, summary, tags and actions; sheets for score explainer, PDF preview and mail; delete/discard/reanalyze/window-method/unlink dialogs and the declined-reanalysis alert; lifecycle hydration and archive/sleep refresh.",
  "types": [
   "LinkedSegmentInfo: struct — id/start/end of one split-night segment",
   "MorningResultsView: struct View — the report screen; owns @State MorningResultsViewModel and UI state",
   "IdentifiableURL: struct (Equatable) — Identifiable wrapper (fresh UUID) around a URL for .sheet(item:)",
-  "SavedTagsAndNotes: struct (Equatable) — tag set + notes text last handed to onUpdateTags"
+  "SavedTagsAndNotes: struct (Equatable) — tag set + notes text last handed to onUpdateTags",
+  "ReportFileSheet: enum (Identifiable) — the report's one file sheet: .preview(IdentifiableURL) or .mail(IdentifiableURL)"
  ],
  "state": [
   "mem:MorningResultsView.recentSessionsContextLimit = 28 (static; used by RecordView+Results/+Sections, HistoryView, ImportDataView)",
@@ -77,7 +78,7 @@
     "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.withDialogs(_:)": "e0f4aa6e6aa82983",
     "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.withExportHandling(_:)": "07e7edc631ad05e2",
     "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.withLifecycle(_:)": "380290b19461d550",
-    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.withSheets(_:)": "1730419b306081c8"
+    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.withSheets(_:)": "a6ff970408a6dd40"
    }
   },
   {
@@ -502,20 +503,56 @@
   },
   {
    "key": "func MorningResultsView.withSheets(_:)",
-   "hash": "6b375cbec6b8cc5e",
-   "does": "Attaches three sheets: score explainer, PDF preview on exportURL, mail composer on emailURL.",
+   "hash": "165ac1b836032cf9",
+   "does": "Attaches two sheets: the score explainer, and ONE item sheet for the report's files (reportFileSheetBinding) showing the PDF/CSV preview for .preview or the mail composer for .mail, since two stacked item sheets can drop the second.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.scoreExplainerSheet",
+    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reportFileSheetBinding",
     "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.reportMailComposer(_:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "sheet is .preview",
+     "effect": "PDFPreviewView; .mail → reportMailComposer"
+    }
+   ],
    "deps": {
-    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.reportMailComposer(_:)": "9e6cc544f6808916",
+    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.reportMailComposer(_:)": "d2f296827623ba71",
+    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reportFileSheetBinding": "7cb156c149231c6d",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.scoreExplainerSheet": "262be2e7981c51fa"
    }
+  },
+  {
+   "key": "var MorningResultsView.reportFileSheetBinding",
+   "hash": "6c029fb528b989b8",
+   "does": "Binding for the report's file sheet: .preview(exportURL) when an export is set, else .mail(emailURL), else nil. Setting nil clears the one shown (exportURL first), which also deletes its file (withExportHandling).",
+   "entry": "SwiftUI reads/writes it through the sheet",
+   "calls": [],
+   "reads": [
+    "mem:MorningResultsView.exportURL",
+    "mem:MorningResultsView.emailURL"
+   ],
+   "writes": [
+    "mem:MorningResultsView.exportURL",
+    "mem:MorningResultsView.emailURL"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "set to a non-nil value",
+     "effect": "ignored"
+    },
+    {
+     "at": "+5",
+     "cond": "exportURL set",
+     "effect": "clear it; else clear emailURL"
+    }
+   ],
+   "deps": {}
   },
   {
    "key": "var MorningResultsView.scoreExplainerSheet",
@@ -570,12 +607,14 @@
   },
   {
    "key": "func MorningResultsView.reportMailComposer(_:)",
-   "hash": "cf6a367700fce3d4",
-   "does": "MailComposerView with subject 'Recovery Report – <date>' (endDate ?? startDate), recipients, CC and the PDF attachment.",
+   "hash": "0c688715c61271af",
+   "does": "MailComposerView with subject 'Recovery Report – <date in the app language>' (endDate ?? startDate), recipients, CC and the PDF attachment.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reportRecipients",
-    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reportCCRecipients"
+    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reportCCRecipients",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
    "writes": [],
@@ -588,6 +627,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
     "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reportCCRecipients": "1d6c05ad04502131",
     "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.reportRecipients": "decebf4e8a122104"
@@ -1102,22 +1142,22 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "69a10b530dba329d",
+    "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.scoringBaselineStats(for:)": "d01d388b13fd04b5",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.loadInitialData()": "91e8540f31ba12f9",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "7e00ddacb825aef1",
-    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.hydrateDisplaySessionIfNeeded()": "2637d50b4bf39005"
+    "Emuqu/Sources/Views/MorningResultsView.swift::func MorningResultsView.hydrateDisplaySessionIfNeeded()": "1a3ed1296b6d9a27"
    }
   },
   {
    "key": "func MorningResultsView.hydrateDisplaySessionIfNeeded()",
-   "hash": "b400fa3c6a72fba3",
-   "does": "When the displayed session has no RR points, retrieves the full session from the archive on a detached task and, if it has RR points, puts it into vm.reanalyzedSession.",
+   "hash": "a67a7483886f8dbe",
+   "does": "When the displayed session has no RR points, resolves the archive on the main actor, retrieves the full session from it on a detached task and, if it has RR points, puts it into vm.reanalyzedSession.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
-    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.archive",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive"
    ],
    "reads": [
     "archive:SessionArchive.retrieveOrLog"
@@ -1137,31 +1177,17 @@
      "effect": "?? treats as empty -> hydrate"
     },
     {
-     "at": "+15",
+     "at": "+14",
      "cond": "stored != nil && stored has RR points",
      "effect": "adopt; else keep lightweight session silently (retrieve errors only logged by retrieveOrLog)"
     }
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "0be02377b8827b75",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "7e00ddacb825aef1",
-    "Emuqu/Sources/Views/MorningResultsView.swift::var MorningResultsView.archive": "c5e37a907bce46d4"
-   }
-  },
-  {
-   "key": "var MorningResultsView.archive",
-   "hash": "a1e7f7cc470cb4e7",
-   "does": "Local computed accessor returning dependencies.storage.sessionArchive, read inside the detached task.",
-   "entry": null,
-   "calls": [],
-   "reads": [
-    "mem:AppDependencies.storage.sessionArchive"
-   ],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c"
+    "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "7e00ddacb825aef1"
    }
   },
   {
@@ -1234,6 +1260,17 @@
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::func MorningResultsViewModel.updatePerceivedReadiness(_:)": "6fab2703fc822321",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "7e00ddacb825aef1"
    }
+  },
+  {
+   "key": "var ReportFileSheet.id",
+   "hash": "e41fa0ba4fcf7d61",
+   "does": "The wrapped file's IdentifiableURL id, for either case.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
   }
  ],
  "deps": {}

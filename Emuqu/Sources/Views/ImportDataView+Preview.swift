@@ -88,7 +88,9 @@ extension ImportDataView {
             importSectionLabel
         }
         .buttonStyle(.zen(AppTheme.primary))
-        .disabled(isImporting)
+        // Not while a file is read, analysed or a batch is saved: a new pick
+        // would reset the preview under the running work.
+        .disabled(isImporting || isAnalyzing || isSavingBatch)
         .accessibilityIdentifier("import.selectFile")
     }
 
@@ -148,15 +150,13 @@ extension ImportDataView {
     }
 
     /// The date/time picker bound to `importRecordingDate`, with its note.
+    /// Until a date is chosen the field is a button, not a picker showing
+    /// "now": a picker would display a value that is not set, while Analyze
+    /// stays disabled for want of one.
     private var recordingDateField: some View {
         VStack(alignment: .leading, spacing: 4) {
-            DatePicker(
-                String(localized: "Recorded", bundle: LanguageManager.appBundle),
-                selection: Binding(get: { importRecordingDate ?? Date() }, set: { importRecordingDate = $0 }),
-                in: ...Date(),
-                displayedComponents: [.date, .hourAndMinute]
-            )
-            .font(.subheadline)
+            recordingDateControl
+                .font(.subheadline)
             Text(String(localized: "This file doesn't say when it was recorded. Set the date and time it was recorded so it lands on the right day.", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundColor(AppTheme.textTertiary)
@@ -403,6 +403,22 @@ extension ImportDataView {
         }
     }
 
+    @ViewBuilder
+    private var recordingDateControl: some View {
+        if let chosen = importRecordingDate {
+            DatePicker(
+                String(localized: "Recorded", bundle: LanguageManager.appBundle),
+                selection: Binding(get: { chosen }, set: { importRecordingDate = $0 }),
+                in: ...Date(),
+                displayedComponents: [.date, .hourAndMinute]
+            )
+        } else {
+            Button(String(localized: "Set when it was recorded", bundle: LanguageManager.appBundle)) {
+                importRecordingDate = Date()
+            }
+        }
+    }
+
     private func flowSessionRows(
         _ newSessions: [RRDataImporter.FlowHRVMultiSessionResult.SessionRRData]
     ) -> some View {
@@ -410,7 +426,8 @@ extension ImportDataView {
             Text(String(localized: "New Sessions Preview", bundle: LanguageManager.appBundle))
                 .font(.subheadline.bold())
                 .foregroundColor(AppTheme.textPrimary)
-            ForEach(newSessions.prefix(5), id: \.sessionDate) { flowSessionRow($0) }
+            // By position: two sessions can share a date.
+            ForEach(Array(newSessions.prefix(5).enumerated()), id: \.offset) { flowSessionRow($0.element) }
             moreSessionsNote(total: newSessions.count)
         }
         .padding(.vertical, 8)

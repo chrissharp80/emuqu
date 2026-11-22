@@ -527,7 +527,7 @@
    "deps": {
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var PartialDataReason.displayLabel": "b925ca8bf8961404",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.PartialBannerChrome.body(content:)": "24a5daa79d175bb3",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.partialBannerExplainer(reason:recoveredAt:)": "01ab74e3368b5591",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Feeling.swift::func FitnessPostSummaryView.partialBannerExplainer(reason:recoveredAt:)": "eeac3f50a2af247e",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "1f4da74e2a051ea4",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
@@ -548,10 +548,12 @@
   },
   {
    "key": "func FitnessPostSummaryView.partialBannerExplainer(reason:recoveredAt:)",
-   "hash": "1db28d8c7c56f681",
-   "does": "Explainer copy per PartialDataReason; appCrashed appends the recovery time when known.",
+   "hash": "3e1b3a5b7d56a0f6",
+   "does": "Explainer copy per PartialDataReason; appCrashed appends the recovery time when known, in the app language, with the date too unless it was today.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
@@ -561,23 +563,29 @@
      "effect": "'Recovered from on-device backup<time>…'"
     },
     {
-     "at": "+3",
+     "at": "+5",
+     "cond": "recovered today",
+     "effect": "time only; else date and time"
+    },
+    {
+     "at": "+8",
      "cond": "recoveredAt nil",
      "effect": "`??` '' -> no time shown"
     },
     {
-     "at": "+5",
+     "at": "+10",
      "cond": "case .strapDisconnected",
      "effect": "strap dropout explanation"
     },
     {
-     "at": "+7",
+     "at": "+12",
      "cond": "case .userInterrupted",
      "effect": "interrupted-session explanation"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
    }
   },
   {

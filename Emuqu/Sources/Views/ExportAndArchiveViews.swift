@@ -168,7 +168,7 @@ struct ExportDataView: View {
             HStack {
                 Text(String(localized: "First Recording", bundle: LanguageManager.appBundle))
                 Spacer()
-                Text(oldest.date, style: .date)
+                Text(oldest.date.formatted(Date.FormatStyle(date: .long, time: .omitted).locale(LanguageManager.appLocale)))
                     .foregroundColor(AppTheme.textSecondary)
             }
         }
@@ -180,7 +180,7 @@ struct ExportDataView: View {
             HStack {
                 Text(String(localized: "Latest Recording", bundle: LanguageManager.appBundle))
                 Spacer()
-                Text(newest.date, style: .date)
+                Text(newest.date.formatted(Date.FormatStyle(date: .long, time: .omitted).locale(LanguageManager.appLocale)))
                     .foregroundColor(AppTheme.textSecondary)
             }
         }
@@ -234,9 +234,9 @@ struct ExportDataView: View {
         let entries = archive.entries
         let total = entries.count
         do {
-            let unreadable = try await Task.detached(priority: .userInitiated) {
+            let unreadable = try await Self.cancellableDetached {
                 try Self.streamRRCSV(to: tempURL, archive: archive, entries: entries)
-            }.value
+            }
             await MainActor.run {
                 exportShortfall = Self.shortfallNote(written: total - unreadable, total: total)
                 finishExport(url: tempURL)
@@ -245,6 +245,20 @@ struct ExportDataView: View {
             debugLog("[Export] RR export failed: \(error.localizedDescription)")
             _ = attempt("ExportAndArchiveViews.remove") { try FileManager.default.removeItem(at: tempURL) }
             await MainActor.run { failExport(error) }
+        }
+    }
+
+    /// Runs `work` on a detached task that is cancelled with the calling
+    /// task (`exportTask`, cancelled by `closeScreen`), so a long export stops
+    /// at its next session instead of running to the end for a closed screen.
+    nonisolated private static func cancellableDetached<T: Sendable>(
+        _ work: @escaping @Sendable () throws -> T
+    ) async throws -> T {
+        let task = Task.detached(priority: .userInitiated) { try work() }
+        return try await withTaskCancellationHandler {
+            try await task.value
+        } onCancel: {
+            task.cancel()
         }
     }
 
@@ -273,6 +287,7 @@ struct ExportDataView: View {
         var unreadable = 0
         var pointCount = 0
         for entry in entries {
+            try Task.checkCancellation()
             let beats = autoreleasepool {
                 writeRRRows(for: entry, archive: archive, dateFormatter: dateFormatter, handle: handle)
             }
@@ -391,9 +406,9 @@ struct ExportDataView: View {
         let tempURL = FileManager.default.temporaryDirectory
             .appendingPathComponent(Self.timestampedName(prefix: "Emuqu_Export", ext: "json"))
         do {
-            let written = try await Task.detached(priority: .userInitiated) {
+            let written = try await Self.cancellableDetached {
                 try Self.streamExport(to: tempURL, archive: archive, entries: entries, userFacts: userFacts)
-            }.value
+            }
             await MainActor.run {
                 exportShortfall = Self.shortfallNote(written: written, total: entries.count)
                 finishExport(url: tempURL)
@@ -438,7 +453,7 @@ struct ExportDataView: View {
         encoder.outputFormatting = [.sortedKeys]
         try handle.write(contentsOf: envelopeHeader(encoder: encoder, count: entries.count, userFacts: userFacts))
         try handle.write(contentsOf: Data(",\"sessions\":[".utf8))
-        let skipped = writeSessions(entries, archive: archive, encoder: encoder, handle: handle)
+        let skipped = try writeSessions(entries, archive: archive, encoder: encoder, handle: handle)
         let written = entries.count - skipped.count
         let trailer = "],\"sessionsWritten\":\(written),\"skippedSessionIds\":[" + skipped.map { "\"\($0.uuidString)\"" }.joined(separator: ",") + "]}"
         try handle.write(contentsOf: Data(trailer.utf8))
@@ -474,10 +489,12 @@ struct ExportDataView: View {
     /// need the raw beat data; this default GDPR/account-portability export
     /// drops it.
     /// The ids that could not be written, in order.
-    nonisolated private static func writeSessions(_ entries: [SessionArchiveEntry], archive: SessionArchive, encoder: JSONEncoder, handle: FileHandle) -> [UUID] {
+    /// Throws `CancellationError` once the export is cancelled.
+    nonisolated private static func writeSessions(_ entries: [SessionArchiveEntry], archive: SessionArchive, encoder: JSONEncoder, handle: FileHandle) throws -> [UUID] {
         var written = 0
         var skipped: [UUID] = []
         for entry in entries {
+            try Task.checkCancellation()
             let didWrite = autoreleasepool {
                 writeOneSession(entry, archive: archive, encoder: encoder, handle: handle, isFirst: written == 0)
             }

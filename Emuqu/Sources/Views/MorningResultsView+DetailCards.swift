@@ -106,7 +106,7 @@ extension MorningDetailCards {
     private var dateAndQualitySubtitle: some View {
         let shown = vm.displaySession
         return HStack(spacing: 8) {
-            Text(shown.endDate ?? shown.startDate, style: .date)
+            Text((shown.endDate ?? shown.startDate).formatted(Date.FormatStyle(date: .long, time: .omitted).locale(LanguageManager.appLocale)))
                 .font(.caption)
                 .foregroundColor(AppTheme.textTertiary)
             Text(String(localized: "\u{00B7}", bundle: LanguageManager.appBundle))
