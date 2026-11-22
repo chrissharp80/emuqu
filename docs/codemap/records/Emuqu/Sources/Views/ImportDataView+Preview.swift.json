@@ -124,8 +124,8 @@
   },
   {
    "key": "var ImportDataView.importButtonSection",
-   "hash": "c4b96c79852a94ea",
-   "does": "'Select File' button that sets showingFilePicker; disabled while importing; accessibility id import.selectFile (used by EmuquUITests).",
+   "hash": "7efe3317680a581c",
+   "does": "'Select File' button that sets showingFilePicker; disabled while a file is read, analysed or a batch is saved; accessibility id import.selectFile (used by EmuquUITests).",
    "entry": "button tap",
    "calls": [
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::var ImportDataView.importSectionLabel",
@@ -138,7 +138,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::var ImportDataView.importSectionLabel": "e073fbd26ca686fb",
-    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "d415f592739ab39a",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
@@ -249,26 +249,24 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::var ImportDataView.recordingDateField": "5d1c3cd4923228fd"
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::var ImportDataView.recordingDateField": "2f02534f37eee301"
    }
   },
   {
    "key": "var ImportDataView.recordingDateField",
-   "hash": "51195f0380594aa3",
-   "does": "A DatePicker labelled 'Recorded' (date and time, up to now) bound to importRecordingDate (showing now until set), with a footnote explaining that the file doesn't say when it was recorded.",
+   "hash": "8fad19ec0bf0dbfd",
+   "does": "recordingDateControl (the 'Recorded' picker once a date is chosen, a button before) with a footnote explaining that the file doesn't say when it was recorded.",
    "entry": "SwiftUI view builder (via recordingDatePicker); DatePicker binding",
    "calls": [
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::var ImportDataView.recordingDateControl",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
-   "reads": [
-    "mem:ImportDataView.importRecordingDate"
-   ],
-   "writes": [
-    "mem:ImportDataView.importRecordingDate"
-   ],
+   "reads": [],
+   "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::var ImportDataView.recordingDateControl": "168b0e8a6c5ebc5a",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
@@ -632,14 +630,39 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.flowSessionRows(_:)": "9c75f94e6f92e80b",
+    "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.flowSessionRows(_:)": "572b7955934c452d",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::var ImportDataView.fullAnalysisNote": "b09e1dfd5e85dfd5"
    }
   },
   {
+   "key": "var ImportDataView.recordingDateControl",
+   "hash": "55152264b5f65543",
+   "does": "With importRecordingDate set, a DatePicker labelled 'Recorded' (date and time, up to now) bound to it; without one, a 'Set when it was recorded' button that sets it to now and so reveals the picker.",
+   "entry": "SwiftUI view builder; DatePicker binding; button tap",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:ImportDataView.importRecordingDate"
+   ],
+   "writes": [
+    "mem:ImportDataView.importRecordingDate"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "importRecordingDate set",
+     "effect": "picker; else the button"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+   }
+  },
+  {
    "key": "func ImportDataView.flowSessionRows(_:)",
-   "hash": "eb1976db2bc4e9f0",
-   "does": "'New Sessions Preview' list of first 5 Emuqu sessions (id \\.sessionDate) plus more-note.",
+   "hash": "40497c047c991e51",
+   "does": "'New Sessions Preview' list of the first 5 Emuqu sessions (identified by position, as two can share a date) plus more-note.",
    "entry": "SwiftUI view builder",
    "calls": [
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.flowSessionRow(_:)",
@@ -652,7 +675,8 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.flowSessionRow(_:)": "dc4b8c0a36343c13",
     "Emuqu/Sources/Views/ImportDataView+Preview.swift::func ImportDataView.moreSessionsNote(total:)": "58c929b8f76e3427",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565"
+    "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
+    "EmuquUITests/EmuquUITests.swift::func UITestLaunch.element(_:gate:)": "699ce5740e639a1f"
    }
   },
   {

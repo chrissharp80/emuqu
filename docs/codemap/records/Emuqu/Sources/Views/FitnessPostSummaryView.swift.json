@@ -80,9 +80,9 @@
   },
   {
    "key": "var FitnessPostSummaryView.body",
-   "hash": "d0b4850504bcab38",
-   "does": "Root view: summaryScroll with inline 'Workout Summary' title, toolbar (delete/Done), delete confirmation dialog, `.onChange(of: archiveSignal.version)` calling reloadFromArchive, and `.onAppear` calling primeSummary (whose first reload builds the exports and route history).",
-   "entry": "SwiftUI body; .onChange/.onAppear lifecycle triggers.",
+   "hash": "65190012ad151e45",
+   "does": "Root view: summaryScroll with inline 'Workout Summary' title, toolbar (delete/Done), delete confirmation dialog, `.onChange(of: archiveSignal.version)` calling reloadFromArchive, and `.onAppear` calling primeSummary (whose first reload builds the exports and route history). `.onDisappear` removes the temp export files (removeTemporaryExports).",
+   "entry": "SwiftUI body; .onChange/.onAppear/.onDisappear lifecycle triggers.",
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryScroll",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryToolbar",
@@ -91,7 +91,8 @@
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.reloadFromArchive()",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.primeSummary()",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.removeTemporaryExports()"
    ],
    "reads": [
     "mem:ArchiveSignal.version"
@@ -102,11 +103,39 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.primeSummary()": "bca04143b11996f2",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.reloadFromArchive()": "9c7bb95f811e57b7",
+    "Emuqu/Sources/Views/FitnessPostSummaryView.swift::func FitnessPostSummaryView.removeTemporaryExports()": "5ff302d6e2db72f1",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.deleteWorkoutActions": "a79fd8d7c89c41f7",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.deleteWorkoutMessage": "5f64a00c42f81f5c",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.session": "1f4da74e2a051ea4",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryScroll": "4494108e5127dbed",
     "Emuqu/Sources/Views/FitnessPostSummaryView.swift::var FitnessPostSummaryView.summaryToolbar": "f170dd28c12b9c4b"
+   }
+  },
+  {
+   "key": "func FitnessPostSummaryView.removeTemporaryExports()",
+   "hash": "6303f586037b96a5",
+   "does": "Deletes the GPX/CSV/TCX/PDF/recap temp files this summary wrote (failures logged through attempt), clears their URLs and exportsReady, and marks the summary unprepared so a summary shown again rebuilds them.",
+   "entry": "FitnessPostSummaryView.body .onDisappear",
+   "calls": [
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
+    "ext:FileManager.removeItem"
+   ],
+   "reads": [],
+   "writes": [
+    "file:tmp/<sport>-<date>.gpx|csv|tcx, emuqu-workout-*.pdf, emuqu-<sport>-<date>.png (deleted)",
+    "mem:FitnessPostSummaryView.gpxURL/csvURL/tcxURL/pdfURL/recapImageURL",
+    "mem:FitnessPostSummaryView.exportsReady",
+    "mem:FitnessPostSummaryView.summaryPrepared"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "for each URL that is set",
+     "effect": "remove the file"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
   {

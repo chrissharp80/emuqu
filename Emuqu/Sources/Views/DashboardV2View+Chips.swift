@@ -410,13 +410,14 @@ extension DashboardV2View {
     func copyHeroDataToClipboard() {
         guard let session = latestOvernightComplete,
               let result = session.analysisResult else { return }
-        let date = session.startDate.formatted(date: .abbreviated, time: .omitted)
+        let date = session.startDate.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(LanguageManager.appLocale))
         var lines: [String] = [String(localized: "Emuqu — \(date)", bundle: LanguageManager.appBundle)]
         if let score = displayedScore { lines.append(String(localized: "Recovery: \(score)", bundle: LanguageManager.appBundle)) }
         lines.append(String(localized: "RMSSD: \(Int(result.timeDomain.rmssd.rounded())) ms", bundle: LanguageManager.appBundle))
         lines.append(String(localized: "Mean HR: \(Int(result.recordingMeanHR.rounded())) bpm", bundle: LanguageManager.appBundle))
         if let alpha1 = result.nonlinear.dfaAlpha1 {
-            lines.append(String(format: "DFA α1: %.2f", locale: .current, alpha1))
+            let value = String(format: "%.2f", locale: LanguageManager.appLocale, alpha1)
+            lines.append(String(localized: "DFA α1: \(value)", bundle: LanguageManager.appBundle))
         }
         // Not `UIPasteboard.general.string = …`: that puts overnight HRV
         // values on the Universal Clipboard, where they sync to the user's

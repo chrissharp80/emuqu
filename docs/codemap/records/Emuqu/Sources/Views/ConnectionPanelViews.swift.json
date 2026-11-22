@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/ConnectionPanelViews.swift",
- "hash": "9edd356eaa5f7a5e",
+ "hash": "60d4035ada0c48d8",
  "role": "Record-screen Polar strap connection panel: routes on PolarManager.connectionState to disconnected (known devices + scan, Bluetooth-denied banner), scanning (discovered list), connecting (cancel) and connected (device info + disconnect) sub-views; also hosts the shared ConnectionStatusBadge text/color mapping.",
  "types": [
   "ConnectionPanel: struct — outer panel (used by RecordView+Sections.swift:97)",
@@ -9,7 +9,8 @@
   "ConnectionPanelDisconnected: struct (private) — known devices, scan, Bluetooth-denied banner",
   "ConnectionPanelScanning: struct (private) — discovered devices + stop",
   "ConnectionPanelConnected: struct (private) — device id, on-device recording badge, DeviceInfoPanelObserving, disconnect",
-  "KnownDeviceRow: struct (private) — swipe-to-delete known device row"
+  "KnownDeviceRow: struct (private) — swipe-to-delete known device row",
+  "KnownDeviceAccessibility: struct (private ViewModifier) — makes a known-device row one VoiceOver button that connects, with a 'Remove Device' named action"
  ],
  "state": [
   "@State ConnectionPanelDisconnected.btAuthorization (CBCentralManager.authorization)",
@@ -599,15 +600,15 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.deleteBackdrop": "f8ed6649b61040f1",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.deviceRow": "7ab634c6b28a6e65",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.deleteBackdrop": "c14b49418a9c0e85",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.deviceRow": "edb1072b07ec52de",
     "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.removeDeviceButton": "92a17e10deb3fc90"
    }
   },
   {
    "key": "var KnownDeviceRow.deleteBackdrop",
-   "hash": "6535163dd4133c0d",
-   "does": "Red trash button behind the row that animates onRemove().",
+   "hash": "dec8868ffccf8ba4",
+   "does": "Red trash button behind the row that animates onRemove(); hidden from VoiceOver until the swipe reveals it (the row offers Remove through its own action).",
    "entry": "Button tap",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
@@ -626,20 +627,22 @@
   },
   {
    "key": "var KnownDeviceRow.deviceRow",
-   "hash": "861cbc29bdf997e4",
-   "does": "Row content (device icon, name, id) offset by the swipe, tap → handleTap, drag → swipeToDelete.",
+   "hash": "3d96fb0c2c0b60e0",
+   "does": "Row content (device icon, name, id) offset by the swipe, tap → handleTap, drag → swipeToDelete; for VoiceOver one connect button with a Remove Device action (KnownDeviceAccessibility).",
    "entry": "SwiftUI view-body evaluation; tap/drag gestures",
    "calls": [
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.icon",
     "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.deviceRowText",
     "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.handleTap()",
-    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.swipeToDelete"
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.swipeToDelete",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceAccessibility.body(content:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/PolarManager.swift::var PolarDeviceType.icon": "39938ab42bc972ff",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceAccessibility.body(content:)": "4c81d2ef41a01e62",
     "Emuqu/Sources/Views/ConnectionPanelViews.swift::func KnownDeviceRow.handleTap()": "0d328a2cde1a6d3c",
     "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.deviceRowText": "c1c2e3499b8e5356",
     "Emuqu/Sources/Views/ConnectionPanelViews.swift::var KnownDeviceRow.swipeToDelete": "556f62c6009ac8b3",
@@ -792,6 +795,26 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+   }
+  },
+  {
+   "key": "func KnownDeviceAccessibility.body(content:)",
+   "hash": "3618e269b6dad3a6",
+   "does": "Combines the row's children into one accessibility element with the button trait, hint 'Connects to this device', and a 'Remove Device' accessibility action running onRemove.",
+   "entry": "SwiftUI ViewModifier body (KnownDeviceRow.deviceRow)",
+   "calls": [
+    "closure:onRemove → PolarManager.removeKnownDevice (set at ConnectionPanelViews.swift:187)",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:PolarManager.knownDevices",
+    "ud:UserDefaultsKeys.knownDevices (app-group suite, via onRemove)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/ConnectionPanelViews.swift::func ConnectionStatusBadge.content(state:feed:heartRate:)": "c8e7eca32987cb72"
    }
   }
  ],

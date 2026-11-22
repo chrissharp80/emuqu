@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/GetMeBackView.swift",
- "hash": "05920f4fa241c4c5",
+ "hash": "586cc1c3e826a5c3",
  "role": "SwiftUI 'Get Me Back' safety screen: shows a compass arrow pointing back to the active breadcrumb trail's origin (bearing minus true heading), an honest GPS-accuracy ribbon, distance/origin label, Talk-to-AI, SOS dialing of a location-chosen emergency number, and end/discard trail actions; plus static emergency-number helpers reused by the assistant.",
  "types": [
   "GetMeBackView: struct (View) — the Get Me Back screen, presented as a sheet from FitnessTabView+Sections.swift:41",
@@ -22,7 +22,8 @@
   "mem:GetMeBackView.didSetBrightnessOverride (@State)",
   "mem:GetMeBackView.didDisableIdleTimer (@State, true when this screen turned auto-lock off)",
   "mem:GetMeBackView.handsetEmergencyNumbers (static let {112,911})",
-  "mem:GetMeBackView.countryFixRadiusMeters (static let 5000 m)"
+  "mem:GetMeBackView.countryFixRadiusMeters (static let 5000 m)",
+  "mem:GetMeBackView.displayedArrowDegrees (@State, the arrow's unwrapped drawn angle)"
  ],
  "toplevel": "@State initializers read UIScreen.main.brightness on every struct construction and call GetMeBackView.emergencyNumber(currentCountry:nil), which reads Locale.current.region. Environment: dependencies, dismiss, accessibilityReduceMotion, scenePhase. The screen classifies accuracy as GPSAccuracyLevel directly (compared with ==); the UI properties for each level are an internal extension of GPSAccuracyLevel at the end of the file. File-level header comment states arrow hides above 100 m and the view is offline-first.",
  "units": [
@@ -295,6 +296,47 @@
    }
   },
   {
+   "key": "func GetMeBackView.turnArrow(to:)",
+   "hash": "0efb53fd0226a8c2",
+   "does": "Sets displayedArrowDegrees to continuousAngle(from: displayedArrowDegrees, to: target).",
+   "entry": "arrowDial .onChange(of: arrowRotationDegrees)",
+   "calls": [
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.continuousAngle(from:to:)"
+   ],
+   "reads": [
+    "mem:GetMeBackView.displayedArrowDegrees"
+   ],
+   "writes": [
+    "mem:GetMeBackView.displayedArrowDegrees"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.continuousAngle(from:to:)": "ab1e551eb3e5f056"
+   }
+  },
+  {
+   "key": "func GetMeBackView.continuousAngle(from:to:)",
+   "hash": "59bd77fac136acc3",
+   "does": "Static: target expressed as the angle nearest current (current plus the target-current difference wrapped into (-180, 180]), so animating from current turns at most 180° either way.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "difference > 180",
+     "effect": "subtract 360"
+    },
+    {
+     "at": "+2",
+     "cond": "difference <= -180",
+     "effect": "add 360"
+    }
+   ],
+   "deps": {}
+  },
+  {
    "key": "var GetMeBackView.currentAccuracyMeters",
    "hash": "04012abd26b41a71",
    "does": "Latest fix's horizontalAccuracy, nil without a fix.",
@@ -456,7 +498,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.accuracyRibbon": "9cb1dc817fc952f3",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.actionsRow": "715f58c3147b0324",
-    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.arrowDial": "ccded13729aabfb7",
+    "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.arrowDial": "78ae772e9676ec7e",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.headline": "66e2f0cdd4cc27e0",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.locationDenied": "7698590f7618c971",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.locationDeniedBanner": "7d52631ceaa4ef76",
@@ -922,8 +964,8 @@
   },
   {
    "key": "var GetMeBackView.arrowDial",
-   "hash": "878da27609bb5927",
-   "does": "Dial: rose ring + CompassArrow rotated by arrowRotationDegrees with accuracy opacity/fuzz, drawn only when showsArrow (fix, heading and bearing to an origin); a spinner while accuracy is waiting or an active trail has no origin yet, else the compass-unavailable note without a heading; accessibility label from arrowAccessibilityLabel.",
+   "hash": "a4f6ab2c912c443c",
+   "does": "Dial: rose ring + CompassArrow rotated by displayedArrowDegrees (arrowRotationDegrees unwrapped by turnArrow on each change, so it turns the short way) with accuracy opacity/fuzz, drawn only when showsArrow (fix, heading and bearing to an origin); a spinner while accuracy is waiting or an active trail has no origin yet, else the compass-unavailable note without a heading; accessibility label from arrowAccessibilityLabel.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.roseRing",
@@ -937,7 +979,8 @@
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.compassUnavailableNote",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.arrowAccessibilityLabel",
-    "Emuqu/Sources/Views/Utilities/Animation+ReduceMotion.swift::func Animation.zenInterface(_:reduceMotion:)"
+    "Emuqu/Sources/Views/Utilities/Animation+ReduceMotion.swift::func Animation.zenInterface(_:reduceMotion:)",
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.turnArrow(to:)"
    ],
    "reads": [],
    "writes": [],
@@ -959,6 +1002,7 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Views/GetMeBackView.swift::func GetMeBackView.turnArrow(to:)": "c647d8ff1b5bf23e",
     "Emuqu/Sources/Views/GetMeBackView.swift::var CompassArrow.body": "fc60721a0be273f7",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GPSAccuracyLevel.arrowOpacity": "1c50f7fadd54a9a0",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GPSAccuracyLevel.fuzzRadius": "b9f2ee36217a2cc5",
@@ -971,7 +1015,7 @@
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.roseRing": "897cd39af30f6af6",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.showsArrow": "d0c25e00072cc14a",
     "Emuqu/Sources/Views/GetMeBackView.swift::var GetMeBackView.trail": "7c967e8d4255c305",
-    "Emuqu/Sources/Views/Utilities/Animation+ReduceMotion.swift::func Animation.zenInterface(_:reduceMotion:)": "a9ef79ecc4e5789d"
+    "Emuqu/Sources/Views/Utilities/Animation+ReduceMotion.swift::func Animation.zenInterface(_:reduceMotion:)": "67c4f04010924c05"
    }
   },
   {

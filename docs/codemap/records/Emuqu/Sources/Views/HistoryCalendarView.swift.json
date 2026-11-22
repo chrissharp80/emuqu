@@ -50,7 +50,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.withMonthSwipe(_:)": "55e6b49b9ca8efc7",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.withMonthSwipe(_:)": "360c21228489355d",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.calendarCard": "04a7bfd96e5d14b6"
    }
   },
@@ -89,8 +89,8 @@
   },
   {
    "key": "func HistoryCalendarView.withMonthSwipe(_:)",
-   "hash": "6099c53839094991",
-   "does": "Adds a DragGesture(minimumDistance 30) whose onEnded steps the month: left swipe → next month, right swipe → previous, only for horizontal-dominant drags over 80 pt.",
+   "hash": "d17a46f64b7a5c7e",
+   "does": "Adds a simultaneous DragGesture(minimumDistance 30), so the enclosing ScrollView keeps vertical drags, whose onEnded steps the month: left swipe → next month, right swipe → previous, only for horizontal-dominant drags over 80 pt.",
    "entry": "DragGesture.onEnded from user swipe",
    "calls": [
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.stepMonth(by:)"
@@ -1173,7 +1173,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.withDeleteConfirmation(_:)": "ae176b3977c1b7ce",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::var DaySummarySheet.daySessionList": "6fe43fb0d3b241ea"
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::var DaySummarySheet.daySessionList": "68e04c611bf4bf84"
    }
   },
   {
@@ -1214,17 +1214,20 @@
   },
   {
    "key": "var DaySummarySheet.daySessionList",
-   "hash": "0bfc5407977a4eb3",
-   "does": "ScrollView of sessionStack with background, inline date navigation title and Done toolbar item.",
+   "hash": "9d52de8cb1420fe8",
+   "does": "ScrollView of sessionStack with background, inline navigation title (the day as a long date in the app language) and Done toolbar item.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HistoryCalendarView.swift::var DaySummarySheet.sessionStack",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::var DaySummarySheet.doneToolbarItem"
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::var DaySummarySheet.doneToolbarItem",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::var DaySummarySheet.doneToolbarItem": "4e997a287c1e673e",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::var DaySummarySheet.sessionStack": "b722e0caa17325e9",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"

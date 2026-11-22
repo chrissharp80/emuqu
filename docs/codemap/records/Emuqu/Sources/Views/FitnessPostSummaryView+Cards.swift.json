@@ -1,14 +1,15 @@
 {
  "file": "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift",
- "hash": "8f5c59f0c3919fb2",
+ "hash": "97b88ccd88f1e8b5",
  "role": "FitnessSummaryCards extension holding the workout post-summary cards: physiology (decoupling/EF), conditions/heat, splits, route-history baseline, coach report, save-to-route-library, export, DEM elevation recompute, α1 re-analysis and recap-card share, plus archive write-back helpers.",
  "types": [
   "FitnessSummaryCards: extension — post-summary cards",
   "FitnessSummaryCards.RouteHistorySummary: struct — prior-run count + pace/HR comparison rows",
-  "FitnessSummaryCards.RouteHistorySummary.ComparisonRow: struct — today/baseline/delta caption strings"
+  "FitnessSummaryCards.RouteHistorySummary.ComparisonRow: struct — today/baseline/delta caption strings",
+  "CoachReportButton: private struct (View) — 'Generate & Email Coach Report', one request per open summary"
  ],
  "state": [],
- "toplevel": "File-scope private helpers: routeHistoryHeader and routeHistoryValues (@MainActor views), and formatTemp, heatContributionLine and rebuildAnalysisSnapshot (pure, kept outside FitnessSummaryCards). All state lives in FitnessSummaryCards' @Binding properties declared in FitnessSummaryCards.swift. RouteBaseline, which routeHistorySummary builds, is in RouteBaseline.swift.",
+ "toplevel": "File-scope private helpers: routeHistoryHeader and routeHistoryValues (@MainActor views), and formatTemp, heatContributionLine and rebuildAnalysisSnapshot (pure, kept outside FitnessSummaryCards). All state lives in FitnessSummaryCards' @Binding properties declared in FitnessSummaryCards.swift. RouteBaseline, which routeHistorySummary builds, is in RouteBaseline.swift. CoachReportButton (private View) is declared at file scope.",
  "units": [
   {
    "key": "var FitnessSummaryCards.physiologyCard",
@@ -290,6 +291,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func routeHistoryValues(today:baseline:)": "6fae82f36ae73db1",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var CoachReportButton.label": "7e30f3aef22dfb8c",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
@@ -499,37 +501,21 @@
   },
   {
    "key": "var FitnessSummaryCards.coachReportCard",
-   "hash": "e9a082b00220fbad",
-   "does": "Coach Report card: header, description and the Generate & Email button.",
+   "hash": "756a3593980ef238",
+   "does": "Coach Report card: header, description and the CoachReportButton bound to reportShare.coachReportRequested.",
    "entry": "SwiftUI view via FitnessPostSummaryView.coachReportCard (Emuqu/Sources/Views/FitnessPostSummaryView+SummaryForwarding.swift:39, Emuqu/Sources/Views/FitnessPostSummaryView.swift:306)",
    "calls": [
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.generateEmailCoachReportSection"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var CoachReportButton.body"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.generateEmailCoachReportSection": "a97738174340773e",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var CoachReportButton.body": "45fef60247a89a7f",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
-   }
-  },
-  {
-   "key": "var FitnessSummaryCards.generateEmailCoachReportSection",
-   "hash": "1752e6bfa0565a3f",
-   "does": "Button that calls WorkoutRecorder.scheduleCoachReportEmail(for: session) to generate the coach report and stage the email composer.",
-   "entry": "Button tap",
-   "calls": [
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.scheduleCoachReportEmail(for:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.scheduleCoachReportEmail(for:)": "17417fecd2638d3c",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {
@@ -616,6 +602,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.defaultSavedRouteName()": "c1bc32b0afa3d5a8",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var CoachReportButton.label": "7e30f3aef22dfb8c",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "bb3b268fd0780e93"
    }
   },
@@ -882,6 +869,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.runResmoothElevation()": "e0c156697c953cef",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var CoachReportButton.label": "7e30f3aef22dfb8c",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "bb3b268fd0780e93"
    }
   },
@@ -1180,6 +1168,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.runReanalyze()": "49fd43cf215b491d",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var CoachReportButton.label": "7e30f3aef22dfb8c",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.fitnessAccent": "bb3b268fd0780e93"
    }
   },
@@ -1242,7 +1231,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.persistReanalyzedSamples(_:readingCount:)": "26df3fd01d7815bf",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.persistReanalyzedSamples(_:readingCount:)": "22b8ac8ba4d57acf",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.recomputeAlpha1()": "5cb3a0467ae1fc95"
    }
   },
@@ -1272,7 +1261,7 @@
   {
    "key": "func FitnessSummaryCards.persistReanalyzedSamples(_:readingCount:)",
    "hash": "9d81330809f70a37",
-   "does": "Awaits storeReanalyzedSamples (the archive write off the main actor: samples, α1-enriched splits, rebuilt snapshot), then sets refreshedSession, clears the Alpha1StatsCache in the same main-actor turn (its key ignores α1 values) and posts the archive-changed signal; shows a save error or 'Session not found in archive.' otherwise.",
+   "does": "Awaits storeReanalyzedSamples (the archive write off the main actor: samples, α1-enriched splits, rebuilt snapshot), then sets refreshedSession, clears the Alpha1StatsCache (freeing the old entry; its key covers the α1 values) and posts the archive-changed signal; shows a save error or 'Session not found in archive.' otherwise.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::func FitnessSummaryCards.storeReanalyzedSamples(_:)",
@@ -1405,8 +1394,9 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var CoachReportButton.label": "7e30f3aef22dfb8c",
     "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var FitnessSummaryCards.recapShareLabel": "14104e73a4ab6fe5",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.generateRecapCard()": "40778f610dca6f86"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::func FitnessSummaryCards.generateRecapCard()": "210895fba8a5c182"
    }
   },
   {
@@ -1565,6 +1555,55 @@
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elevationGainMeters": "ba428f87158b86ce",
     "Emuqu/Sources/Views/RouteBaseline.swift::init RouteBaseline(priorRuns:)": "8b4a60b6a07820b3",
     "Emuqu/Sources/Views/FitnessRecordingView.swift::var FitnessRecordingView.userMaxHR": "34d6c746a0425f31"
+   }
+  },
+  {
+   "key": "var CoachReportButton.body",
+   "hash": "43ebde0b46a7c56b",
+   "does": "Button that, unless already requested, marks the report requested and schedules WorkoutRecorder.scheduleCoachReportEmail for the session; disabled once requested.",
+   "entry": "SwiftUI body; button tap",
+   "calls": [
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var CoachReportButton.label",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.scheduleCoachReportEmail(for:)"
+   ],
+   "reads": [
+    "mem:FitnessSummaryCards.ReportShareState.coachReportRequested (binding)"
+   ],
+   "writes": [
+    "mem:FitnessSummaryCards.ReportShareState.coachReportRequested (binding)",
+    "mem:AssistantEmailBridge staged draft (via the scheduled render)"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "already requested",
+     "effect": "return; nothing scheduled"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.scheduleCoachReportEmail(for:)": "17417fecd2638d3c",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Cards.swift::var CoachReportButton.label": "7e30f3aef22dfb8c"
+   }
+  },
+  {
+   "key": "var CoachReportButton.label",
+   "hash": "723f5be5f8f2a100",
+   "does": "Once requested: a progress spinner and 'Preparing the coach report…'; otherwise the envelope icon and 'Generate & Email Coach Report'; full-width tinted capsule.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "requested",
+     "effect": "preparing label; else the action label"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   }
  ],

@@ -439,8 +439,12 @@ struct HRVDetailV2View: View {
             .background(Capsule().fill(verdict.color.opacity(0.15)))
     }
 
+    /// Compares with the baseline only when the verdict does too (a baseline
+    /// SD above zero); otherwise the verdict came from absolute thresholds and
+    /// a "% above your baseline" line could contradict it.
     private var heroSubtitle: String {
-        guard let mean = baselineStats?.lnRmssdMean, mean > 0 else {
+        guard let mean = baselineStats?.lnRmssdMean, mean > 0,
+              (baselineStats?.lnRmssdSD ?? 0) > 0 else {
             return String(localized: "Today's RMSSD. Higher values reflect parasympathetic dominance.", bundle: LanguageManager.appBundle)
         }
         // True fractional deviation from the geometric baseline exp(lnMean).

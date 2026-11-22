@@ -227,7 +227,7 @@
   },
   {
    "key": "var MainTabView.body",
-   "hash": "b7b5be3b912ae78c",
+   "hash": "cf3f3b04d12a6c32",
    "does": "Emits a keyboard-perf signpost, renders tabsWithObservers with the report mail sheet (its PDF deleted once the sheet goes, discardReportPDF), the 'Couldn't prepare report' alert (shown while reportPrepError is set; OK clears it) and the recovery-detail sheet for selectedReportSession.",
    "entry": "SwiftUI body; sheet/alert closures driven by @State.",
    "calls": [
@@ -237,7 +237,8 @@
     "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportMailSheet(_:)",
     "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportSheet(_:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
-    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.discardReportPDF(_:next:)"
+    "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.discardReportPDF(_:next:)",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.reportPrepErrorBinding"
    ],
    "reads": [],
    "writes": [],
@@ -256,8 +257,30 @@
     "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.discardReportPDF(_:next:)": "b82b62d3032a197d",
     "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportMailSheet(_:)": "09dba98405966421",
     "Emuqu/Sources/Views/MainTabView.swift::func MainTabView.reportSheet(_:)": "9c52c06512077acc",
+    "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.reportPrepErrorBinding": "b927a70f4e11b94e",
     "Emuqu/Sources/Views/MainTabView.swift::var MainTabView.tabsWithObservers": "efe9548134c6ec8c"
    }
+  },
+  {
+   "key": "var MainTabView.reportPrepErrorBinding",
+   "hash": "4ca7b6adbd060b30",
+   "does": "Bool binding for the 'Couldn't prepare report' alert: true while reportPrepError is set; setting false clears it.",
+   "entry": "SwiftUI reads/writes it through the alert",
+   "calls": [],
+   "reads": [
+    "mem:MainTabView.reportPrepError"
+   ],
+   "writes": [
+    "mem:MainTabView.reportPrepError"
+   ],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "set to false",
+     "effect": "reportPrepError = nil"
+    }
+   ],
+   "deps": {}
   },
   {
    "key": "func MainTabView.reportMailSheet(_:)",

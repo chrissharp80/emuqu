@@ -948,19 +948,20 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.segmentProvenanceRow": "751b886d0c828117",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowProvenanceRow": "7fbe253801a4591a"
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::var MorningReanalysisControls.windowProvenanceRow": "9d8ddb73050a0743"
    }
   },
   {
    "key": "var MorningReanalysisControls.windowProvenanceRow",
-   "hash": "f506e6448810b6d1",
-   "does": "'Window: start – end' row using wall-clock times from the RR series for the result's windowStartMs/EndMs.",
+   "hash": "bf65eee2f7e3e708",
+   "does": "'Window: start – end' row using wall-clock times (in the app language) from the RR series for the result's windowStartMs/EndMs.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession",
     "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)",
-    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func provenanceRow(glyph:text:)"
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func provenanceRow(glyph:text:)",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.clockTime(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -974,9 +975,9 @@
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8bb45fe780498d77",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displayResult": "f3821e0d2328a0ed",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "7e00ddacb825aef1",
+    "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func MorningReanalysisControls.clockTime(_:)": "8a23b1ac72c0f055",
     "Emuqu/Sources/Views/MorningResultsView+Reanalysis.swift::func provenanceRow(glyph:text:)": "631e6372bcf48c5c"
    }
   },
@@ -1537,6 +1538,22 @@
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "b8e2a1bd40019ca9",
     "Emuqu/Sources/ViewModels/MorningResultsViewModel.swift::var MorningResultsViewModel.displaySession": "7e00ddacb825aef1"
+   }
+  },
+  {
+   "key": "func MorningReanalysisControls.clockTime(_:)",
+   "hash": "45a502f6da6397cc",
+   "does": "A time of day, short style, in the app language.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
+    "Emuqu/Sources/Utilities/DebugLog.swift::var DebugLogger.LogEntry.formatted": "b3b105f9442d049e"
    }
   },
   {

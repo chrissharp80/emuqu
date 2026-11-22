@@ -302,8 +302,8 @@ extension FitnessSummaryCards {
     }
 
     var pdfMailSubject: String {
-        let dateStr = session.startDate.formatted(date: .abbreviated, time: .omitted)
-        let sport = session.workoutMetadata?.sport.localizedName ?? "Workout"
+        let dateStr = session.startDate.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(LanguageManager.appLocale))
+        let sport = session.workoutMetadata?.sport.localizedName ?? String(localized: "Workout", bundle: LanguageManager.appBundle)
         return "Emuqu — \(sport), \(dateStr)"
     }
 

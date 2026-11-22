@@ -304,28 +304,12 @@ extension FitnessSummaryCards {
             Text(String(localized: "Comprehensive coach-style breakdown of this workout — every metric, comparisons against your history, and recommendations for tomorrow. Built from this session's data, so it stays current if you re-tag or fix anything.", bundle: LanguageManager.appBundle))
                 .font(.caption)
                 .foregroundStyle(AppTheme.textTertiary)
-            generateEmailCoachReportSection
+            CoachReportButton(session: session, requested: $reportShare.coachReportRequested)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppTheme.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
-
-    private var generateEmailCoachReportSection: some View {
-        Button {
-            WorkoutRecorder.scheduleCoachReportEmail(for: session)
-        } label: {
-            HStack {
-                Image(systemName: "envelope.fill")
-                Text(String(localized: "Generate & Email Coach Report", bundle: LanguageManager.appBundle))
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
-            .background(Color.accentColor.opacity(0.15))
-            .foregroundStyle(Color.accentColor)
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        }
     }
 
     /// "Add this walk to my route library" card. Shown only when the
@@ -820,10 +804,8 @@ extension FitnessSummaryCards {
             return
         }
         refreshedSession = updated
-        // The α1 stats cache is keyed on which samples carry α1, not on the
-        // values, so a re-analysis that rewrites values in place would keep
-        // serving the old card. Cleared in the same main-actor turn that
-        // publishes the new session, before any re-render can re-fill it.
+        // The α1 stats cache key covers the values too, so the new samples
+        // miss it anyway; clearing it here also frees the old entry at once.
         AppDependencies.current.app.alpha1StatsCache.cachedKey = nil
         collector.notifyArchiveChanged()
         debugLog("[Alpha1Reanalyze] rewrote \(readingCount) α1 readings for session \(session.id)")
@@ -998,4 +980,41 @@ private func rebuildAnalysisSnapshot(_ stored: inout HRVSession, settings: UserS
         decouplingPercent: meta.decouplingPercent
     ))
     stored.workoutMetadata?.analysisSnapshot = snapshot
+}
+
+/// "Generate & Email Coach Report". One request per open summary: the render
+/// takes seconds and stages an email draft when done, so once tapped the
+/// button says the report is being prepared and stays disabled; repeated
+/// taps cannot stage several drafts.
+private struct CoachReportButton: View {
+    let session: HRVSession
+    @Binding var requested: Bool
+
+    var body: some View {
+        Button {
+            guard !requested else { return }
+            requested = true
+            WorkoutRecorder.scheduleCoachReportEmail(for: session)
+        } label: {
+            label
+        }
+        .disabled(requested)
+    }
+
+    private var label: some View {
+        HStack {
+            if requested {
+                ProgressView()
+                Text(String(localized: "Preparing the coach report…", bundle: LanguageManager.appBundle))
+            } else {
+                Image(systemName: "envelope.fill")
+                Text(String(localized: "Generate & Email Coach Report", bundle: LanguageManager.appBundle))
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(Color.accentColor.opacity(0.15))
+        .foregroundStyle(Color.accentColor)
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
 }

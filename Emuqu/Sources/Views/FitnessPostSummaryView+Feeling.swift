@@ -351,7 +351,13 @@ extension FitnessPostSummaryView {
     func partialBannerExplainer(reason: PartialDataReason, recoveredAt: Date?) -> String {
         switch reason {
         case .appCrashed:
-            let when = recoveredAt.map { " " + $0.formatted(date: .omitted, time: .shortened) } ?? ""
+            // The day too unless it was today: a workout opened days later
+            // otherwise reads "recovered … 08:13" with no date.
+            let when = recoveredAt.map { date in
+                " " + date.formatted(Date.FormatStyle(
+                    date: Calendar.current.isDateInToday(date) ? .omitted : .abbreviated, time: .shortened
+                ).locale(LanguageManager.appLocale))
+            } ?? ""
             return String(localized: "Recovered from on-device backup\(when). Metrics cover only the captured portion of the workout.", bundle: LanguageManager.appBundle)
         case .strapDisconnected:
             return String(localized: "Heart-rate strap dropped out before the end. TRIMP and zones are computed only from the beats that were recorded.", bundle: LanguageManager.appBundle)

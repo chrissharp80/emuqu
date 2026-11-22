@@ -566,7 +566,7 @@ extension MorningReanalysisControls {
             let endDate = series.wallClockTime(forTMs: endTime)
             provenanceRow(
                 glyph: "waveform.path.ecg",
-                text: String(localized: "Window: \(startDate.formatted(date: .omitted, time: .shortened)) – \(endDate.formatted(date: .omitted, time: .shortened))", bundle: LanguageManager.appBundle)
+                text: String(localized: "Window: \(Self.clockTime(startDate)) – \(Self.clockTime(endDate))", bundle: LanguageManager.appBundle)
             )
         }
     }
@@ -892,6 +892,11 @@ extension MorningReanalysisControls {
         }
         csv += "#\n"
         return csv
+    }
+
+    /// A time of day in the app language.
+    private static func clockTime(_ date: Date) -> String {
+        date.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(LanguageManager.appLocale))
     }
 
     private func rrExportFilename() -> String {
