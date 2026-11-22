@@ -212,7 +212,9 @@ extension WorkoutPDFRenderer {
     /// α1 band. Draws in the current graphics context (caller has already
     /// placed `map.image` into `rect`). Each track point was projected by the
     /// snapshot itself, so the line lands on the tiles whatever region MapKit
-    /// settled on; this only scales image coordinates into `rect`.
+    /// settled on; this only scales image coordinates into `rect`. A
+    /// segment takes the α1 of its fix's pause-excluded second, the clock the
+    /// samples are recorded on.
     func drawColouredPolyline(_ map: RouteMapImage, in rect: CGRect) {
         guard report.track.count >= 2, map.track.count == report.track.count,
               map.image.size.width > 0, map.image.size.height > 0,
@@ -227,13 +229,20 @@ extension WorkoutPDFRenderer {
         cg.setLineJoin(.round)
         // empty-range-ok: the guard above requires report.track.count >= 2.
         for i in 1 ..< report.track.count {
-            let offset = Int(report.track[i].timestamp.timeIntervalSince(report.session.startDate).rounded())
-            cg.setStrokeColor(band(offset).withAlphaComponent(0.95).cgColor)
+            cg.setStrokeColor(band(activeSecond(of: report.track[i])).withAlphaComponent(0.95).cgColor)
             cg.move(to: point(i - 1))
             cg.addLine(to: point(i))
             cg.strokePath()
         }
     }
+    /// The pause-excluded second of a fix, the clock α1 samples are on: fix
+    /// times are on the wall clock (`WorkoutMetadata.activeOffset`), and
+    /// without metadata the two clocks agree.
+    func activeSecond(of fix: CLLocation) -> Int {
+        let wallSeconds = fix.timestamp.timeIntervalSince(report.session.startDate)
+        return report.session.workoutMetadata?.activeOffset(forWallClockSeconds: wallSeconds) ?? Int(wallSeconds.rounded())
+    }
+
     /// Nearest-preceding α1 sample for a given offset, mapped to its band
     /// colour. Grey when no sample precedes the point.
     func alphaBandLookup() -> (Int) -> UIColor {

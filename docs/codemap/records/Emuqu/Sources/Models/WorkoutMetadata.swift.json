@@ -146,6 +146,37 @@
    }
   },
   {
+   "key": "func WorkoutMetadata.movingSeconds(wallClockDuration:)",
+   "hash": "31083f9744ad077b",
+   "does": "Moving seconds: the last per-second sample's offset when positive (the ticker records none while paused), else wallClockDuration minus the recorded pause spans (floored at 0); nil when neither is known.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.totalDurationSec()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a positive last sample offset",
+     "effect": "returns it"
+    },
+    {
+     "at": "+2",
+     "cond": "wallClockDuration nil",
+     "effect": "nil"
+    },
+    {
+     "at": "+4",
+     "cond": "pauses exceed the wall clock",
+     "effect": "0"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.totalDurationSec()": "2446318f031a105f"
+   }
+  },
+  {
    "key": "var WorkoutMetadata.TrainingLoadSource.displayLabel",
    "hash": "2a58296e44d63147",
    "does": "Display label for a load source: 'LOAD' for TSS-scale sources (power, hr, mets), 'TRIMP' for banister/routeHistory, localized.",
