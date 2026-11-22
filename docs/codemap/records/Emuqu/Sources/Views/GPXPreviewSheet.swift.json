@@ -49,7 +49,7 @@
    "deps": {
     "Emuqu/Sources/Views/GPXPreviewSheet.swift::var GPXPreviewSheet.fileInfo": "f34278e4e0505c7b",
     "Emuqu/Sources/Views/GPXPreviewSheet.swift::var GPXPreviewSheet.mapView": "49188394cead1d03",
-    "Emuqu/Sources/Views/GPXPreviewSheet.swift::var GPXPreviewSheet.statsRow": "363b3adae4a3425e"
+    "Emuqu/Sources/Views/GPXPreviewSheet.swift::var GPXPreviewSheet.statsRow": "6d40a35d8a92ecb7"
    }
   },
   {
@@ -128,8 +128,8 @@
   },
   {
    "key": "var GPXPreviewSheet.statsRow",
-   "hash": "6d6c93b92f027816",
-   "does": "Distance from session metadata (— when missing/0), duration end−start (start when no end) in h:m, and point count.",
+   "hash": "4954481e275915fa",
+   "does": "Distance from session metadata (— when missing/0), active (un-paused) duration as the workout summary shows it (WorkoutActiveTime) in h:m, and point count.",
    "entry": "SwiftUI body.",
    "calls": [
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
@@ -137,7 +137,8 @@
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
     "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)",
     "Emuqu/Sources/Views/GPXPreviewSheet.swift::func GPXPreviewSheet.statTile(icon:label:value:)",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func WorkoutActiveTime.seconds(samples:wallClock:)"
    ],
    "reads": [
     "ud:fitness.unitsPreference (App Group suite)"
@@ -150,9 +151,9 @@
      "effect": "formatted distance; otherwise '—'"
     },
     {
-     "at": "+9",
-     "cond": "endDate nil",
-     "effect": "?? startDate → duration 0"
+     "at": "+10",
+     "cond": "no samples and no end date",
+     "effect": "?? 0 → duration 0"
     }
    ],
    "deps": {
@@ -161,7 +162,8 @@
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/GPXPreviewSheet.swift::func GPXPreviewSheet.statTile(icon:label:value:)": "20bfd4ae00f0a564",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316"
+    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.hoursMinutes(minutes:)": "ab1f9ba9d6ad5316",
+    "Emuqu/Sources/Views/WorkoutStatsCards.swift::func WorkoutActiveTime.seconds(samples:wallClock:)": "2ab0c1cf6cea2ea6"
    }
   },
   {

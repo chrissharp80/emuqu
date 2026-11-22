@@ -850,22 +850,28 @@ extension MorningReanalysisControls {
 
     /// Writes the CSV to tmp and opens it; `onFailure` receives the
     /// user-facing reason when there is no series or the write fails.
-    func exportRRData(onFailure: @MainActor (String) -> Void) {
+    /// The rows of a full night (tens of thousands of beats) are built and
+    /// written on a detached task; the header and file name, which read the
+    /// view model, are made here first.
+    func exportRRData(onFailure: @escaping @MainActor (String) -> Void) {
         let failure = String(localized: "Couldn't create the CSV file.", bundle: LanguageManager.appBundle)
         guard let series = vm.displaySession.rrSeries else {
             debugLog("[MorningResultsView] ERROR: No rrSeries in vm.displaySession")
             return onFailure(failure)
         }
         debugLog("[MorningResultsView] Exporting RR data: \(series.points.count) points")
-        let csv = rrExportHeader(series: series) + rrCSVRows(points: series.points)
+        let header = rrExportHeader(series: series)
+        let points = series.points
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(rrExportFilename())
-        do {
-            try csv.write(to: tempURL, atomically: true, encoding: .utf8)
-            debugLog("[MorningResultsView] RR data exported to: \(tempURL.path)")
-            exportURL = IdentifiableURL(url: tempURL)
-        } catch {
-            debugLog("[MorningResultsView] Failed to write RR data: \(error)")
-            onFailure(failure)
+        Task {
+            let written = await Task.detached(priority: .userInitiated) {
+                writeRRCSV(header: header, points: points, to: tempURL)
+            }.value
+            if written {
+                exportURL = IdentifiableURL(url: tempURL)
+            } else {
+                onFailure(failure)
+            }
         }
     }
 
@@ -982,6 +988,19 @@ private func provenanceRow(glyph: String, text: String) -> some View {
         Text(text)
             .font(.caption)
             .foregroundColor(AppTheme.textTertiary)
+    }
+}
+
+/// Writes the header and the rows to `url`; false (logged) when the write
+/// throws. Off the main actor.
+private func writeRRCSV(header: String, points: [RRPoint], to url: URL) -> Bool {
+    do {
+        try (header + rrCSVRows(points: points)).write(to: url, atomically: true, encoding: .utf8)
+        debugLog("[MorningResultsView] RR data exported to: \(url.path)")
+        return true
+    } catch {
+        debugLog("[MorningResultsView] Failed to write RR data: \(error)")
+        return false
     }
 }
 

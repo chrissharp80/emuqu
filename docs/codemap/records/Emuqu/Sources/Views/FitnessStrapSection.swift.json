@@ -1,9 +1,9 @@
 {
  "file": "Emuqu/Sources/Views/FitnessStrapSection.swift",
- "hash": "32548a0f7329f96b",
+ "hash": "0fc237badb76b174",
  "role": "Declares FitnessStrapSection (a non-View value type that receives the tab's state as lets, closures and bindings), and FitnessTabView forwarders that rebuild it on each access and delegate the hero/trajectory/summary/recent-workout surfaces to it.",
  "types": [
-  "FitnessStrapSection: struct (@MainActor) — holder of collector, archiveSignal, units, trainingCache, settings, 5 closures (one, requestDeleteWorkout, only asks for a delete the view confirms) and 6 bindings; methods in FitnessTabView+Strap.swift",
+  "FitnessStrapSection: struct (@MainActor) — holder of collector, archiveSignal, units, trainingCache, settings, 5 closures (one, requestDeleteWorkout, only asks for a delete the view confirms) and 7 bindings (latestWorkoutRoute: the newest workout's decoded route); methods in FitnessTabView+Strap.swift",
   "FitnessTabView: extension — strapSection builder and forwarders (heroCard, trajectoryLinkCard, summaryTileGrid, recentWorkoutsList)"
  ],
  "state": [],
@@ -11,8 +11,8 @@
  "units": [
   {
    "key": "var FitnessTabView.strapSection",
-   "hash": "105cd0e244dafc0f",
-   "does": "Builds a fresh FitnessStrapSection value on every access from the tab's collector, archive signal, units, training cache, settings, four closures forwarding to FitnessTabView helpers, a requestDeleteWorkout closure that sets pendingRecentDeleteId (the tab's delete confirmation), and six @State bindings (including recentWorkoutLoadFailed).",
+   "hash": "a481db50e7ae7375",
+   "does": "Builds a fresh FitnessStrapSection value on every access from the tab's collector, archive signal, units, training cache, settings, four closures forwarding to FitnessTabView helpers, a requestDeleteWorkout closure that sets pendingRecentDeleteId (the tab's delete confirmation), and seven @State bindings (including latestWorkoutRoute) (including recentWorkoutLoadFailed).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/FitnessTabView.swift::func FitnessTabView.recentWorkoutEntries()",
@@ -49,7 +49,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.strapSection": "ad736478a3516289",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.strapSection": "5bad9136d867b6ed",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.heroCard(latest:)": "9cc85f4335d11aa5"
    }
   },
@@ -66,7 +66,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.strapSection": "ad736478a3516289",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.strapSection": "5bad9136d867b6ed",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::var FitnessStrapSection.trajectoryLinkCard": "e68a55f009c3b8c3"
    }
   },
@@ -83,7 +83,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.strapSection": "ad736478a3516289",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.strapSection": "5bad9136d867b6ed",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.summaryTileGrid(entries:)": "69a2adb0fbd6a128"
    }
   },
@@ -100,7 +100,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.strapSection": "ad736478a3516289",
+    "Emuqu/Sources/Views/FitnessStrapSection.swift::var FitnessTabView.strapSection": "5bad9136d867b6ed",
     "Emuqu/Sources/Views/FitnessTabView+Strap.swift::func FitnessStrapSection.recentWorkoutsList(entries:)": "cca254048c69c071"
    }
   }

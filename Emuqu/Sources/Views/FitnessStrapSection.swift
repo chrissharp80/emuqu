@@ -1,3 +1,4 @@
+import CoreLocation
 import SwiftUI
 
 /// The hero, recent-workout and workout-history surfaces on the fitness
@@ -29,6 +30,9 @@ struct FitnessStrapSection {
 
     @Binding var lastCompletedSession: HRVSession?
     @Binding var latestWorkoutSession: HRVSession?
+    /// The newest workout's decoded GPS route, loaded with it, for the hero's
+    /// trace.
+    @Binding var latestWorkoutRoute: [CLLocation]
     /// The newest workout's file couldn't be read; the hero says so instead
     /// of spinning.
     @Binding var latestWorkoutLoadFailed: Bool
@@ -59,6 +63,7 @@ extension FitnessTabView {
             requestDeleteWorkout: { pendingRecentDeleteId = $0 },
             lastCompletedSession: $lastCompletedSession,
             latestWorkoutSession: $latestWorkoutSession,
+            latestWorkoutRoute: $latestWorkoutRoute,
             latestWorkoutLoadFailed: $latestWorkoutLoadFailed,
             selectedHistorySession: $selectedHistorySession,
             recentWorkoutLoadFailed: $recentWorkoutLoadFailed,
