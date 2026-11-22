@@ -33,7 +33,7 @@ final class VoiceTurnPolicyTests: XCTestCase {
     /// Only `.listening` restarts — every other state either has no mic loop to
     /// re-arm or is about to create one anyway.
     func testOnlyListeningRestarts() {
-        for state in [State.idle, .starting, .thinking, .speaking, .triggerSpeaking] {
+        for state in [State.idle, .starting, .speaking, .triggerSpeaking] {
             XCTAssertFalse(
                 VoiceTurnPolicy.shouldRestartRecognition(
                     errorDomain: "kLSRErrorDomain", errorCode: 301, state: state),
@@ -91,13 +91,9 @@ final class VoiceTurnPolicyTests: XCTestCase {
     }
 
     func testAnInFlightResponseIsBusy() {
-        XCTAssertTrue(busy(.thinking, llm: true))
+        XCTAssertTrue(busy(.speaking, llm: true))
         XCTAssertTrue(busy(.listening, llm: true))
         XCTAssertTrue(busy(.listening, streaming: true))
-    }
-
-    func testThinkingIsBusyEvenWithNoTaskHandle() {
-        XCTAssertTrue(busy(.thinking))
     }
 
     /// The synthesiser check is paired with `.speaking` on purpose: audio can
@@ -134,7 +130,7 @@ final class VoiceTurnPolicyTests: XCTestCase {
     /// Across every state, a response being generated makes the
     /// conversation busy, so a trigger never fires over it.
     func testEveryStateIsBusyWhileWorkIsInFlight() {
-        for state in [State.idle, .starting, .listening, .thinking, .speaking, .triggerSpeaking] {
+        for state in [State.idle, .starting, .listening, .speaking, .triggerSpeaking] {
             XCTAssertTrue(busy(state, llm: true, streaming: true), "\(state) must be busy while a response is in flight")
         }
     }

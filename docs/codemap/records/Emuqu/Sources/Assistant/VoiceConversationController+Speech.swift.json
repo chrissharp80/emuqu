@@ -19,8 +19,8 @@
  "units": [
   {
    "key": "func VoiceConversationController.speak(_:voice:scripted:)",
-   "hash": "1c3b8ab0cbe1524e",
-   "does": "Speaks a chunk: picks the override or best voice, runs CoachVoiceGuard scrub then the hallucination guard, adds the one-time 'Flo here. <Model>.' preamble unless scripted or in .triggerSpeaking, normalizes for TTS (English expansions only when the voice that will speak is English: the chosen voice's language, or the device's current language when no voice is chosen and the system default speaks) and enqueues via FRSafeSpeak. On failure it logs, drops the chunk and settles a scripted trigger line that will never get a didFinish (settleUnspokenTriggerLine).",
+   "hash": "a0e24d610c9d6820",
+   "does": "Speaks a chunk: picks the override or best voice, runs CoachVoiceGuard scrub then the hallucination guard, adds the one-time 'Flo here. <Model>.' preamble unless scripted or in .triggerSpeaking, normalizes for TTS (English expansions only when the voice that will speak is English: the chosen voice's language, or the device's current language when no voice is chosen and the system default speaks) and builds the utterance. A coach line (state .triggerSpeaking) goes to coachCue.speak, which claims the workout-cue audio session off the main actor before speaking it and settles the trigger (settleUnspokenTriggerLine) if the synthesizer refuses it. Any other chunk is enqueued via FRSafeSpeak; on failure it logs, drops the chunk and calls settleUnspokenTriggerLine (a no-op outside .triggerSpeaking).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func perimeterScrubbed(_:)",
@@ -28,6 +28,7 @@
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.announced(_:)",
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.normalize(_:english:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.makeUtterance(_:voice:)",
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::func CoachCueSpeech.speak(_:onUnqueued:)",
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeSpeak",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.settleUnspokenTriggerLine()",
@@ -38,7 +39,8 @@
     "mem:VoiceConversationController.state"
    ],
    "writes": [
-    "mem:VoiceConversationController.synthesizer queue"
+    "mem:VoiceConversationController.synthesizer queue",
+    "mem:CoachCueSpeech waiting lines / fallback (coach lines)"
    ],
    "branches": [
     {
@@ -57,23 +59,29 @@
      "effect": "scripted → guarded text as-is; else announced(guarded) adds preamble once per session"
     },
     {
-     "at": "+10",
+     "at": "+9",
+     "cond": "state == .triggerSpeaking",
+     "effect": "coachCue.speak(utterance) (session claim first; refusal → settleUnspokenTriggerLine) and return"
+    },
+    {
+     "at": "+13",
      "cond": "FRSafeSpeak succeeded",
      "effect": "return; else log warning, chunk skipped, settleUnspokenTriggerLine()"
     },
     {
-     "at": "+11",
+     "at": "+14",
      "cond": "speakErr nil ??",
      "effect": "'?'"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.normalize(_:english:)": "6d0bc9e51bb0b30f",
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::func CoachCueSpeech.speak(_:onUnqueued:)": "6d21c49c9272c15e",
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.normalize(_:english:)": "3fcb980d54642c76",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func ConversationVoicePicker.bestVoice(for:)": "f4829910f7275059",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.announced(_:)": "cc4e46b12c5ffe43",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.applyHallucinationGuard(to:)": "4c5214e46bad2883",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.makeUtterance(_:voice:)": "c2910e42ccbbdab3",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.settleUnspokenTriggerLine()": "2c726d3c192ff21f",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.settleUnspokenTriggerLine()": "f3fc0e599c47a528",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func perimeterScrubbed(_:)": "f6a183eacabce379",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::let VoiceConversationController.synthesizer": "3aa82fe78ac5cbac",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "a1741591eec1636f",
@@ -83,28 +91,30 @@
   },
   {
    "key": "func VoiceConversationController.settleUnspokenTriggerLine()",
-   "hash": "8692c80415c7426d",
-   "does": "After speak failed to queue a line: if the state is .triggerSpeaking, no interjection llmTask is running and the synthesizer is silent (so no didFinish is coming), calls finishTriggerSpeech to play the next queued trigger or restore the pre-trigger state; otherwise does nothing (an interjection is settled by finishInterjection, a reply chunk by the reply's own finish).",
+   "hash": "205509d0dcb51a1a",
+   "does": "After a line failed to queue: if the state is .triggerSpeaking, no interjection llmTask is running and no coach line is speaking or waiting for the audio session (so no didFinish is coming), calls finishTriggerSpeech to play the next queued trigger or restore the pre-trigger state; otherwise does nothing (an interjection is settled by finishInterjection, a reply chunk by the reply's own finish).",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::var CoachCueSpeech.isBusy",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.finishTriggerSpeech()"
    ],
    "reads": [
     "mem:VoiceConversationController.state",
     "mem:VoiceConversationController.llmTask",
-    "mem:VoiceConversationController.synthesizer"
+    "mem:VoiceConversationController.synthesizer",
+    "mem:CoachCueSpeech waiting lines"
    ],
    "writes": [],
    "branches": [
     {
      "at": "+1",
-     "cond": "not .triggerSpeaking, llmTask set, or synthesizer still speaking",
+     "cond": "not .triggerSpeaking, llmTask set, or coach speech still playing/waiting",
      "effect": "return"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.finishTriggerSpeech()": "adcee97baa9fd765",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::let VoiceConversationController.synthesizer": "3aa82fe78ac5cbac",
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::var CoachCueSpeech.isBusy": "33a67a6425cb85b3",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.finishTriggerSpeech()": "ef43d03ea5f8c750",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "a1741591eec1636f"
    }
   },
@@ -155,18 +165,21 @@
   },
   {
    "key": "func VoiceConversationController.stopSynthesizer()",
-   "hash": "323b76ccf4c4535d",
-   "does": "Stops the synthesizer immediately via the FRSafeStopSpeaking shim.",
+   "hash": "ff9aa6263fe6aa1d",
+   "does": "Stops the synthesizer immediately via the FRSafeStopSpeaking shim, then coachCue.stopAll(): coach lines still waiting for the audio session are dropped, the holds of the coach lines that were playing are ended (deactivating the cue session when nothing else holds it), and any armed interjection fallback is retired.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStopSpeaking"
+    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStopSpeaking",
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::func CoachCueSpeech.stopAll()"
    ],
    "reads": [],
    "writes": [
-    "mem:VoiceConversationController.synthesizer"
+    "mem:VoiceConversationController.synthesizer",
+    "mem:CoachCueSpeech waiting/held lines and fallback"
    ],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::func CoachCueSpeech.stopAll()": "dd7735079d97a2ff",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::let VoiceConversationController.synthesizer": "3aa82fe78ac5cbac",
     "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStopSpeaking": "2d4d6cd0ca845f84"
    }
@@ -387,11 +400,11 @@
   },
   {
    "key": "func VoiceConversationController.stopAnyOngoingSpeech()",
-   "hash": "308fb49f3b3f57cb",
-   "does": "External Stop hook: bumps responseSpeakGeneration, stops TTS, resets chunker, drops observers and cursor; if mid-response (speaking/thinking) and not in a full stop, schedules a listening restart.",
+   "hash": "818c1ee962769d8c",
+   "does": "External Stop hook: bumps responseSpeakGeneration, stops speech (stopSynthesizer, coach lines' session holds included), resets chunker, drops observers and cursor; if a reply was being spoken (.speaking) and not in a full stop, schedules a listening restart.",
    "entry": "AssistantViewModel.cancel() (AssistantViewModel.swift:581): chat Stop button, stop(), interrupt()",
    "calls": [
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStopSpeaking",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.stopSynthesizer()",
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelAssistantObservers()",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.scheduleListeningRestartAfterStop()"
@@ -408,24 +421,23 @@
    ],
    "branches": [
     {
-     "at": "+9",
-     "cond": "not mid-response or isStoppingFully",
+     "at": "+8",
+     "cond": "state != .speaking or isStoppingFully",
      "effect": "return; else scheduleListeningRestartAfterStop"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()": "2a4db3fb94564d8d",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.scheduleListeningRestartAfterStop()": "30c27fe762292793",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.scheduleListeningRestartAfterStop()": "e5b9022c99015182",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.stopSynthesizer()": "32830b7828da130f",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.cancelAssistantObservers()": "4283ff5361b1771c",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::let VoiceConversationController.synthesizer": "3aa82fe78ac5cbac",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "a1741591eec1636f",
-    "Emuqu/Sources/Utilities/SafeObjC.m::c FRSafeStopSpeaking": "2d4d6cd0ca845f84"
+    "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "a1741591eec1636f"
    }
   },
   {
    "key": "func VoiceConversationController.scheduleListeningRestartAfterStop()",
-   "hash": "6ed1dbf82393d231",
-   "does": "After 100 ms, if not fully stopping and still speaking/thinking, launches beginUserTurn.",
+   "hash": "a44232e729a00831",
+   "does": "After 100 ms, if not fully stopping and still .speaking, launches beginUserTurn.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)",
@@ -444,7 +456,7 @@
     },
     {
      "at": "+7",
-     "cond": "state not speaking/thinking",
+     "cond": "state != .speaking",
      "effect": "return (idle after stop, or already listening)"
     }
    ],
@@ -515,10 +527,12 @@
   },
   {
    "key": "func VoiceConversationController.speechSynthesizer(_:didFinish:)",
-   "hash": "4e2d020338013eb4",
-   "does": "Synth didFinish: on the main actor, if the synth queue is empty, finishes trigger speech (triggerSpeaking, no interjection task) or response speech (speaking, no interjection task).",
+   "hash": "e15b8c31b4ca048d",
+   "does": "Synth didFinish: takes the utterance's identity (the utterance itself does not cross to the main actor) and, on the main actor, ends that coach line's audio-session hold (coachCue.finished); then, if no speech is playing and no coach line waits for the session, finishes trigger speech (triggerSpeaking, no interjection task) or response speech (speaking, no interjection task).",
    "entry": "AVSpeechSynthesizerDelegate didFinish utterance",
    "calls": [
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::func CoachCueSpeech.lineEnded(_:)",
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::var CoachCueSpeech.isBusy",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.finishTriggerSpeech()",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.finishResponseSpeech()"
    ],
@@ -526,44 +540,65 @@
     "mem:VoiceConversationController.state",
     "mem:VoiceConversationController.llmTask"
    ],
-   "writes": [],
+   "writes": [
+    "mem:CoachCueSpeech held lines (BackgroundAudioManager.endCue)"
+   ],
    "branches": [
     {
-     "at": "+8",
-     "cond": "synth still speaking",
-     "effect": "return: more utterances queued"
+     "at": "+10",
+     "cond": "speech still playing or a coach line still waiting",
+     "effect": "return: more utterances coming"
     },
     {
-     "at": "+10",
+     "at": "+12",
      "cond": "triggerSpeaking and llmTask nil",
      "effect": "finishTriggerSpeech"
     },
     {
-     "at": "+11",
+     "at": "+13",
      "cond": "speaking and llmTask nil",
      "effect": "finishResponseSpeech"
     },
     {
-     "at": "+12",
+     "at": "+14",
      "cond": "default",
      "effect": "nothing (listening/idle/etc.)"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.finishResponseSpeech()": "b558edb037f3d00b",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.finishTriggerSpeech()": "adcee97baa9fd765",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::let VoiceConversationController.synthesizer": "3aa82fe78ac5cbac",
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::func CoachCueSpeech.lineEnded(_:)": "90caa902e79dad2f",
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::var CoachCueSpeech.isBusy": "33a67a6425cb85b3",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.finishResponseSpeech()": "ec66b6fdac20ec76",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.finishTriggerSpeech()": "ef43d03ea5f8c750",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "a1741591eec1636f"
    }
   },
   {
+   "key": "func VoiceConversationController.speechSynthesizer(_:didCancel:)",
+   "hash": "5e090ccdd668c15b",
+   "does": "Synth didCancel (a stopped or cut utterance): ends that coach line's audio-session hold on the main actor (coachCue.finished by utterance identity); lines not held by coachCue, or already released by stopAll, are ignored.",
+   "entry": "AVSpeechSynthesizerDelegate didCancel utterance (FRSafeStopSpeaking in stopSynthesizer)",
+   "calls": [
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::func CoachCueSpeech.lineEnded(_:)"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:CoachCueSpeech held lines (BackgroundAudioManager.endCue)"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::func CoachCueSpeech.lineEnded(_:)": "90caa902e79dad2f"
+   }
+  },
+  {
    "key": "func VoiceConversationController.finishTriggerSpeech()",
-   "hash": "a9f0858b61ffa18d",
-   "does": "After a trigger line: drains the next pending trigger if any; otherwise restores the pre-trigger state — re-listen after audio drain if it was listening, speaking, or another trigger's line that was about to hand back to listening (.triggerSpeaking), else .idle.",
+   "hash": "8ca00bd070372f30",
+   "does": "After a trigger line: plays the next pending trigger still worth saying, if one starts (drainPendingTriggersIfIdle returns true); otherwise restores the pre-trigger state — re-listen after audio drain if it was listening, speaking, or another trigger's line that was about to hand back to listening (.triggerSpeaking); else .idle, and a prior of .starting (a Talk tap during the line with voice off, toggle) then starts voice.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.scheduleListenAfterAudioDrain()"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.scheduleListenAfterAudioDrain()",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.start()"
    ],
    "reads": [
     "mem:VoiceConversationController.pendingTriggers",
@@ -576,30 +611,36 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "pending triggers exist",
-     "effect": "drain one and return (if busy, nothing plays and state stays .triggerSpeaking)"
+     "cond": "a pending trigger started",
+     "effect": "return (state stays .triggerSpeaking for it)"
     },
     {
-     "at": "+6",
+     "at": "+3",
      "cond": "preemptedState nil ??",
      "effect": ".idle"
     },
     {
-     "at": "+8",
+     "at": "+5",
      "cond": "prior listening/speaking/triggerSpeaking",
-     "effect": "scheduleListenAfterAudioDrain; else state=.idle (a prior .starting also lands in .idle)"
+     "effect": "scheduleListenAfterAudioDrain and return; else state=.idle"
+    },
+    {
+     "at": "+7",
+     "cond": "prior == .starting",
+     "effect": "Task { await start() }"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "80e179d99c2a2009",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "64ca8560fc05cf17",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.start()": "fc03495e6c90a41b",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.scheduleListenAfterAudioDrain()": "b52402a68f320e14",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "a1741591eec1636f"
    }
   },
   {
    "key": "func VoiceConversationController.finishResponseSpeech()",
-   "hash": "3b0f32f68149a0c2",
-   "does": "After the synth drains during a reply: waits if the view model is still streaming or the chunker still holds text; drains a pending trigger if any; else schedules listening after the audio drain.",
+   "hash": "07d50efaae418500",
+   "does": "After the synth drains during a reply: waits if the view model is still streaming or the chunker still holds text; plays a pending trigger if one starts; else schedules listening after the audio drain.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -624,13 +665,13 @@
     },
     {
      "at": "+10",
-     "cond": "pending triggers",
-     "effect": "drain and return"
+     "cond": "a pending trigger started",
+     "effect": "return; else scheduleListenAfterAudioDrain"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::var SpokenTextChunker.hasPendingContent": "1d3fc6e50efc1e03",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "80e179d99c2a2009",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.drainPendingTriggersIfIdle()": "64ca8560fc05cf17",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.scheduleListenAfterAudioDrain()": "b52402a68f320e14",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.assistantViewModel": "48fea4c84a50db08",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
@@ -649,16 +690,17 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.resumeListeningIfStillQuiet()": "19159fecb877f70a",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.resumeListeningIfStillQuiet()": "090af068a1ede5e8",
     "Emuqu/Sources/Utilities/Errors.swift::func sleepQuietly(_:context:file:line:)": "40df204848838ee4"
    }
   },
   {
    "key": "func VoiceConversationController.resumeListeningIfStillQuiet()",
-   "hash": "2f455978b4d4e0f1",
-   "does": "If the synth is quiet and state is still speaking/triggerSpeaking, launches beginUserTurn; otherwise does nothing.",
+   "hash": "e1186ef40b94b10a",
+   "does": "If no speech is playing and no coach line waits for the audio session, and state is still speaking/triggerSpeaking, launches beginUserTurn; otherwise does nothing.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::var CoachCueSpeech.isBusy",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.beginUserTurn()"
    ],
    "reads": [
@@ -668,23 +710,18 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "synth speaking again",
+     "cond": "coachCue.isBusy",
      "effect": "return"
     },
     {
      "at": "+4",
-     "cond": "case .speaking, .triggerSpeaking",
-     "effect": "beginUserTurn"
-    },
-    {
-     "at": "+6",
-     "cond": "default",
-     "effect": "no restart"
+     "cond": "state speaking/triggerSpeaking",
+     "effect": "beginUserTurn; else nothing"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::var CoachCueSpeech.isBusy": "33a67a6425cb85b3",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::func VoiceConversationController.beginUserTurn()": "af995d7bdd84f012",
-    "Emuqu/Sources/Assistant/VoiceConversationController.swift::let VoiceConversationController.synthesizer": "3aa82fe78ac5cbac",
     "Emuqu/Sources/Assistant/VoiceConversationController.swift::var VoiceConversationController.state": "a1741591eec1636f"
    }
   },

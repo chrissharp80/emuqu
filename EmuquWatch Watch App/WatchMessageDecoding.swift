@@ -367,6 +367,10 @@ extension WatchMessageDecoding {
         case liveState
         /// A voice-chat lifecycle push, applied through `voiceChatStateLabel`.
         case voiceChatState
+        /// A coach alert's wrist haptic: `urgent` for a strap drop or a
+        /// user-set threshold, and when the iPhone fired it (seconds since
+        /// 1970), nil from a phone that left it out.
+        case coachAlert(urgent: Bool, firedAt: Double?)
 
         /// Unrecognised verb. Carried rather than dropped so a schema drift
         /// between a new iOS build and an old Watch build is visible.
@@ -380,6 +384,8 @@ extension WatchMessageDecoding {
         case "stopWorkout": return .stopWorkout
         case "liveState": return .liveState
         case "voiceChatState": return .voiceChatState
+        case "coachAlert":
+            return .coachAlert(urgent: message["urgent"] as? Bool ?? false, firedAt: message["firedAt"] as? Double)
         case "strapState":
             return .strapState(
                 connected: message["strapConnected"] as? Bool,
@@ -401,6 +407,20 @@ extension WatchMessageDecoding {
     /// as soon as iOS asks, ahead of the first recording tick.
     nonisolated static func shouldStartWorkout(for command: Command, displayOnlyMode: Bool) -> Bool {
         command == .startWorkout && !displayOnlyMode
+    }
+
+    /// How long after the iPhone fired a coach alert its wrist haptic still
+    /// plays. A queued delivery can land minutes later, when a buzz no longer
+    /// marks the moment it was about.
+    nonisolated static let coachAlertMaxAge: TimeInterval = 15
+
+    /// Whether a coach alert fired at `firedAt` (seconds since 1970) still
+    /// plays at `now`. One without a time, or one stamped more than
+    /// `coachAlertMaxAge` either side of `now`, does not: a Watch whose clock
+    /// disagrees that much cannot tell a fresh alert from a stale one.
+    nonisolated static func playsCoachAlert(firedAt: Double?, now: Double) -> Bool {
+        guard let firedAt else { return false }
+        return abs(now - firedAt) <= coachAlertMaxAge
     }
 }
 

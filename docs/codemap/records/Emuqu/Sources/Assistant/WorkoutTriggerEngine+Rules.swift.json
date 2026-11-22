@@ -38,7 +38,7 @@
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1AboveVT2Rule()": "82a470ef9c2ac052",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.alpha1BelowAeTRule()": "e11b63f88df7da62",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrDriftHighRule()": "62dcd50f60cb4b9b",
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeNoPaceRule()": "9d4cd5977157adfe"
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.hrSpikeNoPaceRule()": "21f7ad590cb95386"
    }
   },
   {
@@ -316,7 +316,7 @@
   {
    "key": "func WorkoutTriggerEngine.hrSpikeNoPaceRule()",
    "hash": "f67ede2081f13b4b",
-   "does": "Builds rule hr.spikeNoPace (.haptic → no-op in coach, routine, 10 min cooldown) with a fresh HRSpikeState.",
+   "does": "Builds rule hr.spikeNoPace (.haptic — the coach plays the phone and Watch alert haptic, nothing spoken — routine, 10 min cooldown) with a fresh HRSpikeState.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)",
@@ -734,7 +734,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.cadenceConsistencyDropRule()": "37b3eb9dc42bbd2e",
+    "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.cadenceConsistencyDropRule()": "f9f8a39db749986e",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.equipmentStrapDownRule()": "65a8a0e8edf955f5",
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine+Rules.swift::func WorkoutTriggerEngine.userThresholdBreachRule()": "8fb5dbb458e3135a"
    }
@@ -948,7 +948,7 @@
   {
    "key": "func WorkoutTriggerEngine.cadenceConsistencyDropRule()",
    "hash": "1c2b79eafe6591d0",
-   "does": "Builds rule cadence.consistencyDrop (.haptic → no-op, 8 min cooldown): fires when cadence drift < -5 spm after 15 min; message reports the drop; numbers are formatted with String(format:locale: .current), so the decimal separator follows the user's locale.",
+   "does": "Builds rule cadence.consistencyDrop (.haptic — the coach plays the phone and Watch alert haptic, nothing spoken — 8 min cooldown): fires when cadence drift < -5 spm after 15 min; message reports the drop; numbers are formatted with String(format:locale: .current), so the decimal separator follows the user's locale.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/WorkoutTriggerEngine.swift::init WorkoutTriggerEngine.Rule(id:tier:urgency:cooldown:condition:message:didFire:resetWorkoutState:)",

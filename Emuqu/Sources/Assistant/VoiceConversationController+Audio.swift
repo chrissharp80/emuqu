@@ -35,10 +35,10 @@ extension VoiceAudioPipeline {
     // Phone call, Siri, alarm, another app grabbing the mic — all trigger
     // `AVAudioSession.interruptionNotification`. Without handling the mic
     // goes dead and the chat silently breaks. iOS delivers:
-    //   • .began — our audio is paused by the system; the recognition task
-    //     and the silence watchdog are dropped.
-    //   • .ended — voice tears down (whatever `.shouldResume` says); the user
-    //     re-taps to resume. See `handleAudioInterruption`.
+    //   • .began — our audio is stopped by the system; voice tears down then,
+    //     since an `.ended` is not guaranteed to follow.
+    //   • .ended — when it comes, voice stays off (whatever `.shouldResume`
+    //     says); the user re-taps to resume. See `handleAudioInterruption`.
 
     @MainActor
     func installInterruptionObserver() {
@@ -61,16 +61,19 @@ extension VoiceAudioPipeline {
         }
     }
 
-    /// `.began` — the system pre-empted our audio (call, Siri, alarm). The
-    /// recognition task is going to die; clear it, and stop the silence
-    /// watchdog so its max-turn / empty-transcript paths can't start a new
-    /// recognition task while the session is interrupted.
+    /// `.began` — the system pre-empted our audio (call, Siri, alarm, a
+    /// non-mixing app). The engine and recognition task are dead from here,
+    /// and iOS does not promise an `.ended` (another app may keep the
+    /// session), so voice ends now rather than sitting in "Listening" or
+    /// "Speaking" with nothing behind it until a notification that may
+    /// never come.
     ///
     /// `.ended` — do NOT auto-resume voice mode. The user's
     /// context has shifted during the interruption (they took a call,
     /// answered Siri, heard an alarm). Silently resuming a voice conversation
     /// is worse UX than tearing down cleanly and showing a tap-to-resume
-    /// affordance. The user regains control on purpose.
+    /// affordance. The user regains control on purpose. Voice already ended
+    /// at `.began`; stopping again is a no-op teardown.
     @MainActor
     func handleAudioInterruption(typeRaw: UInt?) {
         guard let typeRaw,
@@ -78,26 +81,14 @@ extension VoiceAudioPipeline {
         else { return }
         switch type {
         case .began:
-            debugLog("[VoiceConv] audio interrupted (began) — voice ends when the interruption does")
-            pauseForInterruption()
+            debugLog("[VoiceConv] audio interrupted (began) — ending voice, user must re-tap to resume")
+            controller.stop()
         case .ended:
-            debugLog("[VoiceConv] audio interruption ended — tearing down, user must re-tap to resume")
+            debugLog("[VoiceConv] audio interruption ended — voice stays off until the user re-taps")
             controller.stop()
         @unknown default:
             break
         }
-    }
-
-    /// `.began`: stop the silence watchdog and drop the recognition task and
-    /// request; the engine stays as the system left it until `.ended`.
-    @MainActor
-    private func pauseForInterruption() {
-        controller.silenceTimer?.invalidate()
-        controller.silenceTimer = nil
-        controller.recognitionTask?.cancel()
-        controller.recognitionTask = nil
-        controller.recognitionRequest?.endAudio()
-        controller.recognitionRequest = nil
     }
 
     /// Release the coordinator claim BEFORE deactivating the

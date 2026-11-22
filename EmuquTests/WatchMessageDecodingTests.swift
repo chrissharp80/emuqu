@@ -282,6 +282,30 @@ final class WatchMessageDecodingTests: XCTestCase {
     /// A `strapState` with no payload is still a valid command — iOS sends it
     /// to signal "no strap" — so the fields decode to nil rather than the
     /// command being rejected.
+    /// A coach alert carries its urgency and when the iPhone fired it; a
+    /// phone that leaves either out still sends the command.
+    func testCoachAlertParsing() {
+        XCTAssertEqual(
+            WatchMessageDecoding.command(["type": "coachAlert", "urgent": true, "firedAt": 1_000.0]),
+            .coachAlert(urgent: true, firedAt: 1_000)
+        )
+        XCTAssertEqual(
+            WatchMessageDecoding.command(["type": "coachAlert"]),
+            .coachAlert(urgent: false, firedAt: nil)
+        )
+    }
+
+    /// The wrist haptic plays only while it still marks the moment: a
+    /// queued delivery landing later, or one with no time, plays nothing.
+    func testACoachAlertPlaysOnlyWhileFresh() {
+        let now = 10_000.0
+        XCTAssertTrue(WatchMessageDecoding.playsCoachAlert(firedAt: now - 2, now: now))
+        XCTAssertTrue(WatchMessageDecoding.playsCoachAlert(firedAt: now - WatchMessageDecoding.coachAlertMaxAge, now: now))
+        XCTAssertFalse(WatchMessageDecoding.playsCoachAlert(firedAt: now - 120, now: now))
+        XCTAssertFalse(WatchMessageDecoding.playsCoachAlert(firedAt: now + 120, now: now))
+        XCTAssertFalse(WatchMessageDecoding.playsCoachAlert(firedAt: nil, now: now))
+    }
+
     func testStrapStateWithoutPayloadIsStillTheCommand() {
         XCTAssertEqual(
             WatchMessageDecoding.command(["type": "strapState"]),

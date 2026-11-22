@@ -12,7 +12,8 @@ import UIKit
 extension VoiceConversationController {
     // MARK: - Public control
 
-    /// Toggle the conversation. Requests permissions on first use.
+    /// Toggle the conversation. Requests permissions on first use. A tap during
+    /// a coach line with voice off starts voice once the line ends (`finishTriggerSpeech`).
     @MainActor
     func toggle() {
         debugLog("[VoiceConv] toggle() in state=\(state), partialTranscript.count=\(partialTranscript.count)")
@@ -20,8 +21,8 @@ extension VoiceConversationController {
         case .idle: Task { await start() }
         case .starting: break // already on the way — ignore extra taps
         case .listening: finalizeUserTurn()
-        case .speaking, .thinking: interrupt()
-        case .triggerSpeaking: break
+        case .speaking: interrupt()
+        case .triggerSpeaking: if (preemptedState ?? .idle) == .idle { preemptedState = .starting }
         }
     }
 
@@ -244,13 +245,14 @@ extension VoiceConversationController {
     /// Same queue-when-busy semantics as
     /// `handleTrigger`. The AI's mid-response answer to the user
     /// always finishes before a coaching interjection plays.
+    /// `fallback` is said instead when the AI can't be asked, fails, or says nothing (`CoachCueSpeech`).
     @MainActor
-    func speakAIResponse(toPrompt prompt: String) {
+    func speakAIResponse(toPrompt prompt: String, fallback: String? = nil) {
         if shouldQueueTrigger(.routine) {
-            queueTrigger(.aiPrompt(prompt))
+            queueTrigger(.aiPrompt(prompt, fallback: fallback))
             return
         }
-        playAIPromptTriggerNow(prompt: prompt)
+        playAIPromptTriggerNow(prompt: prompt, fallback: fallback)
     }
 
     /// Queue while voice is starting (any urgency: the session's audio isn't
@@ -265,8 +267,8 @@ extension VoiceConversationController {
     /// thing to wait for is a typed reply streaming in the chat, and no voice
     /// event would drain the queue, so the end of that reply drains it.
     @MainActor
-    private func queueTrigger(_ trigger: VoiceTriggerQueue.Trigger) {
-        let dropped = pendingTriggers.enqueue(trigger)
+    private func queueTrigger(_ trigger: VoiceTriggerQueue.Trigger, isRouteLine: Bool = false) {
+        let dropped = pendingTriggers.enqueue(trigger, isRouteLine: isRouteLine)
         if dropped > 0 {
             debugLog("[VoiceConv] dropped \(dropped) stale pending trigger(s) — queue cap=\(VoiceTriggerQueue.capacity)", level: .warning)
         }
@@ -290,11 +292,11 @@ extension VoiceConversationController {
     }
 
     @MainActor
-    func playAIPromptTriggerNow(prompt: String) {
+    func playAIPromptTriggerNow(prompt: String, fallback: String?) {
         preemptForTrigger()
         currentResponseText = ""
         textChunker.reset()
-        startAIInterjectionStream(prompt: prompt)
+        startAIInterjectionStream(prompt: prompt, fallback: fallback)
     }
 
     /// Interjections fire automatically (workout voice
@@ -306,9 +308,10 @@ extension VoiceConversationController {
     /// consent check anywhere upstream. We skip
     /// the interjection and restore the voice state instead; the
     /// user enables it by accepting the provider notice in the
-    /// Assistant tab once.
+    /// Assistant tab once. A skipped, failed or stalled one says its `fallback`.
     @MainActor
-    func startAIInterjectionStream(prompt: String) {
+    func startAIInterjectionStream(prompt: String, fallback: String?) {
+        coachCue.fallback = fallback
         let provider = AppDependencies.current.providers.providerRegistry.activeProvider
         guard InterjectionGate.maySend(to: provider.id, disclaimerAccepted: assistantViewModel.hasAcceptedDisclaimer) else {
             finishInterjectionAfterError()
@@ -325,16 +328,18 @@ extension VoiceConversationController {
         ttsStartedAt = Date()
         llmTask?.cancel()
         llmTask = Task { [weak self] in await self?.consumeInterjection(stream) }
+        coachCue.armFallbackDeadline { [weak self] in if self?.llmTask != nil { self?.finishInterjectionAfterError() } }
     }
 
     /// Drain an interjection stream into TTS. Interjections don't use tools,
-    /// so a `toolUse` event from a provider is ignored. A failure fails
-    /// silently — an interjection is never worth surfacing to the user.
+    /// so a `toolUse` event from a provider is ignored. A failure is never
+    /// shown; a stream cancelled by whatever replaced it leaves the state.
     @MainActor
     private func consumeInterjection(_ stream: AsyncThrowingStream<AIStreamEvent, Error>) async {
         do {
             try await drainInterjection(stream)
         } catch {
+            guard !Task.isCancelled else { return }
             finishInterjectionAfterError()
         }
     }
@@ -366,11 +371,13 @@ extension VoiceConversationController {
         }
     }
 
+    /// A reply that said nothing at all says its scripted fallback instead.
     @MainActor
     func finishInterjection() {
         if let remainder = textChunker.finalize() {
             speak(remainder)
         }
+        if let line = coachCue.takeFallback() { speak(line, voice: WorkoutVoiceCoach.appLanguageVoice(), scripted: true) }
         let spoken = currentResponseText.trimmingCharacters(in: .whitespacesAndNewlines)
         if !spoken.isEmpty { lastInterjectionText = CoachVoiceGuard.scrub(spoken).scrubbed }
         llmTask = nil
@@ -379,27 +386,16 @@ extension VoiceConversationController {
         // (the model chose to say nothing, or the speech already finished
         // while the stream was still open) no delegate call is coming, and
         // the mic stayed shut until the next trigger.
-        if state == .triggerSpeaking, !synthesizer.isSpeaking { finishTriggerSpeech() }
+        if state == .triggerSpeaking, !coachCue.isBusy { finishTriggerSpeech() }
     }
 
-    /// A gate-denied or failed interjection plays the next queued trigger
-    /// (keeping the pre-trigger snapshot, as `finishTriggerSpeech` does)
-    /// before restoring the prior state, so the rest of the queue doesn't
-    /// wait for an unrelated later event.
+    /// A gate-denied, failed or stalled interjection (its stream is cancelled)
+    /// says its fallback, if any; else the trigger ends as a finished line's would, once speech stops.
     @MainActor
     func finishInterjectionAfterError() {
-        llmTask = nil
-        if !pendingTriggers.isEmpty, !isBusyWithUserResponse() {
-            drainPendingTriggersIfIdle()
-            return
-        }
-        let prior = preemptedState ?? .idle
-        preemptedState = nil
-        if prior == .listening || prior == .speaking {
-            Task { @MainActor in await beginUserTurn() }
-        } else {
-            state = .idle
-        }
+        cancelLLM()
+        if let line = coachCue.takeFallback() { return speak(line, voice: WorkoutVoiceCoach.appLanguageVoice(), scripted: true) }
+        if !coachCue.isBusy { finishTriggerSpeech() }
     }
 
     /// Urgency tier for trigger dispatch. Routine = "respect the
@@ -436,11 +432,12 @@ extension VoiceConversationController {
     ///     (.localOnly + expirationDate).
     ///
     /// Any trigger arriving while voice is starting waits for the mic to open
-    /// (`shouldQueueTrigger`); the first turn drains it.
+    /// (`shouldQueueTrigger`); the first turn drains it. A queued route line
+    /// (`isRouteLine`) is replaced by a newer one and expires (`VoiceTriggerQueue`).
     @MainActor
-    func handleTrigger(message: String, urgency: TriggerUrgency = .routine) {
+    func handleTrigger(message: String, urgency: TriggerUrgency = .routine, isRouteLine: Bool = false) {
         if shouldQueueTrigger(urgency) {
-            queueTrigger(.spokenLiteral(message))
+            queueTrigger(.spokenLiteral(message), isRouteLine: isRouteLine)
             return
         }
         // Save the user's in-progress words BEFORE the urgent preempt
@@ -505,7 +502,7 @@ extension VoiceConversationController {
         if state == .speaking { detachFromSpokenReply() }
         let micIsLive = state != .idle && state != .starting
         cancelLLM()
-        _ = FRSafeStopSpeaking(synthesizer, .immediate, nil)
+        stopSynthesizer()
         silenceTimer?.invalidate()
         silenceTimer = nil
         if micIsLive { startFreshRecognitionTask() }
@@ -532,8 +529,7 @@ extension VoiceConversationController {
     ///
     /// Also treat the USER as busy when they are
     /// mid-utterance (state .listening with a non-empty partial
-    /// transcript) or the turn was just finalised but the LLM hasn't
-    /// started yet (state .thinking). Otherwise a trigger firing
+    /// transcript). Otherwise a trigger firing
     /// during the user's spoken sentence calls
     /// `playSpokenTriggerNow()`, which wipes `partialTranscript`,
     /// erasing the in-progress dictation ("alerts wipe out my message").
@@ -543,23 +539,25 @@ extension VoiceConversationController {
             state: state,
             hasInFlightLLMTask: llmTask != nil,
             isStreamingResponse: assistantViewModel.isStreaming,
-            synthesizerIsSpeaking: synthesizer.isSpeaking,
+            synthesizerIsSpeaking: coachCue.isBusy,
             hasPartialTranscript: !partialTranscript.isEmpty
         )
     }
 
     /// Drain the next pending trigger now if the AI is idle. Called
     /// from the synth `didFinish` delegate so triggers fire as soon
-    /// as the in-flight response completes.
+    /// as the in-flight response completes. True when one started.
     @MainActor
-    func drainPendingTriggersIfIdle() {
-        guard !pendingTriggers.isEmpty, !isBusyWithUserResponse(), let next = pendingTriggers.popFirst() else { return }
+    @discardableResult
+    func drainPendingTriggersIfIdle() -> Bool {
+        guard !pendingTriggers.isEmpty, !isBusyWithUserResponse(), let next = pendingTriggers.popFirst() else { return false }
         switch next {
         case .spokenLiteral(let msg):
             playSpokenTriggerNow(message: msg)
-        case .aiPrompt(let prompt):
-            playAIPromptTriggerNow(prompt: prompt)
+        case let .aiPrompt(prompt, fallback):
+            playAIPromptTriggerNow(prompt: prompt, fallback: fallback)
         }
+        return true
     }
 }
 

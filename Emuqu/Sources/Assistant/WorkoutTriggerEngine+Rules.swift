@@ -578,9 +578,9 @@ extension WorkoutTriggerEngine {
 
         // Cadence consistency drop. Fires when the
         // cadence has dropped >5 spm sustained vs the first quarter.
-        // Tier .haptic: meant as a wrist tap, so cadence breakdown — a
+        // Tier .haptic: a phone and wrist tap, so cadence breakdown — a
         // fatigue signal worth flagging — doesn't interrupt the user's
-        // audiobook. No Watch handler exists yet, so it is recorded only.
+        // audiobook.
     private static func cadenceConsistencyDropRule() -> Rule {
         Rule(
             id: "cadence.consistencyDrop",

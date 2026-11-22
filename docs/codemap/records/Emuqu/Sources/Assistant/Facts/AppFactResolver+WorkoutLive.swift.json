@@ -550,7 +550,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.segmentLookbackEntry": "1cc5388e6f504ef4",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.segmentLookbackEntry": "009605df86e1a38d",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveCadenceSpmEntry": "d596320f148253ca",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveElevationGainMetersEntry": "8480af6313d777be",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.workoutLiveLocationEntry": "f33135dc40be2d23",
@@ -1009,25 +1009,25 @@
   },
   {
    "key": "var WorkoutLiveNamespace.segmentLookbackEntry",
-   "hash": "be158f54becd95bd",
-   "does": "Declares `workout.live.segment_lookback_at_current_position` resolved by resolveWorkoutLiveSegmentLookbackAtCurrentPosition.",
+   "hash": "0f9a6ef7030d1445",
+   "does": "Declares async fixed fact `workout.live.segment_lookback_at_current_position` resolved by resolveWorkoutLiveSegmentLookbackAtCurrentPosition (archive scan off the main actor). A synchronous registry.resolve of this key gets the awaitable-path refusal.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.resolveWorkoutLiveSegmentLookbackAtCurrentPosition()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.resolveWorkoutLiveSegmentLookbackAtCurrentPosition()": "88f64e442369b85d",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae"
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::func WorkoutLiveNamespace.resolveWorkoutLiveSegmentLookbackAtCurrentPosition()": "82035d4831634eee",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "838aa75e67df46a0"
    }
   },
   {
    "key": "func WorkoutLiveNamespace.resolveWorkoutLiveSegmentLookbackAtCurrentPosition()",
-   "hash": "ae8300bd6d38e762",
-   "does": "At the live GPS position, finds past workouts among the 30 newest GPS-bearing ones (excluding the active one) that passed within 50 m and returns their per-point records.",
+   "hash": "6d21116d3b15ef8a",
+   "does": "At the live GPS position, finds past workouts among the 30 newest GPS-bearing ones (excluding the active one) that passed within 50 m and returns their per-point records. The archive scan (up to 120 index entries, 30 track decodes) runs in a detached task, so the main actor that drives the recorder's tick loop only awaits it.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+WorkoutLive.swift::var WorkoutLiveNamespace.snapshot",
@@ -1042,17 +1042,17 @@
    "writes": [],
    "branches": [
     {
-     "at": "+1",
+     "at": "+2",
      "cond": "snapshot present",
      "effect": "false: missing('no workout active')"
     },
     {
-     "at": "+2",
+     "at": "+3",
      "cond": "lat/lon present",
      "effect": "false: missing('no GPS fix yet')"
     },
     {
-     "at": "+8",
+     "at": "+11",
      "cond": "matches empty",
      "effect": "true: missing(.notRecorded,'no past workouts passed within 50m'); false: list"
     }

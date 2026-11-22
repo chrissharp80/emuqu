@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift",
- "hash": "a6b05563e192d48a",
+ "hash": "b0588151ad4be62c",
  "role": "In-memory, MainActor @Observable singleton holding the last 10 outbound LLM requests (system prompt, messages JSON, tools JSON, streamed response, usage, error) for the Troubleshooting prompt-audit page.",
  "types": [
   "LLMRequestAudit: final class (@Observable @MainActor) — FIFO audit log",
@@ -11,10 +11,30 @@
   "mem:LLMRequestAudit.shared (singleton)",
   "mem:LLMRequestAudit.entries (newest first, max 10)",
   "mem:LLMRequestAudit.maxEntries = 10",
-  "mem:LLMRequestAudit.maxPayloadCharacters = 60_000"
+  "mem:LLMRequestAudit.maxPayloadCharacters = 60_000",
+  "mem:LLMRequestAudit.responseTrimSlack = 10_000 (how far a streamed reply may run past the cap before it is cut back)"
  ],
- "toplevel": "Singleton `shared`; constants maxEntries 10 and maxPayloadCharacters 60000. Never persisted; cleared by the audit page's Clear button and DataPurgeService.purgeHealthCaches.",
+ "toplevel": "Singleton `shared`; constants maxEntries 10, maxPayloadCharacters 60000 and responseTrimSlack 10000. Entry.responseCharacterCount (default 0) tracks responseText's length as deltas arrive. Never persisted; cleared by the audit page's Clear button and DataPurgeService.purgeHealthCaches.",
  "units": [
+  {
+   "key": "func LLMRequestAudit.Entry.appendResponse(_:)",
+   "hash": "d6833b32999c176b",
+   "does": "Appends one streamed delta to responseText and adds its length to responseCharacterCount; once the count passes maxPayloadCharacters + responseTrimSlack (70,000), keeps only the last maxPayloadCharacters (60,000) and resets the count to that. Costs the delta, not the reply, except at a cut.",
+   "entry": "Called in place on the entries array by LLMRequestAudit.append(textDelta:to:).",
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:LLMRequestAudit.entries (responseText, responseCharacterCount)"
+   ],
+   "branches": [
+    {
+     "at": "+4",
+     "cond": "count > 70,000",
+     "effect": "cut back to the last 60,000 characters; else return"
+    }
+   ],
+   "deps": {}
+  },
   {
    "key": "init LLMRequestAudit()",
    "hash": "4f171088cdf643a5",
@@ -51,10 +71,12 @@
   },
   {
    "key": "func LLMRequestAudit.append(textDelta:to:)",
-   "hash": "62e784063467a1d8",
-   "does": "Appends a streamed text delta to the entry with that id, keeping only the last 60k characters; no-op if the entry was already evicted.",
+   "hash": "f1745197d53de856",
+   "does": "Appends a streamed text delta to the entry with that id, mutating it in place in the entries array (Entry.appendResponse: length kept as deltas arrive, cut to the last 60k characters once it runs 10k past them); no-op if the entry was already evicted.",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.Entry.appendResponse(_:)"
+   ],
    "reads": [
     "mem:LLMRequestAudit.entries"
    ],
@@ -65,15 +87,12 @@
     {
      "at": "+1",
      "cond": "entry id found",
-     "effect": "false: returns silently (entry evicted or cleared); true: appends"
-    },
-    {
-     "at": "+4",
-     "cond": "response > 60k chars",
-     "effect": "keeps the suffix 60k chars (drops the beginning)"
+     "effect": "false: returns silently (entry evicted or cleared); true: appendResponse"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.Entry.appendResponse(_:)": "78b14dc8ae3d5d40"
+   }
   },
   {
    "key": "func LLMRequestAudit.setUsage(_:for:)",

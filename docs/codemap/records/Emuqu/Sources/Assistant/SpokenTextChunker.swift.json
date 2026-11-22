@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/SpokenTextChunker.swift",
- "hash": "52654a32e2e4d259",
+ "hash": "46819ba174fc43d1",
  "role": "Buffers streamed LLM text deltas and emits whole sentences (markdown stripped) for AVSpeechSynthesizer; finalize() flushes the tail.",
  "types": [
   "SpokenTextChunker: final class — sentence-boundary buffer for TTS"
@@ -8,9 +8,10 @@
  "state": [
   "mem:SpokenTextChunker.sentenceEnders (static let '.','!','?','\\n')",
   "mem:SpokenTextChunker.pendingBuffer (private(set) var, per instance; instance held at VoiceConversationController.textChunker)",
-  "mem:SpokenTextChunker.markdownPatterns (static let regex list, lines 126-134)"
+  "mem:SpokenTextChunker.maxLinkLabelLength (static let 80: the longest open '[label' still read as a link being streamed)",
+  "mem:SpokenTextChunker.markdownPatterns (static let regex list)"
  ],
- "toplevel": "Static sentenceEnders set and the ordered markdownPatterns regex list (single * between letters and _ between word chars, *word* emphasis, list markers, numbered markers, ATX headers, [label](url)->label).",
+ "toplevel": "Static sentenceEnders set, maxLinkLabelLength (80), and the ordered markdownPatterns regex list (single * between letters and _ between word chars, *word* emphasis, list markers, numbered markers, ATX headers, [label](url)->label).",
  "units": [
   {
    "key": "var SpokenTextChunker.hasPendingContent",
@@ -168,13 +169,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.isInsideLinkOrURL(at:)": "d9ca89f1756e6ec2"
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.isInsideLinkOrURL(at:)": "ccf8523dc265e941"
    }
   },
   {
    "key": "func SpokenTextChunker.isInsideLinkOrURL(at:)",
-   "hash": "c373520e36b6a946",
-   "does": "True when the text before index ends in a token (from the last whitespace) containing '://' or starting 'www.', or is inside an unclosed '[label' or '[label](url' markdown link. Reads back only to the token start and the last '[', not splitting the whole buffer per candidate ender.",
+   "hash": "dbe270081d4067ac",
+   "does": "True when the text before index ends in a token (from the last whitespace) containing '://' or starting 'www.', or is inside a markdown link still streaming: an open '[label' no longer than maxLinkLabelLength (80) characters, or a '[label](url' whose url part has reached no ')' and no whitespace. A '[' that never closes ('[1' citations, '[note' asides) therefore holds speech back only for those 80 characters, and a '(' after ']' that reaches a space is plain text. Reads back only to the token start and the last '[', not splitting the whole buffer per candidate ender.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -197,13 +198,13 @@
     },
     {
      "at": "+7",
-     "cond": "']' follows the last '['",
-     "effect": "false: inside link label → true"
+     "cond": "no ']' after the last '['",
+     "effect": "inside the label when it is at most 80 characters → true; longer → false (not a link)"
     },
     {
-     "at": "+8",
-     "cond": "text after ']' starts '](' with no ')'",
-     "effect": "true: inside the link's url part"
+     "at": "+9",
+     "cond": "text after ']' starts '](' with no ')' and no whitespace",
+     "effect": "true: inside the link's url part; else false"
     }
    ],
    "deps": {}
