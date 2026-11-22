@@ -623,13 +623,13 @@
   },
   {
    "key": "func HeartRateHealthQueries.minuteHRSamples(rrPoints:hrType:sessionStart:sessionId:version:)",
-   "hash": "0f8458bfa32b5647",
+   "hash": "d8458ed7ee3b47c6",
    "does": "One sample per 1-minute window over exportTimeMs from 0 to the max, for windows whose meanHR exists, each at sync version `version`; indices contiguous over produced samples.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthExportIdentity.swift::var RRPoint.exportTimeMs",
     "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.meanHR(of:)",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.hrSample(_:type:sessionStart:sessionId:version:index:windowStartMs:windowEndMs:)"
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.hrSample(_:type:sessionStart:sessionId:version:index:windowMs:)"
    ],
    "reads": [],
    "writes": [],
@@ -652,14 +652,14 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/HealthExportIdentity.swift::var RRPoint.exportTimeMs": "5adb8f96b436e4db",
-    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.hrSample(_:type:sessionStart:sessionId:version:index:windowStartMs:windowEndMs:)": "0d73b04c14512d88",
+    "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.hrSample(_:type:sessionStart:sessionId:version:index:windowMs:)": "3dd0e435b06f62f9",
     "Emuqu/Sources/Collection/HealthKitManager+HeartRate.swift::func HeartRateHealthQueries.meanHR(of:)": "9dc77df5ea0c3c70"
    }
   },
   {
-   "key": "func HeartRateHealthQueries.hrSample(_:type:sessionStart:sessionId:version:index:windowStartMs:windowEndMs:)",
-   "hash": "697f2fe07d8eb9e4",
-   "does": "Builds an HR (count/min) sample spanning the minute with the export metadata of identity seriesMember(session, .heartRate, index) at `version` (HealthExportIdentity.metadata); nil for non-finite/backwards.",
+   "key": "func HeartRateHealthQueries.hrSample(_:type:sessionStart:sessionId:version:index:windowMs:)",
+   "hash": "18f8b16ee06ced7c",
+   "does": "Builds an HR (count/min) sample spanning windowMs (the minute, as ms from sessionStart: lowerBound to upperBound) with the export metadata of identity seriesMember(session, .heartRate, index) at `version` (HealthExportIdentity.metadata); nil for non-finite/backwards.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthSampleFactory.swift::func HealthSampleFactory.quantitySample(type:value:unit:start:end:metadata:)",

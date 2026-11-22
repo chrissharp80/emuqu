@@ -39,7 +39,10 @@ extension RecordView {
     /// that was archived before the review is left as it was. The acceptance
     /// card and the morning report say it with the same words.
     var readingDiscardMessage: String {
-        String(localized: "This discards the reading and leaves it out of your baseline. If it was already saved, it moves to the Trash, where you can restore it from Settings → iCloud & Data → Trash. A night that was in your history before this recording stays as it was.", bundle: LanguageManager.appBundle)
+        String(
+            localized: "This discards the reading and leaves it out of your baseline. If it was already saved, it moves to the Trash, where you can restore it from Settings → iCloud & Data → Trash. A night that was in your history before this recording stays as it was.",
+            bundle: LanguageManager.appBundle
+        )
     }
 
     /// Discard asks first, and says what it does to the saved copy.

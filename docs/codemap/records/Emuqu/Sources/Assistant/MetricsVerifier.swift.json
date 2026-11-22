@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/MetricsVerifier.swift",
- "hash": "791d06ec603aaeb2",
+ "hash": "16878b2661ef16e9",
  "role": "Runtime hallucination guard for the AI coach: regex-scans a drafted reply for 'current value' claims (live HR/power/alpha1/HR drift; TSB/ATL/CTL/ACWR; overnight RMSSD/recovery score; last night's sleep duration/efficiency), compares against live snapshot or app state, returns span-precise Discrepancies plus corrected text, and buffers corrections for the next turn's system prompt.",
  "types": [
   "MetricsVerifier: enum — namespace of pure claim checks",
@@ -8,16 +8,14 @@
   "MetricsVerifier.LiveValues: struct (private) — HR/power/alpha1/drift live values one live pass checks",
   "MetricsVerifier.AppStateVerifyResult: struct — discrepancies (original-text ranges) + correctedText",
   "MetricsVerifier.ClaimCheck: struct (private) — actual/tolerance/metric/negateOnSpelled/formatter",
-  "MetricsVerifier.CorrectionBuffer: struct (private) — pending + delivered corrections",
-  "MetricsVerifier.SpelledRewrite: struct (private) — original vs normalized NSRange of one spelled-number rewrite"
+  "MetricsVerifier.CorrectionBuffer: struct (private) — pending + delivered corrections"
  ],
  "state": [
   "mem:MetricsVerifier.corrections (OSAllocatedUnfairLock<CorrectionBuffer>: pending — recorded, not yet in a prompt, max 4; delivered — in a prompt whose reply has not been verified, max 4; process-local; emptied by clearCorrections when the conversation is cleared)",
   "static let sleepDurationPatterns (3 regexes)",
-  "static let generalSleepMarkers / otherNightMarkers / timeMarkers / targetMarkers / clauseSeparators (sentence- and clause-filter regexes)",
-  "static let onesAndTeens / tens (word->int maps for spelled numbers)"
+  "static let generalSleepMarkers / otherNightMarkers / timeMarkers / targetMarkers / clauseSeparators (sentence- and clause-filter regexes)"
  ],
- "toplevel": "Static regex constants and word maps (sleep duration patterns, sleep/time/target/clause markers, onesAndTeens/tens) and the corrections lock. All patterns are compiled lazily through DebugLogger.compiledPattern which caches and NSLogs compile failures.",
+ "toplevel": "Static regex constants (sleep duration patterns, sleep/time/target/clause markers) and the corrections lock. All patterns are compiled lazily through DebugLogger.compiledPattern which caches and NSLogs compile failures. Spelled-number normalisation is SpelledNumberNormalizer's.",
  "units": [
   {
    "key": "func MetricsVerifier.heartRateDiscrepancies(in:actual:)",
@@ -149,11 +147,11 @@
   },
   {
    "key": "func MetricsVerifier.verifyLive(_:values:)",
-   "hash": "651be82d3c9c0e9a",
+   "hash": "9f987a37f7a99067",
    "does": "Normalises spelled numbers (so a voice reply's 'one hundred sixty' / 'one-sixty' is checked as 160), runs the HR, power, alpha1 and drift checks on the normalised text, and maps each discrepancy's range back to the original text via remap (one that cannot be mapped is logged and dropped).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeWithRewrites(_:)",
+    "Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift::func SpelledNumberNormalizer.normalizeWithRewrites(_:)",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.heartRateDiscrepancies(in:actual:)",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.powerDiscrepancies(in:actual:)",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.alpha1Discrepancies(in:actual:)",
@@ -164,24 +162,23 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutLiveTrends.swift::func WorkoutLiveTrends.hrDriftPercent(samples:)": "cfe47a2075181798",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.alpha1Discrepancies(in:actual:)": "346a128041cd249b",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.heartRateDiscrepancies(in:actual:)": "20f789deb34dbef7",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.hrDriftDiscrepancies(in:actual:)": "0fb6de3ae82c6a15",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeWithRewrites(_:)": "b09a93db5731f415",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.powerDiscrepancies(in:actual:)": "b59cbb42d00fca23",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.remap(_:from:to:rewrites:)": "6928dda260b7f90c",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.remap(_:from:to:rewrites:)": "b556e5a1de1f3ead",
+    "Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift::func SpelledNumberNormalizer.normalizeWithRewrites(_:)": "b09a93db5731f415",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.powerWatts": "c866386c95432c3f"
    }
   },
   {
    "key": "func MetricsVerifier.verifyAppStateClaims(_:)",
-   "hash": "6e6666b24f451743",
+   "hash": "5bac5b59cbdbc044",
    "does": "Public entry for app-state claims (MainActor), run on every model reply: first retires the correction reminders the reply's prompt carried (acknowledgeDeliveredCorrections), then normalises spelled numbers, runs training-load, overnight and last-night-sleep checks on the normalised text, maps each range back to the original text (remap logs and drops one that fails) and returns them with correctedText (original with only the claimed spans replaced, overlapping spans skipped; nil if none).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.acknowledgeDeliveredCorrections()",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeWithRewrites(_:)",
+    "Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift::func SpelledNumberNormalizer.normalizeWithRewrites(_:)",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.trainingLoadDiscrepancies(in:)",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.overnightDiscrepancies(in:)",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.lastNightSleepDiscrepancies(in:)",
@@ -201,10 +198,10 @@
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.acknowledgeDeliveredCorrections()": "0975a6e36cbcd6f7",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.correctedText(from:applying:)": "fbab19dc9ed1d5f9",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.lastNightSleepDiscrepancies(in:)": "fabc2b1f3989fad7",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeWithRewrites(_:)": "b09a93db5731f415",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.overnightDiscrepancies(in:)": "1b1d24a53d03b9f1",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.remap(_:from:to:rewrites:)": "6928dda260b7f90c",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.trainingLoadDiscrepancies(in:)": "7eb94169b8142edc"
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.remap(_:from:to:rewrites:)": "b556e5a1de1f3ead",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.trainingLoadDiscrepancies(in:)": "7eb94169b8142edc",
+    "Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift::func SpelledNumberNormalizer.normalizeWithRewrites(_:)": "b09a93db5731f415"
    }
   },
   {
@@ -927,62 +924,26 @@
   },
   {
    "key": "func MetricsVerifier.normalizeSpelledNumbers(_:)",
-   "hash": "cc6c8a084a03c115",
+   "hash": "7bf5c18012779e25",
    "does": "Public wrapper returning only the normalised text (spelled numbers to digits).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeWithRewrites(_:)"
+    "Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift::func SpelledNumberNormalizer.normalizeWithRewrites(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.normalizeWithRewrites(_:)": "b09a93db5731f415"
-   }
-  },
-  {
-   "key": "func MetricsVerifier.normalizeWithRewrites(_:)",
-   "hash": "6b8de05cbfc5b118",
-   "does": "Rewrites each spelled-number match into digits via spelledNumberReplacement ('negative thirty-one point seven' -> '-31.7', 'one hundred and sixty' -> '160', 'one-sixty' -> '160', 'point seven five' -> '.75'), recording original/normalized ranges for every rewrite; returns the input unchanged with no rewrites if the pattern does not compile. Every spelled number is rewritten, but only for matching: callers map ranges back and correct the original text.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::var MetricsVerifier.spelledNumberPattern",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.spelledNumberReplacement(_:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "spelled-number regex fails to compile",
-     "effect": "returns (text, []) — normalisation disabled"
-    },
-    {
-     "at": "+8",
-     "cond": "for each match",
-     "effect": "processes it"
-    },
-    {
-     "at": "+9",
-     "cond": "replacement is nil",
-     "effect": "match skipped (left as words)"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "c266e7f0809752d4",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.spelledNumberReplacement(_:)": "444ce802bd9c228f",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::var MetricsVerifier.spelledNumberPattern": "8338a8fd7b9f99c5",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.compiledPattern(_:options:)": "368d0627695b64ef"
+    "Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift::func SpelledNumberNormalizer.normalizeWithRewrites(_:)": "b09a93db5731f415"
    }
   },
   {
    "key": "func MetricsVerifier.remap(_:from:to:rewrites:)",
-   "hash": "1efbff9ae6e6caa7",
-   "does": "Moves a discrepancy's range from normalized to original text via originalOffset for start (snap to start) and end (snap to end); when the resulting NSRange does not convert, logs a warning naming the metric and returns nil.",
+   "hash": "431e0d46683dc27f",
+   "does": "Moves a discrepancy's range from normalized to original text via SpelledNumberNormalizer.originalOffset for start (snap to start) and end (snap to end); when the resulting NSRange does not convert, logs a warning naming the metric and returns nil.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.originalOffset(of:rewrites:snapToEnd:)",
+    "Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift::func SpelledNumberNormalizer.originalOffset(of:rewrites:snapToEnd:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
@@ -997,132 +958,9 @@
    "deps": {
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "c266e7f0809752d4",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.discrepancy(from:in:ns:check:)": "954d08af30906fef",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.originalOffset(of:rewrites:snapToEnd:)": "f8f072d810f1fc34",
+    "Emuqu/Sources/Assistant/SpelledNumberNormalizer.swift::func SpelledNumberNormalizer.originalOffset(of:rewrites:snapToEnd:)": "f8f072d810f1fc34",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
-  },
-  {
-   "key": "func MetricsVerifier.originalOffset(of:rewrites:snapToEnd:)",
-   "hash": "71878b3b21190298",
-   "does": "Maps a normalized-text UTF-16 offset to the original: accumulates shift from rewrites ending before it; an offset strictly inside a rewrite snaps to the rewrite's original start or end.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "for each rewrite in order",
-     "effect": "examines it"
-    },
-    {
-     "at": "+3",
-     "cond": "offset at/after rewrite's normalized end",
-     "effect": "shift updated; continue"
-    },
-    {
-     "at": "+7",
-     "cond": "offset inside the rewrite (after its start)",
-     "effect": "returns original end (snapToEnd) or start"
-    },
-    {
-     "at": "+8",
-     "cond": "snapToEnd",
-     "effect": "returns NSMaxRange(original) else original.location"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.normalized()": "b09bce3385bbe04f"
-   }
-  },
-  {
-   "key": "var MetricsVerifier.spelledNumberPattern",
-   "hash": "84fc25c15b7ad5b4",
-   "does": "Builds the spelled-number regex string from onesAndTeens (longest first), tens and digit words: optional 'negative', then the first of a hundreds form ('a|<digit> hundred [and] <below-hundred>'), the hyphenated 'one|two-<tens>[-<digit>]' form, or a below-hundred number (tens[-ones] | ones/teen), then optional 'point' followed by one or more digit words.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {}
-  },
-  {
-   "key": "func MetricsVerifier.spelledNumberReplacement(_:)",
-   "hash": "c158490c53f2996b",
-   "does": "Turns one matched phrase into its digit string: splits on whitespace and '-', drops 'negative' and 'and', reads the integer part (spelledInteger) before 'point' and concatenates each digit word after it, prefixing '-' when the phrase starts with 'negative'. Nil when a word is not a number word.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.spelledInteger(_:)"
-   ],
-   "reads": [
-    "mem:MetricsVerifier.onesAndTeens"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "integer part does not parse",
-     "effect": "returns nil"
-    },
-    {
-     "at": "+6",
-     "cond": "no fraction digits",
-     "effect": "integer only; else 'integer.fraction'"
-    },
-    {
-     "at": "+7",
-     "cond": "first word is 'negative'",
-     "effect": "prefixes '-'"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.spelledInteger(_:)": "55333f5034d0fbe0"
-   }
-  },
-  {
-   "key": "func MetricsVerifier.spelledInteger(_:)",
-   "hash": "ab241b9ca6838a12",
-   "does": "Integer value of number words: 'hundred' multiplies what came before (at least 1); 'a' is 1; a tens word after a lone ones word 1-9 with no 'hundred' is the 'one-sixty' form (ones*100 + tens); otherwise tens and ones/teens add. Nil for an empty list or a non-number word.",
-   "entry": null,
-   "calls": [],
-   "reads": [
-    "mem:MetricsVerifier.onesAndTeens",
-    "mem:MetricsVerifier.tens"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "no words",
-     "effect": "nil"
-    },
-    {
-     "at": "+5",
-     "cond": "word is 'hundred'",
-     "effect": "value = max(value,1)*100, marks hundred seen"
-    },
-    {
-     "at": "+8",
-     "cond": "word is 'a'",
-     "effect": "value = 1"
-    },
-    {
-     "at": "+10",
-     "cond": "word is a tens word",
-     "effect": "ones*100+tens when value is 1-9 and no hundred yet, else adds"
-    },
-    {
-     "at": "+12",
-     "cond": "word is a ones/teens word",
-     "effect": "adds"
-    },
-    {
-     "at": "+14",
-     "cond": "anything else",
-     "effect": "returns nil"
-    }
-   ],
-   "deps": {}
   }
  ],
  "deps": {}

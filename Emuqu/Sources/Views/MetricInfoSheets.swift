@@ -214,7 +214,10 @@ struct MetricInfoSheet: View {
     private static func hfPowerEntry() -> Entry {
         Entry(
             short: String(localized: "High-frequency band power (0.15–0.4 Hz) — the band most closely tied to parasympathetic activity.", bundle: LanguageManager.appBundle),
-            body: String(localized: "Tracks respiratory sinus arrhythmia at ordinary breathing rates, about 9 to 24 breaths a minute, and tends to fall under stress. Breathing slower than that, as the breathing mandala paces you, moves the power into LF, so HF drops. Pairs well with RMSSD for vagal-tone reads.", bundle: LanguageManager.appBundle),
+            body: String(localized: """
+                Tracks respiratory sinus arrhythmia at ordinary breathing rates, about 9 to 24 breaths a minute, and tends to fall under stress. \
+                Breathing slower than that, as the breathing mandala paces you, moves the power into LF, so HF drops. Pairs well with RMSSD for vagal-tone reads.
+                """, bundle: LanguageManager.appBundle),
             typicalRange: String(localized: "Resting: 100–1,500 ms².", bundle: LanguageManager.appBundle)
         )
     }

@@ -84,9 +84,9 @@ struct DebugLogView: View {
     /// The same export as Settings › Diagnostics: the log file is written when
     /// the button is tapped and deleted when the share sheet closes.
     private var exportLogsButton: some View {
-        FileShareButton(title: DiagnosticLogExport.title, makeFile: { try await DiagnosticLogExport.makeFile() }) {
+        FileShareButton(title: DiagnosticLogExport.title, makeFile: { try await DiagnosticLogExport.makeFile() }, label: {
             Label(String(localized: "Export Diagnostic Log", bundle: LanguageManager.appBundle), systemImage: "square.and.arrow.up")
-        }
+        })
     }
 }
 
@@ -159,9 +159,9 @@ struct CrashLogView: View {
     /// tapped and deleted when the share sheet closes.
     private var shareCrashButton: some View {
         let manager = dependencies.app.crashLogManager
-        return FileShareButton(title: CrashReportExport.title, makeFile: { try CrashReportExport.makeFile(from: manager) }) {
+        return FileShareButton(title: CrashReportExport.title, makeFile: { try CrashReportExport.makeFile(from: manager) }, label: {
             Label(String(localized: "Share Crash Report", bundle: LanguageManager.appBundle), systemImage: "square.and.arrow.up")
-        }
+        })
     }
 
     private var deleteCrashButton: some View {
@@ -327,9 +327,9 @@ struct ErrorCatalogView: View {
     @ViewBuilder
     private var exportErrorsButton: some View {
         if !logger.errorCatalog.isEmpty {
-            FileShareButton(title: ErrorCatalogExport.title, makeFile: { [logger] in try await ErrorCatalogExport.makeFile(from: logger) }) {
+            FileShareButton(title: ErrorCatalogExport.title, makeFile: { [logger] in try await ErrorCatalogExport.makeFile(from: logger) }, label: {
                 Image(systemName: "square.and.arrow.up")
-            }
+            })
         }
     }
 }

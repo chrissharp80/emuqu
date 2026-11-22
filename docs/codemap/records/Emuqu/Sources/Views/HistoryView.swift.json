@@ -1,12 +1,11 @@
 {
  "file": "Emuqu/Sources/Views/HistoryView.swift",
- "hash": "2431024dc777c0c4",
- "role": "History screen pushed from the Dashboard: paginated, grouped (Today/Yesterday/This Week/Last Week/month) list of archive index entries with session-type, tag and text filters (state held in HistoryViewModel), swipe-delete, Ask-Flo context action, and on-tap async load of the full session into MorningResultsView or FitnessPostSummaryView. It deletes (SessionTrash.move, declared here and the shared delete sequence), saves tags and sleep edits itself and shows an alert when any of those, or opening a reading, fails. Rows are EntryHistoryRow (EntryHistoryRow.swift). Also declares historyDisplayScore, shared with HistoryCalendarView.",
+ "hash": "fc609e2fd07eabdb",
+ "role": "History screen pushed from the Dashboard: paginated, grouped (Today/Yesterday/This Week/Last Week/month) list of archive index entries with session-type, tag and text filters (state held in HistoryViewModel), swipe-delete, Ask-Flo context action, and on-tap async load of the full session into MorningResultsView or FitnessPostSummaryView. It deletes (SessionTrash.move, declared here and the shared delete sequence), saves tags and sleep edits itself and shows an alert when any of those, or opening a reading, fails. Rows are EntryHistoryRow (EntryHistoryRow.swift); the session-type chips are SessionTypeFilterBar (SessionTypeFilterBar.swift). Also declares historyDisplayScore, shared with HistoryCalendarView.",
  "types": [
   "HistoryView: struct (View) — main screen",
   "HistoryView.HistorySection: private struct — a section's newest date and entries",
   "HistoryView extension — tag filter bar",
-  "SessionTypeFilterButton: private struct (View) — chip",
   "SessionTrash: @MainActor enum — move(_:collector:cloudKit:), the one archive delete + notify + iCloud deletion sequence"
  ],
  "state": [
@@ -215,28 +214,32 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.emptyState": "3175e9a10f44b0c7",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.filterHeader": "bad6fa6e9a7bd3fa",
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.filterHeader": "e3fc6be28a56227d",
     "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.historyList": "d80abcac455548b1",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
    }
   },
   {
    "key": "var HistoryView.filterHeader",
-   "hash": "d8e7c8c76eb34d15",
-   "does": "VStack of session-type filter bar, tag filter bar, and search bar with paddings.",
+   "hash": "bfb0862f7aea7555",
+   "does": "VStack of the session-type filter bar (SessionTypeFilterBar bound to viewModel.selectedSessionType), tag filter bar, and search bar with paddings.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.sessionTypeFilterBar",
+    "Emuqu/Sources/Views/SessionTypeFilterBar.swift::var SessionTypeFilterBar.body",
     "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.tagFilterBar",
     "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.searchBar"
    ],
-   "reads": [],
-   "writes": [],
+   "reads": [
+    "mem:HistoryViewModel.selectedSessionType"
+   ],
+   "writes": [
+    "mem:HistoryViewModel.selectedSessionType (chip tap)"
+   ],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.searchBar": "567cd58803961774",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.sessionTypeFilterBar": "e144e7f552dc82f7",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.tagFilterBar": "7b96a050ccf8923b"
+    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.tagFilterBar": "7b96a050ccf8923b",
+    "Emuqu/Sources/Views/SessionTypeFilterBar.swift::var SessionTypeFilterBar.body": "a1d8347bbc6a5677"
    }
   },
   {
@@ -1163,145 +1166,6 @@
    }
   },
   {
-   "key": "var HistoryView.sessionTypeFilterBar",
-   "hash": "9a52ef7c6582f3d2",
-   "does": "Horizontal scroll of five chips: All, Extended, Naps, Quick, Breathe.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.allFilterButton",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.extendedFilterButton",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.napFilterButton",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.quickFilterButton",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.breatheFilterButton"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.allFilterButton": "66ac3f4ed984507e",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.breatheFilterButton": "affd98faf36304d5",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.extendedFilterButton": "f41a10a71a99f60f",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.napFilterButton": "d56991d5018fcfca",
-    "Emuqu/Sources/Views/HistoryView.swift::var HistoryView.quickFilterButton": "092dd3f50a7459f9"
-   }
-  },
-  {
-   "key": "var HistoryView.allFilterButton",
-   "hash": "543d853269ddd579",
-   "does": "'All' chip selected when selectedSessionType is nil; tap sets it to nil.",
-   "entry": "Chip tap",
-   "calls": [
-    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [
-    "mem:HistoryViewModel.selectedSessionType"
-   ],
-   "writes": [
-    "mem:HistoryViewModel.selectedSessionType"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body": "db976772ceadfb43",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
-   }
-  },
-  {
-   "key": "var HistoryView.extendedFilterButton",
-   "hash": "5d48cb1c91a21159",
-   "does": "'Extended' chip for .overnight; tap selects overnight.",
-   "entry": "Chip tap",
-   "calls": [
-    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [
-    "mem:HistoryViewModel.selectedSessionType"
-   ],
-   "writes": [
-    "mem:HistoryViewModel.selectedSessionType"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon": "0cae28130e552046",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body": "db976772ceadfb43",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
-   }
-  },
-  {
-   "key": "var HistoryView.napFilterButton",
-   "hash": "b386df472cb2ee5d",
-   "does": "'Naps' chip for .nap; tap selects nap.",
-   "entry": "Chip tap",
-   "calls": [
-    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [
-    "mem:HistoryViewModel.selectedSessionType"
-   ],
-   "writes": [
-    "mem:HistoryViewModel.selectedSessionType"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon": "0cae28130e552046",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body": "db976772ceadfb43"
-   }
-  },
-  {
-   "key": "var HistoryView.quickFilterButton",
-   "hash": "aae65599f2e75199",
-   "does": "'Quick' chip for .quick; tap selects quick.",
-   "entry": "Chip tap",
-   "calls": [
-    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [
-    "mem:HistoryViewModel.selectedSessionType"
-   ],
-   "writes": [
-    "mem:HistoryViewModel.selectedSessionType"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon": "0cae28130e552046",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body": "db976772ceadfb43"
-   }
-  },
-  {
-   "key": "var HistoryView.breatheFilterButton",
-   "hash": "369ec4dcf46b731e",
-   "does": "'Breathe' chip for .breathe; tap selects breathe.",
-   "entry": "Chip tap",
-   "calls": [
-    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [
-    "mem:HistoryViewModel.selectedSessionType"
-   ],
-   "writes": [
-    "mem:HistoryViewModel.selectedSessionType"
-   ],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var SessionType.icon": "0cae28130e552046",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/HistoryView.swift::var SessionTypeFilterButton.body": "db976772ceadfb43",
-    "Emuqu/Sources/Views/Theme.swift::var AppTheme.sdnnColor": "c20316e0eba1838b"
-   }
-  },
-  {
    "key": "var HistoryView.emptyState",
    "hash": "c7e5f97f751edb38",
    "does": "Empty-state VStack with icon and noReadingsYetSection.",
@@ -1510,37 +1374,6 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
-   }
-  },
-  {
-   "key": "var SessionTypeFilterButton.body",
-   "hash": "31d7d5c5b02fd0c9",
-   "does": "Chip button: icon + title, filled color when selected else tinted; accessibility label '<title> filter' and isSelected trait; tap runs action.",
-   "entry": "SwiftUI body; button tap invokes the action closure from the five filter chips",
-   "calls": [
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+10",
-     "cond": "isSelected",
-     "effect": "true: solid color background; false: 0.15 opacity"
-    },
-    {
-     "at": "+11",
-     "cond": "isSelected",
-     "effect": "true: white text; false: color text"
-    },
-    {
-     "at": "+16",
-     "cond": "isSelected",
-     "effect": "true: .isSelected trait; false: none"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
    }
   },
   {

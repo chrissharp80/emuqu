@@ -614,8 +614,8 @@ final class BaselineTracker: @unchecked Sendable {
 
     /// Runs the callback for a change committed since the last call, with
     /// the baseline as it stands. Takes `lock` only to read and clear the
-    /// mark: the callback itself runs with the lock released. Caller must not
-    /// hold `lock`.
+    /// pending-change mark; the callback itself runs with the lock released.
+    /// Caller must not hold `lock`.
     private func notifyIfChanged() {
         lock.lock()
         let changed = changedSinceNotify

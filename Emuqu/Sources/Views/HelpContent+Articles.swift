@@ -467,11 +467,17 @@ extension HelpContent {
                         A streaming-only reading leaves nothing on the strap to recover.
                         """),
                     .heading("Session Missing from History"),
-                    .text("Go to Settings → iCloud & Data → Recover Lost Sessions. This scans the raw backup directory for sessions that have backup files but aren't in the main archive. Tap \"Recover All\" to restore them, or tap Edit to take the ones you don't want off the list; their backup files stay on the device."),
+                    .text("""
+                        Go to Settings → iCloud & Data → Recover Lost Sessions. This scans the raw backup directory for sessions that have backup files but aren't in the main archive. Tap "Recover All" to restore them, or tap Edit to take \
+                        the ones you don't want off the list; their backup files stay on the device.
+                        """),
                     .heading("Accidentally Deleted a Session"),
                     .text("Go to Settings → iCloud & Data → Trash. Deleted sessions are kept for 90 days and can be restored with a single tap."),
                     .heading("Device Has Stored Data"),
-                    .text("When you connect a device that still holds data from an earlier session, a card appears on the Record tab: \"Data Found on [Device Name]\". Tap \"Recover Data\" to download and analyze it, or \"Delete from [Device Name]\" to delete it from the device after you confirm. Emuqu hasn't saved that recording, so this deletes the only copy."),
+                    .text("""
+                        When you connect a device that still holds data from an earlier session, a card appears on the Record tab: "Data Found on [Device Name]". Tap "Recover Data" to download and analyze it, or \
+                        "Delete from [Device Name]" to delete it from the device after you confirm. Emuqu hasn't saved that recording, so this deletes the only copy.
+                        """),
                     .tip("If a fetch from the device fails, the data is still safe on the device. You can retry as many times as needed — the app uses a 5-attempt retry with reconnection between attempts.")
                 ]
             ),
@@ -492,7 +498,10 @@ extension HelpContent {
                     ]),
                     .heading("Off by Default"),
                     .text("iCloud sync is off until you turn it on, during onboarding or in Settings. Turning it off stops future syncs but doesn't delete already-synced data from iCloud."),
-                    .text("iCloud sync stays with the iCloud account you turned it on for. If this device is signed into a different account, or Emuqu's data in iCloud is deleted (by Delete All My Data on any of your devices, or in iCloud settings), sync turns itself off without uploading anything, and Settings → iCloud & Data says why. Your sessions stay on this device. Turn iCloud Sync on again to back up to the account you're signed into now."),
+                    .text("""
+                        iCloud sync stays with the iCloud account you turned it on for. If this device is signed into a different account, or Emuqu's data in iCloud is deleted (by Delete All My Data on any of your devices, or in iCloud \
+                        settings), sync turns itself off without uploading anything, and Settings → iCloud & Data says why. Your sessions stay on this device. Turn iCloud Sync on again to back up to the account you're signed into now.
+                        """),
                     .note("""
                         iCloud sync covers session data (HRV analysis, scores, metadata and the session's RR intervals), encrypted on your iPhone before upload. Readings from Apple Health (sleep, vitals, VO2max, workouts from Apple Health, \
                         Apple Watch heart rate, and birthday, sex and weight filled from Health) are never uploaded; scores Emuqu computes from them are. Each device reads Apple Health itself. Your settings are backed up to iCloud too, \
