@@ -93,7 +93,8 @@ struct RRSeries: Codable {
 ```swift
 struct ArtifactFlags: Codable, Equatable {
     let isArtifact: Bool
-    let type: ArtifactType?    // .none, .ectopic, .missed, .extra, .technical
+    let type: ArtifactType?    // .none, .ectopic, .missed, .extra, .technical;
+                               // a type from a newer build decodes as nil
     let confidence: Double     // 0.0 to 1.0
     let corrected: Bool
 
@@ -404,15 +405,20 @@ final class RRCollector {
     func pauseOvernightStreaming() async -> HRVSession?
 
     /// Resume the paused session identified by `linkedSessionId`. The new
-    /// segment is linked back to the paused session for combined analysis.
+    /// segment is linked back to the paused session for combined analysis;
+    /// the parent's link is written into the archive's copy in place.
+    /// Throws `alreadyRecording` while a night is still being ended
+    /// (`refuseWhileEndingInProgress()`), as `startOvernightStreaming` does.
     func resumeOvernightStreaming(linkedSessionId: UUID) throws
 
     /// Finalize a paused session without resuming (treat the paused segment
-    /// as the final session).
+    /// as the final session). Marks the archive's copy complete in place
+    /// (`archive.update`), publishes that copy and requests a re-upload.
     func finalizeFromPause()
 
     /// Look up a recently paused session in the archive within `maxGap`
     /// seconds. Off-main static helper; safe to call from background tasks.
+    /// A paused session an archived segment was resumed from is not returned.
     nonisolated static func findRecentPausedSessionOffMain(
         archive: SessionArchive,
         maxGap: TimeInterval
@@ -420,6 +426,8 @@ final class RRCollector {
 
     // MARK: - Quick Streaming
 
+    /// Throws `alreadyRecording` while a night is paused or being ended
+    /// (`requireConnectedWithNoNightHeld`), like the strap-only `startSession`.
     func startStreamingSession(durationSeconds: Int = 180) throws
     func stopStreamingSession() async -> HRVSession?
 
@@ -453,7 +461,11 @@ final class RRCollector {
     // MARK: - Backup Recovery
 
     func checkForLostSessions() async -> [(id: UUID, date: Date, beatCount: Int)]
-    func recoverFromBackup(_ sessionId: UUID) async -> HRVSession?
+    /// `recordedType`: the type the interrupted session was recording; a
+    /// non-overnight type is kept (the gate only downgrades a short night).
+    func recoverFromBackup(_ sessionId: UUID, recordedType: SessionType? = nil) async -> HRVSession?
+    @discardableResult
+    func deleteLostSessions(_ sessionIds: [UUID]) -> Set<UUID>   // the ids whose mark was stored
     func restoreFromTrash(_ id: UUID) async -> HRVSession?
     @discardableResult
     func permanentlyDelete(_ ids: [UUID]) async -> TrashDeletionOutcome
@@ -588,6 +600,50 @@ enum RecordingState: Equatable {
     case idle, starting, recording, stopping, fetching
 }
 ```
+
+### HealthKit write-back identity and observers
+**Files**: `Emuqu/Sources/Collection/HealthExportIdentity.swift`, `HealthWriteAndObserve.swift`, `HealthKitWorkoutExport.swift`
+
+```swift
+enum HealthExportIdentity {
+    enum Metric: String, CaseIterable { case heartRate, restingHeartRate, sdnn, rmssd, sleep, workout }
+    /// HKMetadataKeyExternalUUID and HKMetadataKeySyncIdentifier set to the
+    /// session identity, plus HKMetadataKeySyncVersion = `version`.
+    static func metadata(_ externalUUID: String, version: Int, _ extra: [String: Any] = [:]) -> [String: Any]
+    static func nextSyncVersion(now: Date = Date()) -> Int   // rises on every export
+    static func syncIdentifier(of object: HKObject) -> String?
+}
+
+struct HealthWriteAndObserve {
+    /// Delete forever: HRV, heart rate, resting HR, sleep and workouts the
+    /// session exported. Every removal is tried; the first error is thrown.
+    func removeExports(sessionId: UUID, from start: Date, to end: Date) async throws
+}
+
+struct HealthSampleReplacement {
+    var writeTimeout: TimeInterval?   // save/delete bound; nil uses the read timeout
+}
+
+final class HealthSampleReplacer {
+    /// Saves `samples`, then deletes the session's earlier ones that a save
+    /// did not already replace by sync identifier (`notReplacedBySync`).
+    func replace(_ samples: [HKSample], _ replacement: HealthSampleReplacement) async throws
+}
+
+enum HealthSampleWatch {
+    /// HKObserverQuery whose every fire reads what was added since an anchor
+    /// stored under `anchorKey` across launches (two days without one) and
+    /// hands `deliver` the other sources' samples; the app's own are dropped.
+    static func observerQuery(for type: HKSampleType, anchorKey: String, store: HKHealthStore,
+                              deliver: @escaping @Sendable ([HKSample]) -> Void) -> HKObserverQuery
+}
+```
+
+`HealthKitWorkoutExport` finds a session's earlier workouts (its
+`<uuid>-workout` identity, or an identity-less workout starting in the same
+second), saves the new workout, then deletes the earlier ones with their
+samples and route; a failure throws so the session stays unstamped. Active
+energy is written net of resting metabolism (`netMETs`: METs − 1, floored at 0).
 
 ---
 
@@ -992,6 +1048,10 @@ enum RecoveryScoreCalculator {
                                       // feed the Vitals sub-score instead.
         var scoringVersion: String    // ScoringVersion.current ("v3.3.nov2026") when built;
                                       // "unversioned" when decoded from an older record
+        var refreshedFactorShift: Double  // not stored: how far a display-time vitals refresh
+                                          // (VitalsScoring.breakdownRefreshingVitalsFactor) moved
+                                          // the factors' weighted sum; taken back out of the
+                                          // factor/composite gap the advice reads
         var message: String { get }   // Computed: factor-aware coaching advice
     }
 
@@ -1001,7 +1061,8 @@ enum RecoveryScoreCalculator {
         let score: Double       // 0-100 sub-score
         let weight: Double      // 0-1 weight in composite
         let impact: Impact
-        enum Impact { case positive, neutral, negative }
+        enum Impact: String, Codable { case positive, neutral, negative }
+        // An impact a newer build added decodes as .neutral instead of failing the breakdown.
     }
 
     /// Versioned parameter snapshot for the SWC band model. Bump version
@@ -1069,7 +1130,10 @@ enum RecoveryScoreCalculator {
         parameters: ScoringParameters = defaultScoringParameters
     ) -> Double
 
-    // Individual tier calculations
+    // Individual tier calculations.
+    // Without baseline stats (< 3 nights) a reading with RMSSD is scored on the
+    // absolute RMSSD bands; `readiness` (1-10 → 10-100) is used only for a night
+    // with no usable RMSSD, and 50 when that is nil too.
     static func calculateTier1(
         rmssd: Double,
         meanHR: Double?,
@@ -1357,9 +1421,18 @@ final class BaselineTracker {
     var daysCollected: Int { get }
     var recoveryBaselineStats: RecoveryBaselineStats? { get }
 
+    /// One reading per night. A session already in the baseline (re-analysed,
+    /// or its window re-picked) replaces its own earlier reading, matched by
+    /// `BaselineDataPoint.sessionId` (by start for older points), and leaves
+    /// the baseline when it no longer passes the gates. The callback runs
+    /// after the lock is released.
     func update(with session: HRVSession, sleepSchedule: SleepSchedule)
     func deviation(for session: HRVSession) -> BaselineDeviation?
     func reset()
+
+    /// √(7/n) below 7 nights, else 1 (≈1.53 at 3). Widens both the ln(RMSSD)
+    /// SD and the resting-HR SD of `RecoveryBaselineStats`.
+    static func smallSampleWidening(count: Int) -> Double
 }
 ```
 
@@ -1656,6 +1729,29 @@ final class SessionRecoveryService {
 }
 ```
 
+### PurgeGate
+**File**: `Emuqu/Sources/Services/PurgeGate.swift`
+
+```swift
+enum PurgeGate {
+    struct Refused: Error, LocalizedError {}
+    static var isPurging: Bool { get }
+    /// Runs `write` unless a purge runs (throws `Refused`), counting it in
+    /// flight until it returns.
+    static func admitWrite<T>(_ write: () throws -> T) throws -> T
+    /// Closes the gate; returns once the writes already admitted finished.
+    static func beginPurge() async
+    static func endPurge()           // overlapping purges are counted
+}
+```
+
+`DataPurgeService.purgeAllUserData` refuses while recording, then
+`beginPurge()` (with `defer endPurge()`), turns iCloud Sync off, awaits the
+remote delete, and checks again for a recording
+(`Refusal.recordingStartedDuringDelete`: no local wipe, sync stays off)
+before wiping the device. A rescore that finishes during or after a purge
+writes nothing (`RescoreWrite` `.notArchived`: it never creates a session).
+
 ---
 
 ### LanguageManager
@@ -1941,7 +2037,13 @@ final class SessionArchive {
     func wasIntentionallyDeleted(_ id: UUID) -> Bool
     func linkedSegments(for session: HRVSession) -> [MorningResultsView.LinkedSegmentInfo]
     func runDeferredMigrations()             // 3-phase locking, background thread
+    func repairArchive() throws -> Int       // throws when the files cannot be listed or the
+                                             // rebuilt index cannot be saved
+    func archivedId(of id: UUID) -> UUID     // the session a same-night fold filed `id` into
 }
+
+// Every session-file and index write (writeArchiveBytes, saveIndex) runs inside
+// PurgeGate.admitWrite and throws PurgeGate.Refused while Delete All My Data runs.
 
 struct SessionArchiveEntry: Codable {
     let sessionId: UUID
@@ -1958,6 +2060,8 @@ struct SessionArchiveEntry: Codable {
     let notes: String?
     let sessionType: SessionType
     let linkedSessionIds: [UUID]?
+    // An entry whose sessionType or hrvDataQuality holds a case from a newer
+    // build is marked newer (entrySchemaVersion) and written back verbatim.
 }
 ```
 
@@ -1980,7 +2084,7 @@ final class RawRRBackup: @unchecked Sendable {
     convenience init(directory: URL)        // a store in `directory` (tests use a folder of their own)
     init(directory: URL, notificationCenter: NotificationCenter)  // repairs on unlock/activation posted there
 
-    @discardableResult
+    @discardableResult   // runs on appendQueue (backupOnAppendQueue)
     func backup(points: [RRPoint], sessionId: UUID, deviceId: String? = nil, captureDate: Date? = nil) throws -> BackupEntry
     func appendBackup(points: [RRPoint], sessionId: UUID, deviceId: String? = nil) throws
     func incrementalBackup(points: [RRPoint], sessionId: UUID, deviceId: String? = nil, force: Bool = false, interval: TimeInterval = 60) -> Bool
@@ -2023,6 +2127,13 @@ final class CloudKitSyncManager {
     private(set) var pullVersion: Int
     private(set) var lastSyncDate: Date?
 
+    /// Sync on, onboarding done, no purge running (`PurgeGate.isPurging`).
+    /// Uploads and the full sync re-read it inside their serializer turn.
+    var cloudUploadsAllowed: Bool { get }
+    /// Confirms the signed-in Apple ID against `CloudAccountIdentity` before
+    /// any read or write; a different account or a deleted zone stops sync.
+    var accountGuard: CloudAccountGuard { get }
+
     func uploadSession(_ session: HRVSession) async
     func uploadDeletion(_ sessionId: UUID) async
     func forceReuploadSession(_ session: HRVSession) async
@@ -2032,8 +2143,30 @@ final class CloudKitSyncManager {
     /// The sessions are cleared from the uploaded-set; the next sync pushes them.
     func markSessionsForReupload(_ ids: Set<UUID>) async
 
-    func performFullSync() async
+    func performFullSync() async             // first step: accountGuard.requireConfirmedAccount()
     func performFullSyncIfNeeded(minInterval: TimeInterval) async
+    /// Keeps a session on this device only: its record is marked
+    /// `keptOnDeviceMarker` (`isDeleted = 2`) with no payload.
+    func markKeptOnDevice(_ recordID: CKRecord.ID) async throws
+}
+
+/// File: `Emuqu/Sources/Storage/CloudAccountIdentity.swift`. The account sync
+/// is enabled for, as `userRecordID().recordName`, in this device's
+/// UserDefaults only.
+enum CloudAccountIdentity {
+    static var recordedAccount: String? { get }
+    static var isConfirmed: Bool { get }     // checked this launch and matching
+    static func noteAccountChanged()         // .CKAccountChanged: unconfirm
+    enum Verdict: Equatable { case sameAccount, adopt, differentAccount, awaitingOptIn }
+    enum StopReason: String { case differentAccount, iCloudDataDeleted }   // shown under the switch
+}
+
+struct CloudAccountGuard {
+    enum Check: Equatable { case confirmed, unavailable(String), stopped }
+    func confirmAccount() async -> Check
+    func requireConfirmedAccount() async throws   // throws Halt
+    func zoneWasDeleted() async -> String?        // same account: stopSync(.iCloudDataDeleted); no zone recreated
+    func stopSync(_ reason: CloudAccountIdentity.StopReason)  // resets per-account bookkeeping, sync off
 }
 
 extension Notification.Name {
@@ -2172,6 +2305,23 @@ final class PDFReportGenerator {
 }
 ```
 
+### ExportFile
+**File**: `Emuqu/Sources/Export/ExportFile.swift`
+
+```swift
+enum ExportFile {
+    static var directory: URL                     // tmp/Exports
+    /// Atomic, complete file protection; earlier copies whose names start
+    /// with `replacingPrefix` are removed first.
+    static func write(_ data: Data, named name: String, replacingPrefix prefix: String? = nil) throws -> URL
+    static func protect(_ url: URL)               // complete protection on a file written elsewhere
+    static func removeLeftovers()                 // empties the folder; EmuquApp.init
+}
+```
+
+CSV, GPX and TCX exports, the report PDF (`writeReport`), the log export and the
+crash export are written through it.
+
 ---
 
 ## Protocols
@@ -2195,6 +2345,7 @@ protocol HealthKitServiceProtocol {
     func estimateSleepFromHealthKitHR(
         windowStart: Date, windowEnd: Date, minimumSamples: Int, minimumSleepMinutes: Int
     ) async -> SleepData?
+    func estimateSleepFromRR(rrPoints: [RRPoint], recordingStart: Date) async -> SleepData?  // default detaches
 
     func fetchDaytimeRestingHR(for: Date) async throws -> Double?
     func fetchHeartRateSamples(from: Date, to: Date) async throws -> [(date: Date, hr: Double)]
@@ -2358,6 +2509,9 @@ enum AIProviderError: LocalizedError {
     case missingKey(ProviderID), unsupportedOS(required: String), guardrailViolation
     case rateLimited, authFailed, network(String), invalidResponse(String)
     case modelUnavailable(String), outOfCredit(ProviderID), cancelled, unknown(String)
+    case blockedReply(provider: ProviderID, reason: String)  // a provider's safety refusal
+                                                             // (Gemini's every blockReason too):
+                                                             // shown, never handed to another provider
 }
 
 struct ToolSpec: Hashable, Codable, Sendable {
@@ -2483,7 +2637,12 @@ final class ProviderRegistry {
 
     func setActive(provider: AIProvider, model: ModelOption? = nil)
     func setActive(model: ModelOption)
-    func keysChanged()                            // re-evaluate availability after key add/remove
+    func keysChanged()                            // re-evaluate availability after key add/remove;
+                                                  // a switched-off provider never stays selected
+                                                  // (falls back to Apple when nothing else is available)
+    static func isEnabled(_ id: ProviderID) -> Bool        // its Settings switch
+    static func canSend(to provider: AIProvider) -> Bool   // isAvailable && isEnabled; gates the composer,
+                                                           // send, dispatch, routing and fact extraction
 }
 ```
 
@@ -2763,7 +2922,12 @@ final class ConversationStore {
     static let shared: ConversationStore
     func load() -> [ChatTurn]
     func save(_ turns: [ChatTurn])
-    @discardableResult func clear() -> Bool    // file + set-aside copies; true when nothing is left
+    @discardableResult func clear() -> Bool    // file + summary + set-aside copies; true when nothing is left
+    /// The sealed rolling summary (Assistant/conversation_summary.json). A plain
+    /// summary an older build left under `key` is moved in; the key is removed
+    /// once the sealed write succeeds.
+    func loadSummary(migratingFrom defaults: UserDefaults, key: String) -> String?
+    func saveSummary(_ text: String)
 }
 
 enum PrefabQuestion: String, CaseIterable, Identifiable {
@@ -2785,14 +2949,20 @@ final class AnalysisSummaryCache: Sendable {
 @Observable
 final class UserFactsStore {
     static let shared: UserFactsStore
-    struct Fact: Codable, Identifiable, Hashable { let id: UUID; var text: String; let createdAt: Date }
+    struct Fact: Codable, Identifiable, Hashable {
+        let id: UUID; var text: String; let createdAt: Date
+        enum Origin: String, Codable { case user, inferred }   // inferred = auto-extraction
+        let origin: Origin?            // nil: saved before origins were recorded
+        var isFromUser: Bool { get }   // origin == .user
+    }
     private(set) var facts: [Fact]
     var autoExtractEnabled: Bool       // off by default
-    func add(_ text: String)
+    func add(_ text: String, origin: Fact.Origin)   // no default origin
     @discardableResult func remove(_ id: UUID) -> Bool   // written at once; false keeps the fact
     @discardableResult func clear() -> Bool              // facts + set-aside copies; false keeps them
     var hasAnythingToForget: Bool                        // a fact or a set-aside copy is stored
-    func systemPromptBlock() -> String            // injected into every send's system prompt
+    func systemPromptBlock() -> String            // injected into every send's system prompt; the user's
+                                                  // own facts and the rest under separate headings
 }
 
 @MainActor
@@ -2819,7 +2989,9 @@ final class SpeechInputManager {
     private(set) var lastError: String?
     var isAvailable: Bool                         // requires on-device recognition support
     func start() async throws                     // requests mic + speech permissions
-    @discardableResult func stop() -> String
+    /// Stops the mic at once; returns once the final recognition result
+    /// arrives or `finalResultTimeout` (1.5 s) passes.
+    @discardableResult func stop() async -> String
     func cancel()
 }
 ```
@@ -2865,12 +3037,18 @@ final class AssistantViewModel {
 
     func send(prefab question: PrefabQuestion)
     func cancel()
-    func clearConversation()
-    func regenerateLast()
-    func remember(_ text: String)
+    func clearConversation()                   // also MetricsVerifier.clearCorrections()
+    func regenerateLast()                      // dispatch(regenerating:): the old reply is removed only
+                                               // once the routed provider may take the turn
+    func remember(_ text: String)              // saved with origin .user
     func invalidateContext()
+    func exportConversation() -> URL?          // tmp EmuquChat-*.md, complete file protection;
+                                               // earlier exports deleted at init
 
     static func truncateForSend(_ turns: [ChatTurn], provider: ProviderID) -> (kept: [ChatTurn], dropped: [ChatTurn])
+    /// The oldest of `turns` that fit one summarization call on `provider`
+    /// (at least one, each cut to the budget); one batch per send.
+    static func summaryBatch(_ turns: [ChatTurn], provider: ProviderID) -> [ChatTurn]
     static func estimateTokens(_ text: String) -> Int     // ~4 chars/token rough estimate
 }
 ```
@@ -3010,6 +3188,10 @@ final class SavedRouteStore {
 }
 ```
 
+Writes go through `LatestWinsFileWriter`: a failed write is retried after 5,
+30 and 120 s unless a newer snapshot, a discard or a replace superseded it,
+and the file has `.completeFileProtectionUntilFirstUserAuthentication`.
+
 ### RouteLibrary
 
 ```swift
@@ -3052,6 +3234,7 @@ final class WeatherService {
     var current: WorkoutAIContext.WeatherSnapshot? { get }  // nil once older than maxSnapshotAge
 
     func refreshIfNeeded(for location: CLLocation?)
+    func forgetAfterPurge()   // Delete All My Data: drop snapshot, forecast and place; cancel a fetch in flight
     nonisolated static func fetch(at coord: CLLocationCoordinate2D, ifModifiedSince: String?,
                                   transport: HTTPTransport) async -> FetchOutcome
     nonisolated static func localizedConditions(_ english: String) -> String
@@ -3105,6 +3288,7 @@ final class RoadGeocodingService {
 
     func refreshIfNeeded(for location: CLLocation?)
     func reset()                             // call at workout start
+    func forgetAfterPurge()                  // Delete All My Data: drop the road context and where it was looked up
 
     /// One-shot for off-cache geocoding (used by SavedRouteStore's
     /// climb-naming pass at save time).
@@ -3114,7 +3298,9 @@ final class RoadGeocodingService {
 
 Apple `CLGeocoder` wrapper. Re-geocodes only on >15 m movement OR
 >60 s elapsed. Backs off after 8 consecutive failures, then retries
-every 30 s. No API key required.
+every 30 s. A `CLGeocoder` request still running after its 5 s timeout
+is cancelled before the queue's next turn (`geocoderRequest`). No API key
+required.
 
 ### TrailDiscoveryService
 
@@ -3377,6 +3563,11 @@ struct WorkoutMetadata: Codable {
     var strokeCount: Int?
     var averageSplitSecPer500m: Double?
     var dragFactor: Int?
+
+    /// Seconds spent moving: the last per-second sample's offset, else
+    /// `wallClockDuration` less the recorded pauses. Pace, calories and a TCX
+    /// lap's timer time are measured on it.
+    func movingSeconds(wallClockDuration: Double?) -> Double?
 }
 
 enum Sport: String, Codable, CaseIterable, Identifiable {

@@ -59,8 +59,9 @@ Two kinds of write do not fall back. A CloudKit upload fails closed:
 `CloudPayloadCodec.sealForUpload` throws `CloudSyncError.encryptionUnavailable`
 when there is no key, because an uploaded record cannot be taken back, and the
 skipped upload is retried on a later cycle. A cache that can be rebuilt (the UI
-state cache, the training metrics cache) skips the write instead and keeps its
-previous file.
+state cache, the training metrics cache, and the Apple Health sleep and
+baseline caches kept in `UserDefaults`) skips the write instead and keeps its
+previous copy.
 
 **Consequence.** A window exists where health data sits on disk without
 application-layer encryption, protected by the filesystem alone. That window is

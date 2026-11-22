@@ -2,13 +2,13 @@
 
 **Constants-hash version locks, a machine-checked science register, gates that must prove they fail, and one-way budget ratchets**
 
-Technical White Paper • v1.3 • 8 October 2026
+Technical White Paper • v1.4 • 22 November 2026
 
 Chris Sharp • github.com/chrissharp80
 
-Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision e028039 (2026-10-07), scoring version v3.1.oct2026. Emuqu is a consumer wellness app, not a medical device.
+Describes Emuqu (formerly Flow HRV, then Flow Recovery) at source revision e028039 (2026-10-07), scoring version v3.1.oct2026, with one later change to the Thread Sanitizer gate noted at source revision d2c8ca9 (2026-11-21). Emuqu is a consumer wellness app, not a medical device.
 
-Cite as: Sharp C. Emuqu — Build-Time Governance of a Consumer Physiology Score. Technical White Paper v1.3, 8 October 2026. github.com/chrissharp80/emuqu, docs/whitepapers/04-claims-governance.md.
+Cite as: Sharp C. Emuqu — Build-Time Governance of a Consumer Physiology Score. Technical White Paper v1.4, 22 November 2026. github.com/chrissharp80/emuqu, docs/whitepapers/04-claims-governance.md.
 
 ---
 
@@ -274,6 +274,8 @@ At this revision there are 64 plants. Examples: a retracted phrase appended to a
 - a two-entry `NEEDS_BUILD` exemption list: the coverage-floor gate and the Thread Sanitizer gate, which need a build or a simulator;
 - the preflight gate of Section 3.4.2, which the harness classifies as the preflight library's self-test rather than as a gate. It still has two plants of its own.
 
+*Later change (d2c8ca9, 2026-11-21).* The Thread Sanitizer gate is no longer exempt: `NEEDS_BUILD` lists only the coverage-floor gate. The harness runs the gate against a stand-in `xcodebuild` with three plants: a race in the test suite, parallel testing left on (which hides race reports), and the halt-on-error option removed (which lets a race pass). The gate itself first runs a canary, `ThreadSanitizerCanaryTests`, which races on purpose, and fails unless the canary's race is reported and fails its run.
+
 For each remaining gate, the harness greps its own source for the gate's filename. If any filename is missing, the run exits 1 and lists the unplanted gates, so adding a gate and adding its plant must happen in the same change.
 
 The run also exits 1 if any plant was FAIL. A plant that was SKIPped is reported and does not fail this harness; the test-mutation harness of Section 3.5.1 treats skips more strictly.
@@ -488,7 +490,7 @@ Each statement gives only the part not found in a prior-art search made on 2026-
 
 *Earliest dated record:* emuqu-dev f2e6ed1, 2026-09-03 (first form: discovery and stale-claim check); emuqu 9d89933, 2026-09-08 (current form: entry-count floor).
 
-**N7 (Section 3.4.1). A planted-violation harness that refuses to report success while any `check_`/`enforce_` script in the scripts directory lacks a plant.** It searches its own source for each gate's filename and fails the run if one is absent, so adding a gate without a plant fails the build. A named list exempts the two gates that need a build or simulator; the preflight gate is excluded from the name search as the helper library's self-test but carries its own plants.
+**N7 (Section 3.4.1). A planted-violation harness that refuses to report success while any `check_`/`enforce_` script in the scripts directory lacks a plant.** It searches its own source for each gate's filename and fails the run if one is absent, so adding a gate without a plant fails the build. A named list exempts the two gates that need a build or simulator (from d2c8ca9 only the coverage-floor gate, the Thread Sanitizer gate having its own plants, Section 3.4.1); the preflight gate is excluded from the name search as the helper library's self-test but carries its own plants.
 
 *Builds on:* canfail (PyPI, 2026-08-31) [17], which breaks a file on purpose, requires the check to go red, confirms the check is green first, requires the anchor to match exactly once and verifies the restore; those rules are therefore not claimed. Adds completeness: a requirement that every check in the repository has a plant.
 
@@ -631,7 +633,7 @@ Chris Sharp is the sole author of these papers and of the design, and the only p
 
 ### 8.6 Document history
 
-v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims).
+v1.0, v1.1, v1.2 and v1.3 all published 2026-10-08. v1.1 added prior-art comparison and provenance; v1.2 restructured method-first and moved verification detail to the cross-implementation report; v1.3 applied an editorial review (series-wide format, corrected internal references, tightened claims). v1.4, published 2026-11-22, still describes e028039 and adds one later change: the Thread Sanitizer gate's plants and canary, and its removal from the build exemption, at d2c8ca9 (Sections 3.4.1 and 5, Appendix A).
 
 ---
 
@@ -698,7 +700,7 @@ Items marked [S] were seen only through a search-engine extract on 2026-10-08.
 | Discovered functions | 13 (12 claimed, 1 waived) | functions | At this revision |
 | Gate scripts | 45 | scripts | `check_*` and `enforce_*` |
 | Planted violations | 64 | plants | Planted-violation harness |
-| Plant-completeness exclusions | coverage-floor gate, Thread Sanitizer gate (need a build or simulator); preflight gate (helper library's self-test, has its own plants) | — | Not searched for by name |
+| Plant-completeness exclusions | coverage-floor gate, Thread Sanitizer gate (need a build or simulator; from d2c8ca9 the coverage-floor gate only); preflight gate (helper library's self-test, has its own plants) | — | Not searched for by name |
 | Targeted test mutations | 125 | mutations | Test-mutation harness |
 | Build-failure retry | 1 | retry | Baseline suite run only |
 | Wiring exemptions | 1 | gate | Coverage gate runs inside the coverage step |

@@ -1,15 +1,15 @@
 {
  "file": "docs/whitepapers/04-claims-governance.md",
  "hash": "e3b0c44298fc1c14",
- "role": "White paper (v1.3) describing Emuqu's build-time governance: constants-hash version lock, scoring-version stamp on stored scores, science register gate, gate meta-checks (plants, preflight, wiring), targeted test mutations with leak detector and tree lock, direction-aware budget ratchets, CI posture.",
+ "role": "White paper (v1.4; describes e028039, with the Thread Sanitizer gate's later plants noted at d2c8ca9) describing Emuqu's build-time governance: constants-hash version lock, scoring-version stamp on stored scores, science register gate, gate meta-checks (plants, preflight, wiring), targeted test mutations with leak detector and tree lock, direction-aware budget ratchets, CI posture.",
  "types": [],
  "state": [],
  "toplevel": "Markdown only; no executable content.",
  "units": [
   {
    "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score",
-   "hash": "f8e73e62a9693a03",
-   "does": "Title block: v1.3 white paper (8 Oct 2026) describing Emuqu at e028039 (2026-10-07), scoring version v3.1.oct2026, consumer wellness app. Checked: e028039 is in history (merge of PR #7); ScoringVersion.current is \"v3.1.oct2026\" (Emuqu/Sources/Analysis/ScoringVersion.swift:29).",
+   "hash": "a35b7a096bd74b6a",
+   "does": "Title block: v1.4 white paper (22 Nov 2026) describing Emuqu at e028039 (2026-10-07), scoring version v3.1.oct2026, with one later change to the Thread Sanitizer gate noted at d2c8ca9 (2026-11-21); consumer wellness app. Checked: e028039 is in history (merge of PR #7); ScoringVersion.current was \"v3.1.oct2026\" at e028039.",
    "entry": null,
    "calls": [
     ".github/workflows/ci.yml::step lint-and-budgets/Scoring governance (weight containment, version-on-change)",
@@ -28,7 +28,8 @@
     "Makefile::target leaked-mutations-guard",
     "Makefile::target budget-monotonicity",
     "Makefile::target doc-links",
-    ".github/workflows/gates.yml::job script-gates"
+    ".github/workflows/gates.yml::job script-gates",
+    "scripts/check_thread_sanitizer.sh::"
    ],
    "reads": [],
    "writes": [],
@@ -50,7 +51,8 @@
     "Makefile::target leaked-mutations-guard": "a37e4e3ced2c0b0e",
     "Makefile::target science-register": "9e24175bb2b0670b",
     "Makefile::target scoring-governance": "2093dbcb1f6e9e8e",
-    "Makefile::target verify-gates": "62403efc5c06c498"
+    "Makefile::target verify-gates": "62403efc5c06c498",
+    "scripts/check_thread_sanitizer.sh::": "99742adcfcfb8d94"
    }
   },
   {
@@ -423,15 +425,17 @@
   },
   {
    "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 3. Methods > 3.4 Gates that test the gates > 3.4.1 Goes red: planted violations",
-   "hash": "6c3e045c0d1162e0",
-   "does": "Specifies verify_gates_fail.sh: per plant (name, gate, file, python mutation) skip on filter mismatch, SKIP if gate already red, backup, SKIP+restore if mutation fails, rerun gate, restore, nonzero=PASS else FAIL; 64 plants; then every check_*/enforce_* except check_gate_preflight.sh and NEEDS_BUILD (check_coverage.sh, check_thread_sanitizer.sh) must have its filename in the harness source, else exit 1; exit 1 on any FAIL, SKIP does not fail. Matches script (check() at :61, NEEDS_BUILD :550-553, grep at :565). The filename-presence check is satisfied by any mention including comments/echo text.",
+   "hash": "c09f49425056daca",
+   "does": "Specifies verify_gates_fail.sh as at e028039: per plant (name, gate, file, python mutation) skip on filter mismatch, SKIP if gate already red, backup, SKIP+restore if mutation fails, rerun gate, restore, nonzero=PASS else FAIL; 64 plants; then every check_*/enforce_* except check_gate_preflight.sh and NEEDS_BUILD (then check_coverage.sh, check_thread_sanitizer.sh) must have its filename in the harness source, else exit 1; exit 1 on any FAIL, SKIP does not fail. Later change noted at d2c8ca9: NEEDS_BUILD holds only check_coverage.sh; the Thread Sanitizer gate runs against a stand-in xcodebuild with three plants (race in the suite, parallel testing left on, halt_on_error removed), and check_thread_sanitizer.sh first runs ThreadSanitizerCanaryTests with EMUQU_TSAN_CANARY=1 and fails unless that race is reported and fails its run.",
    "entry": null,
    "calls": [
     "scripts/verify_gates_fail.sh::fn check",
     "scripts/verify_gates_fail.sh::fn backup",
     "scripts/verify_gates_fail.sh::fn restore_all",
     "Makefile::target verify-gates",
-    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail"
+    ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail",
+    "scripts/check_thread_sanitizer.sh::",
+    "scripts/verify_gates_fail.sh::"
    ],
    "reads": [],
    "writes": [],
@@ -439,6 +443,8 @@
    "deps": {
     ".github/workflows/ci.yml::step lint-and-budgets/Gates actually fail": "b220bed7db5626a6",
     "Makefile::target verify-gates": "62403efc5c06c498",
+    "scripts/check_thread_sanitizer.sh::": "99742adcfcfb8d94",
+    "scripts/verify_gates_fail.sh::": "ba75de0d13a1276b",
     "scripts/verify_gates_fail.sh::fn backup": "7d768c7178d9b770",
     "scripts/verify_gates_fail.sh::fn check": "628cb3d9d277ffae",
     "scripts/verify_gates_fail.sh::fn restore_all": "b419892056a17dde"
@@ -729,8 +735,8 @@
   },
   {
    "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 5. What Is New",
-   "hash": "cb64c3b09a92f849",
-   "does": "Novelty statements N1-N14 restating mechanisms of Sections 3.1-3.8 with prior-art and dated private-repo records (not verifiable here). Mechanism descriptions match the scripts as noted per section; N2 'the stamp is carried through every derived copy' is contradicted by the legacy pinned/live breakdown path; N12 'a CI-set flag turns a missing baseline into a failure' does not apply to the PR path of gates.yml. N2 now notes that at the described revision a legacy session with no stored breakdown is displayed under the current version.",
+   "hash": "f7b7c54af5a88558",
+   "does": "Novelty statements N1-N14 restating mechanisms of Sections 3.1-3.8 with prior-art and dated private-repo records (not verifiable here). Mechanism descriptions match the scripts as noted per section; N2 'the stamp is carried through every derived copy' is contradicted by the legacy pinned/live breakdown path; N12 'a CI-set flag turns a missing baseline into a failure' does not apply to the PR path of gates.yml. N2 now notes that at the described revision a legacy session with no stored breakdown is displayed under the current version. N7 notes that from d2c8ca9 only the coverage-floor gate is exempt, the Thread Sanitizer gate having its own plants.",
    "entry": null,
    "calls": [
     "Makefile::target scoring-governance",
@@ -952,8 +958,8 @@
   },
   {
    "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > 8. Provenance and Dates > 8.6 Document history",
-   "hash": "ecc5a0c1f4f3cd22",
-   "does": "no behavioural claim: document version history v1.0-v1.3, all 2026-10-08.",
+   "hash": "d06c6bf4a282cdc7",
+   "does": "no behavioural claim: document version history v1.0-v1.3 (2026-10-08) and v1.4 (2026-11-22: still describes e028039, adds the Thread Sanitizer gate's later plants and canary at d2c8ca9).",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -974,8 +980,8 @@
   },
   {
    "key": "§ Emuqu — Build-Time Governance of a Consumer Physiology Score > Appendix A: Parameters",
-   "hash": "a1789eb8003f051f",
-   "does": "Table A.1 parameter list restating Sections 3.1-3.7 values (2 hashed files, 155 constants, regexes, digest length, v3.1.oct2026, unversioned, rankingWeight, 19 entries, 4 statuses, 3 retracted, 6 suffixes, 13 discovered, 45 gates, 64 plants, 125 mutations, 1 retry, 1 wiring exemption, 53 preflight scripts, exit codes 0/1/2, 70, 75, trailer, min_ prefix, BUDGET_REQUIRE_BASELINE, doc regex, billing). All values match code at 8d32097 except the claim that the scoring gate exits 2 for every configuration error.",
+   "hash": "13f7b5f3c827b9c1",
+   "does": "Table A.1 parameter list restating Sections 3.1-3.7 values at e028039 (2 hashed files, 155 constants, regexes, digest length, v3.1.oct2026, unversioned, rankingWeight, 19 entries, 4 statuses, 3 retracted, 6 suffixes, 13 discovered, 45 gates, 64 plants, 125 mutations, 1 retry, 1 wiring exemption, 53 preflight scripts, exit codes 0/1/2, 70, 75, trailer, min_ prefix, BUDGET_REQUIRE_BASELINE, doc regex, billing); the plant-completeness row notes that from d2c8ca9 only the coverage-floor gate is exempt. All values match code at 8d32097 except the claim that the scoring gate exits 2 for every configuration error.",
    "entry": null,
    "calls": [
     "Makefile::target scoring-governance",

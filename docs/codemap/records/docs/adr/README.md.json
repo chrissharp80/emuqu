@@ -37,7 +37,7 @@
     ".github/workflows/ci.yml::step lint-and-budgets/Unchecked Sendable guard": "a26d5aca611355ca",
     ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64",
     ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "197c125d8c622cd8",
-    ".github/workflows/gates.yml::step script-gates/Source hygiene guards": "a81cca29350b6c3f",
+    ".github/workflows/gates.yml::step script-gates/Source hygiene guards": "4544ad53952ea566",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "d25458414f1bd37b",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)": "d11072f0ae247cd7",
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptOne(_:in:)": "9d0d7818e676156f",
@@ -55,8 +55,8 @@
   },
   {
    "key": "§ Architecture decision records > 001 — Sensitive storage falls back, then repairs",
-   "hash": "a8014e42518b8923",
-   "does": "Claims: with EncryptionManager's key unreachable (before first unlock), whole files (archive sessions, one-shot raw backups) are written plain with .completeFileProtectionUnlessOpen and recorded in PendingEncryptionLedger (.session/.rawBackup); streamed files (raw RR points, workout streams) keep completeUntilFirstUserAuthentication with plain lines, recorded (.rawBackup/.workoutTrack), because locked overnight appends need it; the archive index is written plain. Repairs at the next launch with the key, and for the two backup stores also on protectedDataDidBecomeAvailable/didBecomeActive on the same queue as their appends (RawRRBackup.repairAfterUnlock): reencryptPendingSessions, RawRRBackup.reencryptPendingBackups, WorkoutTrackBackup.reencryptPendingTracks (line by line), SessionArchive.resealPlainIndexIfNeeded; an id leaves the ledger once no plaintext is left. CloudKit uploads fail closed (CloudPayloadCodec.sealForUpload throws encryptionUnavailable, retried later); rebuildable caches (UI state, training metrics) skip the write. Only a throwing encrypt() is logged; the key-unavailable fallback shows only as the ledger entry.",
+   "hash": "0ef8c0c2d385f526",
+   "does": "Claims: with EncryptionManager's key unreachable (before first unlock), whole files (archive sessions, one-shot raw backups) are written plain with .completeFileProtectionUnlessOpen and recorded in PendingEncryptionLedger (.session/.rawBackup); streamed files (raw RR points, workout streams) keep completeUntilFirstUserAuthentication with plain lines, recorded (.rawBackup/.workoutTrack); the archive index is written plain. Repairs at the next launch with the key, and for the two backup stores also on protectedDataDidBecomeAvailable/didBecomeActive (RawRRBackup.repairAfterUnlock): reencryptPendingSessions, RawRRBackup.reencryptPendingBackups, WorkoutTrackBackup.reencryptPendingTracks, SessionArchive.resealPlainIndexIfNeeded; an id leaves the ledger once no plaintext is left. CloudKit uploads fail closed (CloudPayloadCodec.sealForUpload throws encryptionUnavailable, retried later); rebuildable caches (UI state, training metrics, and the UserDefaults Apple Health caches SleepDataCache and BaselineSnapshot sealed with JSONFileSeal.app) skip the write. Only a throwing encrypt() is logged.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func archiveWriteOptions(for:sessionID:)",
@@ -73,7 +73,9 @@
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)",
     "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.persist()",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.writeSnapshot(_:to:seal:)"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.writeSnapshot(_:to:seal:)",
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.saveStore(_:)",
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func BaselineSnapshot.write(_:key:)"
    ],
    "reads": [],
    "writes": [],
@@ -92,6 +94,8 @@
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)": "dc014259171401bf",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "471ac438c2a3e780",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.reencryptPendingBackups()": "07f26c6929ec40b9",
+    "Emuqu/Sources/Storage/RespiratoryBaselineCache.swift::func BaselineSnapshot.write(_:key:)": "3194fae699d68d8d",
+    "Emuqu/Sources/Storage/SleepDataCache.swift::func SleepDataCache.saveStore(_:)": "c4e8632b49c92656",
     "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.persist()": "cfd31f4deb858931",
     "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::func WorkoutTrackBackup.reencryptPendingTracks()": "8449be48b2a3ef16"
    }

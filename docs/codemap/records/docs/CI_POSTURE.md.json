@@ -81,8 +81,8 @@
   },
   {
    "key": "§ CI posture > What actually enforces quality here > The gates",
-   "hash": "741564a898242af2",
-   "does": "Claims the listed gate groups (including a Supply chain row whose last gate is every xcodebuild run pinned to Package.resolved, and a Change tracking row: the code map's records current with their code, records whose callees changed listed for re-check) are all scripts in scripts/ run by make ci, make ci-local and Actions, with only the budget ratchet's baseline differing; every gate except check_coverage.sh and check_thread_sanitizer.sh has a plant in verify_gates_fail.sh, whose meta-check enumerates scripts/check_*.sh and enforce_*.sh failing on any without a plant or exemption; check_budget_monotonicity.sh skips without a baseline, make budget-monotonicity passes the merge base with origin/main (or HEAD, saying so) overridable by BUDGET_BASE_REF, ci.yml compares with the parent commit and gates.yml with the PR base or push-before tip. Code: verify_gates_fail.sh loops over check_*/enforce_* and errors on unplanted gates; check_budget_monotonicity.sh exits 0 without a baseline (no_baseline) and accepts a ref argument; the Makefile target and both workflows pass the baselines described.",
+   "hash": "717b63fb2d1583e9",
+   "does": "Claims the listed gate groups (Style & debt including the tech-debt budgets with the Watch target against its combined ceiling and whole-number ceilings; a Supply chain row whose last gate is every xcodebuild run pinned to Package.resolved; a Change tracking row for the code map) are all scripts in scripts/ run by make ci, make ci-local and Actions, with only the budget ratchet's baseline differing; every gate except check_coverage.sh (NEEDS_BUILD) has a plant in verify_gates_fail.sh, check_thread_sanitizer.sh's plants running it against a stand-in xcodebuild (race_in_suite, parallel_testing_hides_races, race_does_not_fail_run) and the gate itself first requiring the ThreadSanitizerCanaryTests race to be reported and fail its run; the meta-check enumerates scripts/check_*.sh and enforce_*.sh failing on any without a plant or exemption; check_budget_monotonicity.sh skips without a baseline, make budget-monotonicity passes the merge base with origin/main (or HEAD, saying so) overridable by BUDGET_BASE_REF, ci.yml compares with the parent commit and gates.yml with the PR base or push-before tip.",
    "entry": null,
    "calls": [
     "scripts/verify_gates_fail.sh::fn backup",
@@ -97,7 +97,11 @@
     "scripts/codemap/codemap.py::def budget_problems",
     "Makefile::target budget-monotonicity",
     ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline",
-    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only"
+    ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only",
+    "scripts/check_thread_sanitizer.sh::fn run_sanitized",
+    "scripts/enforce_tech_debt_budgets.sh::fn measure_debt",
+    "scripts/enforce_tech_debt_budgets.sh::fn read_budget",
+    "EmuquTests/ThreadSanitizerCanaryTests.swift::func ThreadSanitizerCanaryTests.testUnsynchronizedWritesRaceWhenTheCanaryIsRequested()"
    ],
    "reads": [],
    "writes": [],
@@ -108,11 +112,15 @@
     ".github/workflows/ci.yml::step lint-and-budgets/Gates fail closed": "881cc6b476cb58aa",
     ".github/workflows/ci.yml::step lint-and-budgets/Resolve the budget baseline": "99a2c1935f08f8cb",
     ".github/workflows/gates.yml::step script-gates/Debt budgets ratchet down only": "197c125d8c622cd8",
+    "EmuquTests/ThreadSanitizerCanaryTests.swift::func ThreadSanitizerCanaryTests.testUnsynchronizedWritesRaceWhenTheCanaryIsRequested()": "8204202826b96076",
     "Makefile::target budget-monotonicity": "f2990c87cb8c36d4",
     "Makefile::target codemap-guard": "31a759d3fd34483c",
     "scripts/check_budget_monotonicity.sh::fn no_baseline": "fc658970d2a0e744",
+    "scripts/check_thread_sanitizer.sh::fn run_sanitized": "82b631abdc683244",
     "scripts/codemap/codemap.py::def budget_problems": "4b5252320a3020b3",
     "scripts/codemap/codemap.py::def dependency_problems": "df4bf0f691649e50",
+    "scripts/enforce_tech_debt_budgets.sh::fn measure_debt": "da2320eb626a809c",
+    "scripts/enforce_tech_debt_budgets.sh::fn read_budget": "0b214d0ad20888fb",
     "scripts/verify_gates_fail.sh::fn backup": "7d768c7178d9b770",
     "scripts/verify_gates_fail.sh::fn check": "628cb3d9d277ffae",
     "scripts/verify_gates_fail.sh::fn restore_all": "b419892056a17dde"
@@ -155,9 +163,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "scripts/lib/preflight.sh::fn gate_acquire_tree_lock": "d605a361d71d1614",
+    "scripts/lib/preflight.sh::fn gate_acquire_tree_lock": "1eefdbbc8287980c",
     "scripts/lib/preflight.sh::fn gate_release_tree_lock": "59418dd1be593444",
-    "scripts/lib/preflight.sh::fn gate_require_unmutated_tree": "654f69c47cb8b3b9",
+    "scripts/lib/preflight.sh::fn gate_require_unmutated_tree": "9b85fbe8e85c7fef",
     "scripts/verify_gates_fail.sh::fn restore_all": "b419892056a17dde",
     "scripts/verify_tests_fail.sh::fn restore_all": "2791d57c196ad0be"
    }
@@ -183,15 +191,17 @@
   },
   {
    "key": "§ CI posture > What actually enforces quality here > Where to point it next: at the comments that claim something is subtle",
-   "hash": "5cf45fc94c75572b",
-   "does": "Claims comments that call behaviour subtle are mutation leads: tests pin the three RRDataImporter+CSV.rrValue asymmetries with permanent mutations; WorkoutMileMarkerEngine's zone label must use max HR, not session peak, as the denominator, with tests and a mutation swapping it back; HealthExportIdentity's tests assert no metric's delete reaches another metric's or session's samples; verify_tests_fail.sh needs a build per mutation so it is not in make ci. Named units exist; verify_tests_fail.sh has RRDataImporter+CSV, HealthExportIdentity and zone_label_uses_session_peak_as_denominator cases and is not a dependency of the Makefile ci target.",
+   "hash": "e246571f1c36a6a3",
+   "does": "Claims comments that call behaviour subtle are mutation leads: tests pin the three RRDataImporter+CSV.rrValue asymmetries with permanent mutations; WorkoutMileMarkerEngine's zone label must use max HR, not session peak, as the denominator, with tests and a mutation swapping it back; the delete accompanying every Apple Health re-export is HealthSampleReplacer's (read earlier own samples, save, delete the earlier ones notReplacedBySync), and its naming scheme HealthExportIdentity has tests asserting no metric's delete reaches another metric's or session's samples; verify_tests_fail.sh needs a build per mutation so it is not in make ci.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.storedHRStatistics(series:flags:windowStart:windowEnd:)",
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)",
     "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)",
-    "scripts/verify_tests_fail.sh::fn mutate"
+    "scripts/verify_tests_fail.sh::fn mutate",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.notReplacedBySync(_:by:)"
    ],
    "reads": [],
    "writes": [],
@@ -200,6 +210,8 @@
     "Emuqu/Sources/Analysis/HRVSleepStageClassifier.swift::func HRVSleepStageClassifier.windowVariability(_:avgRR:followsPrevious:)": "8d7b213b174bf680",
     "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.storedHRStatistics(series:flags:windowStart:windowEnd:)": "00e7407acbc2dbbe",
     "Emuqu/Sources/Assistant/WorkoutMileMarkerEngine.swift::func WorkoutMileMarkerEngine.evaluate(context:state:interval:unitsImperial:)": "bf899a6178762308",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.notReplacedBySync(_:by:)": "0edb6f4d08bbc411",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)": "0415c974b73264d3",
     "Emuqu/Sources/Import/RRDataImporter+CSV.swift::func RRDataImporter.rrValue(fromColumns:rrColumnIndex:convert:)": "a8da2c0c85eb9d03",
     "scripts/verify_tests_fail.sh::fn mutate": "b17da90a86fc42d2"
    }
@@ -242,8 +254,8 @@
   },
   {
    "key": "§ CI posture > Where GitHub Actions is still used",
-   "hash": "558e3fa2f7ce7d30",
-   "does": "Claims every pull request and push to main runs gates.yml and ci.yml (unit), testflight.yml calls ci.yml as a reusable workflow at scope full, its deploy job runs in the testflight environment (main only, owner approval per run, holds the signing and App Store Connect secrets), and security.yml (CodeQL) is on demand. Code: gates.yml/ci.yml pull_request and push [main] triggers; testflight.yml quality-gate job uses ci.yml and deploy declares environment: testflight; security.yml is workflow_dispatch with codeql and dependency-review jobs. The environment's branch rule and reviewer are repository settings, not visible in the repo.",
+   "hash": "d12ea24d91e10f40",
+   "does": "Claims every pull request and push to main runs gates.yml and ci.yml (unit), testflight.yml calls ci.yml as a reusable workflow at scope full, its deploy job runs in the testflight environment (main only, owner approval per run, holds the signing and App Store Connect secrets), its own if: also requires refs/heads/main, and its 'Remove signing material' step (if: always()) deletes the keychain and keys; security.yml (CodeQL and dependency review) is on demand, the review failing unless every Package.resolved pin is in the dependency-graph SBOM ('Require the Swift packages in the dependency graph'). The environment's branch rule and reviewer are repository settings, not visible in the repo.",
    "entry": null,
    "calls": [
     ".github/workflows/gates.yml::job script-gates",
@@ -252,7 +264,9 @@
     ".github/workflows/testflight.yml::job quality-gate",
     ".github/workflows/testflight.yml::job deploy",
     ".github/workflows/security.yml::job codeql",
-    ".github/workflows/security.yml::job dependency-review"
+    ".github/workflows/security.yml::job dependency-review",
+    ".github/workflows/testflight.yml::step deploy/Remove signing material",
+    ".github/workflows/security.yml::step dependency-review/Require the Swift packages in the dependency graph"
    ],
    "reads": [],
    "writes": [],
@@ -263,8 +277,10 @@
     ".github/workflows/gates.yml::job script-gates": "d704e87daa272f64",
     ".github/workflows/security.yml::job codeql": "64078fc4677fac05",
     ".github/workflows/security.yml::job dependency-review": "f544cc3ea5ca4098",
+    ".github/workflows/security.yml::step dependency-review/Require the Swift packages in the dependency graph": "8b05cdb3a8f6d6ea",
     ".github/workflows/testflight.yml::job deploy": "02e6016611ab02e4",
-    ".github/workflows/testflight.yml::job quality-gate": "bce49f9b26dee90e"
+    ".github/workflows/testflight.yml::job quality-gate": "bce49f9b26dee90e",
+    ".github/workflows/testflight.yml::step deploy/Remove signing material": "6e9a08daf6efeb80"
    }
   },
   {

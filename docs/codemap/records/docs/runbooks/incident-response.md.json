@@ -42,17 +42,21 @@
   },
   {
    "key": "§ Runbook: Incident Response > B. CloudKit sync failure (zone-wide)",
-   "hash": "ef16d4e3f26a19f4",
-   "does": "CloudKit outage triage: check CloudKit Dashboard for container iCloud.com.chrissharp.flowrecovery, deploy schema to production if only this container fails, never mass-reset user state. Container id matches Constants.swift:12 and Emuqu.entitlements:23; schema-not-deployed failure mode is the one CloudKitSessionFreshness.noteSaveFailure logs (\"not in the production schema\").",
+   "hash": "628fd2b643b43d51",
+   "does": "CloudKit outage triage: check CloudKit Dashboard for container iCloud.com.chrissharp.flowrecovery, deploy schema to production if only this container fails (the failure CloudKitSessionFreshness.noteSaveFailure logs as 'not in the production schema'), never mass-reset user state. A single user's stopped sync is usually CloudAccountGuard.stopSync: a different Apple ID from the recorded one, or the app's iCloud data deleted, turns sync off with CloudAccountIdentity.StopReason's notice under the switch, keeping local data; turning sync on again records the signed-in account (CloudAccountIdentity.adopt) and uploads.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.noteSaveFailure(_:uploading:)",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.pullRemoteChanges()"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.pullRemoteChanges()",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.adopt(_:generation:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)": "12d14f68b1fd137f",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.adopt(_:generation:)": "8c186f87dafb7746",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.noteSaveFailure(_:uploading:)": "30dfbfb7c5fe0baf",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.pullRemoteChanges()": "3b87ee2b3948addd"
    }
@@ -70,7 +74,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift::func MapBoundsHelper.region(for:paddingFactor:minimumDelta:emptyFallbackDelta:)": "9d9f61a1de8a5dfe",
+    "Emuqu/Sources/Views/Utilities/MapBoundsHelper.swift::func MapBoundsHelper.region(for:paddingFactor:minimumDelta:emptyFallbackDelta:)": "9751b419e6246cb2",
     "Makefile::target sendable-guard": "c009f552884c46bc"
    }
   },
@@ -125,7 +129,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.clamp(sleepStartMs:sleepEndMs:recordingDurationMs:)": "6b22c8efc9ae5167",
-    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)": "472051ae5134cf89"
+    "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func SleepBoundaryResolver.resolve(sessionStart:recordingEnd:rrPoints:useHREstimation:)": "f7a81f796918ddbb"
    }
   },
   {
@@ -152,7 +156,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/LLMRequestAudit.swift::func LLMRequestAudit.record(provider:model:systemPrompt:messagesJSON:toolsJSON:)": "54b70891909d3d9d",
     "Emuqu/Sources/Assistant/ProviderConsentTracker.swift::func ProviderConsentTracker.requiresConsent(_:)": "6cc9d2a50a137c6c",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.consentGateAllowsDispatch(provider:voiceMode:)": "71ef29af1a6b5d05",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.consentGateAllowsDispatch(provider:voiceMode:regenerating:)": "0be9ab3d11ee551b",
     "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.set(_:for:)": "e3466403d0f0a9a9",
     "Emuqu/Sources/Utilities/Constants+SleepAndDisplay.swift::func FeatureFlags.value(for:)": "5026cc5eddd06cce",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.exportToFileAsync()": "387ef887798c24ed",
