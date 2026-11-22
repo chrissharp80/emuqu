@@ -183,9 +183,9 @@ Tap **Adjust** on the Sleep Detail View (or **Edit sleep** in its options menu) 
 - **Long-press the timeline** to add sleep the recording missed. Sleep you add counts toward your total but has no stage detail (no deep or REM).
 - **Stage pills** (Deep, Light, REM, Asleep, Awake) recompute live as you drag.
 - The **Total Sleep** summary shows your adjusted total and a signed change from where you started (for example "+12m").
-- **Undo** steps back through your last 5 edits; **Reset** returns to where you started; **Refresh from Apple Health** pulls the latest sleep from Health and discards your current edits.
+- **Undo** steps back through your last 5 edits; **Reset** returns to where you started; **Refresh from Apple Health** pulls the latest sleep from Health and discards your current edits (it asks first when you have made any).
 
-Tap **"Done"** to accept your adjustments or **"Cancel"** to discard them. **Saving an adjustment automatically rescores the session** — your recovery score updates to reflect the new sleep boundaries.
+Tap **"Done"** to accept your adjustments or **"Cancel"** to discard them (it asks first when there is anything to lose, and the sheet cannot be swiped away then). **Saving an adjustment automatically rescores the session** — your recovery score updates to reflect the new sleep boundaries.
 
 > Opening the app does not rewrite historical sessions' sleep data. Only sessions you explicitly edit here are mutated.
 

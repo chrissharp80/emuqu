@@ -16,7 +16,7 @@ import SwiftUI
 struct RecoveryScoreCharts {
     let session: HRVSession
     let result: HRVAnalysisResult
-    let onReanalyzeAt: ((Int64) async -> Void)?
+    let onReanalyzeAt: ((Int64) async -> Bool)?
 
     let hrChartSeries: [RecoveryScoreCharts.HRPoint]
     let rmssdChartSeries: [RecoveryScoreCharts.RMSSDPoint]
@@ -28,11 +28,12 @@ struct RecoveryScoreCharts {
     @Binding var hrHoverDate: Date?
     @Binding var hrvHoverDate: Date?
     @Binding var previewWindowMs: Int64?
-    @Binding var selectedWindowSegment: RecoveryScoreDetailView.AnalysisWindowSegment
-    @Binding var segmentBeforePick: RecoveryScoreDetailView.AnalysisWindowSegment
+    @Binding var selectedWindowSegment: RecoveryScoreDetailView.AnalysisWindowSegment?
+    @Binding var segmentBeforePick: RecoveryScoreDetailView.AnalysisWindowSegment?
     @Binding var restoringSegment: Bool
     @Binding var windowChangedHere: Bool
     @Binding var isReanalyzing: Bool
+    @Binding var reanalysisFailed: Bool
     @Binding var didCompleteInitialLoad: Bool
     @Binding var fallbackHRSamples: [(date: Date, hr: Double)]
 }
@@ -62,7 +63,7 @@ extension RecoveryScoreDetailView {
             selectedWindowSegment: $selectedWindowSegment,
             segmentBeforePick: $segmentBeforePick, restoringSegment: $restoringSegment,
             windowChangedHere: $windowChangedHere,
-            isReanalyzing: $isReanalyzing,
+            isReanalyzing: $isReanalyzing, reanalysisFailed: $reanalysisFailed,
             didCompleteInitialLoad: $didCompleteInitialLoad,
             fallbackHRSamples: $fallbackHRSamples
         )

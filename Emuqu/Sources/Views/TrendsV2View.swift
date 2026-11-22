@@ -143,14 +143,15 @@ struct TrendsV2View: View {
             }
         }
 
-        /// Y-axis caption + insight phrasing.
+        /// Y-axis caption + insight phrasing, in the app's language.
         var displayUnit: String {
-            switch self {
-            case .recoveryScore: "/ 100"
-            case .rmssd, .sdnn: "ms"
-            case .meanHR: "bpm"
+            let b = LanguageManager.appBundle
+            return switch self {
+            case .recoveryScore: String(localized: "/ 100", bundle: b)
+            case .rmssd, .sdnn: String(localized: "ms", bundle: b)
+            case .meanHR: String(localized: "bpm", bundle: b)
             case .balance: ""        // dimensionless ratio
-            case .hfPower: "ms²"
+            case .hfPower: String(localized: "ms²", bundle: b)
             case .stress: ""
             }
         }

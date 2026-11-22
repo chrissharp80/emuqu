@@ -18,8 +18,8 @@
  "units": [
   {
    "key": "var VitalsDetailV2View.effectiveVitals",
-   "hash": "034207ccad8b2c52",
-   "does": "Merged vitals for the screen via mergedVitals: stored = latest reliable overnight session's vitalsSnapshot (falls back to the passed-in vitals only when there is no overnight reading), fresh = refreshedVitals, strapHR = that overnight's analysis meanHR.",
+   "hash": "2d99ccb83e7a6f60",
+   "does": "Self.mergedVitals of the latest overnight's stored snapshot (or the passed-in vitals), the refreshed vitals and the latest overnight's strap mean HR when it is above 0 (strapMeanHR).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.latestOvernight",
@@ -33,8 +33,26 @@
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
     "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.mergedVitals(stored:fresh:strapHR:)": "73b3c42737799d3f",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.strapMeanHR(of:)": "e3143b77721e9595",
     "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.latestOvernight": "e97c737200ab89b3"
    }
+  },
+  {
+   "key": "func VitalsDetailV2View.strapMeanHR(of:)",
+   "hash": "b8b249335d54a4da",
+   "does": "The session's strap analysis-window mean HR, nil without a session, analysis or a value above 0 (an analysis that found no heart rate stores 0).",
+   "entry": "Called by VitalsDetailV2View, SleepDetailV2View and TrendsV2View.metricValue",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "meanHR missing or <= 0",
+     "effect": "nil"
+    }
+   ],
+   "deps": {}
   },
   {
    "key": "func VitalsDetailV2View.mergedVitals(stored:fresh:strapHR:)",
@@ -105,7 +123,7 @@
    "deps": {
     "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "cf6f3e738d761a42",
     "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.bannerStatus(_:)": "d5fdc443d8672a9a",
-    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "a8a065d8b4b7e49a"
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "775a65665fe0cc51"
    }
   },
   {
@@ -297,7 +315,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8",
-    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.refreshVitals()": "e1506fbb1df1f47c",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.refreshVitals()": "167739b52bc51be0",
     "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.latestOvernight": "e97c737200ab89b3",
     "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.rowsSection": "868226409b2fa769",
     "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.statusBanner": "0ca246a0a916d171",
@@ -307,8 +325,8 @@
   },
   {
    "key": "func VitalsDetailV2View.refreshVitals()",
-   "hash": "084649517fd41696",
-   "does": "Fetches HealthKit recovery vitals relative to the latest overnight's end (or start), overrides RHR with its strap meanHR, and stores them in refreshedVitals when non-empty.",
+   "hash": "2b45c7d554961099",
+   "does": "For the latest overnight: fetches recovery vitals from HealthKit relative to its end (or start), overrides RHR with its strap mean HR when above 0 (strapMeanHR), and stores them in refreshedVitals when not empty.",
    "entry": ".task(id: latestOvernight?.id) in body",
    "calls": [
     "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.latestOvernight",
@@ -347,6 +365,7 @@
     "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "5fa896ef88ba9fda",
     "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.isEmpty": "cf6f3e738d761a42",
     "Emuqu/Sources/Views/DashboardV2View.swift::var DashboardV2View.healthKit": "cf324801552ce4e5",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.strapMeanHR(of:)": "e3143b77721e9595",
     "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.latestOvernight": "e97c737200ab89b3"
    }
   },
@@ -547,7 +566,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "a8a065d8b4b7e49a"
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "775a65665fe0cc51"
    }
   },
   {
@@ -578,7 +597,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "a8a065d8b4b7e49a",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "775a65665fe0cc51",
     "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.rhrIsStrapDerived": "735df8426cb79dcf"
    }
   },
@@ -633,7 +652,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
-    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "a8a065d8b4b7e49a"
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "775a65665fe0cc51"
    }
   },
   {
@@ -672,7 +691,7 @@
     "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.respiratoryDeviation": "6c7d5be6d9400201",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
-    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "a8a065d8b4b7e49a"
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "775a65665fe0cc51"
    }
   },
   {
@@ -707,7 +726,7 @@
    "deps": {
     "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.wristTemperatureDeviation": "42464c66774b99f3",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618",
-    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "a8a065d8b4b7e49a"
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "775a65665fe0cc51"
    }
   },
   {
@@ -740,7 +759,7 @@
    "deps": {
     "Emuqu/Sources/Models/RecoveryVitals.swift::var RecoveryVitals.wristTemperatureDeviation": "42464c66774b99f3",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "a8a065d8b4b7e49a",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "775a65665fe0cc51",
     "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.tempUnavailableReason": "9f3f892bab421ea5"
    }
   },
@@ -766,7 +785,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "a8a065d8b4b7e49a"
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "775a65665fe0cc51"
    }
   },
   {
@@ -787,7 +806,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "a8a065d8b4b7e49a"
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "775a65665fe0cc51"
    }
   },
   {
@@ -824,7 +843,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "a8a065d8b4b7e49a",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "775a65665fe0cc51",
     "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.spo2PenaltyInScore": "d577ae8a3eb93c06"
    }
   },
@@ -943,7 +962,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "a8a065d8b4b7e49a"
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.effectiveVitals": "775a65665fe0cc51"
    }
   },
   {
@@ -965,7 +984,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/ChartCard.swift::var ChartCard.body": "df067625db168e51",
-    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.buildTrend()": "72b477224c9ead63",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.buildTrend()": "53ac0ba869e86c12",
     "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.trendContent(_:)": "e94b8a203eac5bca"
    }
   },
@@ -1109,8 +1128,8 @@
   },
   {
    "key": "func VitalsDetailV2View.buildTrend()",
-   "hash": "cd378124e35006e6",
-   "does": "Trend points for trendNights(): RHR = analysis meanHR else snapshot RHR, resp = snapshot respiratory rate; sorted by date.",
+   "hash": "8a4b59e7ed0c8433",
+   "does": "One RHR point per trend night from its strap mean HR when above 0 (strapMeanHR), else its stored snapshot's RHR, plus a respiratory-rate point when stored; sorted by date.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.trendNights()",
@@ -1143,6 +1162,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Assistant/Context/ContextBuilder.swift::func ContextBuilder.vitalsSnapshot(for:)": "6df52d52e03c5696",
+    "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.strapMeanHR(of:)": "e3143b77721e9595",
     "Emuqu/Sources/Views/VitalsDetailV2View.swift::func VitalsDetailV2View.trendNights()": "c94935129b049d02",
     "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.respSeries": "73bd5cf6abb6f5f9",
     "Emuqu/Sources/Views/VitalsDetailV2View.swift::var VitalsDetailV2View.rhrSeries": "9b97f22c6de43098"

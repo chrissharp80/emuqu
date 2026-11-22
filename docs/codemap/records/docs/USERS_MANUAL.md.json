@@ -370,8 +370,8 @@
   },
   {
    "key": "§ Emuqu User Manual > Detail Views > Sleep Detail View > Adjust Sleep Screen",
-   "hash": "db09a6407669d645",
-   "does": "Describes SleepTimelineEditorView opened from Adjust (adjustSleepButton) or Edit sleep (editSleepButton): one timeline of segments, tap to select, drag handles (no crossing a neighbour, 1-minute snap), Split with preview / Carve Awake / Merge / Delete, long-press to add stage-less sleep, live stage pills, TOTAL SLEEP with a signed delta, Undo (5 steps), Reset, Refresh from Apple Health; Done saves and rescores, Cancel discards; opening the app does not rewrite history.",
+   "hash": "3f2b40c89c255989",
+   "does": "Describes SleepTimelineEditorView opened from Adjust (adjustSleepButton) or Edit sleep (editSleepButton): one timeline of segments, tap to select, drag handles (no crossing a neighbour, 1-minute snap), Split with preview / Carve Awake / Merge / Delete, long-press to add stage-less sleep, live stage pills, TOTAL SLEEP with a signed delta, Undo (5 steps), Reset, Refresh from Apple Health (asks first over edits made); Done saves and rescores, Cancel discards (asks first when there is anything to lose, and the sheet cannot be swiped away then); opening the app does not rewrite history.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.adjustSleepButton(_:)",
@@ -394,17 +394,17 @@
    "deps": {
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.applySleepBoundaries(to:sleepData:sleepStart:sleepEnd:isUserAdjustment:)": "52f58f127571dcae",
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.updateSessionSleepBoundaries(sessionId:sleepData:isUserAdjustment:)": "c11d10dab10551e5",
-    "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.saveSleepBoundaries(_:for:)": "253f0ea27a5385fb",
+    "Emuqu/Sources/Views/DashboardV2View.swift::func DashboardV2View.saveSleepBoundaries(_:for:)": "e9a550eb3193aa56",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applyingAdjustBoundary(id:side:newTime:)": "294d7281a8d87a15",
     "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineUndoStack.push(_:)": "6e1479fda55a8f9e",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.boundaryDragGesture(seg:side:vp:width:)": "8b847ffd64f86028",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.commit()": "a89583689417a046",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.inspectorActions(_:)": "e3c7141a55831ea8",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::var SleepTimelineEditorView.editorToolbar": "dab49a6dd969c312",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::var SleepTimelineEditorView.editorToolbar": "7d1c4cd60cdffff8",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView.swift::var SleepTimelineEditorView.summaryCard": "fb8c15f4f55e6535",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.adjustSleepButton(_:)": "92bcc4ee7f344fd3",
     "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.editSleepButton(_:)": "583dc46da9527c3f",
-    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.sleepEditor(_:)": "70379d6ef276e865"
+    "Emuqu/Sources/Views/SleepDetailV2View.swift::func SleepDetailV2View.sleepEditor(_:)": "86a612a8dcc3aff4"
    }
   },
   {
@@ -1663,10 +1663,10 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.attachPeakCapacityWindow(_:bounds:peakCapacity:sessionId:)": "e5b9ffcb171775a2",
-    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.peakCapacityBounds(series:peakCapacity:)": "8f27cfe76f6c9f7a",
-    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.body": "4074128bbeb1e5e3",
+    "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.peakCapacityBounds(series:peakCapacity:)": "935c83f9530cf10b",
+    "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.body": "1ba1046de02ab96c",
     "Emuqu/Sources/Views/PeakCapacityCard.swift::var PeakCapacityCard.peakRmssdSection": "7318f72d8b6883f1",
-    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.summarySections": "1796c50e1fbc5b8e"
+    "Emuqu/Sources/Views/SessionHRVDetailView.swift::var SessionHRVDetailView.summarySections": "f70bfaff8e6a5e33"
    }
   },
   {

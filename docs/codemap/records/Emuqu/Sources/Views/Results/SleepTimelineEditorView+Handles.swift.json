@@ -154,7 +154,7 @@
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.inspectorHeader(_:)": "4a57e8314de5d504",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.inspectorStagePills(_:)": "01d8b222be6310d7",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.previewedSegment(_:)": "d249a178a6d75279",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.sourceLabel(for:)": "c6d8748c58949c97",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.sourceLabel(for:)": "083ea594acad8c21",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.cardBackground": "b119dab620da2835",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
@@ -317,8 +317,8 @@
   },
   {
    "key": "func SleepTimelineEditorView.sourceLabel(for:)",
-   "hash": "3dcdc06a7bb60733",
-   "does": "\"Recording bounds\" for an empty set; otherwise the provenances present, in a fixed order (Watch, iPhone, HRV, You (added), You (awake), You (edited)), joined with \" · \".",
+   "hash": "98d54d4d5552382e",
+   "does": "\"Recording bounds\" for an empty set; otherwise the provenances present, in a fixed order (Apple Watch, iPhone, HRV — catalog names, iPhone being the product name in every language — then You (added), You (awake), You (edited)), joined with \" · \".",
    "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199)",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -474,6 +474,126 @@
    "deps": {}
   },
   {
+   "key": "var SleepTimelineEditorView.hasUnsavedChanges",
+   "hash": "c66c8fb671beead3",
+   "does": "True when Done would keep something closing would lose: an edit made this visit (editsThisVisit non-empty) or a refresh from Apple Health.",
+   "entry": "Read by editorScroll (swipe-dismiss) and cancelEditing",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.editsThisVisit"
+   ],
+   "reads": [
+    "mem:SleepTimelineEditorView.refreshedFromHealth"
+   ],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.editsThisVisit": "b8631da4e1a53ad1"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.withDiscardConfirmations(_:)",
+   "hash": "0f37aa255d23e090",
+   "does": "Attaches two confirmations: 'Discard your sleep changes?' (Discard Changes dismisses without saving, Keep Editing stays) bound to confirmingDiscardEdits, and 'Replace your edits with Apple Health's sleep?' (Refresh starts the refresh) bound to confirmingRefresh.",
+   "entry": "SwiftUI view composition from editorScroll",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.discardEditsActions",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.startRefresh()",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:SleepTimelineEditorView.confirmingDiscardEdits",
+    "mem:SleepTimelineEditorView.confirmingRefresh"
+   ],
+   "writes": [
+    "mem:SleepTimelineEditorView.confirmingDiscardEdits",
+    "mem:SleepTimelineEditorView.confirmingRefresh"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.startRefresh()": "7ee97871256415c6",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.discardEditsActions": "1d1f21ebdf14ad89"
+   }
+  },
+  {
+   "key": "var SleepTimelineEditorView.discardEditsActions",
+   "hash": "0a4040d8c38ac0b5",
+   "does": "Destructive 'Discard Changes' (dismiss) and cancel 'Keep Editing' buttons of the discard confirmation.",
+   "entry": "Confirmation dialog buttons",
+   "calls": [
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.cancelEditing()",
+   "hash": "af4e9220632717d9",
+   "does": "Cancel: dismisses at once with nothing unsaved, otherwise sets confirmingDiscardEdits so the user confirms first.",
+   "entry": "Cancel toolbar button",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.hasUnsavedChanges"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SleepTimelineEditorView.confirmingDiscardEdits"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "hasUnsavedChanges",
+     "effect": "confirm first; else dismiss"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.hasUnsavedChanges": "16249570913c35ff"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.requestRefresh()",
+   "hash": "f389ddec1391aac6",
+   "does": "Refresh: starts it at once with no edits this visit, otherwise sets confirmingRefresh (a refresh replaces them and clears undo).",
+   "entry": "Refresh button",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.editsThisVisit",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.startRefresh()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:SleepTimelineEditorView.confirmingRefresh"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "editsThisVisit empty",
+     "effect": "startRefresh; else confirm first"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.startRefresh()": "7ee97871256415c6",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.editsThisVisit": "b8631da4e1a53ad1"
+   }
+  },
+  {
+   "key": "func SleepTimelineEditorView.startRefresh()",
+   "hash": "2554e52c94c8e118",
+   "does": "Launches a Task that awaits runRefreshFromHealthKit.",
+   "entry": "Called by requestRefresh and the refresh confirmation",
+   "calls": [
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.runRefreshFromHealthKit()"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.runRefreshFromHealthKit()": "663f2379c00c7c75"
+   }
+  },
+  {
    "key": "func SleepTimelineEditorView.editKindCounts(_:)",
    "hash": "43ac9fb2baf36d72",
    "does": "Counts edits per SleepEditRecord.Kind.",
@@ -619,25 +739,25 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.refreshButton": "ddd12d1ebdb7940f",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.refreshButton": "0bffdf8801614255",
     "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::var SleepTimelineEditorView.refreshFromHealthLabel": "e15e85bd22fc6240",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a"
    }
   },
   {
    "key": "var SleepTimelineEditorView.refreshButton",
-   "hash": "66652a5389e321e8",
-   "does": "Refresh button launching a Task that awaits runRefreshFromHealthKit.",
+   "hash": "5edbc6beb6bf8f38",
+   "does": "Refresh button calling requestRefresh (runs at once with no edits this visit, asks first otherwise).",
    "entry": "SwiftUI render of SleepTimelineEditorView (presented from SleepDetailV2View.sleepEditor, SleepDetailV2View.swift:199); button tap",
    "calls": [
-    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.runRefreshFromHealthKit()"
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.requestRefresh()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.runRefreshFromHealthKit()": "663f2379c00c7c75"
+    "Emuqu/Sources/Views/Results/SleepTimelineEditorView+Handles.swift::func SleepTimelineEditorView.requestRefresh()": "11131168f89c5a00"
    }
   },
   {
