@@ -93,7 +93,9 @@ The delete is unavailable while a recording is in progress (a quick reading,
 a night, paused or still being analysed, a strap recording, or a workout) or
 a reading is waiting to be accepted; the page says so under the button. The
 user stops the recording, or accepts or discards the reading, and then runs
-it.
+it. If a recording starts while the iCloud copy is being deleted, the delete
+stops before it wipes the device and says so; iCloud sync is left off, and the
+user runs it again once the recording is stopped.
 
 Direct the user to that flow first. It's faster than waiting for you.
 

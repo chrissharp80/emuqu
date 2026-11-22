@@ -12,14 +12,14 @@
  "toplevel": "Two private static thresholds for overnight classification (SessionRecoveryService+Backup.swift:105-106).",
  "units": [
   {
-   "key": "func SessionRecoveryService.recoverFromBackup(_:analyze:analyzeWithCapacity:supersedeSameNight:computeRecoveryScore:)",
-   "hash": "522bb55fb9fd6e9e",
-   "does": "Recovers sessionId from its backup: builds an HRVSession (.collecting, type from recoveredSessionType) from the parent-merged backup, runs windowed analysis, returns nil if analysis produced nothing; otherwise applies same-night supersede links, stamps a frozen recovery score, archives it (marking the backup archived and uploading to iCloud) and returns it, or nil if archiving failed.",
+   "key": "func SessionRecoveryService.recoverFromBackup(_:recordedType:analyze:analyzeWithCapacity:supersedeSameNight:computeRecoveryScore:)",
+   "hash": "421d43f3ea306e8f",
+   "does": "Recovers sessionId from its backup: builds an HRVSession (.collecting, type from recoveredSessionType with the type the recording was started as when the caller knows it) from the parent-merged backup, runs analysis (windowed, else the whole series), returns nil if analysis produced nothing; otherwise applies same-night supersede links, stamps a frozen recovery score, archives it (marking the backup archived and uploading to iCloud) and returns it, or nil if archiving failed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.retrieveBackupWithParentMerge(_:)",
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:recordedType:)",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.analyzeSession(_:series:flags:analyze:analyzeWithCapacity:)",
     "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.stampFrozenScore(on:computeRecoveryScore:)",
     "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.archiveRecovered(_:sessionId:)",
@@ -39,22 +39,22 @@
    ],
    "branches": [
     {
-     "at": "+20",
+     "at": "+19",
      "cond": "no backup retrievable",
      "effect": "returns nil"
     },
     {
-     "at": "+30",
+     "at": "+29",
      "cond": "analysisResult non-nil",
      "effect": "state .complete; else .failed"
     },
     {
-     "at": "+31",
+     "at": "+30",
      "cond": "state != .complete (analysis failed)",
      "effect": "returns nil; nothing archived, backup stays eligible"
     },
     {
-     "at": "+35",
+     "at": "+34",
      "cond": "archiveRecovered returned false",
      "effect": "returns nil (archive failed, logged at error)"
     }
@@ -62,17 +62,18 @@
    "deps": {
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
     "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.archiveRecovered(_:sessionId:)": "a50c197cb49b64e8",
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:)": "1539e384a536d37d",
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.stampFrozenScore(on:computeRecoveryScore:)": "1bb74c3f0e70eeaa",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.analyzeSession(_:series:flags:analyze:analyzeWithCapacity:)": "4c65637004b180d0",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.retrieveBackupWithParentMerge(_:)": "d43819ea36bc3102",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoveredSessionType(for:sessionId:recordedType:)": "806f91f0d3b009d3",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.stampFrozenScore(on:computeRecoveryScore:)": "a1321470499775e6",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.analyzeSession(_:series:flags:analyze:analyzeWithCapacity:)": "2946d11423fd9c0d",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.retrieveBackupWithParentMerge(_:)": "dc42a2aad33630de",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.flags(count:flagged:)": "644bfb993c7bd1d9"
    }
   },
   {
-   "key": "func SessionRecoveryService.recoveredSessionType(for:sessionId:)",
-   "hash": "0a663659c0ea85de",
-   "does": "Classifies a recovered backup: .overnight only if it has ≥4000 beats and spans ≥3600 s from sessionStart to endDate (endDate nil → 0 s); otherwise logs and returns .quick.",
+   "key": "func SessionRecoveryService.recoveredSessionType(for:sessionId:recordedType:)",
+   "hash": "c3a0db9c4add2081",
+   "does": "Classifies a recovered backup. A recording known to have been started as something other than an overnight (recordedType: nap, quick, breathe) keeps that type. Otherwise (nil or .overnight): .overnight only if it has ≥4000 beats and spans ≥3600 s from sessionStart to endDate (endDate nil → 0 s); else logs and returns .quick.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
@@ -82,12 +83,17 @@
    "writes": [],
    "branches": [
     {
-     "at": "+6",
+     "at": "+1",
+     "cond": "recordedType set and not .overnight",
+     "effect": "returns recordedType"
+    },
+    {
+     "at": "+7",
      "cond": "endDate nil (??)",
      "effect": "uses sessionStart, duration 0 → .quick"
     },
     {
-     "at": "+7",
+     "at": "+8",
      "cond": "beats < 4000 or duration < 3600 s",
      "effect": "logs and returns .quick; else .overnight"
     }
@@ -224,22 +230,22 @@
    "deps": {
     "Emuqu/Sources/Analysis/ScoredRecoveryBlock.swift::func ScoredRecoveryBlock.recoveryScore(stabilityWeight:)": "401d83f6f502cc26",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "1aa026e4481155fe",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "f6fc789fb7f2e911",
     "Emuqu/Sources/Storage/RawRRBackup+Reconciliation.swift::func RawRRBackup.markAsArchived(_:)": "bd07a0cd0d67f397",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func SessionRecoveryService.recoverToPausedState(_:sessionType:analyze:analyzeWithCapacity:)",
-   "hash": "7f9f1f4f191101cd",
-   "does": "Rebuilds an interrupted recording from its (parent-merged) backup as a .paused session with pausedDate = now, runs analysis (result may stay nil), archives it via attempt() and returns it; nil when no backup or the archive write fails.",
+   "hash": "b72365f77c18292a",
+   "does": "Rebuilds an interrupted recording from its (parent-merged) backup as a .paused session with pausedDate = now, runs analysis (windowed, else the whole series; result may stay nil), archives it via attempt() under its own id (skipSameNightMerge: a same-night merge would drop the id the Record tab resumes) and returns it; nil when no backup or the archive write fails.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.retrieveBackupWithParentMerge(_:)",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.analyzeSession(_:series:flags:analyze:analyzeWithCapacity:)",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)",
     "closure:analyze / analyzeWithCapacity → collector.analyze, set by SessionRecoveryCoordinator.recoverToPausedState (RRCollector+BackupRecovery.swift:552)"
    ],
    "reads": [
@@ -257,18 +263,19 @@
      "effect": "returns nil"
     },
     {
-     "at": "+19",
+     "at": "+23",
      "cond": "archive write threw (attempt returned nil)",
      "effect": "logs warning via attempt and returns nil; else logs success and returns the paused session"
     }
    ],
    "deps": {
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(id:startDate:endDate:state:sessionType:rrSeries:analysisResult:artifactFlags:recoveryScore:tags:notes:importedMetrics:deviceProvenance:sleepStartMs:sleepEndMs:sleepSegments:linkedSessionIds:pausedDate:dataSourceSummary:)": "7c71ff6a56a44161",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.analyzeSession(_:series:flags:analyze:analyzeWithCapacity:)": "4c65637004b180d0",
-    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.retrieveBackupWithParentMerge(_:)": "d43819ea36bc3102",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.analyzeSession(_:series:flags:analyze:analyzeWithCapacity:)": "2946d11423fd9c0d",
+    "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.retrieveBackupWithParentMerge(_:)": "dc42a2aad33630de",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
+    "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
+    "EmuquTests/NonlinearAnalysisTests.swift::func NonlinearAnalysisTests.flags(count:flagged:)": "644bfb993c7bd1d9"
    }
   }
  ],

@@ -493,7 +493,7 @@
    "branches": [],
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquApp.handleDisclaimerAcceptance(_:)": "acb4005e1a1d86af",
-    "Emuqu/EmuquApp.swift::func EmuquApp.handleLaunchModalChange(from:to:)": "d9e1a72e64363342",
+    "Emuqu/EmuquApp.swift::func EmuquApp.handleLaunchModalChange(from:to:)": "9dea367328507707",
     "Emuqu/EmuquApp.swift::func EmuquApp.handleOnboardingCompletion(_:)": "b3199f311046a9b5",
     "Emuqu/EmuquApp.swift::func EmuquApp.handlePurchaseChange(_:)": "9dbd0c6d1c596061",
     "Emuqu/EmuquApp.swift::func EmuquApp.handleScenePhaseChange(from:to:)": "e10bf95a553aed6e",
@@ -580,8 +580,8 @@
   },
   {
    "key": "func EmuquApp.handleLaunchModalChange(from:to:)",
-   "hash": "2647d8cc3dab4584",
-   "does": "When the launch cover goes from .paywall or .trialReminder to none, runs checkForInterruptedSession(), the step presentLaunchModal skips when it stops at either gate; every other transition is ignored.",
+   "hash": "d7d04c949a76610c",
+   "does": "When the launch cover goes from .paywall, .trialReminder or .scoreArchitectureChange to none, runs checkForInterruptedSession(): presentLaunchModal skips it at the paywall and the trial reminder, and the check holds its alert while the disclosure is on screen; every other transition is ignored.",
    "entry": "onChange(of: activeModal) in stateChangeHandlers.",
    "calls": [
     "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.checkForInterruptedSession()"
@@ -595,12 +595,12 @@
    "branches": [
     {
      "at": "+1",
-     "cond": "newModal != nil, or oldModal is neither .paywall nor .trialReminder",
+     "cond": "newModal != nil, or oldModal is none of .paywall, .trialReminder, .scoreArchitectureChange",
      "effect": "returns; otherwise checkForInterruptedSession()"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.checkForInterruptedSession()": "28d6b02ac98ff198"
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.checkForInterruptedSession()": "15ada60078af3b06"
    }
   },
   {
@@ -864,7 +864,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "62bd5275ef3f248f",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "4e8514ceace2cec7",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppServices.morningNotificationScheduler": "507098363688faff"
@@ -1116,7 +1116,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/EmuquApp.swift::func EmuquApp.bootArchiveOffMain()": "e9a224ef3879ca6a",
+    "Emuqu/EmuquApp.swift::func EmuquApp.bootArchiveOffMain()": "4f0608a518af5548",
     "Emuqu/EmuquApp.swift::func EmuquApp.installGlobalKeyboardDismissal()": "411537befde24867",
     "Emuqu/EmuquApp.swift::func EmuquApp.prewarmSpeechVoices()": "04ae801d189cdf70",
     "Emuqu/EmuquApp.swift::func EmuquApp.wireWatchBridgeCallbacks()": "31177221f2f0ad12",
@@ -1150,11 +1150,11 @@
   },
   {
    "key": "func EmuquApp.bootArchiveOffMain()",
-   "hash": "d55cd698447c5904",
-   "does": "Runs collector.archive.boot() (orphan reconcile + tombstone walk) in a detached utility task.",
+   "hash": "23490c30e0ac14bf",
+   "does": "Starts the launch's archive boot (LaunchArchiveBoot.start: collector.archive.boot(), orphan reconcile + tombstone walk, on a detached utility task), or joins it when the interrupted-session check started it first.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.boot()"
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func LaunchArchiveBoot.start(_:)"
    ],
    "reads": [],
    "writes": [
@@ -1162,7 +1162,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.boot()": "84fa584035a1eb46"
+    "Emuqu/Sources/Services/AppLaunchRecovery.swift::func LaunchArchiveBoot.start(_:)": "354fe0cb498e304d"
    }
   },
   {

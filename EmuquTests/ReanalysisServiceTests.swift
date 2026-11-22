@@ -200,17 +200,37 @@ final class ReanalysisServiceTests: XCTestCase {
         XCTAssertEqual(written.tags, [ReadingTag.alcohol], "callers get the session as written")
     }
 
-    /// A rescored session the archive does not hold is archived as it is.
-    func testARescoreOfASessionNotYetArchivedIsArchivedAsItIs() throws {
+    /// A rescore never creates a session. One the archive does not hold (a
+    /// reading not yet accepted, or a night "Delete All My Data" removed while
+    /// the rescore ran) is not written, so the purge's empty archive stays
+    /// empty.
+    func testARescoreOfASessionTheArchiveDoesNotHoldIsNotWritten() throws {
         var session = overnight()
         session.recoveryScore = 7.4
         session.notes = "from the card"
 
         let outcome = try RescoreWrite.write(session, readFrom: session, kind: .reanalysis(healedTraining: false), to: archive)
 
-        guard case .written(let written) = outcome else { return XCTFail("expected a write, got \(outcome)") }
-        XCTAssertEqual(written.notes, "from the card")
-        XCTAssertEqual(try archive.retrieve(session.id)?.recoveryScore, 7.4)
+        guard case .notArchived = outcome else { return XCTFail("expected no write, got \(outcome)") }
+        XCTAssertNil(outcome.written)
+        XCTAssertFalse(archive.exists(session.id), "A rescore archived a session the archive did not hold")
+    }
+
+    /// A rescore that finishes while "Delete All My Data" runs is refused by
+    /// the purge gate and writes nothing.
+    func testARescoreWriteIsRefusedWhileAPurgeRuns() async throws {
+        var read = overnight()
+        read.recoveryScore = 6.1
+        try archive.archive(read)
+        var rescored = read
+        rescored.recoveryScore = 7.4
+
+        await PurgeGate.beginPurge()
+        defer { PurgeGate.endPurge() }
+        XCTAssertThrowsError(try RescoreWrite.write(rescored, readFrom: read, kind: .scoreOnly(healedTraining: false), to: archive)) {
+            XCTAssertTrue($0 is PurgeGate.Refused, "expected the purge gate's refusal, got \($0)")
+        }
+        XCTAssertEqual(try archive.retrieve(read.id)?.recoveryScore, 6.1)
     }
 
     /// The HealthKit export stamp and the AI context are written while a

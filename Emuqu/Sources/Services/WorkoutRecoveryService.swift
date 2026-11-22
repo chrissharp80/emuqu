@@ -38,7 +38,7 @@ enum WorkoutRecoveryService {
     /// the result is identical to what would have come out of
     /// `WorkoutRecorder.finalizeSession` if the user had tapped Stop
     /// at the moment of interruption.
-    private static func runAnalyzer(
+    nonisolated private static func runAnalyzer(
         sport: Sport,
         rrPoints: [RRPoint],
         startDate: Date,
@@ -64,7 +64,7 @@ enum WorkoutRecoveryService {
     /// read. A missing or unreadable backup is a normal recovery outcome —
     /// the strap or override points may still carry the workout — so this
     /// logs and degrades rather than propagating.
-    private static func loadRRBackup(
+    nonisolated private static func loadRRBackup(
         _ rawBackup: RawRRBackup,
         sessionId: UUID
     ) -> RawRRBackup.BackupEntry? {
@@ -220,10 +220,10 @@ enum WorkoutRecoveryService {
             autoTrim: autoTrimOverride, distanceMeters: overrideDistanceMeters,
             discardBackupsOnAccept: discardBackupsOnAccept
         )
-        guard let prepared = Self.prepare(sessionId: sessionId, reason: reason, deps: deps, overrides: overrides) else {
+        guard let prepared = await Self.prepare(sessionId: sessionId, reason: reason, deps: deps, overrides: overrides) else {
             return nil
         }
-        return Self.rebuild(sessionId: sessionId, reason: reason, prepared: prepared, overrides: overrides, deps: deps)
+        return await Self.rebuild(sessionId: sessionId, reason: reason, prepared: prepared, overrides: overrides, deps: deps)
     }
 
     /// The stores one recovery reads and writes.
@@ -255,18 +255,23 @@ enum WorkoutRecoveryService {
     }
 
     /// Pull the workout-side artefacts and the RR data. Both are file reads
-    /// with no dependency on each other, and keeping them on the MainActor is
-    /// fine: each is a single bounded I/O. Nil means nothing is recoverable —
-    /// the caller falls back to the HRV path.
+    /// and decodes with no dependency on each other; for a long workout they
+    /// are every GPS fix and every beat, so they run off the main actor,
+    /// which recovery holds from the launch alert and from launch
+    /// auto-recovery. Nil means nothing is recoverable — the caller falls
+    /// back to the HRV path.
     ///
     /// When re-finalizing an already-recovered session (the trim/Save path),
     /// its on-disk GPS backup may already be gone — the archived session is
     /// loaded as a fallback so a trim never loses sport/start/distance.
     private static func prepare(
         sessionId: UUID, reason: PartialDataReason, deps: Dependencies, overrides: Overrides
-    ) -> Prepared? {
-        let workoutRecord = AppDependencies.current.storage.workoutTrackBackup.retrieve(sessionId)
-        let rrEntry = Self.loadRRBackup(deps.rawBackup, sessionId: sessionId)
+    ) async -> Prepared? {
+        let trackBackup = AppDependencies.current.storage.workoutTrackBackup
+        let rawBackup = deps.rawBackup
+        let (workoutRecord, rrEntry) = await Task.detached(priority: .userInitiated) {
+            (trackBackup.retrieve(sessionId), Self.loadRRBackup(rawBackup, sessionId: sessionId))
+        }.value
         debugLog("[WorkoutRecovery] start sessionId=\(sessionId.uuidString.prefix(8)) reason=\(reason.rawValue) hasTrack=\(workoutRecord != nil) hasRR=\(rrEntry != nil) trackPoints=\(workoutRecord?.track.count ?? 0) rrPoints=\(rrEntry?.points.count ?? 0)")
         // Both empty AND no strap recording = nothing to recover.
         if workoutRecord == nil, rrEntry == nil,
@@ -284,7 +289,7 @@ enum WorkoutRecoveryService {
     private static func rebuild(
         sessionId: UUID, reason: PartialDataReason, prepared: Prepared,
         overrides: Overrides, deps: Dependencies
-    ) -> Outcome? {
+    ) async -> Outcome? {
         guard let startDate = Self.knownStartDate(prepared) else {
             debugLog("[WorkoutRecovery] aborting — no backup or archived copy says when the workout started", level: .warning)
             return nil
@@ -294,7 +299,7 @@ enum WorkoutRecoveryService {
             debugLog("[WorkoutRecovery] aborting — the backup holds no beats, track points or samples past the start", level: .warning)
             return nil
         }
-        let metadata = Self.assembleMetadata(
+        let metadata = await Self.assembleMetadata(
             recovered: recovered, reason: reason, overrides: overrides, prepared: prepared, deps: deps
         )
         var session = Self.buildRecoveredSession(
@@ -378,6 +383,19 @@ enum WorkoutRecoveryService {
         )
     }
 
+    /// `runAnalyzer` over the recovered beats and track, on a background task.
+    private static func analyzedOffMain(
+        _ recovered: RecoveredWorkout, settings: UserSettings, unitsPreference: UnitsPreference
+    ) async -> WorkoutMetadata {
+        let (sport, rrPoints, startDate, track) = (recovered.sport, recovered.rrPoints, recovered.startDate, recovered.track)
+        return await Task.detached(priority: .userInitiated) {
+            Self.runAnalyzer(
+                sport: sport, rrPoints: rrPoints, startDate: startDate,
+                track: track, settings: settings, unitsPreference: unitsPreference
+            )
+        }.value
+    }
+
     /// The marked offsets that name a kept row, sorted, or nil when none do:
     /// a trim drops the markers of the rows it cuts.
     static func healthKitHROffsets(_ offsets: [Int], in samples: [WorkoutSample]) -> [Int]? {
@@ -394,15 +412,15 @@ enum WorkoutRecoveryService {
     /// already-recovered session) keeps the distance/route the original
     /// recovery computed. The off-body tail we trim away had no GPS, so a trim
     /// must not zero a real distance.
+    ///
+    /// The analyzer pass walks every beat and GPS fix of the workout, so it
+    /// runs off the main actor.
     private static func assembleMetadata(
         recovered: RecoveredWorkout, reason: PartialDataReason, overrides: Overrides,
         prepared: Prepared, deps: Dependencies
-    ) -> WorkoutMetadata {
+    ) async -> WorkoutMetadata {
         let settings = deps.settingsManager.settings
-        let computed = Self.runAnalyzer(
-            sport: recovered.sport, rrPoints: recovered.rrPoints, startDate: recovered.startDate,
-            track: recovered.track, settings: settings, unitsPreference: deps.unitsPreference
-        )
+        let computed = await Self.analyzedOffMain(recovered, settings: settings, unitsPreference: deps.unitsPreference)
         var metadata = Self.buildMetadata(
             sport: recovered.sport, computed: computed, baroSamples: recovered.baroSamples,
             liveSamples: recovered.liveSamples, reason: reason,

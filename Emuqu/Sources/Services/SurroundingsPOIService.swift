@@ -157,6 +157,13 @@ final class SurroundingsPOIService: Sendable {
         cacheStorage.withLock { $0 = entry }
     }
 
+    /// Delete All My Data: drop the cached places and the coordinate they
+    /// were searched around, so the assistant cannot answer "what's around
+    /// me" from them.
+    func forgetAfterPurge() {
+        cacheStorage.withLock { $0 = nil }
+    }
+
     /// `OSAllocatedUnfairLock`'s `withLock` is the Swift-6 async-safe scoped
     /// lock. It returns the snapshot — a value type, so post-unlock mutation
     /// by another task can't corrupt what we read. Nil when the cache is

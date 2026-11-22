@@ -246,7 +246,9 @@ struct DeleteAllDataPage: View {
 
     /// Keeps the report, or the reason the purge was refused: a recording is
     /// under way (one can start after the button was tapped) or a reading is
-    /// waiting to be accepted, and then nothing was deleted.
+    /// waiting to be accepted, and then nothing was deleted; or a recording
+    /// started while the iCloud copy was being deleted, and then nothing on
+    /// the device was deleted (the refusal's text says so).
     private func runPurge() async {
         do {
             report = try await DataPurgeService.purgeAllUserData(

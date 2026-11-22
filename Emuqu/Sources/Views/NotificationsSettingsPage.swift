@@ -18,6 +18,9 @@ struct NotificationsSettingsPage: View {
     @Environment(\.dependencies) var dependencies
     private var settingsManager: SettingsManager { dependencies.app.settingsManager }
     @State private var systemAuthDenied: Bool = false
+    /// Show Previews is not Always, so the Lock Screen hides the text; read
+    /// with the authorization status. Auto shows the score only then.
+    @State private var previewsHiddenWhileLocked = false
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -163,7 +166,7 @@ struct NotificationsSettingsPage: View {
             ))
             if settingsManager.settings.dailyReportDelivery == .smart {
                 Text(String(
-                    localized: "Auto sends a short teaser until you have 30 nights of readings, then the score and guidance. Choose Full readout to get them in the notification from the start.",
+                    localized: "Auto sends a short teaser until you have 30 nights of readings, then the score and guidance, but only if Show Previews in iPhone Settings → Notifications is not set to Always, so they stay off the Lock Screen. Choose Full readout to always get them.",
                     bundle: LanguageManager.appBundle
                 ))
             }
@@ -293,13 +296,14 @@ struct NotificationsSettingsPage: View {
     /// What the user will actually receive: in Fixed mode the number-free
     /// set-time push, in Smart mode the wake push in the chosen format,
     /// resolved by the same rule the scheduler sends with (`.auto` becomes
-    /// full or teaser by the night count).
+    /// full or teaser by the night count and the previews setting).
     private var previewBody: String {
         guard settingsManager.settings.dailyReportDelivery == .smart else {
             return MorningNotificationScheduler.buildPayload().1
         }
         let format = MorningNotificationScheduler.resolvedFormat(
-            settingsManager.settings.dailyReportFormat, archive: dependencies.storage.sessionArchive
+            settingsManager.settings.dailyReportFormat, archive: dependencies.storage.sessionArchive,
+            previewsHiddenWhileLocked: previewsHiddenWhileLocked
         )
         return format == .full
             ? String(localized: "Recovery 84 · A good score — normal training fits today.", bundle: LanguageManager.appBundle)
@@ -311,5 +315,6 @@ struct NotificationsSettingsPage: View {
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         systemAuthDenied = settings.authorizationStatus == .denied
+        previewsHiddenWhileLocked = settings.showPreviewsSetting != .always
     }
 }

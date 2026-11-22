@@ -45,6 +45,26 @@
    }
   },
   {
+   "key": "func MorningNotificationPayloadTests.testAutoKeepsTheScoreOffALockScreenThatShowsPreviews()",
+   "hash": "7649b0088fc5a473",
+   "does": "Builds an empty archive in a temporary directory (removed on exit) and asserts resolvedFormat gives .teaser for .auto when previews show on the locked screen, .full for .full, and .teaser for .teaser.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:previewsHiddenWhileLocked:)"
+   ],
+   "reads": [],
+   "writes": [
+    "file:<tmp>/MorningFormat-<uuid>"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:previewsHiddenWhileLocked:)": "f4505584aeb01ebd",
+    "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
+    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
+   }
+  },
+  {
    "key": "func MorningNotificationPayloadTests.testTheRepeatingFallbackBodyFitsALockScreenPreview()",
    "hash": "889d7a95a0319870",
    "does": "Asserts body length ≤ 120 characters.",

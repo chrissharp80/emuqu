@@ -1,12 +1,13 @@
 {
  "file": "Emuqu/Sources/Views/NotificationsSettingsPage.swift",
- "hash": "f16148d751310056",
+ "hash": "871b17cd749a4119",
  "role": "Settings → Notifications screen: denied-permission banner, Daily morning report (enable, Smart/Fixed delivery, time, Auto/Full/Teaser format) with a live preview, workout coach, mile-marker check-ins, route turn alerts and a no-marketing statement; keeps MorningNotificationScheduler in sync with the daily-report settings.",
  "types": [
   "NotificationsSettingsPage: struct View"
  ],
  "state": [
   "@State systemAuthDenied — local banner flag",
+  "@State previewsHiddenWhileLocked — Show Previews is not Always (read with the authorization status), used by the preview",
   "@Environment scenePhase — triggers the permission re-read on return to active"
  ],
  "toplevel": "Doc comment states the former alerts section (HRV anomaly, battery-low, sync failure) was removed because it was never wired. Reached from SettingsView.swift:287, SettingsSearchIndex.swift:222 and MainTabView.swift:514.",
@@ -92,7 +93,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::func NotificationsSettingsPage.checkAuthorisationStatus()": "fe78b9f92afed3e6",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::func NotificationsSettingsPage.checkAuthorisationStatus()": "70fd2960821b9788",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
    }
   },
@@ -144,7 +145,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.requestAuthorizationIfNeeded()": "8446768fc6ae39b0",
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "62bd5275ef3f248f",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "4e8514ceace2cec7",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f"
    }
   },
@@ -163,7 +164,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "62bd5275ef3f248f",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.rescheduleIfNeeded()": "4e8514ceace2cec7",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.services": "bc6324e4146bc80f"
    }
   },
@@ -328,14 +329,14 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.enabledDailyReportFooter": "bdc4610c187ba221",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.enabledDailyReportFooter": "55ca9ab3ee30c77f",
     "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.settingsManager": "0eadbe47ac71262e"
    }
   },
   {
    "key": "var NotificationsSettingsPage.enabledDailyReportFooter",
-   "hash": "ecb53380a405ba8a",
-   "does": "Footer explaining Smart vs Fixed timing, (Smart only) that Auto sends a teaser until 30 nights then the score — matching resolvedFormat's >=30 reliable overnight nights (MorningNotificationScheduler.swift:244-256) — and that the set-time push never shows a score.",
+   "hash": "364410e85d253bdc",
+   "does": "Footer explaining Smart vs Fixed timing, (Smart only) that Auto sends a teaser until 30 nights then the score and guidance, but only while Show Previews is not set to Always (matching resolvedFormat), and that the set-time push never shows a score.",
    "entry": "SwiftUI view composition.",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -391,7 +392,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.previewBody": "78ebd301f9bbdd2b",
+    "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.previewBody": "5b1a35ac1b38cff3",
     "Emuqu/Sources/Views/ScaledFont.swift::func View.scaledFont(size:weight:design:monospacedDigit:relativeTo:)": "09a882f3db182907",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
@@ -662,19 +663,20 @@
   },
   {
    "key": "var NotificationsSettingsPage.previewBody",
-   "hash": "6269c1110907357e",
-   "does": "Preview text: for Fixed delivery the scheduler's number-free set-time body; for Smart, the chosen format resolved by MorningNotificationScheduler.resolvedFormat against the environment dependencies' archive (.auto → full after 30 nights, else teaser): the sample full readout 'Recovery 84 · A good score — normal training fits today.' when full, else the teaser 'Your recovery is in.'",
+   "hash": "590ab78edad80f5f",
+   "does": "Preview text: for Fixed delivery the scheduler's number-free set-time body; for Smart, the chosen format resolved by MorningNotificationScheduler.resolvedFormat against the environment dependencies' archive and the previews setting (.auto → full after 30 nights with previews hidden while locked, else teaser): the sample full readout 'Recovery 84 · A good score — normal training fits today.' when full, else the teaser 'Your recovery is in.'",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.buildPayload()",
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:)",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:previewsHiddenWhileLocked:)",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
     "mem:SettingsManager.settings.dailyReportDelivery",
-    "mem:SettingsManager.settings.dailyReportFormat"
+    "mem:SettingsManager.settings.dailyReportFormat",
+    "mem:NotificationsSettingsPage.previewsHiddenWhileLocked"
    ],
    "writes": [],
    "branches": [
@@ -684,7 +686,7 @@
      "effect": "returns buildPayload().1"
     },
     {
-     "at": "+7",
+     "at": "+8",
      "cond": "resolved format == .full",
      "effect": "sample score line; else teaser"
     }
@@ -692,7 +694,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.buildPayload()": "f6ac5cce2d02f763",
-    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:)": "d55df80abffb0043",
+    "Emuqu/Sources/Services/MorningNotificationScheduler.swift::func MorningNotificationScheduler.resolvedFormat(_:archive:previewsHiddenWhileLocked:)": "f4505584aeb01ebd",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "0be02377b8827b75",
     "Emuqu/Sources/Views/NotificationsSettingsPage.swift::var NotificationsSettingsPage.settingsManager": "0eadbe47ac71262e"
@@ -700,14 +702,17 @@
   },
   {
    "key": "func NotificationsSettingsPage.checkAuthorisationStatus()",
-   "hash": "313322ed95dde785",
-   "does": "Awaits UNUserNotificationCenter.current().notificationSettings() and sets systemAuthDenied to (authorizationStatus == .denied), so it both raises and clears the banner flag.",
+   "hash": "8e4ee247e3b7d796",
+   "does": "Awaits UNUserNotificationCenter.current().notificationSettings(), sets systemAuthDenied to (authorizationStatus == .denied), so it both raises and clears the banner flag, and previewsHiddenWhileLocked to (showPreviewsSetting != .always).",
    "entry": "SwiftUI .task on page appear (via withChrome).",
    "calls": [
     "ext:UNUserNotificationCenter.notificationSettings"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "mem:NotificationsSettingsPage.systemAuthDenied",
+    "mem:NotificationsSettingsPage.previewsHiddenWhileLocked"
+   ],
    "branches": [],
    "deps": {}
   }

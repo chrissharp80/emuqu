@@ -63,7 +63,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()": "bbcd769501f1bbb8"
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()": "1f0e630b88682e7d"
    }
   },
   {
@@ -222,7 +222,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Refusal.errorDescription": "9f9ab2ec5bbfbed4",
+    "Emuqu/Sources/Services/DataPurgeService.swift::var DataPurgeService.Refusal.errorDescription": "9abd8246eb90b1d1",
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::var DeleteAllDataPage.recordingInProgress": "624c422dc4e62c6b"
    }
   },
@@ -353,7 +353,7 @@
   {
    "key": "func DeleteAllDataPage.performPurge()",
    "hash": "c95aee131b70f98f",
-   "does": "Sets isPurging, then in a Task awaits runPurge (which keeps the purge's Report, or the refusal while a recording is under way or a reading is waiting to be accepted), clears isPurging and clears the typed confirmation phrase so a rerun (the iCloud-failure retry) needs the phrase typed again.",
+   "does": "Sets isPurging, then in a Task awaits runPurge (which keeps the purge's Report, or the refusal while a recording is under way or a reading is waiting to be accepted, or after a recording started during the iCloud deletion), clears isPurging and clears the typed confirmation phrase so a rerun (the iCloud-failure retry) needs the phrase typed again.",
    "entry": "Called from confirmation dialog destructive button",
    "calls": [
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.runPurge()"
@@ -365,13 +365,13 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.runPurge()": "f7318c35bf47150c"
+    "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.runPurge()": "038cb5aaa0f99d83"
    }
   },
   {
    "key": "func DeleteAllDataPage.runPurge()",
    "hash": "b22974ad73df1602",
-   "does": "Awaits DataPurgeService.purgeAllUserData(archive, rawBackup, cloudSync, settingsManager, stores: dependencies.purgeStores — the stores of the view's composition-root container) — refused while a recording is under way or a reading is waiting to be accepted, otherwise remote CloudKit zone deletion then local container/defaults/keychain wipe. On success stores the Report and clears refusal; on refusal stores the refusal's localized description and keeps the earlier report (nothing was deleted).",
+   "does": "Awaits DataPurgeService.purgeAllUserData(archive, rawBackup, cloudSync, settingsManager, stores: dependencies.purgeStores — the stores of the view's composition-root container) — refused while a recording is under way or a reading is waiting to be accepted, otherwise remote CloudKit zone deletion then local container/defaults/keychain wipe. On success stores the Report and clears refusal; on refusal stores the refusal's localized description and keeps the earlier report (before any deletion nothing was deleted; a recording that started during the iCloud deletion leaves the device unwiped, which the refusal's text says).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)",
@@ -401,7 +401,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)": "36147ec30ebddd0c",
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)": "68309eb00ad2e5c2",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeStores": "4aef152a558c87c5"
    }
   }

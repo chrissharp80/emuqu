@@ -64,7 +64,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
-    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)": "f5dffb131decedc0",
+    "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)": "4f21d38ab14999a2",
     "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.pollHealthKitSleep(series:effectiveStartDate:recordingEnd:totalBeats:isBackgroundRefinement:statusCallback:)": "696706af855ce8ec",
     "Emuqu/Sources/Services/MorningProcessingService+Sleep.swift::func MorningProcessingService.readySleepData(prefetched:effectiveStartDate:recordingEnd:isBackgroundRefinement:)": "e985be128ebdcce4"
    }
@@ -210,8 +210,8 @@
   },
   {
    "key": "func MorningProcessingService.applySleepEstimates(to:series:effectiveStartDate:sleepSchedule:)",
-   "hash": "69f3ffc82f7d10aa",
-   "does": "When no sleep start and source is not .healthKit, applies the RR-based sleep estimate through the injected healthKit.estimateSleepFromRR (.hrEstimated); then if still no fetched sleep data, applies Apple Watch passive-HR estimate over start..overnightWindowEnd (.healthKitHREstimated).",
+   "hash": "76d8c184778ceaaf",
+   "does": "When no sleep start and source is not .healthKit, awaits the RR-based sleep estimate through the injected healthKit.estimateSleepFromRR (off the main actor by default) and applies it (.hrEstimated); then if still no fetched sleep data, applies Apple Watch passive-HR estimate over start..overnightWindowEnd (.healthKitHREstimated).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.estimateSleepFromRR(rrPoints:recordingStart:)",
@@ -237,7 +237,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Models/SleepSchedule.swift::func SleepSchedule.overnightWindowEnd(relativeTo:)": "7c655ba9e01d2483",
-    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.estimateSleepFromRR(rrPoints:recordingStart:)": "78d9e196f9619240",
+    "Emuqu/Sources/Protocols/HealthKitServiceProtocol.swift::requirement HealthKitServiceProtocol.estimateSleepFromRR(rrPoints:recordingStart:)": "dca15c3b7b751cd0",
     "Emuqu/Sources/Services/MorningProcessingService+Analysis.swift::func MorningProcessingService.applyEstimate(_:source:effectiveStartDate:to:)": "dd30695f18f59a31"
    }
   },

@@ -549,10 +549,11 @@
   },
   {
    "key": "func SessionArchive.saveIndex()",
-   "hash": "459b93f38317d7b8",
-   "does": "Merges a previously unreadable on-disk index (throws if still unreadable), clears derived caches, builds the bytes with newerBuildIndexEntries.indexData (the plain encoding, or with a newer build's entries written back as read), passes them through sealedOrPlain (sealed with the archive's key, or plain JSON when the key cannot be reached) and atomically writes index.json (completeFileProtectionUntilFirstUserAuthentication). Throws merge, encode and write errors.",
+   "hash": "80ee7f8c9993d3a5",
+   "does": "Through PurgeGate.admitWrite (throws PurgeGate.Refused and writes nothing while Delete All My Data runs): merges a previously unreadable on-disk index (throws if still unreadable), clears derived caches, builds the bytes with newerBuildIndexEntries.indexData (the plain encoding, or with a newer build's entries written back as read), passes them through sealedOrPlain (sealed with the archive's key, or plain JSON when the key cannot be reached) and atomically writes index.json (completeFileProtectionUntilFirstUserAuthentication). Throws merge, encode and write errors.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeIndexThatFailedToLoad()",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.indexData(for:deleted:)",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.sealedOrPlain(_:)",
@@ -562,15 +563,24 @@
     "mem:SessionArchive.index",
     "mem:SessionArchive.newerBuildIndexEntries",
     "mem:SessionArchive.deletedSessionIds",
-    "kc:AppConfig.keychainService / session-encryption-key[-vN]"
+    "kc:AppConfig.keychainService / session-encryption-key[-vN]",
+    "mem:PurgeGate.state"
    ],
    "writes": [
     "file:<indexFile>",
     "mem:SessionArchive.sortedEntriesCache",
-    "mem:SessionArchive.sessionIdLookup"
+    "mem:SessionArchive.sessionIdLookup",
+    "mem:PurgeGate.state"
    ],
-   "branches": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "a purge runs",
+     "effect": "throws PurgeGate.Refused; nothing merged or written"
+    }
+   ],
    "deps": {
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)": "332fae95769af5cb",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.indexData(for:deleted:)": "c12e9eb29fed867b",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.mergeIndexThatFailedToLoad()": "b289f8d08b398093",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.sealedOrPlain(_:)": "a00359c9ff3d4dd6"
@@ -644,7 +654,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "bc9f8909df43d2dd",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.saveIndex()": "fa7f11dc067c058a",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.hasCompleteIndex": "4d992f398d9be95b",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::var SessionArchive.indexEncryption": "c8ce9f7f8e86bf28",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)": "d617abae8ea527b1",

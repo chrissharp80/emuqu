@@ -260,19 +260,22 @@
   },
   {
    "key": "var CloudKitSyncManager.cloudUploadsAllowed",
-   "hash": "e4101bcb890518fc",
-   "does": "True only when iCloudSyncEnabled and hasCompletedOnboarding are both set; gates uploads, not pulls.",
+   "hash": "84c03323043f8475",
+   "does": "True only when iCloudSyncEnabled and hasCompletedOnboarding are both set and no Delete All My Data runs (PurgeGate.isPurging false); gates uploads, not pulls.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.settings"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.settings",
+    "Emuqu/Sources/Services/PurgeGate.swift::var PurgeGate.isPurging"
    ],
    "reads": [
     "mem:UserSettings.iCloudSyncEnabled",
-    "mem:UserSettings.hasCompletedOnboarding"
+    "mem:UserSettings.hasCompletedOnboarding",
+    "mem:PurgeGate.state"
    ],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Services/PurgeGate.swift::var PurgeGate.isPurging": "e50d4ba69a9f521d",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.settings": "2b1092edf8100687"
    }
   },
@@ -401,7 +404,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "9956563e3f17fa81",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "eff72e3d17da1100",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::var CloudSyncMessages.notSignedIn": "66d184af0832c017",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -529,8 +532,8 @@
   },
   {
    "key": "func CloudKitSyncManager.uploadSession(_:)",
-   "hash": "9bbfa3c4cd584df6",
-   "does": "Direct per-recording upload: skips unless uploads allowed, schema available, session complete (or a workout with metadata) and not HealthKit-sourced; then, serialized behind other sync work, uploads it unless already marked uploaded.",
+   "hash": "83957f8b1a15bc2d",
+   "does": "Direct per-recording upload: skips unless uploads allowed, schema available, session complete (or a workout with metadata) and not HealthKit-sourced; then, serialized behind other sync work, reads cloudUploadsAllowed again (sync turned off or a purge started while it waited stops it) and uploads it unless already marked uploaded.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed",
@@ -542,7 +545,8 @@
     "mem:UserSettings.iCloudSyncEnabled",
     "mem:UserSettings.hasCompletedOnboarding",
     "mem:CloudKitSyncManager.schemaUnavailable",
-    "mem:CloudKitSyncState.uploadedSessionIds"
+    "mem:CloudKitSyncState.uploadedSessionIds",
+    "mem:PurgeGate.state"
    ],
    "writes": [],
    "branches": [
@@ -567,7 +571,12 @@
      "effect": "return (batch push will mark it local-only)"
     },
     {
-     "at": "+13",
+     "at": "+12",
+     "cond": "inside serializer: cloudUploadsAllowed now false",
+     "effect": "return without uploading"
+    },
+    {
+     "at": "+14",
      "cond": "inside serializer: id already in uploadedSessionIds",
      "effect": "return; else uploadOne"
     }
@@ -575,7 +584,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadOne(_:)": "287d2755ce565e1b",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "4262f41e6c652648",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "c183270cf259e429",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)": "c8d3ddb59d2e3d94"
    }
@@ -614,7 +623,7 @@
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cleanupTempAsset(for:)": "58d2a43cf55426c0",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.ensureZoneExists()": "33769eb1794473a5",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.prepareUploadOffMain(sessionId:)": "32a6205db95e5d65",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.prepareUploadOffMain(sessionId:)": "f67a85995fb3cfe4",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.handleUploadError(_:sessionId:)": "cc9381b9e5c3e3ca",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.saveUploadRecord(_:sessionId:)": "39ea627fc5420ddd",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
@@ -959,7 +968,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stampEdit(of:in:)": "d7ecd899f3cb0480",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "1aa026e4481155fe",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "f6fc789fb7f2e911",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "271213db35c3c82e",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "e52297fe4b9ce11f",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)": "c8d3ddb59d2e3d94"
@@ -1085,20 +1094,23 @@
   },
   {
    "key": "func CloudKitSyncManager.performFullSync()",
-   "hash": "fd297d4044e5375f",
-   "does": "Entry point for a full sync inside a LogCorrelation scope: skips (logging the reason) when fullSyncSkipReason gives one; otherwise counts itself in fullSyncsAdmitted until it returns and runs performFullSyncBody through the serializer.",
+   "hash": "6c407ab69820dbc7",
+   "does": "Entry point for a full sync inside a LogCorrelation scope: skips (logging the reason) when fullSyncSkipReason gives one; otherwise counts itself in fullSyncsAdmitted until it returns and, through the serializer, runs performFullSyncBody unless iCloud sync was turned off or Delete All My Data started (PurgeGate.isPurging) while it waited, which it logs and skips.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/LogCorrelation.swift::func LogCorrelation.begin(_:)",
     "Emuqu/Sources/Utilities/LogCorrelation.swift::func LogCorrelation.end(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.fullSyncSkipReason()",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)",
+    "Emuqu/Sources/Services/PurgeGate.swift::var PurgeGate.isPurging",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSyncBody()",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "mem:CloudKitSyncManager.fullSyncsAdmitted",
-    "archive:SessionArchive.entries"
+    "archive:SessionArchive.entries",
+    "mem:UserSettings.iCloudSyncEnabled",
+    "mem:PurgeGate.state"
    ],
    "writes": [
     "mem:CloudKitSyncManager.fullSyncsAdmitted",
@@ -1109,11 +1121,18 @@
      "at": "+3",
      "cond": "fullSyncSkipReason non-nil",
      "effect": "log and return"
+    },
+    {
+     "at": "+11",
+     "cond": "inside serializer: sync off or a purge runs",
+     "effect": "log and return without the body"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Services/PurgeGate.swift::var PurgeGate.isPurging": "e50d4ba69a9f521d",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.fullSyncSkipReason()": "c5ec5daa388c259a",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSyncBody()": "9cb2002fc25da89d",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.settings": "2b1092edf8100687",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)": "c8d3ddb59d2e3d94",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Utilities/LogCorrelation.swift::func LogCorrelation.begin(_:)": "947ad7cda6e5375d",
@@ -1345,7 +1364,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "9956563e3f17fa81",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "eff72e3d17da1100",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.scrubHealthReadingsWhileSyncOff()": "01c068b64d08abb8",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.lastSyncDate": "2d613940641c274b",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.settings": "2b1092edf8100687",

@@ -838,6 +838,9 @@ enum RescoreWrite {
         /// An input changed since the rescore read the session; nothing of
         /// it was written. The stored copy, to run again from.
         case inputsChanged(HRVSession)
+        /// The archive does not hold the session (it was never archived, or
+        /// was deleted or purged while the rescore ran); nothing was written.
+        case notArchived
 
         /// The session as written; nil when nothing was.
         var written: HRVSession? {
@@ -851,12 +854,17 @@ enum RescoreWrite {
     /// itself, so giving up loses nothing.
     static let runs = 3
 
-    /// Write `rescored`, computed from `read`. A session the archive does not
-    /// hold is archived as it is.
+    /// Write `rescored`, computed from `read`, onto the archived copy.
+    ///
+    /// A rescore never creates a session: one the archive does not hold is
+    /// not written (`.notArchived`). Archiving it "as it is" put a whole night
+    /// back, beats and score included, when "Delete All My Data" emptied the
+    /// archive while the rescore ran, and archived a reading still waiting
+    /// for the user to accept or discard it.
     static func write(_ rescored: HRVSession, readFrom read: HRVSession, kind: Kind, to archive: SessionArchive) throws -> Outcome {
         guard archive.exists(rescored.id) else {
-            _ = try archive.archive(rescored)
-            return .written(rescored)
+            debugLog("[ReanalysisService] Rescored session \(rescored.id.uuidString.prefix(8)) is not in the archive — not written")
+            return .notArchived
         }
         var outcome = Outcome.written(rescored)
         try archive.update(rescored.id, requestingReupload: false) { stored in
