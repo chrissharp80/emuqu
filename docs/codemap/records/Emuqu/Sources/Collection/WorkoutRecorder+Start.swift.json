@@ -975,9 +975,9 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.clear()": "a974238740108747",
-    "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.load(plan:startAt:)": "b8ec215ad17ccb51",
+    "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.load(plan:startAt:)": "aef6f780faab316e",
     "Emuqu/Sources/Collection/IntervalSpokenCue.swift::var IntervalSpokenCue.blockComplete": "cd3ea4e9b4fdc403",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.announce(on:prompt:fallback:)": "0b3a15dbb36b4ded",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.announce(on:prompt:fallback:)": "2846cc043b399254",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.announceStep(_:number:of:on:)": "3b90fba97cbc960a"
    }
   },
@@ -994,40 +994,25 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.step(_:number:of:)": "94d9903738bd3545",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.announce(on:prompt:fallback:)": "0b3a15dbb36b4ded"
+    "Emuqu/Sources/Collection/IntervalSpokenCue.swift::func IntervalSpokenCue.step(_:number:of:)": "9ebbf45fcf96711c",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.announce(on:prompt:fallback:)": "2846cc043b399254"
    }
   },
   {
    "key": "func WorkoutSessionLifecycle.announce(on:prompt:fallback:)",
-   "hash": "7b13473e6e399cbd",
-   "does": "If InterjectionGate allows the active AI provider (Flo enabled, disclaimer accepted, consent), asks the conversation to speak an AI response to the prompt; otherwise speaks the scripted fallback via handleTrigger.",
+   "hash": "d1adfad97e97c07f",
+   "does": "Hands an interval call to the conversation as an AI interjection with its scripted line as the fallback (speakAIResponse(toPrompt:fallback:)): the conversation says the scripted line instead when the AI can't be asked (InterjectionGate: Flo off, notice not accepted, no consent), fails, replies with nothing, or has said nothing by the fallback deadline, so interval calls are never silent.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func InterjectionGate.maySend(to:disclaimerAccepted:)",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.handleTrigger(message:urgency:)",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.speakAIResponse(toPrompt:)"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.speakAIResponse(toPrompt:fallback:)"
    ],
-   "reads": [
-    "mem:ProviderRegistry.activeProvider",
-    "mem:AssistantViewModel.hasAcceptedDisclaimer"
-   ],
+   "reads": [],
    "writes": [
-    "net:active AI provider (speakAIResponse)"
+    "net:active AI provider (via speakAIResponse, when the gate allows)"
    ],
-   "branches": [
-    {
-     "at": "+4",
-     "cond": "InterjectionGate.maySend",
-     "effect": "false: handleTrigger(fallback) and return; true: speakAIResponse(prompt)"
-    }
-   ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func InterjectionGate.maySend(to:disclaimerAccepted:)": "cba8922bddc8b467",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.handleTrigger(message:urgency:)": "bc9e7a9e730970e1",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.speakAIResponse(toPrompt:)": "3a33b4ead1d02a64",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.providers": "9620e28d9154c015"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Control.swift::func VoiceConversationController.speakAIResponse(toPrompt:fallback:)": "8a444e1c03a7fdb9"
    }
   },
   {

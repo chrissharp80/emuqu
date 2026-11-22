@@ -488,7 +488,22 @@ struct AssistantChatView: View {
         }
     }
 
+    /// A coach alert plays in `.triggerSpeaking` with voice chat off as well.
+    /// End would then only cut the alert short, so it is offered only while a
+    /// conversation is on behind the alert (its pre-alert state was live).
+    private var hasConversationBehindPill: Bool {
+        guard voice.state == .triggerSpeaking else { return true }
+        let prior = voice.preemptedState ?? .idle
+        return prior != .idle && prior != .starting
+    }
+
+    /// Offered only with a conversation behind the pill (`hasConversationBehindPill`).
+    @ViewBuilder
     private var endVoiceChatButton: some View {
+        if hasConversationBehindPill { endVoiceChatControl }
+    }
+
+    private var endVoiceChatControl: some View {
         Button {
             voice.stop()
         } label: {
@@ -546,7 +561,6 @@ struct AssistantChatView: View {
         case .idle: "mic.circle.fill"
         case .starting: "ellipsis.circle.fill"
         case .listening: "waveform.circle.fill"
-        case .thinking: "ellipsis.circle.fill"
         case .speaking: "speaker.wave.3.fill"
         case .triggerSpeaking: "exclamationmark.triangle.fill"
         }
@@ -557,7 +571,6 @@ struct AssistantChatView: View {
         case .idle: AppTheme.primary
         case .starting: AppTheme.mist
         case .listening: AppTheme.sage
-        case .thinking: AppTheme.mist
         case .speaking: AppTheme.dustyRose
         case .triggerSpeaking: AppTheme.terracotta
         }
@@ -565,7 +578,7 @@ struct AssistantChatView: View {
 
     private var voiceIsActive: Bool {
         switch voice.state {
-        case .starting, .listening, .thinking, .speaking: true
+        case .starting, .listening, .speaking: true
         default: false
         }
     }
@@ -575,7 +588,6 @@ struct AssistantChatView: View {
         case .idle: return ""
         case .starting: return String(localized: "Connecting…", bundle: LanguageManager.appBundle)
         case .listening: return voice.partialTranscript.isEmpty ? String(localized: "Listening", bundle: LanguageManager.appBundle) : String(localized: "Hearing you", bundle: LanguageManager.appBundle)
-        case .thinking: return String(localized: "Thinking…", bundle: LanguageManager.appBundle)
         case .speaking: return String(localized: "Speaking — tap the speaker button to interrupt", bundle: LanguageManager.appBundle)
         case .triggerSpeaking: return String(localized: "Alert", bundle: LanguageManager.appBundle)
         }

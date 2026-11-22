@@ -754,16 +754,12 @@ extension WorkoutSessionLifecycle {
 
     /// An AI-worded interval call, or the scripted one when the AI can't be
     /// asked (Flo off, its notice not accepted, no consent for the provider),
-    /// so interval calls are never silent.
+    /// fails, replies with nothing, or has said nothing a few seconds in, so
+    /// interval calls are never silent. The conversation decides which, when
+    /// the call comes up (`speakAIResponse(toPrompt:fallback:)`).
     @MainActor
     private static func announce(on conversation: VoiceConversationController, prompt: String, fallback: String) {
-        let provider = AppDependencies.current.providers.providerRegistry.activeProvider
-        let accepted = conversation.assistantViewModel.hasAcceptedDisclaimer
-        guard InterjectionGate.maySend(to: provider.id, disclaimerAccepted: accepted) else {
-            conversation.handleTrigger(message: fallback)
-            return
-        }
-        conversation.speakAIResponse(toPrompt: prompt)
+        conversation.speakAIResponse(toPrompt: prompt, fallback: fallback)
     }
 
     // MARK: - Pause / resume
