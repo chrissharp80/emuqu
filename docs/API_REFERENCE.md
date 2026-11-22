@@ -3694,8 +3694,8 @@ extension WorkoutRecorder {
     @discardableResult static func scheduleCoachReportEmail(for session: HRVSession) -> Task<Bool, Never>
 }
 
-/// `GPXImporter` (`Analysis/GPXImporter.swift`) and `ImportedWorkoutBuilder`
-/// (`Import/ImportedWorkoutBuilder.swift`) are nonisolated: a GPX file is
+/// `GPXImporter` (`Emuqu/Sources/Analysis/GPXImporter.swift`) and `ImportedWorkoutBuilder`
+/// (`Emuqu/Sources/Import/ImportedWorkoutBuilder.swift`) are nonisolated: a GPX file is
 /// parsed and built into a session off the main actor.
 enum GPXImporter {
     static func parse(data: Data, defaultSport: Sport = .run) throws -> ImportedWorkoutTrack
