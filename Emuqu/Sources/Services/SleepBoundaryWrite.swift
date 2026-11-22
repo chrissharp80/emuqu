@@ -78,13 +78,14 @@ enum SleepBoundaryWrite {
             return .notArchived
         }
         var outcome = Outcome.written(read)
-        try archive.update(read.id, requestingReupload: edit.isUserAdjustment) { stored in
+        try archive.updateIfChanged(read.id, requestingReupload: edit.isUserAdjustment) { stored in
             guard readIsCurrent(read, stored: stored) else {
                 outcome = .inputsChanged(stored)
-                return
+                return false
             }
             apply(edit, to: &stored, inputs: inputs)
             outcome = .written(stored)
+            return true
         }
         return outcome
     }
