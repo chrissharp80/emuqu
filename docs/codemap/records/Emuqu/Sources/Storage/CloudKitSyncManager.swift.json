@@ -575,17 +575,17 @@
   {
    "key": "func CloudKitSyncManager.uploadSession(_:)",
    "hash": "c25d6bd1839ce8b2",
-   "does": "Direct per-recording upload: skips unless uploads allowed, schema available, session complete (or a workout with metadata) and not HealthKit-sourced. Then, serialized behind other sync work, checks again that uploads are allowed (sync turned off or a purge started while it waited stops it), the schema available and the iCloud account confirmed (returning when any fails); resolves the id the archive stored the recording under (archivedId(of:): a same-night session it was folded into), marks that target for upload again when it differs, and uploads it unless already marked uploaded.",
+   "does": "Direct per-recording upload: skips unless uploads allowed, schema available and takesDirectUpload (session complete, or a workout with metadata, and not HealthKit-sourced). Then, serialized behind other sync work, checks again that uploads are allowed (sync turned off or a purge started while it waited stops it), the schema available and the iCloud account confirmed (returning when any fails); resolves the id the archive stored the recording under (archivedId(of:): a same-night session it was folded into), marks that target for upload again when it differs, and uploads it unless already marked uploaded.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed",
-    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.isHealthKitSourced(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archivedId(of:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadOne(_:)"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadOne(_:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.takesDirectUpload(_:)"
    ],
    "reads": [
     "mem:UserSettings.iCloudSyncEnabled",
@@ -639,13 +639,12 @@
    "deps": {
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archivedId(of:)": "c3d7b32f9870de81",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "08f434f5bf61f50e",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.takesDirectUpload(_:)": "0a5a1ef9bcc97c83",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadOne(_:)": "2dc66a05014ab1e1",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard": "165d82ae51eae938",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "c183270cf259e429",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "271213db35c3c82e",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)": "c8d3ddb59d2e3d94",
-    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.takesDirectUpload(_:)": "0a5a1ef9bcc97c83"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)": "c8d3ddb59d2e3d94"
    }
   },
   {
