@@ -154,6 +154,35 @@ final class NormalizedPowerTests: XCTestCase {
         XCTAssertTrue(FTPAutoEstimator.incompleteScanStores(effort, cachedFTP: nil))
     }
 
+    /// Before, any workout that could not be read kept the FTP scan (and the
+    /// workout-load backfill) from being stamped, so one corrupt file reran
+    /// both scans on every launch for good. Only a failure that clears once
+    /// the device is unlocked or space is freed keeps a scan open now.
+    func testOnlyAFailureThatMayClearKeepsALaunchScanOpen() {
+        let lockedFile = NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoPermissionError)
+        let lockedUnderneath = NSError(
+            domain: NSCocoaErrorDomain, code: NSFileReadUnknownError,
+            userInfo: [NSUnderlyingErrorKey: NSError(domain: NSPOSIXErrorDomain, code: Int(EPERM))]
+        )
+        let clearing: [any Error] = [
+            EncryptionManager.EncryptionError.keychainError(-25_308), lockedFile, lockedUnderneath,
+            NSError(domain: NSCocoaErrorDomain, code: NSFileWriteOutOfSpaceError)
+        ]
+        for error in clearing {
+            XCTAssertTrue(ArchiveAccessFailure.mayClear(error), "\(error)")
+        }
+        let corrupt = DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "corrupt"))
+        let lasting: [any Error] = [
+            SessionArchive.ArchiveError.hashMismatch, SessionArchive.ArchiveError.fileNotFound,
+            SessionArchive.ArchiveError.newerSchemaVersion(99), EncryptionManager.EncryptionError.decryptionFailed,
+            EncryptionManager.EncryptionError.keyNotFound, corrupt,
+            NSError(domain: NSCocoaErrorDomain, code: NSFileReadCorruptFileError)
+        ]
+        for error in lasting {
+            XCTAssertFalse(ArchiveAccessFailure.mayClear(error), "\(error)")
+        }
+    }
+
     // MARK: - Concept2 PM5 stroke power (Additional Stroke Data 0x0036)
 
     private func strokePacket(power: UInt16, strokes: UInt16) -> Data {

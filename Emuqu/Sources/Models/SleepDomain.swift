@@ -108,13 +108,23 @@ struct SleepStageInterval: Identifiable, Codable, Equatable {
         self.provenance = provenance
     }
 
-    /// Whole minutes, rounded from seconds. Every per-stage total — the
-    /// resolver's night, the sleep editor's, segments, stage scores — sums
-    /// this one value, so the same stages always give the same total.
-    /// Truncating instead loses up to a minute per stage, which on a night of
-    /// a few dozen Watch stages is several minutes.
+    /// Whole minutes: the clock minutes the interval spans, its end and its
+    /// start each rounded to the nearest minute of the clock, then
+    /// subtracted. Every per-stage total — the resolver's night, the sleep
+    /// editor's, segments, stage scores — sums this one value, so any split
+    /// of the same stages adds up to the same total; and back-to-back
+    /// intervals add up to their whole span rounded once, under a minute out
+    /// however many stages it holds. Rounding each interval's own length put
+    /// up to half a minute of error on every stage: a 29-second awake blip
+    /// read as 0, so a night of short Watch stages drifted by minutes.
+    /// Truncating loses up to a minute per stage.
     var durationMinutes: Int {
-        Int((end.timeIntervalSince(start) / 60).rounded())
+        Self.minuteMark(end) - Self.minuteMark(start)
+    }
+
+    /// The clock minute nearest to `date`, counted from the reference date.
+    private static func minuteMark(_ date: Date) -> Int {
+        Int((date.timeIntervalSinceReferenceDate / 60).rounded())
     }
 
     /// Explicit Codable init so archives missing the `provenance` field

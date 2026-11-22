@@ -364,4 +364,41 @@ final class FrequencyDomainTests: XCTestCase {
         let still = [Double](repeating: 5, count: 100)
         XCTAssertNil(FrequencyDomainAnalyzer.computeFromCleanPairs(times: still, rrValues: still.map { _ in 800 }))
     }
+
+    /// 400 beats breathing at 0.25 Hz around `meanRR`, starting at `start` s.
+    private func breathingRun(start: Double, meanRR: Double) -> FrequencyDomainAnalyzer.CleanRun {
+        var run = FrequencyDomainAnalyzer.CleanRun()
+        var t = start
+        for _ in 0 ..< 400 {
+            let value = meanRR + 40 * sin(2 * .pi * 0.25 * t)
+            run.times.append(t + value / 2_000)
+            run.rr.append(value)
+            t += value / 1_000
+        }
+        return run
+    }
+
+    /// Before, the beats either side of a recording break were resampled as
+    /// one series, so the spline bridged a five-minute gap (and the heart
+    /// rate change across it) with a curve no heart beat, which read as LF
+    /// power. No Welch segment spans a break now.
+    func testNoSegmentSpansARecordingBreak() throws {
+        let first = breathingRun(start: 0, meanRR: 800)
+        let second = breathingRun(start: (first.times.last ?? 0) + 300, meanRR: 1_000)
+        let split = try XCTUnwrap(FrequencyDomainAnalyzer.computeFromCleanRuns([first, second]))
+        XCTAssertGreaterThan(split.hf, split.lf, "Both runs breathe at 0.25 Hz; their spectrum is HF")
+        let bridged = try XCTUnwrap(FrequencyDomainAnalyzer.computeFromCleanPairs(
+            times: first.times + second.times, rrValues: first.rr + second.rr
+        ))
+        XCTAssertGreaterThan(bridged.lf, split.lf * 2, "Resampled across the break, the bridge reads as LF")
+    }
+
+    /// One run is exactly the clean-pairs path.
+    func testOneRunIsTheCleanPairsPath() throws {
+        let run = breathingRun(start: 0, meanRR: 800)
+        let viaRuns = try XCTUnwrap(FrequencyDomainAnalyzer.computeFromCleanRuns([run]))
+        let viaPairs = try XCTUnwrap(FrequencyDomainAnalyzer.computeFromCleanPairs(times: run.times, rrValues: run.rr))
+        XCTAssertEqual(viaRuns.hf, viaPairs.hf)
+        XCTAssertEqual(viaRuns.lf, viaPairs.lf)
+    }
 }

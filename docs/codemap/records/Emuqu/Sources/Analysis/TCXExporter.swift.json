@@ -14,15 +14,17 @@
  "units": [
   {
    "key": "func TCXExporter.export(session:track:)",
-   "hash": "a760c6d4ee5372a3",
-   "does": "Builds the TCX document: header (activity type, Id), lap header, GPS trackpoints or time-only trackpoints, then Notes with the human summary and closing tags.",
+   "hash": "078a6e6e3e15d4ff",
+   "does": "Builds the TCX document: header (activity type, Id) with the human summary, lap header, GPS trackpoints at their recorded fix times when the workout stored them (GPXExporter.timedAsRecorded) or time-only trackpoints, then Notes with the same summary and closing tags.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.tcxActivityType(for:)",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.humanSummary(session:)",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.recordedFixTimes(_:count:)",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.humanSummary(session:timesRecorded:)",
     "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.header(session:activityType:summary:iso:)",
     "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.lapHeader(session:iso:)",
     "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.timeOnlyTrackpoints(session:iso:)",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.timedAsRecorded(_:metadata:)",
     "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)"
    ],
    "reads": [
@@ -36,29 +38,37 @@
      "effect": "sport defaults to .walk → 'Other'"
     },
     {
-     "at": "+9",
+     "at": "+4",
+     "cond": "recorded fix times match the track",
+     "effect": "summary says the times are recorded; else spread evenly"
+    },
+    {
+     "at": "+7",
      "cond": "track empty",
      "effect": "timeOnlyTrackpoints; else GPS trackpoints"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.recordedFixTimes(_:count:)": "7f999ee4492b1930",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.timedAsRecorded(_:metadata:)": "0f36649205f7793e",
     "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.header(session:activityType:summary:iso:)": "dd7039383816486b",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.humanSummary(session:)": "9349e21bf65558ce",
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.lapHeader(session:iso:)": "6888dbdb04fcd66b",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.humanSummary(session:timesRecorded:)": "b9afe17256ba368c",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.lapHeader(session:iso:)": "9ac9b3efb9ab5eb2",
     "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.tcxActivityType(for:)": "a648ba0b5d8aec61",
     "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.timeOnlyTrackpoints(session:iso:)": "566911e89e0bc1f1",
     "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.trackpoints(session:track:iso:)": "f037f4bc54a92314"
    }
   },
   {
-   "key": "func TCXExporter.humanSummary(session:)",
-   "hash": "0c466ee8da6aa98a",
-   "does": "Builds the summary line used in the XML comment and <Notes>: preferred units, the GPX export's totals (GPXExporter.summaryTotals — only the totals the session recorded, none written as 0), 'values below are metric per TCX v2 schema', and that trackpoint times are spread evenly (pauses do not show as stops, per-point heart rate is matched on those times).",
+   "key": "func TCXExporter.humanSummary(session:timesRecorded:)",
+   "hash": "7d48cee36c2cf9a5",
+   "does": "Builds the summary line used in the XML comment and <Notes>: preferred units, the GPX export's totals (GPXExporter.summaryTotals — only the totals the session recorded, none written as 0), 'values below are metric per TCX v2 schema', the trackpoint-times note (GPXExporter.pointTimesNote: recorded fix times or spread evenly), and that each point's heart rate is matched on its time.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved",
-    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryTotals(session:imperial:)"
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryTotals(session:imperial:)",
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.pointTimesNote(recorded:points:)"
    ],
    "reads": [
     "ud:fitness.unitsPreference (App Group suite SharedUserDefaults.appGroup; legacy UserDefaults.standard fallback, migrated on read)"
@@ -71,12 +81,13 @@
      "effect": "no totals sentence"
     },
     {
-     "at": "+3",
+     "at": "+4",
      "cond": "imperial",
      "effect": "'imperial' else 'metric' text"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.pointTimesNote(recorded:points:)": "9a5ebfdcf6a4badc",
     "Emuqu/Sources/Analysis/GPXExporter.swift::func GPXExporter.summaryTotals(session:imperial:)": "4a9b4fcd58f3a3a1",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47"
@@ -92,17 +103,16 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.humanSummary(session:)": "9349e21bf65558ce"
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.humanSummary(session:timesRecorded:)": "b9afe17256ba368c"
    }
   },
   {
    "key": "func TCXExporter.lapHeader(session:iso:)",
-   "hash": "bd934c6495fa682e",
-   "does": "Returns the <Lap StartTime> opening with TotalTimeSeconds as the moving (timer) time from WorkoutMetadata.movingSeconds (the wall-clock duration when there is no workout metadata), DistanceMeters, Calories 0, AverageHeartRateBpm when mean HR>0, Intensity Active, TriggerMethod Manual and <Track>.",
+   "hash": "a015a5b4928058dc",
+   "does": "Returns the <Lap StartTime> opening with TotalTimeSeconds as the moving (timer) time, HRVSession.activeWorkoutSeconds (0 when unknown), DistanceMeters, Calories 0, AverageHeartRateBpm when mean HR>0, Intensity Active, TriggerMethod Manual and <Track>.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.movingSeconds(wallClockDuration:)",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.activeWorkoutSeconds",
     "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR"
    ],
    "reads": [],
@@ -110,8 +120,8 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "no metadata / movingSeconds nil / duration nil",
-     "effect": "falls back to the wall-clock duration, then 0"
+     "cond": "activeWorkoutSeconds nil",
+     "effect": "0"
     },
     {
      "at": "+3",
@@ -130,9 +140,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.duration": "1c67a4466d2d6f0e",
-    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "7126e79a187bd556",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::func WorkoutMetadata.movingSeconds(wallClockDuration:)": "7ba0583eb19458f3"
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.activeWorkoutSeconds": "a956dd2ca4347410",
+    "Emuqu/Sources/Models/SessionMetadata.swift::var HRVSession.meanHR": "7126e79a187bd556"
    }
   },
   {
@@ -271,7 +280,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "d624b9d12029e2d1",
+    "Emuqu/Sources/Analysis/TCXExporter.swift::func TCXExporter.export(session:track:)": "e8b07f9f7230410e",
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"

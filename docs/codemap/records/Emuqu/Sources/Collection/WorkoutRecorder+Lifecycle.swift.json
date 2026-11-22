@@ -75,7 +75,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyAnalyzerMetrics(to:computed:hrrSamples:)": "df3fb4262d8eaedc",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyAnalyzerMetrics(to:computed:hrrSamples:)": "fbe8c342040d1e20",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyElevationMetrics(to:)": "e01909ec3c0ded61",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyPowerAggregates(to:sport:startDate:stopDate:)": "fca6169a946d014f",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.applyRouteTRIMPEstimate(to:sport:)": "7b7595c13e22a91a",
@@ -274,8 +274,8 @@
   },
   {
    "key": "func WorkoutFinalizer.applyAnalyzerMetrics(to:computed:hrrSamples:)",
-   "hash": "728150eb30531a56",
-   "does": "Stage 4: copies analyzer polyline, splits, Lucia TRIMP, hrTSS, decoupling, efficiency factor; sets recognizedRouteName from the planned route; stores HRR samples (nil if empty).",
+   "hash": "57ec48d386695b94",
+   "does": "Stage 4: copies analyzer polyline and its fix times, splits, Lucia TRIMP, hrTSS, decoupling, efficiency factor; sets recognizedRouteName from the planned route; stores HRR samples (nil if empty).",
    "entry": null,
    "calls": [],
    "reads": [
@@ -284,7 +284,7 @@
    "writes": [],
    "branches": [
     {
-     "at": "+13",
+     "at": "+14",
      "cond": "hrrSamples is empty",
      "effect": "true: hrrSamples = nil; false: stores the array (finalize is called with [] from Stop.swift:114, so nil at finalize)"
     }

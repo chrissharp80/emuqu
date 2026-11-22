@@ -394,7 +394,16 @@ final class DebugLogger {
     /// and camel-case names such as `frozenScore=` (recovery-score values).
     /// The names matter for prose ("nadir 48", "sleep 412 min", "RR 850ms");
     /// a named `key=value` is redacted by default (`keyValuePattern`).
-    nonisolated private static let metricPattern = #"(?:RMSSD|SDNN|pNN50|HRV|RHR|resting\s*HR|heart\s*rate|HR|alpha1|DFA|SpO2|respiratory\s*rate|respiration|temperature|wrist\s*temp|breath|composite|recovery\s*score|readiness|sleep\s*score|\w*score|baseline|TSB|ATL|CTL|hrTSS|TRIMP|RR|nadir|sleep|deep|REM|weight|VO2\s*max|FTP|LTHR|calories)"#
+    /// `metricPattern` joins them, in this order, into one alternation.
+    nonisolated static let metricNames: [String] = [
+        #"RMSSD"#, #"SDNN"#, #"pNN50"#, #"HRV"#, #"RHR"#, #"resting\s*HR"#, #"heart\s*rate"#, #"HR"#,
+        #"alpha1"#, #"DFA"#, #"SpO2"#, #"respiratory\s*rate"#, #"respiration"#, #"temperature"#,
+        #"wrist\s*temp"#, #"breath"#, #"composite"#, #"recovery\s*score"#, #"readiness"#, #"sleep\s*score"#,
+        #"\w*score"#, #"baseline"#, #"TSB"#, #"ATL"#, #"CTL"#, #"hrTSS"#, #"TRIMP"#, #"RR"#, #"nadir"#,
+        #"sleep"#, #"deep"#, #"REM"#, #"weight"#, #"VO2\s*max"#, #"FTP"#, #"LTHR"#, #"calories"#
+    ]
+
+    nonisolated private static let metricPattern = "(?:" + metricNames.joined(separator: "|") + ")"
 
     nonisolated private static let unitPattern = #"(?:\s*(?:ms|bpm|BPM|%|°[CF]|min|h|points?))?"#
 
@@ -460,7 +469,7 @@ final class DebugLogger {
     nonisolated private static func redactUnlistedKeyValues(in line: String) -> String {
         guard let regex = compiledPattern(keyValuePattern) else { return line }
         let text = line as NSString
-        let result = NSMutableString(string: text)
+        let result = NSMutableString(string: line)
         let matches = regex.matches(in: line, options: [], range: NSRange(location: 0, length: text.length))
         for match in matches.reversed() {
             let key = text.substring(with: match.range(at: 1))

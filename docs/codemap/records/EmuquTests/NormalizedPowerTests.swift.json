@@ -457,6 +457,33 @@
    }
   },
   {
+   "key": "func NormalizedPowerTests.testOnlyAFailureThatMayClearKeepsALaunchScanOpen()",
+   "hash": "2f94c89bbabbd6da",
+   "does": "Asserts ArchiveAccessFailure.mayClear is true for a locked keychain, a Cocoa no-permission read (direct or with POSIX EPERM underneath) and an out-of-space write, and false for hash mismatch, missing file, newer schema, decrypt failure, missing key, a DecodingError and a corrupt-file read.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Analysis/ArchiveAccessFailure.swift::func ArchiveAccessFailure.mayClear(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+13",
+     "cond": "for each clearing error",
+     "effect": "asserts true"
+    },
+    {
+     "at": "+23",
+     "cond": "for each lasting error",
+     "effect": "asserts false"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/ArchiveAccessFailure.swift::func ArchiveAccessFailure.mayClear(_:)": "178d40e8393fff4f",
+    "Emuqu/Sources/Services/StoreKitManager.swift::init ()": "724fdf97f6e381eb"
+   }
+  },
+  {
    "key": "func NormalizedPowerTests.strokePacket(power:strokes:)",
    "hash": "ab92ffa56a9f248b",
    "does": "Helper: builds a 15-byte synthetic 0x0036 packet with power at bytes 3–4 and stroke count at bytes 7–8 (little-endian).",

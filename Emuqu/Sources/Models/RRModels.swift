@@ -228,6 +228,15 @@ struct ArtifactFlags: Codable, Equatable {
     let confidence: Double
     /// True if this artifact was corrected/interpolated
     let corrected: Bool
+    /// True when the stored type is one a newer build added, which reads
+    /// as a nil `type`. Not encoded: the session holding it reads as newer
+    /// than this build (`HRVSession.sourceSchemaVersion`), so the archive
+    /// refuses a re-save that would write nil over the newer type.
+    let holdsUnknownType: Bool
+
+    private enum CodingKeys: String, CodingKey {
+        case isArtifact, type, confidence, corrected
+    }
 
     enum ArtifactType: String, Codable {
         case none
@@ -245,6 +254,7 @@ struct ArtifactFlags: Codable, Equatable {
         self.type = type
         self.confidence = confidence
         corrected = false
+        holdsUnknownType = false
     }
 
     /// Full initializer with corrected flag
@@ -253,16 +263,19 @@ struct ArtifactFlags: Codable, Equatable {
         self.type = type
         self.confidence = confidence
         self.corrected = corrected
+        holdsUnknownType = false
     }
 
     /// A type a newer build added reads as nil, unclassified, instead of
-    /// failing the session's whole flag array (and the session with it).
-    /// The beat stays an artifact or not as `isArtifact` says; reanalysis
-    /// classifies it again.
+    /// failing the session's whole flag array (and the session with it), and
+    /// is marked (`holdsUnknownType`). The beat stays an artifact or not as
+    /// `isArtifact` says.
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         isArtifact = try c.decode(Bool.self, forKey: .isArtifact)
-        type = try c.decodeIfPresent(String.self, forKey: .type).flatMap(ArtifactType.init(rawValue:))
+        let rawType = try c.decodeIfPresent(String.self, forKey: .type)
+        type = rawType.flatMap(ArtifactType.init(rawValue:))
+        holdsUnknownType = rawType != nil && type == nil
         confidence = try c.decode(Double.self, forKey: .confidence)
         corrected = try c.decode(Bool.self, forKey: .corrected)
     }

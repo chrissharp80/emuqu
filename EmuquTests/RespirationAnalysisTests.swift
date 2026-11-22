@@ -149,4 +149,48 @@ final class RespirationAnalysisTests: XCTestCase {
         let result = RespirationAnalyzer.estimateRespirationRate(rr)
         XCTAssertNil(result)
     }
+
+    // MARK: - Beats left out
+
+    /// Before, the pipeline passed only the kept beats and the rate was timed
+    /// by their summed intervals, so with every fifth beat dropped as an
+    /// artifact the 300 s of a 15 breaths/min recording read as 240 s and the
+    /// rate as about 19. Timed by the beats' own times, it reads 15.
+    func testBeatsLeftOutDoNotRaiseTheRate() throws {
+        var rr: [Double] = []
+        var times: [Double] = []
+        var t = 0.0
+        for index in 0 ..< 375 {
+            let interval = 800.0 + 40.0 * sin(2.0 * .pi * 0.25 * t)
+            if !index.isMultiple(of: 5) {
+                rr.append(interval)
+                times.append(t)
+            }
+            t += interval / 1_000
+        }
+        let rate = try XCTUnwrap(RespirationAnalyzer.estimateRespirationRate(rr, beatTimes: times))
+        XCTAssertEqual(rate, 15, accuracy: 1)
+        let collapsed = try XCTUnwrap(RespirationAnalyzer.estimateRespirationRate(rr))
+        XCTAssertGreaterThan(collapsed, 17, "Timed by the kept intervals alone, the same beats read high")
+    }
+
+    /// Before, the peak had to stand out only against peaks up to 0.5 Hz, so
+    /// breathing at 36/min (0.6 Hz) left its leakage in the band to be read
+    /// as a slower in-band rate (about 12/min). A rhythm above the band
+    /// dwarfs that leakage, so no rate is reported.
+    func testBreathingAboveTheBandIsNotReadAsASlowerRate() {
+        var rr: [Double] = []
+        var t = 0.0
+        for _ in 0 ..< 375 {
+            let interval = 800.0 + 40.0 * sin(2.0 * .pi * 0.6 * t)
+            rr.append(interval)
+            t += interval / 1_000
+        }
+        XCTAssertNil(RespirationAnalyzer.estimateRespirationRate(rr))
+    }
+
+    func testBeatTimesThatDoNotMatchTheIntervalsGiveNoRate() {
+        let rr = Array(repeating: 800.0, count: 100)
+        XCTAssertNil(RespirationAnalyzer.estimateRespirationRate(rr, beatTimes: Array(repeating: 0, count: 99)))
+    }
 }
