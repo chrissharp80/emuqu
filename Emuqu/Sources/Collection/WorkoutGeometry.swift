@@ -139,17 +139,27 @@ enum WorkoutGeometry {
         return fixes
     }
 
+    /// The completed 1 km chunks of `samples`, in buffer order: each closes at
+    /// the first sample 1 km past the previous close. The fold, one sample at
+    /// a time, is `ChunkFold`.
     static func kilometreChunks(_ samples: [WorkoutSample]) -> [SplitChunk] {
-        var chunks: [SplitChunk] = []
-        var chunkStartDist = 0.0
-        var chunkStartSec = 0
-        for s in samples {
-            guard let d = s.distanceMeters, d - chunkStartDist >= 1_000 else { continue }
+        var fold = ChunkFold()
+        for s in samples { fold.add(s) }
+        return fold.chunks
+    }
+
+    /// `kilometreChunks`, taking the samples one at a time in order.
+    struct ChunkFold {
+        private(set) var chunks: [SplitChunk] = []
+        private var chunkStartDist = 0.0
+        private var chunkStartSec = 0
+
+        mutating func add(_ s: WorkoutSample) {
+            guard let d = s.distanceMeters, d - chunkStartDist >= 1_000 else { return }
             chunks.append(SplitChunk(distStart: chunkStartDist, distEnd: d, tStart: chunkStartSec, tEnd: s.offsetSec))
             chunkStartDist = d
             chunkStartSec = s.offsetSec
         }
-        return chunks
     }
 
     /// Walk backward through the track until we've covered ~100 m, reporting

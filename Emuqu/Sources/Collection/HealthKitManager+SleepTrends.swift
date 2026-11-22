@@ -293,7 +293,8 @@ extension HealthWriteAndObserve {
     /// Each time other sources' sleep samples arrive, `sleepDataVersion` is
     /// incremented so views can reactively re-fetch, the night's cache is
     /// warmed and the wake-triggered push is considered. Starting again
-    /// replaces the running query and reads nothing twice.
+    /// replaces the running query and reads nothing twice: one read per
+    /// anchor runs at a time, the next from the anchor it kept.
     func startObservingSleepData() {
         guard manager.isHealthKitAvailable else { return }
         stopObservingSleepData()

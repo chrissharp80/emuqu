@@ -285,9 +285,11 @@ extension WorkoutSessionLifecycle {
         do {
             // In place, under the archive lock: the heart-rate-recovery save
             // runs on another thread, and a read-then-write here could put
-            // back a copy without its samples. Uploaded to iCloud with the
-            // session, so another device does not export the workout again.
-            try archive.update(sessionId) { $0.healthKitExportedAt = Date() }
+            // back a copy without its samples. A routine stamp: no re-upload
+            // and no `modifiedAt`, so a copy older than another device's edit
+            // cannot overwrite it in iCloud; the stamp rides the next real
+            // upload, and the sync identifiers stop a duplicate export.
+            try archive.update(sessionId, requestingReupload: false) { $0.healthKitExportedAt = Date() }
         } catch {
             debugLog("[WorkoutRecorder] HealthKit export stamp not persisted: \(error.localizedDescription)", level: .warning)
         }

@@ -194,6 +194,11 @@ final class WorkoutRecorder {
     /// `WorkoutMetadata.samples` on finalize so post-summary charts and
     /// per-row export columns don't have to reconstruct from aggregates.
     var workoutSamples: [WorkoutSample] = []
+    /// The live trends of `workoutSamples`, kept as the buffer grows
+    /// (`WorkoutLiveTrends.Tally`), so the per-tick snapshot and each coach
+    /// turn read them without scanning the whole buffer. Read through
+    /// `syncedLiveTrends()` and `liveZoneBreakdown()`.
+    @ObservationIgnored var liveTrendTally = WorkoutLiveTrends.Tally()
     /// True while the heart rate on display is the Apple Watch's wrist HR
     /// (read from its HealthKit workout session) rather than the strap's.
     /// Set by the tick's HR arbitration; a strap reading clears it.

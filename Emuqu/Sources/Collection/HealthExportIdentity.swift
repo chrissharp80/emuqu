@@ -108,6 +108,12 @@ enum HealthExportIdentity {
         object.metadata?[HKMetadataKeySyncIdentifier] as? String
     }
 
+    /// The sync version an object the app wrote carries; nil for one
+    /// written before the app gave one.
+    static func syncVersion(of object: HKObject) -> Int? {
+        object.metadata?[HKMetadataKeySyncVersion] as? Int
+    }
+
     /// The last version `nextSyncVersion(now:)` handed out.
     private static let lastSyncVersion = OSAllocatedUnfairLock<Int>(initialState: 0)
 
