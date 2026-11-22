@@ -753,12 +753,13 @@
   },
   {
    "key": "func ConversationStoreTests.testRetryingWithNothingPendingWritesNothing()",
-   "hash": "68e7059460e10c53",
-   "does": "Calls retryHeldSave() on a fresh store, sleeps 100 ms, asserts no file was written (writePending false makes retry a no-op).",
+   "hash": "c31a806b1b789638",
+   "does": "Calls retryHeldSave() on a fresh store, then asserts isEmptyOnDisk() (which runs on the store's serial queue after the queued retry, so it sees whatever the retry wrote) and that no file exists: with no save pending the retry writes nothing.",
    "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
    "calls": [
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.retryHeldSave()"
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.retryHeldSave()",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.isEmptyOnDisk()"
    ],
    "reads": [
     "file:conversation.json (test temp)"
@@ -766,10 +767,10 @@
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.isEmptyOnDisk()": "fc6cd71b4aa59878",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.retryHeldSave()": "aa783f277d1e6109",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da",
-    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769",
-    "EmuquTests/PDFReportGeneratorSmokeTests.swift::var PDFReportGeneratorSmokeTests.sleep": "d39314557e51f43b"
+    "EmuquTests/ConversationStoreTests.swift::func ConversationStoreTests.makeStore()": "1dad3a92da2c6769"
    }
   },
   {

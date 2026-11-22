@@ -529,8 +529,8 @@
   },
   {
    "key": "func VitalsScoringTests.testRefreshedVitalsFactorScoresTemperatureAgainstBaseline()",
-   "hash": "00f333566d549d89",
-   "does": "Builds a frozen breakdown whose Vitals factor says 'RR — no data', refreshes it with fresh vitals (RR 15, temp 1.5 vs baseline 1.4), and asserts the refreshed factor score equals calculateVitalsScore on the baseline-relative vitals and the composite stays 70.",
+   "hash": "12d6b2d0da0cc115",
+   "does": "Builds a frozen breakdown whose Vitals factor says 'RR — no data' and refreshes it with fresh vitals: RR 15 (population window, 100) and temperature 1.5 against a 1.4 baseline (+0.1, normal, 100) must score 100 with the composite still 70; -0.2 against -0.6 (+0.4, mild, 75) must score 87.5. Values worked by hand from the bands, not by calling the scorer.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/VitalsScoringTests.swift::func VitalsScoringTests.tempVitals(reading:baseline:)",
@@ -540,26 +540,16 @@
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.reportsNoRespiration(_:)",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.refreshedVitalsFactor(_:fresh:baselineStats:)",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.vitalsFactor(vitals:baselineStats:score:weight:)",
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline(_:)",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.temperatureSubScore(_:)"
    ],
    "reads": [],
    "writes": [],
-   "branches": [
-    {
-     "at": "+11",
-     "cond": "refreshed factor or expected nil (?? .nan)",
-     "effect": "NaN on either side makes the accuracy assertion fail"
-    }
-   ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.wristTemperatureAgainstPersonalBaseline(_:)": "cb55bfe450fdd72f",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreBreakdown(compositeScore:tier:factors:penalties:spo2PenaltyApplied:scoringVersion:)": "8e988f6172e1a8a5",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::init RecoveryScoreCalculator.ScoreFactor(label:detail:score:weight:impact:facts:)": "c3e56399f7952f3a",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.breakdownRefreshingVitalsFactor(_:freshVitals:baselineStats:)": "79ea3cb33a79a9d9",
-    "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.calculateVitalsScore(vitals:baselineStats:)": "34df3121aac914dd",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.refreshedVitalsFactor(_:fresh:baselineStats:)": "4a3a7a2d5b9c3d8c",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.reportsNoRespiration(_:)": "a7bd77bcfbf2dc54",
     "Emuqu/Sources/Analysis/VitalsScoring.swift::func VitalsScoring.respiratorySubScore(vitals:)": "0f8493f865e4cb0e",

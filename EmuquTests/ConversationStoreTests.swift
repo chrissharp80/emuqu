@@ -413,10 +413,12 @@ final class ConversationStoreTests: XCTestCase {
         waitForPersistedCount(store, 3)
     }
 
+    /// `isEmptyOnDisk` runs on the store's serial queue, after the retry
+    /// queued before it, so the check below sees whatever the retry wrote.
     func testRetryingWithNothingPendingWritesNothing() {
         let store = makeStore()
         store.retryHeldSave()
-        Thread.sleep(forTimeInterval: 0.1)
+        XCTAssertTrue(store.isEmptyOnDisk())
         XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.path))
     }
 

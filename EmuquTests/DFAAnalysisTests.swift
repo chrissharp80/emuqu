@@ -164,16 +164,12 @@ final class DFAAnalysisTests: XCTestCase {
 
     // MARK: - Edge Cases
 
+    /// A constant series integrates to zero: every box's fluctuation is 0,
+    /// there is no log-log slope to fit, and DFA reports nothing rather than
+    /// a NaN or infinite α1.
     func testDFAWithConstantRR() {
         let constantRR = [Double](repeating: 850, count: 100)
-        let result = DFAAnalyzer.compute(constantRR)
-
-        // Constant signal has zero fluctuation - may produce extreme values
-        // The algorithm should still complete without crashing
-        if let r = result {
-            XCTAssertFalse(r.alpha1.isNaN, "α1 should not be NaN")
-            XCTAssertFalse(r.alpha1.isInfinite, "α1 should not be infinite")
-        }
+        XCTAssertNil(DFAAnalyzer.compute(constantRR), "zero fluctuation has no scaling exponent")
     }
 
     func testDFAWithLargeDataset() throws {

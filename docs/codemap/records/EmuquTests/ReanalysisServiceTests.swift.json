@@ -17,8 +17,8 @@
  "units": [
   {
    "key": "func ReanalysisServiceTests.testComputeFrozenReadiness_withNilTrainingContext()",
-   "hash": "fb43d8c5a204f333",
-   "does": "Asserts computeFrozenReadiness(75, nil context) is finite and within 0...10.",
+   "hash": "8243995d4be68e88",
+   "does": "Asserts computeFrozenReadiness(75, nil context) is exactly 7.5: with no load capacity is full and the model has no trust, so readiness is the composite on the 0-10 scale (worked by hand from the readiness model).",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)",
@@ -59,8 +59,8 @@
   },
   {
    "key": "func ReanalysisServiceTests.testComputeFrozenReadiness_higherCompositeScoreYieldsHigherReadiness()",
-   "hash": "f4d15cbc8c566b9b",
-   "does": "Asserts computeFrozenReadiness(90) > computeFrozenReadiness(30) with nil context.",
+   "hash": "57c102a8fec79f6e",
+   "does": "Asserts computeFrozenReadiness with no training context is exactly 3.0 for composite 30 and 9.0 for composite 90.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)",
@@ -80,8 +80,8 @@
   },
   {
    "key": "func ReanalysisServiceTests.testComputeFrozenReadiness_zeroCompositeScore()",
-   "hash": "a2918794637f1500",
-   "does": "Asserts computeFrozenReadiness(0, nil) is not NaN and >= 0.",
+   "hash": "7272a91c93c38796",
+   "does": "Asserts computeFrozenReadiness(0, nil context) is exactly 0.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)",
@@ -101,8 +101,8 @@
   },
   {
    "key": "func ReanalysisServiceTests.testComputeFrozenReadiness_maxCompositeScore()",
-   "hash": "e16bc5ea59ea559a",
-   "does": "Asserts computeFrozenReadiness(100, nil) is not NaN and <= 10.",
+   "hash": "e0e7a53d2f8cbd69",
+   "does": "Asserts computeFrozenReadiness(100, nil context) is exactly 10.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)",
@@ -765,6 +765,29 @@
     "Emuqu/Sources/Models/RecoveryVitals.swift::func RecoveryVitals.withStrapNocturnalRHR(_:)": "5fa896ef88ba9fda",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.scoringVitals(of:result:)": "90a121a4b5513310",
     "EmuquTests/ReanalysisServiceTests.swift::func ReanalysisServiceTests.overnight()": "024f6233e33e807e"
+   }
+  },
+  {
+   "key": "func ReanalysisServiceTests.testComputeFrozenReadiness_withTrainingLoad()",
+   "hash": "b96beec9c8a57e8c",
+   "does": "With ATL 40 on CTL 40 (capacity ratio 1.0 → 70, acute:chronic 1.0 under the damper, no freshness bonus, full model trust 0.55) asserts computeFrozenReadiness is exactly 6.1 for composite 50 (50 + 0.55 × 20) and 7.6 for composite 90 (70 + 0.3 × 20), values worked by hand.",
+   "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/ReadinessScoring.swift::func ReadinessScoring.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "73e325cd77d48c64",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "8c51c557b70ca4c0",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+ReadinessForwarding.swift::func RecoveryScoreCalculator.calculateReadiness(recoveryScore:todayTrimp:ctl:atl:morningATL:acuteChronicRatio:recentWorkoutLoads:)": "3221ad191742a819",
+    "Emuqu/Sources/Models/RRModels.swift::init TrainingContext(atl:ctl:tsb:yesterdayTrimp:vo2Max:daysSinceHardWorkout:recentWorkouts:)": "cc26a08289fff8fb",
+    "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.computeFrozenReadiness(compositeScore:trainingContext:)": "09343bbc201631d1"
    }
   }
  ],

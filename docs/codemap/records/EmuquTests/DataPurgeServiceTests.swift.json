@@ -1,7 +1,7 @@
 {
  "file": "EmuquTests/DataPurgeServiceTests.swift",
- "hash": "3c72b5d6e75685ce",
- "role": "XCTest suite for DataPurgeService ('Delete All My Data'): report booleans and summary copy, stubbed remote-deletion success/failure, conversation/facts/disclaimer clearing read back from disk, container sweep of unknown files and directories, removal of a settings file that is not the live one and the keep rule for the live one, unlistable and missing roots, UserDefaults sweep with the entitlement/migration/AppleLanguages keep rules, the biometric profile reset read from the settings file, the personal baseline reset, iCloud sync left off, the refusal while a recording is under way and the run when none is, and which collector and workout states count as recording. Each purge sweeps a temporary scope (temp directories, throwaway suites, temporary archive and baseline file) and takes the suite's own Stores, built from a fresh container with the conversation, facts and trail stores on temporary files (AppDependencies.current is never swapped); a separate test pins that PurgeScope.device names the real containers and suites.",
+ "hash": "16e735e89f0a84be",
+ "role": "XCTest suite for DataPurgeService ('Delete All My Data'): report booleans and summary copy, stubbed remote-deletion success/failure, conversation/facts/disclaimer clearing read back from disk, container sweep of unknown files and directories, removal of a settings file that is not the live one and the keep rule for the live one, unlistable and missing roots, UserDefaults sweep with the entitlement/migration/AppleLanguages keep rules, the biometric profile reset read from the settings file, the personal baseline reset, iCloud sync left off, the refusal while a recording is under way and the run when none is, and which collector and workout states count as recording. Each purge sweeps a temporary scope (temp directories, throwaway suites, temporary archive and baseline file) and takes the suite's own Stores, built from a fresh container with the conversation, facts, trail, saved-route, email-contact and workout-backup stores on temporary files and the AI provider keys under a Keychain service of the test's own (AppDependencies.current is never swapped), and a sync manager of its own (CloudKitSyncManager.isolated); the host's sync bookkeeping and assistant-disclaimer keys in standard defaults its units choice and its re-encryption ledger entries are set aside and restored; a separate test pins that PurgeScope.device names the real containers and suites.",
  "types": [
   "DataPurgeServiceTests: class (XCTestCase, @MainActor)"
  ],
@@ -11,9 +11,13 @@
   "file:<tmp>/DataPurgeServiceTests-<uuid>/{group,applicationSupport,documents,caches,tmp} (the test's scope; sentinels written there)",
   "ud:DataPurgeServiceTests.app.<uuid>, DataPurgeServiceTests.group.<uuid> (throwaway suites)",
   "lazy appSuite, groupSuite, containers, scope, baselineTracker (on <group>/HRVBaseline.json), rawBackup (RawRRBackup in <group>/RRBackup), archive (built from the per-instance root and suite names)",
-  "lazy conversationStore, userFactsStore, breadcrumbStore (on files under the test's root) and stores (DataPurgeService.Stores from a fresh AppDependencies with those substitutes and an empty RecorderBox)"
+  "lazy conversationStore, userFactsStore, breadcrumbStore (on files under the test's root) and stores (DataPurgeService.Stores from a fresh AppDependencies with those substitutes and an empty RecorderBox)",
+  "lazy apiKeyStore (APIKeyStore under the Keychain service DataPurgeServiceTests.<uuid>)",
+  "lazy cloudSync (CloudKitSyncManager.isolated over the test archive, bookkeeping in <root>/Sync)",
+  "hostDefaults: HostDefaults of HostDefaults.cloudSyncBookkeeping and AssistantViewModel.disclaimerKey; savedUnits: the host's UnitsPreferenceStore.current",
+  "hostLedger: the host's PendingEncryptionLedger entries per store, read in setUp and recorded again in tearDown (the purge empties the ledger)"
  ],
- "toplevel": "Purge calls go through purge(remoteDeleted:scope:), which injects the suite's stores, deleteRemote (no real CloudKit zone deletion), the test's raw backup store (in the temporary App Group container) and baseline tracker, a recording answer of false and the temporary scope (or one a test builds from it); the two recording tests call purgeAllUserData directly with the same injections and their own recording answer.",
+ "toplevel": "Purge calls go through purge(remoteDeleted:scope:), which injects the suite's stores, deleteRemote (no real CloudKit zone deletion), the test's raw backup store (in the temporary App Group container) and baseline tracker, a recording answer of false and the temporary scope (or one a test builds from it); the two recording tests call purgeAllUserData directly with the same injections and their own recording answer. The sync manager every purge takes is the test's own (cloudSync).",
  "units": [
   {
    "key": "func DataPurgeServiceTests.setUp()",
@@ -55,8 +59,8 @@
   },
   {
    "key": "let DataPurgeServiceTests.stores",
-   "hash": "660ca1f411701e84",
-   "does": "Lazily builds the DataPurgeService.Stores every purge in the suite takes: a fresh AppDependencies() whose overrides hold the test's conversationStore and userFactsStore (files under the test's root, outside the swept containers), its breadcrumbStore (<root>/Breadcrumbs/active.json) and an empty RecorderBox, read through its purgeStores; every other store resolves to the app's live service. AppDependencies.current is never touched.",
+   "hash": "dc2e633d284ed12b",
+   "does": "Lazily builds the DataPurgeService.Stores every purge in the suite takes: a fresh AppDependencies() whose overrides hold the test's conversationStore and userFactsStore (files under the test's root, outside the swept containers), its breadcrumbStore (<root>/Breadcrumbs/active.json), an empty RecorderBox, the test's APIKeyStore (its own Keychain service), a WorkoutTrackBackup in <root>/WorkoutBackup on a private NotificationCenter, and a SavedRouteStore and EmailContactStore on files under the root, read through its purgeStores; every other store (the display, training-load and health caches, location services, provider consents, telemetry, logs, morning notifications) resolves to the app's live service. AppDependencies.current is never touched.",
    "entry": "First read by purge(remoteDeleted:scope:) or a recording test",
    "calls": [
     "Emuqu/Sources/Utilities/AppDependencies.swift::init AppDependencies()",
@@ -67,22 +71,36 @@
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeStores",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)",
-    "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbStore(fileURL:)"
+    "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbStore(fileURL:)",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.apiKeyStore",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.workoutTrackBackup",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.savedRouteStore",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.emailContactStore",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:notificationCenter:)",
+    "Emuqu/Sources/Models/SavedRoute.swift::init SavedRouteStore(storeURL:)",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)"
    ],
    "reads": [],
    "writes": [
-    "file:<tmp>/DataPurgeServiceTests-<uuid>/Assistant/, Breadcrumbs/ (directories the stores create)"
+    "file:<tmp>/DataPurgeServiceTests-<uuid>/Assistant/, Breadcrumbs/, WorkoutBackup/ (directories the stores create)"
    ],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::init ConversationStore(fileURL:saveDebounceMs:)": "ef8b38f6f4e4f2da",
     "Emuqu/Sources/Assistant/Chat/UserFactsStore.swift::init UserFactsStore(fileURL:)": "947446a062a66b08",
+    "Emuqu/Sources/Models/EmailContact.swift::init EmailContactStore(storeURL:)": "1cb1469d0e3cb8af",
+    "Emuqu/Sources/Models/SavedRoute.swift::init SavedRouteStore(storeURL:)": "d67010149183e8e6",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::init BreadcrumbStore(fileURL:)": "06f0b3dce328fe38",
+    "Emuqu/Sources/Storage/WorkoutTrackBackup.swift::init WorkoutTrackBackup(directory:notificationCenter:)": "469fe62263ca0c99",
     "Emuqu/Sources/Utilities/AppDependencies.swift::init AppDependencies()": "bea568cee298d114",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.apiKeyStore": "5df3f9c9f014251c",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.breadcrumbStore": "dc8e989d3ec81ff1",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.conversationStore": "34a92c6a48e53b7a",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.emailContactStore": "ee84ba2891f88ff5",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.recorderBox": "73dac10592c57d93",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.savedRouteStore": "dfa6b9967aa5b985",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.userFactsStore": "aa5ec13882658dc8",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.Overrides.workoutTrackBackup": "4fcb9840754f1411",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.purgeStores": "4aef152a558c87c5"
    }
   },
@@ -107,53 +125,84 @@
   },
   {
    "key": "func DataPurgeServiceTests.setUp() #2",
-   "hash": "17a08c74d8cf5f4a",
-   "does": "Per-test async setUp: snapshots SettingsManager.shared.settings and hasAcceptedDisclaimer, pins English, and creates the temporary container directories (group, applicationSupport, documents, caches, tmp) the test's purge scope sweeps.",
+   "hash": "79fe0a109db24663",
+   "does": "Per-test async setUp: snapshots SettingsManager.shared.settings, hasAcceptedDisclaimer and the units choice, sets the host's sync bookkeeping and assistant-disclaimer keys aside (HostDefaults), reads the host's re-encryption ledger entries of every store, pins English, and creates the temporary container directories (group, applicationSupport, documents, caches, tmp) the test's purge scope sweeps and the test sync manager's folder.",
    "entry": "XCTest per-test setUp (async)",
    "calls": [
-    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()"
+    "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()",
+    "EmuquTests/Helpers/TestHelpers.swift::func HostDefaults.setAside(_:)",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)"
    ],
    "reads": [
     "mem:SettingsManager.shared.settings",
-    "ud:hasAcceptedDisclaimer (SettingsManager)"
+    "ud:hasAcceptedDisclaimer (SettingsManager)",
+    "ud:fitness.unitsPreference (UnitsPreferenceStore)",
+    "ud:HostDefaults.cloudSyncBookkeeping",
+    "ud:assistant.disclaimerAccepted",
+    "mem:PendingEncryptionLedger.cache (every store)"
    ],
    "writes": [
-    "file:<temp>/DataPurgeServiceTests-<uuid>/{group,applicationSupport,documents,caches,tmp}"
+    "file:<temp>/DataPurgeServiceTests-<uuid>/{group,applicationSupport,documents,caches,tmp,Sync}",
+    "ud:HostDefaults.cloudSyncBookkeeping (removed)",
+    "ud:assistant.disclaimerAccepted (removed)"
    ],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.pending(in:)": "c7d52a25233a7067",
+    "EmuquTests/Helpers/TestHelpers.swift::func HostDefaults.setAside(_:)": "7fdeccb8d06ee6ee",
     "EmuquTests/Helpers/TestHelpers.swift::func XCTestCase.pinEnglishLanguage()": "53b148fe7d5c46b7"
    }
   },
   {
    "key": "func DataPurgeServiceTests.tearDown() #2",
-   "hash": "fec88960eb8c056d",
-   "does": "Per-test async tearDown: restores the saved settings (when captured) and the disclaimer flag, removes both throwaway suites' persistent domains and the temporary directory (a missing one is ignored).",
+   "hash": "36baa3a1a18a5f47",
+   "does": "Per-test async tearDown: restores the saved settings (when captured), the disclaimer flag, the units choice and the set-aside standard-defaults keys, records the host's re-encryption ledger entries again (the purge emptied the ledger), removes both throwaway suites' persistent domains and the temporary directory (a missing one is ignored).",
    "entry": "XCTest per-test tearDown (async)",
-   "calls": [],
+   "calls": [
+    "EmuquTests/Helpers/TestHelpers.swift::func HostDefaults.restore()",
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)"
+   ],
    "reads": [],
    "writes": [
     "ud:DataPurgeServiceTests.app/group.<uuid> (removed)",
-    "file:<temp>/DataPurgeServiceTests-<uuid> (removed)"
+    "file:<temp>/DataPurgeServiceTests-<uuid> (removed)",
+    "ud:fitness.unitsPreference (restored)",
+    "ud:HostDefaults.cloudSyncBookkeeping (restored)",
+    "ud:assistant.disclaimerAccepted (restored)",
+    "mem:PendingEncryptionLedger.cache (host entries recorded again)",
+    "ud:storage.pendingReencryption.* (persisted on the ledger's queue)"
    ],
    "branches": [
     {
-     "at": "+5",
+     "at": "+7",
+     "cond": "for each store's host ids",
+     "effect": "recorded again"
+    },
+    {
+     "at": "+13",
      "cond": "temp directory removal throws",
-     "effect": "ignored (swallow-ok)"
+     "effect": "ignored"
     }
    ],
-   "deps": {}
+   "deps": {
+    "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreferenceStore.current": "afb996abeac6be47",
+    "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.record(_:in:)": "471ac438c2a3e780",
+    "EmuquTests/Helpers/TestHelpers.swift::func HostDefaults.restore()": "1d370b6a567ac8ba"
+   }
   },
   {
    "key": "func DataPurgeServiceTests.purge(remoteDeleted:scope:)",
-   "hash": "69d93a185b7b3d98",
-   "does": "Calls DataPurgeService.purgeAllUserData with the test's archive, the test's RawRRBackup (RRBackup in the temporary App Group container), the shared CloudKit sync and settings managers, the suite's stores (DataPurgeServiceTests.stores), the test's baseline tracker, recordingInProgress answering false (so the host app's collector and workout recorder are never consulted), a deleteRemote stub returning `remoteDeleted`, and the given scope or the test's temporary one; rethrows a refusal.",
+   "hash": "9b8ace30879a2ef5",
+   "does": "Calls DataPurgeService.purgeAllUserData with the test's archive, the test's RawRRBackup (RRBackup in the temporary App Group container), the test's own CloudKit sync manager (cloudSync) and the shared settings manager, the suite's stores (DataPurgeServiceTests.stores), the test's baseline tracker, recordingInProgress answering false (so the host app's collector and workout recorder are never consulted), a deleteRemote stub returning `remoteDeleted`, and the given scope or the test's temporary one; rethrows a refusal.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)",
-    "EmuquTests/DataPurgeServiceTests.swift::let DataPurgeServiceTests.stores"
+    "EmuquTests/DataPurgeServiceTests.swift::let DataPurgeServiceTests.stores",
+    "EmuquTests/Helpers/TestHelpers.swift::func CloudKitSyncManager.isolated(archive:directory:settings:)"
    ],
    "reads": [],
    "writes": [
@@ -164,7 +213,7 @@
     "file:tmp",
     "ud:standard (all purgeable keys)",
     "ud:App Group suite (all purgeable keys)",
-    "kc:AI provider API keys",
+    "kc:AI provider API keys under the test's Keychain service",
     "mem:the test's ConversationStore (<tmp>/DataPurgeServiceTests-<uuid>/Assistant/conversation.json)",
     "mem:the test's UserFactsStore (<tmp>/DataPurgeServiceTests-<uuid>/Assistant/user_facts.json)",
     "mem:SettingsManager.shared.settings",
@@ -180,7 +229,8 @@
    "deps": {
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)": "68309eb00ad2e5c2",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)": "fdbbc520aa4c0476",
-    "EmuquTests/DataPurgeServiceTests.swift::let DataPurgeServiceTests.stores": "6ac1ac3119d78c57"
+    "EmuquTests/DataPurgeServiceTests.swift::let DataPurgeServiceTests.stores": "a9e3d37d77e410e4",
+    "EmuquTests/Helpers/TestHelpers.swift::func CloudKitSyncManager.isolated(archive:directory:settings:)": "275c9957e967f794"
    }
   },
   {
@@ -282,7 +332,7 @@
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resetInMemoryStateAfterPurge()": "1dd8bad4295a7758",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "a6534862ff4ef6d6",
     "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.forgetAfterPurge()": "05fed673b7a814f3",
-    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "6cb4453ef5dcc967"
+    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "ebda22c064144b11"
    }
   },
   {
@@ -402,7 +452,7 @@
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resetInMemoryStateAfterPurge()": "1dd8bad4295a7758",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "a6534862ff4ef6d6",
     "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.forgetAfterPurge()": "05fed673b7a814f3",
-    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "6cb4453ef5dcc967"
+    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "ebda22c064144b11"
    }
   },
   {
@@ -504,7 +554,7 @@
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetInMemoryStateAfterPurge()": "a63f77fe3636669e",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resetInMemoryStateAfterPurge()": "1dd8bad4295a7758",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "a6534862ff4ef6d6",
-    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "6cb4453ef5dcc967"
+    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "ebda22c064144b11"
    }
   },
   {
@@ -606,7 +656,7 @@
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetInMemoryStateAfterPurge()": "a63f77fe3636669e",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resetInMemoryStateAfterPurge()": "1dd8bad4295a7758",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "a6534862ff4ef6d6",
-    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "6cb4453ef5dcc967"
+    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "ebda22c064144b11"
    }
   },
   {
@@ -700,7 +750,7 @@
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetInMemoryStateAfterPurge()": "a63f77fe3636669e",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resetInMemoryStateAfterPurge()": "1dd8bad4295a7758",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "a6534862ff4ef6d6",
-    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "6cb4453ef5dcc967",
+    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "ebda22c064144b11",
     "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.waitUntil(_:)": "33cf04941758367e"
    }
   },
@@ -818,7 +868,7 @@
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resetInMemoryStateAfterPurge()": "1dd8bad4295a7758",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "a6534862ff4ef6d6",
     "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.forgetAfterPurge()": "05fed673b7a814f3",
-    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "6cb4453ef5dcc967",
+    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "ebda22c064144b11",
     "Emuqu/Sources/Services/DataPurgeService+Defaults.swift::func DataPurgeService.deviceDefaultsDomains(errors:)": "9760299d11b4b27d",
     "Emuqu/Sources/Services/DataPurgeService+Defaults.swift::func DataPurgeService.inheritedDefaultsKeys()": "539dad75bc176908",
     "Emuqu/Sources/Services/DataPurgeService+Defaults.swift::func DataPurgeService.isPurgeable(defaultsKey:)": "0ed2c508397ebbf7",
@@ -908,7 +958,7 @@
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.resetInMemoryStateAfterPurge()": "a63f77fe3636669e",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resetInMemoryStateAfterPurge()": "1dd8bad4295a7758",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "a6534862ff4ef6d6",
-    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "6cb4453ef5dcc967"
+    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "ebda22c064144b11"
    }
   },
   {
@@ -1038,7 +1088,7 @@
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resetInMemoryStateAfterPurge()": "1dd8bad4295a7758",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "a6534862ff4ef6d6",
     "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.forgetAfterPurge()": "05fed673b7a814f3",
-    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "6cb4453ef5dcc967"
+    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "ebda22c064144b11"
    }
   },
   {
@@ -1147,7 +1197,7 @@
     "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resetInMemoryStateAfterPurge()": "1dd8bad4295a7758",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "a6534862ff4ef6d6",
-    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "6cb4453ef5dcc967"
+    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "ebda22c064144b11"
    }
   },
   {
@@ -1250,7 +1300,7 @@
     "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resetInMemoryStateAfterPurge()": "1dd8bad4295a7758",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "a6534862ff4ef6d6",
-    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "6cb4453ef5dcc967"
+    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "ebda22c064144b11"
    }
   },
   {
@@ -1337,7 +1387,7 @@
     "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resetInMemoryStateAfterPurge()": "1dd8bad4295a7758",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "a6534862ff4ef6d6",
-    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "6cb4453ef5dcc967"
+    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "ebda22c064144b11"
    }
   },
   {
@@ -1423,7 +1473,7 @@
     "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resetInMemoryStateAfterPurge()": "1dd8bad4295a7758",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "a6534862ff4ef6d6",
-    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "6cb4453ef5dcc967"
+    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "ebda22c064144b11"
    }
   },
   {
@@ -1535,7 +1585,7 @@
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resetInMemoryStateAfterPurge()": "1dd8bad4295a7758",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "a6534862ff4ef6d6",
     "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.forgetAfterPurge()": "05fed673b7a814f3",
-    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "6cb4453ef5dcc967"
+    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "ebda22c064144b11"
    }
   },
   {
@@ -1592,7 +1642,7 @@
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackProfile(settingsManager:errors:)": "e29a678403bf0b1c",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.resetBaseline(_:)": "6175290b41cbe774",
     "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.forgetAfterPurge()": "05fed673b7a814f3",
-    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "6cb4453ef5dcc967"
+    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "ebda22c064144b11"
    }
   },
   {
@@ -1661,7 +1711,7 @@
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackProfile(settingsManager:errors:)": "e29a678403bf0b1c",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.resetBaseline(_:)": "6175290b41cbe774",
     "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.forgetAfterPurge()": "05fed673b7a814f3",
-    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "6cb4453ef5dcc967"
+    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "ebda22c064144b11"
    }
   },
   {
@@ -1707,7 +1757,7 @@
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackProfile(settingsManager:errors:)": "e29a678403bf0b1c",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.resetBaseline(_:)": "6175290b41cbe774",
     "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.forgetAfterPurge()": "05fed673b7a814f3",
-    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "6cb4453ef5dcc967"
+    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "ebda22c064144b11"
    }
   },
   {
@@ -1760,7 +1810,7 @@
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.readBackProfile(settingsManager:errors:)": "e29a678403bf0b1c",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.resetBaseline(_:)": "6175290b41cbe774",
     "Emuqu/Sources/Storage/UIStateCache.swift::func UIStateCache.forgetAfterPurge()": "05fed673b7a814f3",
-    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "6cb4453ef5dcc967"
+    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "ebda22c064144b11"
    }
   },
   {
@@ -1846,18 +1896,19 @@
     "Emuqu/Sources/Storage/Archive.swift::init SessionArchive(directory:sleepScheduleProvider:sessionMergeModeProvider:mergeGapProvider:)": "70ddbb76db6a54a3",
     "Emuqu/Sources/Storage/RawRRBackup.swift::func RawRRBackup.resetInMemoryStateAfterPurge()": "1dd8bad4295a7758",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup()": "a6534862ff4ef6d6",
-    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "6cb4453ef5dcc967"
+    "EmuquTests/DataPurgeServiceTests.swift::func DataPurgeServiceTests.purge(remoteDeleted:scope:)": "ebda22c064144b11"
    }
   },
   {
    "key": "func DataPurgeServiceTests.testPurgeIsRefusedWhileARecordingIsInProgress()",
-   "hash": "56e3d7f110f80797",
-   "does": "Writes a sentinel file into the temporary App Group container, a sentinel key into the app suite and sets the disclaimer accepted; calls purgeAllUserData with the suite's stores, recordingInProgress answering true and a deleteRemote stub that fails the test if called. Asserts it throws Refusal.recordingInProgress and that the file, the key and the disclaimer acceptance are all still there.",
+   "hash": "0c5ca2eb29bef9af",
+   "does": "Writes a sentinel file into the temporary App Group container, a sentinel key into the app suite and sets the disclaimer accepted; calls purgeAllUserData with the suite's stores, recordingInProgress answering true and a deleteRemote stub that fails the test if called. Asserts it throws Refusal.recordingInProgress and that the file, the key and the disclaimer acceptance are all still there, on the test's own sync manager (cloudSync).",
    "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
    "calls": [
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)",
-    "EmuquTests/DataPurgeServiceTests.swift::let DataPurgeServiceTests.stores"
+    "EmuquTests/DataPurgeServiceTests.swift::let DataPurgeServiceTests.stores",
+    "EmuquTests/Helpers/TestHelpers.swift::func CloudKitSyncManager.isolated(archive:directory:settings:)"
    ],
    "reads": [
     "file:<tmp>/DataPurgeServiceTests-<uuid>/group/zz_recording_sentinel.json",
@@ -1884,20 +1935,22 @@
    "deps": {
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)": "68309eb00ad2e5c2",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)": "fdbbc520aa4c0476",
-    "EmuquTests/DataPurgeServiceTests.swift::let DataPurgeServiceTests.stores": "6ac1ac3119d78c57"
+    "EmuquTests/DataPurgeServiceTests.swift::let DataPurgeServiceTests.stores": "a9e3d37d77e410e4",
+    "EmuquTests/Helpers/TestHelpers.swift::func CloudKitSyncManager.isolated(archive:directory:settings:)": "275c9957e967f794"
    }
   },
   {
    "key": "func DataPurgeServiceTests.testPurgeProceedsWhenNothingIsRecording()",
-   "hash": "34b3fd9a7092321b",
-   "does": "Builds an idle SnapshotFixtures collector, asserts isRecordingInProgress is false for it, writes a sentinel into the temporary App Group container, then purges with the suite's stores and recordingInProgress asking isRecordingInProgress about that collector. Asserts the report's archiveDeleted and that the sentinel is gone.",
+   "hash": "c0b3e004db0dfb34",
+   "does": "Builds an idle SnapshotFixtures collector, asserts isRecordingInProgress is false for it, writes a sentinel into the temporary App Group container, then purges with the suite's stores and recordingInProgress asking isRecordingInProgress about that collector. Asserts the report's archiveDeleted and that the sentinel is gone, on the test's own sync manager (cloudSync).",
    "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
    "calls": [
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isRecordingInProgress(collector:workout:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)",
-    "EmuquTests/DataPurgeServiceTests.swift::let DataPurgeServiceTests.stores"
+    "EmuquTests/DataPurgeServiceTests.swift::let DataPurgeServiceTests.stores",
+    "EmuquTests/Helpers/TestHelpers.swift::func CloudKitSyncManager.isolated(archive:directory:settings:)"
    ],
    "reads": [
     "file:<tmp>/DataPurgeServiceTests-<uuid>/group/zz_idle_sentinel.json"
@@ -1911,7 +1964,7 @@
     "file:tmp",
     "ud:standard (all purgeable keys)",
     "ud:App Group suite (all purgeable keys)",
-    "kc:AI provider API keys",
+    "kc:AI provider API keys under the test's Keychain service",
     "mem:the test's ConversationStore (<tmp>/DataPurgeServiceTests-<uuid>/Assistant/conversation.json)",
     "mem:the test's UserFactsStore (<tmp>/DataPurgeServiceTests-<uuid>/Assistant/user_facts.json)",
     "mem:SettingsManager.shared.settings",
@@ -1922,7 +1975,8 @@
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.isRecordingInProgress(collector:workout:)": "0ae1baecd7e62774",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)": "68309eb00ad2e5c2",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)": "fdbbc520aa4c0476",
-    "EmuquTests/DataPurgeServiceTests.swift::let DataPurgeServiceTests.stores": "6ac1ac3119d78c57",
+    "EmuquTests/DataPurgeServiceTests.swift::let DataPurgeServiceTests.stores": "a9e3d37d77e410e4",
+    "EmuquTests/Helpers/TestHelpers.swift::func CloudKitSyncManager.isolated(archive:directory:settings:)": "275c9957e967f794",
     "EmuquTests/SnapshotFixtures.swift::func SnapshotFixtures.collector()": "fffeaf00f1e291cc"
    }
   },
@@ -1985,15 +2039,16 @@
   },
   {
    "key": "func DataPurgeServiceTests.testICloudSyncIsOffAndWritesAreRefusedWhileTheRemoteDeletionRuns()",
-   "hash": "274d0aefdd71c75a",
-   "does": "Turns iCloud sync on, then purges with a deleteRemote stub that records whether sync was still on and tries to archive a night into the test archive; asserts sync was already off, the write was refused with PurgeGate.Refused and nothing was archived, the gate is open after the purge, and the archive takes writes again.",
+   "hash": "c3a760659991dbc5",
+   "does": "Turns iCloud sync on, then purges with a deleteRemote stub that records whether sync was still on and tries to archive a night into the test archive; asserts sync was already off, the write was refused with PurgeGate.Refused and nothing was archived, the gate is open after the purge, and the archive takes writes again, on the test's own sync manager (cloudSync).",
    "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
    "calls": [
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)",
     "Emuqu/Sources/Services/PurgeGate.swift::var PurgeGate.isPurging",
-    "EmuquTests/DataPurgeServiceTests.swift::let DataPurgeServiceTests.stores"
+    "EmuquTests/DataPurgeServiceTests.swift::let DataPurgeServiceTests.stores",
+    "EmuquTests/Helpers/TestHelpers.swift::func CloudKitSyncManager.isolated(archive:directory:settings:)"
    ],
    "reads": [
     "mem:SettingsManager.shared.settings.iCloudSyncEnabled",
@@ -2023,18 +2078,20 @@
     "Emuqu/Sources/Services/PurgeGate.swift::var PurgeGate.isPurging": "e50d4ba69a9f521d",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
-    "EmuquTests/DataPurgeServiceTests.swift::let DataPurgeServiceTests.stores": "6ac1ac3119d78c57"
+    "EmuquTests/DataPurgeServiceTests.swift::let DataPurgeServiceTests.stores": "a9e3d37d77e410e4",
+    "EmuquTests/Helpers/TestHelpers.swift::func CloudKitSyncManager.isolated(archive:directory:settings:)": "275c9957e967f794"
    }
   },
   {
    "key": "func DataPurgeServiceTests.testARecordingStartedDuringTheRemoteDeletionStopsThePurgeBeforeTheLocalWipe()",
-   "hash": "2759a5790d1485ff",
-   "does": "Writes a sentinel into the temporary App Group container and purges with a recording answer that is false the first time and true after; asserts the purge throws Refusal.recordingStartedDuringDelete, asked twice, the sentinel is still there, iCloud sync stays off and the gate is open.",
+   "hash": "a29fba14b76e0131",
+   "does": "Writes a sentinel into the temporary App Group container and purges with a recording answer that is false the first time and true after; asserts the purge throws Refusal.recordingStartedDuringDelete, asked twice, the sentinel is still there, iCloud sync stays off and the gate is open, on the test's own sync manager (cloudSync).",
    "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
    "calls": [
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)",
     "Emuqu/Sources/Services/PurgeGate.swift::var PurgeGate.isPurging",
-    "EmuquTests/DataPurgeServiceTests.swift::let DataPurgeServiceTests.stores"
+    "EmuquTests/DataPurgeServiceTests.swift::let DataPurgeServiceTests.stores",
+    "EmuquTests/Helpers/TestHelpers.swift::func CloudKitSyncManager.isolated(archive:directory:settings:)"
    ],
    "reads": [
     "file:<tmp>/DataPurgeServiceTests-<uuid>/group/zz_late_recording_sentinel.json",
@@ -2060,7 +2117,8 @@
    "deps": {
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)": "68309eb00ad2e5c2",
     "Emuqu/Sources/Services/PurgeGate.swift::var PurgeGate.isPurging": "e50d4ba69a9f521d",
-    "EmuquTests/DataPurgeServiceTests.swift::let DataPurgeServiceTests.stores": "6ac1ac3119d78c57"
+    "EmuquTests/DataPurgeServiceTests.swift::let DataPurgeServiceTests.stores": "a9e3d37d77e410e4",
+    "EmuquTests/Helpers/TestHelpers.swift::func CloudKitSyncManager.isolated(archive:directory:settings:)": "275c9957e967f794"
    }
   }
  ],

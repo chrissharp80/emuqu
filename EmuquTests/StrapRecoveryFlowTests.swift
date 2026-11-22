@@ -398,13 +398,14 @@ extension RRCollector {
     /// default one uploads accepted nights and deletes the live backup of a
     /// rejected one through the host's `CloudKitSyncManager`. Its raw backups
     /// live in a folder of their own, so backups other tests left in the
-    /// shared one never count as this collector's.
+    /// shared one never count as this collector's, and its baseline in a file
+    /// of its own, so an accepted night never joins the host's baseline.
     static func withoutCloudAcceptance(polarManager: PolarManager, archive: SessionArchive) -> RRCollector {
         let healthKit = HealthKitManager()
-        let rawBackup = RawRRBackup(
-            directory: FileManager.default.temporaryDirectory.appendingPathComponent("RRBackup-\(UUID().uuidString)", isDirectory: true)
-        )
-        let baselineTracker = BaselineTracker()
+        let storage = FileManager.default.temporaryDirectory.appendingPathComponent("RRBackup-\(UUID().uuidString)", isDirectory: true)
+        let rawBackup = RawRRBackup(directory: storage)
+        let baselineTracker = BaselineTracker(baselineFile: storage.deletingLastPathComponent()
+            .appendingPathComponent("HRVBaseline-\(storage.lastPathComponent).json"))
         let acceptance = SessionAcceptanceService(
             archive: archive, healthKit: healthKit, baselineTracker: baselineTracker, rawBackup: rawBackup,
             onCloudSync: { _ in }, onCloudDelete: { _ in }

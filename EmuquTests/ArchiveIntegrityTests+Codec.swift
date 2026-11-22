@@ -188,22 +188,19 @@ extension ArchiveIntegrityTests {
             session,
             encoder: SessionArchive.sessionEncoder
         )
-        // The codec reports whether it actually
-        // encrypted. On a simulator with a working Keychain it always should;
-        // a `.plaintextPendingEncryption` here means the fallback fired, which
-        // is exactly the condition this test exists to surface.
-        if EncryptionManager.shared.isAvailable {
-            XCTAssertEqual(format, .encrypted, "Encryption was available; the codec must not have fallen back")
-        }
         let independent = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
         XCTAssertEqual(hash, independent, "Codec hash must be SHA256 of the bytes-as-written")
         XCTAssertEqual(hash.count, 64)
-        if EncryptionManager.shared.isAvailable {
-            XCTAssertTrue(
-                SessionArchive.looksEncrypted(bytes),
-                "With encryption available, codec output must be ciphertext (hash covers ciphertext, not plaintext)"
-            )
-        }
+        // The codec reports whether it actually encrypted. With the key it
+        // always should; a `.plaintextPendingEncryption` here means the
+        // fallback fired, which is exactly the condition this test exists to
+        // surface.
+        try requireEncryptionKey()
+        XCTAssertEqual(format, .encrypted, "Encryption was available; the codec must not have fallen back")
+        XCTAssertTrue(
+            SessionArchive.looksEncrypted(bytes),
+            "With encryption available, codec output must be ciphertext (hash covers ciphertext, not plaintext)"
+        )
     }
 
     /// Codec output written to disk must decode back to an equal session

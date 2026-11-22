@@ -1,16 +1,18 @@
 {
  "file": "EmuquTests/HRVReferenceValidationTests.swift",
- "hash": "71079ea6a6f94f1e",
- "role": "XCTest suite validating TimeDomainAnalyzer against 6,000 ECG-annotated RR intervals from 20 nsr2db records with independently computed Python reference values: corpus sanity, meanRR/SDNN and unfiltered RMSSD to 1e-6, the pipeline RMSSD recomputed from the kept adjacent pairs, pNN50 where unfiltered, mean-HR scale, finiteness and shift invariance.",
+ "hash": "2f53c81eee18932f",
+ "role": "XCTest suite validating TimeDomainAnalyzer against 6,000 ECG-annotated RR intervals from 20 nsr2db records with independently computed Python reference values: corpus sanity, meanRR/SDNN and unfiltered RMSSD to 1e-6, the pipeline's ectopic-gated RMSSD, pNN50 and removed-beat count against values computed in Python from the published local-median rule (pinned in the file) and on a hand-worked twelve-beat series, pNN50 where unfiltered, mean-HR scale, finiteness and shift invariance.",
  "types": [
   "HRVReferenceValidationTests: class — XCTestCase over HRVReferenceFixtures",
   "HRVReferenceValidationTests.Expected: struct — decoded reference metrics",
   "HRVReferenceValidationTests.Record: struct — decoded fixture record",
-  "HRVReferenceValidationTests.Fixtures: struct — top-level {records}"
+  "HRVReferenceValidationTests.Fixtures: struct — top-level {records}",
+  "HRVReferenceValidationTests.GatedReference: struct — one record's independently computed gated RMSSD, pNN50 and removed-beat count"
  ],
  "state": [
   "mem:HRVReferenceValidationTests.fixtures (static lazy decode of HRVReferenceFixtures.json)",
-  "mem:HRVReferenceValidationTests.tolerance (1e-6)"
+  "mem:HRVReferenceValidationTests.tolerance (1e-6)",
+  "mem:HRVReferenceValidationTests.gated (static [record: GatedReference] table, values computed outside the app)"
  ],
  "toplevel": "",
  "units": [
@@ -127,76 +129,54 @@
    }
   },
   {
-   "key": "func HRVReferenceValidationTests.testPipelineRMSSDIsTheRMSOfTheKeptAdjacentPairs()",
-   "hash": "6bd43a14b8a78e41",
-   "does": "For every record asserts the pipeline RMSSD equals, to 1e-6, the RMS recomputed independently over the kept adjacent pairs (rmssdOverKeptAdjacentPairs), and counts records where it differs from the unfiltered RMSSD; asserts at least one does, so the corpus exercises the ectopic gate.",
+   "key": "func HRVReferenceValidationTests.testPipelineRMSSDMatchesTheIndependentGatedReferenceOnEveryRecord()",
+   "hash": "0856363ab9495bf0",
+   "does": "Asserts the gated table names exactly the fixture records; for every record asserts the pipeline's RMSSD (computeTimeDomain) equals the independently computed gated RMSSD within 1e-6, its pNN50 equals the gated pNN50 within 1e-5, and filterEctopicBeats removes the pinned number of beats; and that at least one record loses beats.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures",
     "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)",
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.rmssdOverKeptAdjacentPairs(_:)",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)"
-   ],
-   "reads": [
-    "mem:HRVReferenceValidationTests.fixtures"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "each record",
-     "effect": "compare"
-    },
-    {
-     "at": "+9",
-     "cond": "pipeline RMSSD differs from the unfiltered one",
-     "effect": "changed += 1"
-    }
-   ],
-   "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.rmssd(fromCleanRRs:)": "1596841c414b391c",
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "87f6aa28975ab16e",
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.rmssdOverKeptAdjacentPairs(_:)": "06eddbdab9c7fdcc",
-    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "149cb1808044a41f"
-   }
-  },
-  {
-   "key": "func HRVReferenceValidationTests.rmssdOverKeptAdjacentPairs(_:)",
-   "hash": "6fd38727b4df7311",
-   "does": "RMSSD from first principles: square root of the mean squared rr[i]-rr[i-1] over the pairs adjacent in the series as recorded with both beats kept by TimeDomainAnalyzer.ectopicKeepMask and no recording break between them (isRecordingBreak); nil when no pair qualifies.",
-   "entry": null,
-   "calls": [
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.points(_:)",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.ectopicKeepMask(_:)",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.isRecordingBreak(between:and:)"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.filterEctopicBeats(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+5",
-     "cond": "pair kept on both sides and not across a break",
-     "effect": "accumulated"
-    },
-    {
-     "at": "+11",
-     "cond": "no qualifying pair",
-     "effect": "nil"
+     "at": "+3",
+     "cond": "for each record",
+     "effect": "compares RMSSD, pNN50 and the removed-beat count with the gated table"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.ectopicKeepMask(_:)": "02e01e27fe494a31",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.isRecordingBreak(between:and:)": "a83bfc29bd250f82",
-    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.points(_:)": "724594d7a532cb28"
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.filterEctopicBeats(_:)": "b4cdab2ada0aaa92",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "87f6aa28975ab16e",
+    "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "149cb1808044a41f"
+   }
+  },
+  {
+   "key": "func HRVReferenceValidationTests.testPipelineRMSSDOnAHandWorkedSeriesWithOnePrematureBeat()",
+   "hash": "efc7baffd751c2e5",
+   "does": "Runs computeTimeDomain on twelve beats alternating 1000/1010 ms with one 600 ms premature beat and asserts RMSSD is exactly 10 ms and pNN50 0 (the value worked by hand: the gate removes the premature beat and its two pairs), and that filterEctopicBeats keeps 11 beats.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)",
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.filterEctopicBeats(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.filterEctopicBeats(_:)": "b4cdab2ada0aaa92",
+    "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "87f6aa28975ab16e"
    }
   },
   {
    "key": "func HRVReferenceValidationTests.testPNN50MatchesTheReferenceWhereNoBeatIsFiltered()",
-   "hash": "f0d1e07911e4c415",
-   "does": "For records where filterEctopicBeats removes nothing, asserts pipeline pNN50 equals the unfiltered reference within 1e-5, and that at least one record was compared.",
+   "hash": "1ff07d9f225cd616",
+   "does": "For the records the gated table says lose no beat, asserts pipeline pNN50 equals the unfiltered reference within 1e-5, and that 16 records were compared.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures",
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.filterEctopicBeats(_:)",
     "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)"
    ],
    "reads": [],
@@ -204,17 +184,11 @@
    "branches": [
     {
      "at": "+2",
-     "cond": "for each record",
-     "effect": "checks filter count"
-    },
-    {
-     "at": "+4",
-     "cond": "filter keeps every beat",
-     "effect": "false: record skipped (continue); true: compares pNN50"
+     "cond": "record's gated beatsRemoved == 0",
+     "effect": "compares pNN50; other records are skipped"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/TimeDomainAnalysis.swift::func TimeDomainAnalyzer.filterEctopicBeats(_:)": "b4cdab2ada0aaa92",
     "EmuquTests/HRVReferenceValidationTests.swift::func HRVReferenceValidationTests.analyse(_:)": "e22aa75e824f525e",
     "EmuquTests/HRVReferenceValidationTests.swift::let HRVReferenceValidationTests.fixtures": "149cb1808044a41f"
    }

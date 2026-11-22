@@ -86,7 +86,7 @@
     "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.linkEstablished()": "34f839cb7108e6e5",
     "Emuqu/Sources/Collection/StrapReadiness.swift::func StrapReadiness.settleWithoutSummary()": "0f292fcd0854ad9c",
     "Emuqu/Sources/Collection/StrapRecording.swift::init StrapDownloadLedger(defaults:)": "9cb9ba5d8e0feee5",
-    "EmuquTests/StrapRecoveryFlowTests.swift::func RRCollector.withoutCloudAcceptance(polarManager:archive:)": "dae6d5ccaeda3f81"
+    "EmuquTests/StrapRecoveryFlowTests.swift::func RRCollector.withoutCloudAcceptance(polarManager:archive:)": "9ea4a2d76b8c514c"
    }
   },
   {
@@ -654,23 +654,24 @@
   },
   {
    "key": "func RRCollector.withoutCloudAcceptance(polarManager:archive:)",
-   "hash": "02d23922944a229e",
-   "does": "Builds an RRCollector over the given PolarManager and archive with a fresh HealthKitManager, a RawRRBackup in a new folder of its own under the temporary directory (RRBackup-<UUID>, so backups other tests left in the shared folder are never listed in it), a fresh BaselineTracker, and a SessionAcceptanceService on the same archive/backup/tracker whose onCloudSync and onCloudDelete do nothing; the collector's other dependencies default.",
+   "hash": "abec0ecc09d7b876",
+   "does": "Builds an RRCollector over the given PolarManager and archive with a fresh HealthKitManager, a RawRRBackup in a new folder of its own under the temporary directory (RRBackup-<UUID>, so backups other tests left in the shared folder are never listed in it), a BaselineTracker on a file of its own beside that folder (HRVBaseline-RRBackup-<UUID>.json, never the host's baseline), and a SessionAcceptanceService on the same archive/backup/tracker whose onCloudSync and onCloudDelete do nothing; the collector's other dependencies default.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:sampleStore:)",
     "Emuqu/Sources/Storage/RawRRBackup.swift::init RawRRBackup(directory:)",
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::init SessionAcceptanceService(archive:healthKit:baselineTracker:rawBackup:onCloudSync:onCloudDelete:)",
-    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:scoring:)"
+    "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:scoring:)",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)"
    ],
    "reads": [],
    "writes": [
-    "file:<tmp>/RRBackup-<UUID>/ (created by RawRRBackup(directory:))"
+    "file:<tmp>/RRBackup-<UUID>/ (created by RawRRBackup(directory:))",
+    "file:<tmp>/HRVBaseline-RRBackup-<UUID>.json (when the tracker saves)"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(onBaselineUpdated:)": "a5f6a55fc002c5dc",
+    "Emuqu/Sources/Analysis/BaselineTracker.swift::init BaselineTracker(baselineFile:onBaselineUpdated:)": "a41f1bac098eee8d",
     "Emuqu/Sources/Collection/HealthKitManager.swift::init HealthKitManager(settingsProvider:sampleStore:)": "d9768b730a189edf",
     "Emuqu/Sources/Collection/RRCollector.swift::init RRCollector(polarManager:healthKit:archive:rawBackup:artifactDetector:windowSelector:baselineTracker:settingsManager:cloudSyncManager:reconciliation:analysisPipeline:sleepBoundaryResolver:acceptanceService:morningProcessingService:archiveSignal:deviceStatus:streamingLifecycle:morningCoordination:sessionState:scoring:)": "1eba2516dc6628c1",
     "Emuqu/Sources/Services/SessionAcceptanceService.swift::init SessionAcceptanceService(archive:healthKit:baselineTracker:rawBackup:onCloudSync:onCloudDelete:)": "955073b942718ab5",

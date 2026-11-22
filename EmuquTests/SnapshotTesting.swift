@@ -36,14 +36,20 @@ enum SnapshotTesting {
     /// harness flaky, and a flaky gate is one people disable.
     static let channelTolerance = 8
 
-    /// Fraction of *drawn* pixels allowed to exceed `channelTolerance` before
-    /// a snapshot is considered changed.
+    /// Pixels allowed to exceed `channelTolerance` before a snapshot is
+    /// considered changed: a fixed count, whatever the view's size.
     ///
-    /// Measured against drawn pixels, not the whole canvas. A card occupies
-    /// ~1% of a 402x874 frame, so a whole-canvas tolerance of even 0.2% would
-    /// absorb a change to a fifth of the card and report it as unchanged — a
-    /// gate loose enough to miss what it exists to catch.
-    static let drawnFractionTolerance = 0.02
+    /// A share of the drawn pixels (2 % was used) scaled the allowance with
+    /// the view: a full screen drawing 50,000 pixels let about 1,000 change,
+    /// more than a recovery score going from "72" to "27" or a reworded line
+    /// changes at 1x, so value and copy regressions on large screens passed;
+    /// a small badge drawing 437 was allowed 8, few enough to fail on a stray
+    /// pixel. In the committed references one character of text is 30 to 50
+    /// pixels past the channel tolerance (measured on `badge-morning-feeling`
+    /// and `chip-hrv`), so 24 lets through a few stray pixels and no changed
+    /// glyph. Antialiasing that moves by a hair stays inside
+    /// `channelTolerance` and is not counted at all.
+    static let maxChangedPixels = 24
 
     /// The time zone every reference was recorded in. A view that shows a
     /// clock time or an hour axis (the sleep hypnogram) would otherwise
@@ -292,12 +298,12 @@ extension XCTestCase {
             XCTFail("snapshot '\(name)': buffers not comparable", file: file, line: line)
             return
         }
-        if diff.fraction > SnapshotTesting.drawnFractionTolerance {
+        if diff.changedPixels > SnapshotTesting.maxChangedPixels {
             let pct = String(format: "%.2f%%", diff.fraction * 100)
             XCTFail(
                 "snapshot '\(name)': \(diff.changedPixels) pixels changed, "
                 + "\(pct) of the \(diff.drawnPixels) this view draws (tolerance "
-                + "\(SnapshotTesting.drawnFractionTolerance * 100)%). If the change "
+                + "\(SnapshotTesting.maxChangedPixels) pixels). If the change "
                 + "is intended, re-record with SNAPSHOT_RECORD=1 and commit the "
                 + "new reference.",
                 file: file, line: line

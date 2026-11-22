@@ -90,20 +90,22 @@
   },
   {
    "key": "func CauseDetectorTests.testDetectorWithCustomStrategies()",
-   "hash": "66510a5fb9e919e1",
-   "does": "Builds a CauseDetector with only SevereCauseDetector and asserts every returned cause (or none) has confidence critical/veryHigh/high.",
+   "hash": "0187a92dbde6f5d0",
+   "does": "Builds a CauseDetector with only SevereCauseDetector and asserts, for rmssd 15 / stress 400, that it returns exactly [\"Sharp HRV Drop\"], the same causes SevereCauseDetector returns on its own, and fewer than the default detector finds in that context.",
    "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
    "calls": [
     "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::init CauseDetector(strategies:)",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
     "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)",
-    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)"
+    "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::init CauseDetector()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::func CauseDetector.detectCauses(in:limit:)": "89c7d079d2f69b65",
+    "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::init CauseDetector()": "809296c860cf1a53",
     "Emuqu/Sources/Analysis/CauseDetection/CauseDetector.swift::init CauseDetector(strategies:)": "531770c5554ab438",
     "Emuqu/Sources/Analysis/CauseDetection/SevereCauseDetector.swift::func SevereCauseDetector.detectCauses(in:)": "bbcb01cc67d20c2f",
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)": "c17fcbe4ad86a1b6"
@@ -111,8 +113,8 @@
   },
   {
    "key": "func CauseDetectorTests.testPositiveDetectorOnlyTriggersForGoodReadings()",
-   "hash": "ccb38e324f1d2b8a",
-   "does": "Asserts PositiveCauseDetector returns no causes for a non-good reading; runs it on a good context but discards the result.",
+   "hash": "eed206e9bc9b47a1",
+   "does": "Asserts PositiveCauseDetector returns no causes for a non-good reading and returns \"Solid Sleep\" for a good reading with eight hours of sleep.",
    "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
    "calls": [
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",
@@ -162,8 +164,8 @@
   },
   {
    "key": "func CauseDetectorTests.testSevereDetectorDetectsHRVCrash()",
-   "hash": "73757b5b2c2c42f9",
-   "does": "Runs SevereCauseDetector with rmssd 15 / stress 350 and asserts the result is empty or contains a critical/veryHigh cause.",
+   "hash": "0087e4b5a9b3d422",
+   "does": "Asserts SevereCauseDetector returns exactly a critical \"Sharp HRV Drop\" for rmssd 15 against the 45 ms average (67 % below), exactly a veryHigh \"Major HRV Drop\" for 28 ms (38 % below), and nothing for 40 ms.",
    "entry": "XCTest runner: test method discovered by its `test` prefix on the XCTestCase subclass",
    "calls": [
     "EmuquTests/CauseDetectorTests.swift::func CauseDetectorTests.createContext(rmssd:stressIndex:lfHfRatio:dfaAlpha1:pnn50:isGoodReading:isExcellentReading:tags:totalSleepMinutes:sleepEfficiency:)",

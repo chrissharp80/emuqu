@@ -13,7 +13,7 @@ final class CloudKitSyncManager {
 
     // MARK: - Singleton
 
-    static let shared = CloudKitSyncManager()
+    static let shared = CloudKitSyncManager(syncStateURL: resolveSyncStateURL())
 
     // MARK: - Published State
 
@@ -243,9 +243,14 @@ final class CloudKitSyncManager {
 
     // MARK: - Init
 
-    private init(
+    /// The app's manager is `shared`, whose bookkeeping is at
+    /// `resolveSyncStateURL()`. A test builds its own over its archive,
+    /// settings and sync-state file, so it neither reads nor rewrites the
+    /// app's sync bookkeeping.
+    init(
         settingsManager: SettingsManager = AppDependencies.current.app.settingsManager,
-        archive: SessionArchive = AppDependencies.current.storage.sessionArchive
+        archive: SessionArchive = AppDependencies.current.storage.sessionArchive,
+        syncStateURL: URL
     ) {
         self.settingsManager = settingsManager
         self.archive = archive
@@ -256,7 +261,7 @@ final class CloudKitSyncManager {
         // frame paints. `CloudKitSyncState` holds its saves until that load,
         // so a CloudKit upload that lands during the boot gap doesn't
         // overwrite the file and trigger a re-upload of every session.
-        state = CloudKitSyncState(syncStateURL: Self.resolveSyncStateURL())
+        state = CloudKitSyncState(syncStateURL: syncStateURL)
         observeReuploadSignals()
         observers.add(Self.observeAccountChanges { [weak self] in
             // Unconfirmed at once, before the status check: nothing is read
@@ -437,11 +442,7 @@ final class CloudKitSyncManager {
         // production. Without this, every completed recording triggers a
         // save that's guaranteed to fail with the same error.
         guard !schemaUnavailable else { return }
-        let isWorkoutWithData = session.sessionType == .workout && session.workoutMetadata != nil
-        guard session.state == .complete || isWorkoutWithData else { return }
-        // Read out of Apple Health whole: it stays on this device. The push
-        // marks it local-only when it reaches it.
-        guard !CloudSessionPayload.isHealthKitSourced(session) else { return }
+        guard Self.takesDirectUpload(session) else { return }
         await syncSerializer.run { [self] in
             guard cloudUploadsAllowed, !schemaUnavailable, await accountGuard.confirmAccount() == .confirmed else { return }
             let sessionId = archive.archivedId(of: session.id)
@@ -450,6 +451,15 @@ final class CloudKitSyncManager {
             guard !state.uploadedSessionIds.contains(sessionId) else { return }
             await uploadOne(sessionId)
         }
+    }
+
+    /// Whether the direct upload takes `session` at all (`uploadSession`): a
+    /// complete session, or a workout carrying its metadata in any state, and
+    /// never one read out of Apple Health whole, which stays on this device
+    /// (the push marks it local-only when it reaches it).
+    static func takesDirectUpload(_ session: HRVSession) -> Bool {
+        let isWorkoutWithData = session.sessionType == .workout && session.workoutMetadata != nil
+        return (session.state == .complete || isWorkoutWithData) && !CloudSessionPayload.isHealthKitSourced(session)
     }
 
     /// Routes through the SANITIZED off-main builder
