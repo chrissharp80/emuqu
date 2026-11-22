@@ -1,9 +1,10 @@
 {
  "file": "Emuqu/Sources/Collection/SessionDataMigrations+TimeInBedRepairMigration.swift",
- "hash": "19ee5d42a3a3ccf3",
+ "hash": "8772b0b4b82ad750",
  "role": "One-shot migration that resets inBedMinutes to sleep+awake (and recomputes efficiency) for stage-built overnight snapshots inflated by an October 2026 resolver bug, then rescores changed nights.",
  "types": [
-  "SessionDataMigrations: extension — time-in-bed repair migration"
+  "SessionDataMigrations: extension — time-in-bed repair migration",
+  "SessionDataMigrations.TimeInBedRepairOutcome: private enum — repaired / unchanged / failed"
  ],
  "state": [
   "ud:didRunTimeInBedRepair_v1 (standard suite; static timeInBedRepairKey)"
@@ -12,8 +13,8 @@
  "units": [
   {
    "key": "func SessionDataMigrations.runTimeInBedRepairIfNeeded()",
-   "hash": "dfc0bdb0694d28d1",
-   "does": "If the flag is unset, iterates every overnight archive entry, repairs each via repairTimeInBed and counts corrections; then sets the flag and logs.",
+   "hash": "c4a84df2382a3fa7",
+   "does": "If the flag is unset, iterates every overnight archive entry, repairs each via repairTimeInBed and counts corrections and failed writes; with any failed write logs a warning and returns without the flag (retried next launch), else sets the flag and logs.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
@@ -34,33 +35,38 @@
      "effect": "return"
     },
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "for each entry where sessionType == .overnight",
      "effect": "try repair"
     },
     {
-     "at": "+5",
-     "cond": "repairTimeInBed returned false",
-     "effect": "continue; true -> increment count"
+     "at": "+6",
+     "cond": "repairTimeInBed outcome",
+     "effect": ".repaired: count; .failed: count failure; .unchanged: continue"
+    },
+    {
+     "at": "+15",
+     "cond": "a write failed",
+     "effect": "warning log, return without the flag"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Collection/SessionDataMigrations+TimeInBedRepairMigration.swift::func SessionDataMigrations.repairTimeInBed(_:)": "585c335cdd7e008e",
+    "Emuqu/Sources/Collection/SessionDataMigrations+TimeInBedRepairMigration.swift::func SessionDataMigrations.repairTimeInBed(_:)": "980044bbc94d18c7",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func SessionDataMigrations.repairTimeInBed(_:)",
-   "hash": "64735bd4bba2899c",
-   "does": "Retrieves the session off the main actor; when its snapshot is stage-built (timeInBedIsSleepPlusAwake) and inBedMinutes differs from nightSleep+awake, replaces the snapshot with withTimeInBedFromSleepAndAwake(), archives, and calls recomputeScoreOnly; returns whether corrected.",
+   "hash": "5515496f1bcd0942",
+   "does": "Retrieves the session off the main actor; when its snapshot is stage-built (timeInBedIsSleepPlusAwake) and inBedMinutes differs from nightSleep+awake, replaces the archive's copy of the snapshot, in place (SessionArchive.update, no reupload), with withTimeInBedFromSleepAndAwake() and calls recomputeScoreOnly; returns .repaired, .unchanged, or .failed when the write threw.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/SessionDataMigrations.swift::func SessionDataMigrations.retrieveOffMain(_:caller:)",
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.timeInBedIsSleepPlusAwake",
     "Emuqu/Sources/Models/SleepData.swift::func SleepData.withTimeInBedFromSleepAndAwake()",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.recomputeScoreOnly(sessionId:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
@@ -68,20 +74,20 @@
     "archive:SessionArchive.retrieve"
    ],
    "writes": [
-    "archive:SessionArchive.archive(_:) (full-session overwrite, skipSameNightMerge false, no reupload)",
-    "notif:flowRecoveryArchiveChanged (posted by SessionArchive.archive)",
+    "archive:SessionArchive.update (in place, no reupload)",
+    "notif:flowRecoveryArchiveChanged (posted by SessionArchive.update)",
     "archive:ReanalysisService.recomputeScoreOnly (rescore + upload)"
    ],
    "branches": [
     {
      "at": "+1",
      "cond": "retrieve fails, no snapshot, snapshot not stage-built, or inBed already equals sleep+awake",
-     "effect": "return false"
+     "effect": "return .unchanged"
     },
     {
-     "at": "+9",
-     "cond": "archive throws",
-     "effect": "warning logged, return false (no rescore)"
+     "at": "+10",
+     "cond": "update throws",
+     "effect": "warning logged, return .failed (no rescore)"
     }
    ],
    "deps": {
@@ -93,7 +99,7 @@
     "Emuqu/Sources/Models/SleepData.swift::var SleepData.timeInBedIsSleepPlusAwake": "e1ab1bbb7281d0a0",
     "Emuqu/Sources/Services/ReanalysisService.swift::func ReanalysisService.recomputeScoreOnly(sessionId:)": "0550bb1c1ff6a54c",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }

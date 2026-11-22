@@ -272,6 +272,18 @@ final class RRCollectorObservableStateTests: XCTestCase {
         XCTAssertEqual(lifecycle.pausedBeatCount, 0)
     }
 
+    /// The 1 Hz ticks publish the wall clock since the session started, not
+    /// a count of themselves: a tick missed while the app was suspended does
+    /// not hold the elapsed time back.
+    func testTheStreamingClockIsTheWallClockSinceTheStart() {
+        collector.streamingLifecycle.streamingElapsedSeconds = 3
+        collector.sessionStartTime = Date().addingTimeInterval(-125)
+        XCTAssertEqual(collector.streamingElapsedNow, 125, accuracy: 1)
+
+        collector.sessionStartTime = nil
+        XCTAssertEqual(collector.streamingElapsedNow, 4, "with no start time a tick counts one on")
+    }
+
     func testStreamingLifecycleForwardsThroughCollector() {
         collector.streamingLifecycle.isStreamingMode = true
         collector.streamingLifecycle.streamingTargetSeconds = 300

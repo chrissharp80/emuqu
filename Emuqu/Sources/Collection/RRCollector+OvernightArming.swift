@@ -98,7 +98,14 @@ extension OvernightStreamingCoordinator {
     }
 
     /// Tell the user at once about a refusal only they can fix; log the rest.
+    /// A refusal that lands once the night no longer wants the strap armed
+    /// (the ending cancelled the attempt mid-way) is only logged: the ending
+    /// deals with the strap, and the user has nothing to fix.
     private func noteArmingRefusal(_ error: Error) -> BatteryRefusal? {
+        guard nightWantsArming else {
+            debugLog("[RRCollector] H10 internal recording not armed: \(error) — the night no longer wants it")
+            return nil
+        }
         let refusal = StrapRecordingPolicy.startRefusal(for: error)
         switch refusal {
         case .retryable:
@@ -130,8 +137,15 @@ extension OvernightStreamingCoordinator {
     /// One attempt at arming the H10's internal recording. Any stale recording is
     /// stopped first so the fresh one holds THIS night only (else `startRecording`
     /// throws `alreadyRecording`), and rescued rather than dropped.
+    ///
+    /// A start the strap answers only after the night stopped wanting it does
+    /// not mark the night strap-backed (`settleLateArmedRecording`).
     private func attemptDeviceRecordingStart() async throws {
         try await collector.polarManager.recording.startFreshRecording(while: { nightWantsArming })
+        guard nightWantsArming else {
+            await settleLateArmedRecording()
+            return
+        }
         let deviceName = collector.polarManager.connectedDeviceType?.displayName ?? "device"
         debugLog("[RRCollector] ✅ \(deviceName) internal recording started")
         // The strap is now capturing the full night to its own
@@ -142,6 +156,20 @@ extension OvernightStreamingCoordinator {
         if let shown = collector.lastError, StrapRecordingPolicy.startRefusal(for: shown) != .retryable {
             collector.lastError = nil
         }
+    }
+
+    /// The strap accepted a start after the night stopped wanting it: an SDK
+    /// answer that outlasted the arming's wind-down. The recording began at
+    /// the end of the night or after it, so it holds none of the night. With
+    /// no night streaming and no transfer using the strap, it is stopped, so
+    /// the strap does not record into the day and the recorder does not show
+    /// it as a recording. It is not marked downloaded, so the next start's
+    /// rescue still keeps whatever it holds. A transfer using the strap, or a
+    /// night started since, owns the strap and is left to it.
+    private func settleLateArmedRecording() async {
+        debugLog("[RRCollector] H10 internal recording started after the night stopped wanting it — not marking the night strap-backed", level: .warning)
+        guard !collector.isOvernightStreaming, collector.polarManager.transfersInFlight == 0 else { return }
+        await collector.polarManager.stopDeviceRecordingIfNeeded(streamHoldsIt: false)
     }
 
     /// Before a night that arms the H10's own recording: a strap whose last

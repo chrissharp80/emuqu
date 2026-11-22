@@ -91,10 +91,11 @@
   },
   {
    "key": "func OvernightStreamingCoordinator.startOvernightStreaming(sessionType:useDeviceInternalBackup:)",
-   "hash": "49d3ed36645c7bf5",
-   "does": "Starts an overnight/nap streaming session: requires a connected, non-streaming strap, creates the session with streaming provenance, records the capture choice, starts PolarManager streaming, and only then starts diagnostics sampling (a failed start leaves no sampler running), launches the H10 arming loop when backup is on and the device is not Verity Sense, resets state (clearing lastError), starts HealthKit sleep/vitals observers, persists recording state, logs and starts the 1 Hz timer.",
+   "hash": "326eed2e955f1f8b",
+   "does": "Starts an overnight/nap streaming session: first refuses while an earlier night's ending is in progress (refuseWhileEndingInProgress, which also drops a stale claim), then requires a connected, non-streaming strap, creates the session with streaming provenance, records the capture choice, starts PolarManager streaming, and only then starts diagnostics sampling (a failed start leaves no sampler running), launches the H10 arming loop when backup is on and the device is not Verity Sense, resets state (clearing lastError), starts HealthKit sleep/vitals observers, persists recording state, logs and starts the 1 Hz timer.",
    "entry": null,
    "calls": [
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.refuseWhileEndingInProgress()",
     "Emuqu/Sources/Utilities/SystemDiagnosticsManager.swift::func SystemDiagnosticsManager.startSamplingDuringRecording()",
     "Emuqu/Sources/Models/SessionMetadata.swift::init HRVSession(startDate:tags:sessionType:deviceProvenance:)",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func DeviceProvenance.streaming(from:)",
@@ -118,21 +119,26 @@
    "branches": [
     {
      "at": "+2",
+     "cond": "an earlier night's ending is in progress",
+     "effect": "throw CollectorError.alreadyRecording, nothing changed"
+    },
+    {
+     "at": "+3",
      "cond": "strap not connected",
      "effect": "throw CollectorError.notConnected"
     },
     {
-     "at": "+3",
+     "at": "+4",
      "cond": "already streaming",
      "effect": "throw CollectorError.alreadyRecording"
     },
     {
-     "at": "+6",
+     "at": "+7",
      "cond": "startStreaming throws",
      "effect": "propagates before sampling or arming starts"
     },
     {
-     "at": "+9",
+     "at": "+10",
      "cond": "useDeviceInternalBackup and device is not Verity Sense",
      "effect": "launch arming loop; else streaming only"
     }
@@ -143,7 +149,8 @@
     "Emuqu/Sources/Collection/RRCollector+OvernightArming.swift::func OvernightStreamingCoordinator.launchDeviceRecordingLoop()": "08641994d55f883f",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func DeviceProvenance.streaming(from:)": "75333fdfabc78b0c",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.logOvernightStreamingStart(session:sessionType:)": "467f44066248b4bb",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.resetOvernightStreamingState(session:)": "84a5e8e7d1d10054",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.refuseWhileEndingInProgress()": "1aac4d846d542047",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.resetOvernightStreamingState(session:)": "212b19f01fc4722f",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.startOvernightHealthKitObservers()": "772b1582686a565b",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.startOvernightStreamingTimer()": "fee4a94f0eb53824",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
@@ -156,12 +163,10 @@
   },
   {
    "key": "func OvernightStreamingCoordinator.resetOvernightStreamingState(session:)",
-   "hash": "572d0731371c3fe1",
-   "does": "Resets collector state for a new overnight session: currentSession, empty points, start time, streaming/overnight/collecting flags, recordingPhase .overnightStreaming, unbounded target, counters zeroed, backup/ending flags cleared, any stale ending claim dropped (dropStaleEndingClaim), deviceFetchPolicy .automatic, and lastError cleared (an earlier session's error is not this night's).",
+   "hash": "ca42860d7ac7c8ac",
+   "does": "Resets collector state for a new overnight session: currentSession, empty points, start time, streaming/overnight/collecting flags, recordingPhase .overnightStreaming, unbounded target, counters zeroed, backup/ending flags cleared, deviceFetchPolicy .automatic, and lastError cleared (an earlier session's error is not this night's). The ending claim is not touched: the start already refused while one was held.",
    "entry": null,
-   "calls": [
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.dropStaleEndingClaim()"
-   ],
+   "calls": [],
    "reads": [],
    "writes": [
     "mem:RRCollector.currentSession",
@@ -178,8 +183,7 @@
     "mem:RRCollector.overnightDeviceBackupActive",
     "mem:RRCollector.isOvernightEnding",
     "mem:RRCollector.deviceFetchPolicy",
-    "mem:SessionState.lastError",
-    "mem:StreamingLifecycle.overnightEndingClaim"
+    "mem:SessionState.lastError"
    ],
    "branches": [],
    "deps": {
@@ -191,18 +195,16 @@
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.pausedBeatCount": "981597ffe5f37737",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.recordingPhase": "0f16ff12d66991eb",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "0859f035285ce410",
-    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingTargetSeconds": "3e1c60d3226afa65",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.dropStaleEndingClaim()": "04c5e78b6b088a53"
+    "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingTargetSeconds": "3e1c60d3226afa65"
    }
   },
   {
-   "key": "func OvernightStreamingCoordinator.dropStaleEndingClaim()",
-   "hash": "8e962bc9c4b54150",
-   "does": "A night or resumed segment is starting: drops an ending claim left held (StreamingLifecycle.dropStaleOvernightEnding) and logs a warning when there was one.",
+   "key": "func OvernightStreamingCoordinator.refuseWhileEndingInProgress()",
+   "hash": "a17e6997b40e7313",
+   "does": "Gate for a starting night or resumed segment: asks StreamingLifecycle.clearEndingForNewNight; returns when no ending claim is held; logs a warning with the claim's age in minutes and returns when a claim older than 30 min was dropped as left behind; logs and throws CollectorError.alreadyRecording, leaving the claim held, while an ending is still in progress.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.dropStaleOvernightEnding()",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.clearEndingForNewNight(now:)"
    ],
    "reads": [
     "mem:StreamingLifecycle.overnightEndingClaim"
@@ -212,13 +214,23 @@
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "no claim was held",
-     "effect": "returns"
+     "at": "+3",
+     "cond": ".clear",
+     "effect": "return"
+    },
+    {
+     "at": "+5",
+     "cond": ".droppedStale",
+     "effect": "warning logged with the claim's age; the start goes on"
+    },
+    {
+     "at": "+7",
+     "cond": ".endingInProgress",
+     "effect": "warning logged, throw CollectorError.alreadyRecording"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.dropStaleOvernightEnding()": "f2b0649a7e4b720a",
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.clearEndingForNewNight(now:)": "d5f564c4dc8686c4",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -286,23 +298,26 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.overnightStreamingTick()": "f7ca78b1a42934e7",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.overnightStreamingTick()": "978ad2c127ef8df5",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::var RRCollector.overnightStreaming": "0f40f13f892158e2",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.streamingTimer": "59d78adaf5521ecb"
    }
   },
   {
    "key": "func OvernightStreamingCoordinator.overnightStreamingTick()",
-   "hash": "2122c95d2cd485d9",
-   "does": "1 Hz tick: increments elapsed seconds, every 30 s rechecks strap battery staleness, detects a reconnect by comparing streamingReconnectCount, and runs the incremental backup (forced after a reconnect).",
+   "hash": "1b4f0ccb52878fe7",
+   "does": "1 Hz tick: sets elapsed seconds to the wall clock since the session start (streamingElapsedNow), rechecks strap battery staleness on the first tick of each 30 s of that clock, detects a reconnect by comparing streamingReconnectCount, and runs the incremental backup (forced after a reconnect).",
    "entry": "Timer block scheduled by startOvernightStreamingTimer (1 Hz).",
    "calls": [
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::var RRCollector.streamingElapsedNow",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.checkBatteryStaleness()",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.runOvernightIncrementalBackup(session:force:)"
    ],
    "reads": [
     "mem:RRCollector.isOvernightStreaming",
     "mem:RRCollector.streamingTimer",
+    "mem:RRCollector.streamingElapsedSeconds",
+    "mem:RRCollector.sessionStartTime",
     "mem:PolarManager.streamingReconnectCount",
     "mem:RRCollector.lastSeenReconnectCount",
     "mem:RRCollector.currentSession"
@@ -318,17 +333,17 @@
      "effect": "return"
     },
     {
-     "at": "+4",
-     "cond": "elapsed % 30 == 0",
+     "at": "+5",
+     "cond": "elapsed crossed into a new 30 s block",
      "effect": "check battery staleness"
     },
     {
-     "at": "+9",
+     "at": "+10",
      "cond": "reconnect count rose",
      "effect": "log and record new count; backup forced"
     },
     {
-     "at": "+13",
+     "at": "+14",
      "cond": "no currentSession",
      "effect": "return without backup"
     }
@@ -338,6 +353,7 @@
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.isOvernightStreaming": "93ba4e78eaebe055",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.streamingElapsedSeconds": "0859f035285ce410",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.runOvernightIncrementalBackup(session:force:)": "9d568f4667106e93",
+    "Emuqu/Sources/Collection/RRCollector+Streaming.swift::var RRCollector.streamingElapsedNow": "c2ab86f85e4002bc",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.streamingTimer": "59d78adaf5521ecb",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -473,7 +489,7 @@
    "does": "Morning stop: claims the night's ending (StreamingLifecycle.claimOvernightEnding) before its first suspension, so a second Stop, or one landing while a pause or discard is ending the night, returns nil untouched; the claim is released once the night is on the review card or has failed (releaseEndingOnceShown, before the status hold and baseline update) and in any case on return, a no-op once released; from the tap, holds a background-task assertion from BackgroundTaskAssertion.forRecordingStop (\"OvernightStop\") until it returns and marks the persisted recording record stop-requested; ends arming, tears down streaming and publishes the saving state, backs up the beats, scores the night (scoreStoppedNight: the device-fetch fallback when streaming is short, else download/merge/score) and then disconnects a Verity Sense whichever way the night ended, unless a night has started on it since.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.claimOvernightEnding()",
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.claimOvernightEnding(now:)",
     "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.releaseOvernightEnding(_:)",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.forRecordingStop(named:)",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()",
@@ -507,7 +523,7 @@
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.isVeritySenseDevice(_:)": "7649133f1a60846e",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.scoreStoppedNight(baseSession:streamingPoints:reconnectCount:isVeritySense:)": "3ad19740fb8b1dd5",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.stopStreamingInfrastructure()": "7118bb68655824f9",
-    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.claimOvernightEnding()": "11d9cea625c618c0",
+    "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.claimOvernightEnding(now:)": "c17f96a45ed0afa3",
     "Emuqu/Sources/Collection/StreamingLifecycle.swift::func StreamingLifecycle.releaseOvernightEnding(_:)": "13e955880d47b9aa",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()": "12e7c44b52c0986c",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.forRecordingStop(named:)": "c3840e6ca84c5e4e"
@@ -534,7 +550,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.downloadMergeAndScoreNight(baseSession:streamingPoints:reconnectCount:isVeritySense:)": "f086d8cee54a1d37",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fallbackToDeviceFetch(baseSession:streamingPoints:reconnectCount:isVeritySense:)": "539574fae32dc71a",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fallbackToDeviceFetch(baseSession:streamingPoints:reconnectCount:isVeritySense:)": "99beabe0f238ba49",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.hasValidStreaming(_:baseSession:)": "d3908be012e07ec5",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -609,7 +625,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)": "04a37de5fc61168b",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)": "2f699405c9e324fe",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.pollSleepDuringDeviceFetch(sessionStart:)": "265bf0fb38dcd30a"
    }
   },
@@ -738,11 +754,12 @@
   },
   {
    "key": "func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)",
-   "hash": "c9f94bbb640f04e6",
-   "does": "The single overnight strap-download gate: resets the transfer-cancel flag, returns nil (and stops any device recording) when Skip/streaming-only/Verity Sense; otherwise reconnects and downloads the recording since the session start, honours a Skip tapped during the download, reports a failed read, and returns the strap beats on the night's clock. Always resets deviceFetchPolicy to .automatic on exit.",
+   "hash": "e7f53a6bd654cbb7",
+   "does": "The single overnight strap-download gate: resets the transfer-cancel flag, returns nil (and stops any device recording) when Skip/streaming-only/Verity Sense or when the night never armed the strap and the strap reports no recording; otherwise reconnects and downloads the recording since the session start, honours a Skip tapped during the download, reports a failed read, and returns the strap beats on the night's clock. Always resets deviceFetchPolicy to .automatic and clears overnightDeviceBackupActive on exit (closeNightGate).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.closeNightGate()",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.nightFetchAllowed(isVeritySense:)",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.stopDeviceRecordingIfNeeded(streamHoldsIt:)",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.downloadNight(since:streamingCount:)",
@@ -755,6 +772,7 @@
    "writes": [
     "mem:PolarManager.fetchCancelled",
     "mem:RRCollector.deviceFetchPolicy",
+    "mem:RRCollector.overnightDeviceBackupActive",
     "mem:RRCollector.morningStatus",
     "ble:H10 recording stop/download"
    ],
@@ -779,22 +797,39 @@
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()": "8f47b0bb11661dc9",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.stopDeviceRecordingIfNeeded(streamHoldsIt:)": "13cae18053b4ce84",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.morningStatus": "0e3fa7b6eee80a18",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.closeNightGate()": "56af4beb8884fa54",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.downloadNight(since:streamingCount:)": "b79b40e5b2d4d5a3",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.nightFetchAllowed(isVeritySense:)": "f9a2ce5b165acd95",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.nightFetchAllowed(isVeritySense:)": "695c99d9beeba3df",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.reportDeviceFetchMiss(streamingPoints:)": "8add8ca8d4c026ee",
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "11c942aedf66b463",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
+   "key": "func OvernightStreamingCoordinator.closeNightGate()",
+   "hash": "adca9697ea9b9c6f",
+   "does": "Resets the night's Skip (deviceFetchPolicy .automatic) and its arming flag (overnightDeviceBackupActive false) when the strap gate finishes.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [
+    "mem:RRCollector.deviceFetchPolicy",
+    "mem:RRCollector.overnightDeviceBackupActive"
+   ],
+   "branches": [],
+   "deps": {}
+  },
+  {
    "key": "func OvernightStreamingCoordinator.nightFetchAllowed(isVeritySense:)",
-   "hash": "01125553d0067953",
-   "does": "Returns false (with a log line) when the user skipped, the capture mode is streaming-only, or the device is a Verity Sense; true otherwise.",
+   "hash": "ea513ce8b313af6d",
+   "does": "Returns false (with a log line) when the user skipped, the capture mode is streaming-only, the device is a Verity Sense, or the night never armed the strap (overnightDeviceBackupActive false) and the strap reports no recording running; true otherwise.",
    "entry": null,
    "calls": [],
    "reads": [
     "mem:RRCollector.deviceFetchPolicy",
-    "mem:RRCollector.useDeviceBackupForOvernight"
+    "mem:RRCollector.useDeviceBackupForOvernight",
+    "mem:RRCollector.overnightDeviceBackupActive",
+    "mem:PolarManager.isRecordingOnDevice"
    ],
    "writes": [],
    "branches": [
@@ -811,10 +846,16 @@
     {
      "at": "+5",
      "cond": "Verity Sense",
-     "effect": "log, false; else return true"
+     "effect": "log, false"
+    },
+    {
+     "at": "+7",
+     "cond": "night never armed the strap and the strap reports no recording",
+     "effect": "warning logged, false; else return true"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -1103,27 +1144,32 @@
   },
   {
    "key": "func OvernightStreamingCoordinator.fallbackToDeviceFetch(baseSession:streamingPoints:reconnectCount:isVeritySense:)",
-   "hash": "1f88925077e21732",
-   "does": "Streaming-short morning: downloads the strap file through the same gate; with fewer than 120 device beats (or none) fails the session (keeping a 'strap still holds the night' error the gate set); else lets selectBestDataSource decide whether streaming fills the device recording's gaps and finalizes.",
+   "hash": "4b28abab73e1a40a",
+   "does": "Streaming-short morning: downloads the strap file through the same gate; with fewer than 120 device beats (or none) fails the session (keeping a 'strap still holds the night' error the gate set) and clears the persisted recording marker, so the next launch does not offer the failed night as interrupted; else lets selectBestDataSource decide whether streaming fills the device recording's gaps and finalizes.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func selectBestDataSource(streamingPoints:devicePoints:baseSession:)",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.finalizeFallbackSession(data:reconnectCount:)",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.failSession(from:)"
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.failSession(from:)",
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "ud:UserDefaultsKeys.persistedRecordingState",
+    "ud:RRCollector.dismissedInterruptedSessionIds"
+   ],
    "branches": [
     {
      "at": "+9",
      "cond": "no device points or < 120",
-     "effect": "failSession and return it"
+     "effect": "failSession, clear the recording marker, return the failed session"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Collection/RRCollector+Lifecycle.swift::func RRCollector.clearPersistedRecordingState()": "5eae42c737d4ab45",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.failSession(from:)": "6ebd87ecca77a18b",
-    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)": "04a37de5fc61168b",
+    "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.fetchNightFromStrap(baseSession:streamingPoints:isVeritySense:)": "2f699405c9e324fe",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func OvernightStreamingCoordinator.finalizeFallbackSession(data:reconnectCount:)": "07d4b7a5a1e35ec4",
     "Emuqu/Sources/Collection/RRCollector+OvernightStreaming.swift::func selectBestDataSource(streamingPoints:devicePoints:baseSession:)": "1e9526c8e54dba01",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"

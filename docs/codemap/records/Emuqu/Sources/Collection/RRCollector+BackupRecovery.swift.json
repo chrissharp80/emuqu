@@ -463,7 +463,7 @@
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.beginTransfer()": "8f47b0bb11661dc9",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)": "d7326c510079b1b2",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.reconnectForTransfer()": "95932245f074f12c",
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession": "fa7ce1ddaae91ca0",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession": "3e39c6c577e76332",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.hasStoredExercise": "614d193cfe0e5d19",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "11c942aedf66b463",
@@ -976,7 +976,7 @@
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.fetchRecordingIfAvailable(recordedSince:)": "d7326c510079b1b2",
     "Emuqu/Sources/Collection/PolarManager.swift::func PolarManager.rescueToBackup(_:)": "5f4c9b1f9510f962",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func InterruptedWorkoutAutoRecovery.end(_:)": "c100d9b82589a259",
-    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession": "fa7ce1ddaae91ca0",
+    "Emuqu/Sources/Collection/RRCollector+Recovery.swift::var SessionRecoveryCoordinator.strapRecordingBelongsToLiveSession": "3e39c6c577e76332",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.isRecordingOnDevice": "2258f44f57140610",
     "Emuqu/Sources/Collection/StrapRecording.swift::func StrapRecording.points(onClockOf:fallbackStart:)": "11c942aedf66b463",
     "Emuqu/Sources/Collection/StrapRecordingPolicy.swift::func StrapRecordingPolicy.recording(startedAt:belongsToSessionStartedAt:)": "b46f35d8396e05f2",
@@ -1511,7 +1511,7 @@
    "deps": {
     "Emuqu/Sources/Collection/ArchiveSignal.swift::func ArchiveSignal.notifyChanged()": "dd1d381f6262b4a9",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.linkedOvernightEntries()": "fd7129e343f4784e",
-    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.repairLinkedSession(_:)": "948eef4f85ea1c27",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.repairLinkedSession(_:)": "bcfd592efecdd64a",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -1547,11 +1547,12 @@
   },
   {
    "key": "func SessionRecoveryCoordinator.repairLinkedSession(_:)",
-   "hash": "09b5bb520a961244",
-   "does": "Loads a linked child and its first parent, computes MergeDamage, builds repaired points and rebuilds/archives; returns .repaired when written, .failed when a needed repair could not be written, .unchanged otherwise.",
+   "hash": "3978c12c88813c64",
+   "does": "Loads a linked entry and its first link; leaves it unchanged unless it is a segment resumed from that link (isResumedChild: a paused night that was resumed and a night that superseded same-night siblings also list a first link); then computes MergeDamage, builds repaired points and rebuilds/archives; returns .repaired when written, .failed when a needed repair could not be written, .unchanged otherwise.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)",
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.isResumedChild(_:of:)",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.mergeDamage(session:parent:childSeries:parentSeries:)",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::var SessionRecoveryCoordinator.MergeDamage.needsRepair",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.repairedPoints(entry:session:parent:childSeries:parentSeries:damage:)",
@@ -1571,31 +1572,54 @@
     },
     {
      "at": "+3",
-     "cond": "child or parent fails to load, or either has an empty/nil rrSeries",
-     "effect": "unchanged"
-    },
-    {
-     "at": "+9",
-     "cond": "no damage",
+     "cond": "child or parent fails to load, it is not a segment resumed from that parent, or either has an empty/nil rrSeries",
      "effect": "unchanged"
     },
     {
      "at": "+10",
+     "cond": "no damage",
+     "effect": "unchanged"
+    },
+    {
+     "at": "+11",
      "cond": "repairedPoints nil (beat-count ceiling)",
      "effect": "unchanged"
     },
     {
-     "at": "+15",
+     "at": "+16",
      "cond": "rebuildAndArchive result",
      "effect": "true → repaired, false → failed"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.isResumedChild(_:of:)": "8b0b455299bd40f5",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.mergeDamage(session:parent:childSeries:parentSeries:)": "835974b91af39232",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.rebuildAndArchive(session:parent:mergedPoints:)": "79d88bcc6ba3b485",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.repairedPoints(entry:session:parent:childSeries:parentSeries:damage:)": "a7e9ea6f21b6c6e5",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::var SessionRecoveryCoordinator.MergeDamage.needsRepair": "f4d4d35f2d546c50",
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveOrLog(_:caller:)": "aa07640b24e7da96"
+   }
+  },
+  {
+   "key": "func SessionRecoveryCoordinator.isResumedChild(_:of:)",
+   "hash": "45e4d44d25de717e",
+   "does": "Whether the session is a segment resumed from `parent`: SessionRecoveryMath.isResumedSegment with the session's end (its start when it has none) and the parent's pausedDate.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.isResumedSegment(segmentId:segmentLinks:segmentEnd:parentId:parentLinks:parentPausedAt:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "session has no endDate",
+     "effect": "its start stands for its end"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/SessionRecoveryMath.swift::func SessionRecoveryMath.isResumedSegment(segmentId:segmentLinks:segmentEnd:parentId:parentLinks:parentPausedAt:)": "cb08443c01c4b526"
    }
   },
   {
