@@ -29,6 +29,31 @@ extension AssistantToolRunner {
     /// keeps pathological turns bounded at 8 × ~1 s.
     static let maxToolCallsPerTurn = 8
 
+    /// The tools that change the user's data or the app's state: the
+    /// MUTATION TOOLS of the system prompt's tool overlay, plus the artifact
+    /// writes. A turn that ran one is not started over on another model.
+    static let mutatingToolNames: Set<String> = [
+        "routes_library_rename", "routes_library_save_workout", "routes_library_engage",
+        "assistant_contacts_add", "assistant_contacts_remove", "assistant_email_compose",
+        "assistant_memory_add", "assistant_memory_remove", "assistant_memory_clear", "assistant_memory_restore",
+        "assistant_artifacts_add", "assistant_artifacts_update_status",
+        "location_set_address", "directions_routeTo", "directions_clear"
+    ]
+
+    /// Whether `error` is the user's Stop: `CancellationError`, or
+    /// `AIProviderError.cancelled` while the task is cancelled, which is how
+    /// a provider stream reports the same Stop (`ProviderStream.failure`).
+    static func isStop(_ error: Error) -> Bool {
+        if error is CancellationError { return true }
+        guard case AIProviderError.cancelled? = error as? AIProviderError else { return false }
+        return Task.isCancelled
+    }
+
+    /// Whether any resolved tool call so far was a mutating one.
+    static func ranMutatingTool(_ toolRounds: [[ToolExchange]]) -> Bool {
+        toolRounds.joined().contains { mutatingToolNames.contains($0.toolName) }
+    }
+
     /// Accumulator for a single tool_use seen during one streaming round.
     struct PendingToolCall {
         let id: String
@@ -50,6 +75,13 @@ extension AssistantToolRunner {
     ///
     /// The policy receives the stable turn id (not a positional index) so it
     /// resolves the live turn at flush time.
+    ///
+    /// A failure that another model could answer, after this turn already ran
+    /// a tool that changes something (`mutatingToolNames`), is not handed on:
+    /// it is rethrown as `PickedModelFailure`, which no fallback catches. A
+    /// fallback starts the turn over from the user's message and would run
+    /// that tool again (a second contact, a second staged email, the route
+    /// re-engaged).
     func runToolUseLoop(
         provider: AIProvider,
         model: ModelOption,
@@ -66,7 +98,7 @@ extension AssistantToolRunner {
             // a tool_result and the next send() still proceeds to the next
             // round because async for-in loops don't auto-throw on cancel.
             try Task.checkCancellation()
-            let done = try await runOneRound(
+            let done = try await runRoundKeepingActionsOnThisModel(
                 RoundContext(
                     provider: provider, model: model, systemPrompt: systemPrompt,
                     tools: tools, factRegistry: factRegistry, turnID: turnID
@@ -77,6 +109,21 @@ extension AssistantToolRunner {
                 grokQuirks.substituteFallbackIfTurnEndedBlankOrAnnounced()
                 return
             }
+        }
+    }
+
+    /// `runOneRound`, with a failure another model could answer turned into
+    /// `PickedModelFailure` once the turn has run a mutating tool (see
+    /// `runToolUseLoop`).
+    private func runRoundKeepingActionsOnThisModel(
+        _ round: RoundContext,
+        state: inout ToolLoopState,
+        grokQuirks: inout GrokQuirkPolicy
+    ) async throws -> Bool {
+        do {
+            return try await runOneRound(round, state: &state, grokQuirks: &grokQuirks)
+        } catch let error as AIProviderError where error.isFallbackable && Self.ranMutatingTool(state.toolRounds) {
+            throw PickedModelFailure(providerID: round.provider.id, underlying: error)
         }
     }
 
@@ -519,7 +566,8 @@ extension AssistantToolRunner {
         case answered
         /// The user stopped it.
         case stopped
-        /// Its safety stop ended the chain; the refusal is shown.
+        /// It ended the chain (its safety stop, or a failure after it ran a
+        /// mutating tool); the error is shown.
         case blocked
         /// It failed; the next fallback may answer.
         case failed
@@ -675,7 +723,7 @@ extension AssistantToolRunner {
             let ending = endingOfFinishedFallback(provider: provider, turnID: turnID)
             settleFallback(ending, failedPartial: failedPartial, provider: provider, model: model, turnID: turnID)
             return ending
-        } catch is CancellationError {
+        } catch let error where Self.isStop(error) {
             settleFallback(.stopped, failedPartial: failedPartial, provider: provider, model: model, turnID: turnID)
             return .stopped
         } catch {
@@ -722,9 +770,11 @@ extension AssistantToolRunner {
         return .failed
     }
 
-    /// `.blocked` for a safety stop (`AIProviderError.isBlockedReply`),
-    /// `.failed` for any other error a fallback threw.
+    /// `.blocked` for a safety stop (`AIProviderError.isBlockedReply`) and for
+    /// a failure after the fallback ran a mutating tool (`PickedModelFailure`,
+    /// from `runToolUseLoop`), `.failed` for any other error a fallback threw.
     private static func ending(ofFailedFallback error: Error) -> FallbackEnding {
+        if error is PickedModelFailure { return .blocked }
         guard let providerError = error as? AIProviderError, providerError.isBlockedReply else { return .failed }
         return .blocked
     }
@@ -733,8 +783,10 @@ extension AssistantToolRunner {
     /// own partial text has gone and the failed provider's partial reply is
     /// back. A safety stop ends the chain as the primary's would: it is shown
     /// through `handleStreamFailure`, which marks that partial reply
-    /// incomplete, so the request is never sent on to the next vendor. Any
-    /// other failure is logged, and `.failed` moves on to the next fallback.
+    /// incomplete, so the request is never sent on to the next vendor. A
+    /// failure after the fallback ran a mutating tool ends it the same way,
+    /// so the next fallback does not run that tool again. Any other failure
+    /// is logged, and `.failed` moves on to the next fallback.
     private func endFailedFallback(
         _ error: Error,
         ending: FallbackEnding,

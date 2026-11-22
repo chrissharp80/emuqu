@@ -282,8 +282,40 @@ enum CoachVoiceGuard {
     /// untouched, with only a debug log to show for it). Mapping over a
     /// fixed sentence list terminates by construction, so there is nothing
     /// to cap; it is also linear in the input rather than quadratic.
+    ///
+    /// The app's own safety replies are never rewritten. Each sentence of the
+    /// replies `MedicalQueryGuard` gives (`safetyCopySentences`) is passed
+    /// through byte-identical, and the rules run on the text between them.
+    /// Rule B of the system prompt tells the model to give the same reply, so
+    /// without this the scrub turned "Talk to your doctor about that." — the
+    /// emergency answer to chest pain — into a line saying the app can't tell
+    /// whether the user needs a professional, in both the spoken reply and the
+    /// streamed one.
     static func scrub(_ output: String) -> Result {
         let active = entries(for: output)
+        guard !output.isEmpty, firstMatchingEntry(in: output, among: active) != nil else {
+            return Result(scrubbed: output, triggers: [])
+        }
+        let safetyCopy = safetyCopySentences
+        var scrubbed = ""
+        var triggers: [(reason: String, originalSentence: String)] = []
+        var run = ""
+        for segment in sentenceSegments(of: output) {
+            guard safetyCopy.contains(safetyCopyKey(segment)) else {
+                run += segment
+                continue
+            }
+            let part = scrubRun(run, among: active)
+            scrubbed += part.scrubbed + segment
+            triggers += part.triggers
+            run = ""
+        }
+        let last = scrubRun(run, among: active)
+        return Result(scrubbed: scrubbed + last.scrubbed, triggers: triggers + last.triggers)
+    }
+
+    /// `scrub` on text that holds no sentence of the app's safety copy.
+    private static func scrubRun(_ output: String, among active: [Entry]) -> Result {
         guard !output.isEmpty, let wholeTextMatch = firstMatchingEntry(in: output, among: active) else {
             return Result(scrubbed: output, triggers: [])
         }
@@ -355,12 +387,35 @@ enum CoachVoiceGuard {
         return replaced ? rebuilt : nil
     }
 
+    /// Every sentence of the app's canned safety replies, in the in-app
+    /// language and in English, keyed by `safetyCopyKey`. English as well
+    /// because rule B quotes the English text and a model may answer in it.
+    /// Read only once a rule has matched, so the clean majority of sentences
+    /// never builds it.
+    private static var safetyCopySentences: Set<String> {
+        let replies = MedicalQueryGuard.cannedReplies + NarrativeLanguage.english { MedicalQueryGuard.cannedReplies }
+        return Set(replies.flatMap { sentenceSegments(of: $0) }.map(safetyCopyKey))
+    }
+
+    /// A sentence as compared with the safety copy: inline emphasis removed,
+    /// typographic apostrophes folded, whitespace collapsed, case ignored.
+    /// The words themselves must match exactly.
+    private static func safetyCopyKey(_ sentence: Substring) -> String {
+        withoutInlineEmphasis(String(sentence))
+            .replacingOccurrences(of: "[\u{2018}\u{2019}\u{02BC}]", with: "'", options: .regularExpression)
+            .split(whereSeparator: \.isWhitespace)
+            .joined(separator: " ")
+            .lowercased()
+    }
+
     /// Cheap pre-check: does this text contain anything at all worth rewriting?
     /// Lets the streaming path skip the rewrite machinery on the overwhelming
     /// majority of sentences, which are clean.
     ///
     /// Shares `entries(for:)` and `firstMatchingEntry` with `scrub`, so the
     /// pre-check and the scrub cannot disagree about what counts as prohibited.
+    /// A true answer is necessary, not sufficient: `scrub` still returns the
+    /// app's own safety copy unchanged.
     static func containsProhibitedLanguage(_ text: String) -> Bool {
         firstMatchingEntry(in: text, among: entries(for: text)) != nil
     }

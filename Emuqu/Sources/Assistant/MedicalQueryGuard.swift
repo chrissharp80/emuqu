@@ -93,6 +93,18 @@ enum MedicalQueryGuard {
         MedicalTermLexicon.refuseAsInjury.compactMap(MedicalTermLexicon.regex(for:))
 
     // MARK: - Replies
+    //
+    // Read from `NarrativeLanguage.bundle`: the in-app language, or English
+    // inside `NarrativeLanguage.english { }`, which is how `CoachVoiceGuard`
+    // reads the English copy rule B quotes.
+
+    /// Every reply the guard can give. `CoachVoiceGuard.scrub` passes their
+    /// sentences through unchanged: the output perimeter must never rewrite
+    /// the app's own safety copy, which the system prompt also tells the
+    /// model to give word for word.
+    static var cannedReplies: [String] {
+        [arrhythmiaReply, symptomReplyTemplate, selfHarmReply, injuryReply]
+    }
 
     /// States the position of rule C in the system prompt (the app cannot
     /// detect or rule out an arrhythmia; Apple Watch's ECG is built for it).
@@ -100,7 +112,7 @@ enum MedicalQueryGuard {
     static var arrhythmiaReply: String {
         String(
             localized: "Emuqu doesn't detect AFib or arrhythmia — it isn't a medical device. If you're worried about your heart rhythm, talk to your doctor. Apple Watch has a clinically validated ECG feature that's designed for that specific purpose.",
-            bundle: LanguageManager.appBundle
+            bundle: NarrativeLanguage.bundle
         )
     }
 
@@ -112,7 +124,7 @@ enum MedicalQueryGuard {
     static var symptomReplyTemplate: String {
         String(
             localized: "If you're exercising, stop now. Talk to your doctor about that. I can't assess your health — Emuqu is a fitness coaching app, not a medical device. If you're feeling unwell, please contact a clinician (or your local emergency number for severe symptoms).",
-            bundle: LanguageManager.appBundle
+            bundle: NarrativeLanguage.bundle
         )
     }
 
@@ -123,7 +135,7 @@ enum MedicalQueryGuard {
     static var selfHarmReply: String {
         String(
             localized: "I'm really sorry you're feeling this way. You don't have to go through it alone — please reach out to someone now. If you might act on these thoughts or you're in danger, call your local emergency number. You can find a free, confidential crisis line in your country at findahelpline.com, or in the US call or text 988.",
-            bundle: LanguageManager.appBundle
+            bundle: NarrativeLanguage.bundle
         )
     }
 
@@ -136,7 +148,7 @@ enum MedicalQueryGuard {
             If you're hurt, stop what you're doing. If it could be serious or you need help now, call your local emergency number. \
             I can't assess injuries — Emuqu is a fitness coaching app, not a medical device. Otherwise, please see a clinician.
             """,
-            bundle: LanguageManager.appBundle
+            bundle: NarrativeLanguage.bundle
         )
     }
 

@@ -12,7 +12,7 @@
   "MetricsVerifier.SpelledRewrite: struct (private) — original vs normalized NSRange of one spelled-number rewrite"
  ],
  "state": [
-  "mem:MetricsVerifier.corrections (OSAllocatedUnfairLock<CorrectionBuffer>: pending — recorded, not yet in a prompt, max 4; delivered — in a prompt whose reply has not been verified, max 4; process-local)",
+  "mem:MetricsVerifier.corrections (OSAllocatedUnfairLock<CorrectionBuffer>: pending — recorded, not yet in a prompt, max 4; delivered — in a prompt whose reply has not been verified, max 4; process-local; emptied by clearCorrections when the conversation is cleared)",
   "static let sleepDurationPatterns (3 regexes)",
   "static let generalSleepMarkers / otherNightMarkers / timeMarkers / targetMarkers / clauseSeparators (sentence- and clause-filter regexes)",
   "static let onesAndTeens / tens (word->int maps for spelled numbers)"
@@ -874,6 +874,21 @@
    "deps": {
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.correctionsBlock(_:)": "1efe281e5d6b629b"
    }
+  },
+  {
+   "key": "func MetricsVerifier.clearCorrections()",
+   "hash": "9ec63da0a33c19d6",
+   "does": "Empties the corrections buffer, pending and delivered alike. Called when the conversation is cleared, so the next conversation's first prompt carries no reminder about replies that are gone.",
+   "entry": null,
+   "calls": [
+    "ext:OSAllocatedUnfairLock.withLock"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:MetricsVerifier.corrections (emptied)"
+   ],
+   "branches": [],
+   "deps": {}
   },
   {
    "key": "func MetricsVerifier.acknowledgeDeliveredCorrections()",

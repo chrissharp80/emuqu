@@ -57,7 +57,7 @@ extension AssistantViewModel {
             return
         }
         priorSummary = trimmed
-        UserDefaults.standard.set(trimmed, forKey: Self.summaryKey)
+        store.saveSummary(trimmed)
     }
 
     /// The dropped turns not yet folded into `priorSummary`. `dropped` is
@@ -67,6 +67,29 @@ extension AssistantViewModel {
         guard let marker = summarizedThroughTurnID,
               let index = dropped.firstIndex(where: { $0.id == marker }) else { return dropped }
         return Array(dropped[(index + 1)...])
+    }
+
+    /// The oldest of `turns` that fit one summarization call on `provider`:
+    /// as many as its history budget (`conversationTokenBudget`) holds, and
+    /// always at least one, cut to that budget. After a long cloud
+    /// conversation, Apple's window is far smaller than the turns that fell
+    /// out of it; sent in one call they overflowed it or ran past the
+    /// timeout on every send, so nothing was ever folded in. One batch per
+    /// send advances `summarizedThroughTurnID`, and the next send takes the
+    /// next batch.
+    static func summaryBatch(_ turns: [ChatTurn], provider: ProviderID) -> [ChatTurn] {
+        let budget = conversationTokenBudget(for: provider)
+        var batch: [ChatTurn] = []
+        var tokens = 0
+        for turn in turns {
+            let cost = estimateTokens(turn.text) + 4
+            guard batch.isEmpty || tokens + cost <= budget else { break }
+            var fitted = turn
+            fitted.text = String(turn.text.prefix(budget * 4))
+            batch.append(fitted)
+            tokens += cost
+        }
+        return batch
     }
 
     /// Use a tight system prompt for summarization — don't pull in the data
@@ -193,17 +216,20 @@ extension AssistantViewModel {
     /// message content to the provider. The active provider has
     /// necessarily passed the consent gate for the turn itself, but
     /// if consent was revoked mid-session (debug "Forget consent" /
-    /// schema bump) this background call must not slip through.
+    /// schema bump) this background call must not slip through. It is a
+    /// send like any other, so it also checks the gates `send` does: Flo is
+    /// on and its notice accepted (`aiIsAllowed`), and the provider can take
+    /// a turn and is not switched off (`ProviderRegistry.canSend`).
+    ///
+    /// The facts it saves come from a model's output, so they are stored as
+    /// `.inferred`, never under the label of facts the user set.
     func runAutoFactExtraction(userText: String, assistantText: String) async {
         // Prefer Apple (free + private) for extraction; fall back to whatever
         // the user has configured.
         let apple = registry.apple.isAvailable
         let provider: AIProvider = apple ? registry.apple : registry.activeProvider
         let model: ModelOption = apple ? AppleFoundationProvider.model : registry.activeModel
-        guard !AppDependencies.current.providers.providerConsentTracker.requiresConsent(provider.id) else {
-            debugLog("[Assistant] fact extraction skipped — \(provider.id.rawValue) has no data-sharing consent")
-            return
-        }
+        guard mayExtractFacts(with: provider) else { return }
         let prompt = extractionPrompt(userText: userText, assistantText: assistantText)
         let stream = provider.send(
             messages: [ChatTurn(role: .user, text: prompt)], model: model, contextRendered: "",
@@ -214,13 +240,28 @@ extension AssistantViewModel {
         await MainActor.run { self.store(extractedFacts: facts) }
     }
 
+    /// The gates fact extraction passes before it sends anything, each
+    /// logged when it stops it: Flo is on, `provider` can take a turn and is
+    /// not switched off, and it has data-sharing consent.
+    private func mayExtractFacts(with provider: AIProvider) -> Bool {
+        guard Self.aiIsAllowed(disclaimerAccepted: hasAcceptedDisclaimer), ProviderRegistry.canSend(to: provider) else {
+            debugLog("[Assistant] fact extraction skipped — Flo is off or \(provider.id.rawValue) can't take a turn")
+            return false
+        }
+        guard !AppDependencies.current.providers.providerConsentTracker.requiresConsent(provider.id) else {
+            debugLog("[Assistant] fact extraction skipped — \(provider.id.rawValue) has no data-sharing consent")
+            return false
+        }
+        return true
+    }
+
     /// Add every candidate that survives the auto-extract shape filter.
     @MainActor
     private func store(extractedFacts facts: [String]) {
         for fact in facts {
             let trimmed = fact.trimmingCharacters(in: .whitespacesAndNewlines)
             guard Self.factPassesAutoExtractFilter(trimmed) else { continue }
-            factsStore.add(trimmed)
+            factsStore.add(trimmed, origin: .inferred)
         }
     }
 

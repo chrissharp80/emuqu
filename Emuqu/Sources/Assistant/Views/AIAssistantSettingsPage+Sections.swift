@@ -475,7 +475,7 @@ extension AIAssistantSettingsPage {
             TextField(String(localized: "Add a fact (e.g., \"I'm training for a marathon\")", bundle: LanguageManager.appBundle), text: $newFactText, axis: .vertical)
                 .lineLimit(1 ... 3)
             Button {
-                facts.add(newFactText)
+                facts.add(newFactText, origin: .user)
                 newFactText = ""
             } label: {
                 Image(systemName: "plus.circle.fill")

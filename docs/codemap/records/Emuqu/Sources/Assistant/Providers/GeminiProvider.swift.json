@@ -453,8 +453,8 @@
   },
   {
    "key": "func GeminiProvider.blockedPrompt(in:)",
-   "hash": "95bd1948cdea638c",
-   "does": "For a chunk with no candidates whose promptFeedback carries a blockReason, returns .invalidResponse('Gemini blocked the request (<reason>)'); nil for any other chunk.",
+   "hash": "03c9dbac650760c2",
+   "does": "For a chunk with no candidates whose promptFeedback carries a blockReason, returns .blockedReply(provider: .gemini, reason: <reason>) — Gemini's safety system refused the request, which is shown and never sent on to another provider; nil for any other chunk.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -466,7 +466,9 @@
      "effect": "returns nil"
     }
    ],
-   "deps": {}
+   "deps": {
+    "EmuquTests/ProviderStreamTests.swift::var SSEReplay.Outcome.blockedReply": "16010666bd820a08"
+   }
   },
   {
    "key": "func GeminiProvider.contentParts(in:)",

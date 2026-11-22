@@ -7,7 +7,8 @@ import Speech
 /// Tap-to-talk: one instance per chat input bar, held in `ChatInputBar`'s
 /// `@State` and reused across recordings. `start()` requests permissions,
 /// configures the audio engine, and begins streaming partial transcripts to
-/// `transcript`. `stop()` returns the final string. `cancel()` aborts without
+/// `transcript`. `stop()` waits for the recognizer's final result and returns
+/// the final string. `cancel()` aborts without
 /// yielding anything. A recognition error after start ends the recording
 /// (`isRecording` goes false, the transcript so far is kept) and leaves the
 /// reason in `lastError`.
@@ -34,6 +35,15 @@ final class SpeechInputManager {
     /// True while `start()` is suspended on the permission prompts, so a
     /// second tap in that window does not start a second recognition.
     @ObservationIgnored private var isStarting = false
+    /// Resumed when the final result arrives after `stop()` ended the audio,
+    /// or `finalResultTimeout` passes. Non-nil while a stop is waiting.
+    @ObservationIgnored private var finalResultWaiter: CheckedContinuation<Void, Never>?
+    /// Counts `stop()` waits, so a timeout only ends the wait that set it.
+    @ObservationIgnored private var finalResultWaits = 0
+
+    /// The longest `stop()` waits for the final result. The on-device
+    /// recognizer usually delivers it within a few hundred milliseconds.
+    static let finalResultTimeout: TimeInterval = 1.5
 
     init() {
         // Recognizer instantiation is cheap — just a wrapper around
@@ -163,30 +173,67 @@ final class SpeechInputManager {
     }
 
     /// Codes 203 / 216 are "no speech" and 301 is "cancelled" — all benign on
-    /// stop, so they're filtered out rather than surfaced as an error.
+    /// stop, so they're filtered out rather than surfaced as an error. A final
+    /// result, or any error, ends the recognition, which a waiting `stop()`
+    /// is told.
     private func handleRecognition(result: SFSpeechRecognitionResult?, error: NSError?) {
-        if let result {
-            let text = result.bestTranscription.formattedString
-            Task { @MainActor in self.transcript = text }
+        let text = result?.bestTranscription.formattedString
+        let ended = result?.isFinal == true || error != nil
+        let failure = error.flatMap { [203, 216, 301].contains($0.code) ? nil : $0.localizedDescription }
+        Task { @MainActor in
+            if let text { self.transcript = text }
+            if let failure { self.endRecording(failure: failure) }
+            if ended { self.resumeFinalResultWaiter() }
         }
-        guard let error, ![203, 216, 301].contains(error.code) else { return }
-        let message = error.localizedDescription
-        Task { @MainActor in self.endRecording(failure: message) }
     }
 
     /// A recognition error ends the recording rather than leaving the mic on
     /// with nothing arriving: the engine stops and the claim is released
-    /// (`stop()`), the transcript so far is kept, and the reason is kept in
-    /// `lastError`.
+    /// (`stopCapture()`), the transcript so far is kept, and the reason is
+    /// kept in `lastError`.
     private func endRecording(failure message: String) {
         lastError = message
-        stop()
+        guard isRecording else { return }
+        stopCapture()
+        isRecording = false
     }
 
-    /// Stop recording and return the final transcript. Safe to call multiple times.
+    /// Stop recording and return the final transcript. Safe to call multiple
+    /// times.
+    ///
+    /// The microphone stops at once; the transcript is returned once the
+    /// recognizer has delivered its final result for the audio already
+    /// captured (or `finalResultTimeout` passes). Returning straight away
+    /// handed back the last partial result and dropped the last words, which
+    /// arrive after the audio ends. `isRecording` stays true until then, so
+    /// the input bar keeps following `transcript`. A second call while the
+    /// first waits returns the transcript so far.
     @discardableResult
-    func stop() -> String {
-        guard isRecording else { return transcript }
+    func stop() async -> String {
+        guard isRecording, finalResultWaiter == nil else { return transcript }
+        stopCapture()
+        finalResultWaits += 1
+        let wait = finalResultWaits
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            finalResultWaiter = continuation
+            scheduleFinalResultTimeout(for: wait)
+        }
+        isRecording = false
+        return transcript
+    }
+
+    /// Ends wait number `wait` after `finalResultTimeout` if it is still
+    /// waiting; a later stop's wait is not this timer's to end.
+    private func scheduleFinalResultTimeout(for wait: Int) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.finalResultTimeout) { [weak self] in
+            MainActor.assumeIsolated { self?.resumeFinalResultWaiter(onlyWait: wait) }
+        }
+    }
+
+    /// Ends the audio and the recognition request, stops the engine and
+    /// hands the audio session back. The recognizer still delivers its final
+    /// result for what it was given.
+    private func stopCapture() {
         var removeErr: NSError?
         _ = FRSafeRemoveTap(engine.inputNode, 0, &removeErr)
         var stopErr: NSError?
@@ -194,8 +241,14 @@ final class SpeechInputManager {
         request?.endAudio()
         task?.finish()
         releaseSessionIfIdle()
-        isRecording = false
-        return transcript
+    }
+
+    /// Lets a waiting `stop()` return. Exactly once per wait. With
+    /// `onlyWait`, only when that wait is still the latest one.
+    private func resumeFinalResultWaiter(onlyWait wait: Int? = nil) {
+        guard wait == nil || wait == finalResultWaits else { return }
+        finalResultWaiter?.resume()
+        finalResultWaiter = nil
     }
 
     /// Abort without preserving the transcript.
@@ -209,6 +262,7 @@ final class SpeechInputManager {
         releaseSessionIfIdle()
         transcript = ""
         isRecording = false
+        resumeFinalResultWaiter()
     }
 
     /// Release the dictation claim and deactivate the session ONLY if no

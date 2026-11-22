@@ -523,7 +523,12 @@ extension MedicalTermLexicon {
     static let chestPain = Concept(
         id: "chest-pain",
         latin: [
-            "chest\\s+pain", "chest\\s+tightness",
+            // The noun forms and the ways people actually say it: "my chest
+            // hurts", "pain in my chest", "my chest feels tight".
+            "chest\\s+pains?", "chest\\s+tightness",
+            "chest\\s+(?:hurts|is\\s+hurting|aches?|aching)",
+            "chest\\s+(?:feels|is|feeling)\\s+(?:tight|heavy)",
+            "(?:pain|tightness|pressure)\\s+in\\s+(?:my|the)\\s+chest",
             "douleur\\s+(?:thoracique|[àa]\\s+la\\s+poitrine)", // fr
             "dolor\\s+(?:en\\s+el\\s+pecho|tor[áa]cico)",       // es
             "dor\\s+no\\s+peito", "dor\\s+tor[áa]cica",         // pt-BR
@@ -568,7 +573,9 @@ extension MedicalTermLexicon {
             // HR trace"), so the adjective only counts after a feeling verb.
             "faint(?:s|ed|ing|ness)",
             "(?:feel|feels|feeling|felt|going\\s+to|about\\s+to)\\s+(?:\\w+\\s+){0,2}faint",
-            "syncope", "passed?\\s+out", "blacked?\\s+out",
+            // Every tense: "I'm going to pass out" and "I might black out"
+            // are the warning, not only "I passed out".
+            "syncope", "pass(?:ed|es|ing)?\\s+out", "black(?:ed|s|ing)?\\s+out",
             "[ée]vanouissement",                       // fr
             "desmay(?:o|os|arse|é|ó)",                  // es
             "desmai(?:o|os|ei|ou)",                     // pt-BR

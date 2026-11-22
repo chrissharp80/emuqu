@@ -457,6 +457,42 @@ final class CoachVoiceGuardTests: XCTestCase {
         XCTAssertTrue(result.scrubbed.contains("healthcare professional"))
     }
 
+    // MARK: - The app's own safety copy
+
+    /// The replies `MedicalQueryGuard` gives on its own, and rule B tells the
+    /// model to give, reach the user as written. "Talk to your doctor about
+    /// that." in the chest-pain reply was rewritten into a line saying the
+    /// app can't tell whether the user needs a professional.
+    func testEveryCannedSafetyReplySurvivesTheScrubUnchanged() {
+        for reply in MedicalQueryGuard.cannedReplies {
+            let result = CoachVoiceGuard.scrub(reply)
+            XCTAssertEqual(result.scrubbed, reply)
+            XCTAssertFalse(result.didIntercept, "the safety reply was treated as a violation: \(reply)")
+        }
+    }
+
+    /// The reply as a model streams it: inside other text, with typographic
+    /// apostrophes and emphasis. The reply stays; a prohibited sentence next
+    /// to it is still rewritten.
+    func testCannedSafetyReplyInsideAModelReplyIsKeptAndItsNeighboursStillScrubbed() {
+        let reply = MedicalQueryGuard.symptomReplyTemplate
+        let streamed = "You may have an infection. " + reply.replacingOccurrences(of: "'", with: "\u{2019}")
+            .replacingOccurrences(of: "Talk to your doctor about that.", with: "**Talk to your doctor about that.**")
+        let result = CoachVoiceGuard.scrub(streamed)
+        XCTAssertFalse(result.scrubbed.contains("may have an infection"))
+        XCTAssertTrue(result.scrubbed.contains("**Talk to your doctor about that.**"))
+        XCTAssertTrue(result.scrubbed.hasSuffix("(or your local emergency number for severe symptoms)."))
+        XCTAssertEqual(result.triggers.count, 1)
+    }
+
+    /// Only the app's exact sentences are kept: the model's own referral
+    /// wording is still deflected.
+    func testAReferralThatIsNotTheSafetyCopyIsStillDeflected() {
+        let result = CoachVoiceGuard.scrub("Talk to your doctor about your HRV.")
+        XCTAssertTrue(result.didIntercept)
+        XCTAssertFalse(result.scrubbed.contains("Talk to your doctor"))
+    }
+
     /// Terms the build-time linter forbids; the runtime guard must know every
     /// one of them too.
     func testTermsThatUsedToEvadeTheRuntimeGuard() {

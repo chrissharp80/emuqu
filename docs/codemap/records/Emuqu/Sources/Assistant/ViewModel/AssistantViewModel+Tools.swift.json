@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift",
- "hash": "ac43a47bf6d83c96",
+ "hash": "388bf2be1308cf29",
  "role": "Extension of AssistantToolRunner: the provider tool-use loop (stream a round, buffer/scrub text, collect tool calls, resolve them via CompactToolRouter with an 8-call budget, feed results back), prompt-audit and usage telemetry, round-end text policy (speakable cursor / rewind / MetricsVerifier), stream-failure handling, provider fallback chain, and finishStream (which drains a queued send).",
  "types": [
   "AssistantToolRunner: extension — tool loop, fallback, finish",
@@ -11,17 +11,55 @@
  ],
  "state": [
   "static AssistantToolRunner.maxToolCallsPerTurn = 8 (also read by AppleToolDispatcher.swift:114)",
-  "uses mem:LLMRequestAudit (in-memory FIFO of 10), mem:LLMCacheTelemetry, mem:AssistantViewModel.pendingSendOnFinish/streamGeneration/isStreaming/streamTask/errorMessage/speakableTextCursor"
+  "uses mem:LLMRequestAudit (in-memory FIFO of 10), mem:LLMCacheTelemetry, mem:AssistantViewModel.pendingSendOnFinish/streamGeneration/isStreaming/streamTask/errorMessage/speakableTextCursor",
+  "static AssistantToolRunner.mutatingToolNames (the tools that change data or app state: the prompt's MUTATION TOOLS plus the artifact writes)"
  ],
- "toplevel": "Static maxToolCallsPerTurn, nested structs and the FallbackEnding enum only.",
+ "toplevel": "Static maxToolCallsPerTurn and mutatingToolNames, nested structs and the FallbackEnding enum only.",
  "units": [
   {
-   "key": "func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)",
-   "hash": "bcc6782086bbec6a",
-   "does": "Loops rounds (checking cancellation before each) until runOneRound reports done; on normal completion runs the Grok blank/announce substitution.",
+   "key": "func AssistantToolRunner.isStop(_:)",
+   "hash": "d3710abe94d13c43",
+   "does": "True for the user's Stop: a CancellationError, or AIProviderError.cancelled while the current task is cancelled (how ProviderStream reports the same Stop); false for anything else.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runOneRound(_:state:grokQuirks:)",
+    "ext:Task.isCancelled"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "CancellationError",
+     "effect": "true"
+    },
+    {
+     "at": "+2",
+     "cond": "not AIProviderError.cancelled",
+     "effect": "false; else whether the task is cancelled"
+    }
+   ],
+   "deps": {}
+  },
+  {
+   "key": "func AssistantToolRunner.ranMutatingTool(_:)",
+   "hash": "63426c85e0dae922",
+   "does": "Pure: whether any tool exchange in the rounds so far has a name in mutatingToolNames.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolName(for:)": "3fc31f8cb07fe622"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)",
+   "hash": "a89c0f23c7353c98",
+   "does": "Loops rounds (checking cancellation before each) through runRoundKeepingActionsOnThisModel until a round reports done; on normal completion runs the Grok blank/announce substitution. A failure another model could answer, once the turn has run a mutating tool, comes out as PickedModelFailure, so no fallback restarts the turn and runs that tool again.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runRoundKeepingActionsOnThisModel(_:state:grokQuirks:)",
     "Emuqu/Sources/Assistant/ViewModel/GrokQuirkPolicy.swift::init GrokQuirkPolicy(owner:provider:turnID:)",
     "Emuqu/Sources/Assistant/ViewModel/GrokQuirkPolicy.swift::func GrokQuirkPolicy.substituteFallbackIfTurnEndedBlankOrAnnounced()",
     "ext:Task.checkCancellation"
@@ -41,9 +79,33 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runOneRound(_:state:grokQuirks:)": "0ddca6e49e0202cf",
-    "Emuqu/Sources/Assistant/ViewModel/GrokQuirkPolicy.swift::func GrokQuirkPolicy.substituteFallbackIfTurnEndedBlankOrAnnounced()": "4a3937fb4815c509",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runRoundKeepingActionsOnThisModel(_:state:grokQuirks:)": "b0feb926d495e3eb",
+    "Emuqu/Sources/Assistant/ViewModel/GrokQuirkPolicy.swift::func GrokQuirkPolicy.substituteFallbackIfTurnEndedBlankOrAnnounced()": "56c851515e49567b",
     "Emuqu/Sources/Assistant/ViewModel/GrokQuirkPolicy.swift::init GrokQuirkPolicy(owner:provider:turnID:)": "69b3003986f8aa2a"
+   }
+  },
+  {
+   "key": "func AssistantToolRunner.runRoundKeepingActionsOnThisModel(_:state:grokQuirks:)",
+   "hash": "bb3f63ee6cdfe74f",
+   "does": "Runs runOneRound; a fallbackable AIProviderError thrown after the turn's resolved tool calls include a mutating one (ranMutatingTool) is rethrown as PickedModelFailure(provider, error); any other error is rethrown unchanged.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runOneRound(_:state:grokQuirks:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ranMutatingTool(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "fallbackable AIProviderError after a mutating tool ran",
+     "effect": "throw PickedModelFailure; other errors propagate unchanged"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isFallbackable": "282db2562f4830f6",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ranMutatingTool(_:)": "076186885deb6e6e",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runOneRound(_:state:grokQuirks:)": "0ddca6e49e0202cf"
    }
   },
   {
@@ -672,8 +734,8 @@
   },
   {
    "key": "func AssistantToolRunner.runFallback(provider:model:outbound:tools:factRegistry:turnID:voiceMode:)",
-   "hash": "a3439908a784c2f8",
-   "does": "Takes the failed provider's partial reply out of the turn (setAsidePartialText), then runs the fallback (runFallbackLoop: its prompt and tool loop), so the fallback's answer replaces the partial text instead of following it. On a finished loop the ending is .answered, or .failed when the turn came back blank (endingOfFinishedFallback); on CancellationError .stopped; on any other error .blocked for a safety stop or .failed (ending(ofFailedFallback:)). settleFallback then keeps the fallback's text under its badge or puts the partial reply back; a thrown error goes on to endFailedFallback. Returns the ending.",
+   "hash": "a97dd86604f7ca62",
+   "does": "Takes the failed provider's partial reply out of the turn (setAsidePartialText), then runs the fallback (runFallbackLoop: its prompt and tool loop), so the fallback's answer replaces the partial text instead of following it. On a finished loop the ending is .answered, or .failed when the turn came back blank (endingOfFinishedFallback); on the user's Stop (isStop) .stopped; on any other error .blocked for a safety stop or a failure after it ran a mutating tool, or .failed (ending(ofFailedFallback:)). settleFallback then keeps the fallback's text under its badge or puts the partial reply back; a thrown error goes on to endFailedFallback. Returns the ending.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.setAsidePartialText(turnID:)",
@@ -681,7 +743,8 @@
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.endingOfFinishedFallback(provider:turnID:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.settleFallback(_:failedPartial:provider:model:turnID:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ending(ofFailedFallback:)",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.endFailedFallback(_:ending:provider:turnID:)"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.endFailedFallback(_:ending:provider:turnID:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.isStop(_:)"
    ],
    "reads": [],
    "writes": [
@@ -697,19 +760,20 @@
     },
     {
      "at": "+18",
-     "cond": "catch CancellationError",
+     "cond": "the user's Stop",
      "effect": "settle .stopped; return .stopped"
     },
     {
      "at": "+21",
-     "cond": "catch other error",
+     "cond": "other error",
      "effect": "settle .blocked/.failed; return endFailedFallback(...)"
     }
    ],
    "deps": {
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.endFailedFallback(_:ending:provider:turnID:)": "2ea331e1b52cf360",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ending(ofFailedFallback:)": "bfc847dc4f3c5957",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.ending(ofFailedFallback:)": "ffc30173b428d779",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.endingOfFinishedFallback(provider:turnID:)": "b7811a618f3fa367",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.isStop(_:)": "9cc3fabb176d76be",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runFallbackLoop(provider:model:outbound:tools:factRegistry:turnID:voiceMode:)": "3562e21737110265",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.setAsidePartialText(turnID:)": "4152b377e310858b",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.settleFallback(_:failedPartial:provider:model:turnID:)": "db71c4ebf5273a04"
@@ -778,8 +842,8 @@
   },
   {
    "key": "func AssistantToolRunner.ending(ofFailedFallback:)",
-   "hash": "016d811f492e991f",
-   "does": "Pure: .blocked when the error is an AIProviderError safety stop (isBlockedReply), else .failed.",
+   "hash": "0decbd0f7434e916",
+   "does": "Pure: .blocked when the error is a PickedModelFailure (the fallback ran a mutating tool, so the chain must end) or an AIProviderError safety stop (isBlockedReply), else .failed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Providers/AIProvider.swift::var AIProviderError.isBlockedReply"
@@ -789,8 +853,13 @@
    "branches": [
     {
      "at": "+1",
+     "cond": "PickedModelFailure",
+     "effect": "return .blocked"
+    },
+    {
+     "at": "+2",
      "cond": "not an AIProviderError or not a blocked reply",
-     "effect": "return .failed"
+     "effect": "return .failed; else .blocked"
     }
    ],
    "deps": {
