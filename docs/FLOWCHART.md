@@ -110,7 +110,10 @@ User taps Pause
   → session.state = .paused
   → session.pausedDate = Date()
   → Archives paused session (re-upload requested)
-  → Persists paused session ID to UserDefaults
+  → Only once that write succeeded: swaps the recording marker for the
+    paused session's ID in UserDefaults. When it fails, the strap beats
+    the gather downloaded are backed up under a fresh ID for Lost
+    Sessions, and the pause is shown as not saved
 ```
 
 ### Resume: `resumeOvernightStreaming(linkedSessionId:)`
@@ -159,17 +162,20 @@ User taps Stop (or morning auto-stop)
     clears the night's arming flag (closeNightGate)
 ```
 
-### gatherOvernightData() (pause path, `RRCollector+PauseResume.swift`)
+### gatherOvernightData() (pause path, `RRCollector+OvernightGather.swift`)
 ```
-Stops streaming timer, background audio
-Captures streamingPoints from PolarManager.stopStreaming()
-Backs up raw data to disk
-Optionally fetches H10 internal recording
-Chooses best data source: streaming vs internal vs composite
+Stops the stream as the morning stop does (stopStreamingInfrastructure)
+Backs up the streamed beats to disk
+Downloads the strap's own recording when the strap gate allows it
+  (fetchNightFromStrap)
+Chooses best data source: streaming vs internal vs composite; when the
+  night is too short or nothing is usable, backs up the downloaded strap
+  beats under their own ID and fails the session
 Returns OvernightDataResult {
     points:        [RRPoint]     ← the selected RR data (t_ms from 0)
     baseSession:   HRVSession    ← the current session
-    streamingBeats, deviceBeats, dataSource, reconnectCount
+    streamingBeats, deviceBeats, dataSource, reconnectCount,
+    downloadedPoints             ← the strap beats downloaded, if any
 }
 ```
 
@@ -427,12 +433,16 @@ computeOvernightStats():
   points = session.rrSeries.points
   flags = session.artifactFlags
 
-  1. Resolve sleep boundaries (HealthKit or stored)
+  1. Resolve sleep boundaries (HealthKit or stored), moved onto the beats'
+     t_ms axis (onBeatClock: streamed t_ms falls behind the wall clock
+     after a Bluetooth drop)
   2. Compute HR values:
-     - Sleep-bounded: computeHRValues(rangeStart: sleepStart, rangeEnd: sleepEnd)
+     - Sleep-bounded: per segment on a split night, else sleepStart…sleepEnd
+       (falls back to the full set when that yields nothing)
      - Full recording: computeHRValues(rangeStart: nil, rangeEnd: nil) → allHrValues
-  3. Compute rolling RMSSD (5-min windows, step 30 beats)
-  4. Find peak HRV in 30-70% sleep band
+  3. Compute rolling RMSSD (300-beat window centred on every 30th beat)
+  4. Find peak HRV in the 30-70% band of the resolved sleep window
+     (peakSearchBand; the whole night when no sample falls in it)
   5. Derive sleep duration
 
 CHART RENDERING (Canvas):
@@ -451,8 +461,9 @@ CHART RENDERING (Canvas):
       → This creates the visual gap between segments
 
   X-axis LABELS:
-    Uses series.startDate and series.actualEndDate
-    Evenly spaced wall-clock labels across the chart
+    Five evenly spaced labels across the chart, each the wall-clock time
+    of its t_ms position (axisTime), so they agree with the nadir, peak
+    and window labels on a drifted streamed night
 
   ANALYSIS WINDOW overlay:
     Uses windowStartMs/windowEndMs (time-based positioning)
@@ -462,7 +473,10 @@ CHART RENDERING (Canvas):
     When the field is nil (e.g. sessions archived before zones
     were persisted), the chart falls back to
     computeOrganizedZonesOnDemand(), which re-runs the zone scan
-    from the rrSeries without rewriting the archive.
+    from the rrSeries and caches the result for that session and sleep
+    window. When the scan ran, loadOvernightStats writes the zones into
+    the archived copy in the background (backfillZonesToArchive), only
+    while it still has none, with no re-upload.
 ```
 
 ### Key chart rendering detail:
@@ -531,7 +545,8 @@ START RECORDING
 
 [Option A: Continuous recording]
   STOP
-    └→ gatherOvernightData()           → raw points
+    └→ stopOvernightStreaming()        → stream stopped and backed up,
+                                         strap download + source pick (§4)
     └→ mergeParentSessionData()        → no-op (no parent)
     └→ processOvernightData()          → single segment, analyze, archive
 
@@ -547,7 +562,8 @@ START RECORDING
     └→ Starts fresh streaming (t_ms from 0 again)
 
   STOP (or PAUSE again)
-    └→ gatherOvernightData()           → segment 2 points (t_ms from 0)
+    └→ stopOvernightStreaming() (PAUSE: gatherOvernightData())
+                                       → segment 2 points (t_ms from 0)
     └→ mergeParentSessionData()        → loads parent from archive
         └→ offsetMs = child.startDate - parent.startDate
         └→ child points shifted by offsetMs
@@ -757,7 +773,9 @@ any. Nothing else reduces the set.
 
 **Concurrency rules**:
 - Each view owns one in-flight refresh `Task`. A new refresh cancels
-  the prior one via cooperative cancellation.
+  the prior one via cooperative cancellation. `TrendsV2View` instead runs
+  one load at a time: a refresh asked for while a load runs makes that
+  load go round once more when it ends (`reloadRequested`).
 - UI state writes happen on `MainActor` after
   `guard !Task.isCancelled else { return }` is checked both before
   the MainActor hop and inside the closure — cancellation is
@@ -897,8 +915,9 @@ Provenance on SleepStageInterval:
 Dashboard (today only, after score hero)
   └→ MorningFeelingPrompt (5 emoji 1-5)
       ├─ User taps emoji
-      │   └→ 1-second commit delay (cancellable)
-      ├─ If rating ≤ 2: tag chips appear
+      │   └→ 3-5: 1-second commit delay (cancellable: re-tap, Skip,
+      │      Done, or the prompt going away)
+      ├─ If rating ≤ 2: tag chips appear; the rating waits for Done
       │   └→ Body cluster:   Infection, Allergies, Hangover,
       │                      Stomach, Sore, Tired, Headache
       │   └→ Mind cluster:   Stressed, Down
@@ -921,7 +940,9 @@ AnalysisSummaryGenerator.feelBadAdvice(hrvGood:tags:feeling:)
   │   Stressed + good HRV → exercise as stress buffer
   │   Stressed + poor HRV → rest; body is already stressed
   │   Sore, Tired, Down, Stomach, Headache → distinct branches
-  └─ Appended to the analysis summary string
+  └─ Inserted at the top of the action steps (appendFeelingSteps):
+     feeling ≤ 2 → the tag or general feel-bad advice; feeling ≥ 4 with
+     a score under 65 → the feel-good-but-HRV-low line
 ```
 
 ---
@@ -934,7 +955,10 @@ App launch (EmuquApp interruptedSessionAlerts, AppLaunchRecovery)
   raises the alert only with no launch modal on screen; it runs again when
   the score-architecture cover closes (handleLaunchModalChange). Save and
   Resume claim the session (InterruptedWorkoutAutoRecovery.claim), so launch
-  auto-recovery leaves it alone.
+  auto-recovery leaves it alone. While auto-recovery holds the same workout
+  they wait for it, 150 s in all (claimRecovery): once it has saved the
+  workout they say "Saved to your archive."; if it still holds it at the
+  deadline they say it is still being recovered and rebuild nothing.
   └─ "Session Interrupted" alert (no dashboard banner)
       Resumable: Resume / Save as Complete / Dismiss.
       Not resumable: Save to Archive / Dismiss.
@@ -1055,8 +1079,16 @@ HealthKitWorkoutExport (workouts):
   │  <uuid>-workout identity, or an identity-less one starting in the
   │  same second, plus the samples and route saved with them
   ├─ save the new workout (active energy net of rest: METs − 1, ≥ 0)
-  └─ delete the earlier ones per type, workouts last; a failure throws,
-     the session stays unstamped and the next export cleans up
+  ├─ delete the earlier ones per type, workouts last; a failure throws,
+  │  the session stays unstamped and the next export cleans up
+  └─ earlier exports unreadable because the phone is locked
+     (EarlierExport.findUnlessLocked; any other read failure throws):
+     the workout is saved, the session noted in PendingWorkoutReplacements
+     (UserDefaults hkPendingWorkoutReplacements), nothing deleted; the next
+     foreground backfillWorkoutsToHealthKit first deletes every copy but
+     the newest (PendingWorkoutReplacements.finish)
+  The export stamp (healthKitExportedAt) is written with
+  requestingReupload: false and leaves modifiedAt alone.
   A trimmed or rebuilt workout drops its Emuqu export stamp, so the next
   backfill exports it again and replaces the copy in Health.
 
@@ -1243,7 +1275,8 @@ User taps Stop → WorkoutRecorder.stop():
   │         │     └─ dragFactor
   │         ├─ Pa:Hr decoupling + Efficiency Factor
   │         ├─ Splits at 1 km (metric) or 1609.344 m (imperial)
-  │         └─ Polyline-encoded GPS track + altitude
+  │         └─ Polyline-encoded GPS track + altitude, and the time of each
+  │            fix (gpsFixTimes, read by the GPX/TCX exports)
   │     merged with samples[], power aggregates, gpsPolyline
   │     archive.archive(session)  (CloudKit + HealthKit write-back)
   ├─ ZwiftPeripheralBroadcaster.shared.stop()
@@ -1330,10 +1363,13 @@ the workout per-tick context update.
 
 ```
 RoadAwarenessEngine.snap(location, course, speed)
-  ├─ Gates: course accuracy ≥ 30°, speed ≥ 0.7 m/s
-  │   (low-speed bearing is noisy — refuse to snap rather than mis-snap)
+  ├─ Gates (bearingTrust): a course is used only when it is reported
+  │   (≥ 0), the speed is at least 0.7 m/s and the course accuracy is no
+  │   worse than 30° (low-speed bearing is noisy — refuse to snap rather
+  │   than mis-snap)
   ├─ Step 1: RoadGraphService.tileFor(location)
-  │   ├─ 250 m grid cells, 800 m fetch radius, 6 h TTL
+  │   ├─ 250 m grid cells, 800 m fetch radius, 6 h TTL (10 min for an
+  │   │     empty tile)
   │   ├─ Tile query: OSM Overpass, walkable ways only
   │   │     (residential, primary, footway, path, cycleway, track,
   │   │      pedestrian, steps, living_street)
@@ -1357,8 +1393,9 @@ RoadGeocodingService.reverse(location)
                consecutive failures).
   Cross-street search escalates over 4 radii (200, 500, 1500, 3000 m)
   to handle rural and urban grids.
-  Movement gate: 15 m since last lookup.
-  Time gate: 60 s since last lookup.
+  Movement gate: 15 m since the last successful lookup.
+  Time gate: 60 s since the last successful lookup.
+  No lookup starts while one is under way.
   Street-name normalization strips suffixes + directions so
   "Elm St" doesn't fail to match "Elm Pl" mid-step.
 ```
@@ -1481,8 +1518,10 @@ hrTSS (HRSS formulation):
 
 LTHR resolution:
   Settings override → 0.88 × effectiveMaxHR (Friel midpoint)
-  UI surfaces α1-derived LT1 estimate as a suggested override when
-  available (Rogers & Gronwald 2021; about ±10 bpm of gas-exchange VT1).
+  The post-summary shows the α1-derived LT1 estimate (Rogers & Gronwald
+  2021; about ±10 bpm of gas-exchange VT1) but never offers it as an LTHR
+  override: LT1 sits well below LTHR, and using it would inflate every
+  hrTSS (ThresholdCards.alpha1LT1EstimateCard).
 ```
 
 ---
@@ -1549,12 +1588,13 @@ resolveProviderForThisTurn() → (provider, model, tier)
   │
   ├─ if mode == .quick    → tier = .quick
   ├─ if mode == .deep     → tier = .deep
-  └─ if mode == .auto     → tier = SmartProviderRouter.shared.route(
+  └─ if mode == .auto     → sessionState.turnCount  += 1  (this turn
+                                                         counts itself)
+                            tier = SmartProviderRouter.shared.route(
                                        message: latestUser,
                                        in: sessionState
                                    )
                             sessionState.currentTier = tier
-                            sessionState.turnCount  += 1
   ↓
 [adversarial cap]
   if tier == .deep && Deep maps to a cloud model && !recordTier3UsageAndCheck():
@@ -1572,6 +1612,12 @@ mapping = TierProviderMapper.mapping(for: tier, registry: registry)
      && a consented cloud provider exists:
         mapping = (first consented cloud, its default model)
                                              ← Apple-tool failures fall back
+  ↓
+[can it take the turn?]
+  if !ProviderRegistry.canSend(to: mapping.provider)   (no key, unavailable,
+                                                      or switched off):
+      show the unavailable error; for a new message take back the user
+      turn send() appended and hand typed text back to the input bar
 ```
 
 ### Capability classification (Auto mode)
@@ -1582,7 +1628,8 @@ SmartProviderRouter.route(message, in: sessionState)
 requirement = CapabilityClassifier.shared.classify(message)
   │
   ├─ keywordHeuristic(text) → Requirement{tools, web, depth, speculation}
-  │     (lowercased substring match against per-axis marker lists)
+  │     (lowercased substring match against per-axis marker lists;
+  │      text confidently not English opens every axis' keyword gate)
   │
   ├─ if NLContextualEmbedding available:
   │     scores = embed(text) ⋅ prototypeCentroids[axis] / |·|
@@ -1590,7 +1637,7 @@ requirement = CapabilityClassifier.shared.classify(message)
   │         needsAxis = keywordFlag[axis] AND scores[axis] >= 0.55
   │     return Requirement(...)
   │
-  └─ else: return keyword-only Requirement
+  └─ else: return keyword-only Requirement (English), .none otherwise
   ↓
 proposed = requirement.requiredTier
    • flagsSet == 0 → .quick
@@ -1600,8 +1647,8 @@ proposed = requirement.requiredTier
 [stickiness]
   if proposed > sessionState.currentTier:
       chosen = proposed                     ← upgrades always allowed
-  elif sessionState.turnCount < 3:
-      chosen = proposed                     ← settling window
+  elif sessionState.turnCount <= 3:
+      chosen = proposed                     ← settling window (turns 1-3)
   elif proposed == .quick && requirement == .none:
       chosen = .quick                       ← capability-clear escape
   else:
@@ -1692,8 +1739,14 @@ guard let registry = currentRegistry else {
     return #"{"error":"tool dispatcher has no registry","tool":"..."}"#
 }
   ↓
+charge the call's text to the turn's allowance; web_search, or a call
+past the per-turn budget, gets a JSON refusal instead
+  ↓
 router = CompactToolRouter(registry: registry)
 value  = router.resolveTool(name:, argsJSON:)
+  // a read tool's result passes the registry's gate (rate limit, 80 KB
+  // cap); an action tool is forwarded only when its name is in
+  // allowedActionNames
   ↓
 return value.toToolResultJSON()
   // {"value":<typed>, "missingReason":<enum?>, "asOf":<iso8601>, "confidence":"high"}
@@ -1742,23 +1795,17 @@ LLMCacheTelemetry.shared.record(
     cachedReadTokens, cacheCreationTokens
 )
   ↓
-in-memory aggregation:
-  • cumulative hit ratio (per provider + global)
-  • last-N-turn rolling window (default N = 10)
+in-memory aggregation, one record per provider request (a turn with
+tool rounds counts once per round):
+  • cumulative hit ratio = cachedRead / (input + cachedRead + cacheCreate)
+  • the newest 50 records: a last-N rolling window (default N = 10) and
+    a per-provider summary
   ↓
 exposed via Settings → Troubleshooting → AI cache health card
 ```
 
-```
-SmartProviderRouter.route(...)
-  ↓
-recordTelemetry(proposed, chosen)
-  ↓
-in-memory counters:
-  • tierCounts[chosen] += 1
-  • classifierProposalCounts[proposed] += 1
-  • stickinessOverrides += (proposed != chosen ? 1 : 0)
-```
+The tier router keeps no telemetry of its own: `SmartProviderRouter.route`
+logs each decision (at `.info`) and returns it.
 
 All telemetry stays on-device. No persistence, no off-device send.
 

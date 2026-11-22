@@ -380,7 +380,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func AssistantStoreFile.write(_:to:caller:)": "fbcde6efeddba39f",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)": "c5c0f800ac025f4e",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)": "17e2087064119470",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.exportConversation()": "68dae41a2e7e1518",
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.removeLeftovers()": "2938ba72f922f474",
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c",
@@ -510,8 +510,8 @@
   },
   {
    "key": "§ Security Policy > Data Deletion Requests (GDPR / CCPA)",
-   "hash": "718345ec21f1651a",
-   "does": "Delete All My Data: DeleteAllDataPage requires typing DELETE MY DATA then DataPurgeService.purgeAllUserData: refuses while recording; PurgeGate.beginPurge (archive writes refused, uploads/full syncs skipped, waits for in-flight writes) with endPurge on exit; iCloudSyncEnabled=false; remote CloudKit zones HRVSessions+UserSettings deleted via CloudKitSyncManager.deleteAllRemoteData (performDeleteAllRemoteData also turns sync off and forgets the account); a recording started meanwhile throws recordingStartedDuringDelete before the local wipe; archive/backups/track/breadcrumbs wiped and containers swept, APIKeyStore.removeAllKeys, conversations/facts cleared, settings reset with sync off; EntitlementAnchor kept; report carries remoteDeleted. Another device finding the zones gone runs CloudAccountGuard.zoneWasDeleted → stopSync (local data kept, no zone recreated). Wearables page offers 'Delete Emuqu sleep from Apple Health' (deleteAllAppWrittenSleepSamples); deleting a session forever from the Trash or its expiry (SessionRecoveryCoordinator.permanentlyDelete) removes its HRV, heart rate, resting HR, sleep and workouts via HealthWriteAndObserve.removeExports.",
+   "hash": "c786c8f37cec006d",
+   "does": "Delete All My Data: DeleteAllDataPage requires typing DELETE MY DATA then DataPurgeService.purgeAllUserData: refuses while recording; PurgeGate.beginPurge (archive writes refused, uploads/full syncs skipped, waits for in-flight writes) with endPurge on exit; iCloudSyncEnabled=false; remote CloudKit zones HRVSessions+UserSettings deleted via CloudKitSyncManager.deleteAllRemoteData only in the account mayDeleteInSignedInAccount allows (the one synced with, or with none recorded the signed-in one unless sync was stopped for a different account; otherwise nothing deleted and the remote step fails) (performDeleteAllRemoteData also turns sync off and forgets the account); a recording started meanwhile throws recordingStartedDuringDelete before the local wipe; archive/backups/track/breadcrumbs wiped and containers swept, APIKeyStore.removeAllKeys, conversations/facts cleared, settings reset with sync off; EntitlementAnchor kept; report carries remoteDeleted. Another device finding the zones gone runs CloudAccountGuard.zoneWasDeleted → stopSync (local data kept, no zone recreated). Wearables page offers 'Delete Emuqu sleep from Apple Health' (deleteAllAppWrittenSleepSamples); deleting a session forever from the Trash or its expiry (SessionRecoveryCoordinator.permanentlyDelete) removes its HRV, heart rate, resting HR, sleep and workouts via HealthWriteAndObserve.removeExports.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()",
@@ -530,7 +530,8 @@
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()",
     "Emuqu/Sources/Collection/RRCollector+BackupRecovery.swift::func SessionRecoveryCoordinator.permanentlyDelete(_:)",
     "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthWriteAndObserve.removeExports(sessionId:from:to:)",
-    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:scope:liveSettingsFile:errors:)"
+    "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:scope:liveSettingsFile:errors:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.mayDeleteInSignedInAccount()"
    ],
    "reads": [],
    "writes": [],
@@ -547,9 +548,10 @@
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAllContainers(scope:liveSettingsFile:errors:)": "5b77025e8a30e9bd",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.sweepAndForget(archive:rawBackup:scope:liveSettingsFile:errors:)": "6515236adac11044",
     "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.beginPurge()": "2ab1219114a4f254",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()": "42ad9add2c66cf12",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()": "733581b41076e82a",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.deleteAllRemoteData()": "ab412e737e713464",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.performDeleteAllRemoteData()": "cb0b57be3cd1f99c",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.mayDeleteInSignedInAccount()": "0e40963c396ef1ac",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.performDeleteAllRemoteData()": "8c22f319e9f40749",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.deleteAllRemoteData()": "0c3f26786ca478b4",
     "Emuqu/Sources/Views/DeleteAllDataPage.swift::func DeleteAllDataPage.performPurge()": "1f0e630b88682e7d",
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::var WearablesSettingsPage.deleteSleepWritesButton": "d21e388b8ed91cce"

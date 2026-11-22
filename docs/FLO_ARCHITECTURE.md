@@ -114,7 +114,7 @@ Each round calls `provider.send(messages:model:contextRendered:systemPrompt:tool
 - `.usage` → logged with the cache hit ratio.
 - `.done` → round ends.
 
-With no tool calls the loop ends. Otherwise each call goes through `CompactToolRouter(registry:).resolveTool(name:argsJSON:)`, the results become a `ToolExchange` round, and the provider is called again. `maxToolCallsPerTurn` is 8; calls past that get a synthetic missing result and the model gets one closing pass. At the end of each round, `verifyAppStateNumbers` checks training-load and overnight numbers in the reply (§11).
+With no tool calls the loop ends. Otherwise each call goes through `CompactToolRouter(registry:).resolveTool(name:argsJSON:)`, the results become a `ToolExchange` round, and the provider is called again. `maxToolCallsPerTurn` is 8; calls past that get a synthetic missing result and the model gets one closing pass. At the end of each round, `verifyAppStateNumbers` checks the reply's live-workout claims (HR, power, α1) against the live broker snapshot, while a workout records, and then its training-load and overnight numbers (§11).
 
 ---
 
@@ -277,7 +277,7 @@ Routing acts only while Apple Intelligence is the selected model. With any other
 
 ### 8.2 Classification and stickiness (`.auto`)
 
-`classify` uses `NLContextualEmbedding` against prototype phrases, falling back to `NLEmbedding`, then to keywords. `CapabilityClassifier` sets four flags (needs tools, needs web, needs historical depth, needs speculation): none → `.quick`, one → `.auto`, two or more → `.deep`.
+`classify` uses `NLContextualEmbedding` against prototype phrases, falling back to `NLEmbedding` word vectors, then to keywords. An axis needs both its keyword marker and an embedding score of at least 0.55. Text confidently not in English opens every keyword gate, so the embeddings decide; with no embedding available it gets no flags. `CapabilityClassifier` sets four flags (needs tools, needs web, needs historical depth, needs speculation): none → `.quick`, one → `.auto`, two or more → `.deep`.
 
 `route(message:in:)` keeps the session's tier unless:
 - the proposal is higher (upgrades always allowed),
@@ -308,7 +308,7 @@ Routing acts only while Apple Intelligence is the selected model. With any other
 
 ### 9.3 Speech — `VoiceConversationController+Speech.swift`
 
-`speak(_:voice:)` runs each chunk through, in order: the coach-voice perimeter scrub, `applyHallucinationGuard` (§11), the first-chunk preamble ("Flo here." plus the model name), then `TTSTextNormalizer.normalize`, and speaks it at 0.96 × the default rate with no pre/post delay. `SpokenTextChunker` buffers streamed tokens into sentences first.
+`speak(_:voice:scripted:)` runs each chunk through, in order: the coach-voice perimeter scrub (`perimeterScrubbed`, carrying `textChunker.safetyCopy` so a canned safety reply spoken chunk by chunk passes only as that reply, §13.3), `applyHallucinationGuard` (§11), the first-chunk preamble ("Flo here." plus the model name; not for a scripted line or one spoken in `.triggerSpeaking`), then `TTSTextNormalizer.normalize`, and speaks it at 0.96 × the default rate with no pre/post delay. A line spoken in `.triggerSpeaking` goes through `CoachCueSpeech` (§9.4). `SpokenTextChunker` buffers streamed tokens into sentences first.
 
 ### 9.4 Coach lines — `CoachCueSpeech.swift`
 
@@ -320,13 +320,13 @@ Lines spoken in `.triggerSpeaking` (coach alerts, mile markers, route lines, AI-
 
 ### 10.1 `TTSTextNormalizer.swift`
 
-`normalize(_:english:)` runs, for English voices only: `expandDomainAbbreviations` (BPM, HRV, zones…), `expandPaceStrings` (`8:45/mi` → "eight forty-five per mile"; a bare `8:45` is left alone), `expandYears` (`2026` → "twenty twenty-six", only in a year's place: after a year cue word, a day of the month and a comma, or a range dash — `isInYearPosition`). It then hands the text to `PhoneticOverrides.speechAttributedString`.
+`normalize(_:english:)` runs, for English voices only: `expandDomainAbbreviations` (BPM, HRV, zones…), `expandPaceStrings` (`8:45/mi` → "eight forty-five per mile"; a bare `8:45` is left alone), `expandYears` (`2026` → "twenty twenty-six", only in a year's place: after a year cue word, a day of the month and a comma, or a range dash — `isInYearPosition`). It then hands the text to `PhoneticOverrides.speechAttributedString(_:english:)`, which passes the same flag on.
 
 ### 10.2 `PhoneticOverrides.swift`
 
-`resolve(_:)` runs three passes:
+`resolve(_:english:)` runs three passes for an English voice; for any other voice only the second:
 
-1. `expandZipCodes` — a five-digit ZIP becomes spaced digits when it follows "zip", "zip code" or "postal code", or follows an uppercase two-letter state code: `"Springfield, ST 00000"` → `"Springfield, ST 0 0 0 0 0"`. A ZIP+4 suffix becomes "dash" plus spaced digits.
+1. `expandZipCodes` — a five-digit ZIP becomes spaced digits when it follows "zip", "zip code" or "postal code", or follows a real US state or territory code (AL…WY, DC, PR, GU, VI, AS, MP; not any two capitals, so "HR 12000" is left alone): `"Springfield, IL 62704"` → `"Springfield, IL 6 2 7 0 4"`. A ZIP+4 suffix becomes "dash" plus spaced digits.
 2. `stripAuthoredMarkup` — the model can write `[[word|IPA]]`; the markup is removed from the text and the IPA attached as `accessibilitySpeechIPANotation`.
 3. `domainRules` — homographs such as "live HR" get a same-length respelling ("lyve") plus an IPA hint. A domain hit inside an authored range is skipped.
 
@@ -336,8 +336,8 @@ Lines spoken in `.triggerSpeaking` (coach alerts, mile markers, route lines, AI-
 
 **File:** `MetricsVerifier.swift`
 
-- `verify(_:against: WorkoutAIContext?)` checks live-workout numbers (HR, power, α1…) in spoken text. `applyHallucinationGuard` replaces wrong values back to front.
-- `verifyAppStateClaims(_:)` checks training-load and overnight numbers, normalizing spelled-out numbers first, and returns corrected text. Chat runs it on the finished reply; voice runs it on each chunk before TTS, after the live-workout check.
+- `verify(_:against: WorkoutAIContext?)` checks live-workout numbers (HR, power, α1, HR drift) in spoken text against the recorder's context; `applyHallucinationGuard` replaces wrong values back to front. Chat checks the same claims against the live broker snapshot (`verify(_:againstLive:)`, nothing while no workout records).
+- `verifyAppStateClaims(_:)` checks training-load and overnight numbers, normalizing spelled-out numbers first, and returns corrected text. Chat runs both checks on the turn's text at the end of each round (`verifyAppStateNumbers`, §3.4); voice runs them on each chunk before TTS, the live-workout check first.
 - `recordCorrections(_:)` stores discrepancies in a lock-guarded buffer capped at 4, skipping one already pending for the same metric, claim and value (voice catches the same claim in the spoken chunk and in the saved turn). `consumePendingCorrectionsBlock()` empties it into the next turn's variable prompt section under "# Last turn correction — DO NOT FABRICATE", so one fabrication produces one reminder. `clearCorrections()` drops them all when the conversation is cleared (`resetConversationState`).
 
 ---
@@ -372,7 +372,7 @@ Apple is exempt. Each cloud provider needs a one-time acknowledgement, stored in
 
 ### 13.3 `CoachVoiceGuard.swift`
 
-`scrub(_:)` replaces prohibited phrasing (diagnoses, danger-zone framings) and returns the scrubbed text, `didIntercept` and the triggers. A matching sentence is replaced whole by its concept's deflection, and every deflection is neutral: it says what the app can and cannot tell and asserts no state, so a sentence that denies a term ("There's no sign of overtraining") is not turned into its opposite. The guard does not detect negation; a denial is a finding the app cannot make either. The app's own safety copy passes through unchanged: every sentence of `MedicalQueryGuard.cannedReplies`, in the in-app language and in English, is matched (emphasis, typographic apostrophes, whitespace and case folded) and kept byte-identical, and the rules run only on the text between them (`scrubRun`). It runs on each streamed sentence, on each spoken utterance, and once more on the finished message. Interceptions are logged by rule name only. Tested by `CoachVoiceGuardTests`.
+`scrub(_:)` replaces prohibited phrasing (diagnoses, danger-zone framings) and returns the scrubbed text, `didIntercept` and the triggers. A matching sentence is replaced whole by its concept's deflection, and every deflection is neutral: it says what the app can and cannot tell and asserts no state, so a sentence that denies a term ("There's no sign of overtraining") is not turned into its opposite. The guard does not detect negation; a denial is a finding the app cannot make either. The app's own safety copy passes through unchanged, but only where it appears as the canned reply: a sentence of `MedicalQueryGuard.cannedReplies` (in the in-app language and in English, matched with emphasis, typographic apostrophes, whitespace and case folded) is kept byte-identical when it opens a canned reply or is the next sentence of one whose earlier sentences came straight before it, in order (`continuesSafetyCopy`); the same sentence after the model's own reasoning is scrubbed like any other. The rules run only on the text between such runs (`scrubRun`). `scrub(_:)` starts each call with no canned reply under way; text that arrives in pieces goes through `scrub(_:continuing:)` with a `SafetyCopyProgress` carried for the whole reply (`StreamTextBuffer.safetyCopy` for the streamed text, started afresh when withdrawn text is rewound; `SpokenTextChunker.safetyCopy` for spoken chunks, started afresh when the chunker is reset), and every piece passes, clean ones included, so a canned reply split across pieces is still recognised. It runs on each streamed sentence, on each spoken utterance, and once more on the finished message. Interceptions are logged by rule name only. Tested by `CoachVoiceGuardTests`.
 
 ### 13.4 Prompt-level boundary
 

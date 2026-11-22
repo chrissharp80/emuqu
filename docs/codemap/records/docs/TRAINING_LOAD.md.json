@@ -24,8 +24,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "ca2be1737136e0d8",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "7f20947af6a0bf60",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingContext:config:useBaselineHRV:perceivedReadiness:ansBalance:referenceDate:)": "eb3b9be07070a091",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "10ea7c04076f529f",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.computeBreakdown(_:config:ansBalance:referenceDate:)": "260269964760c014",
     "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier2(_:sleep:)": "c47251a7f3a7932a",
     "Emuqu/Sources/Analysis/ScoreDetailBuilder.swift::func ScoreDetailBuilder.buildTier3(_:sleep:vitalsScore:)": "b6c00d6916c00fac",
@@ -97,8 +97,8 @@
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.fromAppArchive(archive:days:relativeTo:)": "c2761244f5a0267d",
     "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.readTimePowerTSS(_:ftp:)": "654be340768a34db",
     "Emuqu/Sources/Collection/TrainingLoadPrecedence.swift::func TrainingLoadPrecedence.stored(_:ftp:)": "557250b35e2ea826",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "607fda538196aa13",
-    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "4c06ba92c36737df",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.computedMETLoad": "9bcb0e7fb51ddbb7",
+    "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.preferredTrainingLoad": "d26eee9c8f04fad4",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::var WorkoutMetadata.storedPowerTSS": "76ca57d4e4884777"
    }
   },
@@ -178,7 +178,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.Point.stepped(load:)": "0484425576594949",
-    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.point(through:in:)": "8ccd36469279a69c",
+    "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.point(through:in:)": "1fc650bc3c9d93a6",
     "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.replay(_:)": "d7b5612921729235",
     "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.metrics(dailyTrimp:allWorkouts:today:calendar:forMorningReading:)": "858276868b88e9c4",
     "Emuqu/Sources/Collection/TrainingMetrics.swift::var TrainingMetrics.acuteChronicRatio": "e01ed28e5f944d39",
@@ -207,17 +207,17 @@
     "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(_:)": "74895ca444d7dd74",
     "Emuqu/Sources/Analysis/FosterMonotonyWarning.swift::func FosterMonotonyWarning.isRaised(dailyLoad:referenceDate:)": "30086fb3a84d1cfb",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.cappedMonotony(of:sum:)": "170d2c19f5ca8a6e",
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "afd78f8aece889c0",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Training.swift::func RecoveryScoreCalculator.fosterMonotonyStrain(dailyTrimp:referenceDate:)": "e21365c728439fb3",
     "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.compute(_:)": "b4e66aafd6b6c3ac",
-    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.ctlSlopePerWeek(_:)": "2a5c105f03a40a41",
+    "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.ctlSlopePerWeek(_:)": "8dd9a2899b35528b",
     "Emuqu/Sources/Analysis/TrajectoryVerdict.swift::func TrajectoryVerdict.decliningVerdict(delta:currentTSB:)": "8485738a994709b6",
     "Emuqu/Sources/Views/LoadTrajectoryLoader.swift::func LoadTrajectoryLoader.peakingHeuristic(_:)": "29ed5cb6aef3bf7d"
    }
   },
   {
    "key": "§ Training Load — end-to-end calculation > The store / source-of-truth",
-   "hash": "0ce11a7b96a47da6",
-   "does": "Claims TrainingMetricsCache (@MainActor, shared instance) holds current and a 400-day dailySeries; refresh fetches 580 days of HealthKit workouts once, resolves anchors once, rebuilds the series when the HistoricalKey changes; needsRebuild: no result or invalidated → always, LoadSettings or the calendar day changed → at once, archived workouts changed → after the 300 s burst throttle, else after 1800 s (unchangedMaxAgeSec); snapshot() uses the same rule; a HealthKit workout query that fails or times out publishes nothing and the next refresh asks again; .flowRecoveryArchiveChanged invalidates only when the workout fingerprint changed; AI reaches it via TrainingLoadRegistry and training.load.* tools. Verified against TrainingMetricsCache+Freshness.swift (needsRebuild) and TrainingMetricsCache.swift (needsRebuild(reference:), recompute).",
+   "hash": "7d9b6124d6a7c306",
+   "does": "Claims TrainingMetricsCache (@MainActor, shared instance) holds current and a 400-day dailySeries; refresh fetches 580 days of HealthKit workouts once, resolves anchors once, rebuilds the series when the HistoricalKey changes; needsRebuild: no result or invalidated → always, LoadSettings or the calendar day changed → at once, archived workouts changed → after the 300 s burst throttle, else after 1800 s (unchangedMaxAgeSec); snapshot() uses the same rule; a HealthKit workout query that fails or times out publishes nothing and the next refresh asks again, while one refused as not authorized or denied reads as no HealthKit workouts (TrainingHealthQueries.isUnauthorizedAnswer) and the load comes from the archive; .flowRecoveryArchiveChanged invalidates only when the workout fingerprint changed; AI reaches it via TrainingLoadRegistry and training.load.* tools. Verified against TrainingMetricsCache+Freshness.swift (needsRebuild) and TrainingMetricsCache.swift (needsRebuild(reference:), recompute).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)",
@@ -227,7 +227,8 @@
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.invalidate()",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.invalidateIfWorkoutsChanged()",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:archive:healthKitWorkouts:anchors:)"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:archive:healthKitWorkouts:anchors:)",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.isUnauthorizedAnswer(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -240,7 +241,8 @@
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.needsRebuild(reference:)": "271beece1c5338ca",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.recompute(healthKit:reference:forMorningReading:settings:)": "961628550d9a3083",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.refresh(reference:forMorningReading:)": "511ba226503fa4e1",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)": "f28da9f623e93922"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)": "f28da9f623e93922",
+    "Emuqu/Sources/Collection/TrainingHealthQueries+Queries.swift::func TrainingHealthQueries.isUnauthorizedAnswer(_:)": "a24fc447d45ac02d"
    }
   },
   {

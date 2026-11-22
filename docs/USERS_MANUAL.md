@@ -92,6 +92,8 @@ Below Today's Loop: how you said you felt this morning (for example "Felt good �
 A row of four chips, each opening its detail view:
 - **HRV** — last night's RMSSD. Opens the HRV Detail View.
 - **Sleep** — last night's sleep duration. Opens the Sleep Detail View.
+
+When your latest night is older than last night, the HRV and Sleep chips say when it was recorded ("yesterday", "3 days ago", or the date after a week).
 - **Vitals** — overall vitals status, plus any vital that stands out (respiratory rate, wrist temperature or SpO₂), or "No data". Opens the Vitals Detail View.
 - **Load** — the load trajectory verdict and today's load. Opens the Load & Trajectory page (ATL / CTL / TSB, the Acute:Chronic Ratio and the Foster monotony banner). Hidden when the Fitness tab is hidden or training load is paused. Load does not feed the recovery score (see "Architecture" above).
 
@@ -210,6 +212,7 @@ Tap **"Done"** to accept your adjustments or **"Cancel"** to discard them (it as
   - Blood Oxygen (SpO2)
   - Wrist Temperature (actual temperature with 7-day baseline deviation note)
 - **Explanation Card**: Tips about recovery vitals
+- The screen refreshes when Apple Health delivers new vitals
 
 ---
 
@@ -222,7 +225,7 @@ A **7-page** onboarding wizard then walks you through initial setup:
 1. **Welcome** — Brand splash + "Get started" CTA
 2. **What Emuqu does** — Three-card carousel explaining the app's value
 3. **Profile** — Birthday, biological sex and body weight, all optional
-4. **Sensor** — Scan and pair your Polar device (H10 chest strap or Verity Sense optical sensor — same UI handles both; the Record tab uses whichever you paired). "I'll do this later" skip is supported.
+4. **Sensor** — Scan and pair your Polar device (H10 chest strap or Verity Sense optical sensor — same UI handles both; the Record tab uses whichever you paired). **Skip** moves on without pairing.
 5. **Apple Health** — A dedicated permission-priming page. Tapping **Connect** fires the system permission sheet inline; the page handles partial-grant and full-deny states with explicit status cards. Swiping past it counts as skipping.
 6. **Backup** — Turn on iCloud sync if you want it (off by default)
 7. **You're In** — 14-day calibration messaging + "Take a reading" / "Skip — show me around" buttons.
@@ -233,9 +236,9 @@ Pages 1 to 6 are skippable. There is no disclaimer page in the wizard: you agree
 
 The wizard collects just the minimum needed to render the first dashboard. For accurate zones, training load, and recovery scores you'll want to visit **Settings → Biometrics** (and **Settings → Profile** for units) at least once to set:
 
-- **Max heart rate** — falls back to 208 − 0.7 × age (Tanaka) if not set. Override with a known lab or field-test value for accurate zones and TRIMP.
+- **Max heart rate** — falls back to 208 − 0.7 × age (Tanaka) if not set, or to 180 without a birthday. Override with a known lab or field-test value for accurate zones and TRIMP.
 - **Resting heart rate** — auto-estimated from HealthKit over time, but a manual value from a lab / watch nightly-low is more accurate and feeds the HR-reserve denominator.
-- **Lactate threshold HR (LTHR)** — falls back to 0.88 × max HR. Set this to a lab value or a field-test result for accurate HRSS. The α1 aerobic-threshold estimate a workout shows is not your LTHR; it sits well below it.
+- **Lactate threshold HR (LTHR)** — falls back to 0.88 × max HR (never below 120). Set this to a lab value or a field-test result for accurate HRSS. The α1 aerobic-threshold estimate a workout shows is not your LTHR; it sits well below it.
 - **Body weight** — if you skipped it on the Profile page; defaults to 75 kg for MET / calorie estimates.
 - **Units** (Settings → Profile → Units) — one Distance & Pace picker (metric or imperial, which also sets elevation) and a Temperature picker. Distance and pace follow your device region until you change them.
 
@@ -291,7 +294,7 @@ The default is Extended. After selecting a session type, the connection and reco
 - **Low (10-20%)**: Orange advisory shown but recording still allowed
 
 ### Tag Selection
-- Horizontal scrollable row of system tags: Morning, Post-Exercise, Recovery, Evening, Pre-Sleep, etc.
+- Horizontal scrollable row of system tags (Morning, Post-Exercise, Recovery, Evening, Pre-Sleep, etc.), followed by any custom tag you have selected
 - Tap tags to select/deselect
 - **"More"** button opens full tag picker sheet with all system and custom tags
 
@@ -417,6 +420,12 @@ After recording completes, shows:
 - **Dismiss** — stops the alert coming back for that session. Nothing is
   deleted: the backup stays on your iPhone, and you can still restore it
   from **Settings → iCloud & Data → Recover Lost Sessions**.
+- For an interrupted workout the app may already be recovering on its own
+  at launch. **Resume** and **Save** then wait for that, up to two and a half
+  minutes in all: once it is saved, the app says so ("Saved to your
+  archive."); if it is still being recovered, the app says it will be in your
+  archive when that finishes, and to recover it from **Recover Lost Sessions**
+  if it is not.
 
 ---
 
@@ -476,7 +485,7 @@ Tap **I understand — continue** once. You won't see this again unless you wipe
 
 ### Choosing a Provider
 
-The model picker at the top of the chat shows the active provider + model. Tap it to open **Choose model**, which lists each provider's models; tap one to switch. When no model can answer (no Apple Intelligence and no API key), the Flo tab shows a **Set up Flo** screen instead of the chat, with an **Add an API key** button that opens Settings → Flo. Available providers:
+The model picker at the top of the chat shows the active provider + model. Tap it to open **Choose model**, which lists each provider's models; tap one to switch. When the selected model cannot answer (no Apple Intelligence and no API key, or its provider is switched off in Settings → Flo) and no other model can take over, the Flo tab shows a **Set up Flo** screen instead of the chat, with an **Add an API key** button that opens Settings → Flo. Available providers:
 
 | Provider | Cost | Where it runs | Required |
 |----------|------|---------------|----------|
@@ -536,7 +545,9 @@ transcript, switch to a cloud model.
 
 The on-device session is cached across messages so follow-up
 questions feel snappier — only the first message in a sitting pays the
-warmup cost. The cache rotates after 20 turns to keep the KV-cache
+warmup cost. It is reused only while the last question and answer in the
+chat are the ones that session gave (after a regenerate, for example, a
+fresh session starts), and it rotates after 20 turns to keep the KV-cache
 healthy.
 
 ### What the AI can do beyond reading your data
@@ -599,7 +610,7 @@ A single tool bundles everything situational into one response, so the AI doesn'
 - Journey block — shape (out-and-back outbound vs returning / loop / point-to-point / unknown), direction (toward origin vs away vs stationary), projected remaining seconds
 - Recurrence sub-record when the current trail matches a historical pattern — "morning route near Elm St, you've done this 6 times, median 47 min"
 
-The journey block is computed by `JourneyIntelligenceService` from the active breadcrumb trail alone (no new permissions, no new APIs). The recurrence sub-record is computed by `RecurrenceClassifier` against the breadcrumb archive — coarse buckets on (start coordinate rounded to 100 m, weekday, hour-of-day band), then polyline-signature matching at default 75 m mean per-point offset. Two prior trails in the same bucket are the minimum for a match.
+The journey block is computed by `JourneyIntelligenceService` from the active breadcrumb trail alone (no new permissions, no new APIs). The recurrence sub-record is computed by `RecurrenceClassifier` against the breadcrumb archive — coarse buckets on (start coordinate rounded to 100 m, four-hour band of the start time), then polyline-signature matching at default 75 m mean per-point offset. Two prior trails in the same bucket are the minimum for a match.
 
 The AI is rule-bound to: **never claim it doesn't know your location, route, or breadcrumbs without calling this tool first**. If the response comes back without a `recurrence` field, the archive simply doesn't have ≥2 prior trails in this hour-band yet — the AI says "I don't see this as a recurring route in your history yet" instead of "I don't have that capability."
 
@@ -642,7 +653,8 @@ The AI chains these for multi-stage scenarios: "if I keep 60 TRIMP days until co
 There are two different voice affordances in the chat tab.
 
 **Dictation (the mic icon next to the text field).** Tap to start, speak
-your question, tap again to stop. Transcript fills the input; you tap
+your question, tap again to stop. Once the recognizer's final words are in,
+the transcript fills the input after anything you had already typed; you tap
 Send. One-shot. Good when you want to review and edit before sending.
 Speech recognition runs on-device (`requiresOnDeviceRecognition = true`),
 even when the chat is going to a paid model.
@@ -700,9 +712,13 @@ been captured.
 ### Long-Press Any Message
 
 Context menu options:
-- **Remember this** — Saves the message text as a fact in cross-session memory (see below).
+- **Remember this** — Saves the message text as one of your own facts in cross-session memory (see below).
 - **Copy** — Copies the message text to clipboard.
-- **Regenerate** (last assistant message only) — Drops the response and re-runs against the same prompt with the current model. Useful when you switch models and want the new one's take, or the answer was bad.
+- **Share** and **Send email** — Hand the message to the share sheet or a new email.
+- **Regenerate** (last assistant message only, not while a reply is streaming) — Drops the response and re-runs against the same prompt with the current model. Useful when you switch models and want the new one's take, or the answer was bad. If that model's data-sharing notice still needs accepting, it asks first; with Flo turned off it does nothing and says why.
+- **Report response** (assistant messages) — Opens a pre-filled email to the developer.
+
+Remember and Copy take the text as shown, without the pronunciation marks used for speech.
 
 ### Web Search (optional, opt-in)
 
@@ -746,7 +762,9 @@ The assistant maintains a persistent list of facts about you that get injected i
 
 - Add manually: **Settings → Flo → What the AI Remembers** → type a fact (e.g., "I'm prepping for a marathon", "I have a stress fracture", "Always answer concisely"). Tap +.
 - Add from chat: long-press any message → **Remember this**.
-- Auto-add: toggle **Auto-remember things** in Settings. After every response that completes the assistant runs a tiny background extraction pass and adds any new facts it identifies. Free on Apple, ~fraction of a cent on connected models. Off by default.
+- Auto-add: toggle **Auto-remember things** in Settings. After every response that completes the assistant runs a tiny background extraction pass and adds any new facts it identifies. It runs only while Flo is on, with a model that can take a turn and whose data-sharing notice you accepted. Free on Apple, ~fraction of a cent on connected models. Off by default.
+- Facts you added yourself (typed, or with Remember this) are sent as things to remember about you; facts Flo noted on its own are sent as background it should ask about before relying on.
+- At most 25 facts are kept; the oldest go first, and a fact already on the list is not added twice.
 - Remove: swipe a fact in Settings, or **Forget everything** to wipe.
 
 Stored on this device only — never sent anywhere except the AI provider you're chatting with at the time.
@@ -763,7 +781,7 @@ One nuance: Apple Intelligence has a tighter chat-history budget than paid model
 
 ### Long Conversations
 
-When the conversation grows past the active model's token budget, older turns are dropped from the *send window* (your local chat history is unchanged) and replaced with an auto-summary preamble. The model still sees what was discussed, just compressed. Tap **Clear conversation** in the ⋯ menu to start fresh.
+When the conversation grows past the active model's token budget, older turns are dropped from the *send window* (your local chat history is unchanged) and replaced with an auto-summary preamble. The model still sees what was discussed, just compressed. Tap **Clear conversation** in the ⋯ menu to start fresh: it deletes the history, the summary and the chat exports, and an unfinished summary update writes nothing. If something could not be deleted, it says "The conversation couldn't be fully erased. Try again."
 
 ### Keyboard Dismissal
 
@@ -820,7 +838,7 @@ Scrollable row below type filter:
 
 ### Search
 - Search bar at top
-- Search by date, tag name, or notes content
+- Search by date (as the app writes it in your language), tag name (system tags in the app's language), or notes content
 
 ### Session List
 Sessions are paginated (10 at a time) and grouped by time period. Scroll to the bottom to load more:
@@ -840,14 +858,14 @@ Sessions are paginated (10 at a time) and grouped by time period. Scroll to the 
 - Recovery score (0-100) with its verdict glyph, colour and a small bar, on the same ladder as the Dashboard (workout rows show duration and sport instead)
 
 ### Swipe Actions
-- **Swipe Left (trailing)**: Red "Delete" button
-- **Swipe Right (leading)**: Blue "Edit Tags" button
+- **Swipe Left (trailing)**: Red "Delete" button (a full swipe does not delete; it asks first)
+- **Swipe Right (leading)**: Blue "Edit Tags" button, which opens the reading at its tag editor. Offered on readings with an HRV analysis, not on workouts
 
 ### Long-Press a Row
 Context menu with **Ask Flo about this session** — pre-fills a question in the Flo tab with that session's date, score, and key metrics, then switches to the chat. Works for any session in the last ~30 days.
 
 ### Tap Session
-Opens the full MorningResultsView in a sheet.
+Opens the full MorningResultsView in a sheet. If the reading can't be read, the screen says "Couldn't open this reading. Try again."
 
 ### Empty State
 - Shows when no sessions exist or no sessions match filters
@@ -897,6 +915,7 @@ Comprehensive recovery report accessed from Dashboard or History.
 - ACR gauge with zone indicator
 - ATL/CTL/TRIMP metrics
 - Recent workouts list (if available)
+- Tap it to open the Training detail: on today's reading it shows your live training load and keeps it current; on a past night it shows the load as it stood that night
 
 ### Analysis Summary Section
 - Dynamically generated paragraph summarizing your recovery status
@@ -951,7 +970,7 @@ Chart labels adapt to context: "Overnight Summary" / "Heart Rate Overnight" / "H
 
 ### Notes Section
 - Text field for session notes
-- Notes and tag changes are saved when you tap **Done** or close the report (a swipe down included). **Discard** first asks you to confirm, saying what you lose (a night is left out of your baseline and moves to the Trash; a quick reading moves to the Trash; an import is dropped unsaved), then throws the reading away, and its tag and note changes with it
+- Notes and tag changes are saved when you tap **Done** or close the report (a swipe down included). **Discard** first asks you to confirm, saying what you lose (a night is left out of your baseline and, if it was already saved, moves to the Trash, while a night that was in your history before this recording stays as it was; a quick reading moves to the Trash; an import is dropped unsaved), then throws the reading away, and its tag and note changes with it
 
 ### Action Buttons
 - **"Email Report"**: Choose the sections; Emuqu builds a PDF report and attaches it to a new email:
@@ -985,7 +1004,8 @@ Below the hero: workout-count tiles for the past 7/30 days, a passive
 activity card (phone-tracked steps/distance), the **Get Me Back card**
 (see below), and a recent-workouts list. Long-press a recent workout for
 **Delete Workout**: it asks first, then moves the workout to the Trash
-(restore it from **Settings → iCloud & Data → Trash**).
+(restore it from **Settings → iCloud & Data → Trash**). If the move fails,
+the tab says so and the workout stays.
 
 ### Get Me Back mode
 
@@ -1079,8 +1099,8 @@ Footpod disconnects the moment the workout ends.
 
 ### Live road context
 
-Whenever you're outdoors with a GPS fix, Apple's geocoder turns your
-position into a street name + city + state after ~15 m of movement
+Whenever you're outdoors with a GPS fix, Apple Maps (its map data first,
+then Apple's geocoder) turns your position into a street name + city + state after ~15 m of movement
 or 60 s, whichever comes first, so a corner turn shows up quickly. After
 8 failed lookups in a row it backs off and retries every 30 s. The AI
 coach gets these in its live context, so:
@@ -1183,7 +1203,9 @@ only useful indoors.
 The voice coach (AirPods recommended) evaluates a rule engine each tick.
 The thresholds you add before starting (step 5 of *Starting a workout*)
 are spoken and buzz the phone and the Watch. A dropped strap is spoken
-and buzzes too. A heart-rate spike without the pace to match, and a
+and buzzes too: "Strap just went quiet — switching to your Watch's heart
+rate." when your Watch's heart rate is coming in, otherwise "Strap just
+went quiet — check its fit and battery." A heart-rate spike without the pace to match, and a
 cadence that has dropped from where you started, only buzz the phone and
 the Watch. The other built-in signals (α1 crossings, HR drift, zone
 drift, climb ahead) are kept in the workout's event history but are not
@@ -1230,7 +1252,14 @@ Cards shown (each appears only if its underlying data is present):
 - **Physiology** — Pa:Hr decoupling, Efficiency Factor.
 - **Splits** — per-km (metric) or per-mile (imperial), with pace + HR.
 - **Export** — GPX / CSV / TCX to Strava, Garmin Connect, TrainingPeaks,
-  etc.
+  etc. A workout recorded with this version keeps the time of each GPS
+  fix, so the GPX and TCX points carry when you were there; for an older
+  workout the times are spread evenly and the file says so.
+- **Generate & Email Coach Report** — builds the coach report PDF and
+  stages an email with it. While it is being prepared the button says so
+  and can't be tapped again; then a line under it says "The coach report
+  email is ready.", or, when the PDF couldn't be made, that the email has
+  the summary only and you can tap to try again.
 
 Deleting a workout from the summary asks first, then moves it to the
 Trash, where you can restore it from **Settings → iCloud & Data → Trash**.
@@ -1263,8 +1292,10 @@ When the session was recorded with a power source (Stryd / FTMS bike /
 PM5 / cycling power meter) AND the matching FTP is set, the post-summary
 adds:
 
-- **Normalised Power (NP)** — Coggan's 4-second rolling average → mean
-  of the 4th power → 4th root. Better matches the physiological cost of
+- **Normalised Power (NP)** — Coggan's 30-second rolling average → mean
+  of the 4th power → 4th root. A gap in the power data ends a window rather
+  than being averaged across, and with no 30 seconds of unbroken power
+  there is no NP. Better matches the physiological cost of
   variable-effort sessions than raw average.
 - **Intensity Factor (IF)** = NP / FTP. 1.0 = exactly your hour-power.
 - **Power-based training load** = `(NP / FTP)² × hours × 100`. The canonical
@@ -1274,7 +1305,8 @@ adds:
   variable session; ~1.00 means steady.
 
 If FTP isn't set, these all sit out and the card tells you where to set
-it. The app never invents a denominator.
+it. The app never invents a denominator. When the workout's training load
+is power-based, an HRSS tile shows its heart-rate load beside it.
 
 ### Running FTP auto-estimator
 
@@ -1284,7 +1316,8 @@ Most users have never done a 20-minute FTP test and never will. If you have a St
 - Scans workouts from the **last 90 days** in the running family (run, trail run, walk, hike, treadmill) where Stryd power was captured, so the estimate follows you down after a lay-off as well as up.
 - Slides a 20-minute window over each workout's moving time (at least 90 % of its seconds must carry a power reading) and keeps the **best 20-minute mean power** — a single hard 20 minutes is a better threshold proxy than a whole-session average diluted by warm-up and cool-down.
 - Applies the TrainingPeaks convention: `FTP = best 20-min mean power × 0.95`.
-- Caches the estimate in `UserDefaults`, along with the source session ID and the date the scan ran. Recomputed weekly, off the main thread. If no recent workout qualifies (or the one it came from was deleted), the estimate is cleared rather than kept.
+- Caches the estimate in `UserDefaults`, along with the source session ID and the date the scan ran. Recomputed weekly off the main thread, and sooner when a workout was added or the one it came from was deleted. If no recent workout qualifies (or the one it came from was deleted), the estimate is cleared rather than kept.
+- A workout that can't be read for now (the phone is locked, the disk is full) leaves the scan open: it runs again at the next launch, and meanwhile the estimate is never lowered or cleared. A workout that can never be read (a damaged file) doesn't hold the scan open; the weekly rescan tries it again.
 
 **Where it's used:** the estimate fills in for power-based training-load computations when you haven't set a running FTP manually. Settings → Biometrics still wins if you set one yourself.
 
@@ -1298,6 +1331,8 @@ A one-time backfill (`WorkoutLoadBackfill`) runs once per week to retroactively 
 
 - Lookback: 90 days.
 - Idempotent — once an estimate has been written, that workout is skipped.
+- A workout that can't be read or written for now (the phone is locked, the disk is full) leaves the scan to run again at the next launch; one that can never be read (a damaged file) is skipped until the weekly rescan.
+- Runs in the background at launch after the iCloud sync, and not in Low Power Mode.
 - Gated on saved-route count: if you add a new saved route, the scan re-runs so workouts that now match the new route get covered.
 - Cheap: O(N) over recent workouts, each step is a polyline-shape match against `RouteLibrary` plus a handful of archive reads.
 - Priors are only earlier runs whose own track matches the same saved route, that ended before the workout being estimated (so a workout never counts itself), and whose own heart rate didn't drop out; a prior under half the median of the others is ignored as an outlier.
@@ -1351,8 +1386,9 @@ since iPhone 6):
 1. The app collects every `CMAltimeter` barometric altitude sample
    (~1 Hz native rate) into a buffer during your walk.
 2. At session stop, a post-hoc processor applies:
-   - A 15-sample symmetric moving-average smoother (zero phase
-     lag since it runs offline) — matches the ~8 s time constant
+   - A 15-second symmetric moving-average smoother, timed by each
+     sample's own timestamp (zero phase lag since it runs offline) —
+     matches the ~8 s time constant
      recommended in the sports-fusion literature.
    - Hysteresis on the smoothed signal: the app tracks the highest
      (or lowest) point of the current climb (or descent), and commits
@@ -1381,7 +1417,7 @@ with a tight noise gate — clearly labelled as an estimate in the UI.
 
 **Per-split elevation** is computed from the GPS altitude of each
 split's track points (the barometer buffer is not split), run through
-the same 15-sample smoother and 2 m hysteresis; splits too short to
+the same 15-second smoother and 2 m hysteresis; splits too short to
 smooth use the raw sum of upward steps. Split gains therefore need
 not add up exactly to the barometric headline total.
 
@@ -1404,12 +1440,14 @@ the α1 timeline + LT1 estimate reflect the clean values.
 ### Data quality filters
 
 - **Cadence**: sport-aware cap — 125 spm for walks / hikes, 220 for
-  runs, 140 RPM for bikes. Foot-pod readings above the sport's
+  runs and treadmill, 140 RPM for bikes, 60 for rowing and CrossFit. Foot-pod readings above the sport's
   physiological maximum are rejected as artifact (jogging cadence
   starts around 150 spm, so a walk seeing 140 is mechanically
   impossible).
-- **Tail spike filter**: drops the last few samples of any chart
-  series if they exceed 1.5× the trailing-30-sample median.
+- **Tail spike filter**: checks the last few samples of a cadence
+  chart (up to 15, a quarter of the series at most) against the median of
+  up to 30 samples before them, and cuts the series at the first one at
+  1.5× that median or more. A chart under 20 points is left alone.
   Common foot-pod behaviour at stop-time.
 
 ---
@@ -1478,14 +1516,14 @@ All articles are searchable — type in the search bar to filter across all cate
 Settings uses an iPhone-style hub page with drill-in sub-pages:
 
 ### Profile
-- **Birthday**: Set your date of birth (used for age-based HRV interpretation and personalized Help content)
+- **Birthday**: Set your date of birth (used for age-based HRV interpretation and personalized Help content). With none set, the row reads "Birthday — Not Set" instead of showing a made-up date
 - **Age**: Auto-calculated from birthday
 - **Fitness Level**: Not Set / Sedentary / Lightly Active / Moderately Active / Active / Very Active / Athlete
 - **Biological Sex**: Not Set / Male / Female / Other
 - **Temperature Unit**: Celsius (°C) or Fahrenheit (°F)
 
 ### Sleep
-- **Typical Sleep**: Your normal sleep duration (5-10 hours, 0.5 hour increments)
+- **Typical Sleep**: Your normal sleep duration (5-10 hours, 0.5 hour increments; a value saved outside those steps stays listed)
 - **Bedtime**: Your expected bedtime (hour and minute picker). Defines the overnight search window for HealthKit queries, reading detection, daytime HR queries, and baseline classification. Defaults to 10:00 PM.
 - **Wake Time**: Auto-computed from bedtime + typical sleep hours (read-only display)
 - **Combine Segments (Split Sleep)**: Controls whether separate overnight recordings count as one night
@@ -1537,7 +1575,9 @@ energy), so Apple Health shows less active energy than the gross calories
 in the app's own summary. When a reading or workout is exported again (after you
 trim a workout, for example, or from another of your devices), the new copy
 replaces Emuqu's earlier one in Apple Health; samples from other apps and
-devices are never touched.
+devices are never touched. A workout saved while your iPhone was locked,
+when Apple Health would not show the earlier copy, has that copy removed
+the next time you open the app.
 
 ### Appearance
 - **Background Theme**: Light / Dim / Dark — choose your preferred look with a color preview for each option
@@ -1549,6 +1589,7 @@ Its own row in Settings, under Appearance. System Default or choose from 17 lang
 ### Custom Tags
 - List of your custom tags with color indicators
 - Swipe left to delete custom tags
+- A new tag's name is trimmed of spaces, and a name already in use is refused
 - **"Add Custom Tag"** button opens creation sheet with name, 12-color grid, and live preview
 
 ### Flo (AI Assistant)
@@ -1614,6 +1655,7 @@ API keys are stored in the iOS Keychain on this device only — they are never s
 - **Delete All My Data**: erases everything the app stores on this iPhone and its iCloud copy, and removes your API keys. You type the phrase `DELETE MY DATA`, then confirm once more. It cannot be undone. It is unavailable while a recording is in progress (a reading, a night, even paused, a strap recording or a workout) or a reading is waiting to be accepted: stop the recording, or accept or discard the reading, first. The free-trial record and the encryption keys stay in the keychain; they hold no health data.
   - iCloud Sync is turned off before the iCloud copy is deleted, and stays off afterwards. Your other devices stop syncing too, with a notice under their iCloud Sync switch.
   - If a recording starts while the iCloud copy is being deleted, nothing on this iPhone is deleted and you are told to stop the recording and run it again.
+  - The iCloud copy is deleted only from the iCloud account this iPhone synced with (or, if it never recorded one, from the account you are signed into, unless sync was stopped because that is a different account). When the iCloud deletion can't run (no network, not signed in, or another account), your data on the iPhone is still removed, and the report says the iCloud records were not deleted and to run it again with internet and iCloud signed in.
   - Samples Emuqu wrote to Apple Health are not removed; the report at the end says where to remove them in the Health app.
 
 ### Help & Support
@@ -1648,7 +1690,7 @@ Manage deleted sessions.
   - Date and time
   - Beat count
   - **Restore button** (green arrow): Recovers and re-analyzes the session
-  - **Permanent delete button** (red X): asks first, then removes the session for good: its file, its raw backup, its iCloud copy, the route a workout filed in your trail history, and everything it wrote to Apple Health (HRV, heart rate, resting heart rate, sleep and the workout). A session that cannot be removed stays in the Trash, and the screen says how many could not be removed. When samples cannot be deleted from Apple Health, it says so and where to remove them in the Health app. The message stays until your next action
+  - **Permanent delete button** (red X): asks first, then removes the session for good: its file, its raw backup, its iCloud copy, the route a workout filed in your trail history, and everything it wrote to Apple Health (HRV, heart rate, resting heart rate, sleep and the workout). A session that cannot be removed stays in the Trash, and the screen says how many could not be removed. When some of what it wrote to Apple Health (heart rate, HRV, sleep or workouts) cannot be deleted, it says so and where to remove it in the Health app. The message stays until your next action
 - Footer: "Deleted sessions stay here for 90 days unless you remove them sooner."
 - **"Permanently Delete All"** button with confirmation dialog
 

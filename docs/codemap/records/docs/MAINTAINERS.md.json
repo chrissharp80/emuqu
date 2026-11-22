@@ -79,7 +79,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/StoreKitManager.swift::func boot()": "2d578510538e7ee6",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "edd8e1a85c8dc3b3"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "55bc57d654968cf9"
    }
   },
   {
@@ -99,8 +99,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 2. Architecture at a glance > The layered module structure",
-   "hash": "43c4372c001fc6ab",
-   "does": "Claims the source is layered Views/ViewModels → Assistant → Services → Analysis/Export/Import → Collection → Storage → Models/Protocols/Utilities, that RRCollector is split into ~21 RRCollector+* extension files and five @MainActor @Observable sub-objects, and that Views/ has ~211 files. Directories exist; Collection/ has 24 RRCollector+*.swift files.",
+   "hash": "37ff59cd12025ffb",
+   "does": "Claims the source is layered Views/ViewModels → Assistant → Services → Analysis/Export/Import → Collection → Storage → Models/Protocols/Utilities, that RRCollector is split into ~21 RRCollector+* extension files and five @MainActor @Observable sub-objects, and that Views/ has ~205 files. Directories exist; Views/ has 205 .swift files.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.makeDefault()",
@@ -134,8 +134,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 2. Architecture at a glance > The C4 \"container\" view",
-   "hash": "84791d45762b4ffa",
-   "does": "Claims container entry files: Emuqu/EmuquApp.swift → Views/MainTabView.swift; EmuquWatch Watch App/WatchApp.swift; EmuquTests 256 files; EmuquUITests 18 files. Actual: EmuquTests has 259 top-level .swift files (within the 15% gate tolerance), EmuquUITests 18.",
+   "hash": "fdb207588b9c4524",
+   "does": "Claims container entry files: Emuqu/EmuquApp.swift → Views/MainTabView.swift; EmuquWatch Watch App/WatchApp.swift; EmuquTests 278 files; EmuquUITests 18 files (top-level .swift counts as the doc-counts gate takes them).",
    "entry": null,
    "calls": [
     "Emuqu/EmuquApp.swift::var EmuquApp.body",
@@ -230,8 +230,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 3. Code-design philosophy > What NOT to do",
-   "hash": "6bb2f11ae970ca8f",
-   "does": "Lists forbidden practices (sweeping rewrites, new global state, new magic numbers) and points to the REFACTOR_SPEC completion checklist, stating CI measures only part of it: check_refactor_spec_conformance.sh covers function/property/init length, nesting depth, commented-out code and empty catches, other gates own try?, .shared and log redaction; magic numbers (no_magic_numbers is not enabled in either SwiftLint config) and the judgement items are held by review only.",
+   "hash": "f1b9c8a3c1ad2323",
+   "does": "Lists forbidden practices (sweeping rewrites, new global state, new magic numbers) and points to the REFACTOR_SPEC completion checklist, stating CI measures only part of it: check_refactor_spec_conformance.sh covers function/property/init length, nesting depth, commented-out code and empty catches, other gates own try?, .shared and log redaction; magic numbers (.swiftlint.yml, the one SwiftLint config, does not enable no_magic_numbers) and the judgement items are held by review only.",
    "entry": null,
    "calls": [
     "Makefile::target spec-conformance",
@@ -302,8 +302,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.0 Top-level repository",
-   "hash": "3182a71b6ddc0d99",
-   "does": "Claims top-level layout: Emuqu/, Emuqu/EmuquApp.swift, EmuquTests (256), EmuquUITests (18), watch app, xcodeproj last upgraded with Xcode 26.6, Emuqu.xctestplan used by CI + make test, docs/, docs/codemap/ (the code map, kept current by CI), CLAUDE.md (agent rules: the code map is part of every change), scripts/, Tools/copy_linter (lint.py + prohibited_terms.json), .ci/ budgets, .github workflows (ci, gates, security, performance, testflight), .githooks/pre-commit (SwiftFormat + SwiftLint + the code-map check), Makefile, README/LICENSE, .swiftlint.yml/.swiftformat as the lint and format config, .env.example. All paths exist.",
+   "hash": "90914ead6364b1c9",
+   "does": "Claims top-level layout: Emuqu/, Emuqu/EmuquApp.swift, EmuquTests (278), EmuquUITests (18), watch app, xcodeproj last upgraded with Xcode 26.6, Emuqu.xctestplan used by CI + make test, docs/, docs/codemap/ (the code map, kept current by CI), CLAUDE.md (agent rules: the code map is part of every change), scripts/, Tools/copy_linter (lint.py + prohibited_terms.json), .ci/ budgets, .github workflows (ci, gates, security, performance, testflight), .githooks/pre-commit (SwiftFormat + SwiftLint + the code-map check), Makefile, README/LICENSE, .swiftlint.yml/.swiftformat as the lint and format config, .env.example. All paths exist.",
    "entry": null,
    "calls": [
     "Tools/copy_linter/lint.py::def main",
@@ -318,28 +318,30 @@
    }
   },
   {
-   "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.1 `Analysis/` — physiology math + scoring (~75 files)",
-   "hash": "8c69cc2a726505b3",
-   "does": "Claims Analysis/ (~75 files; actual 82) holds HRVAnalysisPipeline, RecoveryScoreCalculator(+Composite/+Tiers/+Training/+forwarding shims) with HRV 60 / Sleep 25 / Vitals 15 (verified ScoringWeights.Tier3, Constants.swift:399-402), signal analyzers, WindowSelection(+Evaluation/+Filters), workout analytics, baselines/trends, exporters/importer, CauseDetection/ (7 files, verified).",
+   "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.1 `Analysis/` — physiology math + scoring (~83 files)",
+   "hash": "3d9a9f9301329e9e",
+   "does": "Claims Analysis/ (~83 files; actual 83) holds HRVAnalysisPipeline, RecoveryScoreCalculator(+Composite/+Tiers/+Training/+forwarding shims) with HRV 60 / Sleep 25 / Vitals 15 (ScoringWeights.Tier3), signal analyzers, WindowSelection(+Evaluation/+Filters), workout analytics, baselines/trends, exporters/importer, ArchiveAccessFailure (mayClear: a locked device, full disk or locked keychain; the launch scans stay unstamped only on those), CauseDetection/ (7 files).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)",
-    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)"
+    "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)",
+    "Emuqu/Sources/Analysis/ArchiveAccessFailure.swift::func ArchiveAccessFailure.mayClear(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Analysis/ArchiveAccessFailure.swift::func ArchiveAccessFailure.mayClear(_:)": "178d40e8393fff4f",
     "Emuqu/Sources/Analysis/HRVAnalysisPipeline.swift::func HRVAnalysisPipeline.analyzeWithAutoWindow(session:sleepStartMs:wakeTimeMs:trainingContext:ansConfig:baselineStats:)": "0537b6229c6d467c",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::func RecoveryScoreCalculator.calculateWithBreakdown(_:trainingMetrics:config:ansBalance:referenceDate:)": "10ea7c04076f529f",
     "Emuqu/Sources/Analysis/WindowSelection+Scoring.swift::func WindowSelector.findBestWindow(in:flags:sleepStartMs:wakeTimeMs:baselineStats:)": "393434dc2918551b"
    }
   },
   {
-   "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.2 `Collection/` — sensor capture + recording lifecycle (~150 files)",
-   "hash": "d43beedb3006ab89",
-   "does": "Claims Collection/ (~150; actual 159) holds RRCollector + extensions, SessionRecoveryCoordinator and OvernightStreamingCoordinator built on demand as values holding the collector strongly, PolarManager(+Streaming/+Recording/+Observers), HealthKitManager(+HRV/+HeartRate/+SleepTrends/+Store/+Heat) with Vitals/Training/SleepHealthQueries, the Apple Health write-back types (HealthExportIdentity.metadata stamps ExternalUUID + sync identifier + rising sync version from nextSyncVersion on every export; HealthKitWorkoutExport.export; HealthWriteAndObserve.swift holding HealthSampleReplacer, removeExports and the anchored HealthSampleWatch observer that drops the app's own samples), WorkoutRecorder(+Lifecycle/+Ticker/+Start/+Stop/+Metrics), extra-device managers, recording support types incl. RecoveryVitals, and pure types METLookup/WorkoutTickState/WorkoutStartCue/SleepRefreshPolicy/HRSleepEstimator with HealthKitManager.estimateSleepFromHR kept as a forwarder (chain HealthKitManager → SleepHealthQueries → HRSleepEstimator).",
+   "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.2 `Collection/` — sensor capture + recording lifecycle (~160 files)",
+   "hash": "54e284fbe8f241de",
+   "does": "Claims Collection/ (~160; actual 160) holds RRCollector + extensions, SessionRecoveryCoordinator and OvernightStreamingCoordinator built on demand as values holding the collector strongly, PolarManager(+Streaming/+Recording/+Observers), HealthKitManager(+HRV/+HeartRate/+SleepTrends/+Store/+Heat) with Vitals/Training/SleepHealthQueries, the Apple Health write-back types (HealthExportIdentity.metadata stamps ExternalUUID + sync identifier + rising sync version from nextSyncVersion on every export; HealthKitWorkoutExport.export; HealthWriteAndObserve.swift holding HealthSampleReplacer, removeExports and the anchored HealthSampleWatch observer that drops the app's own samples; a workout saved while the earlier exports could not be read is noted in PendingWorkoutReplacements and its earlier copies are deleted on the next return to the app, PendingWorkoutReplacements.finish), WorkoutRecorder(+Lifecycle/+Ticker/+Start/+Stop/+Metrics), extra-device managers, recording support types incl. RecoveryVitals, and pure types METLookup/WorkoutTickState/WorkoutStartCue/SleepRefreshPolicy/HRSleepEstimator with HealthKitManager.estimateSleepFromHR kept as a forwarder (chain HealthKitManager → SleepHealthQueries → HRSleepEstimator).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)",
@@ -350,7 +352,9 @@
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)",
     "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)",
     "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthWriteAndObserve.removeExports(sessionId:from:to:)",
-    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.observerQuery(for:anchorKey:store:deliver:)"
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.observerQuery(for:anchorKey:store:deliver:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.note(sessionId:startDate:)",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.finish(in:)"
    ],
    "reads": [],
    "writes": [],
@@ -361,16 +365,18 @@
     "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.nextSyncVersion(now:)": "dc7538c29edef3aa",
     "Emuqu/Sources/Collection/HealthKitManager+Sleep.swift::func SleepHealthQueries.estimateSleepFromHR(rrPoints:recordingStart:)": "9a2ca7bd234f3585",
     "Emuqu/Sources/Collection/HealthKitManager+SleepQueryForwarding.swift::func HealthKitManager.estimateSleepFromHR(rrPoints:recordingStart:)": "573ac4aba216c312",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)": "26c67d8ab67eca74",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)": "cd6403f788fa4edb",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.finish(in:)": "a25bd6799a51feda",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func PendingWorkoutReplacements.note(sessionId:startDate:)": "5a5439aa33a8e53f",
     "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleReplacer.replace(_:_:)": "0415c974b73264d3",
-    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.observerQuery(for:anchorKey:store:deliver:)": "954971d68df38c94",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.observerQuery(for:anchorKey:store:deliver:)": "ca2716f60a3e4c79",
     "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthWriteAndObserve.removeExports(sessionId:from:to:)": "980c692590529480"
    }
   },
   {
-   "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.3 `Assistant/` — the \"Flo\" AI subsystem (~115 files)",
-   "hash": "2944ef2077099f80",
-   "does": "Claims Assistant/ (~115; actual 118) layout: root voice/coach/guard/speech-prep files including CoachCueSpeech (each coach line claims the cue audio session via BackgroundAudioManager.beginCue before it is spoken; holds the scripted fallback of an AI interjection), Providers/ (AIProvider + Apple/Anthropic/OpenAI/Gemini/Grok/DeepSeek + streamer/registry), Facts/ (AppFactResolver + extensions, FactCatalog, routers, classifiers, compactor, telemetry), Chat/, Context/, ViewModel/, Views/, Keys/APIKeyStore.swift (Keychain). All named types/files exist.",
+   "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.3 `Assistant/` — the \"Flo\" AI subsystem (~118 files)",
+   "hash": "13b8b86fd1e3f618",
+   "does": "Claims Assistant/ (~118; actual 118) layout: root voice/coach/guard/speech-prep files including CoachCueSpeech (each coach line claims the cue audio session via BackgroundAudioManager.beginCue before it is spoken; holds the scripted fallback of an AI interjection), Providers/ (AIProvider + Apple/Anthropic/OpenAI/Gemini/Grok/DeepSeek + streamer/registry), Facts/ (AppFactResolver + extensions, FactCatalog, routers, classifiers, compactor, telemetry), Chat/, Context/, ViewModel/, Views/, Keys/APIKeyStore.swift (Keychain). All named types/files exist.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)",
@@ -385,40 +391,50 @@
    }
   },
   {
-   "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.4 `Services/` — cross-cutting app services (~50 files)",
-   "hash": "53d34e7110271827",
-   "does": "Claims Services/ (~50; actual 52) holds StoreKitManager + EntitlementAnchor, WatchConnectivityBridge, DataPurgeService with PurgeGate (the process-wide purge lock: admitWrite refuses archive writes and the sync manager skips uploads/full syncs via isPurging while beginPurge..endPurge holds it), the morning/recovery services, the location/road/nav stack, LanguageManager, NarrativeLanguage, WeatherService, WebSearchService. Named types exist.",
+   "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.4 `Services/` — cross-cutting app services (~55 files)",
+   "hash": "b8e84e82ee277e1f",
+   "does": "Claims Services/ (~55; actual 55) holds StoreKitManager + EntitlementAnchor, WatchConnectivityBridge (+Transport: transferLatestUserInfo, WatchSendTimeoutBreaker), DataPurgeService (+Defaults: the preferences sweep) with PurgeGate (the process-wide purge lock: admitWrite refuses archive writes and the sync manager skips uploads/full syncs via isPurging while beginPurge..endPurge holds it), ReanalysisService with RescoreWrite (a rescore is written only while the stored copy's inputs match the copy it read), the other morning/recovery services, the location/road/nav stack, LanguageManager, NarrativeLanguage, WeatherService, WebSearchService. Named types exist.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)",
     "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)",
-    "Emuqu/Sources/Services/PurgeGate.swift::var PurgeGate.isPurging"
+    "Emuqu/Sources/Services/PurgeGate.swift::var PurgeGate.isPurging",
+    "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.write(_:readFrom:kind:to:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Transport.swift::func WatchConnectivityBridge.transferLatestUserInfo(_:on:)",
+    "Emuqu/Sources/Services/DataPurgeService+Defaults.swift::func DataPurgeService.sweepAllDefaults(scope:errors:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Services/DataPurgeService+Defaults.swift::func DataPurgeService.sweepAllDefaults(scope:errors:)": "a58902c80a499460",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)": "68309eb00ad2e5c2",
     "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)": "332fae95769af5cb",
-    "Emuqu/Sources/Services/PurgeGate.swift::var PurgeGate.isPurging": "e50d4ba69a9f521d"
+    "Emuqu/Sources/Services/PurgeGate.swift::var PurgeGate.isPurging": "e50d4ba69a9f521d",
+    "Emuqu/Sources/Services/RescoreWrite.swift::func RescoreWrite.write(_:readFrom:kind:to:)": "bced01524c9dd590",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Transport.swift::func WatchConnectivityBridge.transferLatestUserInfo(_:on:)": "5e2282d2c0cf5298"
    }
   },
   {
-   "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.5 `Storage/` — persistence, encryption, sync (~44 files)",
-   "hash": "4faa1bd93809b595",
-   "does": "Claims Storage/ (~44; actual 47) holds Archive.swift (+MergeForwarding/+Migrations/+Repair, SessionMerger) — JSON in the App Group with SHA-256 and an in-memory index — plus CloudKit sync types, CloudAccountIdentity + CloudAccountGuard in CloudAccountIdentity.swift (the recorded Apple ID, confirmed by confirmAccount before any iCloud read/write), EncryptionManager, DataCompression (ZLIB), backups, caches, SessionStorageDiagnostic.",
+   "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.5 `Storage/` — persistence, encryption, sync (~49 files)",
+   "hash": "2aea3b3356a36cf4",
+   "does": "Claims Storage/ (~49; actual 49) holds Archive.swift (+MergeForwarding/+Migrations/+Repair, SessionMerger) — JSON in the App Group with SHA-256 and an in-memory index — plus CloudKit sync types, CloudSessionPayload in CloudSessionPayload.swift (the upload shape without Apple Health data, uploadable), CloudAccountIdentity + CloudAccountGuard in CloudAccountIdentity.swift (the recorded Apple ID, confirmed by confirmAccount before any iCloud read/write), CloudAccountChangeHandler (handle: what .CKAccountChanged does to sync), EncryptionManager, DataCompression (ZLIB), backups, caches, SessionStorageDiagnostic.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
     "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()"
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)",
+    "Emuqu/Sources/Storage/CloudAccountChangeHandler.swift::func CloudAccountChangeHandler.handle()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "6fddb773bce74148",
+    "Emuqu/Sources/Storage/CloudAccountChangeHandler.swift::func CloudAccountChangeHandler.handle()": "f730efb013d7f6a6",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "08f434f5bf61f50e",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
     "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "b4d5293d92fd3be4"
    }
   },
@@ -442,9 +458,9 @@
    }
   },
   {
-   "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.6 `Models/` — domain types & settings (~29 files)",
-   "hash": "cad98ad727074d38",
-   "does": "Claims Models/ (~29; actual 31) holds HRVSession, SettingsManager/UserSettings, RRModels, workout models, Route/SavedRoute, IntervalPlan, ScoreVerdict, MorningFeelingTag, DashboardSessionPolicy, UnitsPreference, EmailContact (all declared in Models/).",
+   "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.6 `Models/` — domain types & settings (~32 files)",
+   "hash": "a7c02b8adffe9d79",
+   "does": "Claims Models/ (~32; actual 32) holds HRVSession, SettingsManager/UserSettings, RRModels, workout models, Route/SavedRoute, IntervalPlan, ScoreVerdict, MorningFeelingTag, DashboardSessionPolicy, UnitsPreference, EmailContact (all declared in Models/).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Models/HRVSession.swift::init ReadingTag(id:name:colorHex:isSystem:)",
@@ -527,9 +543,9 @@
    }
   },
   {
-   "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.8 `Utilities/` (~22 files)",
-   "hash": "5967d753d2aa80e5",
-   "does": "Claims Utilities/ (~22; actual 22) holds Constants.swift(+RecoveryScore) with all magic numbers, Extensions, Statistics, Errors, DebugLog, CrashLogManager, SystemDiagnosticsManager, keyboard helpers, PendingScoreChange.",
+   "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.8 `Utilities/` (~23 files)",
+   "hash": "24719acb1f12ae01",
+   "does": "Claims Utilities/ (~23; actual 23) holds Constants.swift(+RecoveryScore) with all magic numbers, Extensions, Statistics, Errors, DebugLog, CrashLogManager, SystemDiagnosticsManager, keyboard helpers, PendingScoreChange.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Constants.swift::func AppConfig.sharedContainerURL()",
@@ -566,9 +582,9 @@
    }
   },
   {
-   "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.9 `Views/` (~211 files) + `ViewModels/` (2 files)",
-   "hash": "e58fe8fe3da1605c",
-   "does": "Claims Views/ (~211; actual 200, within tolerance) + 2 view models (HistoryViewModel, MorningResultsViewModel); no view reads a singleton directly — services come via @Environment(\\.dependencies) (gate scripts/check_no_shared_outside_root.sh, ci.yml:260); root views, detail views, gating UI, SettingsView + ~15 *SettingsPage.swift, Theme.swift, Views/Utilities (ShareSheet, PDFPreviewView).",
+   "key": "§ Emuqu — Maintainer's Guide > 5. Directory & file map > 5.9 `Views/` (~205 files) + `ViewModels/` (2 files)",
+   "hash": "2b399b5198d82f87",
+   "does": "Claims Views/ (~205; actual 205) + 2 view models (HistoryViewModel, MorningResultsViewModel); no view reads a singleton directly — services come via @Environment(\\.dependencies) (gate scripts/check_no_shared_outside_root.sh); root views, detail views, gating UI, SettingsView + ~15 *SettingsPage.swift, Theme.swift, Views/Utilities (ShareSheet, PDFPreviewView).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/ViewModels/HistoryViewModel.swift::func HistoryViewModel.apply(_:)"
@@ -582,8 +598,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 6. The core data model",
-   "hash": "f78fb21e923e1609",
-   "does": "Claims the core model table: HRVSession and SessionArchiveEntry in SessionMetadata.swift (verified :113, :710; entry carries fileHash, filePath, sleepEnd, stage minutes, no rrSeries), recoveryScore stored 0-10, HRVAnalysisResult/ANSMetrics(readinessScore)/RRPoint in RRModels.swift, SleepData, RecoveryVitals, UserSettings(+Model)/SettingsManager, WorkoutMetadata/Sport, WorkoutAnalysisSnapshot, WorkoutThreshold, IntervalPlan/IntervalStep, Route/SavedRoute; persistence is one JSON file per session with SHA-256, mirrored when sync is on as a compressed encrypted CKAsset without Health data (CloudSessionPayload), rrSeries skippable via retrieveLightweight().",
+   "hash": "8cdd0cc71b7a6741",
+   "does": "Claims the core model table: HRVSession in SessionMetadata.swift and SessionArchiveEntry in SessionMetadata+ArchiveEntry.swift (entry carries fileHash, filePath, sleepEnd, stage minutes, no rrSeries), recoveryScore stored 0-10, HRVAnalysisResult/ANSMetrics(readinessScore)/RRPoint in RRModels.swift, SleepData, RecoveryVitals, UserSettings(+Model)/SettingsManager, WorkoutMetadata/Sport, WorkoutAnalysisSnapshot, WorkoutThreshold, IntervalPlan/IntervalStep, Route/SavedRoute; persistence is one JSON file per session with SHA-256, mirrored when sync is on as a compressed encrypted CKAsset without Health data (CloudSessionPayload), rrSeries skippable via retrieveLightweight().",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)",
@@ -732,7 +748,7 @@
     "Emuqu/Sources/Assistant/CoachCueSpeech.swift::func CoachCueSpeech.speak(_:onUnqueued:)": "6d21c49c9272c15e",
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func CoachAlertHaptic.playOnPhone(urgent:)": "b805ae22a0875e55",
     "Emuqu/Sources/Assistant/WorkoutVoiceCoach.swift::func WorkoutVoiceCoach.dispatch(event:)": "f61db63d73e6b0a7",
-    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)": "26c67d8ab67eca74",
+    "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.export(session:healthKit:bodyWeightKg:writesHeartRate:)": "cd6403f788fa4edb",
     "Emuqu/Sources/Collection/HealthKitWorkoutExport.swift::func HealthKitWorkoutExport.netMETs(_:)": "7a61cfddd41f146e",
     "Emuqu/Sources/Collection/WorkoutRecorder+FinalizeForwarding.swift::func WorkoutRecorder.finalizeSession(rrPoints:stopDate:hrrSamples:)": "1e3e4431c984daf6",
     "Emuqu/Sources/Collection/WorkoutRecorder+Lifecycle.swift::func WorkoutFinalizer.finalizeSession(rrPoints:stopDate:hrrSamples:)": "a7d5cc61801af2cf",
@@ -740,7 +756,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c",
     "Emuqu/Sources/Export/WorkoutPDFReport.swift::func WorkoutPDFReport.generate(to:)": "f56389b765313440",
     "Emuqu/Sources/Services/BreadcrumbStore.swift::func BreadcrumbStore.archive(_:)": "ce818f1d27dc80fe",
-    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.sendCoachAlertHaptic(urgent:)": "c9323b98938c5117"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Session.swift::func WatchConnectivityBridge.sendCoachAlertHaptic(urgent:)": "1d6f2cef2f9cd5f5"
    }
   },
   {
@@ -774,8 +790,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)": "c5c0f800ac025f4e",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "4ac533937d18871b",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)": "17e2087064119470",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "05df04719dedddd7",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gateUnlessUserStated(_:action:target:question:)": "fa5e4ee2a83fe2df",
     "Emuqu/Sources/Assistant/Facts/AppleContextCompactor.swift::func AppleContextCompactor.compact(_:systemPromptTokens:)": "dd6ae7872b57f262",
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "fe140477d3574bdf",
@@ -798,8 +814,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 7. End-to-end flows > 7.5 Storage & iCloud sync",
-   "hash": "a12e9c242f8337e3",
-   "does": "Claims storage/sync: SessionArchive.archive writes JSON to the App Group, stores SHA-256, updates the locked index, persists it; CloudKitSyncManager.uploadSession only when cloudUploadsAllowed (sync on, onboarding done, not PurgeGate.isPurging, re-checked inside the serializer with CloudAccountGuard.confirmAccount) strips Health-sourced fields via CloudSessionPayload.uploadable then ZLIB-compresses and encrypts into a private-DB CKAsset; sample nights never built into a record (CloudUploadExclusion.sampleData); performFullSync on launch/foreground, re-checking sync-on and !isPurging inside its serializer turn; soft-delete isDeleted and deletedSessionIds; the recorded account (CloudAccountIdentity, UserDefaults) gates every read/write and key creation until confirmed this launch; verdict adopts the signed-in account when none is recorded unless the app stopped sync and it is still off, or the account changed this launch with bookkeeping left; a different account or zoneWasDeleted → stopSync (forget account, reset bookkeeping, sync off, notice; local data kept; no zone recreated); Delete All My Data closes PurgeGate (archive writes refused via admitWrite, uploads/full sync skipped, waits for in-flight writes) and sets iCloudSyncEnabled false before the remote delete; runDeferredMigrations runs one-time migrations in the background.",
+   "hash": "5b6a7f8d8cb98272",
+   "does": "Claims storage/sync: SessionArchive.archive writes JSON to the App Group, stores SHA-256, updates the locked index, persists it; CloudKitSyncManager.uploadSession only when cloudUploadsAllowed (sync on, onboarding done, not PurgeGate.isPurging, re-checked inside the serializer with CloudAccountGuard.confirmAccount) strips Health-sourced fields via CloudSessionPayload.uploadable then ZLIB-compresses and encrypts into a private-DB CKAsset; sample nights never built into a record (CloudUploadExclusion.sampleData); performFullSync on launch/foreground, re-checking sync-on and !isPurging inside its serializer turn; soft-delete isDeleted and deletedSessionIds; the recorded account (CloudAccountIdentity, UserDefaults) gates every read/write and key creation until confirmed this launch; verdict adopts the signed-in account when none is recorded; when the account changed this launch with bookkeeping left (attributeBookkeeping), lookUpBookkeeping fetches a few uploaded session ids from the signed-in account: one found adopts, none found → different account, an iCloud error decides nothing; a different account or zoneWasDeleted → stopSync (forget account, reset bookkeeping, sync off, notice; local data kept; no zone recreated); Delete All My Data closes PurgeGate (archive writes refused via admitWrite, uploads/full sync skipped, waits for in-flight writes) and sets iCloudSyncEnabled false before the remote delete; runDeferredMigrations runs one-time migrations in the background.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
@@ -817,7 +833,9 @@
     "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.beginPurge()",
     "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)",
     "Emuqu/Sources/Services/DataPurgeService.swift::func DataPurgeService.purgeAllUserData(archive:rawBackup:cloudSync:settingsManager:stores:baselineTracker:recordingInProgress:deleteRemote:scope:)",
-    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)"
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.applyAttribution(to:generation:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.lookUpBookkeeping()"
    ],
    "reads": [],
    "writes": [],
@@ -829,16 +847,18 @@
     "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "533489add6f1c58a",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "d25458414f1bd37b",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "6fddb773bce74148",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)": "12d14f68b1fd137f",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()": "42ad9add2c66cf12",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.verdict(recorded:current:syncEnabled:stoppedByApp:accountChangedThisLaunch:hasBookkeeping:)": "e242752a275058fb",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.applyAttribution(to:generation:)": "c50b80e12055f68c",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "08f434f5bf61f50e",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.lookUpBookkeeping()": "c65d215830e40a77",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.stopSync(_:)": "4d2df9370d22b5f6",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()": "733581b41076e82a",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountIdentity.verdict(recorded:current:syncEnabled:stoppedByApp:accountChangedThisLaunch:hasBookkeeping:)": "4550605a5ad52f37",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "eff72e3d17da1100",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "edd8e1a85c8dc3b3",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "55bc57d654968cf9",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "c183270cf259e429",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
     "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "b4d5293d92fd3be4",
-    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1",
-    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074"
+    "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1"
    }
   },
   {
@@ -924,7 +944,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "4ac533937d18871b",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "05df04719dedddd7",
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "08324bd52931b06a",
     "Emuqu/Sources/Assistant/Providers/ProviderRegistry.swift::func ProviderRegistry.canSend(to:)": "7763f988c02137b8",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)": "20d2e837dc8e8c64"
@@ -949,14 +969,14 @@
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c",
     "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)": "332fae95769af5cb",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()": "42ad9add2c66cf12",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.zoneWasDeleted()": "733581b41076e82a",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "eff72e3d17da1100"
    }
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 8. Subsystem reference > 8.6 The Apple Watch app",
-   "hash": "0f5f11cbe8d2cf14",
-   "does": "Claims Watch app files WatchApp.swift, WatchLiveView.swift, WatchWorkoutManager.swift (HKWorkoutSession), WatchSessionManager.swift (WCSession), WatchStrapConnector.swift (CoreBluetooth); phone side WatchConnectivityBridge.swift; iPhone owns strap and canonical record; WatchAppDelegate.handleActiveWorkoutRecovery calls WatchWorkoutManager.recoverActiveSession to take back a running session after relaunch; coachAlert messages play only while WatchMessageDecoding.playsCoachAlert says they are fresh; WatchSendTimeoutBreaker opens after 3 timeouts for 30 s (isOpen), during which live sendMessage is skipped and the application context carries the snapshot.",
+   "hash": "3c1a53a5b32b6212",
+   "does": "Claims Watch app files WatchApp.swift, WatchLiveView.swift, WatchWorkoutManager.swift (HKWorkoutSession), WatchSessionManager.swift (WCSession), WatchStrapConnector.swift (CoreBluetooth); phone side WatchConnectivityBridge.swift; iPhone owns strap and canonical record; WatchAppDelegate.handleActiveWorkoutRecovery calls WatchWorkoutManager.recoverActiveSession first, then wires the workout manager to the session manager (wire(to:)); a start, stop or not-recording report from the iPhone during the pending hand-back is applied by finishRecovery; coachAlert messages play only while WatchMessageDecoding.playsCoachAlert says they are fresh; Watch End/Pause/Resume sends are in WatchSessionManager+Controls.swift; on the phone (WatchConnectivityBridge+Transport.swift) transferLatestUserInfo cancels a queued coachAlert for a newer one, and WatchSendTimeoutBreaker opens after 3 timeouts for 30 s (isOpen), during which live sendMessage is skipped and the application context carries the snapshot.",
    "entry": null,
    "calls": [
     "EmuquWatch Watch App/WatchApp.swift::var WatchApp.body",
@@ -965,19 +985,27 @@
     "EmuquWatch Watch App/WatchApp.swift::func WatchAppDelegate.handleActiveWorkoutRecovery()",
     "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.recoverActiveSession()",
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.playsCoachAlert(firedAt:now:)",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchSendTimeoutBreaker.isOpen(at:)"
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Transport.swift::func WatchSendTimeoutBreaker.isOpen(at:)",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Transport.swift::func WatchConnectivityBridge.transferLatestUserInfo(_:on:)",
+    "EmuquWatch Watch App/WatchApp.swift::func WatchAppDelegate.wire(to:)",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.finishRecovery(_:)",
+    "EmuquWatch Watch App/WatchSessionManager+Controls.swift::func WatchSessionManager.requestStopWorkout()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Transport.swift::func WatchConnectivityBridge.transferLatestUserInfo(_:on:)": "5e2282d2c0cf5298",
+    "Emuqu/Sources/Services/WatchConnectivityBridge+Transport.swift::func WatchSendTimeoutBreaker.isOpen(at:)": "e41941deed03eb57",
     "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.boot()": "a5ec0a0a99759886",
-    "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchSendTimeoutBreaker.isOpen(at:)": "e41941deed03eb57",
-    "EmuquWatch Watch App/WatchApp.swift::func WatchAppDelegate.handleActiveWorkoutRecovery()": "779c1f6fca32e8f6",
+    "EmuquWatch Watch App/WatchApp.swift::func WatchAppDelegate.handleActiveWorkoutRecovery()": "3b489de6a153b88a",
+    "EmuquWatch Watch App/WatchApp.swift::func WatchAppDelegate.wire(to:)": "c0e138e8e407652b",
     "EmuquWatch Watch App/WatchApp.swift::var WatchApp.body": "0a197b1e78defaae",
     "EmuquWatch Watch App/WatchMessageDecoding.swift::func WatchMessageDecoding.playsCoachAlert(firedAt:now:)": "21b64c09318ddcfe",
+    "EmuquWatch Watch App/WatchSessionManager+Controls.swift::func WatchSessionManager.requestStopWorkout()": "adc69f059f8876f7",
     "EmuquWatch Watch App/WatchSessionManager.swift::func WatchSessionManager.apply(_:)": "de45895777568fe9",
-    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.recoverActiveSession()": "1a75076b5065267c"
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.finishRecovery(_:)": "d94109c4cc51d9b2",
+    "EmuquWatch Watch App/WatchWorkoutManager.swift::func WatchWorkoutManager.recoverActiveSession()": "a7f19ec81afe9f6b"
    }
   },
   {
@@ -1172,9 +1200,9 @@
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.beginCue()": "c52e7b3762fc7878",
     "Emuqu/Sources/Collection/BackgroundAudioManager.swift::func BackgroundAudioManager.endCue(_:)": "e99460b9df40b117",
     "Emuqu/Sources/Collection/HealthKitManager+SleepTrends.swift::func HealthWriteAndObserve.startObservingSleepData()": "d2b12ef734f88fff",
-    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.observerQuery(for:anchorKey:store:deliver:)": "954971d68df38c94",
+    "Emuqu/Sources/Collection/HealthWriteAndObserve.swift::func HealthSampleWatch.observerQuery(for:anchorKey:store:deliver:)": "ca2716f60a3e4c79",
     "Emuqu/Sources/Collection/VitalsHealthQueries+Queries.swift::func VitalsHealthQueries.observeVitalsType(_:)": "b057daf08ad5501e",
-    "EmuquWatch Watch App/WatchApp.swift::func WatchAppDelegate.handleActiveWorkoutRecovery()": "779c1f6fca32e8f6"
+    "EmuquWatch Watch App/WatchApp.swift::func WatchAppDelegate.handleActiveWorkoutRecovery()": "3b489de6a153b88a"
    }
   },
   {
@@ -1198,12 +1226,12 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)": "c5c0f800ac025f4e",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)": "17e2087064119470",
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)": "212ef74d72560eb7",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+AssistantConfirmation.swift::func AssistantMemoryNamespace.DestructiveActionContext.gateUnlessUserStated(_:action:target:question:)": "fa5e4ee2a83fe2df",
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "08324bd52931b06a",
     "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "6fddb773bce74148",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "08f434f5bf61f50e",
     "Emuqu/Sources/Utilities/DebugLog.swift::func DebugLogger.scrubPHI(_:)": "7bf0551ca86415fb",
     "Emuqu/Sources/Views/WearablesSettingsPage.swift::func BroadcasterDisclosure.allowsBroadcast(settingEnabled:defaults:)": "cf774c1bba4c4382",
     "Tools/copy_linter/lint.py::def main": "f1369c29c82e9d5b",
@@ -1466,8 +1494,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 10. Build, test, CI & tooling > Tech-debt budgets (`.ci/*.txt`)",
-   "hash": "0541abafa578b704",
-   "does": "Claims .ci budgets enforced by enforce_tech_debt_budgets.sh (measure_debt counts the app and, against the combined .ci/watch_tech_debt_budget.txt, the Watch target the same five ways; read_budget refuses a non-whole-number budget) and monotonic via check_budget_monotonicity.sh, which also reports a non-floor ceiling that was whole and is no longer whole as loosened; ci.yml passes HEAD~1 as BUDGET_BASE_REF and gates.yml compares against HEAD~1; counters strip comments; cites '.shared 718, try? 377, ObservableObject 55' as 'the real numbers' (historical figures).",
+   "hash": "daef6ed73146e53d",
+   "does": "Claims .ci budgets enforced by enforce_tech_debt_budgets.sh (measure_debt counts the app and, against the combined .ci/watch_tech_debt_budget.txt, the Watch target: .shared, try?, large files and ObservableObject summed, try? on writes shown but not added again; read_budget refuses a non-whole-number budget) and monotonic via check_budget_monotonicity.sh, which also reports a non-floor ceiling that was whole and is no longer whole as loosened; ci.yml passes HEAD~1 as BUDGET_BASE_REF and gates.yml compares against HEAD~1; counters strip comments; cites '.shared 718, try? 377, ObservableObject 55' as 'the real numbers' (historical figures).",
    "entry": null,
    "calls": [
     "scripts/enforce_tech_debt_budgets.sh::fn read_budget",
@@ -1495,8 +1523,8 @@
   },
   {
    "key": "§ Emuqu — Maintainer's Guide > 10. Build, test, CI & tooling > Tests",
-   "hash": "175ed9fbd105949f",
-   "does": "Claims EmuquTests (~267 files) with Helpers/TestHelpers.swift and Mocks/MockHealthKitService.swift, WatchMessageDecodingTests; EmuquUITests (~18) suites; Emuqu.xctestplan single config, coverage on, random order; AI-quality suites CapabilityClassifierTests, DeterministicIntentTests (example utterances that must and must not match, through DeterministicIntent.matchedPattern), MedicalQueryGuardTests, FactCatalogValidationTests.",
+   "hash": "29bcdceea249da9a",
+   "does": "Claims EmuquTests (~278 files) with Helpers/TestHelpers.swift and Mocks/MockHealthKitService.swift, WatchMessageDecodingTests; EmuquUITests (~18) suites; Emuqu.xctestplan single config, coverage on, random order; AI-quality suites CapabilityClassifierTests, DeterministicIntentTests (example utterances that must and must not match, through DeterministicIntent.matchedPattern), MedicalQueryGuardTests, FactCatalogValidationTests.",
    "entry": null,
    "calls": [
     "EmuquTests/Helpers/TestHelpers.swift::func createRealisticPoints(count:meanRR:startMs:)",
@@ -1567,7 +1595,7 @@
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "8c51c557b70ca4c0",
     "Emuqu/Sources/Collection/HealthExportIdentity.swift::func HealthExportIdentity.metadata(_:version:_:)": "7ee0ef3efc415d6e",
     "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)": "332fae95769af5cb",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "6fddb773bce74148"
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "08f434f5bf61f50e"
    }
   },
   {
