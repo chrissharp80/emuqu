@@ -238,8 +238,8 @@
   },
   {
    "key": "func SleepTimelineEditorTests.testMergeWithinGapSucceedsOutsideRejects()",
-   "hash": "ac6ee7da5fe3b067",
-   "does": "Adds a segment 45 min after the night and asserts merge succeeds (1 segment); adds one 90 min after and asserts merge is refused (2 segments).",
+   "hash": "decd827323e0623c",
+   "does": "Adds a segment 45 min after the night and asserts merge succeeds (1 segment) and keeps the id of the segment it was merged from; adds one 90 min after and asserts merge is refused (2 segments).",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()",
@@ -251,8 +251,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)": "bb8e533a6b4cd3de",
-    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)": "8d79033b51296e94",
+    "Emuqu/Sources/Models/SleepData.swift::func SleepData.segments(fromStages:splitGapMinutes:)": "a25102dd7955c053",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.applying(_:)": "f3b348ece2d6db0e",
+    "Emuqu/Sources/Views/Results/SleepTimelineEditModel.swift::func SleepTimelineState.initial(from:)": "67a69b6be5ab0e09",
     "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.date(_:)": "39e69051425207a1",
     "EmuquTests/SleepTimelineEditorTests.swift::func SleepTimelineEditorTests.makeSingleNight()": "dc977315454281b7"
    }

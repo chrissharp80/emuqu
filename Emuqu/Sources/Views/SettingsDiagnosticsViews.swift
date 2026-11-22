@@ -212,7 +212,7 @@ struct RRStorageAuditDetailView: View {
     var body: some View {
         List {
             Section(String(localized: "Summary", bundle: LanguageManager.appBundle)) {
-                Text("Tap a session to see beat counts and file paths. Status icon shows where the raw beat stream lives.", bundle: LanguageManager.appBundle)
+                Text("Each session lists its archive and backup beat counts and its file size. The status icon shows where the raw beat stream lives.", bundle: LanguageManager.appBundle)
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
             }

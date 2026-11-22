@@ -697,7 +697,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.spo2PenaltyText(points:value:)": "9f6882d80602395e",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.spo2PenaltyText(points:value:)": "3b31081ecca94697",
     "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.spo2Penalty": "a254ed6dc7d51105",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
     "Emuqu/Sources/Views/Utilities/MailComposerView.swift::func MailComposerView.fill(_:)": "d87707742c50c04f"
@@ -771,7 +771,7 @@
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.dfaFinding()": "b2158478697e4789",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.hrvFinding()": "d3ee440c1d5ff3c7",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.sleepEfficiencyFinding()": "a12d59301936f81c",
-    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.sleepHRFinding()": "8ff4c1e0aeb1301c",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.sleepHRFinding()": "6249863324235542",
     "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryScoreDetailView.stressFinding()": "17a6fcd1a0603f53"
    }
   },
@@ -806,31 +806,34 @@
   },
   {
    "key": "func RecoveryScoreDetailView.sleepHRFinding()",
-   "hash": "ec4ee3ad72321cc1",
-   "does": "'Sleep HR N bpm' vs meanHRBaseline: '(at baseline)' within 1 bpm, else '(±N vs baseline)'.",
+   "hash": "7fb8db4862b79ac3",
+   "does": "'Sleep HR N bpm' from the strap's analysis-window mean (strapSleepHR) vs meanHRBaseline: '(at baseline)' within 1 bpm, else '(±N vs baseline)'; nil without a baseline or without a strap heart rate (an analysis that stored 0).",
    "entry": null,
-   "calls": [],
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.strapSleepHR"
+   ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+1",
-     "cond": "no meanHRBaseline > 0",
+     "at": "+2",
+     "cond": "no meanHRBaseline > 0 or no strapSleepHR",
      "effect": "nil"
     },
     {
-     "at": "+4",
+     "at": "+5",
      "cond": "|delta| < 1",
      "effect": "'(at baseline)' text"
     },
     {
-     "at": "+7",
+     "at": "+8",
      "cond": "delta >= 0",
      "effect": "'+' prefix"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecoveryScoreDetailView.swift::var RecoveryScoreDetailView.strapSleepHR": "a8de3fdf492692aa"
    }
   },
   {
@@ -1089,8 +1092,8 @@
   },
   {
    "key": "func RecoveryDetailCopy.dataSourceLabel(_:)",
-   "hash": "def7f40574a7bb76",
-   "does": "Maps a DataSourceSummary.selectedSource tag (an internal tag, not display text) to its catalog label for the engine room's Source row.",
+   "hash": "5ae2aea3cdcbf525",
+   "does": "Maps a DataSourceSummary.selectedSource tag (an internal tag, not display text) to its catalog label for the engine room's Source row; an unrecognised tag reads 'Unknown' rather than the raw English tag.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -1217,8 +1220,8 @@
   },
   {
    "key": "func RecoveryDetailCopy.spo2PenaltyText(points:value:)",
-   "hash": "1e033f3618a78f3d",
-   "does": "SpO2 penalty sentence with or without the measured value.",
+   "hash": "8d9a8c6ca80c6a4b",
+   "does": "SpO2 penalty sentence: with a value, '−N penalty: SpO₂ averaged X%.' (the night's average, the reading the penalty is judged on); without one, '−N penalty: low SpO₂.'",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -1270,6 +1273,27 @@
     }
    ],
    "deps": {}
+  },
+  {
+   "key": "func RecoveryDetailCopy.initialSegment(forWindowReason:)",
+   "hash": "97816f8be6ad74e4",
+   "does": "The window picker's starting segment: .bestRecovery when storedWindowMethod finds no recognised reason (the default organized-recovery selection), nil for any other stored method (custom, peak RMSSD/SDNN/Total Power), whose window no segment names.",
+   "entry": "Called by RecoveryScoreDetailView.init and DetailScreenRuleTests",
+   "calls": [
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.storedWindowMethod(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "storedWindowMethod(reason) == nil",
+     "effect": ".bestRecovery; else nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Views/RecoveryScoreDetailView+Sections.swift::func RecoveryDetailCopy.storedWindowMethod(_:)": "d7a9af3ae677884f"
+   }
   }
  ],
  "deps": {}

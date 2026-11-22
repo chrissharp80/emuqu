@@ -223,9 +223,16 @@ extension SessionRecoveryCoordinator {
     /// An archived session that cannot be read, or a rebuild that fails or
     /// is not archived, leaves the card up and the session unreviewed, so the
     /// trim can be saved again instead of being dropped.
-    func retrimRecoveredWorkout(sessionId: UUID, endSec: Double) async {
-        guard let clipped = archivedBeats(of: sessionId, upTo: endSec) else { return }
-        guard clipped.count >= 30 else { return closeRecoveredWorkoutReview(sessionId) }
+    ///
+    /// True when the card closed (trimmed, or kept untrimmed); false when it
+    /// stays up because nothing was saved, so the card can say so.
+    @discardableResult
+    func retrimRecoveredWorkout(sessionId: UUID, endSec: Double) async -> Bool {
+        guard let clipped = archivedBeats(of: sessionId, upTo: endSec) else { return false }
+        guard clipped.count >= 30 else {
+            closeRecoveredWorkoutReview(sessionId)
+            return true
+        }
         let outcome = await WorkoutRecoveryService.recover(
             sessionId: sessionId, reason: .appCrashed,
             archive: collector.archive, rawBackup: collector.rawBackup, cloudSyncManager: collector.cloudSyncManager,
@@ -234,10 +241,11 @@ extension SessionRecoveryCoordinator {
         )
         guard let outcome, outcome.wasArchived else {
             debugLog("[Recovery] Trim of recovered workout \(sessionId.uuidString.prefix(8)) failed — keeping the review card", level: .error)
-            return
+            return false
         }
         collector.archiveSignal.notifyChanged()
         closeRecoveredWorkoutReview(sessionId)
+        return true
     }
 
     /// The archived workout's beats up to `endSec`: none when the session is
@@ -263,14 +271,16 @@ extension SessionRecoveryCoordinator {
     /// Discard a recovered workout the user rejected from the review card.
     /// Deletes the archived session; the on-disk RR backup survives (marked
     /// archived), so it can still be re-recovered from Lost Sessions if the
-    /// user changes their mind.
-    func discardRecoveredWorkout(sessionId: UUID) {
+    /// user changes their mind. True when it was deleted and the card closed.
+    @discardableResult
+    func discardRecoveredWorkout(sessionId: UUID) -> Bool {
         // A failed delete keeps the card up and the session unreviewed, so
         // the rejected workout is not left in the archive looking accepted
         // and Discard can be tapped again. The RR backup is kept either way.
-        guard attempt("recoveredWorkout.discard", { try collector.archive.delete(sessionId) }) != nil else { return }
+        guard attempt("recoveredWorkout.discard", { try collector.archive.delete(sessionId) }) != nil else { return false }
         collector.archiveSignal.notifyChanged()
         closeRecoveredWorkoutReview(sessionId)
+        return true
     }
 
     enum WatchRouteRecoveryResult {

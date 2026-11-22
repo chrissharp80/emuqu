@@ -53,22 +53,37 @@ struct SleepTimelineChart: View {
         chartHeight - topPad - bottomPad
     }
 
-    private var sorted: [HealthKitManager.SleepStageInterval] {
-        stageIntervals.sorted { $0.start < $1.start }
-    }
+    /// The intervals in time order and the axis they span, worked out once
+    /// per chart value: every coordinate the canvas draws reads the axis, and
+    /// as computed properties each read re-sorted the intervals.
+    private let sorted: [HealthKitManager.SleepStageInterval]
+    private let timelineStart: Date
+    private let timelineEnd: Date
+    private let totalDuration: TimeInterval
 
-    private var timelineStart: Date {
+    init(
+        stageIntervals: [HealthKitManager.SleepStageInterval],
+        sleepStart: Date?,
+        sleepEnd: Date?,
+        inBedStart: Date?,
+        boundaryValidation: HealthKitManager.SleepBoundaryValidation?,
+        splitGapMinutes: Int = SleepConstants.defaultSplitGapMinutes
+    ) {
+        self.stageIntervals = stageIntervals
+        self.sleepStart = sleepStart
+        self.sleepEnd = sleepEnd
+        self.inBedStart = inBedStart
+        self.boundaryValidation = boundaryValidation
+        self.splitGapMinutes = splitGapMinutes
+        let sorted = stageIntervals.sorted { $0.start < $1.start }
         let earliest = inBedStart ?? sorted.first?.start ?? sleepStart ?? Date()
-        return min(earliest, sleepStart ?? earliest).addingTimeInterval(-10 * 60)
-    }
-
-    private var timelineEnd: Date {
         let latest = sorted.last?.end ?? sleepEnd ?? Date()
-        return max(latest, sleepEnd ?? latest).addingTimeInterval(10 * 60)
-    }
-
-    private var totalDuration: TimeInterval {
-        max(1, timelineEnd.timeIntervalSince(timelineStart))
+        let start = min(earliest, sleepStart ?? earliest).addingTimeInterval(-10 * 60)
+        let end = max(latest, sleepEnd ?? latest).addingTimeInterval(10 * 60)
+        self.sorted = sorted
+        timelineStart = start
+        timelineEnd = end
+        totalDuration = max(1, end.timeIntervalSince(start))
     }
 
     var body: some View {

@@ -1,9 +1,10 @@
 {
  "file": "Emuqu/Sources/Views/PaywallView.swift",
- "hash": "f214655b1b3c0f3c",
+ "hash": "3dca80242e9e82f4",
  "role": "The paywall screen (launch gate or from Settings/More) offering the 30-day free trial and the one-time unlock, restore, legal links and data export/deletion; plus PurchaseStatusView, the Settings row showing Owned or a link to the paywall.",
  "types": [
   "PaywallView: struct (View) — paywall UI; isGate true when presented as the launch fullScreenCover (EmuquApp.swift:352), false from Settings (PaywallView.swift:686) and More (MoreMenuView.swift:78)",
+  "PaywallView.PaywallMessage: private enum — the one message the page's alert shows: .error / .purchase / .restore with its text",
   "PaywallView (private extension) — offer-state helpers offersTrial/offersUnlock/trialHasEnded/trialTermsText/trialButtonTitle",
   "PurchaseStatusView: struct (View) — Settings 'Purchase' section (SettingsView.swift:318)"
  ],
@@ -55,7 +56,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.withPaywallChrome(_:)": "8bedca3937bdb3e0",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.withPaywallChrome(_:)": "55d058f190029f12",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallStack": "7a8e575cf35b6549"
    }
   },
@@ -141,18 +142,25 @@
   },
   {
    "key": "func PaywallView.withPaywallChrome(_:)",
-   "hash": "1b3428404dead0c8",
-   "does": "Applies the paywall chrome: theme background, an onAppear debugLog, a .task that loads products, and an 'Error' alert bound to storeKit.errorMessage whose dismissal clears it. No swipe-dismiss control: the launch gate is a full-screen cover and Settings/More push it, so the gated user leaves through continueWithAccessButton.",
+   "hash": "bbd5e28d7374ecfb",
+   "does": "Applies the paywall chrome: theme background, an onAppear debugLog, a .task that loads products, the Terms of Use / Privacy Policy / Your Data sheets (bound to showTermsOfUse / showPrivacyPolicy / showYourData; on the page so the two copies of the buttons ViewThatFits can hold do not each carry them), and the page's one alert, presenting pendingMessage (StoreKit error first, then a purchase notice, then what Restore found) with its title and an OK that dismisses it; dismissal clears that message, which presents the next. No swipe-dismiss control: the launch gate is a full-screen cover and Settings/More push it, so the gated user leaves through continueWithAccessButton.",
    "entry": "SwiftUI view-body evaluation (composed into PaywallView.body); .onAppear and .task fire on presentation; alert binding setter fires on alert dismissal",
    "calls": [
     "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.loadProducts()",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallErrorActions",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallErrorMessage",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.termsOfUseSheet",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.privacyPolicySheet",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataSheet",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.pendingMessage",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.PaywallMessage.title",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.PaywallMessage.text",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.dismissMessage()",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
     "mem:StoreKitManager.errorMessage",
+    "mem:StoreKitManager.purchaseNotice",
+    "mem:PaywallView.restoreNotice",
     "mem:StoreKitManager.isPurchased",
     "ud:entitlement.anchor.v1 (EntitlementAnchor.cached, via hasActiveAccess -> isTrialActive)",
     "mem:SettingsManager.settings.trialStartDate (via isTrialActive)",
@@ -160,22 +168,28 @@
     "ud:debug_isPurchased (DEBUG, via hasPermanentGrant)"
    ],
    "writes": [
-    "mem:StoreKitManager.errorMessage"
+    "mem:StoreKitManager.errorMessage",
+    "mem:StoreKitManager.purchaseNotice",
+    "mem:PaywallView.restoreNotice"
    ],
    "branches": [
     {
-     "at": "+9",
+     "at": "+12",
      "cond": "alert binding set with false (alert dismissed)",
-     "effect": "clears storeKit.errorMessage; true does nothing"
+     "effect": "dismissMessage clears the message shown; true does nothing"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "db217136d3ed0694",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
+    "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.dismissMessage()": "36c99ce9d1368754",
     "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.loadProducts()": "0d1aa80c31e9afdf",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallErrorActions": "8112aeb276a846cc",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallErrorMessage": "1d40f8ed58ec2313",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.PaywallMessage.text": "c1e1d08040497212",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.PaywallMessage.title": "75ec02154c0ff9f5",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.pendingMessage": "47f2fcd75a0a2cf0",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.privacyPolicySheet": "65296e6387b49d24",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.termsOfUseSheet": "7016f9e7ddb980fb",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataSheet": "53f37c238a1f97be",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.background": "35cde92cebcc64a8"
    }
   },
@@ -203,39 +217,95 @@
    }
   },
   {
-   "key": "var PaywallView.paywallErrorMessage",
-   "hash": "a60d28e365757684",
-   "does": "Alert message: Text(storeKit.errorMessage) when non-nil, otherwise empty.",
-   "entry": "SwiftUI alert message builder",
-   "calls": [],
-   "reads": [
-    "mem:StoreKitManager.errorMessage"
-   ],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+2",
-     "cond": "storeKit.errorMessage is non-nil",
-     "effect": "shows the message text; nil: empty view"
-    }
-   ],
-   "deps": {}
-  },
-  {
-   "key": "var PaywallView.paywallErrorActions",
-   "hash": "4dd0e7f194bd19a0",
-   "does": "Alert action: an 'OK' button that sets storeKit.errorMessage = nil.",
-   "entry": "SwiftUI alert actions; button tap",
+   "key": "var PaywallView.PaywallMessage.title",
+   "hash": "c30629a4274028f0",
+   "does": "The alert title: 'Error', 'Purchase' or 'Restore Purchases'.",
+   "entry": "Read by withPaywallChrome's alert",
    "calls": [
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
-   "writes": [
-    "mem:StoreKitManager.errorMessage"
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "case",
+     "effect": "its title"
+    }
    ],
-   "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+   }
+  },
+  {
+   "key": "var PaywallView.PaywallMessage.text",
+   "hash": "ec77e08b442f3958",
+   "does": "The message text the case carries.",
+   "entry": "Read by withPaywallChrome's alert",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "var PaywallView.pendingMessage",
+   "hash": "ca0bd528ae0e51b5",
+   "does": "The message to show now: storeKit.errorMessage as .error, else storeKit.purchaseNotice as .purchase, else restoreNotice as .restore, else nil.",
+   "entry": "Read by withPaywallChrome and dismissMessage",
+   "calls": [],
+   "reads": [
+    "mem:StoreKitManager.errorMessage",
+    "mem:StoreKitManager.purchaseNotice",
+    "mem:PaywallView.restoreNotice"
+   ],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "errorMessage set",
+     "effect": ".error"
+    },
+    {
+     "at": "+2",
+     "cond": "purchaseNotice set",
+     "effect": ".purchase"
+    },
+    {
+     "at": "+3",
+     "cond": "otherwise",
+     "effect": "restoreNotice as .restore, or nil"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "db217136d3ed0694",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func purchase()": "814bbf66e427e6a2"
+   }
+  },
+  {
+   "key": "func PaywallView.dismissMessage()",
+   "hash": "a4c2cf1fedb0851c",
+   "does": "Clears the message pendingMessage is showing (errorMessage, purchaseNotice or restoreNotice), so the next one, if any, is presented.",
+   "entry": "Alert OK and alert dismissal",
+   "calls": [
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.pendingMessage"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:StoreKitManager.errorMessage",
+    "mem:StoreKitManager.purchaseNotice",
+    "mem:PaywallView.restoreNotice"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "pending case",
+     "effect": "clears that message; nil: nothing"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Assistant/Providers/AIProvider.swift::func ProviderHTTP.errorMessage(from:)": "db217136d3ed0694",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.pendingMessage": "47f2fcd75a0a2cf0"
    }
   },
   {
@@ -252,6 +322,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.PaywallMessage.title": "75ec02154c0ff9f5",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.paywallLogo": "4ef035fa1867e365",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
@@ -343,6 +414,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.featureIcon(_:color:)": "98e1c4f8b76e9221",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.PaywallMessage.title": "75ec02154c0ff9f5",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
@@ -503,6 +575,7 @@
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.PaywallMessage.text": "c1e1d08040497212",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },
@@ -538,7 +611,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.legalLinks": "e2f21be0e29c4ac7",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.legalLinks": "c9f09d2515ba49eb",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.purchaseButtons": "9bde8bde9efe8e8a",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.skipDebugButton": "e242b5f4d88500d2",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.trialButton": "e73604b5d7c7da2f",
@@ -569,15 +642,12 @@
   },
   {
    "key": "var PaywallView.legalLinks",
-   "hash": "f296d071710b13fb",
-   "does": "Row of legal links (Terms of Use, Privacy Policy, Your Data on the gate) with three sheets bound to showTermsOfUse/showPrivacyPolicy/showYourData.",
+   "hash": "dca05bf93c2df761",
+   "does": "Row of legal links (Terms of Use, Privacy Policy, Your Data on the gate) that set showTermsOfUse / showPrivacyPolicy / showYourData; the sheets live on the page (withPaywallChrome).",
    "entry": "SwiftUI view-body evaluation (composed into PaywallView.body); link taps",
    "calls": [
     "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.legalLink(_:id:action:)",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataLink",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.termsOfUseSheet",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.privacyPolicySheet",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataSheet",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [],
@@ -586,10 +656,7 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.legalLink(_:id:action:)": "ee9355b3eae04848",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.privacyPolicySheet": "65296e6387b49d24",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.termsOfUseSheet": "7016f9e7ddb980fb",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataLink": "df65a35b15492aa6",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataSheet": "53f37c238a1f97be"
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.yourDataLink": "df65a35b15492aa6"
    }
   },
   {
@@ -625,6 +692,7 @@
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.PaywallMessage.title": "75ec02154c0ff9f5",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }
   },
@@ -934,14 +1002,14 @@
    "deps": {
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.continueWithAccessButton": "053a65bc43b7654b",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersUnlock": "88468d8a9c89e402",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.purchaseButton": "0760d4e5c4bd2e30",
-    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.restoreButton": "ed90ecbce1ad286a"
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.purchaseButton": "8361231da4bb29a2",
+    "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.restoreButton": "9a9295259e4d26e6"
    }
   },
   {
    "key": "var PaywallView.purchaseButton",
-   "hash": "d7421ea7b2cbca88",
-   "does": "Zen button running purchaseAndLeave(); darker colour when the trial is also offered; disabled while purchasing; carries an alert titled 'Purchase' bound to storeKit.purchaseNotice (Ask to Buy pending, trial ended) whose OK/dismiss clears it.",
+   "hash": "2c40978b163bc851",
+   "does": "Zen button running purchaseAndLeave(); darker colour when the trial is also offered; disabled while purchasing. A purchase notice it leads to shows in the page's one alert (withPaywallChrome).",
    "entry": "SwiftUI view-body evaluation (composed into PaywallView.body); button tap; alert dismissal",
    "calls": [
     "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.purchaseAndLeave()",
@@ -951,22 +1019,14 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
-    "mem:StoreKitManager.isPurchasing",
-    "mem:StoreKitManager.purchaseNotice"
+    "mem:StoreKitManager.isPurchasing"
    ],
-   "writes": [
-    "mem:StoreKitManager.purchaseNotice"
-   ],
+   "writes": [],
    "branches": [
     {
      "at": "+6",
      "cond": "offersTrial",
      "effect": "true: AppTheme.primaryDark (secondary to Start Trial); false: AppTheme.primary"
-    },
-    {
-     "at": "+15",
-     "cond": "alert binding set with false",
-     "effect": "clears storeKit.purchaseNotice; set true does nothing"
     }
    ],
    "deps": {
@@ -974,7 +1034,7 @@
     "Emuqu/Sources/Views/PaywallView.swift::func PaywallView.purchaseAndLeave()": "59630815637fc653",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.offersTrial": "18f2d4a9de749468",
     "Emuqu/Sources/Views/PaywallView.swift::var PaywallView.purchaseButtonLabel": "f717b787ec249d7a",
-    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "be0e101d5d8a0f4b",
+    "Emuqu/Sources/Views/Theme.swift::func ButtonStyle.zen(_:)": "d415f592739ab39a",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primary": "fb4282def60b187a",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.primaryDark": "140811f9fa591035"
    }
@@ -1011,8 +1071,8 @@
   },
   {
    "key": "var PaywallView.restoreButton",
-   "hash": "066f526a6233fa81",
-   "does": "'Restore Purchases' button that stores the String returned by storeKit.restore() (AppStore.sync + refreshStatus) in restoreNotice and shows it in an alert; disabled while purchasing.",
+   "hash": "2738d0a743cae813",
+   "does": "'Restore Purchases' button that stores the String returned by storeKit.restore() (AppStore.sync + refreshStatus) in restoreNotice, which the page's one alert shows; disabled while purchasing. A nil return (user cancelled / paywall disabled) shows nothing.",
    "entry": "SwiftUI view-body evaluation (composed into PaywallView.body); button tap; alert dismissal",
    "calls": [
     "Emuqu/Sources/Services/StoreKitManager.swift::func restore()",
@@ -1022,6 +1082,7 @@
     "mem:StoreKitManager.isPurchasing"
    ],
    "writes": [
+    "mem:PaywallView.restoreNotice",
     "mem:StoreKitManager.isPurchasing",
     "mem:StoreKitManager.isPurchased",
     "mem:StoreKitManager.hasPurchasedProduct",
@@ -1031,16 +1092,10 @@
     "ud:entitlement.anchor.v1 + kc:EntitlementAnchor record (adoptStoreTrialStart -> EntitlementAnchor.persist, EntitlementAnchor.swift:318-321, when the sweep finds a trial start)",
     "mem:SettingsManager.settings.trialStartDate (SettingsManager.adoptTrialStart)"
    ],
-   "branches": [
-    {
-     "at": "+14",
-     "cond": "alert binding set with false",
-     "effect": "sets restoreNotice = nil; a nil return from restore() (user cancelled / paywall disabled) shows no alert"
-    }
-   ],
+   "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Services/StoreKitManager.swift::func restore()": "c5c666c132945459",
+    "Emuqu/Sources/Services/StoreKitManager.swift::func restore()": "ac2686b4b15afff8",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textSecondary": "2181f60eb803eb96"
    }
   },

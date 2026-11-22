@@ -1,18 +1,18 @@
 {
  "file": "Emuqu/Sources/Views/RecordView.swift",
- "hash": "637a397fd996f525",
+ "hash": "fc878bbfb87c6506",
  "role": "The Record tab's root SwiftUI view: owns all Record-tab @State, lays out the section stack, presents tag picker / pre-score prompt / morning and quick results covers, routes errors and overnight auto-acceptance, and hosts the interrupted-workout strap-recovery card.",
  "types": [
   "RecordView: struct (View) — Record tab root; observes DeviceStatus/StreamingLifecycle/SessionState/MorningCoordination/SettingsManager from the environment",
-  "RecordView.ResultsPresentation: struct (Identifiable) — session+result snapshot captured at presentation time, id = session.id",
+  "RecordView.ResultsPresentation: struct (Identifiable) — session+result snapshot captured at presentation time, id = session.id, plus the split night's linked segments read off-main before presenting (nil by default)",
   "RecordView.ExtendedCaptureMode: enum (String, CaseIterable, Identifiable) — streaming / internalCapture / both capture choice for overnight recording"
  ],
  "state": [
   "@State selectedTags: Set<ReadingTag> (view-local, lost when view is recreated)",
-  "@State showingTagPicker, sessionNotes, showingError (private), morningPresentation, quickPresentation, pendingMorningPresentation, fetchFailed, isRetrying, showingDiscardConfirm, isDiscarding, sleepEditSaveFailed, quickDiscardFailed, tagSaveFailureMessage (String?: why a tag/note edit on an archived reading was not stored)",
+  "@State showingTagPicker, sessionNotes, showingError (private), morningPresentation, quickPresentation, pendingMorningPresentation, fetchFailed, isRetrying, showingDiscardConfirm, confirmingReadingDiscard (the acceptance card's Discard confirmation), isDiscarding, sleepEditSaveFailed, quickDiscardFailed, tagSaveFailureMessage (String?: why a tag/note edit on an archived reading was not stored)",
   "@State selectedSessionType: SessionType? = .overnight",
   "@State cachedRecentSessions: [HRVSession]",
-  "@State isRecoveringWorkout, workoutRecoverMessage (private), interruptedWorkoutId: UUID?",
+  "@State isRecoveringWorkout, workoutRecoverMessage (private), interruptedWorkoutId: UUID?, recoveredWorkoutFailure: String? (why the recovered-workout card's last Save or Discard stored nothing)",
   "@State breathingAudio = BreathingAudioManager()",
   "@State extendedCaptureMode: ExtendedCaptureMode = .both",
   "@Binding selectedTab: MainTabView.Tab; var scrollToTopToken: UUID"
@@ -20,9 +20,9 @@
  "toplevel": "Stored-property initializers: selectedSessionType defaults to .overnight, extendedCaptureMode defaults to .both (overwritten onAppear by restoreCaptureMode), breathingAudio is a fresh BreathingAudioManager per view identity. Comment RecordView.swift:6-10 says recording-state reads go through the observed sub-objects (a read through an RRCollector forwarder is tracked too but hides the dependency). Environment reads: \\.dependencies (the reanalysis service and saved-session reanalysis the morning and quick result sheets call), RRCollector and the observed sub-objects.",
  "units": [
   {
-   "key": "init RecordView.ResultsPresentation(session:result:)",
-   "hash": "49d7c208eb02f107",
-   "does": "Memberwise-style init for ResultsPresentation: copies session and result, sets id = session.id so morning and pending presentations of the same session share identity.",
+   "key": "init RecordView.ResultsPresentation(session:result:linkedSegments:)",
+   "hash": "6a9c0c9f96a8285a",
+   "does": "Captures the session, its result and the linked segments (default nil), with id = session.id so the cover is keyed to the session.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -74,13 +74,11 @@
   },
   {
    "key": "var RecordView.body",
-   "hash": "67df09aacfdcd82c",
-   "does": "Root body: recordSurface plus an Error alert bound to showingError, onChange of sessionState.lastError (stringified) → presentErrorIfActionable, onChange(initial: true) of needsAcceptance → routeOvernightAcceptance (also on first build, so a night finalised before the tab existed is accepted), onAppear → restoreCaptureMode, onChange of deviceStatus.connectedDeviceType → coerceCaptureModeForDevice.",
+   "hash": "9130fc7b69c91a15",
+   "does": "Root body: recordSurface (which carries the Error alert), onChange of sessionState.lastError (stringified) → presentErrorIfActionable, onChange(initial: true) of needsAcceptance → routeOvernightAcceptance (also on first build, so a night finalised before the tab existed is accepted), onAppear → restoreCaptureMode, onChange of deviceStatus.connectedDeviceType → coerceCaptureModeForDevice.",
    "entry": "SwiftUI body of RecordView, created by MainTabView's Record tab.",
    "calls": [
     "Emuqu/Sources/Views/RecordView.swift::var RecordView.recordSurface",
-    "Emuqu/Sources/Views/RecordView.swift::var RecordView.errorAlertActions",
-    "Emuqu/Sources/Views/RecordView.swift::var RecordView.errorAlertMessage",
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.presentErrorIfActionable(_:)",
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.routeOvernightAcceptance(_:)",
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.restoreCaptureMode()",
@@ -97,22 +95,20 @@
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.lastError": "6dca98a7661720c1",
     "Emuqu/Sources/Collection/RRCollector+Forwarders.swift::var RRCollector.needsAcceptance": "b611e0c61d35d899",
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectedDeviceType": "c016a63ebbe310e4",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.coerceCaptureModeForDevice()": "2936138062040b0c",
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.presentErrorIfActionable(_:)": "f0ac77e1b4c8558e",
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.restoreCaptureMode()": "c0e3d3ee16806e6b",
     "Emuqu/Sources/Views/RecordView.swift::func RecordView.routeOvernightAcceptance(_:)": "c752bd806cbc23f9",
-    "Emuqu/Sources/Views/RecordView.swift::var RecordView.errorAlertActions": "e1d305f60a8057e8",
-    "Emuqu/Sources/Views/RecordView.swift::var RecordView.errorAlertMessage": "4ad6626348d4fb91",
-    "Emuqu/Sources/Views/RecordView.swift::var RecordView.recordSurface": "b43df4341c27e2b1"
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.recordSurface": "6f9a76530c495d05"
    }
   },
   {
    "key": "var RecordView.recordSurface",
-   "hash": "e42934873e5ad92e",
-   "does": "Wraps recordScroll in the tag-save failure alert (shown only while no results cover is up), then the navigation title 'Record', background, the tag-picker sheet (showingTagPicker), and three fullScreenCovers keyed on pendingMorningPresentation (pre-score prompt), morningPresentation (morning results) and quickPresentation (quick results).",
+   "hash": "7d9dbfcd13daa31b",
+   "does": "Wraps recordScroll in the tag-save failure alert and the Error alert (each shown only while no results cover is up; each cover carries its own), then the navigation title 'Record', background, the tag-picker sheet (showingTagPicker), and three fullScreenCovers keyed on pendingMorningPresentation (pre-score prompt), morningPresentation (morning results) and quickPresentation (quick results).",
    "entry": "SwiftUI view composition from body.",
    "calls": [
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.withErrorAlert(_:shown:)",
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.withTagSaveFailureAlert(_:shown:)",
     "Emuqu/Sources/Views/RecordView.swift::var RecordView.isResultsCoverPresented",
     "Emuqu/Sources/Views/RecordView.swift::var RecordView.recordScroll",
@@ -127,9 +123,10 @@
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.withTagSaveFailureAlert(_:shown:)": "52cf0eb3686ad21e",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.morningCover(_:)": "2f285faadb281b0d",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickCover(_:)": "dfa763d941448c1d",
-    "Emuqu/Sources/Views/RecordView.swift::func RecordView.preScoreCover(_:)": "e42d4ab6c12e1334",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.morningCover(_:)": "06417f7d6fc68472",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::func RecordView.quickCover(_:)": "d9cd75c3197a8758",
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.preScoreCover(_:)": "9dc34d3112bd6b46",
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.withErrorAlert(_:shown:)": "68f942d368735a68",
     "Emuqu/Sources/Views/RecordView.swift::var RecordView.isResultsCoverPresented": "b4e5216d9c464f32",
     "Emuqu/Sources/Views/RecordView.swift::var RecordView.recordScroll": "d87abb2ed5a490d1",
     "Emuqu/Sources/Views/RecordView.swift::var RecordView.tagPickerSheet": "e91475bb5a1865e5",
@@ -205,7 +202,7 @@
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.recoverableDataSection": "6d1d05e5e1a7ff9a",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.selectedSessionSection": "97d7b0873184de5f",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.sessionTypeSection": "545ea28f7b3651ed",
-    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.verificationSectionIfPending": "4067683cf08fce31",
+    "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.verificationSectionIfPending": "79760f93bab24a04",
     "Emuqu/Sources/Views/RecordView+Sections.swift::var RecordView.workoutRecoverySection": "9e4d85e2821d1b10"
    }
   },
@@ -247,17 +244,48 @@
   },
   {
    "key": "func RecordView.preScoreCover(_:)",
-   "hash": "22007bfceaf1a9af",
-   "does": "Full-screen PreScorePromptView; on completion (answer or skip) writes the feeling via applyMorningFeelingAnswers, clears pendingMorningPresentation and sets morningPresentation to the same snapshot so the results cover opens.",
+   "hash": "92d32a4e9faae37a",
+   "does": "Full-screen PreScorePromptView carrying the Error alert (always shown here); on completion (answer or skip) writes the feeling via applyMorningFeelingAnswers, clears pendingMorningPresentation and sets morningPresentation to the same snapshot so the results cover opens.",
    "entry": "fullScreenCover(item: $pendingMorningPresentation); completion closure fired by PreScorePromptView.",
    "calls": [
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.withErrorAlert(_:shown:)",
     "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.applyMorningFeelingAnswers(_:to:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.applyMorningFeelingAnswers(_:to:)": "1f14702f40b826dc"
+    "Emuqu/Sources/Views/RecordView+Results.swift::func RecordView.applyMorningFeelingAnswers(_:to:)": "1f14702f40b826dc",
+    "Emuqu/Sources/Views/RecordView.swift::func RecordView.withErrorAlert(_:shown:)": "68f942d368735a68"
+   }
+  },
+  {
+   "key": "func RecordView.withErrorAlert(_:shown:)",
+   "hash": "d96b12122ee1a60c",
+   "does": "Attaches the 'Error' alert (errorAlertActions / errorAlertMessage, the humanised lastError) to content, presented while `shown` and showingError are both true; dismissing it sets showingError false. The screen passes shown = no cover up, each cover passes true, so the alert appears wherever the user is.",
+   "entry": "SwiftUI view composition from recordSurface, preScoreCover, morningCover and quickCover",
+   "calls": [
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.errorAlertActions",
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.errorAlertMessage",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
+   ],
+   "reads": [
+    "mem:RecordView.showingError"
+   ],
+   "writes": [
+    "mem:RecordView.showingError (alert dismissal)"
+   ],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "shown && showingError",
+     "effect": "alert presented here"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.errorAlertActions": "e1d305f60a8057e8",
+    "Emuqu/Sources/Views/RecordView.swift::var RecordView.errorAlertMessage": "4ad6626348d4fb91"
    }
   },
   {
