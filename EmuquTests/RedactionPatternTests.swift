@@ -21,12 +21,27 @@ final class RedactionPatternTests: XCTestCase {
     /// `testEveryLivePatternIsCoveredHere` below rather than a silent gap.
     private static let patterns: [String] = [
         #"(?i)(\b(?:lat|lon|latitude|longitude|coord(?:inate)?)\s*[:=]?\s*)[-+]?\d+\.\d+"#,
-        #"(?:RMSSD|SDNN|pNN50|HRV|RHR|resting\s*HR|heart\s*rate|HR|alpha1|DFA|SpO2|respiratory\s*rate|respiration|temperature|wrist\s*temp|breath|composite|recovery\s*score|readiness|sleep\s*score|\w*score|baseline|TSB|ATL|CTL|hrTSS|TRIMP|RR|nadir|sleep|deep|REM|weight|VO2\s*max|FTP|LTHR|calories)"#,
         #"(?:\s*(?:ms|bpm|BPM|%|°[CF]|min|h|points?))?"#,
         #"\s*(?:[:=]|->|→|<|>)?\s*"#,
         #"(?<![\w.])([A-Za-z_][A-Za-z0-9_]*)\s*[:=]\s*(?:Optional\()?\[?([-+]?\d+(?:\.\d+)?[A-Za-z%°]*)(?![\w]|\.\d|-[0-9A-Fa-f]{4}-)"#,
         #"(?<![\w.])[-+]?\d+(?:\.\d+)?(?:\s*[-–]\s*\d+(?:\.\d+)?)?(\s*(?:bpm|BPM))\b"#
+    ] + metricNames + ["(?:" + metricNames.joined(separator: "|") + ")"]
+
+    /// The metric names `DebugLogger.metricNames` joins into its metric
+    /// alternation, verbatim and in order.
+    private static let metricNames: [String] = [
+        #"RMSSD"#, #"SDNN"#, #"pNN50"#, #"HRV"#, #"RHR"#, #"resting\s*HR"#, #"heart\s*rate"#, #"HR"#,
+        #"alpha1"#, #"DFA"#, #"SpO2"#, #"respiratory\s*rate"#, #"respiration"#, #"temperature"#,
+        #"wrist\s*temp"#, #"breath"#, #"composite"#, #"recovery\s*score"#, #"readiness"#, #"sleep\s*score"#,
+        #"\w*score"#, #"baseline"#, #"TSB"#, #"ATL"#, #"CTL"#, #"hrTSS"#, #"TRIMP"#, #"RR"#, #"nadir"#,
+        #"sleep"#, #"deep"#, #"REM"#, #"weight"#, #"VO2\s*max"#, #"FTP"#, #"LTHR"#, #"calories"#
     ]
+
+    /// The names are joined into one pattern at runtime; pin the order too,
+    /// since an earlier alternative wins at the same position.
+    func testMetricNamesMatchTheLiveListInOrder() {
+        XCTAssertEqual(DebugLogger.metricNames, Self.metricNames)
+    }
 
     // MARK: - Compilation
 

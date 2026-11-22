@@ -52,7 +52,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.estimate(_:savedRouteStore:priors:)": "e683e20186a0c030",
-    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.priorRuns(archive:from:to:)": "c097c914a0a1fda1",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.priorRuns(archive:from:to:)": "3cea66c633220f88",
     "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.priorsOnRoute(_:route:before:)": "05d426dd7707d35e",
     "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.track(of:)": "c7e029ea19c37978"
    }
@@ -150,7 +150,7 @@
   {
    "key": "func RouteTRIMPEstimator.priorRuns(archive:from:to:)",
    "hash": "c75442ae82c787cb",
-   "does": "Nonisolated, run off the main actor: every workout entry of the archive index started from priorLookbackDays before `earliest` to `latest`, newest first, decoded lightweight once into PriorRuns; `complete` false when an entry's read threw (logged as a warning).",
+   "does": "Nonisolated, run off the main actor: every workout entry of the archive index started from priorLookbackDays before `earliest` to `latest`, newest first, decoded lightweight once into PriorRuns; `complete` false when an entry's read threw for a reason that may clear (logged as a warning); one unreadable for good leaves it true.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries",
@@ -164,7 +164,7 @@
     {
      "at": "+9",
      "cond": "for each workout entry in the window",
-     "effect": "readRun; an unreadable one clears complete"
+     "effect": "readRun; a read that failed for now clears complete"
     },
     {
      "at": "+12",
@@ -174,19 +174,20 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.readRun(_:archive:)": "dabf36e90b0fb689",
+    "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::func RouteTRIMPEstimator.readRun(_:archive:)": "f3c7302cc72ede88",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::var SessionArchive.entries": "87651b2c9463a0c6"
    }
   },
   {
    "key": "func RouteTRIMPEstimator.readRun(_:archive:)",
-   "hash": "b1dbf0fc10585b98",
-   "does": "One entry's PriorRun (nil for a session without workout metadata) and whether it could be read; a read that throws is logged as a warning and returns (nil, false).",
+   "hash": "005e117ed4e8ac6a",
+   "does": "One entry's PriorRun (nil for a session without workout metadata) and whether the read gave a lasting answer; a read that throws is logged as a warning and returns nil, with `read` false only when the failure may clear (ArchiveAccessFailure.mayClear).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)",
     "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::init RouteTRIMPEstimator.PriorRun(session:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Analysis/ArchiveAccessFailure.swift::func ArchiveAccessFailure.mayClear(_:)"
    ],
    "reads": [
     "archive:SessionArchive.retrieveLightweight (workouts)"
@@ -196,10 +197,11 @@
     {
      "at": "+3",
      "cond": "read threw",
-     "effect": "logged, (nil, false)"
+     "effect": "logged; (nil, false) when it may clear, else (nil, true)"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Analysis/ArchiveAccessFailure.swift::func ArchiveAccessFailure.mayClear(_:)": "178d40e8393fff4f",
     "Emuqu/Sources/Analysis/RouteTRIMPEstimator.swift::init RouteTRIMPEstimator.PriorRun(session:)": "80ef55d248ac1e90",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "917ec504a26a996e",

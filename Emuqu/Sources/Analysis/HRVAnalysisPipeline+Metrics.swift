@@ -41,6 +41,17 @@ extension HRVAnalysisPipeline {
         return cleanRR
     }
 
+    /// The start time, in seconds on the session clock (`t_ms`), of each
+    /// beat `extractCleanRRs` keeps, parallel to it.
+    static func cleanBeatTimes(
+        series: RRSeries,
+        flags: [ArtifactFlags],
+        windowStart: Int,
+        windowEnd: Int
+    ) -> [Double] {
+        (windowStart ..< windowEnd).filter { !flags[$0].isArtifact }.map { Double(series.points[$0].t_ms) / 1_000.0 }
+    }
+
     // MARK: - Private Helpers
 
     func computeTimeDomain(series: RRSeries, flags: [ArtifactFlags], start: Int, end: Int) -> TimeDomainMetrics? {
@@ -84,6 +95,7 @@ extension HRVAnalysisPipeline {
         config: ANSConfiguration?
     ) -> ANSMetrics {
         let cleanRR = Self.extractCleanRRs(series: series, flags: flags, windowStart: windowStart, windowEnd: windowEnd)
+        let beatTimes = Self.cleanBeatTimes(series: series, flags: flags, windowStart: windowStart, windowEnd: windowEnd)
         let stressIndex = StressAnalyzer.computeStressIndex(cleanRR)
         let pnsIndex = StressAnalyzer.computePNSIndex(
             meanRR: timeDomain.meanRR, rmssd: timeDomain.rmssd, sd1: nonlinear.sd1
@@ -96,7 +108,7 @@ extension HRVAnalysisPipeline {
             pnsIndex: pnsIndex,
             snsIndex: snsIndex,
             readinessScore: readinessScore(timeDomain: timeDomain, nonlinear: nonlinear, pnsIndex: pnsIndex, snsIndex: snsIndex, config: config),
-            respirationRate: RespirationAnalyzer.estimateRespirationRate(cleanRR),
+            respirationRate: RespirationAnalyzer.estimateRespirationRate(cleanRR, beatTimes: beatTimes),
             nocturnalHRDip: nocturnalDip(daytimeRestingHR: daytimeRestingHR, nocturnalMedian: nocturnalMedian),
             daytimeRestingHR: daytimeRestingHR,
             nocturnalMedianHR: nocturnalMedian

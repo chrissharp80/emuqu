@@ -254,6 +254,45 @@ final class WorkoutExportersTests: XCTestCase {
         XCTAssertEqual(metadata.activeOffset(forWallClockSeconds: metadata.wallClockSeconds(forActiveOffset: 40)), 40)
     }
 
+    // MARK: - Recorded fix times
+
+    /// Before, the polyline carried no fix times, so every export spread its
+    /// points evenly over the session and a stop showed as steady movement.
+    /// A workout that stored its fix times exports each point at its time.
+    func testExportsPutEachPointAtItsRecordedTime() throws {
+        let recorded = makeTrack(count: 4).enumerated().map { index, fix in
+            CLLocation(
+                coordinate: fix.coordinate, altitude: fix.altitude, horizontalAccuracy: 5, verticalAccuracy: 5,
+                timestamp: fix.timestamp.addingTimeInterval(index >= 2 ? 600 : 0)
+            )
+        }
+        var session = makeSession()
+        session.workoutMetadata?.gpsPolyline = WorkoutAnalyzer.encodePolyline(track: recorded)
+        session.workoutMetadata?.gpsFixTimes = WorkoutAnalyzer.encodeFixTimes(track: recorded)
+        let polyline = try XCTUnwrap(session.workoutMetadata?.gpsPolyline)
+        let decoded = GPXExporter.decode(polyline: polyline, startDate: session.startDate, duration: session.duration)
+
+        let times = try XCTUnwrap(GPXExporter.recordedFixTimes(session.workoutMetadata, count: decoded.count))
+        XCTAssertEqual(times.map(\.timeIntervalSince1970), recorded.map(\.timestamp.timeIntervalSince1970))
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime]
+        let gpx = GPXExporter.export(session: session, track: decoded)
+        XCTAssertTrue(gpx.contains("<time>\(iso.string(from: recorded[2].timestamp))</time>"), "The stop is not in the GPX times")
+        XCTAssertTrue(gpx.contains("times are the times the GPS fixes were taken"))
+        XCTAssertTrue(TCXExporter.export(session: session, track: decoded).contains("times are the times the GPS fixes were taken"))
+    }
+
+    /// Fix times that do not match the track (a polyline replaced without
+    /// them) are not used; the points stay spread evenly and the file says so.
+    func testFixTimesForAnotherTrackAreNotUsed() {
+        var session = makeSession()
+        session.workoutMetadata?.gpsFixTimes = WorkoutAnalyzer.encodeFixTimes(track: makeTrack(count: 3))
+        XCTAssertNil(GPXExporter.recordedFixTimes(session.workoutMetadata, count: 5))
+        let track = makeTrack(count: 5)
+        XCTAssertEqual(GPXExporter.timedAsRecorded(track, metadata: session.workoutMetadata).map(\.timestamp), track.map(\.timestamp))
+        XCTAssertTrue(GPXExporter.export(session: session, track: track).contains("spread evenly"))
+    }
+
     // MARK: - Fixtures
 
     private func makeTrack(count: Int) -> [CLLocation] {

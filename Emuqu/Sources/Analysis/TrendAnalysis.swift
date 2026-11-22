@@ -197,17 +197,18 @@ enum TrendAnalyzer {
 
     // MARK: - Analyze Helpers
 
+    /// A night split into two recordings is one reading, the longer
+    /// (`DashboardSessionPolicy.oneOvernightPerNight`).
     private static func filteredDataPoints(sessions: [HRVSession], period: TimePeriod) -> [TrendDataPoint] {
         // Exclude untrustworthy-HRV readings from trends. An
         // `.insufficient` awake/too-short partial and a `.preSleep` recording
         // both carry a real but non-representative RMSSD; leaving them in
         // visibly dents the user's trend line. See `isReliableForHRVAggregates`.
-        let validSessions = sessions.filter {
-            $0.analysisResult != nil && $0.sessionType == .overnight && $0.isReliableForHRVAggregates
-        }
+        let reliable = sessions.filter { $0.analysisResult != nil && $0.sessionType == .overnight && $0.isReliableForHRVAggregates }
+        let validSessions = DashboardSessionPolicy.oneOvernightPerNight(reliable, calendar: Calendar.current)
         let dropped = sessions.count - validSessions.count
         if dropped > 0 {
-            debugLog("[TrendAnalyzer] Filtered \(sessions.count) input sessions → \(validSessions.count) valid (\(dropped) dropped: not overnight, missing analysisResult, or unreliable HRV quality)")
+            debugLog("[TrendAnalyzer] Filtered \(sessions.count) input sessions → \(validSessions.count) valid (\(dropped) dropped: not overnight, missing analysisResult, unreliable HRV quality, or the shorter half of a split night)")
         }
         guard validSessions.count >= 2 else {
             debugLog("[TrendAnalyzer] Too few valid sessions (\(validSessions.count)) — need ≥ 2")

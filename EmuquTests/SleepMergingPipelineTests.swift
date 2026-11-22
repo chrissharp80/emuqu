@@ -172,6 +172,26 @@ final class SleepMergingPipelineTests: XCTestCase {
         XCTAssertEqual(intervals[0].durationMinutes, 31, "1,850 s is 30.8 minutes, which rounds to 31")
     }
 
+    /// Before, each interval's length was rounded on its own, so sixty
+    /// back-to-back 29-second stages read as 0 minutes of sleep. Each
+    /// interval now spans the clock minutes its ends round to, so the night
+    /// is the whole span rounded once, and any split of it adds up the same.
+    func testShortStagesAddUpToTheirWholeSpan() {
+        var intervals: [HealthKitManager.SleepStageInterval] = []
+        var start = baseDate
+        for index in 0 ..< 60 {
+            let end = start.addingTimeInterval(29)
+            intervals.append(HealthKitManager.SleepStageInterval(stage: index.isMultiple(of: 2) ? .core : .rem, start: start, end: end))
+            start = end
+        }
+        XCTAssertEqual(SleepResolver.totalMinutes(intervals), 29, "60 × 29 s is 29 minutes")
+        let halves = SleepResolver.totalMinutes(Array(intervals[..<30])) + SleepResolver.totalMinutes(Array(intervals[30...]))
+        XCTAssertEqual(halves, 29)
+        let stages = SleepMergingPipeline.accumulateStageMinutes(intervals)
+        XCTAssertEqual(stages.core + stages.rem, 29)
+        XCTAssertEqual(stages.totalSleep, SleepResolver.totalMinutes(intervals))
+    }
+
     // MARK: - buildSegmentFromIntervals
 
     func testBuildSegmentFromIntervals_validInput() {

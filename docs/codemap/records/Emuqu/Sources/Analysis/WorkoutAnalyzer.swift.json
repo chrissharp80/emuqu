@@ -37,7 +37,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.attachGPSDerived(to:track:rrPoints:startDate:splitDistanceMeters:pauses:)": "24750c32ac890c99",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.attachGPSDerived(to:track:rrPoints:startDate:splitDistanceMeters:pauses:)": "84ded20470b45c6b",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeHrTSS(rrPoints:userMaxHR:userRestingHR:userLTHR:sex:)": "dbca3958b68fa5b2",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeTRIMP(rrPoints:userMaxHR:userRestingHR:sex:)": "fb025816dc1f63c5",
     "Emuqu/Sources/Models/WorkoutMetadata.swift::init WorkoutMetadata(sport:gpsPolyline:distanceMeters:elevationGainMeters:elevationLossMeters:splits:laps:liveMarkers:samples:hrrSamples:decouplingPercent:efficiencyFactor:luciaTRIMP:hrTSS:)": "48640c7102934a95"
@@ -45,12 +45,13 @@
   },
   {
    "key": "func WorkoutAnalyzer.attachGPSDerived(to:track:rrPoints:startDate:splitDistanceMeters:pauses:)",
-   "hash": "78a19b4eba93f426",
-   "does": "Sets distanceMeters, gpsPolyline, splits (no α1 yet), decouplingPercent and efficiencyFactor on metadata.",
+   "hash": "520d25cdeeb07137",
+   "does": "Sets distanceMeters, gpsPolyline, gpsFixTimes (when each fix was taken), splits (no α1 yet), decouplingPercent and efficiencyFactor on metadata.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeDistance(track:pauses:)",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodeFixTimes(track:)",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeSplits(track:rrPoints:startDate:splitDistanceMeters:pauses:)",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeDecoupling(track:rrPoints:startDate:pauses:)"
    ],
@@ -61,6 +62,7 @@
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeDecoupling(track:rrPoints:startDate:pauses:)": "e00a7b20d1978b75",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeDistance(track:pauses:)": "7a7fd6d3f190ba61",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.computeSplits(track:rrPoints:startDate:splitDistanceMeters:pauses:)": "49d4dd6fecf44000",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodeFixTimes(track:)": "35724c94c06b61cc",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encodePolyline(track:)": "e29f39e4c0cb178c"
    }
   },
@@ -698,6 +700,34 @@
    "deps": {
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(altitudes:)": "53fe101c35f9b351",
     "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(coordinates:)": "270a49bc0f29ae45"
+   }
+  },
+  {
+   "key": "func WorkoutAnalyzer.encodeFixTimes(track:)",
+   "hash": "598cfc0dcbd89192",
+   "does": "Encodes each fix's timestamp as tenths of a second since the reference date (scaledInt), the first as is and each later one as its difference from the one before, in the polyline value encoding, as UTF-8 Data; nil for an empty track.",
+   "entry": "Called by attachGPSDerived; tests call it directly.",
+   "calls": [
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.scaledInt(_:by:)",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(value:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "track empty",
+     "effect": "nil"
+    },
+    {
+     "at": "+4",
+     "cond": "for each fix",
+     "effect": "appends its delta"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.encode(value:)": "6265f3bc2d063b67",
+    "Emuqu/Sources/Analysis/WorkoutAnalyzer.swift::func WorkoutAnalyzer.scaledInt(_:by:)": "777eacd17a45dc20"
    }
   },
   {

@@ -102,13 +102,9 @@ enum CSVExporter {
         iso.formatOptions = [.withInternetDateTime]
         let units = Units()
         let samples = metadata?.samples ?? []
-        var out = headerBlock(
-            session: session,
-            sport: metadata?.sport.displayName ?? "Workout",
-            units: units,
-            iso: iso
-        )
-        out += trackpointBlock(session: session, track: track, samples: samples, units: units, iso: iso)
+        var out = headerBlock(session: session, sport: metadata?.sport.displayName ?? "Workout", units: units, iso: iso)
+        let timed = GPXExporter.timedAsRecorded(track, metadata: metadata)
+        out += trackpointBlock(session: session, track: timed, samples: samples, units: units, iso: iso)
         // Indoor fallback: no GPS track but a per-second sample series exists.
         if track.isEmpty, let metadata, !samples.isEmpty {
             out += indoorBlock(samples: samples, of: metadata, units: units)

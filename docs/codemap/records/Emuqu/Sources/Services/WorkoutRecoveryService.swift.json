@@ -417,6 +417,21 @@
    }
   },
   {
+   "key": "func WorkoutRecoveryService.analyzedOffMain(_:settings:unitsPreference:)",
+   "hash": "2d752ab42aded930",
+   "does": "Runs runAnalyzer over the recovered sport, beats, start and track with the settings and units on a detached user-initiated task and returns the computed metadata.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.runAnalyzer(sport:rrPoints:startDate:track:settings:unitsPreference:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.runAnalyzer(sport:rrPoints:startDate:track:settings:unitsPreference:)": "9bdec37ebc712f47"
+   }
+  },
+  {
    "key": "func WorkoutRecoveryService.healthKitHROffsets(_:in:)",
    "hash": "3bf6e6b1c730bbca",
    "does": "Returns the sorted intersection of the given HealthKit-HR offsets with the offsetSec values of the kept samples, or nil if empty.",
@@ -468,8 +483,8 @@
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyGPSElevation(to:track:)": "8c695ad72ec6249b",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.attachAnalysisSnapshot(to:sport:durationSec:rrPoints:settings:)": "d41c6c29f285102d",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.attachRouteExtrapolation(to:track:sport:archive:savedRouteStore:)": "9902baa1b822d9c7",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.backfillRouteFields(into:from:)": "7c2ccb6914779aa2",
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildMetadata(sport:computed:baroSamples:liveSamples:reason:overrideDistanceMeters:)": "2f6133c8b5fa177a",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.backfillRouteFields(into:from:)": "a207ed3650685a7a",
+    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.buildMetadata(sport:computed:baroSamples:liveSamples:reason:overrideDistanceMeters:)": "1c9955b9c8bedd44",
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.healthKitHROffsets(_:in:)": "ad0d06d1ee92acde"
    }
   },
@@ -565,8 +580,8 @@
   },
   {
    "key": "func WorkoutRecoveryService.buildMetadata(sport:computed:baroSamples:liveSamples:reason:overrideDistanceMeters:)",
-   "hash": "a5aa58248a13cda4",
-   "does": "Creates a fresh WorkoutMetadata(sport:) and copies distance (overridden by a positive forced distance), barometric elevation, polyline, splits, TRIMP, hrTSS, decoupling, EF and samples (nil if empty) from the analyzer output; stamps partialDataReason and recoveredAt = now.",
+   "hash": "56ff4aba0feb8bbc",
+   "does": "Creates a fresh WorkoutMetadata(sport:) and copies distance (overridden by a positive forced distance), barometric elevation, polyline and its fix times, splits, TRIMP, hrTSS, decoupling, EF and samples (nil if empty) from the analyzer output; stamps partialDataReason and recoveredAt = now.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.applyBarometricElevation(to:baroSamples:)"
@@ -580,7 +595,7 @@
      "effect": "true → distance = forced value; false → analyzer distance kept"
     },
     {
-     "at": "+20",
+     "at": "+21",
      "cond": "liveSamples.isEmpty",
      "effect": "true → samples nil; false → samples = liveSamples"
     }
@@ -592,8 +607,8 @@
   },
   {
    "key": "func WorkoutRecoveryService.backfillRouteFields(into:from:)",
-   "hash": "36117face9f1598e",
-   "does": "Fills each route field of metadata from the existing archived metadata only when the new value is absent: distance (nil or 0), splits (nil or empty), polyline, elevation gain, elevation loss.",
+   "hash": "6244b7edaedb61d8",
+   "does": "Fills each route field of metadata from the existing archived metadata only when the new value is absent: distance (nil or 0), splits (nil or empty), polyline together with its fix times, elevation gain, elevation loss.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -612,15 +627,15 @@
     {
      "at": "+3",
      "cond": "metadata.gpsPolyline == nil",
-     "effect": "copy existing polyline"
+     "effect": "copy existing polyline and fix times"
     },
     {
-     "at": "+4",
+     "at": "+7",
      "cond": "metadata.elevationGainMeters == nil",
      "effect": "copy existing gain"
     },
     {
-     "at": "+5",
+     "at": "+8",
      "cond": "metadata.elevationLossMeters == nil",
      "effect": "copy existing loss"
     }
@@ -914,21 +929,6 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appLocale": "bc43c12becc33618"
-   }
-  },
-  {
-   "key": "func WorkoutRecoveryService.analyzedOffMain(_:settings:unitsPreference:)",
-   "hash": "2d752ab42aded930",
-   "does": "Runs runAnalyzer over the recovered sport, beats, start and track with the settings and units on a detached user-initiated task and returns the computed metadata.",
-   "entry": null,
-   "calls": [
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.runAnalyzer(sport:rrPoints:startDate:track:settings:unitsPreference:)"
-   ],
-   "reads": [],
-   "writes": [],
-   "branches": [],
-   "deps": {
-    "Emuqu/Sources/Services/WorkoutRecoveryService.swift::func WorkoutRecoveryService.runAnalyzer(sport:rrPoints:startDate:track:settings:unitsPreference:)": "9bdec37ebc712f47"
    }
   }
  ],

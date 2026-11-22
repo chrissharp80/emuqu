@@ -19,18 +19,16 @@ enum TCXExporter {
         let sport = session.workoutMetadata?.sport ?? .walk
         let iso = ISO8601DateFormatter()
         iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        var xml = header(
-            session: session, activityType: tcxActivityType(for: sport),
-            summary: humanSummary(session: session), iso: iso
-        )
+        let summary = humanSummary(session: session, timesRecorded: GPXExporter.recordedFixTimes(session.workoutMetadata, count: track.count) != nil)
+        var xml = header(session: session, activityType: tcxActivityType(for: sport), summary: summary, iso: iso)
         xml += lapHeader(session: session, iso: iso)
         xml += track.isEmpty
             ? timeOnlyTrackpoints(session: session, iso: iso)
-            : trackpoints(session: session, track: track, iso: iso)
+            : trackpoints(session: session, track: GPXExporter.timedAsRecorded(track, metadata: session.workoutMetadata), iso: iso)
         xml += """
                 </Track>
               </Lap>
-              <Notes>\(humanSummary(session: session))</Notes>
+              <Notes>\(summary)</Notes>
             </Activity>
           </Activities>
         </TrainingCenterDatabase>
@@ -43,15 +41,17 @@ enum TCXExporter {
     /// tags would break TrainingPeaks / Garmin Connect imports. The machine
     /// payload stays metric, and this human-readable line goes into an XML
     /// comment at the top — plus a `<Notes>` block, so Garmin Connect surfaces
-    /// it in the activity UI. The stored track carries no fix times, so the
-    /// line says the trackpoint times are spread evenly, as the GPX `<desc>`
-    /// does. The totals are the GPX export's
+    /// it in the activity UI. The line says whether the trackpoint times are
+    /// the recorded fix times or spread evenly
+    /// (`GPXExporter.pointTimesNote`), as the GPX `<desc>` does; either way
+    /// each point's heart rate is matched on its time. The totals are the GPX export's
     /// (`GPXExporter.summaryTotals`), so both files describe a workout alike
     /// and a total the session did not record is left out, not written as 0.
-    private static func humanSummary(session: HRVSession) -> String {
+    private static func humanSummary(session: HRVSession, timesRecorded: Bool) -> String {
         let imperial = UnitsPreferenceStore.current.resolved == .imperial
         let totals = GPXExporter.summaryTotals(session: session, imperial: imperial).map { " \($0)." } ?? ""
-        return "Emuqu export (preferred units: \(imperial ? "imperial" : "metric")).\(totals) Values below are metric per TCX v2 schema. Trackpoint times are spread evenly across the session, so pauses don't appear as stops and each point's heart rate is matched on those times."
+        let times = GPXExporter.pointTimesNote(recorded: timesRecorded, points: "Trackpoint")
+        return "Emuqu export (preferred units: \(imperial ? "imperial" : "metric")).\(totals) Values below are metric per TCX v2 schema. \(times) Each point's heart rate is matched on its time."
     }
 
     private static func header(
@@ -76,10 +76,10 @@ enum TCXExporter {
 
     /// `<TotalTimeSeconds>` is the lap's timer time, pauses left out, as a
     /// Garmin device records it (the wall-clock span is in the trackpoint
-    /// times): `WorkoutMetadata.movingSeconds(wallClockDuration:)`.
+    /// times): `HRVSession.activeWorkoutSeconds`.
     private static func lapHeader(session: HRVSession, iso: ISO8601DateFormatter) -> String {
         let metadata = session.workoutMetadata
-        let durationSec = metadata?.movingSeconds(wallClockDuration: session.duration) ?? session.duration ?? 0
+        let durationSec = session.activeWorkoutSeconds ?? 0
         let distance = metadata?.distanceMeters ?? 0
         var xml = ""
         let meanHR = session.meanHR.map { Int($0) } ?? 0

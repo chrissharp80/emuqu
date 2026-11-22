@@ -527,6 +527,7 @@ enum WorkoutRecoveryService {
         }
         applyBarometricElevation(to: &metadata, baroSamples: baroSamples)
         metadata.gpsPolyline = computed.gpsPolyline
+        metadata.gpsFixTimes = computed.gpsFixTimes
         metadata.splits = computed.splits
         metadata.luciaTRIMP = computed.luciaTRIMP
         metadata.hrTSS = computed.hrTSS
@@ -549,7 +550,10 @@ enum WorkoutRecoveryService {
     static func backfillRouteFields(into metadata: inout WorkoutMetadata, from existing: WorkoutMetadata) {
         if (metadata.distanceMeters ?? 0) == 0 { metadata.distanceMeters = existing.distanceMeters }
         if metadata.splits?.isEmpty ?? true { metadata.splits = existing.splits }
-        if metadata.gpsPolyline == nil { metadata.gpsPolyline = existing.gpsPolyline }
+        if metadata.gpsPolyline == nil {
+            metadata.gpsPolyline = existing.gpsPolyline
+            metadata.gpsFixTimes = existing.gpsFixTimes
+        }
         if metadata.elevationGainMeters == nil { metadata.elevationGainMeters = existing.elevationGainMeters }
         if metadata.elevationLossMeters == nil { metadata.elevationLossMeters = existing.elevationLossMeters }
     }

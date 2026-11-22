@@ -217,8 +217,10 @@ enum RouteTRIMPEstimator {
     /// The archived workouts that may be priors of any workout started
     /// between `earliest` and `latest`, most recent first: every workout
     /// entry from `priorLookbackDays` before `earliest` to `latest`, decoded
-    /// lightweight once. `complete` is false when an entry could not be read,
-    /// so the caller knows its estimates may lack a prior. Nonisolated: the
+    /// lightweight once. `complete` is false when an entry could not be read
+    /// for a reason that may clear (`ArchiveAccessFailure.mayClear`), so the
+    /// caller knows its estimates may lack a prior and tries again; an entry
+    /// that can never be read as it is leaves it true. Nonisolated: the
     /// caller runs it off the main actor.
     nonisolated static func priorRuns(
         archive: SessionArchive, from earliest: Date, to latest: Date
@@ -238,14 +240,15 @@ enum RouteTRIMPEstimator {
     }
 
     /// One entry's run (nil for a session that is not a workout), and
-    /// whether it could be read: a read that throws is logged and returns
-    /// (nil, false).
+    /// whether the read gave a lasting answer: a read that throws is logged
+    /// and returns nil, with `read` false only when the failure may clear
+    /// (`ArchiveAccessFailure.mayClear`).
     nonisolated private static func readRun(_ entry: SessionArchiveEntry, archive: SessionArchive) -> (run: PriorRun?, read: Bool) {
         do {
             return (try archive.retrieveLightweight(entry.sessionId).flatMap(PriorRun.init(session:)), true)
         } catch {
             debugLog("[RouteTRIMPEstimator] prior \(entry.sessionId.uuidString.prefix(8)) could not be read: \(error)", level: .warning)
-            return (nil, false)
+            return (nil, !ArchiveAccessFailure.mayClear(error))
         }
     }
 

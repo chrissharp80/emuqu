@@ -35,6 +35,9 @@ final class ForwardCompatibleDecodingTests: XCTestCase {
         XCTAssertEqual(flags.map(\.type), [.ectopic, nil])
         XCTAssertEqual(flags.map(\.isArtifact), [true, true])
         XCTAssertEqual(flags.last?.corrected, true)
+        XCTAssertEqual(flags.map(\.holdsUnknownType), [false, true])
+        let reencoded = try XCTUnwrap(String(data: JSONEncoder().encode(flags), encoding: .utf8))
+        XCTAssertFalse(reencoded.contains("holdsUnknownType"), "The mark is not stored")
     }
 
     // MARK: - Sessions
@@ -88,6 +91,41 @@ final class ForwardCompatibleDecodingTests: XCTestCase {
         }
         let decoded = try JSONDecoder().decode(HRVSession.self, from: json)
         XCTAssertEqual(decoded.sleepSnapshot?.boundarySource, .recordingBounds)
+        XCTAssertEqual(decoded.sourceSchemaVersion, HRVSession.currentSchemaVersion + 1)
+    }
+
+    /// Before, an unknown artifact type read as nil and an unknown impact as
+    /// `.neutral` without marking the session, so a note or tag edit on this
+    /// build wrote nil and `.neutral` over the newer build's values.
+    func testSessionWithUnknownArtifactTypeDecodesAndReadsAsNewer() throws {
+        var session = HRVSession()
+        session.artifactFlags = [ArtifactFlags(isArtifact: true, type: .ectopic, confidence: 0.9)]
+        let json = try sessionJSON(session) { object in
+            var flags = object["artifactFlags"] as? [[String: Any]] ?? []
+            flags[0]["type"] = "futureKind"
+            object["artifactFlags"] = flags
+        }
+        let decoded = try JSONDecoder().decode(HRVSession.self, from: json)
+        XCTAssertEqual(decoded.artifactFlags?.first?.isArtifact, true)
+        XCTAssertNil(decoded.artifactFlags?.first?.type)
+        XCTAssertEqual(decoded.sourceSchemaVersion, HRVSession.currentSchemaVersion + 1)
+    }
+
+    func testSessionWithUnknownScoreFactorImpactDecodesAndReadsAsNewer() throws {
+        let factor = RecoveryScoreCalculator.ScoreFactor(label: "HRV", detail: "d", score: 70, weight: 0.5, impact: .positive)
+        var session = HRVSession()
+        session.scoreBreakdown = RecoveryScoreCalculator.ScoreBreakdown(compositeScore: 70, tier: 1, factors: [factor], penalties: [])
+        let known = try JSONDecoder().decode(HRVSession.self, from: JSONEncoder().encode(session))
+        XCTAssertEqual(known.sourceSchemaVersion, HRVSession.currentSchemaVersion, "A known impact leaves the session current")
+        let json = try sessionJSON(session) { object in
+            var breakdown = object["scoreBreakdown"] as? [String: Any] ?? [:]
+            var factors = breakdown["factors"] as? [[String: Any]] ?? []
+            factors[0]["impact"] = "mixed"
+            breakdown["factors"] = factors
+            object["scoreBreakdown"] = breakdown
+        }
+        let decoded = try JSONDecoder().decode(HRVSession.self, from: json)
+        XCTAssertEqual(decoded.scoreBreakdown?.factors.first?.impact, .neutral)
         XCTAssertEqual(decoded.sourceSchemaVersion, HRVSession.currentSchemaVersion + 1)
     }
 

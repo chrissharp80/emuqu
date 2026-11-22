@@ -1,6 +1,6 @@
 {
  "file": "EmuquTests/RedactionPatternTests.swift",
- "hash": "3f9227e6b39b9c41",
+ "hash": "7c1fbd60b1894c38",
  "role": "Pins that every regex DebugLogger's log redactor and MetricsVerifier use compiles (they fail open on a malformed pattern), by keeping a verbatim copy, compiling the two runtime-composed production patterns (DebugLogger.metricValuePattern / valueChainPattern), and scraping raw-string literals from the source files at test time; and asserts what DebugLogger.scrubPHI actually leaves of sample log lines.",
  "types": [
   "RedactionPatternTests: class — XCTestCase for DebugLogger redaction pattern compilation"
@@ -13,6 +13,17 @@
  ],
  "toplevel": "Static lets hold copied patterns and source paths. Tests read production .swift files from disk relative to #filePath, so they only work when the test bundle runs on the machine holding the source tree.",
  "units": [
+  {
+   "key": "func RedactionPatternTests.testMetricNamesMatchTheLiveListInOrder()",
+   "hash": "f7d6e84c2477719d",
+   "does": "Asserts DebugLogger.metricNames equals the test's verbatim list, in order.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {}
+  },
   {
    "key": "func RedactionPatternTests.testEveryRedactionPatternCompiles()",
    "hash": "8adab178d90ff135",
