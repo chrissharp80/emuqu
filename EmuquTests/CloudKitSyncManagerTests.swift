@@ -102,6 +102,7 @@ final class CloudKitSyncManagerTests: XCTestCase {
         session.state = .failed
         try archive.archive(session)
         settings.settings.hasCompletedOnboarding = true
+        settings.settings.iCloudSyncEnabled = true
         XCTAssertTrue(manager.cloudUploadsAllowed, "Sanity: only the session's state can stop this upload")
 
         let before = manager.syncState
@@ -114,6 +115,7 @@ final class CloudKitSyncManagerTests: XCTestCase {
         let session = HRVSession(sessionType: .overnight)
         XCTAssertEqual(session.state, .collecting)
         settings.settings.hasCompletedOnboarding = true
+        settings.settings.iCloudSyncEnabled = true
         XCTAssertTrue(manager.cloudUploadsAllowed, "Sanity: only the session's state can stop this upload")
 
         let before = manager.syncState
