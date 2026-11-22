@@ -1640,6 +1640,7 @@ final class SessionRecoveryService {
 
     func recoverFromBackup(
         _ sessionId: UUID,
+        recordedType: SessionType? = nil,
         analyze: (_ session: HRVSession, _ window: WindowSelector.RecoveryWindow, _ flags: [ArtifactFlags], _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
         analyzeWithCapacity: (_ session: HRVSession, _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
         supersedeSameNight: (_ session: inout HRVSession) -> Void,

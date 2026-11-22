@@ -12,6 +12,8 @@ extension SessionRecoveryService {
     ///
     /// - Parameters:
     ///   - sessionId: The session to recover.
+    ///   - recordedType: The type the recording was started as, when known
+    ///     (the launch alert's persisted state); see `recoveredSessionType`.
     ///   - analyze: Closure for windowed analysis.
     ///   - analyzeWithCapacity: Closure for full-session analysis with peak capacity.
     ///   - supersedeSameNight: Closure to supersede same-night sessions.
@@ -20,6 +22,7 @@ extension SessionRecoveryService {
     ///   session as recovered and saved, and said so with nothing archived.
     func recoverFromBackup(
         _ sessionId: UUID,
+        recordedType: SessionType? = nil,
         analyze: (_ session: HRVSession, _ window: WindowSelector.RecoveryWindow, _ flags: [ArtifactFlags], _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
         analyzeWithCapacity: (_ session: HRVSession, _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?,
         supersedeSameNight: (_ session: inout HRVSession) -> Void,
@@ -36,12 +39,12 @@ extension SessionRecoveryService {
     ) async -> HRVSession? {
         debugLog("[SessionRecoveryService] Attempting to recover session \(sessionId) from backup")
 
-        guard let data = retrieveBackupWithParentMerge(sessionId) else { return nil }
+        guard let data = await retrieveBackupWithParentMerge(sessionId) else { return nil }
 
         var session = HRVSession(
             id: sessionId, startDate: data.sessionStart, endDate: data.endDate,
             state: .collecting,
-            sessionType: Self.recoveredSessionType(for: data, sessionId: sessionId),
+            sessionType: Self.recoveredSessionType(for: data, sessionId: sessionId, recordedType: recordedType),
             rrSeries: data.series, analysisResult: nil, artifactFlags: data.flags
         )
 
@@ -72,10 +75,17 @@ extension SessionRecoveryService {
     ///
     /// A legitimate short overnight (fell asleep on the couch, 90-minute nap)
     /// clears the bar and is treated as overnight.
+    ///
+    /// A recording known to have been started as something other than an
+    /// overnight (`recordedType`: a nap, a quick reading) keeps that type: the
+    /// gate only ever downgrades, and a nap long enough to clear it is still
+    /// a nap, not the night's reading. Nil or `.overnight` (Lost Sessions,
+    /// which knows no type, and an interrupted night) goes through the gate.
     /// `internal` so the classification can be tested. Getting this wrong in
     /// the `.overnight` direction lets a short recovered fragment displace a
     /// real overnight reading on the same date.
-    static func recoveredSessionType(for data: BackupData, sessionId: UUID) -> SessionType {
+    static func recoveredSessionType(for data: BackupData, sessionId: UUID, recordedType: SessionType? = nil) -> SessionType {
+        if let recordedType, recordedType != .overnight { return recordedType }
         // Named `backupBeatCount`, not `beats`: `check_log_redaction.sh` treats
         // a bare `beats` interpolated into a log line as a raw RR series, and it
         // is right to — the distinction between "the series" and "how many are
@@ -167,7 +177,8 @@ extension SessionRecoveryService {
         }
     }
 
-    /// Recover a session from backup into a paused state (for interrupted recordings).
+    /// Recover a session from backup into a paused state (for interrupted recordings),
+    /// archived under its own id.
     ///
     /// - Parameters:
     ///   - sessionId: The session to recover.
@@ -182,7 +193,7 @@ extension SessionRecoveryService {
         analyzeWithCapacity: (_ session: HRVSession, _ peakCapacity: PeakCapacity?) async -> HRVAnalysisResult?
     ) async -> HRVSession? {
         debugLog("[SessionRecoveryService] Recovering interrupted session \(sessionId.uuidString.prefix(8)) to paused state")
-        guard let data = retrieveBackupWithParentMerge(sessionId) else { return nil }
+        guard let data = await retrieveBackupWithParentMerge(sessionId) else { return nil }
         var session = HRVSession(
             id: sessionId, startDate: data.sessionStart, endDate: data.endDate,
             state: .collecting, sessionType: sessionType,
@@ -194,7 +205,11 @@ extension SessionRecoveryService {
         )
         session.state = .paused
         session.pausedDate = Date()
-        guard attempt("recovery.archivePaused", { try archive.archive(session) }) != nil else { return nil }
+        // Never folded into another same-night entry: the merge would keep
+        // that entry's id and drop this one, and the Resume the Record tab
+        // offers for this id would find nothing to resume. The night is
+        // merged, if it should be, when it is stopped and archived for good.
+        guard attempt("recovery.archivePaused", { try archive.archive(session, skipSameNightMerge: true) }) != nil else { return nil }
         debugLog("[SessionRecoveryService] \u{2705} Interrupted session recovered to paused state (\(data.backup.beatCount) beats). Ready to resume.")
         return session
     }

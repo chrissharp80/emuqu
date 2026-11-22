@@ -9,6 +9,10 @@ import Foundation
 ///
 /// All counters auto-persist in UserDefaults. Reset all from
 /// Settings → Advanced → Diagnostics → Usage counts → Reset usage counts.
+///
+/// Each record call counts on from the value stored in UserDefaults, not
+/// the in-memory copy, so a sweep of these keys (Delete All My Data) is not
+/// undone by writing the old totals back, as `PreScorePromptTelemetry` does.
 @Observable
 @MainActor
 final class ValidationTelemetry {
@@ -34,19 +38,19 @@ final class ValidationTelemetry {
     private(set) var chipDrillIns: [String: Int]
     private(set) var modeActivations: [String: Int]
 
-    private init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         dashboardOpens = defaults.integer(forKey: Keys.dashboardOpenCount)
         trajectoryVisits = defaults.integer(forKey: Keys.trajectoryVisits)
         methodologyViews = defaults.integer(forKey: Keys.methodologyViews)
-        chipDrillIns = (defaults.dictionary(forKey: Keys.chipDrillIns) as? [String: Int]) ?? [:]
-        modeActivations = (defaults.dictionary(forKey: Keys.modeActivations) as? [String: Int]) ?? [:]
+        chipDrillIns = Self.tally(defaults, Keys.chipDrillIns)
+        modeActivations = Self.tally(defaults, Keys.modeActivations)
     }
 
     // MARK: - Dashboard opens
 
     func recordDashboardOpen() {
-        dashboardOpens += 1
+        dashboardOpens = defaults.integer(forKey: Keys.dashboardOpenCount) + 1
         defaults.set(dashboardOpens, forKey: Keys.dashboardOpenCount)
     }
 
@@ -57,7 +61,9 @@ final class ValidationTelemetry {
     }
 
     func recordChipTap(_ chip: ChipKey) {
-        chipDrillIns[chip.rawValue, default: 0] += 1
+        var stored = Self.tally(defaults, Keys.chipDrillIns)
+        stored[chip.rawValue, default: 0] += 1
+        chipDrillIns = stored
         defaults.set(chipDrillIns, forKey: Keys.chipDrillIns)
     }
 
@@ -66,7 +72,7 @@ final class ValidationTelemetry {
     // MARK: - Trajectory visit rate (metric 5)
 
     func recordTrajectoryVisit() {
-        trajectoryVisits += 1
+        trajectoryVisits = defaults.integer(forKey: Keys.trajectoryVisits) + 1
         defaults.set(trajectoryVisits, forKey: Keys.trajectoryVisits)
     }
 
@@ -77,15 +83,23 @@ final class ValidationTelemetry {
     }
 
     func recordModeActivation(_ kind: ModeKind) {
-        modeActivations[kind.rawValue, default: 0] += 1
+        var stored = Self.tally(defaults, Keys.modeActivations)
+        stored[kind.rawValue, default: 0] += 1
+        modeActivations = stored
         defaults.set(modeActivations, forKey: Keys.modeActivations)
     }
 
     // MARK: - Methodology view rate (metric 7)
 
     func recordMethodologyView() {
-        methodologyViews += 1
+        methodologyViews = defaults.integer(forKey: Keys.methodologyViews) + 1
         defaults.set(methodologyViews, forKey: Keys.methodologyViews)
+    }
+
+    /// A per-key tally as stored; empty when the key is missing or holds
+    /// something else.
+    private static func tally(_ defaults: UserDefaults, _ key: String) -> [String: Int] {
+        (defaults.dictionary(forKey: key) as? [String: Int]) ?? [:]
     }
 
     // MARK: - Diagnostics summary

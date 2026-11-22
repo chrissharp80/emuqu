@@ -273,7 +273,7 @@ final class MorningProcessingService {
             deviceId: request.deviceId, dataSource: request.dataSource
         )
         // Step 2: Build series, merge same-night sessions
-        let merged = buildMergedSeries(
+        let merged = await buildMergedSeries(
             points: request.points, baseSession: request.baseSession,
             sleepSchedule: request.settings.sleepSchedule,
             sessionMergeMode: request.settings.sessionMergeMode,

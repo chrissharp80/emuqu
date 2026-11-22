@@ -74,7 +74,7 @@ extension RoadGeocodingService {
     private func reverseGeocode(_ location: CLLocation, lookupStartedAt: Date) async -> CLPlacemark? {
         let geocoderStartedAt = Date()
         let placemarksOpt: [CLPlacemark]? = await queuedGeocoderCall {
-            await runWithTimeout(seconds: 5.0) {
+            await self.geocoderRequest {
                 try await self.geocoder.reverseGeocodeLocation(location)
             }
         }

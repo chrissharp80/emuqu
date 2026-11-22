@@ -971,7 +971,9 @@ MorningNotificationScheduler
       For each fire:
         ├─ Delivery is Smart? (Fixed sends only at the set time) AND
         ├─ Freshest sleep-end within last 90 min? AND
-        ├─ Haven't already delivered today (UserDefaults date flag)?
+        ├─ Today's push not yet settled (UserDefaults date + settled
+        │  flags)? A number-free push sent before the night was scored
+        │  is replaced once, when the score exists.
         └─ Deliver UNNotificationRequest with trigger=nil (immediate).
       The fallback occurrence later that morning is left in place —
       iOS doesn't support "skip today's repeating occurrence" — so
@@ -996,7 +998,8 @@ as orphaned code in the next audit.
   notification body wording + tap-through route (dashboard vs onboarding
   prompt).
 - **A/B-tested morning push format** — Beyond the current "Auto = teaser
-  for first 30 sessions, full readout from 31+" gate, no further
+  for the first 30 nights, then the full readout while notification
+  previews are hidden on the locked screen" gate, no further
   segmentation is implemented.
 
 ---

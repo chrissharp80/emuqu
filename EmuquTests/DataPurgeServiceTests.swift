@@ -355,6 +355,7 @@ final class DataPurgeServiceTests: XCTestCase {
             "storekit.lastKnownPurchased",
             "storekit.lastKnownTestFlight",
             "entitlement.anchor.v1",
+            "entitlement.anchor.account",
             "FlowRecovery.migration.metrics.v1.done",
             "didRunTrimpRepairMigration_v1"
         ]
@@ -526,6 +527,74 @@ final class DataPurgeServiceTests: XCTestCase {
         _ = try await purge()
 
         XCTAssertFalse(manager.settings.iCloudSyncEnabled, "Delete All My Data turned iCloud sync back on")
+    }
+
+    /// iCloud sync is off, and the purge gate closed, before the remote
+    /// deletion starts: a sync queued behind that deletion must find nothing
+    /// to upload into the emptied iCloud.
+    func testICloudSyncIsOffAndWritesAreRefusedWhileTheRemoteDeletionRuns() async throws {
+        let manager = SettingsManager.shared
+        manager.settings.iCloudSyncEnabled = true
+        var night = HRVSession(
+            id: UUID(), startDate: Date(timeIntervalSince1970: 4_102_444_800), endDate: nil,
+            state: .complete, sessionType: .overnight, rrSeries: nil, analysisResult: nil, artifactFlags: nil
+        )
+        night.recoveryScore = 7
+        var syncWasOn = true
+        var writeRefused = false
+        _ = try await DataPurgeService.purgeAllUserData(
+            archive: archive, rawBackup: rawBackup,
+            cloudSync: CloudKitSyncManager.shared, settingsManager: manager, stores: stores,
+            baselineTracker: baselineTracker, recordingInProgress: { false },
+            deleteRemote: { [archive] in
+                syncWasOn = manager.settings.iCloudSyncEnabled
+                do {
+                    try archive.archive(night)
+                } catch is PurgeGate.Refused {
+                    writeRefused = true
+                } catch {
+                    XCTFail("expected the purge gate to refuse the write, got \(error)")
+                }
+                return true
+            },
+            scope: scope
+        )
+
+        XCTAssertFalse(syncWasOn, "iCloud sync was still on while the remote deletion ran")
+        XCTAssertTrue(writeRefused, "An archive write went through while the purge ran")
+        XCTAssertFalse(archive.exists(night.id))
+        XCTAssertFalse(PurgeGate.isPurging, "The purge left the gate closed")
+        XCTAssertNoThrow(try archive.archive(night), "Archive writes stayed refused after the purge")
+    }
+
+    /// A recording started while the remote deletion ran would write its beats
+    /// back into the emptied backups, so the purge stops before the local
+    /// wipe and says so; the device keeps its data and the gate opens again.
+    func testARecordingStartedDuringTheRemoteDeletionStopsThePurgeBeforeTheLocalWipe() async throws {
+        let sentinel = try XCTUnwrap(scope.appGroupContainer).appendingPathComponent("zz_late_recording_sentinel.json")
+        try Data("sentinel".utf8).write(to: sentinel)
+        var asked = 0
+
+        do {
+            _ = try await DataPurgeService.purgeAllUserData(
+                archive: archive, rawBackup: rawBackup,
+                cloudSync: CloudKitSyncManager.shared, settingsManager: SettingsManager.shared, stores: stores,
+                baselineTracker: baselineTracker,
+                recordingInProgress: {
+                    asked += 1
+                    return asked > 1
+                },
+                deleteRemote: { true }, scope: scope
+            )
+            XCTFail("The local wipe ran although a recording started during the remote deletion")
+        } catch {
+            XCTAssertEqual(error, .recordingStartedDuringDelete)
+        }
+
+        XCTAssertEqual(asked, 2, "The recording check was not made again after the remote deletion")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: sentinel.path), "The local wipe ran")
+        XCTAssertFalse(SettingsManager.shared.settings.iCloudSyncEnabled, "iCloud sync was turned back on")
+        XCTAssertFalse(PurgeGate.isPurging, "The stopped purge left the gate closed")
     }
 
     /// A recording still running holds its beats in memory: it would write

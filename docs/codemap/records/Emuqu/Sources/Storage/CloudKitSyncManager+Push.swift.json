@@ -4,7 +4,7 @@
  "role": "Push half of CloudKit session sync: batch selection with exponential backoff, record preparation (HealthKit strip, compress, encrypt, temp CKAsset), conflict/zone/prep-failure handling, zone management, live-backup forwarders and the timeout/no-progress watchdog helpers used by the full sync.",
  "types": [
   "CloudSyncError: enum — LocalizedError with single case encryptionUnavailable (cloud key missing; fail closed)",
-  "CloudUploadExclusion: enum — Error thrown for sessions read whole out of Apple Health (never uploaded)",
+  "CloudUploadExclusion: enum — Error thrown for sessions never uploaded: healthKitSourced (read whole out of Apple Health) and sampleData (sample nights)",
   "CloudKitSyncManager: extension — push pipeline, zone management, asset building, error helpers, watchdog",
   "CloudKitSyncManager.PreparedUpload: struct — Sendable wrapper around the CKRecord ready to save"
  ],
@@ -105,10 +105,10 @@
    "deps": {
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed": "be903b8b907a5e7c",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.pendingPushBatch()": "352f0d8ed12c305e",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.prepareUpload(_:)": "37f719ad92d354b2",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.prepareUpload(_:)": "cd2b3513d9c3a068",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.pushOne(_:sessionId:)": "c4805a2f78121bef",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.noteSyncProgress()": "230cd5464dd541a4",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "4262f41e6c652648",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "c183270cf259e429",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueueAsync()": "944b5b68fbd5fec8",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "127a86f7e860268d"
    }
@@ -116,7 +116,7 @@
   {
    "key": "func CloudKitSyncManager.prepareUpload(_:)",
    "hash": "29f275c501efe871",
-   "does": "Prepares one session off-main via prepareUploadOffMain; returns the PreparedUpload, or nil after dropping a vanished session from the queue (markDeleted), keeping a HealthKit-sourced one on-device, or classifying a prep failure.",
+   "does": "Prepares one session off-main via prepareUploadOffMain; returns the PreparedUpload, or nil after dropping a vanished session from the queue (markDeleted), keeping an excluded one (HealthKit-sourced or sample data) on-device, or classifying a prep failure.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.prepareUploadOffMain(sessionId:)",
@@ -151,8 +151,8 @@
    ],
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.handlePrepFailure(_:sessionId:)": "61dbb3ff5949bf9b",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.keepOnDevice(_:)": "3faa821387e860eb",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.prepareUploadOffMain(sessionId:)": "32a6205db95e5d65",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.keepOnDevice(_:)": "9911fb2f8ea3ec47",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.prepareUploadOffMain(sessionId:)": "f67a85995fb3cfe4",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markDeleted(_:)": "8a446a48eda5e5d6",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -543,7 +543,7 @@
   {
    "key": "func CloudKitSyncManager.keepOnDevice(_:)",
    "hash": "677dfa0708a0a705",
-   "does": "Keeps a HealthKit-sourced session on this device: if it was uploaded or pending, removes the payload of its CKRecord and marks it kept on device (markKeptOnDevice; no tombstone, no outright delete); on success or when no copy exists, marks it local-only and saves local_only_sessions.json; on other failures marks it failed and returns.",
+   "does": "Keeps a session excluded from upload (CloudUploadExclusion: HealthKit-sourced or sample data) on this device: if it was uploaded or pending, removes the payload of its CKRecord and marks it kept on device (markKeptOnDevice; no tombstone, no outright delete); on success or when no copy exists, marks it local-only and saves local_only_sessions.json; on other failures marks it failed and returns.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.markKeptOnDevice(_:)",
@@ -660,7 +660,7 @@
   {
    "key": "func CloudKitSyncManager.prepareUploadOffMain(sessionId:)",
    "hash": "eb0868fc364da4e6",
-   "does": "Runs archive.retrieve + buildSessionRecord in a detached utility task; returns nil when the archive has no such session, throws on retrieval/encode/encrypt/HealthKit-exclusion errors.",
+   "does": "Runs archive.retrieve + buildSessionRecord in a detached utility task; returns nil when the archive has no such session, throws on retrieval/encode/encrypt/upload-exclusion errors (HealthKit-sourced or sample data).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)",
@@ -681,16 +681,17 @@
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)": "044e343b3259ee39"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)": "4c7fe1d60d564374"
    }
   },
   {
    "key": "func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)",
-   "hash": "8014793bea1049d8",
-   "does": "Builds the HRVSession CKRecord (recordName = session UUID in zone HRVSessions) with sessionId, startDate, isDeleted=0, modifiedAt stamp and the encrypted sessionData asset; throws CloudUploadExclusion.healthKitSourced for sessions read whole from Apple Health.",
+   "hash": "22ae493a232cd625",
+   "does": "Builds the HRVSession CKRecord (recordName = session UUID in zone HRVSessions) with sessionId, startDate, isDeleted=0, modifiedAt stamp and the encrypted sessionData asset; throws CloudUploadExclusion.healthKitSourced for sessions read whole from Apple Health and CloudUploadExclusion.sampleData for sample nights (DemoSessionSeeder.isSampleData), which the push then keeps on the device.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.isSampleData(_:)",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stampRecord(_:from:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.sessionAsset(for:)"
    ],
@@ -702,10 +703,16 @@
     {
      "at": "+1",
      "cond": "CloudSessionPayload.isHealthKitSourced(session)",
-     "effect": "throw CloudUploadExclusion.healthKitSourced; else build record"
+     "effect": "throw CloudUploadExclusion.healthKitSourced"
+    },
+    {
+     "at": "+2",
+     "cond": "carries the sample-data tag",
+     "effect": "throw CloudUploadExclusion.sampleData; else build record"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.isSampleData(_:)": "def8c3059ae78820",
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stampRecord(_:from:)": "adca72056d224b68",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.sessionAsset(for:)": "28bd73a4199bd2ea",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a"

@@ -110,20 +110,25 @@ extension SessionRecoveryCoordinator {
     /// path. And the H10 records the full workout internally, so we pull that
     /// complete recording from the strap when it's connected — it survives the
     /// BLE drop + crash the streamed disk backup misses.
-    func recoverFromBackup(_ sessionId: UUID) async -> HRVSession? {
+    ///
+    /// `recordedType` is the type the recording was started as, when known
+    /// (the launch alert's persisted state); see
+    /// `SessionRecoveryService.recoveredSessionType`.
+    func recoverFromBackup(_ sessionId: UUID, recordedType: SessionType? = nil) async -> HRVSession? {
         if AppDependencies.current.storage.workoutTrackBackup.retrieve(sessionId) != nil {
             return await recoverWorkoutFromBackup(sessionId)
         }
-        let session = await recoverHRVFromBackup(sessionId)
+        let session = await recoverHRVFromBackup(sessionId, recordedType: recordedType)
         if session?.state == .complete {
             await MainActor.run { collector.archiveSignal.notifyChanged() }
         }
         return session
     }
 
-    private func recoverHRVFromBackup(_ sessionId: UUID) async -> HRVSession? {
+    private func recoverHRVFromBackup(_ sessionId: UUID, recordedType: SessionType?) async -> HRVSession? {
         await recoveryService.recoverFromBackup(
             sessionId,
+            recordedType: recordedType,
             analyze: { [self] session, window, flags, capacity in
                 await collector.analyze(session, window: window, flags: flags, peakCapacity: capacity)
             },
@@ -593,7 +598,7 @@ extension SessionRecoveryCoordinator {
         // The flagged workout is registered before the backup scan awaits:
         // the launch alert's Save waits on it and must find it running.
         let flagged = flaggedInterruptedWorkoutId(live: liveRecordingIds())
-        if let flagged { InterruptedWorkoutAutoRecovery.begin(flagged) }
+        guard claimFlaggedWorkout(flagged) else { return }
         defer { if let flagged { InterruptedWorkoutAutoRecovery.end(flagged) } }
         guard let sessionId = await findInterruptedWorkoutSessionId() else { return }
         InterruptedWorkoutAutoRecovery.begin(sessionId)
@@ -606,6 +611,18 @@ extension SessionRecoveryCoordinator {
         clearPersistedRecordingState(ifItIs: sessionId)
         AutoRecoveryAttempts.clear(sessionId)
         debugLog("[RRCollector] Auto-recovery: merged strap + streamed and archived interrupted workout")
+    }
+
+    /// Registers the flagged workout for this auto-recovery. False when the
+    /// launch alert's Save or Resume registered it first: that recovery is
+    /// under way, and this one stays out of it. No flagged workout: true.
+    private func claimFlaggedWorkout(_ flagged: UUID?) -> Bool {
+        guard let flagged else { return true }
+        guard InterruptedWorkoutAutoRecovery.claim(flagged) else {
+            debugLog("[RRCollector] Auto-recovery: the interrupted workout is already being recovered from the launch alert")
+            return false
+        }
+        return true
     }
 
     /// The strap is reached, still records, and no new recording took it over
@@ -959,6 +976,10 @@ enum InterruptedWorkoutAutoRecovery {
     private static let running = OSAllocatedUnfairLock<Set<UUID>>(initialState: [])
 
     static func begin(_ id: UUID) { running.withLock { _ = $0.insert(id) } }
+    /// Registers `id` unless a recovery of it is registered already; true
+    /// when this call registered it. The launch alert and launch
+    /// auto-recovery each claim the workout, so only one rebuilds it.
+    static func claim(_ id: UUID) -> Bool { running.withLock { $0.insert(id).inserted } }
     static func end(_ id: UUID) { running.withLock { _ = $0.remove(id) } }
     static func isRunning(_ id: UUID) -> Bool { running.withLock { $0.contains(id) } }
 

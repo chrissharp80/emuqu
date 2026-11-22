@@ -51,6 +51,10 @@ func isPendingPlaintextSessionFile(_ filename: String, pending: Set<UUID>) -> Bo
 /// put back as it was. Otherwise a failed encrypted write would leave a
 /// plaintext file no longer queued for re-encryption, and a failed plaintext
 /// write would queue bytes that were never written.
+///
+/// Every session file the archive writes goes through here, so this is where
+/// "Delete All My Data" stops them (`PurgeGate`): while a purge runs the write
+/// throws `PurgeGate.Refused` and touches neither the file nor the ledger.
 func writeArchiveBytes(
     _ data: Data, to url: URL,
     format: SessionArchive.SessionFileCodec.DiskFormat,
@@ -58,7 +62,11 @@ func writeArchiveBytes(
 ) throws {
     let wasPending = PendingEncryptionLedger.pending.contains(sessionID)
     do {
-        try data.write(to: url, options: archiveWriteOptions(for: format, sessionID: sessionID))
+        try PurgeGate.admitWrite {
+            try data.write(to: url, options: archiveWriteOptions(for: format, sessionID: sessionID))
+        }
+    } catch let refused as PurgeGate.Refused {
+        throw refused
     } catch {
         if wasPending { PendingEncryptionLedger.record(sessionID) } else { PendingEncryptionLedger.clear(sessionID) }
         throw error

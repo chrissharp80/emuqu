@@ -504,7 +504,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)": "044e343b3259ee39",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)": "4c7fe1d60d564374",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a",
     "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "e035e9b291c18c99"
    }
@@ -784,6 +784,33 @@
    "writes": [],
    "branches": [],
    "deps": {}
+  },
+  {
+   "key": "func CloudKitSessionFreshnessTests.testSampleNightsAreNeverBuiltIntoARecord()",
+   "hash": "c4c9bd170e31791c",
+   "does": "Tags a fixture session with the sample-data tag and asserts buildSessionRecord throws CloudUploadExclusion.sampleData; asserts the untagged fixture is not sample data.",
+   "entry": "XCTest test method, discovered by name and run by the XCTest runner in the Emuqu app host",
+   "calls": [
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::var DemoSessionSeeder.demoTag",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.isSampleData(_:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+5",
+     "cond": "thrown error is not .sampleData",
+     "effect": "test fails"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::func DemoSessionSeeder.isSampleData(_:)": "def8c3059ae78820",
+    "Emuqu/Sources/Services/DemoSessionSeeder.swift::var DemoSessionSeeder.demoTag": "1eb7e9cde63591d9",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.buildSessionRecord(from:zoneID:recordTypeName:)": "4c7fe1d60d564374",
+    "EmuquTests/CloudKitSessionFreshnessTests.swift::func CloudKitSessionFreshnessTests.makeSession()": "e035e9b291c18c99"
+   }
   }
  ],
  "deps": {}

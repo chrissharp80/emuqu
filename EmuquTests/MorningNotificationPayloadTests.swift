@@ -29,6 +29,28 @@ final class MorningNotificationPayloadTests: XCTestCase {
         XCTAssertFalse(body.trimmingCharacters(in: .whitespaces).isEmpty)
     }
 
+    /// Auto is the default and the user never chose it, so it never puts the
+    /// score on a Lock Screen that shows notification previews. Full readout
+    /// is the explicit choice and does.
+    @MainActor
+    func testAutoKeepsTheScoreOffALockScreenThatShowsPreviews() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("MorningFormat-\(UUID().uuidString)", isDirectory: true)
+        defer {
+            do { try FileManager.default.removeItem(at: directory) } catch {
+                // swallow-ok: a temporary directory the archive may never have created.
+            }
+        }
+        let archive = SessionArchive(
+            directory: directory,
+            sleepScheduleProvider: { SleepSchedule(bedtimeHour: 22, bedtimeMinute: 0, sleepHours: 8.0) },
+            sessionMergeModeProvider: { .off }
+        )
+        XCTAssertEqual(MorningNotificationScheduler.resolvedFormat(.auto, archive: archive, previewsHiddenWhileLocked: false), .teaser)
+        XCTAssertEqual(MorningNotificationScheduler.resolvedFormat(.full, archive: archive, previewsHiddenWhileLocked: false), .full)
+        XCTAssertEqual(MorningNotificationScheduler.resolvedFormat(.teaser, archive: archive, previewsHiddenWhileLocked: true), .teaser)
+    }
+
     /// Lock-screen previews truncate. The body has to survive that.
     func testTheRepeatingFallbackBodyFitsALockScreenPreview() {
         let (_, body) = MorningNotificationScheduler.buildPayload()

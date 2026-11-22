@@ -329,12 +329,17 @@ extension SessionArchive {
     /// tags). When the key cannot be reached the index is written unsealed
     /// rather than failing the save it belongs to, as session files fall back
     /// (ADR 001); `resealPlainIndexIfNeeded` seals it once the key is back.
+    ///
+    /// While "Delete All My Data" runs the save throws `PurgeGate.Refused`
+    /// and writes nothing (`PurgeGate`).
     func saveIndex() throws {
-        try mergeIndexThatFailedToLoad()
-        sortedEntriesCache = nil
-        sessionIdLookup = nil
-        let data = try newerBuildIndexEntries.indexData(for: index, deleted: deletedSessionIds)
-        try Self.sealedOrPlain(data).write(to: indexFile, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        try PurgeGate.admitWrite {
+            try mergeIndexThatFailedToLoad()
+            sortedEntriesCache = nil
+            sessionIdLookup = nil
+            let data = try newerBuildIndexEntries.indexData(for: index, deleted: deletedSessionIds)
+            try Self.sealedOrPlain(data).write(to: indexFile, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        }
     }
 
     /// `data` sealed with the archive's key, or `data` itself, logged as an

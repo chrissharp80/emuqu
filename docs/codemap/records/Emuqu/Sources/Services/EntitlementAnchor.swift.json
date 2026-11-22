@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Services/EntitlementAnchor.swift",
- "hash": "16af2d644bc6fe0d",
+ "hash": "29436fd88491fbcb",
  "role": "Durable store for the entitlement facts that must survive app deletion — UserDefaults cache plus one iCloud-synchronizable keychain item per install (all items read and merged, only the install's own written, undecodable copies never overwritten): beta-tester status, device/App Store trial starts, clock high-water mark and the one-time store history check; plus TrialPolicy, the pure 30-day trial arithmetic.",
  "types": [
   "EntitlementAnchor: enum — namespace for pure merge logic and persistence of the anchor record",
@@ -13,6 +13,7 @@
   "ud:entitlement.anchor.v1 (EntitlementAnchor.defaultsKey, JSON-encoded Record)",
   "ud:entitlement.anchor.account (this install's keychain account name, 'install-<UUID>')",
   "kc:com.chrissharp.flowrecovery.entitlement/<every account> (synchronizable generic passwords) accessible AfterFirstUnlock; the legacy account 'primary' is read, never written",
+  "mem:EntitlementAnchor.updateLock (static OSAllocatedUnfairLock: one update at a time)",
   "mem:EntitlementAnchor.Record.empty (isBetaTester false, no starts, highWaterMark .distantPast)",
   "mem:TrialPolicy.durationDays = 30",
   "mem:TrialPolicy.secondsPerDay = 86400"
@@ -219,7 +220,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "92d7d4d8a71307d4"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "8cb8ed3ce93b815b"
    }
   },
   {
@@ -248,7 +249,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "92d7d4d8a71307d4",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "8cb8ed3ce93b815b",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -280,7 +281,7 @@
    "deps": {
     "Emuqu/Sources/Models/UnitsPreference.swift::var UnitsPreference.resolved": "b8e45f2e174c6197",
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.evaluatedHistory(_:hasHistory:wallClock:)": "e723cf4551a0e631",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "92d7d4d8a71307d4",
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "8cb8ed3ce93b815b",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -310,7 +311,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.adopting(_:trialStart:)": "1080fd0c824bd3f9",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "92d7d4d8a71307d4"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "8cb8ed3ce93b815b"
    }
   },
   {
@@ -350,7 +351,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.recordingStoreTrialStart(_:start:)": "a3dc7070cd083169",
-    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "92d7d4d8a71307d4"
+    "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.update(wallClock:_:)": "8cb8ed3ce93b815b"
    }
   },
   {
@@ -387,8 +388,8 @@
   },
   {
    "key": "func EntitlementAnchor.update(wallClock:_:)",
-   "hash": "21fb58b172f4638a",
-   "does": "Reads every tier (readTiers), merges the cache with the merged keychain items (.empty when none), advances the high-water mark to wallClock, applies change, then saves to the cache and to this install's own keychain item each one whose stored read differs from the result and is not unreadable (an undecodable copy is never overwritten). Returns (resolved before change, updated).",
+   "hash": "94f399da16ba24e7",
+   "does": "Holding updateLock (one update at a time, whichever thread: the background resolve and main-actor updates otherwise interleaved their read-merge-write and put back what the other replaced), reads every tier (readTiers), merges the cache with the merged keychain items (.empty when none), advances the high-water mark to wallClock, applies change, then saves to the cache and to this install's own keychain item each one whose stored read differs from the result and is not unreadable (an undecodable copy is never overwritten). Returns (resolved before change, updated).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.readTiers()",
@@ -396,29 +397,32 @@
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.advanced(_:to:)",
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToDefaults(_:)",
     "Emuqu/Sources/Services/EntitlementAnchor.swift::func EntitlementAnchor.saveToKeychain(_:)",
+    "ext:OSAllocatedUnfairLock.lock/unlock",
     "closure:change"
    ],
    "reads": [
     "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/<every account> (synchronizable generic passwords)"
+    "kc:com.chrissharp.flowrecovery.entitlement/<every account> (synchronizable generic passwords)",
+    "mem:EntitlementAnchor.updateLock"
    ],
    "writes": [
     "ud:entitlement.anchor.v1",
-    "kc:com.chrissharp.flowrecovery.entitlement/<this install's account>"
+    "kc:com.chrissharp.flowrecovery.entitlement/<this install's account>",
+    "mem:EntitlementAnchor.updateLock"
    ],
    "branches": [
     {
-     "at": "+3",
+     "at": "+4",
      "cond": "?? — no tier holds a record",
      "effect": "Record.empty"
     },
     {
-     "at": "+5",
+     "at": "+6",
      "cond": "cache differs and is not unreadable",
      "effect": "saveToDefaults"
     },
     {
-     "at": "+6",
+     "at": "+7",
      "cond": "own keychain item differs and is not unreadable",
      "effect": "saveToKeychain"
     }

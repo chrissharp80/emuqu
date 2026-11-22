@@ -162,6 +162,43 @@ final class SessionImmutabilityTests: XCTestCase {
         XCTAssertEqual(hrv.score, compositeScore(rmssd: 15, useBaselineHRV: true), accuracy: 1e-9)
     }
 
+    /// The update is written onto the archived copy: what it computed (the
+    /// score) and the tags the caller carried land, and a field saved
+    /// meanwhile (the feeling) stays as the archive holds it.
+    func testTheArchivedScoreUpdateKeepsWhatWasSavedWhileItRan() {
+        let read = session(quality: .insufficient)
+        var updated = read
+        updated.recoveryScore = 7.4
+        updated.tags = [ReadingTag.alcohol]
+        var archived = read
+        archived.morningFeeling = 2
+
+        SessionAcceptanceService.applyUpdate(updated, scoredFrom: read, to: &archived)
+
+        XCTAssertEqual(archived.recoveryScore, 7.4)
+        XCTAssertEqual(archived.tags, [ReadingTag.alcohol])
+        XCTAssertEqual(archived.morningFeeling, 2, "the update put back the copy it read")
+    }
+
+    /// A sleep edit saved while the score was computed changed an input of
+    /// it, and scored the night itself: the stale score is not written over
+    /// it. The caller's tags still are.
+    func testAScoreComputedBeforeASleepEditIsNotWrittenOverIt() {
+        let read = session(quality: .insufficient)
+        var updated = read
+        updated.recoveryScore = 7.4
+        updated.tags = [ReadingTag.alcohol]
+        var archived = read
+        archived.sleepStartMs = 1_800_000
+        archived.recoveryScore = 5.2
+
+        SessionAcceptanceService.applyUpdate(updated, scoredFrom: read, to: &archived)
+
+        XCTAssertEqual(archived.recoveryScore, 5.2)
+        XCTAssertEqual(archived.sleepStartMs, 1_800_000)
+        XCTAssertEqual(archived.tags, [ReadingTag.alcohol])
+    }
+
     private func depressedResult() -> HRVAnalysisResult {
         HRVAnalysisResult(
             windowStart: 0, windowEnd: 400,

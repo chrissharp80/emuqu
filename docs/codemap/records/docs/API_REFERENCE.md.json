@@ -300,7 +300,7 @@
     "Emuqu/Sources/Collection/RRCollector+Import.swift::func RRCollector.saveImportedSession(_:)",
     "Emuqu/Sources/Collection/RRCollector+Import.swift::func RRCollector.saveImportedSessionsBatch(_:)",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.checkForLostSessions()",
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromBackup(_:)",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromBackup(_:recordedType:)",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.restoreFromTrash(_:)",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.permanentlyDelete(_:)",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.createTrainingContext(relativeTo:)",
@@ -323,7 +323,6 @@
     "Emuqu/Sources/Collection/RRCollector+OvernightStreamingForwarding.swift::func RRCollector.stopOvernightStreaming()": "ee06838a39537c65",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.checkForLostSessions()": "fd72cf5c6e464810",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.permanentlyDelete(_:)": "cfdf4822119cb6a4",
-    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromBackup(_:)": "1817386ae5c64a63",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromDevice()": "f7e32f2aaf93c909",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.restoreFromTrash(_:)": "46073ee02b87d853",
     "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.retryFetchRecording()": "38eb2a533e09e694",
@@ -340,7 +339,8 @@
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.startStreamingSession(durationSeconds:)": "fcc497830e4ee495",
     "Emuqu/Sources/Collection/RRCollector.swift::func RRCollector.stopStreamingSession()": "3efb0b2423a2272e",
     "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.createTrainingContext(relativeTo:)": "8904506f14cc22d3",
-    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.createTrainingContextEnsuringFresh(relativeTo:)": "af0958851f76d06d"
+    "Emuqu/Sources/Collection/SessionScoringContext.swift::func SessionScoringContext.createTrainingContextEnsuringFresh(relativeTo:)": "af0958851f76d06d",
+    "Emuqu/Sources/Collection/RRCollector+RecoveryForwarding.swift::func RRCollector.recoverFromBackup(_:recordedType:)": "1817386ae5c64a63"
    }
   },
   {
@@ -991,8 +991,8 @@
   },
   {
    "key": "§ Emuqu — API Reference > Services > SessionRecoveryService",
-   "hash": "f83533aa1647ecff",
-   "does": "SessionRecoveryService @MainActor: PatchAction enum (addMissingData, reanalyzeNoResult, reanalyzeNoFlags, replaceWithNewData), init(archive, rawBackup, artifactDetector, windowSelector, cloudSyncManager, baselineTracker), static patchAction throws, lost-session detection/trash methods, deletedSessionSpan, permanentlyDelete for one session (-> Bool) and for several with a Health remover (-> TrashDeletionOutcome), recoverFromBackup with analyze/analyzeWithCapacity/supersedeSameNight/computeRecoveryScore closures, recoverToPausedState. All match SessionRecoveryService.swift:15-267 and +Backup.swift:21,176.",
+   "hash": "ebb1480d082e21b0",
+   "does": "SessionRecoveryService @MainActor: PatchAction enum (addMissingData, reanalyzeNoResult, reanalyzeNoFlags, replaceWithNewData), init(archive, rawBackup, artifactDetector, windowSelector, cloudSyncManager, baselineTracker), static patchAction throws, lost-session detection/trash methods, deletedSessionSpan, permanentlyDelete for one session (-> Bool) and for several with a Health remover (-> TrashDeletionOutcome), recoverFromBackup with an optional recordedType and analyze/analyzeWithCapacity/supersedeSameNight/computeRecoveryScore closures, recoverToPausedState. All match SessionRecoveryService.swift:15-267 and +Backup.swift:21,176.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Services/SessionRecoveryService.swift::init SessionRecoveryService(archive:rawBackup:artifactDetector:windowSelector:cloudSyncManager:baselineTracker:)",
@@ -1004,7 +1004,7 @@
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.restoreFromTrashFailed(_:)",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:)",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.deleteLostSessions(_:)",
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoverFromBackup(_:analyze:analyzeWithCapacity:supersedeSameNight:computeRecoveryScore:)",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoverFromBackup(_:recordedType:analyze:analyzeWithCapacity:supersedeSameNight:computeRecoveryScore:)",
     "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoverToPausedState(_:sessionType:analyze:analyzeWithCapacity:)",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.deletedSessionSpan(_:)",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.permanentlyDelete(_:removeHealthSamples:)"
@@ -1013,8 +1013,8 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoverFromBackup(_:analyze:analyzeWithCapacity:supersedeSameNight:computeRecoveryScore:)": "5bac4e7ac2dc0ae9",
-    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoverToPausedState(_:sessionType:analyze:analyzeWithCapacity:)": "25cd694e536d9068",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoverFromBackup(_:recordedType:analyze:analyzeWithCapacity:supersedeSameNight:computeRecoveryScore:)": "de5479f9b029a00a",
+    "Emuqu/Sources/Services/SessionRecoveryService+Backup.swift::func SessionRecoveryService.recoverToPausedState(_:sessionType:analyze:analyzeWithCapacity:)": "1e654840c831c6b7",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.checkForDeletedSessions()": "1b6b13b17c7fae9d",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.checkForLostSessions(excluding:)": "58fe5b272d72dbdf",
     "Emuqu/Sources/Services/SessionRecoveryService.swift::func SessionRecoveryService.deleteLostSessions(_:)": "43f1cfb9a9cf731f",
@@ -1385,10 +1385,10 @@
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.forceReuploadSession(_:)": "28d40115a90d94c4",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.markSessionsForReupload(_:)": "036021c696dc99ea",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "9956563e3f17fa81",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "eff72e3d17da1100",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSyncIfNeeded(minInterval:)": "be47df571ac7a0cf",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadDeletion(_:)": "d317df901d63fcf3",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "ca70590274e7b6e1"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "1aa026e4481155fe"
    }
   },
   {
@@ -2064,7 +2064,7 @@
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.isSamePlace(_:)": "17e0a2c94a3cba84",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.localizedConditions(_:)": "69cbe79f4fb13f26",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.outcome(data:response:)": "28b89fb7eb34d9aa",
-    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.refreshIfNeeded(for:)": "de72c50325c28f39",
+    "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.refreshIfNeeded(for:)": "e83fa708149f613c",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.request(at:ifModifiedSince:)": "9161637c63632c3f",
     "Emuqu/Sources/Services/WeatherService.swift::func WeatherService.rounded(_:)": "8c5da6b396d13175",
     "Emuqu/Sources/Services/WeatherService.swift::var WeatherService.current": "0a4b7679e2c1fe18"

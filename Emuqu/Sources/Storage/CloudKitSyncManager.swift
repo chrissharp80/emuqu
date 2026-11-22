@@ -236,8 +236,9 @@ final class CloudKitSyncManager {
     /// (the pull) is not gated here — it brings the user's own records back
     /// from their own container and writes nothing about them to it. A session
     /// held back by this gate stays pending and goes up with the next sync.
+    /// Nothing is uploaded while "Delete All My Data" runs (`PurgeGate`).
     var cloudUploadsAllowed: Bool {
-        settings.iCloudSyncEnabled && settings.hasCompletedOnboarding
+        settings.iCloudSyncEnabled && settings.hasCompletedOnboarding && !PurgeGate.isPurging
     }
 
     // MARK: - Init
@@ -416,9 +417,11 @@ final class CloudKitSyncManager {
     /// archived entry whatever its state, so a session skipped here still
     /// goes up on the next full sync.
     ///
-    /// The consent, the schema pause and the iCloud account are checked
-    /// again once the upload's turn comes: sync can be turned off, or the
-    /// account change, while a long full sync runs ahead of it.
+    /// The consent (`cloudUploadsAllowed`, which also refuses while "Delete
+    /// All My Data" runs, `PurgeGate`), the schema pause and the iCloud
+    /// account are checked again once the upload's turn in the serializer
+    /// comes: sync can be turned off, a purge start, or the account change,
+    /// while it waited behind another operation.
     ///
     /// A recording the archive folded into a same-night session
     /// (`SessionArchive.archivedId(of:)`) is uploaded as that session, queued
@@ -679,6 +682,11 @@ final class CloudKitSyncManager {
     /// Diagnostic logging on every entry, so a sync that silently stops
     /// shows which of the early-bail conditions is firing. Every call logs
     /// whether it proceeded or why it didn't.
+    ///
+    /// The sync toggle is read again, with `PurgeGate`, once the sync's turn
+    /// in the serializer comes. A sync admitted before "Delete All My Data"
+    /// turned sync off and queued behind its remote delete would otherwise
+    /// recreate the deleted zone and push the archive back into it.
     func performFullSync() async {
         let correlation = LogCorrelation.begin("sync")
         defer { LogCorrelation.end(correlation) }
@@ -690,6 +698,10 @@ final class CloudKitSyncManager {
         defer { fullSyncsAdmitted -= 1 }
         debugLog("[CloudKit] performFullSync entering serializer (uploaded=\(state.uploadedSessionIds.count), pending=\(state.pendingUploadIds.count), archive=\(archive.entries.count))")
         await syncSerializer.run { [self] in
+            guard settings.iCloudSyncEnabled, !PurgeGate.isPurging else {
+                debugLog("[CloudKit] performFullSync skipped — sync turned off, or Delete All My Data started, while it waited")
+                return
+            }
             await performFullSyncBody()
         }
     }
