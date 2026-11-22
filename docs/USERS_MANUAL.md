@@ -1170,11 +1170,14 @@ only useful indoors.
 ### Voice coach
 
 The voice coach (AirPods recommended) evaluates a rule engine each tick.
-Of its rules, only the thresholds you add before starting (step 5 of
-*Starting a workout*) speak on their own. The built-in signals (α1
-crossings, HR drift, zone drift, climb ahead, a dropped strap) are kept
-in the workout's event history but are not spoken; the coach does not
-announce a dropped strap either. Silence is a feature. When active,
+The thresholds you add before starting (step 5 of *Starting a workout*)
+are spoken and buzz the phone and the Watch. A dropped strap is spoken
+and buzzes too. A heart-rate spike without the pace to match, and a
+cadence that has dropped from where you started, only buzz the phone and
+the Watch. The other built-in signals (α1 crossings, HR drift, zone
+drift, climb ahead) are kept in the workout's event history but are not
+spoken. Coach alerts off, or the coach muted, silences all of these.
+Silence is a feature. When active,
 the AI receives a complete live snapshot each tick including wall-clock
 time, GPS position + heading, grade, current/peak HR, α1 status, units
 preference, recent splits, strap quality. This is what lets the coach

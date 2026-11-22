@@ -429,6 +429,31 @@ extension WatchConnectivityBridge: WCSessionDelegate {
             WCSession.default.transferUserInfo(payload)
         }
     }
+
+    /// Asks the Watch to play a coach alert's wrist haptic
+    /// (`WorkoutVoiceCoach.dispatch`). Live `sendMessage` when the Watch is
+    /// reachable, else, or when that send fails, one queued
+    /// `transferUserInfo`, so the haptic plays once. The Watch plays it only
+    /// within a few seconds of `firedAt`: a buzz that lands later no longer
+    /// marks the moment it was about.
+    @MainActor
+    func sendCoachAlertHaptic(urgent: Bool) {
+        guard WCSession.isSupported() else { return }
+        let session = WCSession.default
+        guard session.activationState == .activated, session.isPaired, session.isWatchAppInstalled else { return }
+        let payload: [String: any Sendable] = [
+            MessageKey.type.rawValue: MessageType.coachAlert.rawValue,
+            "urgent": urgent,
+            "firedAt": Date().timeIntervalSince1970
+        ]
+        guard session.isReachable else {
+            session.transferUserInfo(payload)
+            return
+        }
+        session.sendMessage(payload, replyHandler: nil) { @Sendable _ in
+            WCSession.default.transferUserInfo(payload)
+        }
+    }
 }
 
 extension WatchConnectivityBridge {

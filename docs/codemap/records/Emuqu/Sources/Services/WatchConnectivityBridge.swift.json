@@ -1,7 +1,7 @@
 {
  "file": "Emuqu/Sources/Services/WatchConnectivityBridge.swift",
- "hash": "198b72adfa7fbfb5",
- "role": "iOS side of the iPhone<->Apple Watch WatchConnectivity link: a process-wide @Observable @MainActor singleton that pushes live workout ticks, strap state and start/stop commands to the Watch, caches the last live snapshot for Watch relaunch restoration, and holds wrist-HR / Watch-strap samples received from the Watch (delegate callbacks live in WatchConnectivityBridge+Session.swift).",
+ "hash": "5b610e177fa9a2b3",
+ "role": "iOS side of the iPhone<->Apple Watch WatchConnectivity link: a process-wide @Observable @MainActor singleton that pushes live workout ticks, strap state, start/stop commands and coach-alert haptics to the Watch, caches the last live snapshot for Watch relaunch restoration, and holds wrist-HR / Watch-strap samples received from the Watch (delegate callbacks and the voice-chat and coach-alert pushes live in WatchConnectivityBridge+Session.swift).",
  "types": [
   "Notification.Name: extension — five Watch control notification names",
   "WatchConnectivityBridge: class — WCSession owner/delegate singleton, outbound transport and inbound sample store",
@@ -32,10 +32,10 @@
   "mem:WatchConnectivityBridge.liveStateCache (static lock [String: any Sendable]?)",
   "mem:WatchConnectivityBridge.cachedWatchDisplayOnlyMode (static lock Bool, default true)",
   "ud:perf.enableWatchConnectivity (read via UserSettings.performanceFlag)",
-  "wc:type/liveState/strapState/startWorkout/stopWorkout and all MessageKey keys plus 'ts'",
+  "wc:type/liveState/strapState/startWorkout/stopWorkout/coachAlert and all MessageKey keys plus 'ts'",
   "mem:WatchConnectivityBridge.heldUntilActivation (static lock [[String: any Sendable]], dual-channel commands issued before activation, last 8)"
  ],
- "toplevel": "Declares five Notification.Name statics (lines 12-29) and the two message enums; stored-property initialisers create the serial wcQueue (282-285), the didActivate lock (364), and static locks timeoutCounter (591), lastContextErrorMessage (730), liveStateCache, heldUntilActivation and cachedWatchDisplayOnlyMode initial true. `static let shared` (53) lazily runs init on first access. WatchControlRefusal is a String-raw enum whose raw values travel as `errorCode`.",
+ "toplevel": "Declares five Notification.Name statics (lines 12-29) and the two message enums (MessageType includes coachAlert, sent by +Session's sendCoachAlertHaptic); stored-property initialisers create the serial wcQueue (282-285), the didActivate lock (364), and static locks timeoutCounter (591), lastContextErrorMessage (730), liveStateCache, heldUntilActivation and cachedWatchDisplayOnlyMode initial true. `static let shared` (53) lazily runs init on first access. WatchControlRefusal is a String-raw enum whose raw values travel as `errorCode`.",
  "units": [
   {
    "key": "var WatchConnectivityBridge.isWatchPaired",
