@@ -219,12 +219,12 @@
   },
   {
    "key": "func DetailScreenRuleTests.testHealthKitSamplesAreMovedOntoTheBeatsClock()",
-   "hash": "afca49fbfcf2abfb",
-   "does": "A two-beat streamed series whose last beat is 60 s behind its wall clock: RecordingClock's span is 0…3,661,000 ms on the session clock, a sample after it moves 60 s earlier, one before it does not move.",
+   "hash": "53656d2c3deacae5",
+   "does": "A two-beat streamed series whose last beat is 60 s behind its wall clock: OvernightRecordingClock's span is 0…3,661,000 ms on the session clock, a sample after it moves 60 s earlier, one before it does not move.",
    "entry": "XCTest",
    "calls": [
-    "Emuqu/Sources/Views/OvernightChartsView.swift::init OvernightChartsView.RecordingClock(series:sessionStart:)",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.RecordingClock.onBeatClock(_:)"
+    "Emuqu/Sources/Views/OvernightChartsView.swift::init OvernightRecordingClock(series:sessionStart:)",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightRecordingClock.onBeatClock(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -232,28 +232,28 @@
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:wallClockMs:hr:)": "34068fa905e7636c",
     "Emuqu/Sources/Models/RRModels.swift::var RRPoint.endMs": "16be10daf58ad417",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.RecordingClock.onBeatClock(_:)": "84d9381f312f82b7",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::init OvernightChartsView.RecordingClock(series:sessionStart:)": "70cdd8a957ae2917"
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightRecordingClock.onBeatClock(_:)": "84d9381f312f82b7",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::init OvernightRecordingClock(series:sessionStart:)": "70cdd8a957ae2917"
    }
   },
   {
    "key": "func DetailScreenRuleTests.testAStrapRecordingIsAlreadyOnTheSessionClock()",
-   "hash": "2b20475dcbb8f6c3",
+   "hash": "007f4fa50437d0df",
    "does": "A strap series without wall-clock stamps gives a clock equal to its t_ms span with no drift, and a sample does not move.",
    "entry": "XCTest",
    "calls": [
-    "Emuqu/Sources/Views/OvernightChartsView.swift::init OvernightChartsView.RecordingClock(series:sessionStart:)",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::init OvernightChartsView.RecordingClock(startMs:endMs:startDriftMs:endDriftMs:)",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.RecordingClock.onBeatClock(_:)"
+    "Emuqu/Sources/Views/OvernightChartsView.swift::init OvernightRecordingClock(series:sessionStart:)",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::init OvernightRecordingClock(startMs:endMs:startDriftMs:endDriftMs:)",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightRecordingClock.onBeatClock(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Models/RRModels.swift::init RRPoint(t_ms:rr_ms:)": "5f633a05acbaa5dd",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightChartsView.RecordingClock.onBeatClock(_:)": "84d9381f312f82b7",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::init OvernightChartsView.RecordingClock(series:sessionStart:)": "70cdd8a957ae2917",
-    "Emuqu/Sources/Views/OvernightChartsView.swift::init OvernightChartsView.RecordingClock(startMs:endMs:startDriftMs:endDriftMs:)": "a84675981be87bbc"
+    "Emuqu/Sources/Views/OvernightChartsView.swift::func OvernightRecordingClock.onBeatClock(_:)": "84d9381f312f82b7",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::init OvernightRecordingClock(series:sessionStart:)": "70cdd8a957ae2917",
+    "Emuqu/Sources/Views/OvernightChartsView.swift::init OvernightRecordingClock(startMs:endMs:startDriftMs:endDriftMs:)": "fc48a443360ef7e3"
    }
   }
  ],
