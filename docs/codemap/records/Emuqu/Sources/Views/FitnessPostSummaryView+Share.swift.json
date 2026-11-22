@@ -334,8 +334,8 @@
    ],
    "deps": {
     "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.pdfMailSubject": "3c271c3121f7b09e",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.trainingMailCC": "ab549c69588f39e6",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.trainingMailRecipients": "a14d4ac26c6e7e75"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.trainingMailCC": "55af846f29395d31",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.trainingMailRecipients": "7bbbf68bb23a5230"
    }
   },
   {
@@ -545,17 +545,17 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.trainingMailCC": "ab549c69588f39e6",
-    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.trainingMailRecipients": "a14d4ac26c6e7e75"
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.trainingMailCC": "55af846f29395d31",
+    "Emuqu/Sources/Views/FitnessPostSummaryView+Share.swift::var FitnessSummaryCards.trainingMailRecipients": "7bbbf68bb23a5230"
    }
   },
   {
    "key": "var FitnessSummaryCards.trainingMailRecipients",
-   "hash": "75153c8733d5b7a9",
-   "does": "Training default recipient when non-blank, else the generic resolved chain (resolvedDefaultEmailRecipient: recovery → training → legacy generic); [] when none.",
+   "hash": "a256e99f14166ed7",
+   "does": "UserSettings.resolvedTrainingEmailRecipient as a one-element list (training → recovery → legacy generic, blank fields skipped); [] when none.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailRecipient"
    ],
    "reads": [
     "mem:SettingsManager.settings.defaultTrainingEmailRecipient"
@@ -563,46 +563,30 @@
    "writes": [],
    "branches": [
     {
-     "at": "+7",
-     "cond": "training recipient non-nil and not whitespace-only",
-     "effect": "[to]"
-    },
-    {
-     "at": "+11",
-     "cond": "resolvedDefaultEmailRecipient nil",
+     "at": "+1",
+     "cond": "no recipient",
      "effect": "`??` []"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailRecipient": "41fd2fc8b37365a4"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailRecipient": "19fcbec0d072481a"
    }
   },
   {
    "key": "var FitnessSummaryCards.trainingMailCC",
-   "hash": "9543e1eddcc51cc3",
-   "does": "Training CC list (comma-split, trimmed) when non-empty, else resolvedDefaultEmailCC.",
+   "hash": "aa5a5b356678ed99",
+   "does": "UserSettings.resolvedTrainingEmailCC (training → recovery → legacy generic, blank fields skipped).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailCC"
    ],
    "reads": [
     "mem:SettingsManager.settings.defaultTrainingEmailCC"
    ],
    "writes": [],
-   "branches": [
-    {
-     "at": "+1",
-     "cond": "defaultTrainingEmailCC nil",
-     "effect": "`??` ''"
-    },
-    {
-     "at": "+5",
-     "cond": "trainingCC non-empty",
-     "effect": "returned; else resolved chain"
-    }
-   ],
+   "branches": [],
    "deps": {
-    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedDefaultEmailCC": "94f7651b9cad60c1"
+    "Emuqu/Sources/Models/UserSettings+Model.swift::var UserSettings.resolvedTrainingEmailCC": "c4c996f8ca2bbd96"
    }
   },
   {

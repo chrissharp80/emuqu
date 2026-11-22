@@ -220,8 +220,7 @@ struct MainTabView: View {
     private func reportMailSheet(_ wrapper: IdentifiableURL) -> some View {
         if MFMailComposeViewController.canSendMail() {
             let defaults = dependencies.app.settingsManager.settings
-            let to = (defaults.defaultTrainingEmailRecipient ?? defaults.resolvedDefaultEmailRecipient)
-                .map { [$0] } ?? []
+            let to = defaults.resolvedTrainingEmailRecipient.map { [$0] } ?? []
             let cc = defaults.resolvedDefaultEmailCC
             MailComposerView(
                 subject: String(localized: "Emuqu report", bundle: LanguageManager.appBundle),

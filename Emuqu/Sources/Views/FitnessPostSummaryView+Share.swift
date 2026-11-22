@@ -280,27 +280,14 @@ extension FitnessSummaryCards {
         return String(localized: "to \(to) · cc \(cc)", bundle: LanguageManager.appBundle)
     }
 
+    /// Training → recovery → legacy generic, blank fields skipped
+    /// (`UserSettings.resolvedTrainingEmailRecipient`).
     var trainingMailRecipients: [String] {
-        // Prefer the training default, then fall back to the generic
-        // resolved chain (`resolvedDefaultEmailRecipient`: recovery →
-        // training → legacy generic), matching MainTabView's report mailer
-        // and MorningResultsView's recovery mailer. Reading `defaultTrainingEmailRecipient` alone leaves
-        // the workout PDF blank when the user has only set a recovery /
-        // legacy default while the other report types pre-fill.
-        if let to = settingsManager.settings.defaultTrainingEmailRecipient,
-           !to.trimmingCharacters(in: .whitespaces).isEmpty {
-            return [to]
-        }
-        return settingsManager.settings.resolvedDefaultEmailRecipient.map { [$0] } ?? []
+        settingsManager.settings.resolvedTrainingEmailRecipient.map { [$0] } ?? []
     }
 
     var trainingMailCC: [String] {
-        let trainingCC = (settingsManager.settings.defaultTrainingEmailCC ?? "")
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-        if !trainingCC.isEmpty { return trainingCC }
-        return settingsManager.settings.resolvedDefaultEmailCC
+        settingsManager.settings.resolvedTrainingEmailCC
     }
 
     var pdfMailSubject: String {

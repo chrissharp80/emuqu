@@ -252,31 +252,17 @@ extension AssistantMemoryNamespace {
         ))
     }
 
-    // Resolve recipient via the appropriate category default,
-    // falling back to the generic recipient when the
-    // category-specific one isn't set. Reading just
-    // the category field leaves the composer blank when only the
-    // generic is configured.
-    // Same precedence as `resolvedDefaultEmailRecipient`.
+    // The category's resolved defaults: a recovery note uses the recovery
+    // chain (recovery → training → legacy generic), anything else the
+    // workout chain (training → recovery → legacy generic). Blank fields
+    // are skipped (`UserSettings.firstAddress`), and the composer still
+    // fills when only the legacy generic address is set.
     private func emailDefaults(for category: String) -> (to: String, cc: String) {
         let settings = AppDependencies.current.app.settingsManager.settingsSnapshot
-        let primary = (category == "recovery"
-            ? settings.defaultRecoveryEmailRecipient
-            : settings.defaultTrainingEmailRecipient)?
-            .trimmingCharacters(in: .whitespaces) ?? ""
-        // Parsed before the emptiness check, as the view-side mailers do, so
-        // a whitespace-only or comma-only CC counts as not configured.
-        let categoryCC = ((category == "recovery"
-            ? settings.defaultRecoveryEmailCC
-            : settings.defaultTrainingEmailCC) ?? "")
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .joined(separator: ",")
-        return (
-            to: primary.isEmpty ? (settings.resolvedDefaultEmailRecipient ?? "") : primary,
-            cc: categoryCC.isEmpty ? settings.resolvedDefaultEmailCC.joined(separator: ",") : categoryCC
-        )
+        let isRecovery = category == "recovery"
+        let to = isRecovery ? settings.resolvedDefaultEmailRecipient : settings.resolvedTrainingEmailRecipient
+        let cc = isRecovery ? settings.resolvedDefaultEmailCC : settings.resolvedTrainingEmailCC
+        return (to: to ?? "", cc: cc.joined(separator: ","))
     }
 
     // Address-book pass: resolve names → addresses. Whatever
