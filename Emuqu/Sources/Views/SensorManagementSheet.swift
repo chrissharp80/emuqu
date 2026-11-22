@@ -388,7 +388,12 @@ private struct FootPodRow: View {
     private var content: AccessorySensorRow.Content {
         AccessorySensorRow.Content(
             icon: "shoeprints.fill",
-            title: manager.knownDevices.first?.name ?? String(localized: "Foot Pod / Bike Trainer", bundle: LanguageManager.appBundle),
+            title: AccessorySensorRow.title(
+                linkedId: manager.linkedDeviceId,
+                known: manager.knownDevices.map { AccessorySensorRow.Device(id: $0.id, name: $0.name) },
+                discovered: manager.discoveredDevices.map { AccessorySensorRow.Device(id: $0.id, name: $0.name) },
+                fallback: String(localized: "Foot Pod / Bike Trainer", bundle: LanguageManager.appBundle)
+            ),
             statusLine: manager.lastStatusLine,
             link: AccessorySensorRow.Link(manager.connectionState),
             hasKnownDevice: !manager.knownDevices.isEmpty,
@@ -420,7 +425,12 @@ private struct PM5Row: View {
     private var content: AccessorySensorRow.Content {
         AccessorySensorRow.Content(
             icon: "figure.rower",
-            title: manager.knownDevices.first?.name ?? String(localized: "Concept2 PM5", bundle: LanguageManager.appBundle),
+            title: AccessorySensorRow.title(
+                linkedId: manager.linkedDeviceId,
+                known: manager.knownDevices.map { AccessorySensorRow.Device(id: $0.id, name: $0.name) },
+                discovered: manager.discoveredDevices.map { AccessorySensorRow.Device(id: $0.id, name: $0.name) },
+                fallback: String(localized: "Concept2 PM5", bundle: LanguageManager.appBundle)
+            ),
             statusLine: manager.lastStatusLine,
             link: AccessorySensorRow.Link(manager.connectionState),
             hasKnownDevice: !manager.knownDevices.isEmpty,
@@ -472,6 +482,16 @@ private struct AccessorySensorRow: View {
     struct Device: Identifiable {
         let id: String
         let name: String
+    }
+
+    /// The row's title: the sensor linked now (paired before, or picked from
+    /// this scan), else the first one paired, else the generic name. The
+    /// same rule as the Polar strap's title.
+    static func title(linkedId: String?, known: [Device], discovered: [Device], fallback: String) -> String {
+        guard let linkedId else { return known.first?.name ?? fallback }
+        return known.first { $0.id == linkedId }?.name
+            ?? discovered.first { $0.id == linkedId }?.name
+            ?? fallback
     }
 
     struct Content {

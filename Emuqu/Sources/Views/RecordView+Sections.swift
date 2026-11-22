@@ -34,7 +34,15 @@ extension RecordView {
         }
     }
 
-    /// Discard asks first: the reading has not been saved anywhere else.
+    /// What Discard does to a reading awaiting review (`rejectSession`): one
+    /// saved for review moves to the Trash and leaves the baseline; a night
+    /// that was archived before the review is left as it was. The acceptance
+    /// card and the morning report say it with the same words.
+    var readingDiscardMessage: String {
+        String(localized: "This discards the reading and leaves it out of your baseline. If it was already saved, it moves to the Trash, where you can restore it from Settings → iCloud & Data → Trash. A night that was in your history before this recording stays as it was.", bundle: LanguageManager.appBundle)
+    }
+
+    /// Discard asks first, and says what it does to the saved copy.
     private var readingDiscardButton: some View {
         Button(role: .destructive) {
             confirmingReadingDiscard = true
@@ -51,7 +59,7 @@ extension RecordView {
         ) {
             Button(String(localized: "Discard", bundle: LanguageManager.appBundle), role: .destructive, action: rejectSession)
         } message: {
-            Text(String(localized: "It isn't saved to your history. This can't be undone.", bundle: LanguageManager.appBundle))
+            Text(readingDiscardMessage)
         }
     }
 
@@ -388,7 +396,7 @@ extension RecordView {
             result: presentation.result,
             recentSessions: cachedRecentSessions,
             onDiscard: { dismissMorningReading() },
-            discardMessage: String(localized: "This rejects the night: it is left out of your baseline, and if it was already saved it moves to the Trash, where you can restore it from Settings → iCloud & Data → Trash.", bundle: LanguageManager.appBundle),
+            discardMessage: readingDiscardMessage,
             onReanalyze: { await dependencies.collection.sessionReanalysis.reanalyzeSession($0, method: $1) },
             onUpdateTags: { saveReportTags($0, notes: $1, sessionId: session.id) },
             onReanalyzeAt: { await dependencies.collection.reanalysisService.reanalyzeAtPosition(session, targetMs: $0) },

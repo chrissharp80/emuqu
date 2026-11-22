@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/HistoryCalendarView.swift",
- "hash": "be856e019233d8dc",
+ "hash": "6aead1fa9b3b088f",
  "role": "Trends-tab monthly calendar (Sun-Sat grid) of the user's sessions — each on the day History lists it under (an overnight on the morning it ended) — showing per-day training LOAD, morning-feeling dot, in-month weekly and monthly totals, month navigation, plus a private day-summary sheet that lists the day's sessions and lets the user soft-delete one via the parent's onDelete closure.",
  "types": [
   "HistoryCalendarView: struct (View, @MainActor) — calendar card fed by TrendsV2View's allSessions snapshot",
@@ -18,7 +18,7 @@
   "mem:DaySummarySheet.pendingDelete/deleteFailed (@State)",
   "env:dependencies (settings snapshot read for the FTP anchors in sessionsFingerprint)"
  ],
- "toplevel": "onDelete defaults to `{ _ in false }` (line 30), so a caller that omits it gets a sheet whose every delete shows the failure alert. visibleMonth initialised to startOfMonth(Date()) (line 32). memoizedMonthStats initial MonthStats(0,0). DaySheetIdentity.id is the date so the sheet identity ignores session content. Only callers: TrendsV2View.swift:218 (onDelete: deleteSession) and EmuquTests/ScreenSnapshotTests.swift:35,46.",
+ "toplevel": "onDelete (async, returns whether the reading left the archive) defaults to `{ _ in false }`, so a caller that omits it gets a sheet whose every delete shows the failure alert. visibleMonth initialised to startOfMonth(Date()) (line 32). memoizedMonthStats initial MonthStats(0,0). DaySheetIdentity.id is the date so the sheet identity ignores session content. Only callers: TrendsV2View.swift:218 (onDelete: deleteSession) and EmuquTests/ScreenSnapshotTests.swift:35,46.",
  "units": [
   {
    "key": "var HistoryCalendarView.weekdaySymbols",
@@ -77,7 +77,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func HistoryCalendarView.rebuildMemoIfNeeded()": "846a1073cd2b3d7e",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::init DaySummarySheet(date:sessions:onDelete:)": "19d924e92f6549c8",
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::init DaySummarySheet(date:sessions:onDelete:)": "16553fde3e1bf72d",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.monthGrid": "230786263edceb97",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.monthHeader": "a6363f94d2c15ca9",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::var HistoryCalendarView.sectionHeader": "3f35314488b40c69",
@@ -1148,8 +1148,8 @@
   },
   {
    "key": "init DaySummarySheet(date:sessions:onDelete:)",
-   "hash": "b5b34d419faf83c3",
-   "does": "Stores date and onDelete, and seeds the @State sessions list from the passed snapshot.",
+   "hash": "4f390c3b9fdfae18",
+   "does": "Stores date and the async onDelete, and seeds the @State sessions list from the passed snapshot.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -1317,13 +1317,13 @@
    ],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.confirmDelete(_:)": "a2d77b59e17c375a"
+    "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.confirmDelete(_:)": "378be944558f5179"
    }
   },
   {
    "key": "func DaySummarySheet.confirmDelete(_:)",
-   "hash": "a981fbe8c8651c26",
-   "does": "Calls the parent's onDelete; on false shows the failure alert; on true removes the session from the local list and dismisses the sheet when it becomes empty.",
+   "hash": "dac42e4c979c35b4",
+   "does": "In a main-actor Task, awaits the parent's onDelete; on false shows the failure alert; on true removes the session from the local list and dismisses the sheet when it becomes empty.",
    "entry": null,
    "calls": [
     "closure:onDelete = TrendsV2View.deleteSession (archive.delete + notifyArchiveChanged + CloudKit uploadDeletion), set at TrendsV2View.swift:218",
@@ -1340,18 +1340,18 @@
    ],
    "branches": [
     {
-     "at": "+1",
+     "at": "+2",
      "cond": "onDelete(session) returns true",
      "effect": "false: deleteFailed = true → alert, row stays; true: remove row"
     },
     {
-     "at": "+6",
+     "at": "+7",
      "cond": "sessions now empty",
      "effect": "true: dismiss(); false: stay open"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.deleteSession(_:)": "cf89769c750f5a6e"
+    "Emuqu/Sources/Views/TrendsV2View.swift::func TrendsV2View.deleteSession(_:)": "9089c7335db27510"
    }
   },
   {
@@ -1592,7 +1592,7 @@
    "calls": [
     "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.sessionTitle(_:sport:)",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)"
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.minutes(_:)"
    ],
    "reads": [],
    "writes": [],
@@ -1606,7 +1606,7 @@
    "deps": {
     "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.string(from:template:)": "be4e73ad60b0264d",
     "Emuqu/Sources/Views/HistoryCalendarView.swift::func DaySummarySheet.sessionTitle(_:sport:)": "92dec2bba34db6e5",
-    "Emuqu/Sources/Views/NavigationHeader.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9",
+    "Emuqu/Sources/Views/LocalizedDuration.swift::func LocalizedDuration.minutes(_:)": "a50e407bbcc547a9",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textPrimary": "77263298cf827565",
     "Emuqu/Sources/Views/Theme.swift::var AppTheme.textTertiary": "c63919b2cea1e107"
    }

@@ -24,8 +24,12 @@ import Foundation
 //
 // Parser is a tiny XMLParser — we don't need a full GPX type system, just the
 // few tags we consume.
+//
+// Nothing here touches main-actor state: the parse is XMLParser work on a
+// private delegate, and `buildSession` is `ImportedWorkoutBuilder`'s pure
+// reconstruction. The enum is nonisolated so the Fitness tab's GPX import can
+// parse and build a long file on a background task.
 
-@MainActor
 enum GPXImporter {
     enum ImportError: LocalizedError {
         case invalidXML

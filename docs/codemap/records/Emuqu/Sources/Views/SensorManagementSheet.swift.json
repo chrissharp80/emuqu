@@ -873,20 +873,22 @@
    "deps": {
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.body": "5ca120f58a971152",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.actions": "207376b75d101220",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.content": "ac978fb3a0bf48bb"
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.content": "2373667403d8c486"
    }
   },
   {
    "key": "var FootPodRow.content",
-   "hash": "c09b910f440ed298",
-   "does": "Row content from FootPodManager: shoeprints icon, first known device name (else \"Foot Pod / Bike Trainer\"), lastStatusLine, link state, whether a device is known, discovered devices.",
+   "hash": "9fef737e7ab1aee5",
+   "does": "Row content from FootPodManager: shoeprints icon, the title AccessorySensorRow.title gives (the linked foot pod's name, else the first known one, else \"Foot Pod / Bike Trainer\"), lastStatusLine, link state, whether a device is known, discovered devices.",
    "entry": "SwiftUI evaluates it as part of the parent view's body",
    "calls": [
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.manager",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::func AccessorySensorRow.title(linkedId:known:discovered:fallback:)",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::init AccessorySensorRow.Link(_: FootPodManager.ConnectionState)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
+    "mem:FootPodManager.linkedDeviceId",
     "mem:FootPodManager.connectionState",
     "mem:FootPodManager.knownDevices",
     "mem:FootPodManager.discoveredDevices",
@@ -897,6 +899,7 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::func AccessorySensorRow.title(linkedId:known:discovered:fallback:)": "8cd41bf9ae0cb56c",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::init AccessorySensorRow.Link(_: FootPodManager.ConnectionState)": "d535381a06f26337",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var FootPodRow.manager": "9c9ec3cf703f6cac"
    }
@@ -953,20 +956,22 @@
    "deps": {
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var AccessorySensorRow.body": "5ca120f58a971152",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.actions": "6d00de4476f152f1",
-    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.content": "d59a91b715e35856"
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.content": "bd7a88a66903e873"
    }
   },
   {
    "key": "var PM5Row.content",
-   "hash": "0a1b826f2776050b",
-   "does": "Row content from Concept2Manager: rower icon, first known erg name (else \"Concept2 PM5\"), lastStatusLine, link state, whether an erg is known, discovered ergs.",
+   "hash": "9285442c381a52b9",
+   "does": "Row content from Concept2Manager: rower icon, the title AccessorySensorRow.title gives (the linked erg's name, else the first known one, else \"Concept2 PM5\"), lastStatusLine, link state, whether an erg is known, discovered ergs.",
    "entry": "SwiftUI evaluates it as part of the parent view's body",
    "calls": [
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.manager",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::func AccessorySensorRow.title(linkedId:known:discovered:fallback:)",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::init AccessorySensorRow.Link(_: Concept2Manager.ConnectionState)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
    ],
    "reads": [
+    "mem:Concept2Manager.linkedDeviceId",
     "mem:Concept2Manager.connectionState",
     "mem:Concept2Manager.knownDevices",
     "mem:Concept2Manager.discoveredDevices",
@@ -977,6 +982,7 @@
    "deps": {
     "Emuqu/Sources/Collection/RRCollector.swift::var RRCollector.connectionState": "1d2586163937e245",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Views/SensorManagementSheet.swift::func AccessorySensorRow.title(linkedId:known:discovered:fallback:)": "8cd41bf9ae0cb56c",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::init AccessorySensorRow.Link(_: Concept2Manager.ConnectionState)": "53a190d3e2ddbfe0",
     "Emuqu/Sources/Views/SensorManagementSheet.swift::var PM5Row.manager": "39490cb254c92863"
    }
@@ -1016,6 +1022,28 @@
    "reads": [],
    "writes": [],
    "branches": [],
+   "deps": {}
+  },
+  {
+   "key": "func AccessorySensorRow.title(linkedId:known:discovered:fallback:)",
+   "hash": "2e493571329006c3",
+   "does": "The accessory row's title: with no linked id, the first known device's name or the fallback; with one, the name of the known device with that id, else of the discovered one (a sensor picked from this scan), else the fallback.",
+   "entry": null,
+   "calls": [],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "no linked id",
+     "effect": "first known name, else fallback"
+    },
+    {
+     "at": "+2",
+     "cond": "linked id",
+     "effect": "known match, else discovered match, else fallback"
+    }
+   ],
    "deps": {}
   },
   {

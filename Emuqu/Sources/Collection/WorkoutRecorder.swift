@@ -144,11 +144,15 @@ final class WorkoutRecorder {
     /// Two overloads rather than a defaulted parameter: repeating the default
     /// here would be a second `AppDependencies.current.app.settingsManager` reference for a value the
     /// moved function already supplies.
-    static func scheduleCoachReportEmail(for session: HRVSession) {
+    /// Both return the render task; its value says whether the PDF was
+    /// attached.
+    @discardableResult
+    static func scheduleCoachReportEmail(for session: HRVSession) -> Task<Bool, Never> {
         WorkoutSessionLifecycle.scheduleCoachReportEmail(for: session)
     }
 
-    static func scheduleCoachReportEmail(for session: HRVSession, settings: UserSettings) {
+    @discardableResult
+    static func scheduleCoachReportEmail(for session: HRVSession, settings: UserSettings) -> Task<Bool, Never> {
         WorkoutSessionLifecycle.scheduleCoachReportEmail(for: session, settings: settings)
     }
 

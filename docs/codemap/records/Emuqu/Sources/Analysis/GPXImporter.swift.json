@@ -1,9 +1,9 @@
 {
  "file": "Emuqu/Sources/Analysis/GPXImporter.swift",
- "hash": "288e765943abe366",
+ "hash": "f8b37471ac49de26",
  "role": "Parses GPX files (XMLParser, external entities off) into ImportedWorkoutTrack (track, HR and cadence samples, sport from <type>) for planned routes (parse, stamps now when no times) and recorded workouts (parseWorkout, refuses no-time files), validates numeric fields, and hands workout reconstruction to ImportedWorkoutBuilder.",
  "types": [
-  "GPXImporter: enum (@MainActor) — GPX import API, sport-label matching and validators",
+  "GPXImporter: enum (nonisolated) — GPX import API, sport-label matching and validators",
   "GPXImporter.ImportError: enum — invalidXML/noTrackpoints/noTimestamps",
   "GPXParserDelegate: class (private, NSObject, XMLParserDelegate) — streaming element collector (trkpts, rtepts, element path)",
   "GPXParserDelegate.Point: struct — one parsed trkpt/rtept"
@@ -12,7 +12,7 @@
   "mem:GPXParserDelegate.isoFractional / iso (static ISO8601FormatStyle)",
   "mem:GPXImporter.sportRules (static ordered sport/stem table)"
  ],
- "toplevel": "File header lists the extracted fields; HRV is omitted. The delegate keeps <trkpt>s and <rtept>s separately (points = track, else route), tracks the open-element path, takes the first <type> directly under <trk>/<rte> as trkType, and <metadata><time>. GPXImporter is @MainActor so XML parsing runs on the main actor.",
+ "toplevel": "File header lists the extracted fields; HRV is omitted. The delegate keeps <trkpt>s and <rtept>s separately (points = track, else route), tracks the open-element path, takes the first <type> directly under <trk>/<rte> as trkType, and <metadata><time>. GPXImporter is nonisolated: it reads no main-actor state (XMLParser on a private delegate, then ImportedWorkoutBuilder's pure build), so parse, parseWorkout and buildSession run on whatever actor calls them — the main actor for the planned-route import, a detached task for the Fitness tab's workout import.",
  "units": [
   {
    "key": "var GPXImporter.ImportError.errorDescription",

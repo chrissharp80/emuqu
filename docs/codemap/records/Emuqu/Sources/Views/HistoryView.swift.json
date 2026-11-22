@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/Sources/Views/HistoryView.swift",
- "hash": "df075c57269de849",
+ "hash": "2431024dc777c0c4",
  "role": "History screen pushed from the Dashboard: paginated, grouped (Today/Yesterday/This Week/Last Week/month) list of archive index entries with session-type, tag and text filters (state held in HistoryViewModel), swipe-delete, Ask-Flo context action, and on-tap async load of the full session into MorningResultsView or FitnessPostSummaryView. It deletes (SessionTrash.move, declared here and the shared delete sequence), saves tags and sleep edits itself and shows an alert when any of those, or opening a reading, fails. Rows are EntryHistoryRow (EntryHistoryRow.swift). Also declares historyDisplayScore, shared with HistoryCalendarView.",
  "types": [
   "HistoryView: struct (View) — main screen",
@@ -12,6 +12,7 @@
  "state": [
   "mem:HistoryView.viewModel (@State HistoryViewModel())",
   "mem:HistoryView.deleteSessionId/showingDeleteAlert/failureMessage/selectedSession/selectedLinkedSegments/cachedRecentSessions/selectionTask (@State)",
+  "mem:HistoryView.pendingTagSave (@State Task: the last tag save started; the next waits for it)",
   "static monthYearStyle Date.FormatStyle (.month(.wide).year())",
   "accessibility identifiers 'history.search', 'history.entryRow'"
  ],
@@ -722,13 +723,13 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.confirmDelete()": "a63865b1246ad930"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.confirmDelete()": "f56a35cebfbeab2b"
    }
   },
   {
    "key": "func HistoryView.confirmDelete()",
-   "hash": "6617fb7ca5648a58",
-   "does": "Takes the pending deleteSessionId (clearing it) and moves that reading to Trash through moveToTrash, which reports a failure.",
+   "hash": "c49533adf17a381e",
+   "does": "Takes the pending deleteSessionId (clearing it) and, in a main-actor Task, moves that reading to Trash through moveToTrash, which reports a failure.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.moveToTrash(_:)"
@@ -752,13 +753,13 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.moveToTrash(_:)": "0b500a6582db6646"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.moveToTrash(_:)": "2da01344229e3de1"
    }
   },
   {
    "key": "func HistoryView.moveToTrash(_:)",
-   "hash": "0ef0fa92819ae983",
-   "does": "SessionTrash.move for the id; on throw logs the error and sets failureMessage to \"Couldn't delete this reading. Try again.\". Returns whether the reading left the archive.",
+   "hash": "5ce16640ed952105",
+   "does": "Async: awaits SessionTrash.move for the id (the archive move off the main actor); on throw logs the error and sets failureMessage to \"Couldn't delete this reading. Try again.\". Returns whether the reading left the archive.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HistoryView.swift::func SessionTrash.move(_:collector:cloudKit:)",
@@ -784,7 +785,7 @@
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "Emuqu/Sources/Views/HistoryView.swift::func SessionTrash.move(_:collector:cloudKit:)": "b2656c4803bdf3c8"
+    "Emuqu/Sources/Views/HistoryView.swift::func SessionTrash.move(_:collector:cloudKit:)": "de1c5ca48de74176"
    }
   },
   {
@@ -1036,16 +1037,16 @@
     "Emuqu/Sources/Services/ReanalysisService+Sleep.swift::func ReanalysisService.unlinkSegment(segmentId:fromSession:)": "a1614ff522bce952",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var CollectionServices.reanalysisService": "66fe82646a7ded58",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteAndDismiss(_:)": "6d67b2d3bce3e3ad",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.deleteAndDismiss(_:)": "19a4d22f33b305a0",
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveSleep(_:sleepData:isUserAdjustment:)": "89ea900a59853a23",
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveTags(_:tags:notes:)": "d1c0d843e53e5f99",
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.saveTags(_:tags:notes:)": "50102bad52c0b92c",
     "Emuqu/Sources/Views/MorningResultsView.swift::init MorningResultsView(session:result:recentSessions:onDiscard:discardMessage:onDelete:onReanalyze:onUpdateTags:onReanalyzeAt:onApplyManualResult:onUpdateSleep:onAdjustSleep:onUnlinkSegment:linkedSegments:)": "5d56309a54e28237"
    }
   },
   {
    "key": "func HistoryView.deleteAndDismiss(_:)",
-   "hash": "93a108cda30770b5",
-   "does": "Moves the reading to Trash through moveToTrash; closes the sheet only when it left the archive, otherwise the sheet stays and its failure alert says the delete failed.",
+   "hash": "76ec6eb2cfaa12df",
+   "does": "In a main-actor Task, moves the reading to Trash through moveToTrash; closes the sheet only when it left the archive and the sheet still shows that reading, otherwise the sheet stays (and on a failure its alert says the delete failed).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.moveToTrash(_:)"
@@ -1061,20 +1062,43 @@
    ],
    "branches": [
     {
-     "at": "+1",
-     "cond": "delete failed",
-     "effect": "sheet kept, alert shown; else selectedSession = nil"
+     "at": "+2",
+     "cond": "delete failed, or the sheet now shows another reading",
+     "effect": "sheet kept (alert shown on failure); else selectedSession = nil"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.moveToTrash(_:)": "0b500a6582db6646"
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.moveToTrash(_:)": "2da01344229e3de1"
    }
   },
   {
    "key": "func HistoryView.saveTags(_:tags:notes:)",
-   "hash": "da1e2bbe49f10a14",
-   "does": "Writes tags and notes to the archive (SessionArchive.updateTags) and notifies observers; on throw logs and sets failureMessage \"Couldn't save: <error>\".",
+   "hash": "d276b34684db3613",
+   "does": "Queues a tag save behind the one before it (pendingTagSave): a main-actor Task waits for the previous save, then writeTags. Saves therefore reach the archive in the order they were made, each off the main actor.",
    "entry": "closure: MorningResultsView.onUpdateTags",
+   "calls": [
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.writeTags(_:tags:notes:to:)"
+   ],
+   "reads": [
+    "mem:HistoryView.pendingTagSave"
+   ],
+   "writes": [
+    "mem:HistoryView.pendingTagSave",
+    "archive:session tags/notes (via writeTags)",
+    "mem:ArchiveSignal.version",
+    "notif:.flowRecoveryArchiveChanged (via ArchiveSignal.notifyChanged)",
+    "mem:HistoryView.failureMessage"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Views/HistoryView.swift::func HistoryView.writeTags(_:tags:notes:to:)": "7b6a60a4ba07e49e"
+   }
+  },
+  {
+   "key": "func HistoryView.writeTags(_:tags:notes:to:)",
+   "hash": "de72ec50a6d7a4e9",
+   "does": "One tag save: SessionArchive.updateTags on a detached userInitiated task, then RRCollector.notifyArchiveChanged on the main actor; on throw logs and sets failureMessage \"Couldn't save: <error>\".",
+   "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.updateTags(_:tags:notes:)",
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
@@ -1092,7 +1116,7 @@
     {
      "at": "+4",
      "cond": "updateTags throws",
-     "effect": "log and failure alert"
+     "effect": "log and failure alert; no archive-changed notice"
     }
    ],
    "deps": {
@@ -1515,9 +1539,9 @@
   },
   {
    "key": "func SessionTrash.move(_:collector:cloudKit:)",
-   "hash": "7a4867e43920c23a",
-   "does": "The shared delete sequence: SessionArchive.delete (soft delete to Trash, throws on failure), RRCollector.notifyArchiveChanged, then an async CloudKit uploadDeletion so the next pull does not bring it back.",
-   "entry": "Called by HistoryView.moveToTrash (swipe delete and the detail sheet's Delete).",
+   "hash": "e3059f9bfa7e5393",
+   "does": "The shared delete sequence, async: SessionArchive.delete (soft delete to Trash, under the archive lock) on a detached userInitiated task, rethrowing its failure; then, on the main actor and only after it succeeded, RRCollector.notifyArchiveChanged and an async CloudKit uploadDeletion so the next pull does not bring it back.",
+   "entry": "Awaited by HistoryView.moveToTrash (swipe delete and the detail sheet's Delete), FitnessTabView.deleteWorkout and TrendsV2View.deleteSession.",
    "calls": [
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.delete(_:)",
     "Emuqu/Sources/Collection/RRCollector+Session.swift::func RRCollector.notifyArchiveChanged()",
