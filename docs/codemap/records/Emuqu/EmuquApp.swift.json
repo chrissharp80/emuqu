@@ -1,6 +1,6 @@
 {
  "file": "Emuqu/EmuquApp.swift",
- "hash": "2214175ed7ab0964",
+ "hash": "9a31bc4bdf8f4b49",
  "role": "The SwiftUI App declaration: takes the root services (sync, settings, StoreKit, language, voice chat, Watch bridge, email bridge) from AppDependencies.current and builds the collector as @State, assembles the root view (MainTabView + environment + launch modals + scene-phase handlers + interrupted-session alerts + launch tasks), wires Watch->phone control closures, and holds the @main entry EmuquMain.",
  "types": [
   "LaunchModal: enum — which full-screen launch cover is up (disclaimer/onboarding/paywall/trialReminder/scoreArchitectureChange)",
@@ -25,7 +25,8 @@
   "mem:EmuquApp.requestedTab (@State MainTabView.Tab?)",
   "mem:EmuquApp.dataLoaded (@State Bool)",
   "mem:EmuquApp.interruptedSessionAlert (@State InterruptedSessionInfo?)",
-  "mem:EmuquApp.recoveryResultMessage (@State String?)"
+  "mem:EmuquApp.recoveryResultMessage (@State String?)",
+  "mem:EmuquApp.returningFromBackground (@State private Bool: set on .background, cleared on the next .active)"
  ],
  "toplevel": "Stored-property initializers of EmuquApp pass each root object through launchStep (a ColdStart signpost plus NSLog/debugLog start and done lines): the collector from RRCollector.makeDefault(), the other seven from AppDependencies.current accessors (collection.sessionReanalysis, storage.cloudKitSyncManager, app.settingsManager, services.storeKitManager, services.languageManager, assistant.voiceConversationController, services.watchConnectivityBridge). emailBridge reads AppDependencies.current.assistant.assistantEmailBridge directly, and launchServices takes AppDependencies.current.launchServices, which builds resolvers only (no service is built until the launch work calls one). All of them run when EmuquApp.main() instantiates the App struct, after EmuquMain.main() has run the UI-test wipe and diagnostics install; AppDependencies.current is a lock-held container that exists from first access and that has no setter and that the app never replaces (only a test's AppDependencies.install puts another in force), so a test that installs its own container before building EmuquApp has its substitutes used. The file reads no `.shared` singleton (scripts/check_no_shared_outside_root.sh does not list it as a root). LaunchModal conforms to Identifiable for fullScreenCover(item:) and, having no associated values, is Equatable and drives .onChange(of: activeModal).",
  "units": [
@@ -163,19 +164,23 @@
   },
   {
    "key": "init EmuquApp()",
-   "hash": "a936df737d1a13aa",
-   "does": "App init: logs entry/exit via NSLog and debugLog and installs the memory-warning observer.",
+   "hash": "9ae12ae1ff37da12",
+   "does": "App init: logs entry/exit via NSLog and debugLog, installs the memory-warning observer, and empties the export folder (ExportFile.removeLeftovers) of files a share sheet from the previous run left.",
    "entry": "SwiftUI App.main() constructing EmuquApp (from EmuquMain.main, EmuquApp.swift:876).",
    "calls": [
     "Emuqu/EmuquApp.swift::func EmuquApp.observeMemoryWarnings()",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.removeLeftovers()",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
     "ext:NSLog"
    ],
    "reads": [],
-   "writes": [],
+   "writes": [
+    "file:tmp/Exports/* (removed)"
+   ],
    "branches": [],
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquApp.observeMemoryWarnings()": "ccf71e022d63855a",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.removeLeftovers()": "2938ba72f922f474",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -496,7 +501,7 @@
     "Emuqu/EmuquApp.swift::func EmuquApp.handleLaunchModalChange(from:to:)": "d9e1a72e64363342",
     "Emuqu/EmuquApp.swift::func EmuquApp.handleOnboardingCompletion(_:)": "b3199f311046a9b5",
     "Emuqu/EmuquApp.swift::func EmuquApp.handlePurchaseChange(_:)": "9dbd0c6d1c596061",
-    "Emuqu/EmuquApp.swift::func EmuquApp.handleScenePhaseChange(from:to:)": "e10bf95a553aed6e",
+    "Emuqu/EmuquApp.swift::func EmuquApp.handleScenePhaseChange(from:to:)": "c400cfd1936b317b",
     "Emuqu/Sources/Models/SettingsManager.swift::var SettingsManager.hasAcceptedDisclaimer": "6137b39fe90ea00e"
    }
   },
@@ -605,63 +610,58 @@
   },
   {
    "key": "func EmuquApp.handleScenePhaseChange(from:to:)",
-   "hash": "0d564669ddd29045",
-   "does": "Scene-phase reactions: background -> auto-archive pending session and stop ambient location (AppDependencies.current.location.ambientLocationService); background->active -> resume sync; any non-active->active -> start ambient location; on active also reschedule morning notification, refresh HealthKit write auth if onboarded, and recheck entitlement if coming from background.",
+   "hash": "9ca407d3735f4d92",
+   "does": "Scene-phase reactions: background -> marks returningFromBackground, auto-archives the pending session and stops ambient location; any non-active->active -> start ambient location; on active also reschedule morning notification, refresh HealthKit write auth if onboarded, and, on the first active after a background (background → inactive → active), resumeAfterBackground (sync and entitlement re-check).",
    "entry": "onChange(of: scenePhase).",
    "calls": [
     "Emuqu/EmuquApp.swift::func EmuquApp.autoArchivePendingSession()",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var LocationServices.ambientLocationService",
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.stop()",
-    "Emuqu/EmuquApp.swift::func EmuquApp.resumeSyncOnForeground()",
     "Emuqu/EmuquApp.swift::func EmuquApp.startAmbientLocationOnForeground()",
     "Emuqu/EmuquApp.swift::func EmuquApp.rescheduleMorningNotification()",
     "Emuqu/EmuquApp.swift::func EmuquApp.refreshHealthKitWriteAuthorization()",
-    "Emuqu/EmuquApp.swift::func EmuquApp.recheckEntitlementOnForeground()"
+    "Emuqu/EmuquApp.swift::func EmuquApp.resumeAfterBackground()"
    ],
    "reads": [
-    "mem:SettingsManager.settings.hasCompletedOnboarding"
+    "mem:SettingsManager.settings.hasCompletedOnboarding",
+    "mem:EmuquApp.returningFromBackground"
    ],
    "writes": [
-    "mem:AmbientLocationService (AppDependencies.current.location.ambientLocationService)"
+    "mem:AmbientLocationService (AppDependencies.current.location.ambientLocationService)",
+    "mem:EmuquApp.returningFromBackground"
    ],
    "branches": [
     {
      "at": "+1",
      "cond": "newPhase == .background",
-     "effect": "true: autoArchivePendingSession() and AmbientLocationService.stop(); false: skip"
+     "effect": "true: returningFromBackground = true, autoArchivePendingSession() and AmbientLocationService.stop(); false: skip"
     },
     {
-     "at": "+5",
-     "cond": "newPhase == .active && oldPhase == .background",
-     "effect": "true: resumeSyncOnForeground(); false: skip (inactive->active does not sync)"
-    },
-    {
-     "at": "+8",
+     "at": "+6",
      "cond": "newPhase == .active && oldPhase != .active",
      "effect": "true: startAmbientLocationOnForeground(); false: skip"
     },
     {
-     "at": "+11",
+     "at": "+9",
      "cond": "newPhase != .active",
-     "effect": "returns early (no reschedule/HK/entitlement work for inactive/background)"
+     "effect": "returns early (no reschedule/HK/sync/entitlement work for inactive/background)"
     },
     {
-     "at": "+13",
+     "at": "+11",
      "cond": "settings.hasCompletedOnboarding",
      "effect": "true: refreshHealthKitWriteAuthorization(); false: skip"
     },
     {
-     "at": "+16",
-     "cond": "oldPhase == .background",
-     "effect": "true: recheckEntitlementOnForeground(); false: skip"
+     "at": "+14",
+     "cond": "returningFromBackground",
+     "effect": "true: resumeAfterBackground(); false: skip (an inactive->active without a background neither syncs nor re-checks)"
     }
    ],
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquApp.autoArchivePendingSession()": "c57c4369fb787745",
-    "Emuqu/EmuquApp.swift::func EmuquApp.recheckEntitlementOnForeground()": "fbe05d827b8d2aef",
     "Emuqu/EmuquApp.swift::func EmuquApp.refreshHealthKitWriteAuthorization()": "676af5b07f6c68d7",
     "Emuqu/EmuquApp.swift::func EmuquApp.rescheduleMorningNotification()": "6962a544ccfd6cef",
-    "Emuqu/EmuquApp.swift::func EmuquApp.resumeSyncOnForeground()": "a02d7435c5d97b84",
+    "Emuqu/EmuquApp.swift::func EmuquApp.resumeAfterBackground()": "b64a140657d7ff4b",
     "Emuqu/EmuquApp.swift::func EmuquApp.startAmbientLocationOnForeground()": "d38cfbe77dd34f0f",
     "Emuqu/Sources/Services/AmbientLocationService.swift::func AmbientLocationService.stop()": "f05d1ea73499775a",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
@@ -1490,6 +1490,25 @@
    "deps": {
     "Emuqu/EmuquApp.swift::func EmuquApp.installDiagnostics()": "8525fa40b74c6eaf",
     "Emuqu/Sources/Services/AppLaunchRecovery.swift::func EmuquApp.resetUITestStateIfRequested()": "27176c4bfdf71136"
+   }
+  },
+  {
+   "key": "func EmuquApp.resumeAfterBackground()",
+   "hash": "17f702c1daed5215",
+   "does": "Clears returningFromBackground, resumes sync on foreground and re-checks the entitlement.",
+   "entry": null,
+   "calls": [
+    "Emuqu/EmuquApp.swift::func EmuquApp.resumeSyncOnForeground()",
+    "Emuqu/EmuquApp.swift::func EmuquApp.recheckEntitlementOnForeground()"
+   ],
+   "reads": [],
+   "writes": [
+    "mem:EmuquApp.returningFromBackground"
+   ],
+   "branches": [],
+   "deps": {
+    "Emuqu/EmuquApp.swift::func EmuquApp.recheckEntitlementOnForeground()": "fbe05d827b8d2aef",
+    "Emuqu/EmuquApp.swift::func EmuquApp.resumeSyncOnForeground()": "a02d7435c5d97b84"
    }
   }
  ],

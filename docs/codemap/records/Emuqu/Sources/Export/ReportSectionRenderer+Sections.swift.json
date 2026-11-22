@@ -693,14 +693,14 @@
    }
   },
   {
-   "key": "func ReportSectionRenderer.drawWindowSelectionSection(result:yPosition:in:pageRect:)",
-   "hash": "7409e2306f9972c3",
-   "does": "Draws 'Analysis Window' heading and a 70pt card with time range, window HR/stability and selection reason; returns y+80.",
+   "key": "func ReportSectionRenderer.drawWindowSelectionSection(result:series:yPosition:in:pageRect:)",
+   "hash": "4a072a7550e7e05a",
+   "does": "Draws 'Analysis Window' heading and a 70pt card with the window's clock-time range, window HR/stability and selection reason; returns y+80.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)",
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowCardBackground(y:height:contentWidth:)",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowTimeRange(result:infoY:)",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowTimeRange(result:series:infoY:)",
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowStats(result:infoY:)",
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowSelectionReason(result:infoY:contentWidth:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -714,7 +714,7 @@
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowCardBackground(y:height:contentWidth:)": "a553c83088fdb097",
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowSelectionReason(result:infoY:contentWidth:)": "0f2f7fcc4cae36d3",
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowStats(result:infoY:)": "34b364a15369fb83",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowTimeRange(result:infoY:)": "649b812886ca3084",
+    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.drawWindowTimeRange(result:series:infoY:)": "9cd8c6d15088b28e",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::func ReportSectionRenderer.drawSectionHeading(_:yPosition:pageRect:)": "4fc7567a5c643814",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "613fc1ee098a7dd3",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
@@ -734,12 +734,13 @@
    }
   },
   {
-   "key": "func ReportSectionRenderer.drawWindowTimeRange(result:infoY:)",
-   "hash": "e443369e7afc2ecd",
-   "does": "When both window start/end ms exist, draws 'Time Range: m:ss – m:ss (duration)' (offsets into the recording) and advances 16.",
+   "key": "func ReportSectionRenderer.drawWindowTimeRange(result:series:infoY:)",
+   "hash": "1d1645951ad72149",
+   "does": "When both window start/end ms exist, draws 'Time Range: <start> – <end> (duration)' with the clock times read off the series' wall clock (series.wallClockTime) in the app-locale 'jmm' format, and advances 16.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.formatTimeMs(_:)",
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)",
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.formatDurationMs(_:)",
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)",
     "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle"
@@ -750,7 +751,7 @@
    "writes": [],
    "branches": [
     {
-     "at": "+3",
+     "at": "+5",
      "cond": "windowStartMs and windowEndMs both non-nil",
      "effect": "draws the line, y+16; else nothing"
     }
@@ -758,9 +759,10 @@
    "deps": {
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "57b90c873f844ba7",
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.formatDurationMs(_:)": "f88fdc4913c27cf9",
-    "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.formatTimeMs(_:)": "69690c681e784d55",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "613fc1ee098a7dd3",
-    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279"
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.wallClockTime(forTMs:)": "8bb45fe780498d77",
+    "Emuqu/Sources/Services/LanguageManager.swift::var LanguageManager.appBundle": "45e03a07330b7279",
+    "Emuqu/Sources/Utilities/LocalizedDateFormat.swift::func LocalizedDateFormat.formatter(template:)": "7f4eb1d08313d8de"
    }
   },
   {
@@ -867,23 +869,6 @@
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "613fc1ee098a7dd3",
     "Emuqu/Sources/Models/RRModels.swift::var HRVAnalysisResult.displayWindowSelectionReason": "b60d3a4913fcd63e"
    }
-  },
-  {
-   "key": "func ReportSectionRenderer.formatTimeMs(_:)",
-   "hash": "7f72407f115ba109",
-   "does": "Formats ms as h:mm:ss when ≥1 h else m:ss.",
-   "entry": null,
-   "calls": [],
-   "reads": [],
-   "writes": [],
-   "branches": [
-    {
-     "at": "+5",
-     "cond": "hours > 0",
-     "effect": "'%d:%02d:%02d'; else '%d:%02d'"
-    }
-   ],
-   "deps": {}
   },
   {
    "key": "func ReportSectionRenderer.formatDurationMs(_:)",
@@ -1392,7 +1377,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors": "221ceb8874eede06"
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors": "257a67ab000697e7"
    }
   },
   {
@@ -1420,7 +1405,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors": "221ceb8874eede06",
+    "Emuqu/Sources/Analysis/RecoveryScoreCalculator.swift::var RecoveryScoreCalculator.ScoreBreakdown.gapFromFactors": "257a67ab000697e7",
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func String.pdfDraw(at:withAttributes:)": "57b90c873f844ba7",
     "Emuqu/Sources/Export/ReportSectionRenderer+Sections.swift::func ReportSectionRenderer.showsWeightedAverageNote(_:)": "d44ff11fcaee1e4a",
     "Emuqu/Sources/Export/ReportSectionRenderer.swift::var ReportSectionRenderer.config": "613fc1ee098a7dd3",

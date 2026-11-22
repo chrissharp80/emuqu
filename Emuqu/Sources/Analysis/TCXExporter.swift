@@ -43,13 +43,15 @@ enum TCXExporter {
     /// tags would break TrainingPeaks / Garmin Connect imports. The machine
     /// payload stays metric, and this human-readable line goes into an XML
     /// comment at the top — plus a `<Notes>` block, so Garmin Connect surfaces
-    /// it in the activity UI. The totals are the GPX export's
+    /// it in the activity UI. The stored track carries no fix times, so the
+    /// line says the trackpoint times are spread evenly, as the GPX `<desc>`
+    /// does. The totals are the GPX export's
     /// (`GPXExporter.summaryTotals`), so both files describe a workout alike
     /// and a total the session did not record is left out, not written as 0.
     private static func humanSummary(session: HRVSession) -> String {
         let imperial = UnitsPreferenceStore.current.resolved == .imperial
         let totals = GPXExporter.summaryTotals(session: session, imperial: imperial).map { " \($0)." } ?? ""
-        return "Emuqu export (preferred units: \(imperial ? "imperial" : "metric")).\(totals) Values below are metric per TCX v2 schema."
+        return "Emuqu export (preferred units: \(imperial ? "imperial" : "metric")).\(totals) Values below are metric per TCX v2 schema. Trackpoint times are spread evenly across the session, so pauses don't appear as stops and each point's heart rate is matched on those times."
     }
 
     private static func header(
@@ -72,13 +74,14 @@ enum TCXExporter {
         """#
     }
 
+    /// `<TotalTimeSeconds>` is the lap's timer time, pauses left out, as a
+    /// Garmin device records it (the wall-clock span is in the trackpoint
+    /// times): `WorkoutMetadata.movingSeconds(wallClockDuration:)`.
     private static func lapHeader(session: HRVSession, iso: ISO8601DateFormatter) -> String {
         let metadata = session.workoutMetadata
-        let durationSecRaw = session.duration ?? 0
-        let distMetersRaw = metadata?.distanceMeters ?? 0
+        let durationSec = metadata?.movingSeconds(wallClockDuration: session.duration) ?? session.duration ?? 0
+        let distance = metadata?.distanceMeters ?? 0
         var xml = ""
-        let durationSec = durationSecRaw
-        let distance = distMetersRaw
         let meanHR = session.meanHR.map { Int($0) } ?? 0
 
         xml += "      <Lap StartTime=\"\(iso.string(from: session.startDate))\">\n"
@@ -174,13 +177,12 @@ enum TCXExporter {
         fmt.dateFormat = "yyyyMMdd-HHmmss"
         fmt.timeZone = TimeZone(secondsFromGMT: 0)
         let filename = "\(sport)-\(fmt.string(from: session.startDate)).tcx"
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
         guard let data = tcx.data(using: .utf8) else {
             throw NSError(domain: "TCXExporter", code: -1, userInfo: [
                 NSLocalizedDescriptionKey: String(localized: "Couldn't create the TCX file.", bundle: LanguageManager.appBundle)
             ])
         }
-        try data.write(to: url, options: .atomic)
+        let url = try ExportFile.write(data, named: filename)
         debugLog("[TCXExporter] wrote \(data.count) bytes to \(url.path) (\(track.count) trackpoints)")
         return url
     }

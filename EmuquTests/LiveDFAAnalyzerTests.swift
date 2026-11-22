@@ -207,6 +207,47 @@ final class LiveDFAAnalyzerTests: XCTestCase {
         XCTAssertLessThan(cleaned.correctedFraction, Self.minimalBiasCorrectedFraction)
     }
 
+    // MARK: - Beats lost to a dropout
+
+    /// `count` beats of `rr` ms on a gap-corrected clock, with `lost` beats
+    /// from index `gapStart` missing (their time passes, the beats never
+    /// arrive).
+    private func streamed(_ count: Int, rr: Int = 500, losing lost: Int = 0, at gapStart: Int = 0) -> [RRPoint] {
+        var out: [RRPoint] = []
+        var t: Int64 = 0
+        for i in 0 ..< count + lost {
+            defer { t += Int64(rr) }
+            if i >= gapStart, i < gapStart + lost { continue }
+            out.append(RRPoint(t_ms: t, rr_ms: rr, wallClockMs: t, hr: nil))
+        }
+        return out
+    }
+
+    /// Before, the beats either side of a dropout were cleaned as neighbours
+    /// and the lost beats were never counted, so a window that lost 9 % of
+    /// its beats was published as clean.
+    func testBeatsLostToADropoutAreCountedAsCorrected() {
+        let cleaned = LiveDFAAnalyzer.cleanRRForDFA(streamed(200, losing: 20, at: 100))
+        XCTAssertEqual(cleaned.values.count, 220, "the lost beats are put back so DFA's beat index stays true")
+        XCTAssertEqual(cleaned.correctedCount, 20)
+        XCTAssertGreaterThan(cleaned.correctedFraction, LiveDFAAnalyzer.maxCorrectedFraction)
+    }
+
+    func testAStreamWithNoDropoutIsCleanedAsItsIntervals() {
+        let points = streamed(100)
+        let cleaned = LiveDFAAnalyzer.cleanRRForDFA(points)
+        XCTAssertEqual(cleaned, LiveDFAAnalyzer.cleanRRForDFA(points.map { Double($0.rr_ms) }))
+        XCTAssertEqual(cleaned.correctedCount, 0)
+    }
+
+    /// Half a beat of clock jitter from notification batching is not a lost
+    /// beat; a whole beat's gap is.
+    func testOnlyAWholeBeatsGapCountsAsALostBeat() {
+        let first = RRPoint(t_ms: 0, rr_ms: 500, wallClockMs: 0, hr: nil)
+        XCTAssertEqual(LiveDFAAnalyzer.beatsLost(between: first, and: RRPoint(t_ms: 750, rr_ms: 500, wallClockMs: 750, hr: nil)), 0)
+        XCTAssertEqual(LiveDFAAnalyzer.beatsLost(between: first, and: RRPoint(t_ms: 1_000, rr_ms: 500, wallClockMs: 1_000, hr: nil)), 1)
+    }
+
     // MARK: - The two-minute gate
     //
     // `recompute` requires the rolling window to SPAN two minutes, not just to

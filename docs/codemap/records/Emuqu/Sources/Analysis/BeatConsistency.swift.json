@@ -242,6 +242,53 @@
    }
   },
   {
+   "key": "func BeatConsistency.sleepWindowOnBeatClock(sleepStartMs:sleepEndMs:series:sessionStart:)",
+   "hash": "f8fff5233e1aae91",
+   "does": "A session's stored sleep window (wall-clock ms after sessionStart) moved onto the beats' t_ms axis via beatClockOffset; a missing start is 0 and a missing end the series' durationMs. Used for the scored night (HRVDetailV2View) and every prior night (BeatConsistencyPriorsCache).",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.beatClockOffset(_:series:sessionStart:)",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+3",
+     "cond": "sleepStartMs / sleepEndMs nil",
+     "effect": "0 / series.durationMs"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.beatClockOffset(_:series:sessionStart:)": "e5bbc2a8913ef6ea",
+    "Emuqu/Sources/Models/RRModels.swift::var RRSeries.durationMs": "b8e2a1bd40019ca9"
+   }
+  },
+  {
+   "key": "func BeatConsistency.beatClockOffset(_:series:sessionStart:)",
+   "hash": "68e408e205a90c5b",
+   "does": "A session-clock offset moved onto t_ms by the drift (t_ms minus wall clock, corrected for the series' own start) of the beat nearest that moment in wall-clock time; unchanged when no beat or no wall-clock stamp.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.indexClosestToWallClock(_:)",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+2",
+     "cond": "no nearest beat or it has no wall clock",
+     "effect": "offset unchanged"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Collection/HRSleepEstimator.swift::func HRSleepEstimator.wallClockMs(forBeatSumMs:in:)": "13a0c889be18396d",
+    "Emuqu/Sources/Models/RRModels.swift::func RRSeries.indexClosestToWallClock(_:)": "d05f1ea3fb9fc658",
+    "Emuqu/Sources/Utilities/MillisecondOffset.swift::func MillisecondOffset.between(_:and:fallback:)": "93af0b1ea01dcc43"
+   }
+  },
+  {
    "key": "func BeatConsistency.enumerateWindows(rr:cleanMask:sleepStartMs:sleepEndMs:config:)",
    "hash": "7287b44656036862",
    "does": "Non-overlapping 30 s windows from sleepStartMs while the start is before sleepEndMs, each built by window(rr:cleanMask:startMs:sleepEndMs:config:); [] for empty rr or an empty sleep range.",
@@ -264,18 +311,18 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.window(rr:cleanMask:startMs:sleepEndMs:config:)": "5f5c77d140df9386"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.window(rr:cleanMask:startMs:sleepEndMs:config:)": "6e62c7ad2fcba727"
    }
   },
   {
    "key": "func BeatConsistency.window(rr:cleanMask:startMs:sleepEndMs:config:)",
-   "hash": "d145e0a0d3ab7565",
-   "does": "One window: nominal end start + 30 s; takes the clean beats in [start, min(end, sleepEndMs)) via inWindow, validates them (>= 20 intervals, span >= 28 s) and computes features when valid.",
+   "hash": "a12306d6516b3c57",
+   "does": "One window: nominal end start + 30 s; takes the clean beats in [start, min(end, sleepEndMs)) via inWindow, validates them (>= 20 intervals, span >= 28 s) and computes features when valid, differencing only beats that were neighbours.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.inWindow(rr:cleanMask:startMs:endMs:)",
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.validateWindow(rrInWindow:expectedLengthMs:toleranceMs:minN:)",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:)"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:followsPrevious:)"
    ],
    "reads": [],
    "writes": [],
@@ -287,16 +334,16 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:)": "66cba4f967d27e17",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.inWindow(rr:cleanMask:startMs:endMs:)": "2db6a00a40e4d36f",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:followsPrevious:)": "e53780fb3bfacb96",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.inWindow(rr:cleanMask:startMs:endMs:)": "c8121181172064c2",
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.validateWindow(rrInWindow:expectedLengthMs:toleranceMs:minN:)": "742ca65ea8857a22",
     "Emuqu/Sources/Collection/HeartRateMeasurement.swift::func HeartRateMeasurement.intervals(in:from:)": "ad1cbf78f6431b31"
    }
   },
   {
    "key": "func BeatConsistency.inWindow(rr:cleanMask:startMs:endMs:)",
-   "hash": "6577d625d9849602",
-   "does": "Binary-searches the first beat at/after start, then collects rr_ms of clean beats with t_ms < end, returning intervals and last−first t_ms span.",
+   "hash": "3843524f692092c8",
+   "does": "Binary-searches the first beat at/after start, then collects rr_ms of clean beats with t_ms < end, whether each directly follows the previous kept beat in the series, and the last−first t_ms span.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.firstIndex(in:atOrAfter:)"
@@ -305,27 +352,27 @@
    "writes": [],
    "branches": [
     {
-     "at": "+9",
+     "at": "+11",
      "cond": "for each beat from first index",
      "effect": "iterates to end of rr"
     },
     {
-     "at": "+11",
+     "at": "+13",
      "cond": "beat t_ms >= end",
      "effect": "breaks"
     },
     {
-     "at": "+12",
+     "at": "+14",
      "cond": "index beyond cleanMask or flagged artifact",
      "effect": "skips beat"
     },
     {
-     "at": "+14",
-     "cond": "first clean beat",
-     "effect": "records firstT"
+     "at": "+16",
+     "cond": "previous kept beat is the one before",
+     "effect": "adjacent; false for the first and after a removed beat"
     },
     {
-     "at": "+17",
+     "at": "+21",
      "cond": "firstT and lastT both set",
      "effect": "span = lastT − firstT; else 0"
     }
@@ -377,34 +424,49 @@
   },
   {
    "key": "func BeatConsistency.computeFeatures(rrIntervals:)",
-   "hash": "2b35bd409d6ded7a",
-   "does": "Per-window features with population statistics: pNN50 = % successive diffs > 50 ms, cvRR = SD/mean, ratio = Poincaré SD1/SD2.",
+   "hash": "9c4de357ff60387f",
+   "does": "Per-window features over intervals that were all neighbours: computeFeatures(rrIntervals:followsPrevious:) with every interval after the first adjacent.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:followsPrevious:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.computeFeatures(rrIntervals:followsPrevious:)": "e53780fb3bfacb96"
+   }
+  },
+  {
+   "key": "func BeatConsistency.computeFeatures(rrIntervals:followsPrevious:)",
+   "hash": "a96e0428002aa356",
+   "does": "Per-window features with population statistics: pNN50 = % of successive differences between neighbouring intervals > 50 ms, cvRR = SD/mean over all intervals, ratio = Poincaré SD1/SD2 from those differences; 0 pNN50 and ratio with no adjacent pair.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.populationVariance(_:mean:)",
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.poincareRatio(_:variance:)"
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.poincareRatio(diffs:variance:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
      "at": "+2",
-     "cond": "fewer than 2 intervals",
-     "effect": "returns Features.zero"
+     "cond": "fewer than 2 intervals or mismatched flags",
+     "effect": "Features.zero"
     },
     {
-     "at": "+5",
-     "cond": "successive |diff| > 50 ms",
-     "effect": "counts NN50"
+     "at": "+11",
+     "cond": "no adjacent pair",
+     "effect": "pNN50 0, ratio 0"
     },
     {
-     "at": "+14",
+     "at": "+12",
      "cond": "mean > 0",
      "effect": "cvRR = sd/mean; else 0"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.poincareRatio(_:variance:)": "9800cb60a3e8ec12",
+    "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.poincareRatio(diffs:variance:)": "8a10aa6bc38c1905",
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.populationVariance(_:mean:)": "18f1cfc4d60fc225"
    }
   },
@@ -420,9 +482,9 @@
    "deps": {}
   },
   {
-   "key": "func BeatConsistency.poincareRatio(_:variance:)",
-   "hash": "084a9dbc54f482e9",
-   "does": "SD1 from successive differences / sqrt 2, SD2 = sqrt(2·var − SD1²); returns SD1/SD2, 0 when SD2 not positive.",
+   "key": "func BeatConsistency.poincareRatio(diffs:variance:)",
+   "hash": "5468390627857e30",
+   "does": "SD1/SD2 from the successive differences given and the window variance; 0 when 2·var − SD1² <= 0 or SD2 is 0.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/BeatConsistency.swift::func BeatConsistency.populationVariance(_:mean:)"
@@ -431,14 +493,9 @@
    "writes": [],
    "branches": [
     {
-     "at": "+5",
-     "cond": "2·var − SD1² > 0",
-     "effect": "sd2 = sqrt; else 0"
-    },
-    {
-     "at": "+6",
-     "cond": "sd2 > 0",
-     "effect": "ratio sd1/sd2; else 0"
+     "at": "+4",
+     "cond": "sd2Squared > 0 and sd2 > 0",
+     "effect": "ratio; else 0"
     }
    ],
    "deps": {

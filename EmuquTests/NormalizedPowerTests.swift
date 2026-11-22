@@ -142,6 +142,18 @@ final class NormalizedPowerTests: XCTestCase {
         XCTAssertNil(FTPAutoEstimator.bestEffort(in: []))
     }
 
+    /// Before, a scan whose workouts failed to decode found nothing, cleared
+    /// the cached FTP and was stamped, so no re-scan ran for a week. An
+    /// incomplete scan now never clears or lowers the estimate; it stores
+    /// only a better effort.
+    func testAnIncompleteScanNeverClearsOrLowersTheEstimate() {
+        let effort = FTPAutoEstimator.Effort(meanPowerWatts: 300, sessionId: UUID())
+        XCTAssertFalse(FTPAutoEstimator.incompleteScanStores(nil, cachedFTP: 280))
+        XCTAssertFalse(FTPAutoEstimator.incompleteScanStores(effort, cachedFTP: 290))
+        XCTAssertTrue(FTPAutoEstimator.incompleteScanStores(effort, cachedFTP: 280))
+        XCTAssertTrue(FTPAutoEstimator.incompleteScanStores(effort, cachedFTP: nil))
+    }
+
     // MARK: - Concept2 PM5 stroke power (Additional Stroke Data 0x0036)
 
     private func strokePacket(power: UInt16, strokes: UInt16) -> Data {

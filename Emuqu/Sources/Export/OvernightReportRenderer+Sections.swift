@@ -16,7 +16,7 @@ extension OvernightReportRenderer {
     ) -> CGFloat {
         // Too short a recording to say anything: no heading with nothing under it.
         guard let stats = overnightStatValues(
-            series: series, flags: inputs.artifactFlags, session: inputs.session,
+            series: series, flags: inputs.artifactFlags, session: inputs.session, result: inputs.result,
             sleepData: inputs.sleepData, healthKitHR: inputs.healthKitHR
         ) else { return yPosition }
         let contentWidth = pageRect.width - config.margins.left - config.margins.right
@@ -52,6 +52,7 @@ extension OvernightReportRenderer {
         series: RRSeries,
         flags: [ArtifactFlags],
         session: HRVSession,
+        result: HRVAnalysisResult,
         sleepData: PDFReportGenerator.SleepData?,
         healthKitHR: HeartRateStats?
     ) -> OvernightStatValues? {
@@ -62,7 +63,7 @@ extension OvernightReportRenderer {
         // HealthKit sleep when available, otherwise the recording-length estimate
         let sleepStats = computeOvernightSleepStats(sleepData: sleepData, durationMinutes: Int((last.t_ms - first.t_ms) / 60000))
         return OvernightStatValues(
-            hrRange: overnightHRRange(points: points, series: series, healthKitHR: healthKitHR),
+            hrRange: overnightHRRange(points: points, series: series, result: result, healthKitHR: healthKitHR),
             peakRMSSD: peak?.rmssd, peakHRVTime: peak.map { series.wallClockTime(forTMs: $0.timeMs) },
             durationFormatted: formatRecordingDuration(series: series, first: first, last: last), sleepStats: sleepStats
         )
@@ -127,16 +128,25 @@ extension OvernightReportRenderer {
         }
     }
 
-    /// Apple Watch HR is ground truth when present; otherwise derive it from RR.
-    /// Nil when neither gives a heart rate, so nothing is printed as measured.
+    /// Apple Watch HR is ground truth when present. Otherwise the result's
+    /// whole-recording figures (`recordingMinHR`'s source, the lowest
+    /// 30-second rolling mean), so the nadir here is the Min HR the summary
+    /// above prints rather than one short beat; a result saved before those
+    /// were kept derives them from RR. Nil when none gives a heart rate, so
+    /// nothing is printed as measured.
     private func overnightHRRange(
         points: [RRPoint],
         series: RRSeries,
+        result: HRVAnalysisResult,
         healthKitHR: HeartRateStats?
     ) -> OvernightHRRange? {
         if let hkStats = healthKitHR {
             debugLog("[PDF] Using HealthKit HR: nadir=\(hkStats.min), max=\(hkStats.max)")
             return OvernightHRRange(min: hkStats.min, max: hkStats.max, nadirTime: hkStats.nadirTime)
+        }
+        if let minHR = result.overnightMinHR, let maxHR = result.overnightMaxHR {
+            let nadirTime = result.overnightNadirTimeMs.map { series.wallClockTime(forTMs: $0) }
+            return OvernightHRRange(min: minHR, max: maxHR, nadirTime: nadirTime)
         }
         guard let hrStats = calculateRollingWindowHRStats(points: points) else {
             debugLog("[PDF] No heart rate in the recording; HR boxes print as missing", level: .warning)
@@ -327,7 +337,7 @@ extension OvernightReportRenderer {
     private func drawTagPill(tag: ReadingTag, x: CGFloat, y: CGFloat, tagHeight: CGFloat, tagSpacing: CGFloat, contentWidth: CGFloat) -> (CGFloat, CGFloat) {
         var tagX = x
         var y = y
-        let tagText = tag.name
+        let tagText = tag.displayName
         let tagAttributes: [NSAttributedString.Key: Any] = [
             .font: config.captionFont,
             .foregroundColor: UIColor.darkGray

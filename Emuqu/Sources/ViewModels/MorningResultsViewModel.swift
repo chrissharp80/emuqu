@@ -16,6 +16,9 @@ final class MorningResultsViewModel {
     var selectedTags: Set<ReadingTag>
     var notes: String
     var reanalyzedSession: HRVSession?
+    /// The latest perceived-readiness archive write; the next one waits for
+    /// it (`persistPerceivedReadiness`).
+    @ObservationIgnored private var perceivedReadinessWrite: Task<Void, Never>?
     var selectedMethod: WindowSelectionMethod
     var isReanalyzing = false
     var isGeneratingPDF = false
@@ -132,9 +135,15 @@ final class MorningResultsViewModel {
     /// the archive lock, so a sleep or score update that landed meanwhile is
     /// kept. On success the screen shows that copy; on failure it goes back to
     /// what it showed before, so it never shows a rating the archive lacks.
+    ///
+    /// Each write waits for the one before it (`perceivedReadinessWrite`),
+    /// so two quick answers reach the archive in the order they were given
+    /// and the last one is what stays stored.
     private func persistPerceivedReadiness(_ value: Double?, scored: HRVSession, revertTo previous: HRVSession) {
         let sessionId = session.id
-        Task {
+        let earlier = perceivedReadinessWrite
+        perceivedReadinessWrite = Task {
+            await earlier?.value
             let archived = await Task.detached { Self.loadArchived(sessionId) }.value
             var rescored = archived.session ?? scored
             rescored.perceivedReadiness = value

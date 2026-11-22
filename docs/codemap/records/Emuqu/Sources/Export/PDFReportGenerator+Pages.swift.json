@@ -249,42 +249,62 @@
   },
   {
    "key": "func PDFReportGenerator.drawPage2_Visualizations(_:series:pageNumber:in:pageRect:)",
-   "hash": "04e96ba7ce3e028d",
-   "does": "Begins page 2 and draws, for the given series, the overnight HR chart, Poincaré plot, PSD (if frequency domain exists, with the analysis-window index range), tachogram, quality section and window-selection section (if any window info); footer and pageNumber+1.",
+   "hash": "0ffd01a753a916a8",
+   "does": "Begins page 2 and draws, for the given series, the overnight HR chart, Poincaré plot, PSD (if frequency domain exists, with the analysis-window index range), tachogram, then the quality and window blocks (drawQualityAndWindow); before each block after the first it makes room for that block's height (220, 150, 115 pt) with ensureSpace, which closes the page with its footer and starts a new one when the block would reach the footer. Footer and pageNumber+1 at the end.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)",
     "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::func PDFReportGenerator.drawOvernightHRChart(series:result:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.ensureSpace(needed:y:pageNumber:context:pageRect:)",
     "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawPoincarePlot(series:flags:result:yPosition:in:pageRect:)",
     "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawPSDGraph(series:flags:fd:window:yPosition:in:pageRect:)",
     "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawTachogram(series:flags:result:yPosition:in:pageRect:)",
-    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawQualitySection(_:session:yPosition:in:pageRect:)",
-    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawWindowSelectionSection(result:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawQualityAndWindow(_:series:y:pageNumber:in:pageRect:)",
     "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawFooter(pageNumber:in:pageRect:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [
     {
-     "at": "+11",
+     "at": "+12",
      "cond": "frequencyDomain non-nil",
-     "effect": "draws PSD graph; else skipped"
-    },
-    {
-     "at": "+19",
-     "cond": "windowStartMs or windowSelectionReason non-nil",
-     "effect": "draws window selection card; else skipped"
+     "effect": "makes room for and draws the PSD graph; else skipped"
     }
    ],
    "deps": {
     "Emuqu/Sources/Export/PDFReportGenerator+Helpers.swift::func PDFReadingDirection.beginPage(_:)": "1fe55bb771aafd5a",
     "Emuqu/Sources/Export/PDFReportGenerator+OvernightForwarding.swift::func PDFReportGenerator.drawOvernightHRChart(series:result:yPosition:in:pageRect:)": "2605958829b63a13",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.drawQualityAndWindow(_:series:y:pageNumber:in:pageRect:)": "eebb9a240f235cde",
     "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawFooter(pageNumber:in:pageRect:)": "3d1f59142c0c2b3d",
     "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawPSDGraph(series:flags:fd:window:yPosition:in:pageRect:)": "6ecd3cdc0c034efe",
     "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawPoincarePlot(series:flags:result:yPosition:in:pageRect:)": "4359558f4e4d8fa1",
-    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawQualitySection(_:session:yPosition:in:pageRect:)": "dbf3afab0135cdd8",
     "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawTachogram(series:flags:result:yPosition:in:pageRect:)": "ee0234cabe0419c2",
-    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawWindowSelectionSection(result:yPosition:in:pageRect:)": "377eb60e9c9d7f2c"
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.ensureSpace(needed:y:pageNumber:context:pageRect:)": "76aca921cbdb4866"
+   }
+  },
+  {
+   "key": "func PDFReportGenerator.drawQualityAndWindow(_:series:y:pageNumber:in:pageRect:)",
+   "hash": "c19afea8c922340e",
+   "does": "Makes room for (78 pt) and draws the Data Quality block; when the result has windowStartMs or a selection reason, makes room for (100 pt) and draws the Analysis Window card with the series for clock times. Returns the y below the last block.",
+   "entry": null,
+   "calls": [
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.ensureSpace(needed:y:pageNumber:context:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawQualitySection(_:session:yPosition:in:pageRect:)",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawWindowSelectionSection(result:series:yPosition:in:pageRect:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [
+    {
+     "at": "+7",
+     "cond": "no window start and no selection reason",
+     "effect": "returns after the quality block"
+    }
+   ],
+   "deps": {
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawQualitySection(_:session:yPosition:in:pageRect:)": "dbf3afab0135cdd8",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.drawWindowSelectionSection(result:series:yPosition:in:pageRect:)": "377eb60e9c9d7f2c",
+    "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::func PDFReportGenerator.ensureSpace(needed:y:pageNumber:context:pageRect:)": "76aca921cbdb4866"
    }
   },
   {
@@ -408,23 +428,23 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.writeReport(_:for:)": "4e0daa3ab35acfbb",
+    "Emuqu/Sources/Export/PDFReportGenerator+Pages.swift::func PDFReportGenerator.writeReport(_:for:)": "979476fcb7d7a22f",
     "Emuqu/Sources/Export/PDFReportGenerator+SectionForwarding.swift::var PDFReportGenerator.sections": "423a33f01886bd16",
     "Emuqu/Sources/Export/PDFReportGenerator.swift::func PDFReportGenerator.generateReport(for:flags:sleepData:sleepTrend:recentSessions:healthKitHR:vitals:compositeRecoveryScore:scoreBreakdown:baselineStats:liveLoadSnapshot:style:sections:)": "883d41fc806d95cd"
    }
   },
   {
    "key": "func PDFReportGenerator.writeReport(_:for:)",
-   "hash": "aa2e89a19102e8c3",
-   "does": "Writes PDF data to <tmp>/Emuqu_Recovery_<yyyyMMdd_HHmmss of session end or start>.pdf (POSIX/gregorian stamp); returns the URL, or logs and returns nil on write failure.",
+   "hash": "8764341d931f309a",
+   "does": "Writes PDF data as Emuqu_Recovery_<yyyyMMdd_HHmmss of session end or start>.pdf (POSIX/gregorian stamp) into the export folder through ExportFile.write (atomic, complete protection); returns the URL, or logs and returns nil on write failure.",
    "entry": null,
    "calls": [
-    "ext:Data.write(to:)",
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [],
    "writes": [
-    "file:tmp/Emuqu_Recovery_<stamp>.pdf"
+    "file:tmp/Exports/Emuqu_Recovery_<stamp>.pdf"
    ],
    "branches": [
     {
@@ -433,14 +453,14 @@
      "effect": "uses startDate for the stamp when the session has no endDate"
     },
     {
-     "at": "+12",
+     "at": "+10",
      "cond": "catch write error",
      "effect": "error logged via debugLog and swallowed; returns nil (caller shows no share sheet)"
     }
    ],
    "deps": {
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
-    "EmuquTests/GetSessionOvernightTests.swift::func GetSessionOvernightTests.temporaryDirectory()": "d26338a9f203c439"
+    "Emuqu/Sources/Export/ExportFile.swift::func ExportFile.write(_:named:replacingPrefix:)": "c1e5c0f9d8a4166c",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   }
  ],

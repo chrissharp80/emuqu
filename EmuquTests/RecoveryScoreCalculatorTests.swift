@@ -249,10 +249,21 @@ final class RecoveryScoreCalculatorTests: XCTestCase {
         XCTAssertLessThan(score, 80.0)
     }
 
-    func testTier1FallbackToReadiness() {
-        // No baseline: readiness 7.0 -> score 70
+    /// Before, the readiness score (always present) stood in for a missing
+    /// baseline, so the registered absolute bands never ran. RMSSD 40 is in
+    /// the 30-45 band, which scores 55 whatever the readiness score says.
+    func testTier1WithoutABaselineUsesTheAbsoluteBandsNotReadiness() {
         let score = RecoveryScoreCalculator.calculateTier1(
             rmssd: 40.0, meanHR: nil, dfaAlpha1: nil,
+            baselineStats: nil, readiness: 7.0
+        )
+        XCTAssertEqual(score, 55.0, accuracy: 0.1)
+    }
+
+    /// With no usable RMSSD the readiness score still stands in: 7.0 → 70.
+    func testTier1WithoutAReadingFallsBackToReadiness() {
+        let score = RecoveryScoreCalculator.calculateTier1(
+            rmssd: 0, meanHR: nil, dfaAlpha1: nil,
             baselineStats: nil, readiness: 7.0
         )
         XCTAssertEqual(score, 70.0, accuracy: 0.1)

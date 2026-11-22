@@ -191,10 +191,17 @@ extension TrainingHealthQueries {
     /// full-day window.
     ///
     /// Bounded via the deadlock-backstop timeout (off the UI critical path).
-    /// The handler already returns [] on any failure, so timing out to [] is
-    /// identical to the existing no-data path — no new risk to the CTL/ATL
-    /// aggregation, just a ceiling so a wedged store can't hang the rebuild.
+    /// A failed or timed-out query reads as no workouts here; a caller that
+    /// must tell the two apart uses `fetchWorkoutsExtendedIfAnswered`.
     private func fetchWorkouts(days: Int, relativeTo referenceDate: Date) async -> [HealthKitManager.WorkoutSummary] {
+        await queryWorkouts(days: days, relativeTo: referenceDate) ?? []
+    }
+
+    /// The workouts of the last `days` days (`fetchWorkouts`), or nil when
+    /// the query returned an error (the store locked or unavailable) or did
+    /// not answer within the timeout. Without HealthKit on the device there
+    /// is nothing to ask, which is no workouts rather than a failure.
+    private func queryWorkouts(days: Int, relativeTo referenceDate: Date) async -> [HealthKitManager.WorkoutSummary]? {
         guard manager.isHealthKitAvailable else { return [] }
         let calendar = Calendar.current
         let startOfReferenceDay = calendar.startOfDay(for: referenceDate)
@@ -207,10 +214,19 @@ extension TrainingHealthQueries {
                 predicate: predicate,
                 limit: HKObjectQueryNoLimit,
                 sortDescriptors: [sortDescriptor]
-            ) { _, samples, _ in
-                resolve(Self.workoutSummaries(samples))
+            ) { _, samples, error in
+                resolve(Self.workoutSummaries(samples, unlessFailed: error))
             }
-        } ?? []
+        }
+    }
+
+    /// The query's workouts, or nil (logged) when it returned an error.
+    nonisolated private static func workoutSummaries(
+        _ samples: [HKSample]?, unlessFailed error: (any Error)?
+    ) -> [HealthKitManager.WorkoutSummary]? {
+        guard let error else { return workoutSummaries(samples) }
+        debugLog("[TrainingHealthQueries] Workout query failed: \(error.localizedDescription)", level: .warning)
+        return nil
     }
 
     nonisolated private static func workoutSummaries(_ samples: [HKSample]?) -> [HealthKitManager.WorkoutSummary] {
@@ -431,6 +447,14 @@ extension TrainingHealthQueries {
     /// Fetch workouts for extended period (needed for CTL calculation)
     func fetchWorkoutsExtended(days: Int = 60, relativeTo referenceDate: Date = Date()) async -> [HealthKitManager.WorkoutSummary] {
         await fetchWorkouts(days: days, relativeTo: referenceDate)
+    }
+
+    /// `fetchWorkoutsExtended`, but nil when HealthKit did not answer (the
+    /// query failed or timed out) rather than an empty list, so a caller
+    /// that publishes and persists the result does not take a failed query
+    /// for a period with no workouts.
+    func fetchWorkoutsExtendedIfAnswered(days: Int, relativeTo referenceDate: Date) async -> [HealthKitManager.WorkoutSummary]? {
+        await queryWorkouts(days: days, relativeTo: referenceDate)
     }
 
     /// Fetch Apple's computed resting heart rate from HealthKit.

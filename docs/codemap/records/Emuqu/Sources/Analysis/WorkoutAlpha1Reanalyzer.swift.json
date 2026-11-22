@@ -53,7 +53,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::func RRWindowSweep.range(start:end:)": "c266e7f0809752d4",
     "Emuqu/Sources/Analysis/SleepBoundaryResolver.swift::init RRWindowSweep(_:)": "a015c09cb24e513c",
-    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.fit(_:atOffsetSec:cadenceSec:minBeatsForFit:)": "1edf9e6b553a3263",
+    "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.fit(_:atOffsetSec:cadenceSec:minBeatsForFit:)": "9fe3f58e5af08534",
     "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.wallClockTimeline(_:)": "5e88e2fda2a3fea5",
     "Emuqu/Sources/Analysis/WorkoutAlpha1Reanalyzer.swift::func WorkoutAlpha1Reanalyzer.wasPaused(_:toleranceSec:)": "502ed1756fdaa6bc"
    }
@@ -103,11 +103,11 @@
   },
   {
    "key": "func WorkoutAlpha1Reanalyzer.fit(_:atOffsetSec:cadenceSec:minBeatsForFit:)",
-   "hash": "1e2907200eb2d7eb",
-   "does": "Fits α1 for one window: requires >= minBeatsForFit beats, cleans RR with LiveDFAAnalyzer.cleanRRForDFA, rejects when correctedFraction > LiveDFAAnalyzer.maxCorrectedFraction or DFA fails; returns Reading(offsetSec: Int(t), alpha1, R², cadenceSec).",
+   "hash": "714f0aea476e0367",
+   "does": "Fits α1 for one window: requires >= minBeatsForFit beats, cleans the window's beats on the gap-corrected timeline with LiveDFAAnalyzer.cleanRRForDFA (beats a dropout lost count as corrected, as live), rejects when correctedFraction > LiveDFAAnalyzer.maxCorrectedFraction or DFA fails; returns Reading(offsetSec: Int(t), alpha1, R², cadenceSec).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_: [RRPoint])",
     "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)"
    ],
    "reads": [],
@@ -125,8 +125,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "93a8b95af9c5a354",
-    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_:)": "5656cbdeb6baee1a",
+    "Emuqu/Sources/Analysis/DFAAnalysis.swift::func DFAAnalyzer.compute(_:alpha1Range:alpha2Range:)": "db17965893eacc09",
+    "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::func LiveDFAAnalyzer.cleanRRForDFA(_: [RRPoint])": "89264b646221538e",
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.CleanedSeries.correctedFraction": "743d503c699a2b99"
    }
   },

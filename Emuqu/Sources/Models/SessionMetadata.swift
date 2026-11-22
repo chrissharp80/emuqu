@@ -29,6 +29,15 @@ struct DeviceProvenance: Codable, Equatable {
         case deviceInternal = "device_internal" // H10 internal memory recording
         case streaming // Real-time BLE streaming
         case imported // Imported from external source
+
+        /// A mode a newer build added reads as `.streaming`, the live mode
+        /// most recordings use (nothing decides on it), instead of failing
+        /// the session; `HRVSession` then reads the payload as newer, so it
+        /// is not re-saved over.
+        init(from decoder: Decoder) throws {
+            let raw = try decoder.singleValueContainer().decode(String.self)
+            self = RecordingMode(rawValue: raw) ?? .streaming
+        }
     }
 
     /// Create provenance for current device
@@ -123,9 +132,13 @@ struct HRVSession: Codable, Identifiable, Sendable {
     /// What decodes leniently: unknown keys (dropped), and a `SessionState`,
     /// `SessionType` or `HRVDataQuality` case this build does not know (read
     /// as `.complete`, `.quick` and `.insufficient`, and the payload then
-    /// reads as newer than this build — `payloadSchemaVersion`). A field whose
-    /// TYPE a newer build changed still fails the decode; that is a breaking
-    /// format change and needs a migration, not a lenient read.
+    /// reads as newer than this build — `payloadSchemaVersion`). Nested
+    /// enums degrade the same way rather than failing the session: a
+    /// recording mode, sleep-boundary source, sleep stage, artifact type or
+    /// score-factor impact this build does not know reads as its fallback
+    /// case. A field whose TYPE a newer build changed still fails the decode;
+    /// that is a breaking format change and needs a migration, not a lenient
+    /// read.
     var sourceSchemaVersion: Int?
 
     let id: UUID
@@ -572,15 +585,35 @@ struct HRVSession: Codable, Identifiable, Sendable {
 
     /// The payload's schema version (0 when absent) — or, when it carries a
     /// `SessionState`, `SessionType` or `HRVDataQuality` case this build does
-    /// not know, one newer than `currentSchemaVersion` whatever it states: a
-    /// newer build wrote it, and the decode is lossy, so the archive must
-    /// refuse to re-write it.
+    /// not know, or a recording mode or sleep-boundary source it does not
+    /// know (`DeviceProvenance.RecordingMode`, `SleepBoundarySource`), one
+    /// newer than `currentSchemaVersion` whatever it states: a newer build
+    /// wrote it, and the decode is lossy, so the archive must refuse to
+    /// re-write it. Unknown artifact types and score-factor impacts degrade
+    /// without this mark: analysis and re-scoring derive them again.
     private static func payloadSchemaVersion(in container: KeyedDecodingContainer<CodingKeys>) throws -> Int {
         let stated = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 0
         let unknownCase = try container.holdsUnknownCase(SessionState.self, forKey: .state)
             || container.holdsUnknownCase(SessionType.self, forKey: .sessionType)
             || container.holdsUnknownCase(HRVDataQuality.self, forKey: .hrvDataQuality)
+            || nestedHoldsUnknownCase(DeviceProvenance.RecordingMode.self, in: .deviceProvenance, field: .recordingMode, of: container)
+            || nestedHoldsUnknownCase(SleepBoundarySource.self, in: .sleepSnapshot, field: .boundarySource, of: container)
         return unknownCase ? max(stated, currentSchemaVersion + 1) : stated
+    }
+
+    /// The fields inside a nested value whose cases `payloadSchemaVersion`
+    /// checks.
+    private enum NestedCaseKey: String, CodingKey {
+        case recordingMode, boundarySource
+    }
+
+    /// Whether the object at `key` holds, at `field`, a string that is not a
+    /// case of `T`. False when `key` is absent or null.
+    private static func nestedHoldsUnknownCase<T: RawRepresentable>(
+        _ type: T.Type, in key: CodingKeys, field: NestedCaseKey, of container: KeyedDecodingContainer<CodingKeys>
+    ) throws -> Bool where T.RawValue == String {
+        guard container.contains(key), try !container.decodeNil(forKey: key) else { return false }
+        return try container.nestedContainer(keyedBy: NestedCaseKey.self, forKey: key).holdsUnknownCase(type, forKey: field)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -718,6 +751,9 @@ struct SessionArchiveEntry: Codable, Sendable {
     /// entry predates it); nil for an entry built in memory. Kept, not
     /// discarded, so an index written by a newer build can be told apart
     /// before this build re-saves it; `encode` writes `currentSchemaVersion`.
+    /// An entry holding a `SessionType` or `HRVDataQuality` case this build
+    /// does not know reads as one newer than `currentSchemaVersion`, as
+    /// `HRVSession` reads it.
     var sourceSchemaVersion: Int?
 
     let sessionId: UUID
@@ -865,8 +901,7 @@ struct SessionArchiveEntry: Codable, Sendable {
     /// Custom decoder to handle missing fields in old data.
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        // Schema version: absent in legacy data → defaults to 0
-        sourceSchemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 0
+        sourceSchemaVersion = try Self.entrySchemaVersion(in: container)
         sessionId = try container.decode(UUID.self, forKey: .sessionId)
         date = try container.decode(Date.self, forKey: .date)
         endDate = try container.decodeIfPresent(Date.self, forKey: .endDate)
@@ -893,6 +928,18 @@ struct SessionArchiveEntry: Codable, Sendable {
         nocturnalDipPercent = try container.decodeIfPresent(Double.self, forKey: .nocturnalDipPercent)
         hrvDataQuality = try container.decodeKnownIfPresent(HRVDataQuality.self, forKey: .hrvDataQuality, unknown: .insufficient)
         modifiedAt = try container.decodeIfPresent(Date.self, forKey: .modifiedAt)
+    }
+
+    /// The entry's schema version (0 when absent in legacy data), or one
+    /// newer than `currentSchemaVersion` when it holds a `SessionType` or
+    /// `HRVDataQuality` case this build does not know: those read as
+    /// `.quick` and `.insufficient`, and a re-save must not write that over
+    /// the newer build's value.
+    private static func entrySchemaVersion(in container: KeyedDecodingContainer<CodingKeys>) throws -> Int {
+        let stated = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 0
+        let unknownCase = try container.holdsUnknownCase(SessionType.self, forKey: .sessionType)
+            || container.holdsUnknownCase(HRVDataQuality.self, forKey: .hrvDataQuality)
+        return unknownCase ? max(stated, currentSchemaVersion + 1) : stated
     }
 
     func encode(to encoder: Encoder) throws {

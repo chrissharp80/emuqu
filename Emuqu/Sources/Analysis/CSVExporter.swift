@@ -166,6 +166,8 @@ enum CSVExporter {
     }
 
     /// One CSV row: the GPS fix plus whatever the nearest 1 Hz sample carried.
+    /// A fix with no altitude (negative vertical accuracy) leaves the
+    /// elevation cell empty, as the other unknown cells are, rather than 0.0.
     private static func trackpointRow(
         fix: CLLocation,
         cumulative: Double,
@@ -182,7 +184,7 @@ enum CSVExporter {
             "\(secondsFromStart)",
             String(format: "%.6f", fix.coordinate.latitude),
             String(format: "%.6f", fix.coordinate.longitude),
-            String(format: "%.1f", units.metresToElev(fix.altitude)),
+            fix.verticalAccuracy >= 0 ? String(format: "%.1f", units.metresToElev(fix.altitude)) : "",
             String(format: "%.3f", units.metresToDist(cumulative)),
             matched?.heartRate.map { "\($0)" } ?? "",
             matched.flatMap(\.paceSecPerKm).map { String(format: "%.0f", secPerKmToSecPerUnit($0)) } ?? "",
@@ -271,13 +273,12 @@ enum CSVExporter {
         fmt.dateFormat = "yyyyMMdd-HHmmss"
         fmt.timeZone = TimeZone(secondsFromGMT: 0)
         let filename = "\(sport)-\(fmt.string(from: session.startDate)).csv"
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
         guard let data = csv.data(using: .utf8) else {
             throw NSError(domain: "CSVExporter", code: -1, userInfo: [
                 NSLocalizedDescriptionKey: String(localized: "Couldn't create the CSV file.", bundle: LanguageManager.appBundle)
             ])
         }
-        try data.write(to: url, options: .atomic)
+        let url = try ExportFile.write(data, named: filename)
         debugLog("[CSVExporter] wrote \(data.count) bytes to \(url.path)")
         return url
     }

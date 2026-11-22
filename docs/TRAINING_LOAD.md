@@ -255,13 +255,17 @@ the one place both the dashboard and the AI read from, so they can't disagree:
 - When a refresh recomputes (`needsRebuild`, `TrainingMetricsCache+Freshness.swift`):
   - no result yet, or `invalidate()` was called: always;
   - the load settings changed (`LoadSettings`: resting-HR setting, max HR,
-    biological sex, FTPs): at once;
-  - the archived workout set or the calendar day changed: once the 5-minute
-    burst throttle has passed;
+    biological sex, FTPs), or the calendar day changed: at once;
+  - the archived workout set changed: once the 5-minute burst throttle has
+    passed;
   - nothing the cache can see changed: once the result is 30 minutes old
     (`unchangedMaxAgeSec`), so a workout logged in another app or a new Apple
     resting HR shows up within half an hour.
   `snapshot()` uses the same rule before scheduling a background refresh.
+- A HealthKit workout query that fails or times out publishes nothing: the
+  last result and series stay, still due for a rebuild, and the next refresh
+  asks again, so a locked store never publishes a load without the Watch and
+  Strava workouts.
 - `.flowRecoveryArchiveChanged` invalidates only when the archived workout set
   changed (a fingerprint of each workout's id and file hash); HRV writes don't
   touch training load and are ignored.

@@ -75,7 +75,7 @@ enum RecoveryScoreConstants {
         static let maxPenalty: Double = 20.0
     }
 
-    // MARK: - Tier 1: Absolute RMSSD Fallbacks (no baseline, no readiness)
+    // MARK: - Tier 1: Absolute RMSSD Fallbacks (no baseline yet)
 
     enum AbsoluteRMSSDFallback {
         static let threshold1: Double = 60.0

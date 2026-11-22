@@ -249,7 +249,10 @@ enum DashboardSessionPolicy {
             if let snapshot = session.sleepSnapshot, let sleepEnd = snapshot.sleepEnd {
                 return sleepEnd
             }
-            if let endMs = session.sleepEndMs {
+            // A zero offset is no sleep end, as the index mirror reads it
+            // (`SessionArchive.deriveSleepIndexFields`), so the seed and
+            // this pick put a night on the same day.
+            if let endMs = session.sleepEndMs, endMs > 0 {
                 return session.startDate.addingTimeInterval(TimeInterval(endMs) / 1000.0)
             }
         }

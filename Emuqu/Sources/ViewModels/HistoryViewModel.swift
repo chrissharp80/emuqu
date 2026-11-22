@@ -237,7 +237,7 @@ final class HistoryViewModel {
         return result.filter { entry in
             let dateString = formatter.string(from: entry.displayDate)
             return dateString.localizedCaseInsensitiveContains(searchText) ||
-                entry.tags.contains { $0.name.localizedCaseInsensitiveContains(searchText) } ||
+                entry.tags.contains { $0.displayName.localizedCaseInsensitiveContains(searchText) } ||
                 (entry.notes?.localizedCaseInsensitiveContains(searchText) ?? false)
         }
     }

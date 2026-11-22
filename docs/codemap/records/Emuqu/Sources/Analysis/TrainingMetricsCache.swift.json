@@ -1,14 +1,17 @@
 {
  "file": "Emuqu/Sources/Analysis/TrainingMetricsCache.swift",
- "hash": "f97d822d165856d5",
- "role": "@Observable @MainActor singleton holding the current training metrics (CTL/ATL/TSB/ACWR) and a 400-day day-by-day ATL/CTL/TRIMP series, refreshed from HealthKit + the session archive and persisted to Application Support, sealed with the app's key, for cold-launch display.",
+ "hash": "ab983b6e1240ea78",
+ "role": "@Observable @MainActor cache holding the current training metrics (CTL/ATL/TSB/ACWR) and a 400-day day-by-day ATL/CTL/TRIMP series, refreshed from HealthKit + an injected session-archive source and settings closure, and persisted to an injected snapshot file sealed with an injected seal (the app's: Application Support, the app's key) for cold-launch display.",
  "types": [
   "TrainingMetricsCache: class (@Observable @MainActor final) — shared training-load cache read by dashboard, Fitness tab, trajectory loader and AI fact resolvers",
   "TrainingMetricsCache.DaySample: struct Codable — one day's atl/ctl/trimp (+computed tsb)",
   "TrainingMetricsCache.PersistedCache: struct Codable (internal, for tests through writeSnapshot/readSnapshot) — on-disk snapshot shape"
  ],
  "state": [
-  "static let shared = TrainingMetricsCache() (mem:TrainingMetricsCache.shared, returned by AnalysisServices.trainingMetricsCache AppDependencies.swift:477)",
+  "static let shared = TrainingMetricsCache() (mem:TrainingMetricsCache.shared, the app's instance on the default sources; returned by AnalysisServices.trainingMetricsCache)",
+  "mem:TrainingMetricsCache.archiveSource (@Sendable () -> SessionArchive; the app's resolves AppDependencies.current.storage.sessionArchive at each read)",
+  "mem:TrainingMetricsCache.settingsSource (@MainActor () -> UserSettings; the app's reads AppDependencies.current.app.settingsManager.settings)",
+  "mem:TrainingMetricsCache.persistenceURL (URL?, the snapshot file; nil keeps nothing on disk) and mem:TrainingMetricsCache.seal (JSONFileSeal)",
   "mem:TrainingMetricsCache.current (private(set) TrainingMetrics?)",
   "mem:TrainingMetricsCache.lastUpdated (Date?, when the last compute was published; nil = dirty flag)",
   "mem:TrainingMetricsCache.computedAt (Date?, when current was computed or restored; never cleared by invalidate — the 'as of' stamp)",
@@ -21,10 +24,10 @@
   "mem:TrainingMetricsCache.observers (NotificationTokens holding the .flowRecoveryArchiveChanged observer)",
   "mem:TrainingMetricsCache.healthKit (weak HealthKitManager, set by configure)",
   "mem:TrainingMetricsCache.historicalTask (detached 400-day build task)",
-  "file:Application Support/TrainingMetricsCache.json (static persistenceURL; JSON sealed with the app's key — plain JSON from builds that did not seal it still opens; .atomic + completeFileProtectionUntilFirstUserAuthentication)",
+  "file:Application Support/TrainingMetricsCache.json (static defaultPersistenceURL, the app's snapshot file; JSON sealed with the app's key — plain JSON from builds that did not seal it still opens; .atomic + completeFileProtectionUntilFirstUserAuthentication)",
   "notif:flowRecoveryArchiveChanged (observed, queue nil)"
  ],
- "toplevel": "Stored-property initializers only: dailySeries = [:], historicalBuildPending = false, lookbackDays 400, replayWarmUpDays 180, observers = NotificationTokens(), static persistenceURL closure. Imports CryptoKit for SHA-256 fingerprinting.",
+ "toplevel": "Stored-property initializers only: dailySeries = [:], historicalBuildPending = false, lookbackDays 400, replayWarmUpDays 180, observers = NotificationTokens(), static defaultPersistenceURL closure. Imports CryptoKit for SHA-256 fingerprinting.",
  "units": [
   {
    "key": "var TrainingMetricsCache.DaySample.tsb",
@@ -38,9 +41,9 @@
    "deps": {}
   },
   {
-   "key": "init TrainingMetricsCache()",
-   "hash": "66dbcaff9e3167eb",
-   "does": "Private singleton init: restores the persisted snapshot via loadFromDisk, then registers an archive-change observer whose callback runs invalidateIfWorkoutsChanged on the main actor.",
+   "key": "init TrainingMetricsCache(archive:settings:persistenceURL:seal:)",
+   "hash": "d48afde422f680e5",
+   "does": "Stores the archive source, settings closure, snapshot URL and seal (defaults: the archive and settings of AppDependencies.current read at each use, defaultPersistenceURL, JSONFileSeal.app), restores the snapshot at that URL via loadFromDisk, then registers an archive-change observer whose callback runs invalidateIfWorkoutsChanged on the main actor. `shared` is built with the defaults; a test builds one from its own archive, settings and file.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.loadFromDisk()",
@@ -53,6 +56,10 @@
     "notif:flowRecoveryArchiveChanged"
    ],
    "writes": [
+    "mem:TrainingMetricsCache.archiveSource",
+    "mem:TrainingMetricsCache.settingsSource",
+    "mem:TrainingMetricsCache.persistenceURL",
+    "mem:TrainingMetricsCache.seal",
     "mem:TrainingMetricsCache.current",
     "mem:TrainingMetricsCache.dailySeries",
     "mem:TrainingMetricsCache.lastUpdated",
@@ -61,8 +68,12 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.invalidateIfWorkoutsChanged()": "6a51d313f9108da1",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.loadFromDisk()": "2ee31e68d34c76e6",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.loadFromDisk()": "592db076e713fffb",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.makeArchiveObserver(_:)": "17f1f78d059b7f87",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::let TrainingMetricsCache.defaultPersistenceURL": "a933f6bbdf0f1cc3",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
+    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
     "Emuqu/Sources/Utilities/NotificationTokens.swift::func NotificationTokens.add(_:)": "443c12d5227f3e97"
    }
   },
@@ -84,13 +95,11 @@
   },
   {
    "key": "func TrainingMetricsCache.workoutFingerprint()",
-   "hash": "5a8059ef41af7df8",
-   "does": "SHA-256 hex digest over 'sessionId:fileHash\\n' for every archive entry with sessionType == .workout, sorted by sessionId string. Reads only the in-memory archive index.",
+   "hash": "c798c0af4b31eaae",
+   "does": "SHA-256 hex digest over 'sessionId:fileHash\\n' for every entry of the archive source's archive with sessionType == .workout, sorted by sessionId string. Reads only the in-memory archive index.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive",
+    "closure:TrainingMetricsCache.archiveSource",
     "ext:CryptoKit.SHA256"
    ],
    "reads": [
@@ -107,9 +116,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.finalize()": "617bf2c6974d2d39",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "0be02377b8827b75"
+    "Emuqu/Sources/Storage/Archive+IndexIO.swift::func IndexEntriesFromNewerBuild.sessionId(in:)": "c98f2891d96a6b68"
    }
   },
   {
@@ -137,7 +144,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.invalidate()": "50d144dd4e71c531",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.workoutFingerprint()": "51275b5641887c8d"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.workoutFingerprint()": "6e10e2316c0bae77"
    }
   },
   {
@@ -156,10 +163,10 @@
    }
   },
   {
-   "key": "let TrainingMetricsCache.persistenceURL",
-   "hash": "0baea1bf7a0ee864",
-   "does": "Static lazy initializer: Application Support directory (created if missing) + 'TrainingMetricsCache.json'; nil if FileManager throws (logged through attempt).",
-   "entry": "Static stored-property initializer, evaluated on first access from persistToDisk/loadFromDisk.",
+   "key": "let TrainingMetricsCache.defaultPersistenceURL",
+   "hash": "4029e76f2aa2b9a4",
+   "does": "Static lazy initializer for the app's snapshot file: Application Support directory (created if missing) + 'TrainingMetricsCache.json'; nil if FileManager throws (logged through attempt). The default persistenceURL of the init.",
+   "entry": "Static stored-property initializer, evaluated on first use as the init's default argument.",
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
     "ext:FileManager.url(for:in:appropriateFor:create:)"
@@ -170,7 +177,7 @@
     {
      "at": "+2",
      "cond": "Application Support URL lookup fails",
-     "effect": "true: persistenceURL nil → persist/load become no-ops; false: returns dir/TrainingMetricsCache.json"
+     "effect": "true: nil → a cache built with it keeps nothing on disk; false: returns dir/TrainingMetricsCache.json"
     }
    ],
    "deps": {
@@ -179,8 +186,8 @@
   },
   {
    "key": "func TrainingMetricsCache.persistToDisk()",
-   "hash": "a3070701b55edebe",
-   "does": "Snapshots current, dailySeries, fingerprint ('' if nil), computedDay, savedAt (= computedAt) and loadSettings, then in a detached utility task that first awaits the previous write (persistTask) writes it sealed (writeSnapshot) to TrainingMetricsCache.json, so snapshots land in the order they were taken; a failure (no key reachable to seal among them) writes nothing, keeps the previous file and is logged as a warning. Nothing is written before the first compute (computedAt nil).",
+   "hash": "a6b32689bb706419",
+   "does": "Snapshots current, dailySeries, fingerprint ('' if nil), computedDay, savedAt (= computedAt) and loadSettings, then in a detached utility task that first awaits the previous write (persistTask) writes it sealed with the cache's seal (writeSnapshot) to the cache's persistenceURL, so snapshots land in the order they were taken; a failure (no key reachable to seal among them) writes nothing, keeps the previous file and is logged as a warning. Nothing is written before the first compute (computedAt nil) or without a persistenceURL.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.writeSnapshot(_:to:seal:)",
@@ -190,7 +197,9 @@
     "mem:TrainingMetricsCache.current",
     "mem:TrainingMetricsCache.dailySeries",
     "mem:TrainingMetricsCache.computedAt",
-    "mem:TrainingMetricsCache.persistTask"
+    "mem:TrainingMetricsCache.persistTask",
+    "mem:TrainingMetricsCache.persistenceURL",
+    "mem:TrainingMetricsCache.seal"
    ],
    "writes": [
     "file:TrainingMetricsCache.json",
@@ -208,12 +217,12 @@
      "effect": "fingerprint stored as '' (never equals a real digest, so next launch sees an observed change)"
     },
     {
-     "at": "+12",
+     "at": "+13",
      "cond": "a previous write exists",
      "effect": "awaited before this one starts"
     },
     {
-     "at": "+15",
+     "at": "+16",
      "cond": "writeSnapshot throws",
      "effect": "error logged at .warning; previous file kept (next cold launch rebuilds from it or from scratch)"
     }
@@ -221,7 +230,6 @@
    "deps": {
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)": "f28da9f623e93922",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.writeSnapshot(_:to:seal:)": "23663fe8c1854780",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::let TrainingMetricsCache.persistenceURL": "30b5c031fa480eb5",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
@@ -273,8 +281,8 @@
   },
   {
    "key": "func TrainingMetricsCache.loadFromDisk()",
-   "hash": "8649b942962c920a",
-   "does": "Reads the persisted snapshot (readSnapshot) and restores current, dailySeries, fingerprint, computedDay, loadSettings, lastUpdated and computedAt (both = saved timestamp); logs the restore. No file restores nothing silently; a file that cannot be read, opened or decoded is logged (attempt) and restores nothing, so the cache starts cold and its first write replaces the file.",
+   "hash": "92f353198a17a48e",
+   "does": "Reads the snapshot at the cache's persistenceURL opened with its seal (readSnapshot) and restores current, dailySeries, fingerprint, computedDay, loadSettings, lastUpdated and computedAt (both = saved timestamp); logs the restore. No URL or no file restores nothing silently; a file that cannot be read, opened or decoded is logged (attempt) and restores nothing, so the cache starts cold and its first write replaces the file.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.readSnapshot(at:seal:)",
@@ -282,7 +290,9 @@
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
    ],
    "reads": [
-    "file:TrainingMetricsCache.json"
+    "file:TrainingMetricsCache.json",
+    "mem:TrainingMetricsCache.persistenceURL",
+    "mem:TrainingMetricsCache.seal"
    ],
    "writes": [
     "mem:TrainingMetricsCache.current",
@@ -300,7 +310,6 @@
    "deps": {
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.readSnapshot(at:seal:)": "eff5011ae07c39d8",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.snapshot(reference:)": "f28da9f623e93922",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::let TrainingMetricsCache.persistenceURL": "30b5c031fa480eb5",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
@@ -373,7 +382,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.needsRebuild(reference:)": "0ff7ae666400d09f",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.needsRebuild(reference:)": "271beece1c5338ca",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.scheduleRefresh()": "08f60af44f305502"
    }
   },
@@ -421,44 +430,43 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.needsRebuild(reference:)": "0ff7ae666400d09f",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.needsRebuild(reference:)": "271beece1c5338ca",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.startRefreshTask(reference:forMorningReading:)": "577e1e76b377b2e0"
    }
   },
   {
    "key": "func TrainingMetricsCache.needsRebuild(reference:)",
-   "hash": "67a6d631cea8f4e4",
-   "does": "Computes whether the cached result may be out of date: observedChange = workout fingerprint differs or reference day differs from lastComputedDay; delegates to the static rule with hasResult = current != nil && (dailySeries non-empty || a series build is pending), so refreshes during a cold series build don't restart it, and settingsChanged = current LoadSettings != lastLoadSettings.",
+   "hash": "32b32d9cde9c8f5f",
+   "does": "Computes whether the cached result may be out of date and delegates to the static rule: observedChange = the archive source's workout fingerprint differs from lastWorkoutFingerprint; dayChanged = the reference day differs from lastComputedDay; settingsChanged = the load settings from the settings closure differ from lastLoadSettings; hasResult = current != nil && (dailySeries non-empty || a series build is pending), so refreshes during a cold series build don't restart it. Internal so a test can check it against the sources it built the cache from.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.workoutFingerprint()",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.currentLoadSettings()",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:dayChanged:reference:)"
    ],
    "reads": [
     "mem:TrainingMetricsCache.lastUpdated",
     "mem:TrainingMetricsCache.current",
     "mem:TrainingMetricsCache.dailySeries",
     "mem:TrainingMetricsCache.historicalBuildPending",
+    "mem:TrainingMetricsCache.lastComputedDay",
     "mem:SessionArchive.entries"
    ],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:reference:)": "99e58b00827618c1",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.currentLoadSettings()": "a677dfe3709b8172",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.workoutFingerprint()": "51275b5641887c8d"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.needsRebuild(lastUpdated:hasResult:observedChange:settingsChanged:dayChanged:reference:)": "6e100ea36811bb0d",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.currentLoadSettings()": "8275fb3063cbb004",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.workoutFingerprint()": "6e10e2316c0bae77"
    }
   },
   {
    "key": "func TrainingMetricsCache.currentLoadSettings()",
-   "hash": "7f88d78a09dff8fe",
-   "does": "Builds LoadSettings from the current UserSettings (resting/max HR, sex, FTPs).",
+   "hash": "f863048b4a48cd94",
+   "does": "Builds LoadSettings from the UserSettings the settings closure returns (resting/max HR, sex, FTPs).",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager",
+    "closure:TrainingMetricsCache.settingsSource",
     "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::init TrainingMetricsCache.LoadSettings(_:)"
    ],
    "reads": [
@@ -467,10 +475,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::init TrainingMetricsCache.LoadSettings(_:)": "b315b321752b0b08",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.app": "33bac158087c502b",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var UtilityServices.settingsManager": "96c087aadba45c6a"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::init TrainingMetricsCache.LoadSettings(_:)": "b315b321752b0b08"
    }
   },
   {
@@ -500,8 +505,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.currentLoadSettings()": "a677dfe3709b8172",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.recompute(healthKit:reference:forMorningReading:settings:)": "014056dbb3beb3ff",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.currentLoadSettings()": "8275fb3063cbb004",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.recompute(healthKit:reference:forMorningReading:settings:)": "961628550d9a3083",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.releaseRefreshTaskUnlessCancelled()": "4ed2e483bfbc535e"
    }
   },
@@ -526,12 +531,14 @@
   },
   {
    "key": "func TrainingMetricsCache.recompute(healthKit:reference:forMorningReading:settings:)",
-   "hash": "b6974f941aeb5ad8",
-   "does": "Records the archived-workout fingerprint the compute starts from, fetches HealthKit workouts for 580 days (400 + 180 warm-up), resolves HR anchors once, computes TrainingMetrics with those preloaded workouts; unless cancelled publishes current with that starting fingerprint (publishCurrent leaves the result dirty if the workouts changed meanwhile) and starts the historical rebuild if its key changed.",
+   "hash": "ec3110df7bd8f06c",
+   "does": "Records the archived-workout fingerprint the compute starts from and fetches HealthKit workouts for 580 days (400 + 180 warm-up) with fetchWorkoutsExtendedIfAnswered. A query that failed or timed out publishes nothing: it logs a warning and releases the refresh registration unless cancelled, so the published result, the series and the disk snapshot stay as they were and the next refresh asks again. Otherwise resolves HR anchors once, computes TrainingMetrics with those preloaded workouts and, unless cancelled, publishes current with the starting fingerprint (publishCurrent leaves the result dirty if the workouts changed meanwhile) and starts the historical rebuild if its key changed.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.workoutFingerprint()",
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.fetchWorkoutsExtended(days:relativeTo:)",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.fetchWorkoutsExtendedIfAnswered(days:relativeTo:)",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.releaseRefreshTaskUnlessCancelled()",
     "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.trainingHeartRateAnchors()",
     "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.calculateTrainingMetrics(restingHR:userMaxHR:forMorningReading:relativeTo:additionalWorkouts:preloadedHealthKitWorkouts:)",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.publishCurrent(reference:settings:workoutFingerprint:)",
@@ -545,11 +552,17 @@
     "mem:SessionArchive.entries"
    ],
    "writes": [
-    "mem:TrainingMetricsCache.current"
+    "mem:TrainingMetricsCache.current",
+    "mem:TrainingMetricsCache.refreshTask"
    ],
    "branches": [
     {
-     "at": "+12",
+     "at": "+6",
+     "cond": "the HealthKit workout query failed or timed out (nil)",
+     "effect": "logs a warning and releases refreshTask unless cancelled; nothing published or persisted"
+    },
+    {
+     "at": "+17",
      "cond": "Task.isCancelled (rebuildFromScratch cancelled it)",
      "effect": "return without publishing anything; else publish and maybe start historical build"
     }
@@ -557,11 +570,13 @@
    "deps": {
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.historicalKey(reference:healthKitWorkouts:settings:anchors:)": "fb643dad7e1147bd",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.publishCurrent(reference:settings:workoutFingerprint:)": "e908d563ab89fa0d",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.startHistoricalRebuildIfNeeded(reference:workouts:key:)": "30d78d2f130d13f1",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.workoutFingerprint()": "51275b5641887c8d",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.releaseRefreshTaskUnlessCancelled()": "4ed2e483bfbc535e",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.startHistoricalRebuildIfNeeded(reference:workouts:key:)": "37e207b814f22ad4",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.workoutFingerprint()": "6e10e2316c0bae77",
     "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.calculateTrainingMetrics(restingHR:userMaxHR:forMorningReading:relativeTo:additionalWorkouts:preloadedHealthKitWorkouts:)": "38008bb0f5cf85f2",
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.fetchWorkoutsExtended(days:relativeTo:)": "f63d52d026e8d56d",
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.trainingHeartRateAnchors()": "78deb19bc56ddb45"
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.fetchWorkoutsExtendedIfAnswered(days:relativeTo:)": "9cb650b6a677b2a4",
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.trainingHeartRateAnchors()": "78deb19bc56ddb45",
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
@@ -591,8 +606,8 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.persistToDisk()": "062527947ba17dc9",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.workoutFingerprint()": "51275b5641887c8d"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.persistToDisk()": "74750381c5e6d16b",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.workoutFingerprint()": "6e10e2316c0bae77"
    }
   },
   {
@@ -611,17 +626,17 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Analysis/TrainingMetricsCache+Freshness.swift::func TrainingMetricsCache.healthKitFingerprint(_:)": "88f300d89930da84",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.workoutFingerprint()": "51275b5641887c8d",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.workoutFingerprint()": "6e10e2316c0bae77"
    }
   },
   {
    "key": "func TrainingMetricsCache.startHistoricalRebuildIfNeeded(reference:workouts:key:)",
-   "hash": "d4abdadc75fac865",
-   "does": "Starts a build when the key changed, or when the series is empty and no build is pending: records the key, marks a build pending, and starts a detached utility task that replays 580 days, keeps the last 400 and hands the result to adoptHistoricalSeries. A refresh during a pending cold build with the same key starts nothing.",
+   "hash": "8b852d049efaf97a",
+   "does": "Starts a build when the key changed, or when the series is empty and no build is pending: records the key, marks a build pending, resolves the archive source's archive on the main actor and starts a detached utility task that replays 580 days over it, keeps the last 400 and hands the result to adoptHistoricalSeries. A refresh during a pending cold build with the same key starts nothing.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:healthKitWorkouts:anchors:)",
+    "closure:TrainingMetricsCache.archiveSource",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:archive:healthKitWorkouts:anchors:)",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.lastDays(_:of:reference:)",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.adoptHistoricalSeries(_:key:)"
    ],
@@ -640,7 +655,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.adoptHistoricalSeries(_:key:)": "92751c7efd30d8b5",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:healthKitWorkouts:anchors:)": "56c5e32efc48e3fd",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:archive:healthKitWorkouts:anchors:)": "af9eaaaa555e1427",
     "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.lastDays(_:of:reference:)": "35031b8f525219cf",
     "Emuqu/Sources/Collection/WorkoutSummary+UserLoad.swift::var WorkoutLoadRestingHR.anchors": "7cf7cd18d251412c"
    }
@@ -667,7 +682,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.persistToDisk()": "062527947ba17dc9"
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.persistToDisk()": "74750381c5e6d16b"
    }
   },
   {
@@ -709,12 +724,12 @@
    }
   },
   {
-   "key": "func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:healthKitWorkouts:anchors:)",
-   "hash": "284ee481e585cf68",
-   "does": "Replays the Banister EWMA: merged archive+HealthKit workouts → daily load from firstDay (today - lookbackDays) to today via TrainingLoadSeries.dailyLoad → replay → DaySample per day with trimp = that day's load.",
+   "key": "func TrainingMetricsCache.buildDailySeries(reference:lookbackDays:archive:healthKitWorkouts:anchors:)",
+   "hash": "2fb688e06475502e",
+   "does": "Replays the Banister EWMA: `archive`'s workouts merged with the HealthKit workouts → daily load from firstDay (today - lookbackDays) to today via TrainingLoadSeries.dailyLoad → replay → DaySample per day with trimp = that day's load.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.mergedWorkouts(reference:lookbackDays:healthKitWorkouts:)",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.mergedWorkouts(reference:lookbackDays:archive:healthKitWorkouts:)",
     "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)",
     "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.replay(_:)"
    ],
@@ -722,12 +737,12 @@
    "writes": [],
    "branches": [
     {
-     "at": "+9",
+     "at": "+12",
      "cond": "date arithmetic nil",
      "effect": "firstDay = today (one-day series)"
     },
     {
-     "at": "+14",
+     "at": "+17",
      "cond": "no load for the day",
      "effect": "trimp = 0"
     }
@@ -735,22 +750,18 @@
    "deps": {
     "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.dailyLoad(workouts:firstDay:lastDay:anchors:calendar:)": "b03ad9f228bd03fa",
     "Emuqu/Sources/Analysis/TrainingLoadSeries.swift::func TrainingLoadSeries.replay(_:)": "d7b5612921729235",
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.mergedWorkouts(reference:lookbackDays:healthKitWorkouts:)": "3c7c1eb69341bb1d",
-    "Emuqu/Sources/Utilities/Extensions.swift::var Date.startOfDay": "97b6b5d1e65484d7",
+    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::func TrainingMetricsCache.mergedWorkouts(reference:lookbackDays:archive:healthKitWorkouts:)": "13087452614ddc77",
     "EmuquTests/TrainingAdviceGateTests.swift::var TrainingAdviceGateTests.Scenario.atl": "2847e9aa622619f6"
    }
   },
   {
-   "key": "func TrainingMetricsCache.mergedWorkouts(reference:lookbackDays:healthKitWorkouts:)",
-   "hash": "8205cf48e451ab7e",
-   "does": "Reads archive workouts for the window (lightweight retrieve) and merges with HealthKit workouts archive-authoritatively.",
+   "key": "func TrainingMetricsCache.mergedWorkouts(reference:lookbackDays:archive:healthKitWorkouts:)",
+   "hash": "52b27261c2537435",
+   "does": "Reads `archive`'s workouts for the window (lightweight retrieve) and merges them with the HealthKit workouts archive-authoritatively.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.fromAppArchive(archive:days:relativeTo:)",
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.mergeArchiveAuthoritative(archive:healthKit:additional:)",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive"
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.mergeArchiveAuthoritative(archive:healthKit:additional:)"
    ],
    "reads": [
     "archive:SessionArchive.retrieveLightweight (workouts)"
@@ -759,10 +770,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Collection/HealthDataTypes.swift::func HealthWorkoutSummary.fromAppArchive(archive:days:relativeTo:)": "c2761244f5a0267d",
-    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.mergeArchiveAuthoritative(archive:healthKit:additional:)": "509c8f6f3196d710",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.current": "81da1528311433e1",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.storage": "990673b70140f70c",
-    "Emuqu/Sources/Utilities/AppDependencies.swift::var StorageServices.sessionArchive": "0be02377b8827b75"
+    "Emuqu/Sources/Collection/HealthKitManager+TrainingForwarding.swift::func HealthKitManager.mergeArchiveAuthoritative(archive:healthKit:additional:)": "509c8f6f3196d710"
    }
   },
   {
@@ -780,8 +788,8 @@
   },
   {
    "key": "func TrainingMetricsCache.forgetAfterPurge()",
-   "hash": "23c807aec6954fd8",
-   "does": "Delete All My Data: cancels and drops the refresh and historical-series tasks, clears historicalBuildPending and lastHistoricalKey (so a late series build is not adopted), current, dailySeries, lastUpdated, computedAt and the workout fingerprint / computed day / load settings markers; then (when the Application Support URL resolved) chains a detached utility task after the last persist task that removes TrainingMetricsCache.json if it exists (failure logged through attempt).",
+   "hash": "8544d80b65d92f59",
+   "does": "Delete All My Data: cancels and drops the refresh and historical-series tasks, clears historicalBuildPending and lastHistoricalKey (so a late series build is not adopted), current, dailySeries, lastUpdated, computedAt and the workout fingerprint / computed day / load settings markers; then (when the cache has a persistenceURL) chains a detached utility task after the last persist task that removes that file if it exists (failure logged through attempt).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)",
@@ -811,7 +819,6 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Analysis/TrainingMetricsCache.swift::let TrainingMetricsCache.persistenceURL": "30b5c031fa480eb5",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6"
    }
   },
