@@ -347,7 +347,7 @@ extension FitnessSummaryCards {
         Result {
             try updateArchived(id, in: archive) { stored in
                 stored.workoutMetadata?.samples = refreshedSamples
-                stored.workoutMetadata?.splits = enrichedSplits ?? stored.workoutMetadata?.splits
+                if let enrichedSplits { stored.workoutMetadata?.splits = enrichedSplits }
                 rebuildAnalysisSnapshot(&stored, settings: settings)
             }
         }
