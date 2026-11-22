@@ -459,6 +459,36 @@
    }
   },
   {
+   "key": "func SpokenTextChunkerTests.testAnUnclosedBracketDoesNotHoldBackTheRestOfTheReply()",
+   "hash": "4b46ad4cef5d07be",
+   "does": "A reply with an unclosed '[1' holds its first sentence while the open label is under 80 characters, then emits once the label runs longer, leaving only ' Then' buffered.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)": "11b7d59f422f3990"
+   }
+  },
+  {
+   "key": "func SpokenTextChunkerTests.testALinkAddressEndsAtASpace()",
+   "hash": "9eb67561a5d01387",
+   "does": "'See [notes](my notes. Next' emits 'See [notes](my notes.': a '(' address that reaches a space is not a link.",
+   "entry": "XCTest runner: test method on an XCTestCase subclass",
+   "calls": [
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)"
+   ],
+   "reads": [],
+   "writes": [],
+   "branches": [],
+   "deps": {
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.append(delta:)": "11b7d59f422f3990"
+   }
+  },
+  {
    "key": "func SpokenTextChunkerTests.testWithdrawnTailIsNotSpokenBeforeTheReplacement()",
    "hash": "157c815f11c0cd39",
    "does": "After 'You slept well.' is emitted, withdrawing the whole appended text empties the buffer, and the next sentence is emitted on its own.",
