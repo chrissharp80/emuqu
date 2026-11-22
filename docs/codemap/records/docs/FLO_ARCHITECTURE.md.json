@@ -49,10 +49,11 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "fa79c3bca0f486d3",
+    "Emuqu/Sources/Assistant/Facts/CompactToolRouter.swift::func CompactToolRouter.resolveTool(name:argsJSON:)": "d3863d8890919dcd",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.applyPostStreamEffects(turnID:completed:)": "5ccb5440e0ec2793",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch()": "9ae5cc4573f169ef",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "9b3d0ecd257813a4"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "cff675f29892739e",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.dispatch(regenerating:)": "f106a850ffc7955f"
    }
   },
   {
@@ -78,7 +79,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "9b3d0ecd257813a4"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "cff675f29892739e"
    }
   },
   {
@@ -167,8 +168,8 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 3. Turn Lifecycle > 3.4 `runToolUseLoop` — `AssistantViewModel+Tools.swift`",
-   "hash": "836d3ffdc1a1bdea",
-   "does": "Claims runToolUseLoop streams rounds: textDelta appended with a 33 ms publish throttle, toolUse queued, usage logged with hit ratio, tool calls resolved through CompactToolRouter into ToolExchange rounds, max 8 calls per turn with synthetic missing results and one closing pass, and verifyAppStateNumbers at each round end. Matches (maxToolCallsPerTurn = 8).",
+   "hash": "0ce28710931f8870",
+   "does": "Claims runToolUseLoop streams rounds: textDelta appended with a 33 ms publish throttle, toolUse queued, usage logged with hit ratio, tool calls resolved through CompactToolRouter into ToolExchange rounds, max 8 calls per turn with synthetic missing results and one closing pass, and verifyAppStateNumbers at each round end, checking live-workout claims (HR, power, α1) against the broker snapshot while a workout records and then training-load and overnight numbers. maxToolCallsPerTurn = 8.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)",
@@ -182,10 +183,10 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.handle(_:provider:auditID:budgetExhausted:buffer:thisRound:)": "6ed72930981424e6",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)": "51c429d7c3e8b857",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resolveToolCalls(thisRound:totalToolCalls:factRegistry:)": "08e15dc41d4b0890",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.resultJSON(for:overBudget:factRegistry:)": "d7b1be0c3dfd3ecb",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)": "466acc0532c80c31",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.verifyAppStateNumbers(turnID:)": "95cb9e5ecb20f038"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.runToolUseLoop(provider:model:outbound:systemPrompt:tools:factRegistry:turnID:)": "20d2e837dc8e8c64",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.verifyAppStateNumbers(turnID:)": "73e93a0b9cae48c6"
    }
   },
   {
@@ -200,7 +201,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "9b3d0ecd257813a4"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "cff675f29892739e"
    }
   },
   {
@@ -309,13 +310,13 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.accepts(_:)": "a9dbda61ec4a3e94",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.fields(_:counts:format:)": "0e60dbd56f42d589",
-    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)": "56674f46c6c5d9a6",
+    "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.integer(_:)": "a3e073118e862f5b",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::func FactNumericArgument.value(_:)": "b94823b42d275069",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactArgumentError.factValue": "7e99d869b02bcbdf",
     "Emuqu/Sources/Assistant/Facts/AppFactResolver+NumericArguments.swift::var FactNumericArgument.requirement": "172ee3435aa1e127",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.currentAvailability": "66f2dda191e45886",
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.toolSchema()": "6ca770cebbe02fbd",
-    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func Availability.workouts(in:)": "e1541cf846f9e85c",
+    "Emuqu/Sources/Assistant/Facts/FactValue.swift::func Availability.workouts(in:)": "d9e8aebdc979db65",
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.humanReadable": "3d2124b7f4fb4d10",
     "Emuqu/Sources/Assistant/Facts/FactValue.swift::var FactValue.isMissing": "2e6ba25d1956d1f7"
    }
@@ -333,7 +334,6 @@
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.composite(key:description:valueType:dependencies:resolve:)",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.action(key:description:parameters:execute:)",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.actionAsync(key:description:parameters:execute:)",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.isAction",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.resolveEntry(_:key:rendered:registry:)",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.compositeValue(_:rendered:key:registry:body:)",
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func CompositeResult.recordFromChildren(_:)",
@@ -351,9 +351,8 @@
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixed(key:description:valueType:resolve:)": "29ddaeafde8608ae",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.fixedAsync(key:description:valueType:resolve:)": "838aa75e67df46a0",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactEntry.parameterized(pattern:paramExample:description:resolve:)": "6ea249ca82d70b86",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.compositeValue(_:rendered:key:registry:body:)": "86e9844148fa04b2",
+    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.compositeValue(_:rendered:key:registry:body:)": "1a6d6a2920420366",
     "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::func FactNamespaceResolver.resolveEntry(_:key:rendered:registry:)": "6ff172dce185b8b0",
-    "Emuqu/Sources/Assistant/Facts/FactCatalog.swift::var FactEntry.isAction": "48f24627b4459ae1",
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func CompositeResult.recordFromChildren(_:)": "265253d4ef0d74c2",
     "Emuqu/Sources/Assistant/Facts/FactResolverRegistry.swift::func FactResolverRegistry.actionSpec(name:description:params:)": "726f46131671359d",
     "EmuquTests/FactCatalogValidationTests.swift::func FactCatalogValidationTests.makeRegistry()": "6b2e8bbf998ee3e9"
@@ -503,8 +502,8 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 8. Routing — `TurnRouter` and `SmartProviderRouter` > 8.2 Classification and stickiness (`.auto`)",
-   "hash": "800337baeb8518e1",
-   "does": "Claims classify uses NLContextualEmbedding prototypes, falling back to NLEmbedding then keywords; four flags → tiers; stickiness rules (upgrade, first 3 turns, quick with no flags). Matches CapabilityClassifier.classify, SmartProviderRouter.embed and stickyTier (settlingTurns 3).",
+   "hash": "241aa63c2efdee0f",
+   "does": "Claims classify uses NLContextualEmbedding prototypes, falling back to NLEmbedding word vectors then keywords; an axis needs its keyword marker and a score ≥ 0.55; confidently non-English text opens every keyword gate and with no embedding gets no flags; four flags → tiers; stickiness rules (upgrade, first 3 turns, quick with no flags). CapabilityClassifier.classify, SmartProviderRouter.embed and stickyTier (turnCount <= 3).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)",
@@ -515,9 +514,9 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "67f299962bb530f2",
-    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.embed(_:)": "084fda77aeca56c8",
-    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.stickyTier(proposed:requirement:session:)": "7716bbd58cb2dd39"
+    "Emuqu/Sources/Assistant/Facts/CapabilityClassifier.swift::func CapabilityClassifier.classify(_:)": "fe140477d3574bdf",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.embed(_:)": "27b8527928d9e371",
+    "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.stickyTier(proposed:requirement:session:)": "c74b7f5f64f2ae07"
    }
   },
   {
@@ -540,7 +539,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/SmartProviderRouter.swift::func SmartProviderRouter.recordTier3UsageAndCheck()": "547bcb9efd8f00ad",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.handleFallbackableFailure(_:attempt:)": "318e8bbb9f53741d",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runStreamWithErrorPolicy(_:)": "5782a6471a18e91d",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.runStreamWithErrorPolicy(_:)": "58ea3c0a35a68e25",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.orderedFallbackProviders(after:)": "a52875ed68367c9d",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.allowedFallbacks(_:under:)": "106ac48cad33a9e9",
     "Emuqu/Sources/Assistant/ViewModel/TurnRouter.swift::func TurnRouter.failureFallback(mode:selectedProviderID:)": "0c985becfe5c2b42",
@@ -594,27 +593,29 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 9. Voice > 9.3 Speech — `VoiceConversationController+Speech.swift`",
-   "hash": "0ca643ef592f3a86",
-   "does": "Claims speak() applies coach-voice scrub, hallucination guard, first-chunk preamble, TTSTextNormalizer, at 0.96 × default rate with zero delays; SpokenTextChunker buffers sentences. Matches speak/makeUtterance.",
+   "hash": "c607df415192ed08",
+   "does": "Claims speak(_:voice:scripted:) applies the coach-voice scrub carrying textChunker.safetyCopy (perimeterScrubbed), hallucination guard, the first-chunk preamble except for scripted or trigger lines, TTSTextNormalizer, at 0.96 × default rate with zero delays, and hands a .triggerSpeaking line to CoachCueSpeech; SpokenTextChunker buffers sentences.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.makeUtterance(_:voice:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.announced(_:)",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.applyHallucinationGuard(to:)",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func perimeterScrubbed(_:)",
-    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.normalize(_:english:)"
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.normalize(_:english:)",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func perimeterScrubbed(_:continuing:)",
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::func CoachCueSpeech.speak(_:onUnqueued:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Assistant/CoachCueSpeech.swift::func CoachCueSpeech.speak(_:onUnqueued:)": "6d21c49c9272c15e",
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.normalize(_:english:)": "3fcb980d54642c76",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.announced(_:)": "cc4e46b12c5ffe43",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.applyHallucinationGuard(to:)": "4c5214e46bad2883",
     "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.makeUtterance(_:voice:)": "c2910e42ccbbdab3",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "7ff00687e09e5b3b",
-    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func perimeterScrubbed(_:)": "f6a183eacabce379"
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func VoiceConversationController.speak(_:voice:scripted:)": "b5e50994c6b3eb1a",
+    "Emuqu/Sources/Assistant/VoiceConversationController+Speech.swift::func perimeterScrubbed(_:continuing:)": "927a2058e2e15435"
    }
   },
   {
@@ -651,21 +652,22 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 10. Speech Text Normalization > 10.1 `TTSTextNormalizer.swift`",
-   "hash": "cde9277db5c73ee5",
-   "does": "Claims normalize(_:english:) expands domain abbreviations, pace strings (bare 8:45 left alone) and years — a four-digit number only in a year's place (after a year cue word, a day of the month and comma, or a range dash; isInYearPosition) — for English voices, then hands off to PhoneticOverrides.speechAttributedString. Matches TTSTextNormalizer.swift.",
+   "hash": "7ea5c81d3810036b",
+   "does": "Claims normalize(_:english:) expands domain abbreviations, pace strings (bare 8:45 left alone) and years — a four-digit number only in a year's place (after a year cue word, a day of the month and comma, or a range dash; isInYearPosition) — for English voices, then hands off to PhoneticOverrides.speechAttributedString(_:english:) with the same flag.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.normalize(_:english:)",
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)",
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)",
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)",
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.speechAttributedString(_:)",
-    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.isInYearPosition(_:)"
+    "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.isInYearPosition(_:)",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.speechAttributedString(_:english:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.speechAttributedString(_:english:)": "bb436be91a1fa656",
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandDomainAbbreviations(_:)": "36e95cd160bdf0b0",
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandPaceStrings(_:)": "0d3637290a2193dc",
     "Emuqu/Sources/Assistant/TTSTextNormalizer.swift::func TTSTextNormalizer.expandYears(_:)": "ae790062673056aa",
@@ -675,36 +677,38 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 10. Speech Text Normalization > 10.2 `PhoneticOverrides.swift`",
-   "hash": "a83bf303d1105ab5",
-   "does": "Claims PhoneticOverrides.resolve runs expandZipCodes, stripAuthoredMarkup ([[word|IPA]] → IPA attribute) and domainRules respellings skipping authored ranges.",
+   "hash": "e694747f88ac33ab",
+   "does": "Claims PhoneticOverrides.resolve(_:english:) runs, for an English voice, expandZipCodes (after zip/zip code/postal code, or a real US state or territory code, not any two capitals), stripAuthoredMarkup ([[word|IPA]] → IPA attribute) and domainRules respellings skipping authored ranges; for any other voice only stripAuthoredMarkup.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.resolve(_:)",
     "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.expandZipCodes(_:)",
     "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripAuthoredMarkup(_:)",
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.applyDomainRule(_:to:hints:)"
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.applyDomainRule(_:to:hints:)",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.resolve(_:english:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.applyDomainRule(_:to:hints:)": "2dbfb79248bd86f3",
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.expandZipCodes(_:)": "3095a30a1fadbcb9",
-    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.resolve(_:)": "230a032e3951ced5",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.expandZipCodes(_:)": "73a2a9b3f07a75ce",
+    "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.resolve(_:english:)": "b3101a57241cb36e",
     "Emuqu/Sources/Assistant/PhoneticOverrides.swift::func PhoneticOverrides.stripAuthoredMarkup(_:)": "0e92319b6d53eaeb"
    }
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 11. MetricsVerifier — Hallucination Guard",
-   "hash": "755500ef332ce86e",
-   "does": "Claims MetricsVerifier.verify checks live-workout numbers, verifyAppStateClaims checks training-load/overnight numbers, recordCorrections buffers up to 4 deduped discrepancies, consumePendingCorrectionsBlock injects them into the next variable prompt, and clearCorrections drops them all when the conversation is cleared (resetConversationState). Matches MetricsVerifier.swift and AssistantViewModel.resetConversationState.",
+   "hash": "00b83c5c871c1238",
+   "does": "Claims MetricsVerifier.verify(_:against:) checks live-workout numbers in spoken text against the recorder's context and verify(_:againstLive:) the same claims in chat against the broker snapshot; verifyAppStateClaims checks training-load/overnight numbers; chat runs both at each round end (verifyAppStateNumbers), voice on each chunk with the live check first; recordCorrections buffers up to 4 deduped discrepancies, consumePendingCorrectionsBlock injects them into the next variable prompt, and clearCorrections drops them all when the conversation is cleared (resetConversationState).",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:against:)",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verifyAppStateClaims(_:)",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.clearCorrections()"
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.clearCorrections()",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:againstLive:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.verifyAppStateNumbers(turnID:)"
    ],
    "reads": [],
    "writes": [],
@@ -714,7 +718,9 @@
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.consumePendingCorrectionsBlock()": "2f2ebeef08806c13",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.recordCorrections(_:)": "504750e4ad75b523",
     "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:against:)": "6879608aa4982139",
-    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verifyAppStateClaims(_:)": "3256aa664e5cf316"
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verify(_:againstLive:)": "d06f442328429ed6",
+    "Emuqu/Sources/Assistant/MetricsVerifier.swift::func MetricsVerifier.verifyAppStateClaims(_:)": "3256aa664e5cf316",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Tools.swift::func AssistantToolRunner.verifyAppStateNumbers(turnID:)": "73e93a0b9cae48c6"
    }
   },
   {
@@ -778,13 +784,13 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "e7f5f2b0b2ab23ee",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.clear()": "e4350cd91ff4f6a1",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.load()": "65338e15c91cf183",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.loadSummary(migratingFrom:key:)": "5ceea34e9a17e550",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.loadSummary(migratingFrom:key:)": "5127c454d7e61491",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.mergedWithDisk(_:acknowledging:)": "4fec008743e3c5c5",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.retryHeldSave()": "aa783f277d1e6109",
     "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.save(_:)": "bd04a66cbe49051f",
-    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)": "c5c0f800ac025f4e",
+    "Emuqu/Sources/Assistant/Chat/ConversationStore.swift::func ConversationStore.saveSummary(_:)": "17e2087064119470",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.exportConversation()": "68dae41a2e7e1518"
    }
   },
@@ -837,7 +843,7 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "72c81dbb40382d67",
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "644e84c46a1f96f1"
    }
   },
@@ -862,22 +868,30 @@
   },
   {
    "key": "§ Flo — AI Assistant Architecture > 13. Safety Gates > 13.3 `CoachVoiceGuard.swift`",
-   "hash": "9e99ec01db2ec04c",
-   "does": "Claims CoachVoiceGuard.scrub replaces whole sentences with neutral deflections, passes every sentence of MedicalQueryGuard.cannedReplies (in-app language and English, matched with emphasis, apostrophes, whitespace and case folded) through byte-identical and scrubs only the text between them (scrubRun), and runs per streamed sentence, per utterance and on the final message. Matches CoachVoiceGuard.swift (scrub, safetyCopySentences, safetyCopyKey).",
+   "hash": "189e8c20023466ff",
+   "does": "Claims CoachVoiceGuard.scrub replaces whole sentences with neutral deflections and passes the app's canned safety copy (MedicalQueryGuard.cannedReplies, in-app language and English, matched with emphasis, apostrophes, whitespace and case folded) byte-identical only where it appears as the reply — the opening sentence, or the next sentence of a reply whose earlier sentences came straight before it, in order (continuesSafetyCopy) — scrubbing the text between (scrubRun); pieces of one reply go through scrub(_:continuing:) with a SafetyCopyProgress (StreamTextBuffer.safetyCopy, reset on a rewind; SpokenTextChunker.safetyCopy, reset with the chunker), every piece including clean ones; it runs per streamed sentence, per utterance and on the final message.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.scrubForCoachVoice(at:)",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.safetyCopySentences",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.safetyCopyKey(_:)"
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.safetyCopyKey(_:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:continuing:)",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.continuesSafetyCopy(_:progress:replies:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.scrubbing(_:)",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.rewindToRoundStart()",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.continuesSafetyCopy(_:progress:replies:)": "acfb3160f3ef2654",
     "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.safetyCopyKey(_:)": "793af889cc4063c9",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "4ac533937d18871b",
-    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::var CoachVoiceGuard.safetyCopySentences": "c2fe3273f33045b3",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:)": "05df04719dedddd7",
+    "Emuqu/Sources/Assistant/CoachVoiceGuard.swift::func CoachVoiceGuard.scrub(_:continuing:)": "a1527d95f2031cb1",
+    "Emuqu/Sources/Assistant/SpokenTextChunker.swift::func SpokenTextChunker.reset()": "ee286b1dae0bcd67",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.rewindToRoundStart()": "87e48911e4eb72db",
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Context.swift::func StreamTextBuffer.scrubbing(_:)": "21b98668bd816ed2",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.scrubForCoachVoice(at:)": "ac46feb1eaf09e88"
    }
   },
@@ -900,13 +914,13 @@
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "7e13e63b0e68cfdb",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.classify(_:)": "72c81dbb40382d67",
     "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::func MedicalQueryGuard.evaluate(_:)": "644e84c46a1f96f1",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.injuryReply": "40173e6baef83c87",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.selfHarmReply": "4b690dde06ad386a",
-    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "2e2c92e55addde7f",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.injuryReply": "17a3ecd0495786cf",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.selfHarmReply": "7af51eb3a25380a6",
+    "Emuqu/Sources/Assistant/MedicalQueryGuard.swift::var MedicalQueryGuard.symptomReplyTemplate": "1b78b93208cd2db0",
     "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.appleInstructions(fromComposed:)": "a9293788382bb14c",
-    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)": "529dfa81bc2427f6",
+    "Emuqu/Sources/Assistant/Providers/AIProvider+SystemPrompt.swift::func AssistantSystemPrompt.stableSections(userFacts:includeAppReference:compactAppReference:voiceMode:toolMode:)": "465411f5e2ccd482",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.medicalGuardRefused(_:)": "02d73fe5c6d8e8a9"
    }
   },
@@ -987,7 +1001,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.matchedPattern(for:)": "83c9732b69a47acc",
     "Emuqu/Sources/Assistant/Facts/DeterministicIntent.swift::func DeterministicIntent.tryMatch(_:in:)": "775d621e9e4bc2e9",
-    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "72eb08e01b5dcafe"
+    "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel.swift::func AssistantViewModel.send(text:fromVoice:)": "cff675f29892739e"
    }
   },
   {
@@ -1006,7 +1020,7 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Assistant/Providers/AppleFoundationToolAdapter.swift::func AppleToolCatalog.wrap(_:handler:)": "67acbf75cc7deb62",
-    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)": "b3177fa1422e580b",
+    "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.dispatch(name:argumentsJSON:)": "7bb03bb593437ace",
     "Emuqu/Sources/Assistant/Providers/AppleToolDispatcher.swift::func AppleToolDispatcher.setRegistry(_:)": "7a197fc21f230ee1",
     "Emuqu/Sources/Assistant/ViewModel/AssistantViewModel+Routing.swift::func AssistantTurnRouter.publishAppleDispatcher(provider:factRegistry:)": "250d45d0bfe9c9d3"
    }
