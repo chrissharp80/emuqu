@@ -14,7 +14,7 @@ import Foundation
 // realistic scenario is "phone in pocket, locked, audiobook in
 // earbuds, voice chat from a Bluetooth tap". In that scenario the
 // workout's `WorkoutLocationManager` is already streaming GPS fixes
-// at `BestForNavigation` accuracy under the `location` background
+// at `Best` accuracy under the `location` background
 // mode, AND piping them into `AppDependencies.current.location.roadGeocodingService`. The AI's
 // location tools just need to READ that cache (instead of triggering
 // a fresh fetch). That's what makes the voice query instant — see
@@ -43,7 +43,7 @@ import Foundation
 //
 // **Why three CLLocationManager instances?** A reasonable question. The
 // app currently has:
-//   - `WorkoutLocationManager` — `BestForNavigation`, runs during
+//   - `WorkoutLocationManager` — `Best`, runs during
 //      workouts, has the `location` background-mode entitlement.
 //   - `BreadcrumbRecorder` — `NearestTenMeters`, runs while Get Me
 //      Back is engaged, lower power for long hikes.

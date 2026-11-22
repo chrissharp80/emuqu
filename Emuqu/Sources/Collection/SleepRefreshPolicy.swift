@@ -151,7 +151,9 @@ enum SleepRefreshPolicy {
     /// but the score was still computed from a bogus "117 min awake" onset.
     /// Mirrors `ReanalysisService.updateSessionSleepBoundaries`. Both
     /// boundaries are clamped at 0: a sleep end before the session began must
-    /// not become a negative offset, any more than a start may.
+    /// not become a negative offset, any more than a start may. Each
+    /// segment's offsets are clamped the same way, so a segment the Watch
+    /// began before the recording did still lies inside the clamped window.
     static func applyFreshSleep(_ fresh: SleepData, to session: inout HRVSession) {
         session.sleepSnapshot = fresh
         if let freshStart = fresh.sleepStart {
@@ -168,8 +170,8 @@ enum SleepRefreshPolicy {
         }
         session.sleepSegments = fresh.segments.map { seg in
             HRVSession.SleepSegmentMs(
-                startMs: MillisecondOffset.between(seg.sleepStart, and: session.startDate, fallback: 0),
-                endMs: MillisecondOffset.between(seg.sleepEnd, and: session.startDate, fallback: 0)
+                startMs: max(0, MillisecondOffset.between(seg.sleepStart, and: session.startDate, fallback: 0)),
+                endMs: max(0, MillisecondOffset.between(seg.sleepEnd, and: session.startDate, fallback: 0))
             )
         }
     }

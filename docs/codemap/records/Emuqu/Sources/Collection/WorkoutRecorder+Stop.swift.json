@@ -10,13 +10,14 @@
  "units": [
   {
    "key": "func WorkoutRecorder.stop()",
-   "hash": "37f4cc0d9612eb37",
-   "does": "Stops a recording workout: guards phase == .recording, opens a BackgroundTaskAssertion, sets phase .finalizing, tears down live services, captures the stop HR, gathers final RR points (streaming + Watch-routed + device fetch) into collectedPoints, cancels the strap HR subscription, finalizes/archives the session, runs post-finalize housekeeping (phase .finished), launches the detached HRR capture, and closes the log correlation scope.",
+   "hash": "52869c5afb0ccaf5",
+   "does": "Stops a recording workout: guards phase == .recording, opens a BackgroundTaskAssertion, sets phase .finalizing, tears down live services, ends a pause still open at the stop (so a workout stopped while paused saves that pause with the others), captures the stop HR, gathers final RR points (streaming + Watch-routed + device fetch) into collectedPoints, cancels the strap HR subscription, finalizes, settles phase and archive, launches the detached HRR capture/re-archive, then ends the workout correlation scope.",
    "entry": "Called from FitnessTabView.swift:280 (user End/Hold-to-end) and AppLaunchTasks.swift:69 (Watch/remote stop command).",
    "calls": [
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::init BackgroundTaskAssertion(name:onExpire:)",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.tearDownLiveWorkoutServices()",
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.resume(now:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.heartRateAtStop()",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.gatherFinalRRPoints(stopDate:)",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.cancelStrapSubscriptionsAfterStop()",
@@ -30,6 +31,7 @@
    ],
    "writes": [
     "mem:WorkoutLifecycle.phase",
+    "mem:WorkoutLifecycle.pauseTimeline",
     "mem:WorkoutRecorder.collectedPoints"
    ],
    "branches": [
@@ -40,14 +42,15 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.resume(now:)": "d35589150542c007",
     "Emuqu/Sources/Collection/WorkoutRecorder+Correlation.swift::func WorkoutRecorder.endWorkoutCorrelation()": "84f7c4caabadee5f",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.cancelStrapSubscriptionsAfterStop()": "0b417a80cb07c4d5",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.gatherFinalRRPoints(stopDate:)": "fb9d9dd7f8dd17c1",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.heartRateAtStop()": "f27ae037de2a946e",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.launchHRRCaptureAndRearchive(stopDate:endHR:finished:)": "8f316c1cf6656588",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.launchHRRCaptureAndRearchive(stopDate:endHR:finished:)": "1cb2758726692616",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.runFinalize(rrPoints:stopDate:startedAt:)": "a78690175bccb371",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.settleAfterFinalize(finished:startedAt:)": "282e41d720ea792e",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.tearDownLiveWorkoutServices()": "96030f9a25d915d1",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.tearDownLiveWorkoutServices()": "e754df9f6a31ece8",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "1594d0dd9fa6bbb7",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::func BackgroundTaskAssertion.end()": "12e7c44b52c0986c",
     "Emuqu/Sources/Utilities/BackgroundTaskAssertion.swift::init BackgroundTaskAssertion(name:onExpire:)": "b9d2438378adf1ed",
@@ -104,7 +107,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.archiveBreadcrumbTrailIfNeeded(finished:)": "34bd0ca2ce4e37f0",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.chargeStrapBatteryUsage()": "c31357fe54f33478",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.disconnectFootPodPostWorkout()": "29bef757ae0c8830",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.resetRecorderStateAfterStop()": "1a3e4292236ded12",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.resetRecorderStateAfterStop()": "6817b2f392e356e8",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.finishedSession": "fc196babd06023bb",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "1594d0dd9fa6bbb7",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
@@ -154,12 +157,12 @@
   },
   {
    "key": "func WorkoutRecorder.tearDownLiveWorkoutServices()",
-   "hash": "2ae55ed39daba365",
-   "does": "Tears down live services at stop: invalidates the tick timer, stops GPS tracking and the pedometer, stops the Zwift BLE advertisement, ends the Watch's HKWorkoutSession, stores the live broker's last snapshot in liveSnapshotAtStop then clears the broker, releases cue audio and stops the diagnostics sampler. Voice conversation is deliberately left running.",
+   "hash": "0c00d0ca11d306f4",
+   "does": "Tears down live services at stop: invalidates the tick timer, stops GPS tracking when the location stack exists (an indoor workout does not build it to stop it) and the pedometer, stops the Zwift BLE advertisement, ends the Watch's HKWorkoutSession, stores the live broker's last snapshot in liveSnapshotAtStop then clears the broker, releases cue audio and stops the diagnostics.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::func WorkoutRecorder.stopTicker()",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.stopTracking()",
     "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.stop()",
     "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.stopBroadcasting()",
@@ -183,14 +186,14 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.clear()": "cd874b05e5857239",
+    "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.clear()": "f4a0f0b689c39cd6",
     "Emuqu/Sources/Assistant/Context/LiveWorkoutBroker.swift::func LiveWorkoutBroker.currentSnapshot()": "651137401d46dc0d",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.stopTracking()": "b2fc71db14e806f5",
     "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.stop()": "50c01485855cb546",
     "Emuqu/Sources/Collection/WorkoutRecorder+Stop.swift::func WorkoutRecorder.releaseWorkoutCueAudioAndDiagnostics()": "b65e89dd0251b0b2",
     "Emuqu/Sources/Collection/WorkoutRecorder+TickerForwarding.swift::func WorkoutRecorder.stopTicker()": "3d6f2f3c8642c4d7",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "bf6480b3ac06b1d3",
-    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.stopBroadcasting()": "f9978354ce61985e",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c",
+    "Emuqu/Sources/Collection/ZwiftPeripheralBroadcaster.swift::func ZwiftPeripheralBroadcaster.stopBroadcasting()": "e0499216657110ef",
     "Emuqu/Sources/Services/WatchConnectivityBridge.swift::func WatchConnectivityBridge.stopWatchWorkoutSession()": "7b51894f0b6945d7",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.assistant": "37b2433c11a492ab",
     "Emuqu/Sources/Utilities/AppDependencies.swift::var AppDependencies.collection": "b6968322aeafde97",
@@ -327,13 +330,13 @@
   },
   {
    "key": "func WorkoutRecorder.resetRecorderStateAfterStop()",
-   "hash": "48d7528641bb3109",
-   "does": "Resets per-workout state after finalize: clears currentSession, sessionStartDate, elapsedSeconds, workoutHR, motion, lastIngestedPointCount, location (track), pedometer, targetZone and the interval controller.",
+   "hash": "478acca0fd70c5e7",
+   "does": "Resets per-workout state after finalize: clears currentSession, sessionStartDate, elapsedSeconds, workoutHR, motion, lastIngestedPointCount, location (track, when the location stack exists), pedometer, targetZone and the interval controller.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutHR.swift::func WorkoutHR.reset()",
     "Emuqu/Sources/Collection/WorkoutMotion.swift::func WorkoutMotion.reset()",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation",
     "Emuqu/Sources/Collection/WorkoutLocationManager.swift::func WorkoutLocationManager.reset()",
     "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.reset()",
     "Emuqu/Sources/Collection/IntervalController.swift::func IntervalController.clear()"
@@ -359,7 +362,7 @@
     "Emuqu/Sources/Collection/WorkoutMotion.swift::func WorkoutMotion.reset()": "161a4f5782e0bfd1",
     "Emuqu/Sources/Collection/WorkoutPedometer.swift::func WorkoutPedometer.reset()": "2f0722d8fcf1ac06",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2",
-    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.location": "bf6480b3ac06b1d3",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.targetZone": "ad7f41a3d1b733bb"
    }
   },

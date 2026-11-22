@@ -51,7 +51,7 @@
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.StartStamps.breakdown()": "e69fea2f84f7258b",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.StartStamps.mark(_:)": "7fdd2fad4a7c2e29",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.abandonFailedStart()": "fd4c674d2b0c517e",
-    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.applyStartParameters(thresholds:route:)": "94cd663ab6e3b76b",
+    "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.applyStartParameters(thresholds:route:)": "cad0233730cf4b0a",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.beginPolarStreamingOrDefer(effectiveSource:workoutId:)": "0d774eb64f9595e2",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.bringUpRecording(session:sport:effectiveSource:intervalPlan:stamps:)": "c8ab98c68fa96654",
     "Emuqu/Sources/Collection/WorkoutRecorder+Start.swift::func WorkoutSessionLifecycle.guardStartablePhase()": "9a3b209a0cd52fc7",
@@ -235,8 +235,8 @@
   },
   {
    "key": "func WorkoutSessionLifecycle.applyStartParameters(thresholds:route:)",
-   "hash": "10410f0c72484bdd",
-   "does": "After every step of start() that can throw: clears the previous workout's finishedSession, stores the thresholds (resetting breach counters), the planned route, the auto-detected flag and the route-detection schedule (nextRouteDetectionAtMeters = 0).",
+   "hash": "bae77045ca7435d3",
+   "does": "After every step of start() that can throw: clears the previous workout's finishedSession, stores the thresholds (resetting breach counters), the planned route, the auto-detected flag, the route-detection schedule (nextRouteDetectionAtMeters = 0) and drops the previous workout's grade memo.",
    "entry": null,
    "calls": [],
    "reads": [],
@@ -246,7 +246,8 @@
     "mem:WorkoutRecorder.thresholdBreachSec",
     "mem:WorkoutRecorder.plannedRoute",
     "mem:WorkoutRecorder.plannedRouteWasAutoDetected",
-    "mem:WorkoutRecorder.nextRouteDetectionAtMeters"
+    "mem:WorkoutRecorder.nextRouteDetectionAtMeters",
+    "mem:WorkoutRecorder.gradeMemo"
    ],
    "branches": [],
    "deps": {
@@ -1032,13 +1033,14 @@
   },
   {
    "key": "func WorkoutSessionLifecycle.pause(isAuto:)",
-   "hash": "4ff08c601cf93649",
-   "does": "Soft pause: only while recording and not paused; sets isPaused/autoPaused, snapshots pedometer/foot-pod distance into the paused ledger, opens a pause in the timeline, pauses location accumulation, resets auto-pause detector.",
+   "hash": "146d9c098f73277b",
+   "does": "Soft pause: only while recording and not paused; sets isPaused/autoPaused, snapshots pedometer/foot-pod distance into the paused ledger, opens a pause in the timeline, pauses location accumulation when the location stack exists (an indoor workout never builds it to pause it), resets auto-pause detector.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.pause(pedometer:footPod:)",
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.pause(atElapsed:now:)",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.footPodDistanceMeters()",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation",
     "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.reset()"
    ],
    "reads": [
@@ -1070,19 +1072,21 @@
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.footPodDistanceMeters()": "77948665d3827df7",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.elapsedSeconds": "fb3befe44f6b33c2",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "1594d0dd9fa6bbb7",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c",
     "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.reset()": "98b8cbcdb3d4ff7c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func WorkoutSessionLifecycle.resume()",
-   "hash": "975671e9323328d4",
-   "does": "Resume: only while recording and paused; clears pause flags, closes the paused-motion ledger and timeline pause, unpauses location, resets auto-pause detector.",
+   "hash": "424764999301924f",
+   "does": "Resume: only while recording and paused; clears pause flags, closes the paused-motion ledger and timeline pause, unpauses location when the location stack exists, resets auto-pause detector.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.resume(pedometer:footPod:)",
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PauseTimeline.resume(now:)",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.footPodDistanceMeters()",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation",
     "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.reset()"
    ],
    "reads": [
@@ -1112,6 +1116,7 @@
     "Emuqu/Sources/Collection/WorkoutLifecycle.swift::func PausedMotionLedger.resume(pedometer:footPod:)": "d8a69cfb8a798a87",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::func WorkoutRecorder.footPodDistanceMeters()": "77948665d3827df7",
     "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.phase": "1594d0dd9fa6bbb7",
+    "Emuqu/Sources/Collection/WorkoutRecorder.swift::var WorkoutRecorder.startedLocation": "25e2f4528c9c478c",
     "Emuqu/Sources/Collection/WorkoutTickState.swift::func AutoPauseDetector.reset()": "98b8cbcdb3d4ff7c",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
