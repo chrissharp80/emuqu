@@ -514,11 +514,16 @@ extension ArchiveMigrations {
     }
 
     /// The keeper's notes with a retired copy's: the copy's when the keeper
-    /// has none, both, blank-line apart, when they differ.
+    /// has none, both, blank-line apart, when they differ. Unchanged when the
+    /// keeper's paragraphs already hold the copy's notes whole: a copy whose
+    /// file could not be moved is carried again on the next pass, and its
+    /// notes must not be appended a second time.
     static func mergedNotes(_ keeper: String?, _ loser: String?) -> String? {
         guard let loser, !loser.isEmpty, loser != keeper else { return keeper }
         guard let keeper, !keeper.isEmpty else { return loser }
-        return keeper + "\n\n" + loser
+        let separator = "\n\n"
+        guard !(separator + keeper + separator).contains(separator + loser + separator) else { return keeper }
+        return keeper + separator + loser
     }
 
     /// Move each duplicate's file into QuarantinedDuplicates/, returning where

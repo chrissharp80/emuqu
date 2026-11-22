@@ -423,7 +423,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "6fddb773bce74148",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "08f434f5bf61f50e",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "eff72e3d17da1100",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard": "165d82ae51eae938",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.settings": "2b1092edf8100687",
@@ -574,15 +574,14 @@
   },
   {
    "key": "var CloudKitSyncManager.hasAccountBookkeeping",
-   "hash": "3df33849e5c3ec5a",
-   "does": "True when any sync bookkeeping is held: an uploaded or pending id, the zone-created flag, or a last sync date.",
+   "hash": "992a97e7ca53f988",
+   "does": "True when sync bookkeeping that belongs to an account is held: an uploaded id, the zone-created flag, or a last sync date. The pending-upload queue is not counted.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.zoneCreated"
    ],
    "reads": [
     "mem:CloudKitSyncState.uploadedSessionIds",
-    "mem:CloudKitSyncState.pendingUploadIds",
     "ud:UserDefaultsKeys.cloudKitZoneCreated",
     "mem:CloudKitSyncManager.lastSyncDate"
    ],
@@ -615,7 +614,7 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.isHealthKitSourced(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard",
     "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()",
@@ -675,13 +674,13 @@
    "deps": {
     "Emuqu/Sources/Analysis/LiveReadiness.swift::func WorkoutDescriptorCopy.sessionType(_:)": "a913ad922e4b6def",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archivedId(of:)": "c3d7b32f9870de81",
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "6fddb773bce74148",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "08f434f5bf61f50e",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadOne(_:)": "2dc66a05014ab1e1",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard": "165d82ae51eae938",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "c183270cf259e429",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "271213db35c3c82e",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)": "c8d3ddb59d2e3d94"
+    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)": "c8d3ddb59d2e3d94",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.isHealthKitSourced(_:)": "101dcb3d67063c3a"
    }
   },
   {
@@ -720,14 +719,14 @@
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.ensureZoneExists()": "abab41edf9cbe471",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.prepareUploadOffMain(sessionId:)": "f67a85995fb3cfe4",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.handleUploadError(_:sessionId:)": "cc9381b9e5c3e3ca",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.saveUploadRecord(_:sessionId:)": "39ea627fc5420ddd",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.saveUploadRecord(_:sessionId:)": "cec78540aa5774bf",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
    "key": "func CloudKitSyncManager.saveUploadRecord(_:sessionId:)",
-   "hash": "09d1c0d1415b98c9",
-   "does": "Saves one record; on success marks uploaded, remembers the saved record's change tag, clears the trash-restore mark and writes sync_state.json and record_versions.json; a serverRecordChanged goes to resolveDirectConflict; other errors rethrow.",
+   "hash": "7978792d9bf8c159",
+   "does": "Saves one record; on success, unless the account is no longer confirmed when the save returns (then nothing is marked), marks uploaded, remembers the saved record's change tag, clears the trash-restore mark and writes sync_state.json and record_versions.json; a serverRecordChanged goes to resolveDirectConflict; other errors rethrow.",
    "entry": null,
    "calls": [
     "ext:CKDatabase.save(CKRecord)",
@@ -736,9 +735,13 @@
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore",
     "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.clear(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resolveDirectConflict(_:record:sessionId:)"
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resolveDirectConflict(_:record:sessionId:)",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed"
    ],
-   "reads": [],
+   "reads": [
+    "ud:cloudkit.accountIdentity",
+    "mem:CloudAccountIdentity.launch (confirmed, accountChanged, generation)"
+   ],
    "writes": [
     "ck:HRVSession record",
     "mem:CloudKitSyncState.uploadedSessionIds",
@@ -750,19 +753,25 @@
    ],
    "branches": [
     {
-     "at": "+7",
+     "at": "+3",
+     "cond": "account not confirmed when the save returned",
+     "effect": "return; nothing marked"
+    },
+    {
+     "at": "+8",
      "cond": "save throws CKError .serverRecordChanged",
      "effect": "resolveDirectConflict; other errors propagate to uploadOne"
     }
    ],
    "deps": {
     "Emuqu/Sources/Analysis/LiveDFAAnalyzer.swift::var LiveDFAAnalyzer.Status.code": "e5edf60ecec16693",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::var CloudAccountIdentity.isConfirmed": "80bbf49d58eb35ac",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.resolveDirectConflict(_:record:sessionId:)": "d20e0f55ec78f98e",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.privateDB": "d37a3ba79fd481d8",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.trashRestore": "846eb44c87bef476",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markUploaded(_:)": "98960771cca73957",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.noteRecordVersion(_:of:)": "67ad5852adb1be04",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "127a86f7e860268d",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "e40f54cf139e488a",
     "Emuqu/Sources/Storage/TrashRestoreCoordinator.swift::func TrashRestoreCoordinator.clear(_:)": "cfe6320b1277c544"
    }
   },
@@ -866,7 +875,7 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "6fddb773bce74148",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "08f434f5bf61f50e",
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.scrubInPlace()": "5c710d70b1d54ef4",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard": "165d82ae51eae938",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.healthScrub": "d17f690cce688c93",
@@ -960,8 +969,8 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.resolveConflict(_:prepared:sessionId:)": "5d309b03b5fe9f6b",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "127a86f7e860268d"
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.resolveConflict(_:prepared:sessionId:)": "8d027b5fad9cc37f",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "e40f54cf139e488a"
    }
   },
   {
@@ -995,7 +1004,7 @@
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.flagSchemaUnavailable(reason:)": "6fe5c2e2d14e16e4",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.isPermanentSchemaError(_:)": "74297ef5c534df6c",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markFailed(_:)": "4d8e04b085e6978e",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueueAsync()": "944b5b68fbd5fec8"
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.savePendingQueueAsync()": "fe140295d9f8992f"
    }
   },
   {
@@ -1054,9 +1063,9 @@
    "branches": [],
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSessionFreshness.swift::func CloudKitSessionFreshness.stampEdit(of:in:)": "d7ecd899f3cb0480",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "1aa026e4481155fe",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "edd8e1a85c8dc3b3",
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "271213db35c3c82e",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "127a86f7e860268d",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "e40f54cf139e488a",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)": "c8d3ddb59d2e3d94"
    }
   },
@@ -1142,7 +1151,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.markRemoved(_:)": "271213db35c3c82e",
-    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "127a86f7e860268d",
+    "Emuqu/Sources/Storage/CloudKitSyncState.swift::func CloudKitSyncState.saveSyncStateAsync()": "e40f54cf139e488a",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)": "c8d3ddb59d2e3d94",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
@@ -1150,7 +1159,7 @@
   {
    "key": "func CloudKitSyncManager.uploadDeletion(_:)",
    "hash": "3474c95958d313af",
-   "does": "If uploads are allowed (sync on and onboarding finished), serially, once uploads are still allowed and the iCloud account is confirmed, forwards a session soft-delete (tombstone) to CloudDeletionCoordinator.performUploadDeletion.",
+   "does": "If uploads are allowed (cloudUploadsAllowed: sync on, onboarding finished, no Delete All My Data running), serially, once uploads are still allowed and the iCloud account is confirmed, forwards a session soft-delete (tombstone) to CloudDeletionCoordinator.performUploadDeletion.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed",
@@ -1180,10 +1189,10 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "6fddb773bce74148",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.confirmAccount()": "08f434f5bf61f50e",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.performUploadDeletion(sessionId:)": "4a085168eb2a07c5",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.accountGuard": "165d82ae51eae938",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "4262f41e6c652648",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.cloudUploadsAllowed": "c183270cf259e429",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.deletion": "3b5fbf88f40204e7",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)": "c8d3ddb59d2e3d94"
    }
@@ -1225,14 +1234,14 @@
     }
    ],
    "deps": {
+    "Emuqu/Sources/Services/PurgeGate.swift::var PurgeGate.isPurging": "e50d4ba69a9f521d",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.fullSyncSkipReason()": "c5ec5daa388c259a",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSyncBody()": "947f7cdae4ada105",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSyncBody()": "2489e39dcf2616b2",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.settings": "2b1092edf8100687",
     "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func SyncSerializer.run(_:)": "c8d3ddb59d2e3d94",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b",
     "Emuqu/Sources/Utilities/LogCorrelation.swift::func LogCorrelation.begin(_:)": "947ad7cda6e5375d",
-    "Emuqu/Sources/Utilities/LogCorrelation.swift::func LogCorrelation.end(_:)": "412bab2c7229de7f",
-    "Emuqu/Sources/Services/PurgeGate.swift::var PurgeGate.isPurging": "e50d4ba69a9f521d",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.settings": "2b1092edf8100687"
+    "Emuqu/Sources/Utilities/LogCorrelation.swift::func LogCorrelation.end(_:)": "412bab2c7229de7f"
    }
   },
   {
@@ -1306,14 +1315,15 @@
   },
   {
    "key": "func CloudKitSyncManager.performFullSyncBody()",
-   "hash": "3ca27ddce56fb444",
-   "does": "Sets syncState .syncing and syncingStartedAt, runs the phases under the watchdog (they confirm the account and run the health-scrub drip first), then finishes success; a Halt.stopped failure (sync stopped for this account, its message already shown) is only logged; any other failure sets .error with the mapped message; clears syncingStartedAt.",
+   "hash": "660ef26fad922cbe",
+   "does": "Sets syncState .syncing and syncingStartedAt, runs the phases under the watchdog (they confirm the account first and again before the deletions and the pull), then finishes success; a Halt.stopped failure (sync stopped for this account, its message already shown) is only logged; any other failure sets .error with the mapped message. A run that leaves syncState at .syncing (sync turned off while it ran, or a stop with no notice) sets it .idle; clears syncingStartedAt.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.runSyncPhases()",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.finishSuccessfulSync(pushed:startedAt:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cloudKitErrorMessage(_:)",
-    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)"
+    "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.endSyncBody()"
    ],
    "reads": [],
    "writes": [
@@ -1339,15 +1349,38 @@
    ],
    "deps": {
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.cloudKitErrorMessage(_:)": "99be467b99e29773",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.endSyncBody()": "a0fe208d62b3b58c",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.finishSuccessfulSync(pushed:startedAt:)": "56f13dc9b703db7c",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.runSyncPhases()": "7d99791918350c40",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.runSyncPhases()": "b717dd3494a4c984",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)": "55e8528fd6a5e04b"
    }
   },
   {
+   "key": "func CloudKitSyncManager.endSyncBody()",
+   "hash": "9787891ba40665b6",
+   "does": "Sets syncState .idle when it is still .syncing, then clears syncingStartedAt.",
+   "entry": null,
+   "calls": [],
+   "reads": [
+    "mem:CloudKitSyncManager.syncState"
+   ],
+   "writes": [
+    "mem:CloudKitSyncManager.syncState",
+    "mem:CloudKitSyncManager.syncingStartedAt"
+   ],
+   "branches": [
+    {
+     "at": "+1",
+     "cond": "still .syncing",
+     "effect": ".idle"
+    }
+   ],
+   "deps": {}
+  },
+  {
    "key": "func CloudKitSyncManager.runSyncPhases()",
-   "hash": "1fce3fde6af13f81",
-   "does": "Under the no-progress watchdog: confirm the iCloud account (requireConfirmedAccount, throwing Halt otherwise), run the health-scrub drip (re-marks a batch of uploaded sessions), ensure zone, push pending, reconcile local deletions, pull remote changes (with cancellation checks after push and reconcile); returns afterUploaded - beforeUploaded, which also counts sessions the pull re-marks as uploaded, so the logged 'pushed' figure is not only pushes.",
+   "hash": "d3c44eaad8fb0116",
+   "does": "Under the no-progress watchdog: confirm the iCloud account (requireConfirmedAccount, throwing Halt otherwise), run the health-scrub drip (re-marks a batch of uploaded sessions), ensure zone, push pending, then (after a cancellation check) confirm the account again and reconcile local deletions, then (after another cancellation check) confirm it again and pull remote changes — a sync stopped partway or an account change ends at the next check; returns afterUploaded - beforeUploaded, which also counts sessions the pull re-marks as uploaded, so the logged 'pushed' figure is not only pushes.",
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.withProgressWatchdog(stuckAfter:operation:)",
@@ -1372,7 +1405,7 @@
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.requireConfirmedAccount()": "bcf9483434948912",
+    "Emuqu/Sources/Storage/CloudAccountIdentity.swift::func CloudAccountGuard.requireConfirmedAccount()": "d43a2836062707a1",
     "Emuqu/Sources/Storage/CloudHealthScrubCoordinator.swift::func CloudHealthScrubCoordinator.dripReupload()": "a02c3bd093841b42",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Deletion.swift::func CloudDeletionCoordinator.reconcileLocalDeletions()": "0a25fbe977455468",
     "Emuqu/Sources/Storage/CloudKitSyncManager+Push.swift::func CloudKitSyncManager.ensureZoneExists()": "abab41edf9cbe471",

@@ -170,7 +170,8 @@ private func clearOnceParkedCopiesAreEncrypted(_ id: UUID, in archive: SessionAr
 /// Rewrite a Trash or quarantine copy encrypted, in place, unless it already
 /// is. Under `archiveLock`, which `delete` holds while it moves a file into
 /// the Trash, so a newer copy is not overwritten with these bytes. False when
-/// it could not be read, encrypted or written.
+/// it could not be read, encrypted or written, the write refused while
+/// "Delete All My Data" runs (`PurgeGate`) included.
 private func reencryptParkedCopy(_ url: URL, id: UUID, in archive: SessionArchive) -> Bool {
     archive.archiveLock.lock()
     defer { archive.archiveLock.unlock() }
@@ -178,7 +179,9 @@ private func reencryptParkedCopy(_ url: URL, id: UUID, in archive: SessionArchiv
         let stored = try Data(contentsOf: url)
         guard !ArchiveStore.looksEncrypted(stored) else { return true }
         let sealed = try AppDependencies.current.storage.encryptionManager.encrypt(ArchiveStore.plaintextBytes(stored, id: id))
-        try sealed.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        try PurgeGate.admitWrite {
+            try sealed.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        }
         return true
     } catch {
         debugLog("[Archive] re-encryption deferred for \(url.lastPathComponent): \(error)", level: .warning)

@@ -206,7 +206,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptArchived(_:in:)": "34c0d7e7f4546552",
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptParkedCopy(_:id:in:)": "702713911178271b",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptParkedCopy(_:id:in:)": "e48f5326dcbbb248",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.wasIntentionallyDeleted(_:)": "0fcaeb8ff266a299",
     "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.parkedCopies(of:)": "824b945ef63af701",
@@ -292,15 +292,15 @@
     }
    ],
    "deps": {
-    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptParkedCopy(_:id:in:)": "702713911178271b",
+    "Emuqu/Sources/Storage/Archive+PendingEncryption.swift::func reencryptParkedCopy(_:id:in:)": "e48f5326dcbbb248",
     "Emuqu/Sources/Storage/Archive+Trash.swift::func ArchiveStore.parkedCopies(of:)": "824b945ef63af701",
     "Emuqu/Sources/Storage/PendingEncryptionLedger.swift::func PendingEncryptionLedger.clear(_:)": "d45edfb391017e71"
    }
   },
   {
    "key": "func reencryptParkedCopy(_:id:in:)",
-   "hash": "3dfc96a701f1f0c7",
-   "does": "Under archiveLock (so delete cannot move a newer copy into the Trash between the read and the write): reads a Trash or quarantine copy, and unless it already carries the encrypted 'FR' prefix, resolves its plaintext (ArchiveStore.plaintextBytes), encrypts it with AppDependencies.current.storage.encryptionManager and writes it back atomically with until-first-unlock protection. True when it is encrypted afterwards; false, logged, when the read, encrypt or write threw. Does not touch the ledger.",
+   "hash": "8d241c44de7f04ac",
+   "does": "Under archiveLock (so delete cannot move a newer copy into the Trash between the read and the write): reads a Trash or quarantine copy, and unless it already carries the encrypted 'FR' prefix, resolves its plaintext (ArchiveStore.plaintextBytes), encrypts it with AppDependencies.current.storage.encryptionManager and writes it back atomically with until-first-unlock protection through PurgeGate.admitWrite. True when it is encrypted afterwards; false, logged, when the read, encrypt or write threw, or the write was refused while Delete All My Data runs. Does not touch the ledger.",
    "entry": null,
    "calls": [
     "ext:NSLock",
@@ -308,11 +308,13 @@
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
     "Emuqu/Sources/Utilities/DebugLog.swift::func debugLog(_:level:file:line:)",
-    "ext:Data.write(to:options:)"
+    "ext:Data.write(to:options:)",
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)"
    ],
    "reads": [
     "file:<archiveDirectory>/Trash/<uuid>.session",
-    "file:<archiveDirectory>/QuarantinedDuplicates/<uuid>[.<stamp>].json"
+    "file:<archiveDirectory>/QuarantinedDuplicates/<uuid>[.<stamp>].json",
+    "mem:PurgeGate.state"
    ],
    "writes": [
     "file:<archiveDirectory>/Trash/<uuid>.session",
@@ -325,12 +327,13 @@
      "effect": "nothing written; true"
     },
     {
-     "at": "+9",
-     "cond": "read, decrypt-resolve, encrypt or write threw",
+     "at": "+11",
+     "cond": "read, decrypt-resolve, encrypt or write threw, or PurgeGate refused the write",
      "effect": "log warning, false"
     }
    ],
    "deps": {
+    "Emuqu/Sources/Services/PurgeGate.swift::func PurgeGate.admitWrite(_:)": "332fae95769af5cb",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.looksEncrypted(_:)": "d617abae8ea527b1",
     "Emuqu/Sources/Storage/Archive+Internal.swift::func ArchiveStore.plaintextBytes(_:id:)": "0b3ffc735a23d053",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1",

@@ -88,13 +88,13 @@
    "does": "Claims: one iOS target, one watchOS target, two test targets; no backend and nothing sent to the developer; lists every network destination (user-consented cloud AI providers, Tavily, Anthropic server-side web search, MET Norway at ~1 km rounding, Overpass/OSM, Apple geocoder and MKLocalSearch, OpenTopoData, Hugging Face WhisperKit download, CloudKit (off by default, encrypted on device, Apple Health data excluded), Apple server speech recognizer, StoreKit). The CloudKit Health-data exclusion is implemented by CloudSessionPayload.uploadable (CloudKitSyncSupport.swift:564-581); the no-developer-endpoint claim is policed by scripts/check_no_developer_endpoint.sh (ci.yml:177). Individual endpoints other than CloudKit were not traced here.",
    "entry": null,
    "calls": [
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)"
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)"
    ],
    "reads": [],
    "writes": [],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074"
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074"
    }
   },
   {
@@ -549,7 +549,7 @@
    "entry": null,
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)",
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)"
    ],
    "reads": [],
@@ -558,7 +558,7 @@
    "deps": {
     "Emuqu/Sources/Analysis/RecoveryScoreCalculator+Composite.swift::func RecoveryScoreCalculator.toTenScale(_:)": "8c51c557b70ca4c0",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieveLightweight(_:)": "917ec504a26a996e",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074"
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074"
    }
   },
   {
@@ -730,7 +730,7 @@
    "calls": [
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)",
     "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()",
@@ -744,9 +744,9 @@
     "Emuqu/Sources/Storage/Archive+MigrationForwarding.swift::func SessionArchive.runDeferredMigrations()": "533489add6f1c58a",
     "Emuqu/Sources/Storage/Archive+Migrations.swift::func ArchiveMigrations.runDeferredMigrations()": "d25458414f1bd37b",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "e1168fc765a065fb",
-    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "1aa026e4481155fe",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.performFullSync()": "eff72e3d17da1100",
+    "Emuqu/Sources/Storage/CloudKitSyncManager.swift::func CloudKitSyncManager.uploadSession(_:)": "edd8e1a85c8dc3b3",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
     "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "b4d5293d92fd3be4",
     "Emuqu/Sources/Storage/EncryptionManager.swift::func EncryptionManager.encrypt(_:)": "8088dee0273d26d1"
    }
@@ -1064,7 +1064,7 @@
    "calls": [
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)",
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)",
     "Tools/copy_linter/lint.py::def main"
    ],
    "reads": [],
@@ -1073,7 +1073,7 @@
    "deps": {
     "Emuqu/Sources/Assistant/Context/AssistantContext.swift::func AssistantContext.renderLiveStateForCloud(now:)": "212ef74d72560eb7",
     "Emuqu/Sources/Assistant/Keys/APIKeyStore.swift::func APIKeyStore.setKey(_:for:)": "b26556448903f9ff",
-    "Emuqu/Sources/Storage/CloudKitSyncSupport.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
+    "Emuqu/Sources/Storage/CloudSessionPayload.swift::func CloudSessionPayload.uploadable(_:)": "25dedb1068086074",
     "Tools/copy_linter/lint.py::def main": "f1369c29c82e9d5b"
    }
   },
