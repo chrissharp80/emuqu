@@ -206,7 +206,7 @@
    ],
    "deps": {
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
-    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "3ef2ebc5c8f9a73a",
+    "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:skipSameNightMerge:requestingReupload:)": "5dc05159bc65d04f",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.update(_:requestingReupload:_:)": "c2087a3a1b2029db",
     "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d"
    }
@@ -777,8 +777,8 @@
   },
   {
    "key": "func ArchiveIntegrityTests.testRepairPreservesEncryptedFileIntegrity()",
-   "hash": "c173377a4378876d",
-   "does": "Skips when encryption is unavailable; archives a session, asserts its file is encrypted, opens index.json (SessionArchive.indexJSON), overwrites the session's hash with zeros and writes it back as plain JSON, opens a fresh SessionArchive on the same directory, asserts retrieve throws, runs repairArchive (>0 recovered) and asserts retrieve then succeeds with the same id.",
+   "hash": "79f9125787829615",
+   "does": "Skips when encryption is unavailable; archives a session, asserts its file is encrypted, opens index.json (SessionArchive.indexJSON), overwrites the session's hash with zeros and writes it back as plain JSON, opens a fresh SessionArchive on the same directory, asserts retrieve throws, runs repairArchive, which must not throw (>0 recovered) and asserts retrieve then succeeds with the same id.",
    "entry": "XCTest runner: test method on an XCTestCase subclass",
    "calls": [
     "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)",
@@ -813,7 +813,7 @@
    "deps": {
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.indexJSON(_:)": "6b9b20505f4ffd9a",
     "Emuqu/Sources/Storage/Archive+IndexIO.swift::func SessionArchive.resolveFileURL(for:)": "245124c441f7143c",
-    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()": "c2062cc1de9004ba",
+    "Emuqu/Sources/Storage/Archive+Repair.swift::func SessionArchive.repairArchive()": "e98fb2919c182834",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.looksEncrypted(_:)": "4561fbf4c8aa1e85",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.archive(_:)": "6435e97b34aefc1f",
     "Emuqu/Sources/Storage/Archive.swift::func SessionArchive.retrieve(_:)": "c5c29c85cd1d718f",
@@ -1065,11 +1065,11 @@
    "deps": {
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.deleteWithoutTrash(_:)": "7f526b7970e30e76",
     "Emuqu/Sources/Storage/Archive+StoreForwarding.swift::func SessionArchive.exists(_:)": "f7ee994d806533c2",
-    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)": "c959bfe60e03edc3",
+    "Emuqu/Sources/Storage/CloudKitSyncManager+Pull.swift::func CloudPullCoordinator.processRemoteRecord(_:forgotten:)": "df67e29f7a5a8f92",
     "Emuqu/Sources/Storage/CloudKitSyncManager.swift::var CloudKitSyncManager.pull": "7cdf1d4648fc6bf2",
     "Emuqu/Sources/Utilities/Errors.swift::func attempt(_:file:line:_:)": "98daf5fe7ae40cc6",
     "EmuquTests/ArchiveIntegrityTests+Codec.swift::func ArchiveIntegrityTests.createTestSession(startDate:sessionType:ansMetrics:)": "5fcb24d5e2e7351d",
-    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.liveRecord(of:)": "1d825ca878eb0d1b"
+    "EmuquTests/ArchiveIntegrityTests.swift::func ArchiveIntegrityTests.liveRecord(of:)": "874c0780f1699c5c"
    }
   },
   {
@@ -1210,10 +1210,11 @@
   },
   {
    "key": "func ArchiveIntegrityTests.liveRecord(of:)",
-   "hash": "476f246fb54ab49a",
-   "does": "An HRVSession CKRecord (test zone) whose sessionData asset is the session JSON (iso8601) compressed and sealed with CloudPayloadCodec.sealForUpload, written to <archiveDirectory>/<id>.asset: the record a device that still held the session would upload.",
+   "hash": "e1630a0c8b2fe527",
+   "does": "Stands in for a confirmed iCloud account (standInForConfirmedICloudAccount, restored at teardown), then builds an HRVSession CKRecord (test zone) whose sessionData asset is the session JSON (iso8601) compressed and sealed with CloudPayloadCodec.sealForUpload, written to <archiveDirectory>/<id>.asset: the record a device that still held the session would upload.",
    "entry": null,
    "calls": [
+    "EmuquTests/CloudPayloadCodecTests.swift::func XCTestCase.standInForConfirmedICloudAccount()",
     "ext:JSONEncoder",
     "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)",
     "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)",
@@ -1224,12 +1225,15 @@
     "kc:CloudPayloadCodec key"
    ],
    "writes": [
-    "file:<archiveDirectory>/<id>.asset"
+    "file:<archiveDirectory>/<id>.asset",
+    "ud:cloudkit.accountIdentity",
+    "mem:CloudAccountIdentity.launch"
    ],
    "branches": [],
    "deps": {
-    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)": "88b5cfd374d70c6c",
-    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "b4d5293d92fd3be4"
+    "Emuqu/Sources/Storage/CloudPayloadCodec.swift::func CloudPayloadCodec.sealForUpload(_:)": "dc014259171401bf",
+    "Emuqu/Sources/Storage/DataCompression.swift::func DataCompression.compress(_:)": "b4d5293d92fd3be4",
+    "EmuquTests/CloudPayloadCodecTests.swift::func XCTestCase.standInForConfirmedICloudAccount()": "fe57f6fa0a25fa72"
    }
   }
  ],

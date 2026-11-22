@@ -543,4 +543,73 @@ final class CloudKitSyncManagerTests: XCTestCase {
         let outer = CKError(_nsError: outerNSError)
         XCTAssertTrue(CloudKitSyncManager.isPermanentSchemaError(outer))
     }
+
+    // MARK: - Which iCloud account the bookkeeping belongs to
+
+    private func verdict(
+        recorded: String?, current: String = "account-b", syncEnabled: Bool = true, stoppedByApp: Bool = false,
+        accountChanged: Bool = false, hasBookkeeping: Bool = true
+    ) -> CloudAccountIdentity.Verdict {
+        CloudAccountIdentity.verdict(
+            recorded: recorded, current: current, syncEnabled: syncEnabled, stoppedByApp: stoppedByApp,
+            accountChangedThisLaunch: accountChanged, hasBookkeeping: hasBookkeeping
+        )
+    }
+
+    /// A different Apple ID than the one sync was enabled for stops sync; the
+    /// same one syncs on, an account change or not.
+    func testADifferentAccountIsNeverSyncedInto() {
+        XCTAssertEqual(verdict(recorded: "account-a"), .differentAccount)
+        XCTAssertEqual(verdict(recorded: "account-a", accountChanged: true, hasBookkeeping: false), .differentAccount)
+        XCTAssertEqual(verdict(recorded: "account-b", accountChanged: true), .sameAccount)
+    }
+
+    /// An install from before the account was recorded adopts the signed-in
+    /// account, unless the account status changed this launch while its
+    /// bookkeeping remains: that bookkeeping may be another Apple ID's.
+    func testAnUnrecordedAccountIsAdoptedOnlyWhenTheBookkeepingCanBeAttributed() {
+        XCTAssertEqual(verdict(recorded: nil), .adopt)
+        XCTAssertEqual(verdict(recorded: nil, accountChanged: true, hasBookkeeping: false), .adopt)
+        XCTAssertEqual(verdict(recorded: nil, accountChanged: true), .differentAccount)
+    }
+
+    /// After the app stopped sync, nothing is adopted until the user turns
+    /// sync on again for the account now signed in.
+    func testAStoppedSyncWaitsForTheUserToOptIn() {
+        XCTAssertEqual(verdict(recorded: nil, syncEnabled: false, stoppedByApp: true, hasBookkeeping: false), .awaitingOptIn)
+        XCTAssertEqual(verdict(recorded: nil, syncEnabled: true, stoppedByApp: true, hasBookkeeping: false), .adopt)
+    }
+
+    /// A check that began before an account change confirms nothing, and an
+    /// account change drops the confirmation at once.
+    func testAnAccountChangeUnconfirmsTheAccount() {
+        let defaults = UserDefaults.standard
+        let recorded = CloudAccountIdentity.recordedAccount
+        let stopReason = defaults.string(forKey: CloudAccountIdentity.stopReasonKey)
+        defer {
+            if let recorded { defaults.set(recorded, forKey: CloudAccountIdentity.recordedKey) } else { defaults.removeObject(forKey: CloudAccountIdentity.recordedKey) }
+            if let stopReason { defaults.set(stopReason, forKey: CloudAccountIdentity.stopReasonKey) }
+            CloudAccountIdentity.revokeConfirmation()
+        }
+        XCTAssertTrue(CloudAccountIdentity.adopt("account-a", generation: CloudAccountIdentity.checkGeneration))
+        XCTAssertTrue(CloudAccountIdentity.isConfirmed)
+
+        let staleCheck = CloudAccountIdentity.checkGeneration
+        CloudAccountIdentity.noteAccountChanged()
+        XCTAssertFalse(CloudAccountIdentity.isConfirmed)
+        XCTAssertFalse(CloudAccountIdentity.confirm("account-a", generation: staleCheck))
+        XCTAssertFalse(CloudAccountIdentity.isConfirmed)
+        XCTAssertTrue(CloudAccountIdentity.confirm("account-a", generation: CloudAccountIdentity.checkGeneration))
+        XCTAssertTrue(CloudAccountIdentity.isConfirmed)
+        XCTAssertTrue(CloudAccountIdentity.confirm("account-b", generation: CloudAccountIdentity.checkGeneration))
+        XCTAssertFalse(CloudAccountIdentity.isConfirmed, "an account other than the recorded one counts as confirmed")
+    }
+
+    /// Only the not-signed-in line is cleared by the account-change handler,
+    /// recognised whatever language it was stored in.
+    func testOnlyTheNotSignedInLineIsRecognised() {
+        XCTAssertTrue(CloudSyncMessages.isNotSignedIn(CloudSyncMessages.notSignedIn))
+        XCTAssertFalse(CloudSyncMessages.isNotSignedIn(CloudSyncMessages.noInternet))
+        XCTAssertFalse(CloudSyncMessages.isNotSignedIn(nil))
+    }
 }

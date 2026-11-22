@@ -364,8 +364,22 @@ final class RawRRBackup: @unchecked Sendable {
     /// moment of this write: recovery uses it as the session start, and a
     /// write-time date moved a recovered night onto the morning it was backed
     /// up.
+    ///
+    /// On `appendQueue`, like every other change to a backup's files: a
+    /// re-seal (`RawBackupSealer.reencrypt`) or an append running alongside
+    /// could rewrite the file this replaces, or write a points file this
+    /// removes back as an orphan. The body is `backupOnAppendQueue`.
     @discardableResult
     func backup(points: [RRPoint], sessionId: UUID, deviceId: String? = nil, captureDate: Date? = nil) throws -> BackupEntry {
+        try appendQueue.sync {
+            try backupOnAppendQueue(points: points, sessionId: sessionId, deviceId: deviceId, captureDate: captureDate)
+        }
+    }
+
+    /// Body of `backup`, run on `appendQueue`; the re-seal, already there,
+    /// calls it directly (`SealableBackupStore`).
+    @discardableResult
+    func backupOnAppendQueue(points: [RRPoint], sessionId: UUID, deviceId: String?, captureDate: Date?) throws -> BackupEntry {
         guard !points.isEmpty else {
             throw BackupError.noDataToBackup
         }

@@ -546,12 +546,10 @@ extension EmuquApp {
     /// only on the coordinator's housekeeping gate (dashboard ready, or 6 s).
     /// Reason: a missing CloudKit zone makes every sync cycle fail with
     /// "Zone does not exist" for each pending session, hammering CPU +
-    /// battery. The zone recreate
-    /// (CloudKitSyncManager.recreateZoneAfterNotFound) needs to
-    /// actually RUN to heal that state. If we skip sync entirely
-    /// in LPM, the zone stays broken forever and the app stays
-    /// slow forever. After the heal, future syncs are cheap (no
-    /// errors to retry).
+    /// battery. The sync that finds it gone
+    /// (`CloudAccountGuard.zoneWasDeleted`) needs to actually RUN to stop
+    /// sync and say why. If we skip sync entirely in LPM, the failures
+    /// repeat forever and the app stays slow forever.
     ///
     /// Not before onboarding is finished: the Backup page is where the user
     /// says whether to sync, and a reinstall would pull its old sessions

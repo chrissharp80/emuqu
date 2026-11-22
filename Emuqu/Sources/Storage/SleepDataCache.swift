@@ -15,6 +15,13 @@ import Foundation
 /// sitting in UserDefaults — no poll, no wait.
 ///
 /// Entries are capped at `maxEntries` nights, oldest dropped first.
+///
+/// The nights are HealthKit sleep data, so the stored bytes are sealed with
+/// the app's key (`JSONFileSeal.app`), as the display cache and the archive
+/// are; UserDefaults goes into device backups. A store an older build wrote
+/// in plain JSON still reads, and the next write seals it. With no key
+/// reachable nothing is written: losing this cache costs only a fresh
+/// HealthKit query.
 enum SleepDataCache {
     /// Versioned with the way a night is computed: entries an older build
     /// wrote (v1: time in bed measured from the search window's start,
@@ -88,11 +95,11 @@ enum SleepDataCache {
 
     private static func loadStore() -> Store? {
         guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
-        return attempt("sleepDataCache.decode") { try JSONDecoder().decode(Store.self, from: data) }
+        return attempt("sleepDataCache.decode") { try JSONFileSeal.app.openJSON(Store.self, from: data, with: JSONDecoder()) }
     }
 
     private static func saveStore(_ store: Store) {
-        if let data = attempt("sleepDataCache.encode", { try JSONEncoder().encode(store) }) {
+        if let data = attempt("sleepDataCache.encode", { try JSONFileSeal.app.sealJSON(store, with: JSONEncoder()) }) {
             UserDefaults.standard.set(data, forKey: key)
         }
         retiredKeys.forEach(UserDefaults.standard.removeObject(forKey:))

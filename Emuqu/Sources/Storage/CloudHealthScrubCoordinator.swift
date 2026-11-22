@@ -140,8 +140,10 @@ struct CloudHealthScrubCoordinator {
         }
     }
 
-    /// Replace the record's payload with its own contents stripped, or delete
-    /// it when the session came out of Apple Health whole. The record keeps
+    /// Replace the record's payload with its own contents stripped, or remove
+    /// the payload and mark the record kept on device
+    /// (`CloudKitSyncManager.markKeptOnDevice`) when the session came out of
+    /// Apple Health whole. The record keeps
     /// its edit stamp; its new version is remembered here, so this device does
     /// not download its own rewrite, and each other device downloads it once
     /// (`CloudKitSessionFreshness.onTie`).
@@ -154,7 +156,7 @@ struct CloudHealthScrubCoordinator {
         if (record["isDeleted"] as? Int64) == 1 { return try await clearTombstonePayload(record) }
         guard let session = await Self.storedSession(in: record) else { return .finished }
         if CloudSessionPayload.isHealthKitSourced(session) {
-            try await manager.privateDB.deleteRecord(withID: record.recordID)
+            try await manager.markKeptOnDevice(record.recordID)
             manager.state.markLocalOnly(sessionId)
             await manager.state.saveLocalOnlyAsync()
             await manager.state.saveSyncStateAsync()
@@ -201,9 +203,13 @@ struct CloudHealthScrubCoordinator {
 
     /// The session a record holds; nil, logged, when this device cannot read
     /// it (sealed with another device's key, or damaged). The device that
-    /// wrote it rewrites it.
+    /// wrote it rewrites it. A record with no payload holds no reading to
+    /// strip, so it is finished too.
     private static func storedSession(in record: CKRecord) async -> HRVSession? {
-        guard let assetURL = (record["sessionData"] as? CKAsset)?.fileURL else { return nil }
+        guard let assetURL = (record["sessionData"] as? CKAsset)?.fileURL else {
+            debugLog("[CloudKit] Health scrub: \(record.recordID.recordName.prefix(8)) has no payload — nothing to strip")
+            return nil
+        }
         do {
             return try await Task.detached(priority: .utility) {
                 try CloudPullCoordinator.decodeSessionAsset(at: assetURL)
