@@ -48,12 +48,12 @@ extension TroubleshootingPage {
     }
 
     private var exportLogButton: some View {
-        FileShareButton(title: DiagnosticLogExport.title, makeFile: { try await DiagnosticLogExport.makeFile() }) {
+        FileShareButton(title: DiagnosticLogExport.title, makeFile: { try await DiagnosticLogExport.makeFile() }, label: {
             Label(
                 String(localized: "Export Diagnostic Log", bundle: LanguageManager.appBundle),
                 systemImage: "square.and.arrow.up"
             )
-        }
+        })
         .accessibilityHint(Text("Save a log file you can share with the developer.", bundle: LanguageManager.appBundle))
     }
 
